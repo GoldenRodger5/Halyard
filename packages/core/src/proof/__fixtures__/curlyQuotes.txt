@@ -1,0 +1,22 @@
+A real App Store review, as the platform actually renders it.
+
+The quotation marks below are genuine curly ones (U+201C, U+201D), not the
+straight ASCII ones an editor substitutes. That distinction is the entire
+reason this fixture exists: extractQuotes once had a character class written
+with literal curly quotes that had been normalised to straight ones, so it
+matched nothing and every quoted testimonial passed the gate unexamined.
+
+--- review ---
+“I have been baking gluten free for four years and this is the first app that told me why the vinegar matters.”
+
+--- the same words, straight quotes ---
+"I have been baking gluten free for four years and this is the first app that told me why the vinegar matters."
+
+--- a nested apostrophe, which must not terminate the quote ---
+“It saved my daughter’s birthday cake and I am not exaggerating.”
+
+--- the reversed-9 opener some exports produce ---
+‟The bread actually held together for the very first time.”
+
+--- too short to be a testimonial ---
+“1:1 blend”

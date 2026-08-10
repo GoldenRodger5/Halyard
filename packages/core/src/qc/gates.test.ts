@@ -3,9 +3,11 @@ import fixture from '../connectors/__fixtures__/recipeAdaptation.json' with { ty
 import {
   disclosureSatisfied,
   isBareHomepage,
+  looksUnextracted,
   requiresAiLabel,
   runAllGates,
   runDestinationQC,
+  slopFilter,
   suggestedDisclosure,
 } from './index.js';
 import { runVisualQC, VISION_RUBRIC, type MediaProbe } from './visualQC.js';
@@ -441,5 +443,111 @@ describe('destination gate', () => {
   it('fails outright when there is no destination', () => {
     const result = runDestinationQC({ ...base, destinationType: null, destinationUrl: null });
     expect(result.passed).toBe(false);
+  });
+});
+
+/**
+ * "Never verified" is not "passed".
+ *
+ * `verify-flows` already draws this line for capture flows: a flow that has
+ * never run shows as its own state rather than as green. The same distinction
+ * belongs on every QC gate, and it did not exist until `extractQuotes` returned
+ * a clean result having examined zero quotes — because its character class
+ * contained straight quotes where curly ones were intended, so it matched
+ * nothing and every quoted testimonial sailed through unexamined.
+ */
+describe('a gate that examined nothing never reports a pass', () => {
+  it('fails an empty body rather than finding it clean', () => {
+    // Every slop rule is a search for something wrong. Run them over an empty
+    // string and they all come back clean, which reads exactly like a checked
+    // post.
+    const result = slopFilter({ body: '', platform: 'x' });
+    expect(result.passed).toBe(false);
+    expect(result.errors[0]!.rule).toBe('copy.empty');
+    expect(slopFilter({ body: '   \n  ', platform: 'x' }).passed).toBe(false);
+  });
+
+  it('reports zero extracted claims as skipped, not passed', () => {
+    const results = runAllGates({
+      copy: { body: 'Vinegar firms the crumb in a gluten-free loaf.', platform: 'x' },
+      claims: { claims: [], artifact: {} },
+    });
+    const claims = results.gates.find((g) => g.gate === 'claims')!;
+    expect(claims.status).toBe('skipped');
+    expect(claims.status).not.toBe('passed');
+    expect(claims.examined).toBe(0);
+  });
+
+  it('reports zero extracted quotes as skipped, not passed', () => {
+    const results = runAllGates({
+      copy: { body: 'Vinegar firms the crumb.', platform: 'x' },
+      proof: { body: 'Vinegar firms the crumb.', attached: [] },
+    });
+    const proof = results.gates.find((g) => g.gate === 'proof')!;
+    expect(proof.status).toBe('skipped');
+    expect(proof.examined).toBe(0);
+  });
+
+  it('counts what it examined when it did examine something', () => {
+    const results = runAllGates({
+      copy: { body: 'Vinegar firms the crumb.', platform: 'x' },
+      claims: {
+        claims: [{ text: 'vinegar firms the crumb', source: 'ingredients[4].changeReason' }],
+        artifact: { ingredients: [{}, {}, {}, {}, { changeReason: 'vinegar firms the crumb' }] },
+      },
+    });
+    const claims = results.gates.find((g) => g.gate === 'claims')!;
+    expect(claims.examined).toBe(1);
+    expect(claims.status).toBe('passed');
+  });
+
+  it('refuses to score a voiceover it never measured', () => {
+    // Word error rate is a comparison. Comparing nothing to nothing is a
+    // perfect score, which is the same false pass in a different gate.
+    const noTranscript = runAudioQC({ script: 'Vinegar firms the crumb.', transcript: '', durationSeconds: 6 });
+    expect(noTranscript.passed).toBe(false);
+    expect(noTranscript.summary).toMatch(/never measured/);
+
+    const noScript = runAudioQC({ script: '', transcript: 'vinegar firms the crumb', durationSeconds: 6 });
+    expect(noScript.passed).toBe(false);
+  });
+
+  it('does not throw on a malformed probe', () => {
+    expect(() => runAudioQC({} as never)).not.toThrow();
+    expect(runAudioQC({} as never).passed).toBe(false);
+  });
+
+  it('leaves the whole run failing when the copy gate found nothing to check', () => {
+    const results = runAllGates({ copy: { body: '', platform: 'x' } });
+    expect(results.passed).toBe(false);
+    // And nothing else claims a pass either.
+    expect(results.gates.filter((g) => g.status === 'passed')).toHaveLength(0);
+  });
+});
+
+describe('looksUnextracted — the extractor-failure signature', () => {
+  it('notices a visible quotation that yielded nothing', () => {
+    const suspicion = looksUnextracted(
+      'A reader told us “the bread actually held together this time”.',
+      0,
+    );
+    expect(suspicion).toMatch(/no quote was extracted/);
+  });
+
+  it('notices a number and a mechanism that yielded no claim', () => {
+    const suspicion = looksUnextracted(
+      'Drop the oven 25 degrees because the starch browns faster than wheat.',
+      0,
+    );
+    expect(suspicion).toMatch(/no claim was extracted/);
+  });
+
+  it('says nothing when the extractor did its job', () => {
+    expect(looksUnextracted('She said “it worked every single time for me”.', 1)).toBeNull();
+  });
+
+  it('says nothing about ordinary prose', () => {
+    expect(looksUnextracted('Vinegar firms the crumb.', 0)).toBeNull();
+    expect(looksUnextracted('Use the "1:1" blend.', 0)).toBeNull();
   });
 });

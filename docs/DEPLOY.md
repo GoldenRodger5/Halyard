@@ -103,6 +103,25 @@ nothing generates, renders, publishes or collects.
 | `SENTRY_DSN` | Vercel + Railway | Error reporting | sentry.io → Settings → Client Keys |
 | `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` | Railway | Uploading rendered media | Supabase → Settings → API |
 
+**`TOKEN_ENCRYPTION_KEY` and `CRON_SECRET` already exist locally.** They were
+generated with `openssl rand -base64 32`
+and `openssl rand -hex 32` and written to `apps/web/.env.local` and
+`apps/worker/.env`, both gitignored. The encryption key is identical in both,
+which it must be: a token sealed by the web app is opened by the worker.
+
+They were generated rather than handed over on purpose — a secret is safest when
+no person has ever seen it.
+
+To put the same key in production without it passing through a person:
+
+```bash
+grep '^TOKEN_ENCRYPTION_KEY=' apps/web/.env.local | cut -d= -f2- | vercel env add TOKEN_ENCRYPTION_KEY production
+grep '^TOKEN_ENCRYPTION_KEY=' apps/web/.env.local | cut -d= -f2- | railway variables set TOKEN_ENCRYPTION_KEY
+```
+
+Or generate a fresh one for production, which is cleaner — nothing is sealed with
+the local key yet, so there is nothing to migrate.
+
 `APP_STORE_PRIVATE_KEY` is a PEM. Environment variables flatten newlines, so it
 is stored with `\n` escapes and unflattened on read — a PEM without newlines is
 not a PEM, and the resulting 401 says nothing useful.

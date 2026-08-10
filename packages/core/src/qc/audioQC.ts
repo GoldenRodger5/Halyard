@@ -171,6 +171,32 @@ function tokenise(text: string): string[] {
 export function runAudioQC(probe: AudioProbe): AudioQCResult {
   const findings: AudioFinding[] = [];
 
+  /**
+   * A probe with no script or no transcript is not clean audio — it is a
+   * measurement that did not happen. Every check below compares the two, and
+   * comparing nothing to nothing yields a perfect score, which is the same
+   * false pass an empty body produces in the copy gate.
+   */
+  if (!probe?.script?.trim() || !probe?.transcript?.trim()) {
+    return {
+      passed: false,
+      findings: [
+        {
+          rule: 'audio.not_measured',
+          severity: 'error',
+          message: probe?.script?.trim()
+            ? 'No transcript, so the audio was never checked against its script.'
+            : 'No script, so there is nothing to check the audio against.',
+          detail:
+            'Word error rate, pacing and silence are all comparisons. Without both sides there is no measurement, and an unmeasured voiceover must not read as a passing one.',
+        },
+      ],
+      wordErrorRate: 1,
+      wordsPerMinute: 0,
+      summary: 'failed — the voiceover was never measured',
+    };
+  }
+
   const wer = wordErrorRate(probe.script, probe.transcript);
   if (wer > MAX_WORD_ERROR_RATE) {
     findings.push({

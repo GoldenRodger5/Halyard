@@ -353,6 +353,34 @@ export function slopFilter(input: SlopFilterInput): SlopFilterResult {
   const violations: SlopViolation[] = [];
   const push = (v: SlopViolation) => violations.push(v);
 
+  /**
+   * Nothing to examine is not a pass.
+   *
+   * Every rule below is a search for something wrong. Run them over an empty
+   * string and they all come back clean, which reads exactly like a post that
+   * was checked and found good. That is the same failure shape as an extractor
+   * that silently matched nothing, and it is the one this whole gate exists to
+   * prevent, so it is caught first and reported as an error rather than a
+   * vacuous pass.
+   */
+  if (body.trim().length === 0) {
+    push({
+      rule: 'copy.empty',
+      severity: 'error',
+      message: 'There is no copy to check.',
+      excerpt: '',
+      index: 0,
+      fix: 'An empty body means generation produced nothing, or a staged slot reached QC before it was written. Either way this is not a post.',
+    });
+    return {
+      passed: false,
+      violations,
+      errors: violations,
+      warnings: [],
+      stats: emptyStats(),
+    };
+  }
+
   // ── Punctuation and typography (v2 F.1) ──────────────────────────────────
   const emDashIndex = body.indexOf('—');
   if (emDashIndex >= 0) {
@@ -709,6 +737,21 @@ export function slopFilter(input: SlopFilterInput): SlopFilterResult {
       emojiCount,
       hashtagCount,
     },
+  };
+}
+
+/** Zeroed stats for a body there was nothing to measure. */
+function emptyStats(): SlopStats {
+  return {
+    characters: 0,
+    words: 0,
+    sentences: 0,
+    averageSentenceWords: 0,
+    sentenceLengthCv: 0,
+    openingWords: 0,
+    questionMarks: 0,
+    emojiCount: 0,
+    hashtagCount: 0,
   };
 }
 

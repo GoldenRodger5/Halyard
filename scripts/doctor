@@ -120,7 +120,8 @@ if [[ -f "$ENV_FILE" ]]; then
              RECIPEFIX_MCP_URL:"live product data" \
              ELEVENLABS_API_KEY:"voiceover" \
              GITHUB_TOKEN:"changelog signals" \
-             TOKEN_ENCRYPTION_KEY:"OAuth token sealing"; do
+             TOKEN_ENCRYPTION_KEY:"OAuth token sealing" \
+             CRON_SECRET:"authenticating the web-side crons"; do
     name="${key%%:*}"; purpose="${key#*:}"
     if grep -qE "^${name}=[[:space:]]*[^[:space:]#]" "$ENV_FILE" 2>/dev/null; then
       row pass "$name" "set" ""
@@ -223,7 +224,50 @@ if pg_isready -q -h localhost -p 5432 2>/dev/null; then
   fi
 fi
 
+# ── the only things a person has to do ─────────────────────────────────────
+#
+# Everything else in this file is something a script can fix. These four cannot
+# be: they need an identity, a payment card, or a judgement that is the whole
+# point of the system.
 echo ""
+printf "\033[1mWhat only you can do\033[0m\n\n"
+
+need_browser=0
+for key in ANTHROPIC_API_KEY:"console.anthropic.com — sign in, create a key, paste it back"; do
+  name="${key%%:*}"; what="${key#*:}"
+  grep -qE "^${name}=[[:space:]]*[^[:space:]#]" "$ENV_FILE" 2>/dev/null || {
+    printf "  \033[33m·\033[0m %-26s %s\n" "$name" "$what"; need_browser=1; }
+done
+
+grep -qE '^X_CLIENT_ID=[[:space:]]*[^[:space:]#]' "$ENV_FILE" 2>/dev/null || {
+  printf "  \033[33m·\033[0m %-26s %s\n" "X developer app" \
+    "developer.x.com — your identity and a card. Full steps printed above"; need_browser=1; }
+
+if pg_isready -q -h localhost -p 5432 2>/dev/null; then
+  reviewed="$(psql "$DB_URL" -tAc \
+    "select coalesce(max(calibration_reviewed), 0) from onboarding_state" 2>/dev/null || echo 0)"
+  target="$(psql "$DB_URL" -tAc \
+    "select coalesce(max(calibration_target), 20) from onboarding_state" 2>/dev/null || echo 20)"
+  if [[ "${reviewed:-0}" -lt "${target:-20}" ]]; then
+    printf "  \033[33m·\033[0m %-26s %s\n" "Calibration" \
+      "/onboarding — rate ${target} drafts, ${reviewed} done. This is your taste; nothing can infer it"
+    need_browser=1
+  fi
+
+  swipes="$(psql "$DB_URL" -tAc "select count(*) from references_swipe" 2>/dev/null || echo 0)"
+  if [[ "${swipes:-0}" -lt 15 ]]; then
+    printf "  \033[33m·\033[0m %-26s %s\n" "Swipe file" \
+      "/swipe — 15 entries, ${swipes} saved. Also your taste"
+    need_browser=1
+  fi
+fi
+
+printf "  \033[33m·\033[0m %-26s %s\n" "Social accounts" \
+  "creating the profiles themselves. /setup-kit generates the bios and images first"
+
+[[ $need_browser -eq 0 ]] && printf "  \033[32m✓\033[0m nothing outstanding\n"
+echo ""
+
 if [[ $FAILURES -gt 0 ]]; then
   printf "\033[31m%d failing\033[0m, %d warnings\n\n" "$FAILURES" "$WARNINGS"
   exit 1

@@ -4,6 +4,9 @@
  * Fabricated social proof is the one unrecoverable content failure, so these
  * are the strictest tests in the system: every ambiguity must fail closed.
  */
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
   composeNewsletter,
@@ -371,5 +374,72 @@ describe('sendNewsletter', () => {
         apiKey: 're_test',
       }),
     ).rejects.toThrow(/No confirmed subscribers/);
+  });
+});
+
+/**
+ * The regression fixture.
+ *
+ * `extractQuotes` had a character class written with literal curly quotes that
+ * had been normalised to straight ones somewhere between writing and saving. It
+ * matched nothing, `runProofQC` reported "no quoted testimonial", and every
+ * quoted testimonial passed the gate unexamined.
+ *
+ * The fixture lives on disk rather than inline precisely so no editor or
+ * formatter touching this file can silently repeat that: the bytes are the
+ * authority, and the first assertion checks the code points before anything
+ * else runs.
+ */
+describe('extractQuotes against real curly quotes', () => {
+  const fixture = readFileSync(
+    path.join(path.dirname(fileURLToPath(import.meta.url)), '__fixtures__/curlyQuotes.txt'),
+    'utf8',
+  );
+
+  it('the fixture genuinely contains curly quotes, not straight ones', () => {
+    // If this fails, the fixture was normalised and every test below is
+    // testing nothing — exactly the bug being guarded against.
+    expect(fixture).toContain('“');
+    expect(fixture).toContain('”');
+    expect(fixture).toContain('‟');
+    expect(fixture).toContain('’');
+  });
+
+  it('extracts the curly-quoted review', () => {
+    const quotes = extractQuotes(fixture);
+    expect(quotes).toContain(
+      'I have been baking gluten free for four years and this is the first app that told me why the vinegar matters.',
+    );
+  });
+
+  it('extracts the straight-quoted copy of the same words exactly once', () => {
+    const quotes = extractQuotes(fixture);
+    const matching = quotes.filter((q) => q.startsWith('I have been baking gluten free'));
+    // Both spellings appear in the fixture; deduplication collapses them.
+    expect(matching).toHaveLength(1);
+  });
+
+  it('does not let an apostrophe terminate a quotation', () => {
+    const quotes = extractQuotes(fixture);
+    expect(quotes).toContain('It saved my daughter’s birthday cake and I am not exaggerating.');
+  });
+
+  it('handles the reversed-9 opener some exports produce', () => {
+    const quotes = extractQuotes(fixture);
+    expect(quotes).toContain('The bread actually held together for the very first time.');
+  });
+
+  it('still ignores a short quoted term', () => {
+    expect(extractQuotes(fixture).some((q) => q.includes('1:1 blend'))).toBe(false);
+  });
+
+  it('verifies a curly-quoted testimonial against its stored row', () => {
+    const result = runProofQC({
+      body: fixture,
+      attached: [REVIEW],
+    });
+    // The fixture contains quotes that are not in REVIEW, so this must fail —
+    // what matters is that it examined them rather than reporting nothing found.
+    expect(result.verified + result.findings.length).toBeGreaterThan(0);
   });
 });

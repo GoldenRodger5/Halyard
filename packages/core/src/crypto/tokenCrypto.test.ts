@@ -51,8 +51,50 @@ describe('sealToken / openToken', () => {
 describe('loadKey', () => {
   it('requires a 32-byte base64 key', () => {
     expect(() => loadKey('c2hvcnQ=')).toThrow(/32 bytes/);
-    expect(() => loadKey(undefined)).toThrow(/TOKEN_ENCRYPTION_KEY/);
     expect(loadKey(randomBytes(32).toString('base64'))).toHaveLength(32);
+  });
+
+  it('says what to do when the key is absent', () => {
+    // `loadKey()` defaults to process.env, so this only means anything with the
+    // variable genuinely unset. Reading the ambient environment made this test
+    // pass or fail depending on whether the developer had a key in their shell,
+    // which is the opposite of what a test should do.
+    const original = process.env.TOKEN_ENCRYPTION_KEY;
+    delete process.env.TOKEN_ENCRYPTION_KEY;
+    try {
+      expect(() => loadKey()).toThrow(/TOKEN_ENCRYPTION_KEY is not set/);
+      // The message has to carry the command, because this is the first thing
+      // that fails on a fresh install.
+      expect(() => loadKey()).toThrow(/openssl rand -base64 32/);
+    } finally {
+      if (original === undefined) delete process.env.TOKEN_ENCRYPTION_KEY;
+      else process.env.TOKEN_ENCRYPTION_KEY = original;
+    }
+  });
+
+  it('tolerates the mangling an env file inflicts, because base64 decoding does', () => {
+    // Node's base64 decoder skips whitespace, quotes and anything else outside
+    // the alphabet, so a key that picked up a stray space or got quoted on its
+    // way into .env still decodes to the same 32 bytes. Worth asserting rather
+    // than assuming: it is the difference between a key that works and a
+    // support question.
+    const key = randomBytes(32).toString('base64');
+    for (const mangled of [
+      `${key.slice(0, 20)} ${key.slice(20)}`,
+      `${key}\n`,
+      `"${key}"`,
+    ]) {
+      expect(loadKey(mangled)).toHaveLength(32);
+      expect(loadKey(mangled).equals(loadKey(key))).toBe(true);
+    }
+  });
+
+  it('is the length check that actually guards this, not the decoder', () => {
+    // Because decoding is so permissive, a truncated or wrong-format key comes
+    // back as the wrong number of bytes rather than as an error. Without the
+    // explicit length check that would silently construct a weaker cipher.
+    expect(() => loadKey(randomBytes(24).toString('base64'))).toThrow(/got 24/);
+    expect(() => loadKey(randomBytes(64).toString('base64'))).toThrow(/got 64/);
   });
 });
 

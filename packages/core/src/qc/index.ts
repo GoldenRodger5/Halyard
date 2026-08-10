@@ -44,6 +44,16 @@ export interface GateResult {
   summary: string;
   /** Everything the detail view shows. */
   detail: unknown;
+  /**
+   * How many things this gate actually looked at.
+   *
+   * The distinction `verify-flows` draws between "verified" and "never run"
+   * applies to every gate: examining nothing and finding nothing wrong is not
+   * the same as examining something and finding it good. A gate with
+   * `examined: 0` reports `skipped`, never `passed`, so a silently broken
+   * extractor cannot render as a green tick.
+   */
+  examined?: number;
 }
 
 export interface QCResults {
@@ -72,6 +82,35 @@ export interface RunAllGatesInput {
   proof?: ProofQCInput;
 }
 
+/**
+ * Does this body look like it contains something an extractor should have found?
+ *
+ * The failure this catches is specific and has already happened once: an
+ * extractor whose pattern silently matches nothing reports zero findings, the
+ * gate reports no problems, and the post publishes unexamined. Comparing what
+ * the extractor returned against what the text obviously contains is the only
+ * cheap way to notice.
+ */
+export function looksUnextracted(body: string, extracted: number): string | null {
+  if (extracted > 0) return null;
+
+  // A quotation mark pair around a sentence-length span.
+  const quoted = /["\u201C\u201D\u201F][^"\u201C\u201D\u201F]{20,}["\u201C\u201D\u201F]/.test(body);
+  if (quoted) {
+    return 'This post contains something in quotation marks, but no quote was extracted for verification. Either it is the product\u2019s own words, or the extractor missed it.';
+  }
+
+  // A number attached to a unit, or an explicit causal claim: the shapes a
+  // factual assertion takes in this system's copy.
+  const numericClaim = /\b\d+(\.\d+)?\s?(%|percent|degrees|minutes|hours|grams?|cups?|tsp|tbsp|x\b)/i.test(body);
+  const causal = /\b(because|which is why|the reason|so that|causes?|prevents?)\b/i.test(body);
+  if (numericClaim && causal) {
+    return 'This post states a number and a mechanism, but no claim was extracted to check against the artifact.';
+  }
+
+  return null;
+}
+
 export function runAllGates(input: RunAllGatesInput): QCResults {
   const gates: GateResult[] = [];
 
@@ -86,14 +125,34 @@ export function runAllGates(input: RunAllGatesInput): QCResults {
   if (input.claims) {
     const claims: ClaimVerificationResult = verifyClaims(input.claims.claims, input.claims.artifact);
     const hasReview = claims.results.some((r) => r.verdict === 'needs_review');
+
+    // Zero claims examined is not a pass. It may be an honest "this post makes
+    // no factual assertions", or it may be an extractor that returned nothing —
+    // and those look identical from here, so neither gets a tick.
+    const examinedNothing = input.claims.claims.length === 0;
     gates.push({
       gate: 'claims',
-      status: !claims.passed ? 'failed' : hasReview ? 'warning' : 'passed',
-      summary: claims.summary,
+      status: examinedNothing
+        ? 'skipped'
+        : !claims.passed
+          ? 'failed'
+          : hasReview
+            ? 'warning'
+            : 'passed',
+      summary: examinedNothing
+        ? (looksUnextracted(input.copy.body, 0) ?? 'no claims were extracted to verify')
+        : claims.summary,
       detail: claims,
+      examined: input.claims.claims.length,
     });
   } else {
-    gates.push({ gate: 'claims', status: 'skipped', summary: 'no claims to verify', detail: null });
+    gates.push({
+      gate: 'claims',
+      status: 'skipped',
+      summary: 'no claims to verify',
+      detail: null,
+      examined: 0,
+    });
   }
 
   if (input.visual) {
@@ -147,14 +206,28 @@ export function runAllGates(input: RunAllGatesInput): QCResults {
 
   if (input.proof) {
     const proof: ProofQCResult = runProofQC(input.proof);
+    // Same rule: finding no quotes is not the same as verifying some. An
+    // extractor that silently matches nothing produced exactly this result once
+    // already, and it looked green.
+    const examinedNothing = proof.verified === 0 && proof.findings.length === 0;
+    const suspicion = examinedNothing ? looksUnextracted(input.proof.body, 0) : null;
     gates.push({
       gate: 'proof',
-      status: proof.passed ? 'passed' : 'failed',
-      summary: proof.summary,
+      // A body that visibly contains a quotation but yielded none is the
+      // extractor-failure signature, and it warns rather than staying silent.
+      status: suspicion ? 'warning' : examinedNothing ? 'skipped' : proof.passed ? 'passed' : 'failed',
+      summary: suspicion ?? proof.summary,
       detail: proof,
+      examined: proof.verified + proof.findings.length,
     });
   } else {
-    gates.push({ gate: 'proof', status: 'skipped', summary: 'no quoted testimonial', detail: null });
+    gates.push({
+      gate: 'proof',
+      status: 'skipped',
+      summary: 'no quoted testimonial',
+      detail: null,
+      examined: 0,
+    });
   }
 
   return {
