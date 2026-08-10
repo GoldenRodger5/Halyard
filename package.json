@@ -24,6 +24,7 @@
     "verify-flows": "tsx scripts/verify-flows.ts",
     "verify-provider": "tsx scripts/verify-provider.ts",
     "load-brief": "tsx scripts/load-brief.ts",
+    "check-handle": "tsx scripts/handle-check.ts",
     "capture": "tsx scripts/capture-flows.ts"
   },
   "devDependencies": {

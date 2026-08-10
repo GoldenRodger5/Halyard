@@ -48,8 +48,19 @@ export class AnthropicLlmClient implements LlmClient {
   private readonly client: Anthropic;
 
   constructor(apiKey = process.env.ANTHROPIC_API_KEY) {
-    if (!apiKey) throw new Error('ANTHROPIC_API_KEY is not set.');
-    this.client = new Anthropic({ apiKey });
+    // A placeholder left in an env file is the common case, not an empty
+    // string. The value shipped in .env.example is a comment, which is truthy,
+    // so a bare falsy check lets it through and the operator meets a raw 401
+    // from the SDK several seconds and one wasted round trip later.
+    const key = apiKey?.trim();
+    if (!key) throw new Error('ANTHROPIC_API_KEY is not set. Run ./scripts/doctor.');
+    if (!key.startsWith('sk-ant-')) {
+      throw new Error(
+        'ANTHROPIC_API_KEY does not look like an API key — real keys begin with "sk-ant-". ' +
+          'The value in the environment is probably still the placeholder. Get one at console.anthropic.com.',
+      );
+    }
+    this.client = new Anthropic({ apiKey: key });
   }
 
   async complete(request: LlmRequest): Promise<LlmResponse> {

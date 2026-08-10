@@ -16,6 +16,7 @@ import { TEMPLATE_REGISTRY, type TemplateId } from './templates.js';
 export * from './templates.js';
 export * from './elements.js';
 export * from './artifactProps.js';
+export * from './profileArt.js';
 
 const FONT_DIR = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -49,6 +50,15 @@ export interface RenderImageOptions {
   aspectRatio: string;
   /** 'preview' renders at 480px wide with no anti-alias tuning (v2 H.5). */
   quality?: 'preview' | 'final';
+  /**
+   * Exact pixel dimensions, overriding the aspect-ratio lookup. Milestone 50.
+   *
+   * Post artwork has five sane canvases and picks one. Profile artwork does not:
+   * an X avatar is 400×400, a TikTok avatar is 200×200 and a YouTube banner is
+   * 2048×1152, and a platform that wants 400 and receives 1080 either rejects it
+   * or resamples it badly. So the size is passed rather than inferred.
+   */
+  size?: { width: number; height: number };
 }
 
 export interface RenderedImage {
@@ -64,7 +74,7 @@ export async function renderElement(
   options: RenderImageOptions,
 ): Promise<RenderedImage> {
   const startedAt = Date.now();
-  const canvas = CANVAS[options.aspectRatio] ?? CANVAS['1:1']!;
+  const canvas = options.size ?? CANVAS[options.aspectRatio] ?? CANVAS['1:1']!;
   const fonts = await loadFonts();
 
   const svg = await satori(element as unknown as React.ReactNode, {
@@ -73,7 +83,10 @@ export async function renderElement(
     fonts,
   });
 
-  const targetWidth = options.quality === 'preview' ? 480 : canvas.width;
+  // An explicit size is a requirement, not a hint: a preview downscale would
+  // hand the operator an image the platform rejects.
+  const targetWidth =
+    options.quality === 'preview' && !options.size ? 480 : canvas.width;
   const resvg = new Resvg(svg, { fitTo: { mode: 'width', value: targetWidth } });
   const rendered = resvg.render();
 

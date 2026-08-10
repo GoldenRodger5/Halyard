@@ -28,7 +28,17 @@ test('the whole approve flow works at phone width', async ({ page }) => {
 });
 
 test('no screen scrolls horizontally on a phone', async ({ page }) => {
-  for (const path of ['/', '/queue', '/calendar', '/analytics', '/take', '/swipe', '/inbox']) {
+  for (const path of [
+    '/',
+    '/queue',
+    '/calendar',
+    '/analytics',
+    '/take',
+    '/swipe',
+    '/inbox',
+    '/setup-kit',
+    '/accounts',
+  ]) {
     // Two races to survive here, both artefacts of the dev server rather than
     // the app: `waitUntil: 'load'` races the first compile, and a hydrating page
     // can still fire its own soft navigation while the next goto is in flight,

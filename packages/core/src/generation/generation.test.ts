@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import fixture from '../connectors/__fixtures__/recipeAdaptation.json' with { type: 'json' };
 import { toArtifact, type RecipeFixAdaptation } from '../connectors/recipefix.js';
 import { DraftRejectedError, buildFeedback, writeDraft, writeVoScript } from './copywriter.js';
-import { extractJson, type LlmClient, type LlmResponse } from './llm.js';
+import { AnthropicLlmClient, extractJson, type LlmClient, type LlmResponse } from './llm.js';
 import {
   COLD_START_WEIGHTS,
   LEARNING_MIN_POSTS_PER_CATEGORY,
@@ -62,6 +62,25 @@ const goodReply = JSON.stringify({
       source: 'ingredients[4].changeReason',
     },
   ],
+});
+
+describe('AnthropicLlmClient construction', () => {
+  it('refuses an absent key', () => {
+    expect(() => new AnthropicLlmClient('')).toThrow(/not set/);
+    expect(() => new AnthropicLlmClient('   ')).toThrow(/not set/);
+  });
+
+  it('refuses a placeholder, which is truthy and therefore the dangerous case', () => {
+    // The value shipped in .env.example is a comment. A bare falsy check passes
+    // it and the failure surfaces as a 401 from the SDK instead of as the one
+    // sentence that says what to do.
+    expect(() => new AnthropicLlmClient('   # paste yours here')).toThrow(/sk-ant-/);
+    expect(() => new AnthropicLlmClient('your-key-here')).toThrow(/console.anthropic.com/);
+  });
+
+  it('accepts something shaped like a real key', () => {
+    expect(() => new AnthropicLlmClient('sk-ant-api03-notarealkey')).not.toThrow();
+  });
 });
 
 describe('extractJson', () => {

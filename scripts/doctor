@@ -164,6 +164,11 @@ if [[ -f "$ENV_FILE" ]]; then
          without a link, $0.20 with one, which is why Halyard puts the link
          in the first reply.
 
+      Before creating any account:  /setup-kit
+      It generates the bios, display names, profile images at each platform's
+      exact required size, and the checklist of what must be true before an
+      API can publish there. `pnpm check-handle <name>` checks availability.
+
       Then:  ./scripts/halyard  →  /accounts  →  Connect, for the brand
       account and again for the founder account, each in a private window.
       Then:  pnpm first-contact --dry-run

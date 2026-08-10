@@ -49,13 +49,25 @@ export interface SlopFilterResult {
   stats: SlopStats;
 }
 
+/**
+ * Every platform Halyard writes copy for.
+ *
+ * Must stay in step with `PlatformId`. Bluesky was added as an adapter in
+ * milestone 40 and was missing here until milestone 50 found it: because the
+ * generate handler asserts the SQL row's platform into this type, a connected
+ * Bluesky account did not fail a type check, it crashed the handler at the
+ * hashtag rule with "cannot read properties of undefined". A missing key in a
+ * `Record` keyed by a union is only as safe as the narrowest cast anywhere in
+ * the system, and there was a cast.
+ */
 export type SlopPlatform =
   | 'x'
   | 'instagram'
   | 'tiktok'
   | 'pinterest'
   | 'youtube'
-  | 'threads';
+  | 'threads'
+  | 'bluesky';
 
 export interface SlopFilterInput {
   body: string;
@@ -188,6 +200,9 @@ export const HASHTAG_LIMITS: Record<SlopPlatform, { min: number; max: number; in
     pinterest: { min: 0, max: 0 },
     threads: { min: 0, max: 3, inferred: true },
     youtube: { min: 0, max: 5, inferred: true },
+    // Bluesky indexes hashtags but the culture reads more than a couple as
+    // marketing. Inferred from norms rather than from a documented limit.
+    bluesky: { min: 0, max: 2, inferred: true },
   };
 
 /** Emoji that are banned outright rather than merely rationed (v2 F.1). */

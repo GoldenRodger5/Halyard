@@ -7,6 +7,44 @@ import {
   splitSentences,
 } from './slopFilter.js';
 import { KNOWN_BAD_COPY, KNOWN_GOOD_COPY } from './__fixtures__/knownBadCopy.js';
+import { allAdapters, type PlatformId } from '../adapters/index.js';
+import { PLATFORM_BRIEFS } from '../generation/prompts.js';
+
+/**
+ * Every platform with an adapter must be known to the copy gate.
+ *
+ * This exists because Bluesky was not. It was added in milestone 40 and the QC
+ * platform union was not extended, so `HASHTAG_LIMITS.bluesky` was undefined —
+ * and because the generate handler asserts the SQL row's platform into that
+ * union, nothing failed to compile. The first draft for a connected Bluesky
+ * account would have thrown "cannot read properties of undefined" inside the
+ * gate that exists to stop bad copy.
+ *
+ * A type is not a guarantee when there is a cast between the data and the type.
+ * This is the runtime check that would have caught it.
+ */
+describe('platform coverage', () => {
+  const platforms: PlatformId[] = allAdapters().map((a) => a.platform);
+
+  it.each(platforms)('%s has hashtag limits', (platform) => {
+    const limits = HASHTAG_LIMITS[platform];
+    expect(limits, `HASHTAG_LIMITS is missing ${platform}`).toBeDefined();
+    expect(limits.max).toBeGreaterThanOrEqual(limits.min);
+  });
+
+  it.each(platforms)('%s has a copywriter brief', (platform) => {
+    expect(PLATFORM_BRIEFS[platform], `PLATFORM_BRIEFS is missing ${platform}`).toBeTruthy();
+  });
+
+  it.each(platforms)('%s can be linted without throwing', (platform) => {
+    const result = slopFilter({
+      body: 'The loaf collapsed. One teaspoon of acid is the whole difference.',
+      platform,
+      hashtags: [],
+    });
+    expect(result.violations).toBeInstanceOf(Array);
+  });
+});
 
 describe('slopFilter — the known-bad fixture file', () => {
   it.each(KNOWN_BAD_COPY.map((f) => [f.name, f] as const))(

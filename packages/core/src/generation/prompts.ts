@@ -58,7 +58,7 @@ export interface CopywriterContext {
   series?: { name: string; nextSequence: number } | null;
 }
 
-const PLATFORM_BRIEFS: Record<SlopPlatform, string> = {
+export const PLATFORM_BRIEFS: Record<SlopPlatform, string> = {
   x: `X. 280 characters. No link in the body — the link goes in a reply, so do not
 write one. Zero to two hashtags, and usually zero. The best posts here are one
 observation stated plainly.`,
@@ -73,6 +73,10 @@ feed. No hashtags at all. Write the title as a search query someone would type.`
 the only line most viewers see. Up to five tags.`,
   threads: `Threads. 500 characters. Links are clickable inline. Conversational,
 closer to X than Instagram.`,
+  bluesky: `Bluesky. 300 characters. Links are clickable and unfurl into a card,
+so the URL does not need describing. Zero to two hashtags and usually zero. This
+audience is unusually allergic to marketing register: write it the way you would
+say it to someone who already knows the subject.`,
 };
 
 export const COPYWRITER_PROMPT_VERSION = 'copywriter.v1';
