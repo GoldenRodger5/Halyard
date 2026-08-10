@@ -9,6 +9,7 @@ import pg from 'pg';
 import { Poller } from './poller.js';
 import { HANDLERS } from './handlers/index.js';
 import { startScheduler } from './scheduler.js';
+import { startErrorReporting } from './observability.js';
 
 function requireEnv(name: string): string {
   const value = process.env[name];
@@ -25,6 +26,10 @@ async function main(): Promise<void> {
     max: Number(process.env.PG_POOL_MAX ?? 8),
     application_name: `halyard-worker/${workerId}`,
   });
+
+  await startErrorReporting((message, detail) =>
+    console.log(JSON.stringify({ message, worker: workerId, ...detail })),
+  );
 
   const poller = new Poller({ pool, workerId, handlers: HANDLERS });
 

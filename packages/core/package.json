@@ -13,7 +13,13 @@
     "./generation": "./src/generation/index.ts",
     "./scheduling": "./src/scheduling/index.ts",
     "./scoring": "./src/scoring/index.ts",
-    "./crypto": "./src/crypto/index.ts"
+    "./crypto": "./src/crypto/index.ts",
+    "./observability": "./src/observability/index.ts",
+    "./campaigns": "./src/campaigns/index.ts",
+    "./capture": "./src/capture/index.ts",
+    "./destinations": "./src/destinations/index.ts",
+    "./watch": "./src/watch/index.ts",
+    "./accounts": "./src/accounts/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

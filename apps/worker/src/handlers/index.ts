@@ -21,6 +21,7 @@ import { reconcileScheduleHandler } from './reconcile.js';
 import { captureHandler, markStaleAssetsHandler } from './capture.js';
 import { collectAppStoreAttribution } from './appStore.js';
 import { detectReleaseHandler } from './detectRelease.js';
+import { collectWatchTermsHandler } from './watch.js';
 
 async function loadAccount(ctx: HandlerContext, accountId: string): Promise<PublishAccount> {
   const { rows } = await ctx.pool.query<{
@@ -341,6 +342,7 @@ export const HANDLERS: Partial<Record<JobKind, JobHandler>> = {
   mark_stale_assets: markStaleAssetsHandler,
   collect_app_store: collectAppStoreAttribution,
   detect_release: detectReleaseHandler,
+  collect_watch_terms: collectWatchTermsHandler,
 };
 
 export type { Job, HandlerContext };

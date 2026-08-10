@@ -62,6 +62,13 @@ export const SCHEDULES: Schedule[] = [
     why: 'Apple produces these reports daily; polling faster returns the same instance.',
   },
   {
+    kind: 'collect_watch_terms',
+    everyMinutes: 24 * 60,
+    perProduct: true,
+    priority: 55,
+    why: 'Read-only, once a day, over public endpoints that ask to be treated politely. Recurrence is measured over 30 days, so reading more often changes nothing.',
+  },
+  {
     kind: 'collect_signals',
     everyMinutes: 6 * 60,
     perProduct: true,

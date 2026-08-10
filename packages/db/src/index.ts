@@ -61,6 +61,7 @@ export const JOB_KINDS = [
   'mark_stale_assets',
   'collect_app_store',
   'detect_release',
+  'collect_watch_terms',
 ] as const;
 export type JobKind = (typeof JOB_KINDS)[number];
 
@@ -91,4 +92,7 @@ export const JOB_POLICY: Record<
   // One GET of a homepage. If it cannot finish in a minute the site is down,
   // which is its own signal.
   detect_release: { timeoutMs: 60_000, maxAttempts: 2, backoffSeconds: 600 },
+  // Several public endpoints, politely paced. A failure is usually one source
+  // being down, which the handler already survives.
+  collect_watch_terms: { timeoutMs: 5 * 60_000, maxAttempts: 2, backoffSeconds: 1800 },
 };

@@ -27,6 +27,8 @@ const NAV: Array<{ href: string; label: string; group: 'work' | 'plan' | 'config
   { href: '/calendar', label: 'Calendar', group: 'plan' },
   { href: '/ideas', label: 'Ideas', group: 'plan' },
   { href: '/swipe', label: 'Swipe file', group: 'plan' },
+  { href: '/hooks', label: 'Hooks', group: 'plan' },
+  { href: '/series', label: 'Series', group: 'plan' },
   { href: '/finds', label: 'Finds', group: 'plan' },
   { href: '/library', label: 'Library', group: 'plan' },
   { href: '/assets', label: 'Assets', group: 'plan' },
@@ -35,6 +37,7 @@ const NAV: Array<{ href: string; label: string; group: 'work' | 'plan' | 'config
   { href: '/products', label: 'Products', group: 'config' },
   { href: '/accounts', label: 'Accounts', group: 'config' },
   { href: '/templates', label: 'Templates', group: 'config' },
+  { href: '/submissions', label: 'Submissions', group: 'config' },
   { href: '/settings', label: 'Settings', group: 'config' },
 ];
 

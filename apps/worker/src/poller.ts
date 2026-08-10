@@ -11,6 +11,7 @@
  */
 import type pg from 'pg';
 import { JOB_POLICY, type JobKind } from '@halyard/db';
+import { reportJobFailure } from './observability.js';
 
 export interface Job {
   id: string;
@@ -147,6 +148,12 @@ export class Poller {
 
   private async fail(job: Job, error: Error, backoffSeconds: number): Promise<void> {
     const exhausted = job.attempts >= job.max_attempts;
+
+    // Sentry gets the stack and the release tag; the row below gets the message.
+    // Expected operating states — a paused kill switch, a duplicate abort — are
+    // filtered out inside reportJobFailure rather than here.
+    reportJobFailure(error, { jobId: job.id, kind: job.kind, attempts: job.attempts });
+
     // Exponential backoff on the base defined per kind in v1 §6.
     const delay = backoffSeconds * 2 ** Math.max(0, job.attempts - 1);
 

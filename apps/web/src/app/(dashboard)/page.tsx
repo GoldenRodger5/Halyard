@@ -24,6 +24,8 @@ import {
   getSettings,
 } from '@/lib/queries';
 import { formatRelative } from '@/lib/format';
+import { query } from '@/lib/db';
+import { acceptCluster, dismissCluster } from './clusterActions';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,7 +45,7 @@ export default async function DashboardPage() {
     );
   }
 
-  const [counts, settings, accounts, mix, targets, analytics, onboarding] = await Promise.all([
+  const [counts, settings, accounts, mix, targets, analytics, onboarding, clusters] = await Promise.all([
     getNavCounts(),
     getSettings(),
     getAccounts(product.id),
@@ -51,6 +53,23 @@ export default async function DashboardPage() {
     getMixTargets(product.id),
     getAnalytics(),
     getOnboarding(product.id),
+    // Milestone 43: the pattern across recent rejections, surfaced once it
+    // crosses the threshold. Dismissed clusters stay suppressed for 30 days.
+    query<{
+      id: string;
+      pattern: string;
+      category: string | null;
+      occurrences: number;
+      suggested_rule: string | null;
+    }>(
+      `select id, pattern, category, occurrences, suggested_rule
+         from rejection_clusters
+        where product_id = $1
+          and status = 'surfaced'
+          and (dismissed_until is null or dismissed_until < now())
+        order by occurrences desc limit 3`,
+      [product.id],
+    ),
   ]);
 
   const wizardSteps = [
@@ -134,6 +153,54 @@ export default async function DashboardPage() {
         <StatChip label="failed" value={counts.failed} href="/queue?status=failed" tone={counts.failed > 0 ? 'bad' : 'neutral'} />
         <StatChip label="comments waiting" value={counts.inboxPending} href="/inbox" tone={counts.inboxPending > 0 ? 'warn' : 'neutral'} />
       </div>
+
+      {/* ── What my rejections have in common ─────────────────────────────
+          The operating model's promise that taste becomes legible to the
+          operator, not only to the system. */}
+      {clusters.length > 0 ? (
+        <section className="mb-8">
+          <SectionTitle hint="what your last rejections had in common">
+            A pattern in what you reject
+          </SectionTitle>
+          <div className="space-y-3">
+            {clusters.map((cluster) => (
+              <Card key={cluster.id} className="border-warn/40 bg-warn/5 p-4">
+                <p className="text-sm text-ink">
+                  {cluster.occurrences} of your recent rejections were{' '}
+                  <strong>{cluster.pattern}</strong>
+                  {cluster.category ? ` in ${cluster.category}` : ''}.
+                </p>
+                {cluster.suggested_rule ? (
+                  <p className="mt-2 rounded-lg bg-paper px-3 py-2 text-sm text-muted">
+                    Proposed rule: “{cluster.suggested_rule}”
+                  </p>
+                ) : (
+                  <p className="mt-2 text-sm text-muted">
+                    No rule fits this cleanly yet — the reasons do not share enough vocabulary to
+                    turn into a filter.
+                  </p>
+                )}
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {cluster.suggested_rule ? (
+                    <form action={acceptCluster}>
+                      <input type="hidden" name="id" value={cluster.id} />
+                      <button className="rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-white hover:bg-primary-dark">
+                        Make it a rule
+                      </button>
+                    </form>
+                  ) : null}
+                  <form action={dismissCluster}>
+                    <input type="hidden" name="id" value={cluster.id} />
+                    <button className="rounded-lg border border-line px-3 py-1.5 text-sm text-muted hover:bg-sunk hover:text-ink">
+                      Not a pattern — hide for 30 days
+                    </button>
+                  </form>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <div className="grid gap-6 lg:grid-cols-3">
         <section className="lg:col-span-2">

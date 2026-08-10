@@ -8,6 +8,13 @@ const config: NextConfig = {
   serverExternalPackages: ['pg', 'sharp', '@resvg/resvg-js'],
   typedRoutes: false,
 
+  env: {
+    // Read by /settings/readiness to say which build is deployed, so a
+    // regression can be mapped to a change rather than guessed at.
+    HALYARD_RELEASE:
+      process.env.SENTRY_RELEASE ?? process.env.VERCEL_GIT_COMMIT_SHA ?? 'unknown',
+  },
+
   webpack(config, { isServer }) {
     // The workspace packages are ESM TypeScript and import with explicit `.js`
     // specifiers, which is what Node and vitest want. The bundler needs to be
