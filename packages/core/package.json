@@ -20,7 +20,8 @@
     "./destinations": "./src/destinations/index.ts",
     "./watch": "./src/watch/index.ts",
     "./accounts": "./src/accounts/index.ts",
-    "./proof": "./src/proof/index.ts"
+    "./proof": "./src/proof/index.ts",
+    "./readiness": "./src/readiness/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

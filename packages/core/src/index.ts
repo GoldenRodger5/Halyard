@@ -12,4 +12,5 @@ export * from './campaigns/index.js';
 export * from './watch/index.js';
 export * from './observability/index.js';
 export * from './proof/index.js';
+export * from './readiness/index.js';
 export * from './founder/index.js';
