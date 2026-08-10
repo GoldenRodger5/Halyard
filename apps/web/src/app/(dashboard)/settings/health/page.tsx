@@ -116,6 +116,45 @@ export default async function HealthPage() {
           </div>
         </section>
 
+        {/* ── What is actually deployed ──────────────────────────────────
+            The product this markets ran sixteen days out of sync with its repo
+            because nothing surfaced this. */}
+        <section>
+          <SectionTitle hint="baked in at build time, so it cannot drift">
+            This build
+          </SectionTitle>
+          <Card className="p-4">
+            <dl className="grid gap-4 sm:grid-cols-3">
+              <div>
+                <dt className="text-xs uppercase tracking-[0.08em] text-muted">Commit</dt>
+                <dd className="mt-1 font-mono text-sm text-ink">
+                  {(process.env.HALYARD_RELEASE ?? 'unknown').slice(0, 12)}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs uppercase tracking-[0.08em] text-muted">Built</dt>
+                <dd className="mt-1 text-sm text-ink">
+                  {process.env.HALYARD_BUILT_AT
+                    ? formatRelative(process.env.HALYARD_BUILT_AT, timeZone)
+                    : 'unknown'}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs uppercase tracking-[0.08em] text-muted">Branch</dt>
+                <dd className="mt-1 font-mono text-sm text-ink">
+                  {process.env.HALYARD_BRANCH || 'local'}
+                </dd>
+              </div>
+            </dl>
+            {process.env.HALYARD_RELEASE === 'unknown' ? (
+              <p className="mt-3 text-xs text-muted">
+                No commit stamp. A regression cannot be mapped to a change from here — set
+                SENTRY_RELEASE, or deploy somewhere that exposes the commit.
+              </p>
+            ) : null}
+          </Card>
+        </section>
+
         {/* ── Capture flows ───────────────────────────────────────────────
             These depend on live strings in a product that ships with no CI, so
             a broken selector is only ever found by running them. */}

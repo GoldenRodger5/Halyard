@@ -9,10 +9,17 @@ const config: NextConfig = {
   typedRoutes: false,
 
   env: {
-    // Read by /settings/readiness to say which build is deployed, so a
-    // regression can be mapped to a change rather than guessed at.
+    /**
+     * The build stamp, surfaced on /settings/health.
+     *
+     * The product this system markets ran sixteen days out of sync with its own
+     * repository because nothing anywhere said which commit was live. Baking it
+     * in at build time is the only way the answer cannot drift from the truth.
+     */
     HALYARD_RELEASE:
       process.env.SENTRY_RELEASE ?? process.env.VERCEL_GIT_COMMIT_SHA ?? 'unknown',
+    HALYARD_BUILT_AT: new Date().toISOString(),
+    HALYARD_BRANCH: process.env.VERCEL_GIT_COMMIT_REF ?? '',
   },
 
   webpack(config, { isServer }) {

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Halyard">
+  <!-- A halyard is the line that raises a sail. The mark is the line and the
+       cleat it is made fast to: nothing goes up on its own. -->
+  <rect width="512" height="512" rx="112" fill="#2A2320"/>
+  <path d="M256 96 L256 400" stroke="#FAF8F4" stroke-width="28" stroke-linecap="round"/>
+  <path d="M256 128 L372 214 L256 300 Z" fill="#C4714A"/>
+  <path d="M186 400 L326 400" stroke="#C4714A" stroke-width="28" stroke-linecap="round"/>
+</svg>
