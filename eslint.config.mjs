@@ -44,4 +44,10 @@ export default tseslint.config(
     files: ['**/*.test.ts', '**/*.test.tsx', 'scripts/**/*.ts', 'apps/worker/src/**/*.ts'],
     rules: { 'no-console': 'off' },
   },
+  {
+    // Playwright's fixture API requires the object-destructuring form, so an
+    // empty pattern is the correct way to declare a fixture that takes nothing.
+    files: ['e2e/**/*.ts'],
+    rules: { 'no-console': 'off', 'no-empty-pattern': 'off' },
+  },
 );

@@ -117,14 +117,26 @@ insert into series (product_id, name, description, template_id, cadence) values
   ('recipefix', 'Chef Notes',           'One line from a real adaptation, unedited', 'chef_note_quote', 'twice_weekly')
 on conflict (product_id, name) do nothing;
 
--- ── Hooks (v2 I.4) — seeded, then replaced by measured performance ─────────
-insert into hooks (product_id, pattern, platform, category, source) values
-  ('recipefix', 'Why your {dish} is {failure_mode}.',            null, 'education',      'seeded'),
-  ('recipefix', '{ingredient} needs {ingredient_2}. Here is why.', null, 'education',    'seeded'),
-  ('recipefix', 'This recipe added an ingredient nobody asked for.', null, 'transformation','seeded'),
-  ('recipefix', '{n} changes. {m} of them matter.',              null, 'transformation', 'seeded'),
-  ('recipefix', 'Doubling a recipe is not multiplication.',      null, 'education',      'seeded'),
-  ('recipefix', 'I shipped {thing} and it broke {thing_2}.',     'x',  'founder_insight','seeded')
+-- ── Hooks (v2 I.4, extended by milestone 27 I.2) ──────────────────────────
+-- Seeded, then replaced by measured performance. Every hook carries a type,
+-- because "which hook won" is useless without knowing what kind it was.
+insert into hooks (product_id, pattern, pattern_template, hook_type, layer, platform, category, source) values
+  ('recipefix', 'Why your {dish} is {problem}.', 'Why your {dish} is {problem}.',
+   'problem_state', 'text', null, 'education', 'seeded'),
+  ('recipefix', '{ingredient} needs {ingredient_2}. Here is why.', '{ingredient} needs {ingredient_2}.',
+   'open_loop', 'text', null, 'education', 'seeded'),
+  ('recipefix', 'This recipe added an ingredient nobody asked for.', 'This {thing} added {n} nobody asked for.',
+   'contradiction', 'text', null, 'transformation', 'seeded'),
+  ('recipefix', '{n} changes. {m} of them matter.', '{n} changes. {m} of them matter.',
+   'specificity', 'text', null, 'transformation', 'seeded'),
+  ('recipefix', 'Doubling a recipe is not multiplication.', 'Doubling {thing} is not multiplication.',
+   'myth_bust', 'text', null, 'education', 'seeded'),
+  ('recipefix', 'I shipped {thing} and it broke {thing_2}.', 'I shipped {thing} and it broke {thing_2}.',
+   'confession', 'text', 'x', 'founder_insight', 'seeded'),
+  ('recipefix', 'Watch the crumb when the acid goes in.', 'Watch {thing} when {event}.',
+   'demonstration', 'visual', 'tiktok', 'transformation', 'seeded'),
+  ('recipefix', 'If you bake without gluten, this one is for you.', 'If you {activity}, this one is for you.',
+   'segment_call', 'text', null, 'education', 'seeded')
 on conflict do nothing;
 
 -- ── Voice lexicon (v2 D.2) — cooking is full of terms TTS gets wrong ───────

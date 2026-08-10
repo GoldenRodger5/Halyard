@@ -1,7 +1,7 @@
 import { headers } from 'next/headers';
 import { Shell } from '@/components/Shell';
 import { databaseReachable } from '@/lib/db';
-import { getNavCounts, getProducts, getSettings } from '@/lib/queries';
+import { getCurrentProduct, getNavCounts, getProducts, getSettings } from '@/lib/queries';
 import { getOperator, devBypassAllowed, supabaseConfigured } from '@/lib/auth';
 import { Banner, Card } from '@halyard/ui';
 
@@ -45,17 +45,20 @@ export default async function DashboardLayout({ children }: { children: React.Re
     );
   }
 
-  const [counts, settings, products] = await Promise.all([
+  const [counts, settings, products, current] = await Promise.all([
     getNavCounts(),
     getSettings(),
     getProducts(),
+    getCurrentProduct(),
   ]);
 
   return (
     <Shell
       pathname={pathname}
       counts={counts}
-      productName={products[0]?.name ?? 'No product'}
+      products={products.map((p) => ({ id: p.id, name: p.name, kind: p.kind }))}
+      currentProductId={current?.id}
+      productName={current?.name ?? 'No product'}
       killSwitchOn={!settings.publishing_enabled}
     >
       {operator.isDevBypass && devBypassAllowed() ? (

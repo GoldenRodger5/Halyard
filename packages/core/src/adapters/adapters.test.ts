@@ -104,8 +104,9 @@ function asset(over: Partial<PublishAsset> = {}): PublishAsset {
 // ── the interface contract ──────────────────────────────────────────────────
 
 describe('PlatformAdapter contract', () => {
-  it('registers all six platforms', () => {
+  it('registers every platform, including Bluesky', () => {
     expect(allAdapters().map((a) => a.platform).sort()).toEqual([
+      'bluesky',
       'instagram',
       'pinterest',
       'threads',
@@ -139,11 +140,15 @@ describe('PlatformAdapter contract', () => {
     expect(getAdapter('tiktok').constraints.linkStrategy).toBe('bio_only');
   });
 
-  it('records that X is the only platform with no review gate — v2 A.1', () => {
-    expect(getAdapter('x').constraints.requiresReviewForPublicPosting).toBe(false);
-    for (const adapter of allAdapters().filter((a) => a.platform !== 'x')) {
-      expect(adapter.constraints.requiresReviewForPublicPosting).toBe(true);
-    }
+  it('records which platforms gate public posting behind a review — v2 A.1', () => {
+    // Of the six in the addendum, X is the only one without a gate. Bluesky was
+    // added later and has none either, which is most of why it is worth having.
+    const ungated = allAdapters()
+      .filter((a) => !a.constraints.requiresReviewForPublicPosting)
+      .map((a) => a.platform)
+      .sort();
+    expect(ungated).toEqual(['bluesky', 'x']);
+
     expect(REVIEW_GATES.x.review).toBe('None');
     expect(REVIEW_GATES.tiktok.typicalWeeks).toMatch(/rejection/i);
   });
@@ -159,8 +164,10 @@ describe('PlatformAdapter contract', () => {
     expect(PLATFORM_CLIENT_ENV.youtube.id).toBe('GOOGLE_CLIENT_ID');
   });
 
-  it('builds an auth URL carrying state for every platform', () => {
-    for (const adapter of allAdapters()) {
+  it('builds an auth URL carrying state for every OAuth platform', () => {
+    // Bluesky is not OAuth: the operator creates an app password and pastes it,
+    // so its "auth url" is the settings page and carries no state.
+    for (const adapter of allAdapters().filter((a) => a.platform !== 'bluesky')) {
       const url = new URL(
         adapter.getAuthUrl('signed-state', {
           clientId: 'client-id',

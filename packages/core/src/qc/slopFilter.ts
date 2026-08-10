@@ -264,6 +264,40 @@ const HARD_BLOCK_RULES: Array<{ rule: string; pattern: RegExp; message: string }
   },
 ];
 
+/**
+ * Internal vocabulary from the GitHub connector. A shipped-feature summary is a
+ * model output, and "instructed not to mention SHAs" is not a guarantee.
+ * Milestone 24.
+ */
+const INTERNALS_RULES: Array<{ rule: string; pattern: RegExp; message: string }> = [
+  {
+    rule: 'internals.commit_sha',
+    // At least one a-f, so a seven-digit number is not mistaken for a hash.
+    pattern: /\b(?=[0-9a-f]*[a-f])[0-9a-f]{7,40}\b/,
+    message: 'Looks like a commit SHA. Internal references never go in copy.',
+  },
+  {
+    rule: 'internals.branch_name',
+    pattern: /\b(feat|fix|chore|refactor|release)\/[a-z0-9._-]+/i,
+    message: 'Looks like a branch name.',
+  },
+  {
+    rule: 'internals.file_path',
+    pattern: /\b[\w-]+\/[\w-]+\.(ts|tsx|js|jsx|sql|py|go|rs|json|yml|yaml)\b/,
+    message: 'Looks like a source file path.',
+  },
+  {
+    rule: 'internals.pr_reference',
+    pattern: /\b(PR|pull request)\s*#\d+|\(#\d{1,6}\)/i,
+    message: 'Looks like a pull request reference.',
+  },
+  {
+    rule: 'internals.conventional_commit',
+    pattern: /(^|\n)(feat|fix|chore|docs|refactor|perf|test|build|ci)(\([\w-]+\))?:/i,
+    message: 'Looks like a conventional commit prefix.',
+  },
+];
+
 /** Competitor names are configured per product; these are the always-on ones. */
 const COMPETITOR_PATTERN =
   /\b(chatgpt|copy\s?me\s?that|paprika|mealime|yummly|allrecipes|whisk|samsung food)\b/i;
@@ -457,6 +491,20 @@ export function slopFilter(input: SlopFilterInput): SlopFilterResult {
       });
     }
   }
+  for (const rule of INTERNALS_RULES) {
+    const m = rule.pattern.exec(body);
+    if (m) {
+      push({
+        rule: rule.rule,
+        severity: 'error',
+        message: rule.message,
+        excerpt: excerptAround(body, m.index),
+        index: m.index,
+        fix: 'Say what a person can now do. Nobody outside the repo knows what this refers to.',
+      });
+    }
+  }
+
   const competitor = COMPETITOR_PATTERN.exec(body);
   if (competitor) {
     push({

@@ -14,15 +14,20 @@ export interface NavCounts {
   pendingApproval: number;
   inboxPending: number;
   failed: number;
+  /** Stories waiting on an opinion. Input-gated work needs its own signal. */
+  storiesWaiting?: number;
 }
 
 const NAV: Array<{ href: string; label: string; group: 'work' | 'plan' | 'config' }> = [
   { href: '/', label: 'Dashboard', group: 'work' },
   { href: '/queue', label: 'Queue', group: 'work' },
+  { href: '/take', label: 'Daily Take', group: 'work' },
   { href: '/compose', label: 'Compose', group: 'work' },
   { href: '/inbox', label: 'Inbox', group: 'work' },
   { href: '/calendar', label: 'Calendar', group: 'plan' },
   { href: '/ideas', label: 'Ideas', group: 'plan' },
+  { href: '/swipe', label: 'Swipe file', group: 'plan' },
+  { href: '/finds', label: 'Finds', group: 'plan' },
   { href: '/library', label: 'Library', group: 'plan' },
   { href: '/analytics', label: 'Analytics', group: 'plan' },
   { href: '/products', label: 'Products', group: 'config' },
@@ -38,22 +43,33 @@ const MOBILE_TABS = [
   { href: '/settings', label: 'More' },
 ];
 
+export interface ShellProduct {
+  id: string;
+  name: string;
+  kind: 'product' | 'personal';
+}
+
 export function Shell({
   children,
   pathname,
   counts,
+  products = [],
+  currentProductId,
   productName = 'RecipeFix',
   killSwitchOn,
 }: {
   children: ReactNode;
   pathname: string;
   counts: NavCounts;
+  products?: ShellProduct[];
+  currentProductId?: string;
   productName?: string;
   killSwitchOn?: boolean;
 }) {
   const badgeFor = (href: string): number => {
     if (href === '/queue') return counts.pendingApproval;
     if (href === '/inbox') return counts.inboxPending;
+    if (href === '/take') return counts.storiesWaiting ?? 0;
     return 0;
   };
 
@@ -65,7 +81,28 @@ export function Shell({
             <Link href="/" className="font-serif text-2xl leading-none text-ink">
               Halyard
             </Link>
-            <p className="mt-1 text-xs text-muted">{productName}</p>
+
+            {products.length > 1 ? (
+              <div className="mt-2 flex flex-wrap gap-1">
+                {products.map((product) => (
+                  <Link
+                    key={product.id}
+                    href={`${pathname}?product=${product.id}`}
+                    className={cx(
+                      'rounded-md px-1.5 py-0.5 text-[11px]',
+                      product.id === currentProductId
+                        ? 'bg-primary/10 font-medium text-primary'
+                        : 'text-muted hover:bg-sunk hover:text-ink',
+                    )}
+                    title={product.kind === 'personal' ? 'A persona, not a product' : undefined}
+                  >
+                    {product.name}
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-1 text-xs text-muted">{productName}</p>
+            )}
           </div>
 
           <nav className="flex-1 space-y-6 overflow-y-auto px-3 pb-6">

@@ -414,6 +414,9 @@ export interface ContentItemsRow {
   updated_at: string;
   product_artifact_id: string | null;
   about_product_id: string | null;
+  hook_variant_id: string | null;
+  experiment_id: string | null;
+  format_subtype: string | null;
 }
 
 export interface ContentItemsInsert {
@@ -459,6 +462,9 @@ export interface ContentItemsInsert {
   updated_at?: string;
   product_artifact_id?: string | null;
   about_product_id?: string | null;
+  hook_variant_id?: string | null;
+  experiment_id?: string | null;
+  format_subtype?: string | null;
 }
 
 export interface ContentItemsUpdate {
@@ -504,6 +510,162 @@ export interface ContentItemsUpdate {
   updated_at?: string;
   product_artifact_id?: string | null;
   about_product_id?: string | null;
+  hook_variant_id?: string | null;
+  experiment_id?: string | null;
+  format_subtype?: string | null;
+}
+
+export interface FindsRow {
+  id: string;
+  product_id: string;
+  url: string;
+  title: string | null;
+  summary: string | null;
+  suggested_angle: string | null;
+  why_useful: string | null;
+  source: 'paste' | 'bookmarklet' | 'shortcut' | 'rss';
+  status: 'new' | 'drafted' | 'used' | 'discarded';
+  content_item_id: string | null;
+  created_at: string;
+}
+
+export interface FindsInsert {
+  id?: string;
+  product_id: string;
+  url: string;
+  title?: string | null;
+  summary?: string | null;
+  suggested_angle?: string | null;
+  why_useful?: string | null;
+  source?: 'paste' | 'bookmarklet' | 'shortcut' | 'rss';
+  status?: 'new' | 'drafted' | 'used' | 'discarded';
+  content_item_id?: string | null;
+  created_at?: string;
+}
+
+export interface FindsUpdate {
+  id?: string;
+  product_id?: string;
+  url?: string;
+  title?: string | null;
+  summary?: string | null;
+  suggested_angle?: string | null;
+  why_useful?: string | null;
+  source?: 'paste' | 'bookmarklet' | 'shortcut' | 'rss';
+  status?: 'new' | 'drafted' | 'used' | 'discarded';
+  content_item_id?: string | null;
+  created_at?: string;
+}
+
+export interface FormatCadenceRow {
+  id: string;
+  product_id: string;
+  format: string;
+  weekly_floor: number;
+  weekly_ceiling: number;
+  reason: string | null;
+}
+
+export interface FormatCadenceInsert {
+  id?: string;
+  product_id: string;
+  format: string;
+  weekly_floor?: number;
+  weekly_ceiling?: number;
+  reason?: string | null;
+}
+
+export interface FormatCadenceUpdate {
+  id?: string;
+  product_id?: string;
+  format?: string;
+  weekly_floor?: number;
+  weekly_ceiling?: number;
+  reason?: string | null;
+}
+
+export interface HookExperimentsRow {
+  id: string;
+  product_id: string;
+  hypothesis: string;
+  status: 'running' | 'concluded' | 'abandoned';
+  controls: Json;
+  started_at: string;
+  concluded_at: string | null;
+  outcome: string | null;
+}
+
+export interface HookExperimentsInsert {
+  id?: string;
+  product_id: string;
+  hypothesis: string;
+  status?: 'running' | 'concluded' | 'abandoned';
+  controls?: Json;
+  started_at?: string;
+  concluded_at?: string | null;
+  outcome?: string | null;
+}
+
+export interface HookExperimentsUpdate {
+  id?: string;
+  product_id?: string;
+  hypothesis?: string;
+  status?: 'running' | 'concluded' | 'abandoned';
+  controls?: Json;
+  started_at?: string;
+  concluded_at?: string | null;
+  outcome?: string | null;
+}
+
+export interface HookVariantsRow {
+  id: string;
+  content_item_id: string;
+  hook_type: string;
+  text_hook: string;
+  spoken_hook: string | null;
+  visual_direction: string | null;
+  caption_hook: string | null;
+  predicted_stop_rate: number | null;
+  prediction_basis: string | null;
+  selected: boolean;
+  experiment_id: string | null;
+  variant_label: string | null;
+  rejected_reason: string | null;
+  created_at: string;
+}
+
+export interface HookVariantsInsert {
+  id?: string;
+  content_item_id: string;
+  hook_type: string;
+  text_hook: string;
+  spoken_hook?: string | null;
+  visual_direction?: string | null;
+  caption_hook?: string | null;
+  predicted_stop_rate?: number | null;
+  prediction_basis?: string | null;
+  selected?: boolean;
+  experiment_id?: string | null;
+  variant_label?: string | null;
+  rejected_reason?: string | null;
+  created_at?: string;
+}
+
+export interface HookVariantsUpdate {
+  id?: string;
+  content_item_id?: string;
+  hook_type?: string;
+  text_hook?: string;
+  spoken_hook?: string | null;
+  visual_direction?: string | null;
+  caption_hook?: string | null;
+  predicted_stop_rate?: number | null;
+  prediction_basis?: string | null;
+  selected?: boolean;
+  experiment_id?: string | null;
+  variant_label?: string | null;
+  rejected_reason?: string | null;
+  created_at?: string;
 }
 
 export interface HooksRow {
@@ -512,12 +674,18 @@ export interface HooksRow {
   pattern: string;
   platform: string | null;
   category: string | null;
-  source: 'seeded' | 'calibration' | 'approved_post' | 'manual';
+  source: 'seeded' | 'calibration' | 'approved_post' | 'manual' | 'swipe' | 'generated';
   uses: number;
   avg_stop_rate: number | null;
   avg_score: number | null;
   active: boolean;
   created_at: string;
+  hook_type: string;
+  layer: 'text' | 'spoken' | 'visual' | 'caption';
+  pattern_template: string | null;
+  last_used_at: string | null;
+  recency_weighted_score: number | null;
+  format: string | null;
 }
 
 export interface HooksInsert {
@@ -526,12 +694,18 @@ export interface HooksInsert {
   pattern: string;
   platform?: string | null;
   category?: string | null;
-  source?: 'seeded' | 'calibration' | 'approved_post' | 'manual';
+  source?: 'seeded' | 'calibration' | 'approved_post' | 'manual' | 'swipe' | 'generated';
   uses?: number;
   avg_stop_rate?: number | null;
   avg_score?: number | null;
   active?: boolean;
   created_at?: string;
+  hook_type: string;
+  layer?: 'text' | 'spoken' | 'visual' | 'caption';
+  pattern_template?: string | null;
+  last_used_at?: string | null;
+  recency_weighted_score?: number | null;
+  format?: string | null;
 }
 
 export interface HooksUpdate {
@@ -540,12 +714,18 @@ export interface HooksUpdate {
   pattern?: string;
   platform?: string | null;
   category?: string | null;
-  source?: 'seeded' | 'calibration' | 'approved_post' | 'manual';
+  source?: 'seeded' | 'calibration' | 'approved_post' | 'manual' | 'swipe' | 'generated';
   uses?: number;
   avg_stop_rate?: number | null;
   avg_score?: number | null;
   active?: boolean;
   created_at?: string;
+  hook_type?: string;
+  layer?: 'text' | 'spoken' | 'visual' | 'caption';
+  pattern_template?: string | null;
+  last_used_at?: string | null;
+  recency_weighted_score?: number | null;
+  format?: string | null;
 }
 
 export interface IdeasRow {
@@ -1011,6 +1191,12 @@ export interface ReferencesSwipeRow {
   why_it_works: string;
   tags: string[];
   created_at: string;
+  format: string | null;
+  category: string | null;
+  hook_text: string | null;
+  hook_type: string | null;
+  author_handle: string | null;
+  added_at: string;
 }
 
 export interface ReferencesSwipeInsert {
@@ -1023,6 +1209,12 @@ export interface ReferencesSwipeInsert {
   why_it_works: string;
   tags?: string[];
   created_at?: string;
+  format?: string | null;
+  category?: string | null;
+  hook_text?: string | null;
+  hook_type?: string | null;
+  author_handle?: string | null;
+  added_at?: string;
 }
 
 export interface ReferencesSwipeUpdate {
@@ -1035,6 +1227,51 @@ export interface ReferencesSwipeUpdate {
   why_it_works?: string;
   tags?: string[];
   created_at?: string;
+  format?: string | null;
+  category?: string | null;
+  hook_text?: string | null;
+  hook_type?: string | null;
+  author_handle?: string | null;
+  added_at?: string;
+}
+
+export interface RejectionClustersRow {
+  id: string;
+  product_id: string;
+  category: string | null;
+  pattern: string;
+  example_ids: string[];
+  occurrences: number;
+  suggested_rule: string | null;
+  status: 'surfaced' | 'accepted' | 'dismissed';
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RejectionClustersInsert {
+  id?: string;
+  product_id: string;
+  category?: string | null;
+  pattern: string;
+  example_ids?: string[];
+  occurrences?: number;
+  suggested_rule?: string | null;
+  status?: 'surfaced' | 'accepted' | 'dismissed';
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface RejectionClustersUpdate {
+  id?: string;
+  product_id?: string;
+  category?: string | null;
+  pattern?: string;
+  example_ids?: string[];
+  occurrences?: number;
+  suggested_rule?: string | null;
+  status?: 'surfaced' | 'accepted' | 'dismissed';
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface RendersRow {
@@ -1079,6 +1316,105 @@ export interface RendersUpdate {
   status?: 'queued' | 'rendering' | 'done' | 'failed';
   error?: string | null;
   duration_ms?: number | null;
+  created_at?: string;
+}
+
+export interface RssItemsRow {
+  id: string;
+  source_id: string;
+  product_id: string;
+  guid: string;
+  url: string;
+  title: string;
+  summary: string | null;
+  author: string | null;
+  published_at: string | null;
+  fetched_at: string;
+  cluster_key: string | null;
+  feed_count: number;
+  expires_at: string;
+  relevance: number | null;
+  contested: string | null;
+  rank_reason: string | null;
+  status: 'new' | 'surfaced' | 'used' | 'skipped' | 'expired';
+}
+
+export interface RssItemsInsert {
+  id?: string;
+  source_id: string;
+  product_id: string;
+  guid: string;
+  url: string;
+  title: string;
+  summary?: string | null;
+  author?: string | null;
+  published_at?: string | null;
+  fetched_at?: string;
+  cluster_key?: string | null;
+  feed_count?: number;
+  expires_at?: string;
+  relevance?: number | null;
+  contested?: string | null;
+  rank_reason?: string | null;
+  status?: 'new' | 'surfaced' | 'used' | 'skipped' | 'expired';
+}
+
+export interface RssItemsUpdate {
+  id?: string;
+  source_id?: string;
+  product_id?: string;
+  guid?: string;
+  url?: string;
+  title?: string;
+  summary?: string | null;
+  author?: string | null;
+  published_at?: string | null;
+  fetched_at?: string;
+  cluster_key?: string | null;
+  feed_count?: number;
+  expires_at?: string;
+  relevance?: number | null;
+  contested?: string | null;
+  rank_reason?: string | null;
+  status?: 'new' | 'surfaced' | 'used' | 'skipped' | 'expired';
+}
+
+export interface RssSourcesRow {
+  id: string;
+  product_id: string;
+  name: string;
+  feed_url: string;
+  why: string | null;
+  weight: number;
+  enabled: boolean;
+  last_polled_at: string | null;
+  last_error: string | null;
+  created_at: string;
+}
+
+export interface RssSourcesInsert {
+  id?: string;
+  product_id: string;
+  name: string;
+  feed_url: string;
+  why?: string | null;
+  weight?: number;
+  enabled?: boolean;
+  last_polled_at?: string | null;
+  last_error?: string | null;
+  created_at?: string;
+}
+
+export interface RssSourcesUpdate {
+  id?: string;
+  product_id?: string;
+  name?: string;
+  feed_url?: string;
+  why?: string | null;
+  weight?: number;
+  enabled?: boolean;
+  last_polled_at?: string | null;
+  last_error?: string | null;
   created_at?: string;
 }
 
@@ -1367,6 +1703,69 @@ export interface SubmissionsUpdate {
   resulting_content_item_id?: string | null;
 }
 
+export interface TakesRow {
+  id: string;
+  product_id: string;
+  rss_item_id: string | null;
+  raw_input: string;
+  input_method: 'typed' | 'spoken';
+  audience: string | null;
+  fact_check: Json;
+  fact_check_ok: boolean | null;
+  story_verified: boolean | null;
+  supporting: Json;
+  strongest_counter: string | null;
+  risk_flags: Json;
+  draft: string | null;
+  likely_pushback: Json;
+  status: 'awaiting_input' | 'checking' | 'needs_revision' | 'drafted' | 'approved' | 'discarded';
+  content_item_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TakesInsert {
+  id?: string;
+  product_id: string;
+  rss_item_id?: string | null;
+  raw_input: string;
+  input_method?: 'typed' | 'spoken';
+  audience?: string | null;
+  fact_check?: Json;
+  fact_check_ok?: boolean | null;
+  story_verified?: boolean | null;
+  supporting?: Json;
+  strongest_counter?: string | null;
+  risk_flags?: Json;
+  draft?: string | null;
+  likely_pushback?: Json;
+  status?: 'awaiting_input' | 'checking' | 'needs_revision' | 'drafted' | 'approved' | 'discarded';
+  content_item_id?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface TakesUpdate {
+  id?: string;
+  product_id?: string;
+  rss_item_id?: string | null;
+  raw_input?: string;
+  input_method?: 'typed' | 'spoken';
+  audience?: string | null;
+  fact_check?: Json;
+  fact_check_ok?: boolean | null;
+  story_verified?: boolean | null;
+  supporting?: Json;
+  strongest_counter?: string | null;
+  risk_flags?: Json;
+  draft?: string | null;
+  likely_pushback?: Json;
+  status?: 'awaiting_input' | 'checking' | 'needs_revision' | 'drafted' | 'approved' | 'discarded';
+  content_item_id?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface TemplatesRow {
   id: string;
   product_id: string | null;
@@ -1379,6 +1778,9 @@ export interface TemplatesRow {
   enabled: boolean;
   disabled_reason: string | null;
   created_at: string;
+  loop_ready: boolean;
+  opens_on_content: boolean;
+  min_pattern_interrupt_seconds: number;
 }
 
 export interface TemplatesInsert {
@@ -1393,6 +1795,9 @@ export interface TemplatesInsert {
   enabled?: boolean;
   disabled_reason?: string | null;
   created_at?: string;
+  loop_ready?: boolean;
+  opens_on_content?: boolean;
+  min_pattern_interrupt_seconds?: number;
 }
 
 export interface TemplatesUpdate {
@@ -1407,6 +1812,9 @@ export interface TemplatesUpdate {
   enabled?: boolean;
   disabled_reason?: string | null;
   created_at?: string;
+  loop_ready?: boolean;
+  opens_on_content?: boolean;
+  min_pattern_interrupt_seconds?: number;
 }
 
 export interface VoiceLexiconRow {
@@ -1474,6 +1882,10 @@ export interface Database {
     compose_sessions: { Row: ComposeSessionsRow; Insert: ComposeSessionsInsert; Update: ComposeSessionsUpdate; Relationships: [] };
     connector_calls: { Row: ConnectorCallsRow; Insert: ConnectorCallsInsert; Update: ConnectorCallsUpdate; Relationships: [] };
     content_items: { Row: ContentItemsRow; Insert: ContentItemsInsert; Update: ContentItemsUpdate; Relationships: [] };
+    finds: { Row: FindsRow; Insert: FindsInsert; Update: FindsUpdate; Relationships: [] };
+    format_cadence: { Row: FormatCadenceRow; Insert: FormatCadenceInsert; Update: FormatCadenceUpdate; Relationships: [] };
+    hook_experiments: { Row: HookExperimentsRow; Insert: HookExperimentsInsert; Update: HookExperimentsUpdate; Relationships: [] };
+    hook_variants: { Row: HookVariantsRow; Insert: HookVariantsInsert; Update: HookVariantsUpdate; Relationships: [] };
     hooks: { Row: HooksRow; Insert: HooksInsert; Update: HooksUpdate; Relationships: [] };
     ideas: { Row: IdeasRow; Insert: IdeasInsert; Update: IdeasUpdate; Relationships: [] };
     jobs: { Row: JobsRow; Insert: JobsInsert; Update: JobsUpdate; Relationships: [] };
@@ -1485,7 +1897,10 @@ export interface Database {
     products: { Row: ProductsRow; Insert: ProductsInsert; Update: ProductsUpdate; Relationships: [] };
     publications: { Row: PublicationsRow; Insert: PublicationsInsert; Update: PublicationsUpdate; Relationships: [] };
     references_swipe: { Row: ReferencesSwipeRow; Insert: ReferencesSwipeInsert; Update: ReferencesSwipeUpdate; Relationships: [] };
+    rejection_clusters: { Row: RejectionClustersRow; Insert: RejectionClustersInsert; Update: RejectionClustersUpdate; Relationships: [] };
     renders: { Row: RendersRow; Insert: RendersInsert; Update: RendersUpdate; Relationships: [] };
+    rss_items: { Row: RssItemsRow; Insert: RssItemsInsert; Update: RssItemsUpdate; Relationships: [] };
+    rss_sources: { Row: RssSourcesRow; Insert: RssSourcesInsert; Update: RssSourcesUpdate; Relationships: [] };
     series: { Row: SeriesRow; Insert: SeriesInsert; Update: SeriesUpdate; Relationships: [] };
     settings: { Row: SettingsRow; Insert: SettingsInsert; Update: SettingsUpdate; Relationships: [] };
     shipped_features: { Row: ShippedFeaturesRow; Insert: ShippedFeaturesInsert; Update: ShippedFeaturesUpdate; Relationships: [] };
@@ -1493,6 +1908,7 @@ export interface Database {
     slots: { Row: SlotsRow; Insert: SlotsInsert; Update: SlotsUpdate; Relationships: [] };
     social_accounts: { Row: SocialAccountsRow; Insert: SocialAccountsInsert; Update: SocialAccountsUpdate; Relationships: [] };
     submissions: { Row: SubmissionsRow; Insert: SubmissionsInsert; Update: SubmissionsUpdate; Relationships: [] };
+    takes: { Row: TakesRow; Insert: TakesInsert; Update: TakesUpdate; Relationships: [] };
     templates: { Row: TemplatesRow; Insert: TemplatesInsert; Update: TemplatesUpdate; Relationships: [] };
     voice_lexicon: { Row: VoiceLexiconRow; Insert: VoiceLexiconInsert; Update: VoiceLexiconUpdate; Relationships: [] };
     worker_heartbeats: { Row: WorkerHeartbeatsRow; Insert: WorkerHeartbeatsInsert; Update: WorkerHeartbeatsUpdate; Relationships: [] };

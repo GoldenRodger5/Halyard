@@ -8,7 +8,7 @@
  *
  *   DATABASE_URL=postgres://... pnpm exec tsx scripts/seed-assets.ts
  */
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import pg from 'pg';
@@ -90,6 +90,18 @@ async function main(): Promise<void> {
 
   const pool = new pg.Pool({ connectionString });
   mkdirSync(PUBLIC_DIR, { recursive: true });
+
+  // Files and rows are cleared together. Clearing only the files leaves rows
+  // pointing at 404s; clearing only the rows leaves orphaned PNGs. Doing both
+  // makes this safe to run repeatedly.
+  for (const file of readdirSync(PUBLIC_DIR)) {
+    if (file.endsWith('.png')) rmSync(path.join(PUBLIC_DIR, file));
+  }
+  await pool.query(`delete from renders where output_asset_id in
+                      (select id from assets where storage_path like 'dev-assets/%')`);
+  await pool.query(`delete from assets where storage_path like 'dev-assets/%'`);
+  await pool.query(`update content_items set render_ids = '{}'
+                     where render_ids <> '{}'`);
 
   const brandRow = await pool.query<{ brand_tokens: Record<string, unknown>; name: string }>(
     'select brand_tokens, name from products order by created_at limit 1',

@@ -32,12 +32,14 @@ export async function getNavCounts(): Promise<{
   inboxPending: number;
   failed: number;
   scheduledToday: number;
+  storiesWaiting: number;
 }> {
   const row = await one<{
     pending: string;
     inbox: string;
     failed: string;
     scheduled_today: string;
+    stories_waiting: string;
   }>(
     `select
        (select count(*) from content_items where status = 'pending_approval')            as pending,
@@ -45,18 +47,22 @@ export async function getNavCounts(): Promise<{
        (select count(*) from content_items where status = 'failed')                      as failed,
        (select count(*) from content_items
          where status in ('approved','scheduled')
-           and scheduled_at::date = (now() at time zone 'utc')::date)                    as scheduled_today`,
+           and scheduled_at::date = (now() at time zone 'utc')::date)                    as scheduled_today,
+       (select count(*) from rss_items
+         where status in ('new','surfaced') and expires_at > now())                   as stories_waiting`,
   );
   return {
     pendingApproval: Number(row?.pending ?? 0),
     inboxPending: Number(row?.inbox ?? 0),
     failed: Number(row?.failed ?? 0),
     scheduledToday: Number(row?.scheduled_today ?? 0),
+    storiesWaiting: Number(row?.stories_waiting ?? 0),
   };
 }
 
 export interface ProductRow {
   id: string;
+  kind: 'product' | 'personal';
   name: string;
   tagline: string | null;
   website_url: string | null;
@@ -69,8 +75,33 @@ export interface ProductRow {
   operator_timezone: string;
 }
 
+/**
+ * Products, real ones first.
+ *
+ * The founder persona is a `products` row so it can have a voice, a mix and its
+ * own signals — but it is not a product, and defaulting the whole UI to it
+ * (which is what happened the moment it was added) shows an empty dashboard.
+ * Ordering by kind keeps "the first product" meaning what every caller assumes.
+ */
 export async function getProducts(): Promise<ProductRow[]> {
-  return query<ProductRow>('select * from products order by created_at');
+  return query<ProductRow>(
+    `select * from products order by (kind = 'product') desc, created_at`,
+  );
+}
+
+/**
+ * The product the UI is currently about. Milestone 23.
+ *
+ * An explicit `?product=` wins, then the first real product. Personal personas
+ * are only ever selected deliberately.
+ */
+export async function getCurrentProduct(requested?: string): Promise<ProductRow | null> {
+  const products = await getProducts();
+  if (requested) {
+    const match = products.find((p) => p.id === requested);
+    if (match) return match;
+  }
+  return products.find((p) => p.kind === 'product') ?? products[0] ?? null;
 }
 
 export async function getProduct(id: string): Promise<ProductRow | null> {

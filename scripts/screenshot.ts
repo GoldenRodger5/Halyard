@@ -30,6 +30,9 @@ const ROUTES = [
   ['settings', '/settings'],
   ['health', '/settings/health'],
   ['compose', '/compose'],
+  ['take', '/take'],
+  ['swipe', '/swipe'],
+  ['finds', '/finds'],
   ['onboarding', '/onboarding'],
 ] as const;
 
@@ -45,6 +48,15 @@ async function capture(
   page.on('pageerror', (err) => failures.push(`${label} page error: ${err.message}`));
   page.on('console', (message) => {
     if (message.type() === 'error') failures.push(`${label} console: ${message.text()}`);
+  });
+  // "Failed to load resource" without the URL is unactionable.
+  page.on('requestfailed', (request) =>
+    failures.push(`${label} request failed: ${request.url()}`),
+  );
+  page.on('response', (response) => {
+    if (response.status() >= 400) {
+      failures.push(`${label} ${response.status()}: ${response.url()}`);
+    }
   });
 
   for (const [name, route] of ROUTES) {

@@ -26,14 +26,12 @@ const ENTRY = path.join(RENDER_PACKAGE, 'src/video/entry.tsx');
 /** Font faces are served from here rather than fetched, so renders work offline. */
 const PUBLIC_DIR = path.join(RENDER_PACKAGE, 'public');
 
-let bundlePromise: Promise<string> | null = null;
+let bundlePromise: Promise<string> | undefined;
 
 /** Bundle once per process. Concurrent callers await the same promise. */
 export function getBundle(): Promise<string> {
-  bundlePromise ??= bundle({
-    entryPoint: ENTRY,
+  bundlePromise ??= bundle(ENTRY, () => undefined, {
     publicDir: PUBLIC_DIR,
-    onProgress: () => undefined,
     // The render package is ESM TypeScript importing with explicit `.js`
     // specifiers, which is what Node wants. Remotion's webpack has to be told
     // that a `.js` specifier may resolve to the `.tsx` source beside it.
@@ -80,9 +78,9 @@ export interface RenderVideoResult {
 export function renderConcurrency(): number {
   const cpus = Number(process.env.RENDER_CONCURRENCY ?? 0);
   if (cpus > 0) return cpus;
-  const available = typeof process.availableParallelism === 'function'
-    ? process.availableParallelism()
-    : 4;
+  const parallelism = (process as NodeJS.Process & { availableParallelism?: () => number })
+    .availableParallelism;
+  const available = typeof parallelism === 'function' ? parallelism.call(process) : 4;
   return Math.max(1, Math.min(8, available - 1));
 }
 

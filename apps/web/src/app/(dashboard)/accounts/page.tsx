@@ -9,15 +9,18 @@ import {
   SectionTitle,
 } from '@halyard/ui';
 import { PLATFORM_CLIENT_ENV, REVIEW_GATES, allAdapters } from '@halyard/core';
-import { getAccounts, getProducts } from '@/lib/queries';
+import { getAccounts, getCurrentProduct } from '@/lib/queries';
 import { formatInOperatorTz } from '@/lib/format';
 import { setCapabilityState } from './actions';
 
 export const dynamic = 'force-dynamic';
 
-export default async function AccountsPage() {
-  const products = await getProducts();
-  const product = products[0];
+export default async function AccountsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ product?: string }>;
+}) {
+  const product = await getCurrentProduct((await searchParams).product);
   const accounts = await getAccounts(product?.id);
   const timeZone = product?.operator_timezone ?? 'UTC';
 

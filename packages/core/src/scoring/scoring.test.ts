@@ -8,9 +8,11 @@ import {
   stampUtm,
 } from './attribution.js';
 import {
+  ENGAGEMENT_WEIGHTS,
   LOW_CONFIDENCE_IMPRESSIONS,
   SCORE_WEIGHTS,
   engagementRate,
+  rawEngagementRate,
   findOpportunities,
   percentileRank,
   repostEligibleAt,
@@ -123,8 +125,20 @@ describe('performance scoring — v1 §9', () => {
   });
 
   it('computes engagement as a rate, not a count', () => {
-    expect(engagementRate({ contentItemId: 'a', impressions: 1000, likes: 40, saves: 10 })).toBeCloseTo(0.05);
+    // 40 likes at weight 1, 10 saves at weight 2.5 → 65 weighted over 1,000.
+    expect(engagementRate({ contentItemId: 'a', impressions: 1000, likes: 40, saves: 10 })).toBeCloseTo(0.065);
     expect(engagementRate({ contentItemId: 'a', impressions: 0, likes: 40 })).toBe(0);
+  });
+
+  it('weights a save above a like — Part D', () => {
+    expect(ENGAGEMENT_WEIGHTS.save).toBeGreaterThan(ENGAGEMENT_WEIGHTS.like * 2);
+    expect(ENGAGEMENT_WEIGHTS.follow).toBeGreaterThan(ENGAGEMENT_WEIGHTS.save);
+
+    const saver = { contentItemId: 'saver', impressions: 1000, likes: 10, saves: 40 };
+    const liker = { contentItemId: 'liker', impressions: 1000, likes: 40, saves: 10 };
+    expect(engagementRate(saver)).toBeGreaterThan(engagementRate(liker));
+    // Unweighted, the two are identical — which is the point.
+    expect(rawEngagementRate(saver)).toBeCloseTo(rawEngagementRate(liker));
   });
 
   it('gives a single post a neutral percentile rather than a perfect one', () => {

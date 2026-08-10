@@ -223,7 +223,8 @@ export function looksLikeFeature(pull: MergedPullRequest, userFacingPaths?: stri
 export const INTERNALS_PATTERNS: Array<{ rule: string; pattern: RegExp; message: string }> = [
   {
     rule: 'internals.commit_sha',
-    pattern: /\b[0-9a-f]{7,40}\b(?![.\w])/,
+    // At least one a-f, so a seven-digit number is not mistaken for a hash.
+    pattern: /\b(?=[0-9a-f]*[a-f])[0-9a-f]{7,40}\b/,
     message: 'Looks like a commit SHA. Internal references never go in copy.',
   },
   {

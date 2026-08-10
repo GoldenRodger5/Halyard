@@ -249,6 +249,30 @@ export const KNOWN_BAD_COPY: BadCopyFixture[] = [
       'The centre of the finished loaf therefore reads as underbaked to the eye while the crust surrounding it has already set completely hard. ' +
       'Dropping the oven by a full twenty five degrees and then adding twelve extra minutes gives the starch enough time to finish setting through.'
   },
+  {
+    name: 'commit SHA leaked from a changelog summary',
+    expectRule: 'internals.commit_sha',
+    platform: 'x',
+    body: 'Shipped ingredient-anchored scaling in a3f9c0d. Scaling is no longer linear.',
+  },
+  {
+    name: 'branch name leaked',
+    expectRule: 'internals.branch_name',
+    platform: 'x',
+    body: 'Merged feat/ingredient-anchored-scaling today. It changes how servings work.',
+  },
+  {
+    name: 'source file path leaked',
+    expectRule: 'internals.file_path',
+    platform: 'x',
+    body: 'Rewrote lib/scaling.ts so the ratios hold at small serving counts.',
+  },
+  {
+    name: 'pull request reference leaked',
+    expectRule: 'internals.pr_reference',
+    platform: 'x',
+    body: 'Scaling now anchors on what you have (#482). Servings were the wrong unit.',
+  },
 ];
 
 /**

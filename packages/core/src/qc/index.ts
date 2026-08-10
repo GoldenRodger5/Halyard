@@ -14,6 +14,7 @@ export * from './slopFilter.js';
 export * from './claimVerifier.js';
 export * from './visualQC.js';
 export * from './audioQC.js';
+export * from './retentionQC.js';
 
 import { slopFilter, slopSummary, type SlopFilterInput, type SlopFilterResult } from './slopFilter.js';
 import { verifyClaims, type Claim, type ClaimVerificationResult } from './claimVerifier.js';

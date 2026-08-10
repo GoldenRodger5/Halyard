@@ -2,6 +2,7 @@ import { InstagramAdapter } from './instagram.js';
 import { PinterestAdapter } from './pinterest.js';
 import { ThreadsAdapter } from './threads.js';
 import { TikTokAdapter } from './tiktok.js';
+import { BlueskyAdapter } from './bluesky.js';
 import { XAdapter } from './x.js';
 import { YouTubeAdapter } from './youtube.js';
 import type { PlatformAdapter, PlatformId } from './types.js';
@@ -14,9 +15,14 @@ export * from './threads.js';
 export * from './pinterest.js';
 export * from './youtube.js';
 export * from './tiktok.js';
+export * from './bluesky.js';
+export * from './dryRun.js';
 
 const ADAPTERS: Record<PlatformId, PlatformAdapter> = {
   x: new XAdapter(),
+  // Bluesky has no review gate and no per-post cost, and no native scheduling
+  // at all — which is exactly why it is worth supporting.
+  bluesky: new BlueskyAdapter(),
   instagram: new InstagramAdapter(),
   threads: new ThreadsAdapter(),
   pinterest: new PinterestAdapter(),
@@ -42,6 +48,8 @@ export const PLATFORM_CLIENT_ENV: Record<PlatformId, { id: string; secret: strin
   tiktok: { id: 'TIKTOK_CLIENT_KEY', secret: 'TIKTOK_CLIENT_SECRET' },
   pinterest: { id: 'PINTEREST_APP_ID', secret: 'PINTEREST_APP_SECRET' },
   youtube: { id: 'GOOGLE_CLIENT_ID', secret: 'GOOGLE_CLIENT_SECRET' },
+  // Bluesky uses an app password pasted by the operator, not a client app.
+  bluesky: { id: 'BLUESKY_UNUSED', secret: 'BLUESKY_UNUSED' },
 };
 
 /**
@@ -82,5 +90,10 @@ export const REVIEW_GATES: Record<
     review: 'Meta App Review',
     unreviewedGives: 'Similar to Instagram',
     typicalWeeks: '2–4 per submission',
+  },
+  bluesky: {
+    review: 'None',
+    unreviewedGives: 'Full posting on an app password',
+    typicalWeeks: '0',
   },
 };

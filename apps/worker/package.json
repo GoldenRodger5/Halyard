@@ -13,6 +13,8 @@
     "@halyard/core": "workspace:*",
     "@halyard/db": "workspace:*",
     "@halyard/render": "workspace:*",
+    "@remotion/bundler": "^4.0.507",
+    "@remotion/renderer": "^4.0.507",
     "pg": "^8.13.1",
     "tsx": "^4.19.2"
   },

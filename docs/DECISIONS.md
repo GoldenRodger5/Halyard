@@ -132,3 +132,84 @@ Meta cURLs media at publish time, and signed URLs with a short expiry fail
 (v2 A.3). `assertPublicUrl()` in the Instagram adapter refuses anything that
 looks signed, rather than letting the container hang in `IN_PROGRESS` until the
 poll times out. The bucket holds rendered output only.
+
+---
+
+# Round 2 (milestones 21 to 32)
+
+## 11. RLS is applied by a function, not a list
+
+Migration 0010 enumerated thirty tables by hand. The first round-2 migration
+added three more and they shipped unprotected until a test caught it. 0011
+replaces the list with `apply_admin_rls()`, which finds any public table without
+RLS and applies the standard policy. Every later migration ends with one line:
+
+```sql
+select public.apply_admin_rls();
+```
+
+A hand-maintained list of tables to protect is a list that will be wrong.
+
+## 12. Migrations never depend on seed data
+
+0012 seeded `format_cadence` for `recipefix` and broke CI, which applies
+migrations to an empty database. Seeds inside migrations are now guarded on the
+row existing. The rule: a migration must apply to an empty database, and seed
+data belongs in `seed.sql`.
+
+## 13. The founder is a `products` row, and that has a cost
+
+Milestone 23 asks for a persona that is not a product. Reusing the `products`
+table gives it a voice, a mix, its own signals and its own cadence for free — but
+it also means "the first product" silently became a persona with no accounts, and
+every product-scoped page went blank.
+
+`products.kind` plus kind-aware ordering fixes it, and `getCurrentProduct()` is
+now the only correct way to ask which product the UI is about. Personas are never
+the default context; they are selected deliberately.
+
+## 14. Bluesky is in the adapter registry despite not being in any spec
+
+It has no review gate, no per-post cost, and — the actual reason — no native
+scheduling at all, so a third-party tool is the only way to schedule there. It
+cost about 250 lines against an existing interface.
+
+It is not OAuth: the operator makes an app password and pastes it, so
+`getAuthUrl()` returns the settings page and carries no state. The adapter
+contract test excludes it from the state-carrying assertion, explicitly and with
+a reason, rather than the assertion being quietly loosened.
+
+## 15. Retention rules measure motion, not content
+
+"Open on content, no logo bumper" needs a definition a machine can check.
+Rather than trying to recognise a logo, `retentionQC` measures the length of the
+*static run* a video opens with: a bumper, an intro card and a title slide all
+share the property that nothing moves. A video already changing at frame 0 opened
+on content.
+
+The same measurement gives pattern-interrupt detection for free.
+
+## 16. Engagement is weighted, and the weights are stated
+
+Saves are worth two to three times a like to the algorithm, so
+`engagementRate()` weights them (`ENGAGEMENT_WEIGHTS`) rather than counting
+interactions equally. `rawEngagementRate()` is kept alongside it for display, so
+the weighting is visible rather than baked invisibly into a score.
+
+## 17. The Daily Take fact-checks before drafting, and can refuse to draft
+
+The order is the design. Fact-checking after drafting produces a false post with
+a footnote; fact-checking before it produces a revised opinion. `runTakeLoop`
+returns `needs_revision` and writes nothing when the check contradicts the
+central claim.
+
+`opinionPreserved()` measures vocabulary overlap between the raw input and the
+draft, because the failure mode here is not a hallucination — it is a strong
+claim quietly sanded into a balanced non-statement.
+
+## 18. Transcription for spoken takes uses a hosted API, not the local whisper
+
+The container has whisper.cpp, but the microphone is in the browser and the take
+screen runs on Vercel where the container is not. `/api/take/transcribe` calls a
+hosted model and degrades to "type it instead" on every failure path, because a
+broken microphone must not block the only input-gated workflow in the system.

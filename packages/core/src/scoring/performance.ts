@@ -47,7 +47,36 @@ export function percentileRank(value: number, population: number[]): number {
   return (below + equal / 2) / population.length;
 }
 
+/**
+ * Not all engagement is equal. A save is worth two to three times a like to the
+ * algorithm, and a share more again, so the rate is weighted rather than a flat
+ * count. Milestone 27, Part D.
+ *
+ * The weights are stated here rather than buried in the formula so they can be
+ * argued with.
+ */
+export const ENGAGEMENT_WEIGHTS = {
+  like: 1,
+  comment: 2,
+  share: 3,
+  /** Saves are the strongest available signal short of a follow. */
+  save: 2.5,
+  follow: 5,
+} as const;
+
 export function engagementRate(input: ScoreInput): number {
+  if (input.impressions <= 0) return 0;
+  const weighted =
+    (input.likes ?? 0) * ENGAGEMENT_WEIGHTS.like +
+    (input.comments ?? 0) * ENGAGEMENT_WEIGHTS.comment +
+    (input.shares ?? 0) * ENGAGEMENT_WEIGHTS.share +
+    (input.saves ?? 0) * ENGAGEMENT_WEIGHTS.save +
+    (input.follows ?? 0) * ENGAGEMENT_WEIGHTS.follow;
+  return weighted / input.impressions;
+}
+
+/** Unweighted, for display next to the weighted number. */
+export function rawEngagementRate(input: ScoreInput): number {
   if (input.impressions <= 0) return 0;
   const engagements =
     (input.likes ?? 0) + (input.comments ?? 0) + (input.shares ?? 0) + (input.saves ?? 0);

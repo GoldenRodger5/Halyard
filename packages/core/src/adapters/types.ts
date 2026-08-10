@@ -9,7 +9,14 @@
  * v2 B.1's hybrid strategy a config change rather than a rewrite.
  */
 
-export type PlatformId = 'x' | 'instagram' | 'tiktok' | 'pinterest' | 'youtube' | 'threads';
+export type PlatformId =
+  | 'x'
+  | 'instagram'
+  | 'tiktok'
+  | 'pinterest'
+  | 'youtube'
+  | 'threads'
+  | 'bluesky';
 
 export type CapabilityState = 'pending_auth' | 'draft_only' | 'live' | 'error' | 'disabled';
 
