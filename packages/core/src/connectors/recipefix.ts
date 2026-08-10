@@ -56,8 +56,18 @@ export interface RecipeFixConnectorOptions extends Omit<McpClientOptions, 'clien
   /** Injected in tests; defaults to a real MCP client. */
   client?: Pick<McpClient, 'callToolJson' | 'listTools'>;
   /**
-   * An adaptation takes 60 to 75 seconds against the live server. 150s leaves
-   * room for a slow day without the generate job hanging forever.
+   * Measured, not assumed: a cold adaptation of a fresh URL completed in 26
+   * seconds against the live server in August 2026, and a repeat of the same
+   * URL and diet came back in under 10 because RecipeFix caches the result.
+   * The 60-to-75-second figure this was originally sized against came from a
+   * July audit and no longer holds.
+   *
+   * 90s is roughly 3.5× the measured cold path — enough headroom for a bad day,
+   * and small enough that a hung call plus its one retry (180s) still fits
+   * inside the generate job's 5-minute timeout with room for the rest of
+   * generation. At the old 150s, two attempts consumed the entire job budget,
+   * so a hung adaptation killed the job on a timeout instead of failing with a
+   * reason.
    */
   adaptTimeoutMs?: number;
   /** One retry. A second failure is a real failure, not a blip. */
@@ -82,7 +92,7 @@ export class RecipeFixConnector implements ProductConnector {
   private readonly sleep: (ms: number) => Promise<void>;
 
   constructor(options: RecipeFixConnectorOptions) {
-    this.adaptTimeoutMs = options.adaptTimeoutMs ?? 150_000;
+    this.adaptTimeoutMs = options.adaptTimeoutMs ?? 90_000;
     this.adaptRetries = options.adaptRetries ?? 1;
     this.sleep = options.sleep ?? ((ms) => new Promise((r) => setTimeout(r, ms)));
     this.client =

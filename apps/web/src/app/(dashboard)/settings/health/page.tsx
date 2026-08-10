@@ -8,6 +8,7 @@ import {
   PlatformDot,
   SectionTitle,
 } from '@halyard/ui';
+import { allFlows } from '@halyard/core';
 import { getHealth, getProducts } from '@/lib/queries';
 import { formatInOperatorTz, formatRelative } from '@/lib/format';
 
@@ -113,6 +114,64 @@ export default async function HealthPage() {
               )}
             </Card>
           </div>
+        </section>
+
+        {/* ── Capture flows ───────────────────────────────────────────────
+            These depend on live strings in a product that ships with no CI, so
+            a broken selector is only ever found by running them. */}
+        <section>
+          <SectionTitle hint="verified against the live site, on every deploy and weekly">
+            Capture flows
+          </SectionTitle>
+          <Card className="divide-y divide-line">
+            {allFlows().map((flow) => {
+              const run = health.flows.find((f) => f.flow_id === flow.id);
+              const broken = run !== undefined && !run.ok;
+              return (
+                <div
+                  key={flow.id}
+                  className={`p-4 ${broken ? 'bg-danger/5' : ''}`}
+                >
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-medium text-ink">{flow.title}</span>
+                    {run === undefined ? (
+                      <Badge tone="warn">never verified</Badge>
+                    ) : run.ok ? (
+                      <Badge tone="good">passing</Badge>
+                    ) : (
+                      <Badge tone="bad">broken</Badge>
+                    )}
+                    {run?.app_version ? (
+                      <span className="font-mono text-xs text-muted">{run.app_version}</span>
+                    ) : null}
+                  </div>
+                  <p className={`mt-1 text-sm ${broken ? 'text-danger' : 'text-muted'}`}>
+                    {run
+                      ? run.summary
+                      : 'This flow has never been run against the live site, so nothing is known about whether its selectors still resolve.'}
+                  </p>
+                  {broken ? (
+                    <p className="mt-1.5 text-xs text-muted">
+                      Nothing is recorded while this is failing: capture verifies first and stops,
+                      so no footage of an error state can reach a post. Re-running it is also how
+                      it recovers — start one from{' '}
+                      <a href="/assets" className="text-primary underline">
+                        Assets
+                      </a>{' '}
+                      after fixing the selector in{' '}
+                      <code>packages/core/src/capture/flows.ts</code>.
+                    </p>
+                  ) : null}
+                  {run ? (
+                    <p className="mt-1 text-xs text-muted">
+                      {run.mode === 'verify' ? 'Verified' : 'Captured'}{' '}
+                      {formatRelative(run.started_at, timeZone)}
+                    </p>
+                  ) : null}
+                </div>
+              );
+            })}
+          </Card>
         </section>
 
         <section>

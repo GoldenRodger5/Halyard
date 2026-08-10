@@ -12,7 +12,13 @@
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { chromium, type Browser, type BrowserContext, type Locator, type Page } from 'playwright';
-import { FLOWS, type CaptureFlow, type FlowStep } from '@halyard/core';
+import {
+  FLOWS,
+  elisionCaption,
+  shouldElide,
+  type CaptureFlow,
+  type FlowStep,
+} from '@halyard/core';
 
 export interface StepResult {
   step: string;
@@ -37,10 +43,21 @@ export interface FlowRunResult {
   stills: Record<string, string>;
   videoPath?: string;
   /**
-   * The wall-clock spans of any ramped step, so Remotion knows which stretch of
-   * the video to compress rather than guessing from a fixed offset.
+   * The wall-clock spans the edit cuts, so Remotion knows which stretch of the
+   * video to remove rather than guessing from a fixed offset.
+   *
+   * `elide` is false when the wait was too short to be worth cutting — a cached
+   * adaptation returns in about two seconds — and the caption states the
+   * measured duration rather than a designed one.
    */
-  ramps: Array<{ step: string; startMs: number; endMs: number }>;
+  elisions: Array<{
+    step: string;
+    startMs: number;
+    endMs: number;
+    measuredMs: number;
+    elide: boolean;
+    caption: string;
+  }>;
   /** The plain-language reason a failed run failed. */
   summary: string;
 }
@@ -111,7 +128,7 @@ export async function runFlow(
   const started = Date.now();
   const steps: StepResult[] = [];
   const stills: Record<string, string> = {};
-  const ramps: FlowRunResult['ramps'] = [];
+  const elisions: FlowRunResult['elisions'] = [];
 
   let failed: StepResult | null = null;
 
@@ -140,11 +157,15 @@ export async function runFlow(
     }
 
     result.ms = Date.now() - stepStart;
-    if (step.ramp) {
-      ramps.push({
+    if (step.elide) {
+      const measuredMs = Date.now() - stepStart;
+      elisions.push({
         step: step.name,
         startMs: stepStart - started,
         endMs: Date.now() - started,
+        measuredMs,
+        elide: shouldElide(measuredMs),
+        caption: elisionCaption(measuredMs),
       });
     }
 
@@ -183,7 +204,7 @@ export async function runFlow(
     steps,
     stills,
     videoPath,
-    ramps,
+    elisions,
     summary: failed
       ? `"${failed.step}" failed. ${failed.selector ? `Selector ${failed.selector} did not resolve. ` : ''}${failed.error ?? ''} A screenshot of what the page actually looked like is at ${failed.failureScreenshot}.`
       : `All ${steps.length} steps passed in ${totalSeconds.toFixed(1)}s.${timingNote}`,
@@ -314,7 +335,7 @@ export async function runFlowChain(
         totalSeconds: 0,
         steps: [],
         stills: {},
-        ramps: [],
+        elisions: [],
         summary: `Not run: ${root.id} did not reach a result, and this flow acts on one.`,
       });
       continue;

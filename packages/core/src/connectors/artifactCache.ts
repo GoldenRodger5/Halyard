@@ -1,13 +1,19 @@
 /**
  * Adaptation caching and rate limiting. Milestone 22.
  *
- * A RecipeFix adaptation takes 60 to 75 seconds and spends real credits. Two
- * consequences the rest of the system depends on:
+ * A RecipeFix adaptation takes about 26 seconds cold and spends a real credit.
+ * Two consequences the rest of the system depends on:
  *
- *   · Never pay 75 seconds twice for the same request. The cache key is the
- *     request, not the response, so an idea that reuses a source recipe resolves
- *     instantly.
+ *   · Never pay for the same request twice. The cache key is the request, not
+ *     the response, so an idea that reuses a source recipe resolves instantly.
+ *     RecipeFix caches upstream too — a repeat came back in under 10 seconds —
+ *     but a cache hit there still spends a credit, so this cache is about money
+ *     rather than latency.
  *   · Twenty adaptations an hour, hard. This is the operator's money.
+ *
+ * The limit is deliberately unchanged by the faster timing. It was never a
+ * throughput ceiling derived from duration; it is a spend ceiling, and
+ * adaptations got cheaper in seconds, not in credits.
  *
  * The store is injected rather than imported so this is testable without a
  * database and usable from both the worker and a route handler.

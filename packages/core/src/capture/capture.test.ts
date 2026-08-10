@@ -2,7 +2,17 @@
  * Capture flows and staleness. Milestone 41.
  */
 import { describe, expect, it } from 'vitest';
-import { FLOWS, allFlows, assetStaleness, requiredSelectors, ASSET_STALE_DAYS } from './flows.js';
+import {
+  ASSET_STALE_DAYS,
+  ELIDE_THRESHOLD_MS,
+  FLOWS,
+  allFlows,
+  assetStaleness,
+  elisionCaption,
+  looksBlank,
+  requiredSelectors,
+  shouldElide,
+} from './flows.js';
 
 describe('flow definitions', () => {
   it('never depends on a generated class hash', () => {
@@ -37,10 +47,17 @@ describe('flow definitions', () => {
     }
   });
 
-  it('marks exactly one step of the long flow as the speed ramp', () => {
-    const ramps = FLOWS.adapt_and_reveal.steps.filter((s) => s.ramp);
-    expect(ramps).toHaveLength(1);
-    expect(ramps[0]!.name).toMatch(/adaptation/);
+  it('marks exactly one step of the long flow as the stretch the edit cuts', () => {
+    const elided = FLOWS.adapt_and_reveal.steps.filter((s) => s.elide);
+    expect(elided).toHaveLength(1);
+    expect(elided[0]!.name).toMatch(/adaptation/);
+  });
+
+  it('does not wait longer for an adaptation than the connector itself would', () => {
+    // Both are 90s. A capture that waits past the point the product would have
+    // given up is waiting on something broken.
+    const wait = FLOWS.adapt_and_reveal.steps.find((s) => s.elide);
+    expect(wait!.timeoutMs).toBe(90_000);
   });
 
   it('waits for the demo card to clear before waiting for a real result', () => {
@@ -96,5 +113,58 @@ describe('assetStaleness', () => {
   it('does not claim a version change when it has no version to compare', () => {
     const verdict = assetStaleness(captured, 'build-a', null, new Date('2026-01-02T00:00:00Z'));
     expect(verdict.stale).toBe(false);
+  });
+});
+
+/**
+ * Cutting the wait. Milestone 41, recalibrated after the 26-second measurement.
+ */
+describe('elision', () => {
+  it('leaves a cached adaptation alone, because there is nothing to cut', () => {
+    // A repeat of the same URL and diet came back in 2.3 seconds. Cutting that
+    // and captioning it "2 seconds later" is worse than showing it.
+    expect(shouldElide(2_300)).toBe(false);
+    expect(shouldElide(ELIDE_THRESHOLD_MS - 1)).toBe(false);
+  });
+
+  it('cuts a cold adaptation, which is the case the edit exists for', () => {
+    expect(shouldElide(26_000)).toBe(true);
+  });
+
+  it('captions with the measured time rather than a designed one', () => {
+    expect(elisionCaption(26_000)).toBe('26 seconds later');
+    expect(elisionCaption(9_600)).toBe('10 seconds later');
+  });
+
+  it('switches to minutes only when seconds would read badly', () => {
+    expect(elisionCaption(96_000)).toBe('1.6 minutes later');
+  });
+});
+
+/**
+ * Blank-frame detection. A verification pass proves the selectors resolved; it
+ * does not prove the page painted.
+ */
+describe('looksBlank', () => {
+  it('accepts a real screenshot of a dense page', () => {
+    // The captured result card: 1280×900 at deviceScaleFactor 2, 1.27 MB.
+    expect(looksBlank(1_266_000, 2560, 1800).blank).toBe(false);
+  });
+
+  it('rejects a uniform fill, whatever its dimensions', () => {
+    // A flat PNG compresses to single-digit kilobytes at any size.
+    const verdict = looksBlank(7_500, 2560, 1800);
+    expect(verdict.blank).toBe(true);
+    expect(verdict.reason).toMatch(/blank or near-blank/);
+    expect(verdict.reason).toMatch(/not been filed/);
+  });
+
+  it('scales with the canvas rather than using a fixed byte floor', () => {
+    // A small phone screenshot at the same density must still pass.
+    expect(looksBlank(70_000, 430, 932).blank).toBe(false);
+  });
+
+  it('does not divide by zero on a degenerate size', () => {
+    expect(() => looksBlank(0, 0, 0)).not.toThrow();
   });
 });

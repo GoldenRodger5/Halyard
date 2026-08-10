@@ -60,6 +60,7 @@ export const JOB_KINDS = [
   'reconcile_schedule',
   'mark_stale_assets',
   'collect_app_store',
+  'detect_release',
 ] as const;
 export type JobKind = (typeof JOB_KINDS)[number];
 
@@ -87,4 +88,7 @@ export const JOB_POLICY: Record<
   // Apple's first report for a new request can take a day, so a "pending" result
   // is normal rather than a failure worth retrying quickly.
   collect_app_store: { timeoutMs: 5 * 60_000, maxAttempts: 2, backoffSeconds: 3600 },
+  // One GET of a homepage. If it cannot finish in a minute the site is down,
+  // which is its own signal.
+  detect_release: { timeoutMs: 60_000, maxAttempts: 2, backoffSeconds: 600 },
 };

@@ -324,3 +324,33 @@ describe('publish failure policy — build pack §3', () => {
     expect(policy.notify).toBe('duplicate_publish_abort');
   });
 });
+
+/**
+ * The negative-modulo family.
+ *
+ * `hashtext(x) % n` in the demo seed produced negative impressions because
+ * Postgres's hashtext returns a signed int4, and JavaScript's `%` keeps the sign
+ * of its left operand in exactly the same way. These assert the guards.
+ */
+describe('deterministic jitter stays inside its bounds', () => {
+  it('never returns a value outside [-jitter, +jitter], for any id', () => {
+    for (let i = 0; i < 2000; i++) {
+      const value = deterministicJitterMinutes(`content-item-${i}`, 7);
+      expect(value).toBeGreaterThanOrEqual(-7);
+      expect(value).toBeLessThanOrEqual(7);
+    }
+  });
+
+  it('covers the whole range rather than only one side of it', () => {
+    // A signed hash would cluster on the negative side; this proves it does not.
+    const seen = new Set<number>();
+    for (let i = 0; i < 2000; i++) seen.add(deterministicJitterMinutes(`id-${i}`, 7));
+    expect(Math.min(...seen)).toBeLessThan(0);
+    expect(Math.max(...seen)).toBeGreaterThan(0);
+    expect(seen.size).toBeGreaterThan(10);
+  });
+
+  it('is stable for the same id, which is what makes it deterministic', () => {
+    expect(deterministicJitterMinutes('abc', 7)).toBe(deterministicJitterMinutes('abc', 7));
+  });
+});

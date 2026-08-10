@@ -38,8 +38,9 @@ create table capture_runs (
   duration_ms    int,
   -- Per-step outcomes, so a failure names the step rather than a line number.
   steps          jsonb not null default '[]'::jsonb,
-  -- The wall-clock windows Remotion speed-ramps.
-  ramps          jsonb not null default '[]'::jsonb,
+  -- The wall-clock windows the edit cuts, with the duration actually measured.
+  -- Not a speed ramp: see FlowStep.elide for why the overlay was dropped.
+  elisions       jsonb not null default '[]'::jsonb,
   asset_ids      uuid[] not null default '{}',
   video_asset_id uuid references assets(id) on delete set null,
   summary        text not null,
@@ -67,7 +68,8 @@ alter table jobs drop constraint jobs_kind_check;
 alter table jobs add constraint jobs_kind_check check (kind in (
   'generate','render','tts','capture','publish','collect_metrics','collect_signals',
   'collect_comments','collect_attribution','refresh_tokens','score_performance',
-  'digest_email','reconcile_schedule','mark_stale_assets','collect_app_store'
+  'digest_email','reconcile_schedule','mark_stale_assets','collect_app_store',
+  'detect_release'
 ));
 
 /**

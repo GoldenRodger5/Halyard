@@ -79,6 +79,10 @@ export function deterministicJitterMinutes(seed: string, jitterMinutes: number):
     hash ^= seed.charCodeAt(i);
     hash = Math.imul(hash, 0x01000193) >>> 0;
   }
+  // `>>> 0` above is load-bearing, not decoration: it makes `hash` a uint32, so
+  // `hash % span` cannot come out negative and the jitter stays inside
+  // [-jitterMinutes, +jitterMinutes]. Without it this drifts the same way the
+  // seeded metrics did.
   const span = jitterMinutes * 2 + 1;
   return (hash % span) - jitterMinutes;
 }

@@ -213,3 +213,89 @@ The container has whisper.cpp, but the microphone is in the browser and the take
 screen runs on Vercel where the container is not. `/api/take/transcribe` calls a
 hosted model and degrades to "type it instead" on every failure path, because a
 broken microphone must not block the only input-gated workflow in the system.
+
+## 19. The adaptation is 26 seconds, not 60 to 75, and everything sized against that moved
+
+The 60-to-75-second figure came from a July 2026 audit and was wrong by the time
+round 3 measured it. A cold adaptation of a fresh URL completed in **26 seconds**
+against the live server; a repeat of the same URL and diet returned in **under 10**,
+because RecipeFix caches upstream.
+
+Everything derived from the old number was recalibrated:
+
+- **Connector timeout: 150s → 90s.** The old value was quietly dangerous. Two
+  attempts at 150s consume 300s, which is exactly the generate job's timeout, so
+  a hung adaptation killed the job on a timeout instead of failing with a reason.
+  At 90s, two attempts fit inside the budget with room for the rest of generation.
+- **Capture wait: 150s → 90s**, matching the connector. A capture that waits past
+  the point the product itself would have given up is waiting on something broken.
+- **The rate limit did not move.** Twenty an hour was never a throughput ceiling
+  derived from duration; it is a spend ceiling, and adaptations got cheaper in
+  seconds, not in credits.
+
+## 20. The speed ramp became a cut, and the progress overlay was removed as artifice
+
+Milestone 41 specified "ramp the wait to ~2s under a progress overlay". Two things
+killed that design once the timing was measured.
+
+A fixed ramp is wrong at both ends: at 2.3s (cached) there is nothing to compress,
+and compressing it to 2s and captioning it is worse footage than leaving it alone.
+The overlay was the real problem though — RecipeFix already shows its own
+"Adapting…" state, so drawing a synthetic progress bar over it invents product UI
+that does not exist. That is the rule the slop filter applies to copy, applied to
+footage.
+
+What replaced it: a plain cut, taken only above `ELIDE_THRESHOLD_MS` (4s), captioned
+with the **measured** elapsed time. The compression is an ordinary edit and the
+number is a fact. `26 seconds later` is also the more impressive claim, so honesty
+costs nothing here.
+
+## 21. Negative modulo, in Postgres and in JavaScript
+
+`hashtext()` returns a *signed* int4, so `hashtext(x) % n` is negative for about
+half of all inputs. The demo seed used exactly that, and `/analytics` rendered
+"−3,449 impressions per post" without complaint for two rounds.
+
+Three responses, because one was not enough:
+
+1. The seed uses `abs(hashtext(x)::bigint) % n`. The bigint cast is not optional
+   either — `abs(-2147483648)` overflows int4.
+2. `post_metrics` and `attribution` now **refuse** negative counts. A constraint
+   turns this class of mistake into a failed insert rather than a plausible chart.
+3. The same family exists in JavaScript, where `%` keeps the sign of its left
+   operand. `deterministicJitterMinutes` was already safe — the `>>> 0` is
+   load-bearing — and is now tested across 2,000 ids. `bestTime.pad()` was latent
+   and is now `((h % 24) + 24) % 24`.
+
+## 22. Release detection watches the deployed build, not GitHub
+
+Milestone 41's verification gate depends on live strings like
+`aria-label="Choose your swap"`. RecipeFix ships through Lovable: no CI, no release
+notes, no GitHub releases. A GitHub-triggered verification would therefore have
+fired **never** for the one product this system serves.
+
+The signal that does exist is the deployed build itself. recipefix.app is a Vite
+single-page app whose entry bundle carries a content hash
+(`/assets/index-DYhSuiDJ.js`) that changes on every deploy. One GET of the homepage
+detects a release nobody announced. GitHub releases remain wired in as the
+secondary signal for products that actually publish them.
+
+## 23. Periodic work is scheduled by the worker, not by an absent cron
+
+Every recurring job used to depend on something calling `/api/cron/[task]`, and
+nothing was configured to call it. "Runs weekly" meant "exists, and has never run",
+which is worse than no gate at all because it reads as coverage.
+
+The worker now enqueues its own periodic jobs on a one-minute tick, with dedupe
+keys bucketed to each job's interval so several workers converge on exactly one
+copy. Only the jobs that genuinely need the web app's environment — token refresh
+needs the OAuth client secrets — remain in `vercel.json`.
+
+## 24. A verification pass proves the selectors resolved, not that the page painted
+
+So captures are checked for blank frames before anything is filed. PNG is
+losslessly compressed, so a flat image collapses to almost nothing: real UI lands
+around 0.2 bytes per pixel, a uniform fill under 0.005. `looksBlank()` rejects
+anything under 0.02 and the capture is discarded with a notification rather than
+filed as an asset. A broken flow is also shown as **broken** on `/settings/health`,
+with "never verified" as its own state rather than being counted as a pass.

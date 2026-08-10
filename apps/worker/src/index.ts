@@ -8,6 +8,7 @@
 import pg from 'pg';
 import { Poller } from './poller.js';
 import { HANDLERS } from './handlers/index.js';
+import { startScheduler } from './scheduler.js';
 
 function requireEnv(name: string): string {
   const value = process.env[name];
@@ -27,8 +28,15 @@ async function main(): Promise<void> {
 
   const poller = new Poller({ pool, workerId, handlers: HANDLERS });
 
+  // Periodic work is enqueued from here rather than by an external cron, so
+  // "runs weekly" means it runs, on any host, with nothing else configured.
+  const stopScheduler = startScheduler(pool, (message, detail) =>
+    console.log(JSON.stringify({ message, worker: workerId, ...detail })),
+  );
+
   const shutdown = (signal: string) => {
     console.log(JSON.stringify({ message: 'shutdown', signal, worker: workerId }));
+    stopScheduler();
     poller.stop();
     void pool.end().then(() => process.exit(0));
   };

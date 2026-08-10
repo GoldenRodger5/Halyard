@@ -161,6 +161,15 @@ function mean(values: number[]): number {
   return values.length === 0 ? 0 : values.reduce((a, b) => a + b, 0) / values.length;
 }
 
+/**
+ * Wrap an hour into 00–23.
+ *
+ * The double modulo is load-bearing: JavaScript's `%` keeps the sign of the
+ * left operand, so a bare `hour % 24` renders -1 as "-1" rather than "23". No
+ * caller passes a negative hour today — bands are non-negative and only ever
+ * grow — but this is the same negative-modulo family that put minus signs on
+ * the analytics screen, and the guard costs nothing.
+ */
 function pad(hour: number): string {
-  return String(hour % 24).padStart(2, '0');
+  return String(((hour % 24) + 24) % 24).padStart(2, '0');
 }

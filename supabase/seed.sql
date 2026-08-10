@@ -130,7 +130,7 @@ insert into templates (id, product_id, renderer, format, aspect_ratio, descripti
   ('SubstitutionExplainer',    'recipefix', 'remotion',  'video',    '9:16', 'Ratio animation, failure mode as payoff'),
   ('ScalingMath',              'recipefix', 'remotion',  'video',    '9:16', 'Non-linear scaling, visualised'),
   ('ChefNoteCard',             'recipefix', 'remotion',  'video',    '9:16', 'Kinetic typography over b-roll'),
-  ('FeatureDemo',              'recipefix', 'playwright','video',    '9:16', 'Playwright capture, speed-ramped, captioned')
+  ('FeatureDemo',              'recipefix', 'playwright','video',    '9:16', 'Playwright capture, long wait cut, captioned with the measured time')
 on conflict (id) do nothing;
 
 -- ── Series (v2 I.3) — franchises build habit ───────────────────────────────

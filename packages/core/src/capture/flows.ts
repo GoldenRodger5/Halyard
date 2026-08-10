@@ -41,11 +41,21 @@ export interface FlowStep {
    */
   optional?: boolean;
   /**
-   * The long wait Remotion speed-ramps. Recorded at full speed and compressed to
-   * roughly two seconds under a progress overlay, because sixty seconds of a
-   * spinner is not footage.
+   * The long wait, which the edit cuts rather than shows.
+   *
+   * This was originally a speed ramp with a progress overlay, sized against a
+   * 60–75s adaptation. Two things killed that design. The timing was wrong —
+   * a cold adaptation measures ~26s and a cached one 2.3s — so a fixed ramp is
+   * simultaneously too aggressive on the fast path and too weak on the slow one.
+   * And the overlay was artifice: RecipeFix already shows its own "Adapting…"
+   * state, so drawing a synthetic progress bar over it invents product UI that
+   * does not exist. That is the same rule the slop filter applies to copy,
+   * applied to footage.
+   *
+   * What replaces it is a plain cut with the *measured* elapsed time as a
+   * caption. The compression is an ordinary edit and the number is a fact.
    */
-  ramp?: boolean;
+  elide?: boolean;
   /** What the viewer should understand is happening here. */
   narration?: string;
 }
@@ -135,9 +145,12 @@ export const FLOWS: Record<FlowId, CaptureFlow> = {
         name: 'wait for the adaptation',
         action: 'waitFor',
         selector: 'button:has-text("SWAPPED")',
-        timeoutMs: 150_000,
-        ramp: true,
-        narration: 'Half a minute of real work, compressed.',
+        // 90s, matching the connector's own adaptation timeout: past that the
+        // page is not slow, it is broken, and waiting longer only delays saying
+        // so.
+        timeoutMs: 90_000,
+        elide: true,
+        narration: 'Real work, cut down.',
       },
       { name: 'let the result settle', action: 'wait', value: '1200' },
       { name: 'still of the finished card', action: 'still', value: 'result-card' },
@@ -251,6 +264,33 @@ export function allFlows(): CaptureFlow[] {
 }
 
 /**
+ * Below this, there is nothing worth cutting.
+ *
+ * A cached adaptation returns in about two seconds, and cutting two seconds out
+ * of a clip to replace them with a caption saying "2s" is worse footage than
+ * simply leaving it in. The threshold means the edit does something only when
+ * there is something to do.
+ */
+export const ELIDE_THRESHOLD_MS = 4_000;
+
+export function shouldElide(measuredMs: number): boolean {
+  return measuredMs >= ELIDE_THRESHOLD_MS;
+}
+
+/**
+ * How the elided stretch is labelled, from what was actually measured.
+ *
+ * Never rounded up and never dramatised: if it took 26 seconds the caption says
+ * 26 seconds, because the honest number is also the impressive one.
+ */
+export function elisionCaption(measuredMs: number): string {
+  const seconds = Math.round(measuredMs / 1000);
+  return seconds >= 60
+    ? `${Math.round(seconds / 6) / 10} minutes later`
+    : `${seconds} seconds later`;
+}
+
+/**
  * The selectors a flow depends on, which is what `verify-flows` asserts before
  * anything is recorded. Optional steps are excluded: a promo banner that is not
  * there is not a broken flow.
@@ -299,4 +339,41 @@ export function assetStaleness(
   }
 
   return { stale: false, ageDays, reason: null };
+}
+
+/**
+ * Does this screenshot look blank?
+ *
+ * The failure being guarded against is recording an error state or an unpainted
+ * page and filing it as an asset — black frames, in the shorthand. PNG is
+ * losslessly compressed, so a flat image compresses to almost nothing: a
+ * 1280×900 screenshot of real UI lands in the hundreds of kilobytes, while a
+ * uniform fill lands in single-digit kilobytes regardless of size.
+ *
+ * Bytes per pixel is therefore a reliable, dependency-free blank detector. The
+ * threshold is deliberately low — this is meant to catch "nothing rendered", not
+ * to be an opinion about design.
+ */
+export const MIN_BYTES_PER_PIXEL = 0.02;
+
+export function looksBlank(
+  bytes: number,
+  width: number,
+  height: number,
+): { blank: boolean; bytesPerPixel: number; reason: string | null } {
+  const pixels = Math.max(width * height, 1);
+  const bytesPerPixel = bytes / pixels;
+
+  if (bytesPerPixel >= MIN_BYTES_PER_PIXEL) {
+    return { blank: false, bytesPerPixel, reason: null };
+  }
+
+  return {
+    blank: true,
+    bytesPerPixel,
+    reason:
+      `This capture is ${bytesPerPixel.toFixed(4)} bytes per pixel, against a floor of ${MIN_BYTES_PER_PIXEL}. ` +
+      'A screenshot that compresses that hard is a blank or near-blank page — usually an error state, ' +
+      'or a screenshot taken before the page painted. It has not been filed as an asset.',
+  };
 }

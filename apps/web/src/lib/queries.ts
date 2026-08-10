@@ -449,6 +449,16 @@ export interface HealthSnapshot {
   renderSuccessRate: number | null;
   lastPublishByPlatform: Array<{ platform: string; published_at: string | null }>;
   notifications: Array<{ id: string; kind: string; severity: string; title: string; body: string | null; created_at: string }>;
+  /** Milestone 41's verification gate, and whether it is actually passing. */
+  flows: Array<{
+    flow_id: string;
+    ok: boolean;
+    mode: string;
+    started_at: string;
+    summary: string;
+    failure_screenshot_path: string | null;
+    app_version: string | null;
+  }>;
 }
 
 export async function getHealth(): Promise<HealthSnapshot> {
@@ -469,6 +479,22 @@ export async function getHealth(): Promise<HealthSnapshot> {
       order by created_at desc limit 20`,
   );
 
+  /**
+   * Capture flows, and whether the last verification of each one passed.
+   *
+   * A flow that stopped resolving is the failure this whole subsystem exists to
+   * catch, so it is on the health screen rather than buried in a job log. "Never
+   * verified" is shown as its own state: it is not a pass.
+   */
+  const flows = await query<HealthSnapshot['flows'][number]>(
+    `select distinct on (flow_id)
+            flow_id, ok, mode, started_at, summary, failure_screenshot_path,
+            (select observed_app_version from products where id = capture_runs.product_id)
+              as app_version
+       from capture_runs
+      order by flow_id, started_at desc`,
+  );
+
   const total = Number(renders?.total ?? 0);
   return {
     queue: queue ?? { queued: 0, running: 0, failed_24h: 0, dead: 0, oldest_queued_seconds: 0 },
@@ -477,6 +503,7 @@ export async function getHealth(): Promise<HealthSnapshot> {
     renderSuccessRate: total === 0 ? null : Number(renders?.done ?? 0) / total,
     lastPublishByPlatform: lastPublish,
     notifications,
+    flows,
   };
 }
 

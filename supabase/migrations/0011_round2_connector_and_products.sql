@@ -9,7 +9,7 @@
 -- ═══════════════════════════════════════════════════════════════════════════
 
 -- ── M22: adaptation cache ──────────────────────────────────────────────────
--- An adaptation takes 60 to 75 seconds and spends real credits. The cache key
+-- An adaptation takes about 26 seconds and spends a real credit. The cache key
 -- is the *request*, so the same source recipe and dietary set resolves instantly.
 create table product_artifacts (
   id            uuid primary key default gen_random_uuid(),

@@ -12,7 +12,7 @@
  */
 import { readFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
-import { FLOWS, assetStaleness, type FlowId } from '@halyard/core';
+import { FLOWS, assetStaleness, looksBlank, type FlowId } from '@halyard/core';
 import type { Job, HandlerContext } from '../poller.js';
 import { runFlowChain, type FlowRunResult } from '../capture/runFlow.js';
 import { uploadAsset } from '../storage.js';
@@ -113,12 +113,24 @@ export async function captureHandler(job: Job, ctx: HandlerContext): Promise<voi
     });
 
     let videoAssetId: string | null = null;
+    const blankStills: Array<{ name: string; reason: string }> = [];
 
     for (const result of captures) {
       const assetIds: string[] = [];
 
       for (const [name, file] of Object.entries(result.stills)) {
         const bytes = await readFile(file);
+
+        // Never file a black frame. A verification pass proves the selectors
+        // resolved; it does not prove the page painted, and an unpainted
+        // screenshot is exactly what a post should never contain.
+        const size = pngDimensions(bytes) ?? flow.viewport;
+        const blank = looksBlank(bytes.byteLength, size.width, size.height);
+        if (blank.blank) {
+          blankStills.push({ name, reason: blank.reason! });
+          continue;
+        }
+
         const asset = await uploadAsset(ctx, {
           bytes,
           mimeType: 'image/png',
@@ -186,10 +198,24 @@ export async function captureHandler(job: Job, ctx: HandlerContext): Promise<voi
       [flow.id, productId],
     );
 
+    if (blankStills.length > 0) {
+      await ctx.pool.query(
+        `insert into notifications (kind, severity, title, body, dedupe_key)
+         values ('render_failure', 'warning', $1, $2, $3)
+         on conflict (dedupe_key) do nothing`,
+        [
+          `${blankStills.length} blank frame${blankStills.length === 1 ? '' : 's'} discarded from ${flow.id}`,
+          `${blankStills.map((b) => b.name).join(', ')}. ${blankStills[0]!.reason}`,
+          `blank_frames:${flow.id}:${new Date().toISOString().slice(0, 10)}`,
+        ],
+      );
+    }
+
     ctx.log('captured flow', {
       flow: flow.id,
       appVersion,
       supersededAssets: superseded.rows.length,
+      blankStillsDiscarded: blankStills.length,
     });
   } finally {
     await browser.close();
@@ -207,7 +233,7 @@ async function recordRun(
 ): Promise<void> {
   await ctx.pool.query(
     `insert into capture_runs (product_id, flow_id, mode, ok, base_url, app_version,
-                               started_at, duration_ms, steps, ramps, asset_ids,
+                               started_at, duration_ms, steps, elisions, asset_ids,
                                video_asset_id, summary, failure_screenshot_path)
      values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
     [
@@ -220,7 +246,7 @@ async function recordRun(
       result.startedAt,
       Math.round(result.totalSeconds * 1000),
       JSON.stringify(result.steps),
-      JSON.stringify(result.ramps),
+      JSON.stringify(result.elisions),
       assetIds,
       videoAssetId,
       result.summary,
@@ -317,4 +343,10 @@ export async function markStaleAssetsHandler(_job: Job, ctx: HandlerContext): Pr
   }
 
   ctx.log('checked asset staleness', { checked: rows.length, stale });
+}
+
+/** PNG dimensions live in the IHDR chunk, at a fixed offset. */
+function pngDimensions(bytes: Buffer): { width: number; height: number } | null {
+  if (bytes.length < 24 || bytes.toString('ascii', 1, 4) !== 'PNG') return null;
+  return { width: bytes.readUInt32BE(16), height: bytes.readUInt32BE(20) };
 }
