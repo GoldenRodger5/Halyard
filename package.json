@@ -18,7 +18,11 @@
     "dev:all": "tsx scripts/dev-all.ts",
     "doctor": "./scripts/doctor",
     "db:seed:assets": "tsx scripts/seed-assets.ts",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "first-contact": "tsx scripts/first-contact.ts",
+    "discover": "tsx scripts/discover-selectors.ts",
+    "verify-flows": "tsx scripts/verify-flows.ts",
+    "capture": "tsx scripts/capture-flows.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

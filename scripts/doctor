@@ -128,6 +128,60 @@ if [[ -f "$ENV_FILE" ]]; then
       row warn "$name" "unset — $purpose stays offline" "add ${name}= to $ENV_FILE"
     fi
   done
+
+  # ── X, the only platform that can go live today ─────────────────────────
+  #
+  # Every other platform is waiting on a manual review measured in weeks. X has
+  # no review gate, so it is the one place the whole chain can be proved, and
+  # these two variables are the only thing standing between here and that.
+  if grep -qE "^X_CLIENT_ID=[[:space:]]*[^[:space:]#]" "$ENV_FILE" 2>/dev/null \
+     && grep -qE "^X_CLIENT_SECRET=[[:space:]]*[^[:space:]#]" "$ENV_FILE" 2>/dev/null; then
+    row pass "X credentials" "set — first contact is possible" "pnpm first-contact --dry-run"
+  else
+    row warn "X credentials" "unset — no platform can publish yet" ""
+    cat <<'ACQUIRE'
+
+      How to get them, in order. Twenty minutes, most of it waiting on forms.
+
+      1. developer.x.com  →  sign in as the account that will own the app
+      2. Subscribe to a paid tier. Free-tier apps cannot post: the token
+         exchange succeeds and the first publish returns 403, which is the
+         most confusing failure in this whole system.
+      3. Projects & Apps  →  create a project, then an app inside it
+      4. App  →  User authentication settings  →  Set up
+           · App permissions:            Read and write
+           · Type of App:                Web App, Automated App or Bot
+           · Callback URI:               http://localhost:3200/api/oauth/x/callback
+                                         (and your deployed URL, exactly, no trailing slash)
+           · Website URL:                https://recipefix.app
+      5. Keys and tokens  →  OAuth 2.0 Client ID and Client Secret
+           The secret is shown once. Copy it now.
+      6. Put both in apps/web/.env.local:
+           X_CLIENT_ID=...
+           X_CLIENT_SECRET=...
+      7. Add a payment method. Posting is billed per call — about $0.015
+         without a link, $0.20 with one, which is why Halyard puts the link
+         in the first reply.
+
+      Then:  ./scripts/halyard  →  /accounts  →  Connect, for the brand
+      account and again for the founder account, each in a private window.
+      Then:  pnpm first-contact --dry-run
+
+ACQUIRE
+  fi
+
+  # Sending needs Resend, and the milestone is explicit that it must be the
+  # account RecipeFix already uses rather than a second one.
+  for key in RESEND_API_KEY:"newsletter sending" \
+             APP_STORE_KEY_ID:"App Store attribution and reviews" \
+             SENTRY_DSN:"error reporting"; do
+    name="${key%%:*}"; purpose="${key#*:}"
+    if grep -qE "^${name}=[[:space:]]*[^[:space:]#]" "$ENV_FILE" 2>/dev/null; then
+      row pass "$name" "set" ""
+    else
+      row warn "$name" "unset — $purpose stays offline" "see /settings/readiness"
+    fi
+  done
 else
   row fail "env file" "missing" "cp .env.example $ENV_FILE"
 fi
