@@ -17,6 +17,8 @@ import {
   ConnectorUnavailableError,
   DraftRejectedError,
   createConnector,
+  effectiveProductCeiling,
+  PRODUCT_CONTENT_CEILING,
   resolveDestination,
   routerUrlFor,
   selectIdeas,
@@ -30,10 +32,18 @@ import {
 import { carouselProps, transformationDiffProps } from '@halyard/render';
 import type { Job, HandlerContext } from '../poller.js';
 import { notify } from './publish.js';
+import { fillCampaignSlot } from './campaignSlot.js';
 
 export async function generateHandler(job: Job, ctx: HandlerContext): Promise<void> {
   const productId = String(job.payload.productId ?? 'recipefix');
   const llm: LlmClient = (job.payload.llm as LlmClient) ?? new AnthropicLlmClient();
+
+  // A campaign slot has already been told what it is for, so it takes a
+  // different path: no idea selection, no mix arithmetic, just the words.
+  if (job.payload.contentItemId) {
+    await fillCampaignSlot(job, ctx, llm);
+    return;
+  }
 
   // ── Cold-start guard (build pack §2) ─────────────────────────────────────
   const onboarding = await ctx.pool.query<{
@@ -146,6 +156,36 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
     .map((r) => r.embedding)
     .filter((e): e is number[] => Array.isArray(e));
 
+  // The campaign whose window contains right now, if there is one. `ends_at`
+  // does the reverting, so nothing has to be turned off by hand.
+  const runningCampaign = await ctx.pool.query<{
+    id: string;
+    product_mix_ceiling: string;
+    starts_at: string;
+    ends_at: string;
+    status: string;
+  }>(
+    `select id, product_mix_ceiling, starts_at, ends_at, status
+       from campaigns
+      where product_id = $1 and status in ('staged', 'running')
+        and now() between starts_at and ends_at
+      order by starts_at desc limit 1`,
+    [productId],
+  );
+
+  const campaignRow = runningCampaign.rows[0];
+  const mixOverride = effectiveProductCeiling({
+    baseCeiling: PRODUCT_CONTENT_CEILING,
+    campaign: campaignRow
+      ? {
+          productMixCeiling: Number(campaignRow.product_mix_ceiling),
+          startsAt: new Date(campaignRow.starts_at),
+          endsAt: new Date(campaignRow.ends_at),
+          status: campaignRow.status,
+        }
+      : null,
+  });
+
   const { selected, rejected } = selectIdeas(
     proposed.rows.map((row) => ({
       id: row.id,
@@ -165,8 +205,22 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
         mixActual.rows.map((r) => [r.category, Number(r.published)]),
       ) as Record<IdeaCandidate['category'], number>,
     },
-    { recentEmbeddings, limit: Number(job.payload.limit ?? 3) },
+    {
+      recentEmbeddings,
+      limit: Number(job.payload.limit ?? 3),
+      // Milestone 44: a running campaign lifts the product ceiling for its
+      // window and lets it revert on its own.
+      productCeiling: mixOverride.ceiling,
+    },
   );
+
+  if (mixOverride.active) {
+    ctx.log('campaign mix override in force', {
+      productId,
+      ceiling: mixOverride.ceiling,
+      reason: mixOverride.reason,
+    });
+  }
 
   for (const idea of rejected) {
     ctx.log('idea not selected', { id: idea.id, reason: idea.blockedReason });

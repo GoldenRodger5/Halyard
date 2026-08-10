@@ -51,7 +51,14 @@ export const WARM_WEIGHTS: ScoringWeights = {
  */
 export const LEARNING_MIN_POSTS_PER_CATEGORY = 20;
 
-/** v2 G.2 — never more than 15% product content in any trailing 14-day window. */
+/**
+ * v2 G.2 — never more than 15% product content in any trailing 14-day window.
+ *
+ * This is the *base* ceiling. Milestone 44 lifts it for the duration of a
+ * campaign window and lets it revert on its own; pass `productCeiling` to
+ * `selectIdeas` to apply the override. Nothing mutates this constant, so the
+ * normal number is always recoverable.
+ */
 export const PRODUCT_CONTENT_CEILING = 0.15;
 
 export interface IdeaCandidate {
@@ -164,6 +171,11 @@ export interface SelectionOptions {
   cooldownCategories?: IdeaCategory[];
   /** How many to select. */
   limit?: number;
+  /**
+   * The product-content ceiling in force right now. Milestone 44 raises this
+   * for the duration of a campaign window; omit it for the normal 15%.
+   */
+  productCeiling?: number;
 }
 
 export function scoreIdeas(
@@ -276,12 +288,16 @@ export function selectIdeas(
     }
 
     if (idea.category === 'product') {
+      const ceiling = options.productCeiling ?? PRODUCT_CONTENT_CEILING;
       const wouldBeShare =
         (mix.productShare14d * projectedTotal + 1) / (projectedTotal + 1);
-      if (wouldBeShare > PRODUCT_CONTENT_CEILING) {
+      if (wouldBeShare > ceiling) {
         rejected.push({
           ...idea,
-          blockedReason: `Product content is at ${(mix.productShare14d * 100).toFixed(0)}% over 14 days; the hard cap is ${PRODUCT_CONTENT_CEILING * 100}%.`,
+          blockedReason:
+            ceiling === PRODUCT_CONTENT_CEILING
+              ? `Product content is at ${(mix.productShare14d * 100).toFixed(0)}% over 14 days; the hard cap is ${PRODUCT_CONTENT_CEILING * 100}%.`
+              : `Product content is at ${(mix.productShare14d * 100).toFixed(0)}% over 14 days; even the raised campaign cap is ${Math.round(ceiling * 100)}%.`,
         });
         continue;
       }

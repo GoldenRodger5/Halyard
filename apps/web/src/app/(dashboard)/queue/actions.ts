@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { query, one } from '@/lib/db';
+import { fromDatetimeLocalValue } from '@/lib/format';
 import { requireOperator } from '@/lib/auth';
 import { slopFilter, type SlopPlatform } from '@halyard/core';
 
@@ -165,7 +166,14 @@ export async function rescheduleItem(formData: FormData): Promise<void> {
     target = slot ? new Date(slot.next_start) : new Date(Date.now() + 3_600_000);
   } else if (when === 'custom') {
     const custom = String(formData.get('custom_at') ?? '');
-    target = custom ? new Date(custom) : null;
+    // Same trap as the campaign timeline: a datetime-local value is wall time
+    // with no zone, and reading it as the server's local time is wrong wherever
+    // the server is not the operator.
+    const zone = await one<{ operator_timezone: string }>(
+      'select operator_timezone from products where id = $1',
+      [item.product_id],
+    );
+    target = custom ? fromDatetimeLocalValue(custom, zone?.operator_timezone ?? 'UTC') : null;
   } else {
     target = new Date(when);
   }

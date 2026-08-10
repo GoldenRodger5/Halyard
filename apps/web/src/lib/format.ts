@@ -1,9 +1,51 @@
-import { formatInTimeZone } from 'date-fns-tz';
+import { formatInTimeZone, fromZonedTime } from 'date-fns-tz';
 
 /**
  * Everything is stored UTC and rendered in the operator's timezone (build pack
  * §1). No component formats a date any other way.
  */
+
+/**
+ * An instant, as the value of a `<input type="datetime-local">`.
+ *
+ * These inputs carry *wall time with no zone*, so the only correct value is the
+ * clock reading in the operator's timezone. Using `toISOString().slice(0, 16)`
+ * — the obvious thing — writes UTC into a field the browser then presents as
+ * local, so the pre-filled value silently disagrees with the label beside it and
+ * submitting without editing moves the item by the UTC offset.
+ */
+export function toDatetimeLocalValue(
+  iso: string | Date | null | undefined,
+  timeZone: string,
+): string {
+  if (!iso) return '';
+  try {
+    return formatInTimeZone(new Date(iso), timeZone, "yyyy-MM-dd'T'HH:mm");
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * The inverse: a wall-clock string from such an input, read as the operator's
+ * local time rather than the server's.
+ *
+ * `new Date('2026-09-18T09:00')` uses whatever zone the *server* runs in, which
+ * on Vercel is UTC and is never what the operator meant.
+ */
+export function fromDatetimeLocalValue(
+  value: string,
+  timeZone: string,
+): Date | null {
+  if (!value) return null;
+  try {
+    const parsed = fromZonedTime(value, timeZone);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  } catch {
+    return null;
+  }
+}
+
 export function formatInOperatorTz(
   iso: string | null | undefined,
   timeZone: string,
