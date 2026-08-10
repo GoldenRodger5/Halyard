@@ -176,6 +176,25 @@ export default async function AnalyticsPage() {
           )}
         </section>
 
+        {/* ── What this transport cannot see ────────────────────────────── */}
+        {analytics.transportGaps.length > 0 ? (
+          <section className="min-w-0">
+            <SectionTitle hint="named rather than rendered as a zero">
+              Metrics this transport does not report
+            </SectionTitle>
+            <Card className="divide-y divide-line">
+              {analytics.transportGaps.map((gap) => (
+                <div key={gap.platform} className="p-4">
+                  <p className="text-sm font-medium text-ink">
+                    {PLATFORM_LABELS[gap.platform] ?? gap.platform}
+                  </p>
+                  <p className="mt-1 text-sm text-muted">{gap.note}</p>
+                </div>
+              ))}
+            </Card>
+          </section>
+        ) : null}
+
         <section className="min-w-0">
           <SectionTitle hint="a different system, never summed with web sessions">
             App Store

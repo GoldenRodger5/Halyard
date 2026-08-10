@@ -147,3 +147,21 @@ container can sit in `IN_PROGRESS` for a long time.
 `assertPublicUrl()` already refuses signed URLs before the request is sent,
 because a container that never finishes is the hardest failure in that adapter to
 diagnose.
+
+## Other platforms
+
+Milestone 49 added `--platform=<id>`, which runs the identical rehearsal against
+any adapter:
+
+    pnpm first-contact --dry-run --platform=instagram
+
+X remains the default because it is the only platform with no review gate, so a
+failure there is always the code. Elsewhere a failure may be the review not
+having landed, which is why the self-test runs first — it separates a dead
+credential from an unapproved one.
+
+One platform has a specific reason to be tested this way. Instagram's Standard
+Access may already cover accounts you own, and the direct adapter returns
+**saves** while the unified transport does not. Saves are weighted two to three
+times a like in scoring, so if a real post to your own account works, Instagram
+should stay direct. `--verify --platform=instagram` checks that field by name.

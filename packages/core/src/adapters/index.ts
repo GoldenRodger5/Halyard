@@ -5,9 +5,11 @@ import { TikTokAdapter } from './tiktok.js';
 import { BlueskyAdapter } from './bluesky.js';
 import { XAdapter } from './x.js';
 import { YouTubeAdapter } from './youtube.js';
-import type { PlatformAdapter, PlatformId } from './types.js';
+import { PublishError, type PlatformAdapter, type PlatformId } from './types.js';
+import { UnifiedAdapter, type ProviderCapabilities } from './unified/index.js';
 
 export * from './types.js';
+export * from './unified/index.js';
 export * from './oauth.js';
 export * from './x.js';
 export * from './instagram.js';
@@ -97,3 +99,41 @@ export const REVIEW_GATES: Record<
     typicalWeeks: '0',
   },
 };
+
+/**
+ * Resolve an account to the adapter that will carry its post.
+ *
+ * The direct adapter is the default and the fallback. A `unified` account
+ * routes through the provider, but only for a platform whose capability has
+ * been verified — an unverified transport refuses at publish time rather than
+ * silently sending a real post on an assumption.
+ */
+export function adapterForAccount(
+  account: {
+    platform: PlatformId;
+    transport?: 'direct' | 'unified';
+    provider_account_id?: string | null;
+  },
+  capabilities?: ProviderCapabilities | null,
+): PlatformAdapter {
+  const direct = getAdapter(account.platform);
+  if (account.transport !== 'unified') return direct;
+
+  if (!capabilities) {
+    // No probe has ever run. Falling back to direct would quietly publish
+    // through a path the operator did not choose, so this fails instead.
+    throw new PublishError(
+      `${account.platform} is set to the unified transport, but the provider has never been verified. ` +
+        'Run `pnpm verify-provider` first.',
+      'permanent',
+    );
+  }
+
+  return new UnifiedAdapter({
+    platform: account.platform,
+    // The platform's own constraints still apply: character limits, aspect
+    // ratios and link strategy are facts about the platform, not the transport.
+    constraints: direct.constraints,
+    capabilities,
+  });
+}

@@ -171,6 +171,50 @@ if [[ -f "$ENV_FILE" ]]; then
 ACQUIRE
   fi
 
+  # ── the unified transport ───────────────────────────────────────────────
+  #
+  # Optional by design. Halyard publishes through its own adapters; the unified
+  # provider exists to borrow somebody else's already-approved app for the five
+  # platforms that gate public posting behind a review measured in weeks.
+  #
+  # Nothing here is assumed to work. The key alone buys nothing until
+  # `pnpm verify-provider` has watched each platform behave.
+  if grep -qE "^BLOTATO_API_KEY=[[:space:]]*[^[:space:]#]" "$ENV_FILE" 2>/dev/null; then
+    verified="$(psql "$DB_URL" -tAc \
+      "select coalesce(to_char(verified_at, 'YYYY-MM-DD'), 'never') from provider_capabilities where provider = 'blotato'" 2>/dev/null || echo '')"
+    if [[ -z "$verified" ]]; then
+      row warn "Blotato" "key set, never probed" "pnpm verify-provider"
+    else
+      row pass "Blotato" "verified $verified" "pnpm verify-provider  (re-check)"
+    fi
+  else
+    row warn "BLOTATO_API_KEY" "unset — every platform stays on its own adapter" ""
+    cat <<'ACQUIRE'
+
+      Optional. Skip it unless you want the five review-gated platforms
+      publishing before their reviews land. X and Bluesky never need it.
+
+      1. blotato.com  →  sign up  →  paid plan, $29/month, your card
+         The API is on paid plans only. So is analytics.
+      2. Connect the accounts inside Blotato — its OAuth, its approved app.
+         That is the entire point: their app already passed the reviews.
+      3. Settings  →  API  →  copy the key
+      4. Put it in apps/web/.env.local:
+           BLOTATO_API_KEY=...
+      5. pnpm verify-provider
+           Read-only. Lists every connected account with its provider id,
+           which is what /accounts asks for when you switch transport.
+      6. pnpm verify-provider --publish
+           Posts real content to your real accounts, TikTok first and alone,
+           to settle the one claim their marketing cannot: whether TikTok
+           posts publicly or only to drafts. Delete the test posts after.
+
+      Until step 6 has run for a platform, switching it to the unified
+      transport is refused rather than attempted. Unknown is not permission.
+
+ACQUIRE
+  fi
+
   # Sending needs Resend, and the milestone is explicit that it must be the
   # account RecipeFix already uses rather than a second one.
   for key in RESEND_API_KEY:"newsletter sending" \

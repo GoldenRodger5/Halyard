@@ -22,6 +22,8 @@
     "first-contact": "tsx scripts/first-contact.ts",
     "discover": "tsx scripts/discover-selectors.ts",
     "verify-flows": "tsx scripts/verify-flows.ts",
+    "verify-provider": "tsx scripts/verify-provider.ts",
+    "load-brief": "tsx scripts/load-brief.ts",
     "capture": "tsx scripts/capture-flows.ts"
   },
   "devDependencies": {

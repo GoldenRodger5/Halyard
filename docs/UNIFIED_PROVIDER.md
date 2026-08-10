@@ -126,9 +126,72 @@ like nobody engaged.
   that matter: the link in the first reply (a URL in the body costs $0.20 against
   $0.015) and per-call billing.
 - **Bluesky.** No gate, no cost, an app password.
-- **Instagram, if direct works.** Test it before defaulting to unified: Standard
-  Access may already cover accounts you own, and the direct path returns richer
-  fields and better metrics than any intermediary.
+- **Instagram, if direct works.** Test it before defaulting to unified:
+
+      pnpm first-contact --dry-run --platform=instagram
+      pnpm first-contact --publish --platform=instagram
+      pnpm first-contact --verify  --platform=instagram
+
+  Standard Access may already cover accounts you own. `--verify` checks
+  **saves** specifically on Instagram, because that is the field the unified
+  transport cannot return and therefore the whole argument for keeping Instagram
+  direct. If saves come back, leave it on `direct` and do not switch it.
+
+## What is built, and what it refuses to do
+
+The transport exists in code and is wired end to end. It is also, right now,
+**refusing to publish anything**, and that is the correct state.
+
+`provider_capabilities` holds one row per provider: what was observed, per
+platform, and when. Every field starts `unknown`. `canPublish()` treats `unknown`
+as a refusal rather than a default-yes, so an account cannot be switched to the
+unified transport, and a job cannot be carried by it, until a probe has watched
+that platform work against a real account.
+
+    pnpm verify-provider              read-only; lists connected accounts and
+                                      their provider ids
+    pnpm verify-provider --publish    posts real content to real accounts
+
+The probe runs TikTok **first and alone**, because that is the one claim this
+recommendation rests on that no documentation settles. Then per-platform
+capability — carousel, short video, alt text, scheduling — then metrics, compared
+against `DIRECT_METRICS`, which is what each platform's own API documents.
+
+Whatever it observes is what `/accounts` and this document are permitted to say.
+Nothing is described as working because a vendor page describes it as working.
+
+## What is already known about the metrics gap
+
+From Blotato's own published API corpus, the analytics response contains
+`impressionsCount`, `reachCount`, `likesCount`, `commentsCount`, `repliesCount`,
+`sharesCount`, `viewsCount`, `twitterRetweetsCount` and
+`facebookTotalVideoViewsCount`.
+
+There is **no `savesCount`**. Saves are weighted two to three times a like in
+`engagementRate()`, so losing them does not thin the chart — it changes what the
+chart means, on exactly the two platforms where saves matter most (Instagram and
+Pinterest). `/analytics` names this per platform rather than rendering a zero,
+because "nobody saved this" and "this transport cannot see saves" are different
+facts and only one of them is a reason to change strategy.
+
+Also absent: watch time, profile visits, follows. Link clicks are unaffected —
+every published link goes through `/r` and Halyard counts them itself.
+
+Analytics additionally require a paid plan and arrive on a delay of roughly two
+hours to a day, so `collectMetrics` treats an absent snapshot as transient rather
+than as a post nobody saw.
+
+## TikTok, stated plainly
+
+Halyard uploads TikTok to **drafts**, on every transport, whatever the probe
+finds. No API of any kind — direct, Blotato's, anyone's — can attach trending
+commercial audio, and sound is a large share of TikTok distribution. A video
+published without it underperforms one finished by hand in the app.
+
+So the probe's TikTok result does not change what gets sent. It changes what
+`/accounts` is allowed to claim: whether public posting *was available and
+declined*, or was never available at all. Both are honest; only one of them is
+true, and until the probe runs neither is asserted.
 
 ## How switching works
 

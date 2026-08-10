@@ -1,5 +1,5 @@
 /**
- * First contact. Milestone 46.
+ * First contact. Milestone 46, extended in 49.
  *
  * Seven adapters, none of which has met a live API. The instruction is not to
  * debug them simultaneously — X has no review gate and can be fully live today,
@@ -10,6 +10,13 @@
  *   pnpm first-contact --publish     actually post, after two confirmations
  *   pnpm first-contact --verify      check the chain after a real post
  *
+ * `--platform=<id>` runs the same rehearsal against any adapter, defaulting to
+ * X. That exists because of a specific open question: Instagram's Standard
+ * Access may already cover accounts you own, and if a real post to your own
+ * account works, Instagram should stay on the direct adapter for its much richer
+ * metrics rather than moving to a unified provider that cannot report saves.
+ * Guessing the answer is what this whole script exists to avoid.
+ *
  * `--publish` is the only destructive mode in this repository. It spends real
  * money, posts to a real account, and cannot be undone, so it refuses to run
  * without an explicit item id and an explicit acknowledgement.
@@ -18,7 +25,7 @@ import { createInterface } from 'node:readline/promises';
 import pg from 'pg';
 import {
   PLATFORM_CLIENT_ENV,
-  X_CONSTRAINTS,
+  PLATFORM_SCOPES,
   composeCaption,
   dryRunPublish,
   estimateXCostUsd,
@@ -26,6 +33,7 @@ import {
   openToken,
   selfTest,
   stampUtm,
+  type PlatformId,
   type PublishAccount,
   type PublishItem,
 } from '@halyard/core';
@@ -52,6 +60,8 @@ function heading(text: string): void {
 interface Ctx {
   pool: pg.Pool;
   productId: string;
+  /** Which adapter is under test. X by default — it is the only ungated one. */
+  platform: PlatformId;
 }
 
 async function loadAccount(
@@ -72,9 +82,9 @@ async function loadAccount(
     `select id, handle, platform_user_id, capability_state, access_token_enc,
             refresh_token_enc, token_expires_at, scopes, identity_confirmed_at
        from social_accounts
-      where platform = 'x' and persona = $1
+      where platform = $2 and persona = $1
       order by identity_confirmed_at desc nulls last limit 1`,
-    [persona],
+    [persona, ctx.platform],
   );
 
   const row = rows[0];
@@ -84,7 +94,7 @@ async function loadAccount(
     row: row as unknown as Record<string, unknown>,
     account: {
       id: row.id,
-      platform: 'x',
+      platform: ctx.platform,
       handle: row.handle,
       platformUserId: row.platform_user_id,
       capabilityState: row.capability_state,
@@ -104,8 +114,11 @@ async function checkPreconditions(ctx: Ctx): Promise<boolean> {
   heading('1. Preconditions');
   let blocked = false;
 
-  const env = PLATFORM_CLIENT_ENV.x;
-  if (process.env[env.id] && process.env[env.secret]) {
+  const env = PLATFORM_CLIENT_ENV[ctx.platform];
+  if (!env) {
+    // Bluesky has no developer app at all — an app password is the credential.
+    ok('developer app credentials', 'this platform needs none');
+  } else if (process.env[env.id] && process.env[env.secret]) {
     ok('developer app credentials', `${env.id} and ${env.secret} are set`);
   } else {
     bad('developer app credentials', `${env.id} and ${env.secret} are not set`);
@@ -156,7 +169,11 @@ async function runSelfTest(ctx: Ctx): Promise<void> {
     const loaded = await loadAccount(ctx, persona);
     if (!loaded) continue;
 
-    const result = await selfTest(getAdapter('x'), loaded.account, ['tweet.write', 'users.read']);
+    const result = await selfTest(
+      getAdapter(ctx.platform),
+      loaded.account,
+      PLATFORM_SCOPES[ctx.platform] ?? [],
+    );
     for (const check of result.checks) {
       (check.ok ? ok : bad)(`${persona}: ${check.name}`, check.detail);
     }
@@ -181,7 +198,7 @@ async function pickItem(ctx: Ctx, itemId?: string): Promise<{
   const { rows } = await ctx.pool.query<{
     id: string;
     body: string;
-    platform: 'x';
+    platform: PlatformId;
     format: PublishItem['format'];
     title: string | null;
     alt_text: string | null;
@@ -196,9 +213,9 @@ async function pickItem(ctx: Ctx, itemId?: string): Promise<{
     itemId
       ? `select * from content_items where id = $1`
       : `select * from content_items
-          where platform = 'x' and status in ('approved','scheduled','pending_approval')
+          where platform = $1 and status in ('approved','scheduled','pending_approval')
           order by (status = 'approved') desc, created_at limit 1`,
-    itemId ? [itemId] : [],
+    itemId ? [itemId] : [ctx.platform],
   );
 
   const row = rows[0];
@@ -216,7 +233,11 @@ async function pickItem(ctx: Ctx, itemId?: string): Promise<{
   const finalLink =
     row.final_link_url ??
     (row.link_url
-      ? stampUtm(row.link_url, { platform: 'x', category: 'first_contact', contentItemId: row.id })
+      ? stampUtm(row.link_url, {
+          platform: ctx.platform,
+          category: 'first_contact',
+          contentItemId: row.id,
+        })
       : null);
 
   return {
@@ -225,7 +246,7 @@ async function pickItem(ctx: Ctx, itemId?: string): Promise<{
     persona: row.persona,
     item: {
       id: row.id,
-      platform: 'x',
+      platform: ctx.platform,
       format: row.format,
       body: row.body,
       title: row.title,
@@ -243,28 +264,37 @@ async function pickItem(ctx: Ctx, itemId?: string): Promise<{
 async function dryRun(ctx: Ctx, itemId?: string): Promise<void> {
   heading('3. Dry run — the exact request, sent nowhere');
 
+  const adapter = getAdapter(ctx.platform);
+  const constraints = adapter.constraints;
+
   const picked = await pickItem(ctx, itemId);
   if (!picked) {
-    bad('no item', 'nothing on X is approved or pending. Approve something in /queue first.');
+    bad(
+      'no item',
+      `nothing on ${ctx.platform} is approved or pending. Approve something in /queue first.`,
+    );
     return;
   }
 
-  const { text, linkForReply } = composeCaption(picked.item, X_CONSTRAINTS);
+  const { text, linkForReply } = composeCaption(picked.item, constraints);
 
-  console.log(`\n  ${DIM}The post, as X would receive it:${RESET}\n`);
+  console.log(`\n  ${DIM}The post, as ${ctx.platform} would receive it:${RESET}\n`);
   console.log(
     text
       .split('\n')
       .map((line) => `    ${line}`)
       .join('\n'),
   );
-  console.log(`\n  ${DIM}${text.length} of ${X_CONSTRAINTS.maxChars} characters${RESET}`);
+  console.log(`\n  ${DIM}${text.length} of ${constraints.maxChars} characters${RESET}`);
 
   if (linkForReply) {
     console.log(`\n  ${DIM}Then, as a reply to that post:${RESET}\n    ${linkForReply}`);
     console.log(
       `  ${DIM}The link is in the reply because a post containing a URL costs $0.20 against $0.015.${RESET}`,
     );
+  } else if (picked.item.finalLinkUrl) {
+    console.log(`\n  ${DIM}Destination: ${picked.item.finalLinkUrl}${RESET}`);
+    console.log(`  ${DIM}${constraints.linkNote}${RESET}`);
   } else {
     warn('no link', 'this post carries no destination, so nothing will route or attribute');
   }
@@ -273,13 +303,13 @@ async function dryRun(ctx: Ctx, itemId?: string): Promise<void> {
   // adapter path and see the requests it would build.
   const account: PublishAccount = picked.account ?? {
     id: 'not-connected',
-    platform: 'x',
+    platform: ctx.platform,
     handle: `@${picked.persona}-account`,
     capabilityState: 'pending_auth',
     tokens: { accessToken: 'not-a-real-token' },
   };
 
-  const result = await dryRunPublish(getAdapter('x'), picked.item, [], account);
+  const result = await dryRunPublish(adapter, picked.item, [], account);
 
   console.log(`\n  ${DIM}Requests it would send:${RESET}`);
   for (const request of result.requests) {
@@ -289,15 +319,27 @@ async function dryRun(ctx: Ctx, itemId?: string): Promise<void> {
     }
   }
 
-  const cost = estimateXCostUsd([{ hasLink: false }, ...(linkForReply ? [{ hasLink: false }] : [])]);
-  ok('dry run complete', result.wouldHave);
+  // X is the only platform that bills per call, so it is the only one with a
+  // number to print here. Inventing one for the others would be noise.
+  const cost =
+    ctx.platform === 'x'
+      ? estimateXCostUsd([{ hasLink: false }, ...(linkForReply ? [{ hasLink: false }] : [])])
+      : null;
+  // A rehearsal that never built a request has proved nothing, so it is not
+  // reported as a pass. Same rule as the QC gates: never verified is not passed.
+  (result.failed ? bad : ok)(
+    result.failed ? 'dry run did not reach the platform' : 'dry run complete',
+    result.wouldHave,
+  );
   if (!picked.account) {
     warn(
       'no connected account',
       `this rehearsed against a placeholder token — connect the ${picked.persona} account to go further`,
     );
   }
-  console.log(`  ${DIM}Estimated cost of the real thing: $${cost.toFixed(3)}${RESET}`);
+  if (cost !== null) {
+    console.log(`  ${DIM}Estimated cost of the real thing: $${cost.toFixed(3)}${RESET}`);
+  }
   console.log(
     `\n  ${DIM}Nothing was sent. Every authorization header above was redacted before it was printed.${RESET}`,
   );
@@ -310,15 +352,18 @@ async function publish(ctx: Ctx, itemId?: string): Promise<void> {
 
   const picked = await pickItem(ctx, itemId);
   if (!picked) {
-    bad('no item', 'pass --item <uuid>, or approve something on X in /queue.');
+    bad('no item', `pass --item <uuid>, or approve something on ${ctx.platform} in /queue.`);
     return;
   }
   if (!picked.account) {
-    bad('no connected account', `connect the ${picked.persona} X account on /accounts first.`);
+    bad(
+      'no connected account',
+      `connect the ${picked.persona} ${ctx.platform} account on /accounts first.`,
+    );
     return;
   }
 
-  const { text, linkForReply } = composeCaption(picked.item, X_CONSTRAINTS);
+  const { text, linkForReply } = composeCaption(picked.item, getAdapter(ctx.platform).constraints);
   console.log(`\n  Posting as ${picked.account.handle}:\n`);
   console.log(
     text
@@ -391,12 +436,13 @@ async function verify(ctx: Ctx): Promise<void> {
   }>(
     `select p.* from publications p
       join content_items ci on ci.id = p.content_item_id
-     where ci.platform = 'x' order by p.published_at desc nulls last limit 1`,
+     where ci.platform = $1 order by p.published_at desc nulls last limit 1`,
+    [ctx.platform],
   );
 
   const publication = publications[0];
   if (!publication) {
-    warn('publications', 'nothing published on X yet');
+    warn('publications', `nothing published on ${ctx.platform} yet`);
     return;
   }
 
@@ -405,10 +451,12 @@ async function verify(ctx: Ctx): Promise<void> {
     `post ${publication.platform_post_id ?? 'MISSING — malformed response'}`,
   );
   (publication.permalink ? ok : warn)('permalink', publication.permalink ?? 'not recorded');
-  (publication.link_reply_post_id ? ok : warn)(
-    'link in the first reply',
-    publication.link_reply_post_id ?? 'no reply recorded — did the post carry a link?',
-  );
+  if (getAdapter(ctx.platform).constraints.linkStrategy === 'first_reply') {
+    (publication.link_reply_post_id ? ok : warn)(
+      'link in the first reply',
+      publication.link_reply_post_id ?? 'no reply recorded — did the post carry a link?',
+    );
+  }
   (publication.needs_reconciliation ? warn : ok)(
     'response parsed',
     publication.needs_reconciliation ? 'flagged for reconciliation' : 'clean',
@@ -432,6 +480,23 @@ async function verify(ctx: Ctx): Promise<void> {
       ? `${metrics[0].impressions ?? 0} impressions at ${metrics[0].collected_at}`
       : 'not collected yet — the first poll is an hour after publish',
   );
+
+  // The reason `--platform=instagram` exists. If a direct post to an owned
+  // account works, Instagram keeps the direct adapter: it returns saves, and the
+  // unified transport does not.
+  if (ctx.platform === 'instagram' && publication.platform_post_id) {
+    const { rows: saves } = await ctx.pool.query<{ saves: number | null }>(
+      `select saves from post_metrics where publication_id = $1
+        order by collected_at desc limit 1`,
+      [publication.id],
+    );
+    (saves[0]?.saves !== null && saves[0]?.saves !== undefined ? ok : warn)(
+      'saves',
+      saves[0]?.saves !== null && saves[0]?.saves !== undefined
+        ? `${saves[0].saves} — direct access returns saves, so keep Instagram on the direct transport`
+        : 'not reported yet — saves decide whether Instagram stays direct, so re-run --verify after the first poll',
+    );
+  }
 
   const { rows: comments } = await ctx.pool.query<{ n: string }>(
     `select count(*) as n from comments where publication_id = $1`,
@@ -473,6 +538,15 @@ async function verify(ctx: Ctx): Promise<void> {
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
   const itemId = args.includes('--item') ? args[args.indexOf('--item') + 1] : undefined;
+  const platformArg = args.find((a) => a.startsWith('--platform='))?.split('=')[1];
+  const platform = (platformArg ?? 'x') as PlatformId;
+
+  try {
+    getAdapter(platform);
+  } catch {
+    console.error(`Unknown platform "${platform}".`);
+    process.exit(1);
+  }
 
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) {
@@ -481,11 +555,15 @@ async function main(): Promise<void> {
   }
 
   const pool = new pg.Pool({ connectionString, max: 4 });
-  const ctx: Ctx = { pool, productId: 'recipefix' };
+  const ctx: Ctx = { pool, productId: 'recipefix', platform };
 
   console.log(
-    `\nFirst contact — X is the only platform with no review gate, so it is where the\n` +
-      `whole chain gets proved before the other six are touched.`,
+    platform === 'x'
+      ? `\nFirst contact — X is the only platform with no review gate, so it is where the\n` +
+          `whole chain gets proved before the other six are touched.`
+      : `\nFirst contact on ${platform}. This platform gates public posting behind a review,\n` +
+          `so a failure here may mean the review has not landed rather than that the adapter is wrong.\n` +
+          `The self-test below distinguishes the two.`,
   );
 
   const ready = await checkPreconditions(ctx);
@@ -504,7 +582,7 @@ async function main(): Promise<void> {
     if (ready) await runSelfTest(ctx);
     await dryRun(ctx, itemId);
     console.log(
-      `\n${DIM}When the request above looks right:  pnpm first-contact --publish${RESET}\n`,
+      `\n${DIM}When the request above looks right:  pnpm first-contact --publish${platform === 'x' ? '' : ` --platform=${platform}`}${RESET}\n`,
     );
   }
 

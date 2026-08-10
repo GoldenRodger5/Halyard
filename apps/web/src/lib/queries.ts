@@ -3,6 +3,12 @@
  * layout concern and nothing else.
  */
 import 'server-only';
+import {
+  describeGap,
+  missingMetrics,
+  type PlatformId,
+  type ScoredMetric,
+} from '@halyard/core';
 import { one, query } from './db';
 
 export interface Settings {
@@ -150,6 +156,8 @@ export interface AccountRow {
   last_self_test_detail: string | null;
   last_published_at: string | null;
   has_token: boolean;
+  transport: 'direct' | 'unified';
+  provider_account_id: string | null;
 }
 
 const ACCOUNT_COLUMNS = `sa.id, sa.product_id, p.name as product_name, p.kind as product_kind,
@@ -158,7 +166,8 @@ const ACCOUNT_COLUMNS = `sa.id, sa.product_id, p.name as product_name, p.kind as
         sa.bio_link_url, sa.token_expires_at, sa.last_verified_at, sa.last_error,
         sa.identity_confirmed_at, sa.identity_warning, sa.last_self_test_at,
         sa.last_self_test_ok, sa.last_self_test_detail, sa.last_published_at,
-        (sa.access_token_enc is not null) as has_token`;
+        (sa.access_token_enc is not null) as has_token,
+        sa.transport, sa.provider_account_id`;
 
 /**
  * Accounts reachable from a product: its own brand accounts, plus the founder
@@ -522,6 +531,13 @@ export interface AnalyticsSnapshot {
    * summing them would produce a single number that means nothing.
    */
   clicksByDevice: Array<{ device_class: string; clicks: number; posts: number }>;
+  /**
+   * Milestone 49. Platforms routed through the unified provider, and what that
+   * transport cannot see. Named per platform rather than rendered as a zero:
+   * "nobody saved this" and "this transport does not report saves" are
+   * different facts, and only one of them should change strategy.
+   */
+  transportGaps: Array<{ platform: string; missing: string[]; note: string }>;
   appStore: {
     configured: boolean;
     impressions: number;
@@ -605,6 +621,25 @@ export async function getAnalytics(): Promise<AnalyticsSnapshot> {
     `select bool_or(destinations ? 'app_analytics_provider_token') as configured from products`,
   );
 
+  const unifiedAccounts = await query<{ platform: string }>(
+    `select distinct platform from social_accounts where transport = 'unified'`,
+  );
+  const providerRow = await one<{ capabilities: { platforms?: Record<string, { metrics?: string[] }> } }>(
+    `select capabilities from provider_capabilities where provider = 'blotato'`,
+  );
+
+  const transportGaps = unifiedAccounts
+    .map((row) => {
+      const observed = (providerRow?.capabilities?.platforms?.[row.platform]?.metrics ??
+        []) as ScoredMetric[];
+      const note = describeGap(row.platform as PlatformId, observed);
+      return note
+        ? { platform: row.platform, missing: missingMetrics(row.platform as PlatformId, observed), note }
+        : null;
+    })
+    .filter((gap) => gap !== null)
+    .map((gap) => ({ platform: gap!.platform, missing: [...gap!.missing] as string[], note: gap!.note }));
+
   return {
     postsPerCategory,
     byPlatform,
@@ -616,6 +651,7 @@ export async function getAnalytics(): Promise<AnalyticsSnapshot> {
     },
     attributionRows: Number(counts?.attribution_rows ?? 0),
     stampedLinks: Number(counts?.stamped ?? 0),
+    transportGaps,
     clicksByDevice: clicksByDevice.map((r) => ({
       device_class: r.device_class,
       clicks: Number(r.clicks),

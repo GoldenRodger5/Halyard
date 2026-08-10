@@ -20,6 +20,7 @@ import { PinterestAdapter, PINTEREST_METRIC_RETENTION_DAYS } from './pinterest.j
 import { YouTubeAdapter, YOUTUBE_CHUNK_BYTES } from './youtube.js';
 import { TikTokAdapter } from './tiktok.js';
 import { createPkcePair, needsRefresh, signState, verifyState } from './oauth.js';
+import { dryRunPublish } from './dryRun.js';
 
 // ── scripted fetch ──────────────────────────────────────────────────────────
 
@@ -697,6 +698,28 @@ describe('TikTokAdapter — v2 A.4 and E.4', () => {
 });
 
 // ── OAuth plumbing ──────────────────────────────────────────────────────────
+
+describe('dryRunPublish', () => {
+  it('reports a rehearsal that built a request as a rehearsal', async () => {
+    const result = await dryRunPublish(getAdapter('x'), item(), [], account());
+    expect(result.failed).toBe(false);
+    expect(result.requests.length).toBeGreaterThan(0);
+  });
+
+  it('reports a rehearsal that never reached the platform as failed, not as done', async () => {
+    // Instagram refuses without a discovered IG user id. The old shape returned
+    // prose only, and the caller rendered it with a tick — the same failure the
+    // QC gates had, where never-verified read as passed.
+    const result = await dryRunPublish(
+      getAdapter('instagram'),
+      item({ platform: 'instagram', format: 'image' }),
+      [asset()],
+      account({ platform: 'instagram', platformUserId: null, meta: {} }),
+    );
+    expect(result.failed).toBe(true);
+    expect(result.error).toBeTruthy();
+  });
+});
 
 describe('OAuth state and PKCE', () => {
   const secret = randomBytes(32).toString('base64');

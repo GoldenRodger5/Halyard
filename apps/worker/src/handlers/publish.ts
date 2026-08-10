@@ -15,6 +15,7 @@
  */
 import {
   PLATFORM_CLIENT_ENV,
+  adapterForAccount,
   disclosureSatisfied,
   getAdapter,
   openToken,
@@ -25,6 +26,7 @@ import {
   type PlatformId,
   type PublishAccount,
   type PublishAsset,
+  type ProviderCapabilities,
   type PublishError,
   type PublishItem,
 } from '@halyard/core';
@@ -105,6 +107,8 @@ interface AccountRow {
   rate_limit_config: Record<string, unknown>;
   persona: 'founder' | 'brand';
   routing_scope: string;
+  transport: 'direct' | 'unified';
+  provider_account_id: string | null;
 }
 
 export async function publishHandler(job: Job, ctx: HandlerContext): Promise<void> {
@@ -218,7 +222,10 @@ export async function publishHandler(job: Job, ctx: HandlerContext): Promise<voi
       expiresAt: accountRow.token_expires_at ? new Date(accountRow.token_expires_at) : null,
       scopes: accountRow.scopes,
     },
-    meta: (job.payload.accountMeta as Record<string, unknown>) ?? {},
+    meta: {
+      ...((job.payload.accountMeta as Record<string, unknown>) ?? {}),
+      providerAccountId: accountRow.provider_account_id,
+    },
   };
 
   const publishItem: PublishItem = {
@@ -254,7 +261,20 @@ export async function publishHandler(job: Job, ctx: HandlerContext): Promise<voi
 
   await ctx.pool.query(`update content_items set status = 'publishing' where id = $1`, [item.id]);
 
-  const adapter = getAdapter(item.platform);
+  // Direct or unified, per account. The transport is the only thing this
+  // chooses; everything above it — QC, scheduling, idempotency, routing safety —
+  // has already run and does not know the difference.
+  const { rows: providerRows } = await ctx.pool.query<{ capabilities: ProviderCapabilities }>(
+    `select capabilities from provider_capabilities where provider = 'blotato'`,
+  );
+  const adapter = adapterForAccount(
+    {
+      platform: item.platform,
+      transport: accountRow.transport,
+      provider_account_id: accountRow.provider_account_id,
+    },
+    providerRows[0]?.capabilities ?? null,
+  );
 
   try {
     let result: Awaited<ReturnType<typeof adapter.publish>>;

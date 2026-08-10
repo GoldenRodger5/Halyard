@@ -30,6 +30,17 @@ export interface DryRunResult {
   /** What would have happened, in the operator's language. */
   wouldHave: string;
   estimatedCostUsd?: number;
+  /**
+   * Did the adapter get far enough to build a request?
+   *
+   * Structural, rather than left to the caller to infer from the prose in
+   * `wouldHave`. A rehearsal that threw before sending anything has proved
+   * nothing, and a caller that renders it as a tick is the same failure shape as
+   * a QC gate passing on empty input.
+   */
+  failed: boolean;
+  /** The reason it failed, if it did. */
+  error?: string;
 }
 
 /** Header names whose value must never be written down. */
@@ -141,6 +152,10 @@ export async function dryRunPublish(
     platform: adapter.platform,
     requests,
     estimatedCostUsd: cost,
+    // No writes is also a failure: the adapter returned without attempting the
+    // thing being rehearsed, and there is nothing to inspect.
+    failed: error !== null || writes.length === 0,
+    error: error ?? undefined,
     wouldHave: error
       ? `Failed before sending anything: ${error}`
       : `${writes.length} write${writes.length === 1 ? '' : 's'} to ${adapter.platform}, ` +

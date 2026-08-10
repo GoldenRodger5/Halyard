@@ -173,3 +173,65 @@ export async function setCapabilityState(formData: FormData): Promise<void> {
   revalidatePath('/accounts');
   revalidatePath('/');
 }
+
+/**
+ * Switch an account between the direct adapter and the unified provider.
+ *
+ * One dropdown, no redeploy — which is deliberate, because the provider
+ * recommendation was made on incomplete information and the cost of it being
+ * wrong should be exactly this.
+ */
+export async function setTransport(formData: FormData): Promise<void> {
+  await requireOperator();
+  const id = String(formData.get('id'));
+  const transport = String(formData.get('transport'));
+  const providerAccountId = String(formData.get('providerAccountId') ?? '').trim();
+
+  if (!['direct', 'unified'].includes(transport)) return;
+
+  if (transport === 'unified' && !providerAccountId) {
+    redirect(
+      '/accounts?error=' +
+        encodeURIComponent(
+          'The unified transport needs the provider\u2019s account id. Find it in the provider dashboard, or run `pnpm verify-provider` which lists every connected account.',
+        ),
+    );
+  }
+
+  const capabilities = await one<{ capabilities: { platforms?: Record<string, { publish?: string }> } }>(
+    `select capabilities from provider_capabilities where provider = 'blotato'`,
+  );
+  const account = await one<{ platform: string }>(
+    'select platform from social_accounts where id = $1',
+    [id],
+  );
+
+  if (transport === 'unified') {
+    const verified = capabilities?.capabilities?.platforms?.[account?.platform ?? '']?.publish;
+    if (verified !== 'yes') {
+      // Unknown is not permission. The same rule the QC gates now follow.
+      redirect(
+        '/accounts?error=' +
+          encodeURIComponent(
+            `The unified provider has not been verified for ${account?.platform}. Run \`pnpm verify-provider\` before routing real posts through it.`,
+          ),
+      );
+    }
+  }
+
+  await query(
+    `update social_accounts
+        set transport = $2,
+            provider_account_id = case when $2 = 'unified' then $3 else null end
+      where id = $1`,
+    [id, transport, providerAccountId || null],
+  );
+
+  await query(
+    `insert into audit_log (actor, action, entity_type, entity_id, detail)
+     values ('human', 'transport_changed', 'social_account', $1, $2)`,
+    [id, { transport }],
+  );
+
+  revalidatePath('/accounts');
+}
