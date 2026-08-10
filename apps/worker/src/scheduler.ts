@@ -76,6 +76,20 @@ export const SCHEDULES: Schedule[] = [
     why: 'Watch terms and RSS. Frequent enough to catch a story the same day, rare enough not to hammer Reddit.',
   },
   {
+    kind: 'collect_reviews',
+    everyMinutes: 12 * 60,
+    perProduct: true,
+    priority: 55,
+    why: 'App Store reviews trickle in; twice a day is often enough to answer one the same day without polling a rate-limited endpoint.',
+  },
+  {
+    kind: 'draft_newsletter',
+    everyMinutes: 7 * 24 * 60,
+    perProduct: true,
+    priority: 45,
+    why: 'One issue a week, drafted into the approval queue. Sending is a separate job that only ever runs on a row a human approved.',
+  },
+  {
     kind: 'reconcile_schedule',
     everyMinutes: 60,
     perProduct: true,

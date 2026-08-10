@@ -62,6 +62,9 @@ export const JOB_KINDS = [
   'collect_app_store',
   'detect_release',
   'collect_watch_terms',
+  'draft_newsletter',
+  'send_newsletter',
+  'collect_reviews',
 ] as const;
 export type JobKind = (typeof JOB_KINDS)[number];
 
@@ -95,4 +98,9 @@ export const JOB_POLICY: Record<
   // Several public endpoints, politely paced. A failure is usually one source
   // being down, which the handler already survives.
   collect_watch_terms: { timeoutMs: 5 * 60_000, maxAttempts: 2, backoffSeconds: 1800 },
+  draft_newsletter: { timeoutMs: 5 * 60_000, maxAttempts: 2, backoffSeconds: 600 },
+  // One retry only. A half-sent newsletter is worse than a late one, and the
+  // handler marks the row failed with the provider's reason either way.
+  send_newsletter: { timeoutMs: 10 * 60_000, maxAttempts: 2, backoffSeconds: 300 },
+  collect_reviews: { timeoutMs: 5 * 60_000, maxAttempts: 2, backoffSeconds: 1800 },
 };

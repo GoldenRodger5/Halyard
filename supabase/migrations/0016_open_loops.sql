@@ -94,7 +94,7 @@ alter table jobs add constraint jobs_kind_check check (kind in (
   'generate','render','tts','capture','publish','collect_metrics','collect_signals',
   'collect_comments','collect_attribution','refresh_tokens','score_performance',
   'digest_email','reconcile_schedule','mark_stale_assets','collect_app_store',
-  'detect_release','collect_watch_terms'
+  'detect_release','collect_watch_terms','draft_newsletter','send_newsletter','collect_reviews'
 ));
 
 select public.apply_admin_rls();

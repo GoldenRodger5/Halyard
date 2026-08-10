@@ -29,6 +29,7 @@ const NAV: Array<{ href: string; label: string; group: 'work' | 'plan' | 'config
   { href: '/swipe', label: 'Swipe file', group: 'plan' },
   { href: '/hooks', label: 'Hooks', group: 'plan' },
   { href: '/series', label: 'Series', group: 'plan' },
+  { href: '/social-proof', label: 'Social proof', group: 'plan' },
   { href: '/finds', label: 'Finds', group: 'plan' },
   { href: '/library', label: 'Library', group: 'plan' },
   { href: '/assets', label: 'Assets', group: 'plan' },

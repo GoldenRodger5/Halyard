@@ -32,8 +32,9 @@ import {
   type DestinationQCInput,
   type DestinationQCResult,
 } from './destinationQC.js';
+import { runProofQC, type ProofQCInput, type ProofQCResult } from '../proof/testimonials.js';
 
-export type GateName = 'copy' | 'claims' | 'visual' | 'audio' | 'destination';
+export type GateName = 'copy' | 'claims' | 'visual' | 'audio' | 'destination' | 'proof';
 export type GateStatus = 'passed' | 'warning' | 'failed' | 'skipped';
 
 export interface GateResult {
@@ -61,6 +62,14 @@ export interface RunAllGatesInput {
   loudnessLufs?: number;
   /** Milestone 42 — where the post sends people, checked before approval. */
   destination?: DestinationQCInput;
+  /**
+   * Milestone 45 — quoted testimonials, verified against stored rows.
+   *
+   * Omitted when there is nothing to check; the gate then reports 'skipped'.
+   * A quote that does not resolve is a *failure*, not a warning, because there
+   * is no acceptable version of publishing an invented testimonial.
+   */
+  proof?: ProofQCInput;
 }
 
 export function runAllGates(input: RunAllGatesInput): QCResults {
@@ -134,6 +143,18 @@ export function runAllGates(input: RunAllGatesInput): QCResults {
       summary: 'no link',
       detail: null,
     });
+  }
+
+  if (input.proof) {
+    const proof: ProofQCResult = runProofQC(input.proof);
+    gates.push({
+      gate: 'proof',
+      status: proof.passed ? 'passed' : 'failed',
+      summary: proof.summary,
+      detail: proof,
+    });
+  } else {
+    gates.push({ gate: 'proof', status: 'skipped', summary: 'no quoted testimonial', detail: null });
   }
 
   return {

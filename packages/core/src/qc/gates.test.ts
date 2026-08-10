@@ -346,6 +346,7 @@ describe('runAllGates — the queue contract, v2 F.5', () => {
       'visual',
       'audio',
       'destination',
+      'proof',
     ]);
     expect(results.passed).toBe(true);
     expect(results.gates[1]?.summary).toBe('1/1 verified against artifact');

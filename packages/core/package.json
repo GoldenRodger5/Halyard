@@ -19,7 +19,8 @@
     "./capture": "./src/capture/index.ts",
     "./destinations": "./src/destinations/index.ts",
     "./watch": "./src/watch/index.ts",
-    "./accounts": "./src/accounts/index.ts"
+    "./accounts": "./src/accounts/index.ts",
+    "./proof": "./src/proof/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
