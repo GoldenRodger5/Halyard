@@ -76,6 +76,20 @@ async function migrateInto(pool: pg.Pool): Promise<void> {
   }
 }
 
+/**
+ * Apply `supabase/seed.sql` on top of the migrations.
+ *
+ * The isolated harness deliberately does not do this by default — most schema
+ * tests want an empty database — but the ordering between migrations and the
+ * seed is itself a thing worth testing, because a product-scoped
+ * `insert ... select from products` inside a migration silently matches nothing
+ * on a fresh database.
+ */
+export async function applySeed(pool: pg.Pool): Promise<void> {
+  const seed = path.join(ROOT, 'supabase/seed.sql');
+  await pool.query(readFileSync(seed, 'utf8'));
+}
+
 /** Minimal fixture graph: product → account → content item. */
 export async function seedMinimal(pool: pg.Pool): Promise<{
   productId: string;

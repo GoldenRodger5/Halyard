@@ -299,3 +299,29 @@ around 0.2 bytes per pixel, a uniform fill under 0.005. `looksBlank()` rejects
 anything under 0.02 and the capture is discarded with a notification rather than
 filed as an asset. A broken flow is also shown as **broken** on `/settings/health`,
 with "never verified" as its own state rather than being counted as a pass.
+
+## 25. Migrations backfill; seed.sql is the source of truth
+
+Migrations run before `seed.sql`, so a product-scoped
+`insert ... select from products` inside a migration matches **nothing** on a
+fresh database. It fails silently, and the symptom is an empty screen weeks
+later rather than an error at install time.
+
+This has now happened three times:
+
+| Round | What went missing | Symptom |
+|---|---|---|
+| 2 | `format_cadence` for RecipeFix | The video ceiling — the number the research says matters most — was absent from every fresh database |
+| 3 | `products.destinations` | The link router had no destination to route to |
+| 3 | `review_submissions` | `/submissions` was an empty checklist |
+
+Round 2's fix for the first one made CI green by guarding the insert on the
+product existing, which on a fresh database makes it a no-op — trading a loud
+failure for a silent one. The rows only ever existed on the developer's machine,
+where the product had been created by an earlier run.
+
+The rule, now enforced rather than remembered: **a migration may backfill rows
+for products that already exist; `seed.sql` owns the rows a new database needs.**
+`packages/db/src/__tests__/seed.test.ts` applies migrations *and* the seed to an
+isolated database and asserts that every product-scoped configuration table has
+rows, so the next occurrence fails in CI instead of in the UI.

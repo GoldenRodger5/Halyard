@@ -68,6 +68,50 @@ insert into products (
 insert into onboarding_state (product_id) values ('recipefix')
   on conflict (product_id) do nothing;
 
+/**
+ * Per-format cadence, from the milestone 27 research. The video ceiling is the
+ * one that matters: below three a week the algorithm deprioritises the account,
+ * above seven quality drops and average retention degrades, which pulls the
+ * channel-level signal down with it.
+ *
+ * This lives here rather than in migration 0012 because migrations run against a
+ * database that has no products yet, so the guarded insert there is a no-op on
+ * every fresh install — which left RecipeFix with no cadence at all.
+ */
+insert into format_cadence (product_id, format, weekly_floor, weekly_ceiling, reason)
+values
+  ('recipefix', 'video', 3, 5,
+   'Below three per week the algorithm treats the account as lower priority. Above seven, quality drops and average retention degrades, which pulls the channel-level signal down.'),
+  ('recipefix', 'carousel', 2, 5,
+   'Carousels earn saves, which are worth more than likes, but they are expensive to make well.'),
+  ('recipefix', 'image', 2, 7, null),
+  ('recipefix', 'text', 3, 14,
+   'Cheap to produce and cheap to ignore. The ceiling exists to stop text crowding out everything else.'),
+  ('recipefix', 'pin', 5, 35,
+   'Pinterest is a search index, not a feed. Volume works here and nowhere else.')
+on conflict (product_id, format) do nothing;
+
+/**
+ * The platform reviews that stand between this system and public posting.
+ *
+ * Every platform except X and Bluesky gates public posting behind a manual
+ * review measured in weeks. Seeding them means /submissions is a checklist on
+ * day one rather than an empty table someone has to remember to populate.
+ */
+insert into review_submissions (product_id, platform, review_name, requirements)
+values
+  ('recipefix', 'instagram', 'Meta App Review',
+   '["instagram_content_publish scope","A screen recording of the whole OAuth flow","A public privacy policy URL","A working test account for the reviewer"]'::jsonb),
+  ('recipefix', 'threads', 'Meta App Review — Threads API',
+   '["threads_content_publish scope","Threads API product added to the app","Same recording and privacy policy as Instagram"]'::jsonb),
+  ('recipefix', 'tiktok', 'Content Posting API audit',
+   '["A screen recording showing the full publish flow","Verified URL ownership for the media domain","Assume rejection for an internal tool"]'::jsonb),
+  ('recipefix', 'pinterest', 'Trial to Standard access',
+   '["A screen recording showing the OAuth flow AND a real API call","A business account","At least one board"]'::jsonb),
+  ('recipefix', 'youtube', 'API Services compliance audit',
+   '["A demo video of the OAuth flow","A privacy policy URL","Answers on data retention and deletion"]'::jsonb)
+on conflict (product_id, platform, review_name) do nothing;
+
 -- ── Brand voices (v2 G.2 mix targets) ──────────────────────────────────────
 insert into brand_voices (product_id, persona, display_name, description, do_rules, dont_rules, mix_targets)
 values

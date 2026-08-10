@@ -130,8 +130,9 @@ select public.apply_admin_rls();
 
 -- Cadence, from the research. The video ceiling is the one that matters.
 --
--- Guarded on the product existing: a migration must never depend on seed data,
--- because CI applies migrations to an empty database.
+-- Backfill only. The guard on the product existing means this inserts nothing on
+-- a fresh database, where migrations run before seed.sql — so seed.sql owns
+-- these rows and this exists for databases that predate them. DECISIONS §12.
 insert into format_cadence (product_id, format, weekly_floor, weekly_ceiling, reason)
 select 'recipefix', v.format, v.floor, v.ceiling, v.reason
   from (values
