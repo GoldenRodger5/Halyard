@@ -6,7 +6,26 @@
  * generation job each, and that clicking it twice does not write the fortnight
  * twice.
  */
+import type { Page } from '@playwright/test';
 import { db, expect, test } from './fixtures';
+
+/**
+ * The submit button, located by its form rather than its label.
+ *
+ * The label changes once a batch exists ("Replan the batch"), and it changes on
+ * a re-render the test does not control. Matching the form that owns the day
+ * count is stable across both states.
+ */
+const generateButton = (page: Page) => page.locator('form:has(input[name="days"]) button');
+
+/** Click it and wait for the staged count the page reports back. */
+async function stage(page: Page): Promise<void> {
+  await page.goto('/launch');
+  await generateButton(page).click();
+  await page.waitForLoadState('networkidle');
+  await page.reload();
+  await expect(page.getByText(/posts staged/)).toBeVisible();
+}
 
 const CLEANUP = `delete from jobs where dedupe_key like 'launch_generate:%';
                  delete from content_items where generation_meta->>'source' = 'launch_batch';`;
@@ -20,9 +39,7 @@ test.describe('launch batch', () => {
   });
 
   test('stages a fortnight and queues one generation job per slot', async ({ page }) => {
-    await page.goto('/launch');
-    await page.getByRole('button', { name: 'Generate my first two weeks' }).click();
-    await page.waitForLoadState('networkidle');
+    await stage(page);
 
     const staged = await db().query<{
       id: string;
@@ -58,17 +75,16 @@ test.describe('launch batch', () => {
   });
 
   test('generating twice does not write the fortnight twice', async ({ page }) => {
-    await page.goto('/launch');
-    await page.getByRole('button', { name: 'Generate my first two weeks' }).click();
-    await page.waitForLoadState('networkidle');
+    await stage(page);
 
     const first = await db().query<{ n: string }>(
       `select count(*) as n from content_items where generation_meta->>'source' = 'launch_batch'`,
     );
+    expect(Number(first.rows[0]!.n)).toBeGreaterThan(0);
 
-    await page.goto('/launch');
-    await page.getByRole('button', { name: 'Replan the batch' }).click();
-    await page.waitForLoadState('networkidle');
+    // Replanning must not see its own untouched slots as a full calendar and
+    // defer everything — the bug this test was written to catch.
+    await stage(page);
 
     const second = await db().query<{ n: string }>(
       `select count(*) as n from content_items where generation_meta->>'source' = 'launch_batch'`,
@@ -77,9 +93,7 @@ test.describe('launch batch', () => {
   });
 
   test('regenerating keeps a slot somebody has already edited', async ({ page }) => {
-    await page.goto('/launch');
-    await page.getByRole('button', { name: 'Generate my first two weeks' }).click();
-    await page.waitForLoadState('networkidle');
+    await stage(page);
 
     // A draft with a body is not scaffolding, whoever wrote it.
     const edited = await db().query<{ id: string }>(
@@ -89,9 +103,7 @@ test.describe('launch batch', () => {
         returning id`,
     );
 
-    await page.goto('/launch');
-    await page.getByRole('button', { name: 'Replan the batch' }).click();
-    await page.waitForLoadState('networkidle');
+    await stage(page);
 
     const survived = await db().query<{ body: string }>(
       'select body from content_items where id = $1',
@@ -101,14 +113,7 @@ test.describe('launch batch', () => {
   });
 
   test('discarding removes the batch', async ({ page }) => {
-    await page.goto('/launch');
-    await page.getByRole('button', { name: 'Generate my first two weeks' }).click();
-    await page.waitForLoadState('networkidle');
-
-    // Staging writes a row and a job per slot, so wait for the page to actually
-    // reflect the batch rather than for the network to go briefly quiet.
-    await page.reload();
-    await expect(page.getByText(/posts staged/)).toBeVisible();
+    await stage(page);
 
     await page.getByRole('button', { name: 'Discard the batch' }).click();
     await page.waitForLoadState('networkidle');

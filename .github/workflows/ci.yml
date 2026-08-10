@@ -82,6 +82,63 @@ jobs:
       - name: Test
         run: pnpm exec vitest run
 
+  # ── End to end ───────────────────────────────────────────────────────────
+  #
+  # Separate from `verify` because it needs a browser and a running app, and
+  # because it catches a different class of defect. The launch-batch replan bug
+  # is the example: the planner's unit tests were all correct and the planner
+  # was being handed the wrong input, which only a real click could show.
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
+      # The E2E suite drives the dashboard, which is behind an operator gate.
+      # Refused in production by the auth module itself, not by convention.
+      HALYARD_DEV_UNAUTHENTICATED: '1'
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Apply migrations and seed
+        run: pnpm db:reset -- --fresh --seed
+
+      - name: Install the browser
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: End-to-end
+        run: pnpm exec playwright test
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 15

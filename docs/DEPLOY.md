@@ -102,6 +102,8 @@ nothing generates, renders, publishes or collects.
 | `ELEVENLABS_API_KEY` | Railway | Voiceover | elevenlabs.io |
 | `SENTRY_DSN` | Vercel + Railway | Error reporting | sentry.io → Settings → Client Keys |
 | `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` | Railway | Uploading rendered media | Supabase → Settings → API |
+| `BLOTATO_API_KEY` | Vercel + Railway | The unified transport, if you use it | my.blotato.com → Settings → API. Optional: without it every account stays on its own adapter |
+| `PUBLIC_APP_URL` | Vercel | The link-in-bio URL in `/setup-kit` | Only needed where the request host is not trustworthy. Derived from the request first, and never falls back to localhost |
 
 **`TOKEN_ENCRYPTION_KEY` and `CRON_SECRET` already exist locally.** They were
 generated with `openssl rand -base64 32`
