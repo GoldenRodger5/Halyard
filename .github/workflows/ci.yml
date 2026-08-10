@@ -1,0 +1,102 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# CI from the first commit.
+#
+# The product this markets has no CI, and it cost sixteen days of silent
+# production drift. Typecheck, lint and test on every push, and block merge on
+# failure.
+#
+# The database job is the important one: publish idempotency, SKIP LOCKED, RLS
+# and the AI-disclosure constraint only exist in Postgres, so CI runs a real one.
+# ═══════════════════════════════════════════════════════════════════════════
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Not a secret. CI runs against a throwaway Postgres in a container.
+  TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
+  TOKEN_ENCRYPTION_KEY: dGVzdC1rZXktdGVzdC1rZXktdGVzdC1rZXktdGVzdA==
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Apply migrations to a real Postgres
+        run: pnpm db:reset -- --fresh --seed
+        env:
+          DATABASE_URL: ${{ env.TEST_DATABASE_URL }}
+
+      - name: Generated types are current
+        run: |
+          pnpm db:types
+          git diff --exit-code packages/db/src/types.gen.ts \
+            || (echo "::error::packages/db/src/types.gen.ts is stale. Run pnpm db:types and commit." && exit 1)
+        env:
+          DATABASE_URL: ${{ env.TEST_DATABASE_URL }}
+
+      - name: Typecheck
+        run: |
+          for dir in packages/core packages/db packages/render packages/ui apps/worker apps/web; do
+            echo "── $dir"
+            (cd "$dir" && pnpm exec tsc --noEmit)
+          done
+
+      - name: Lint
+        run: pnpm exec eslint .
+
+      - name: Test
+        run: pnpm exec vitest run
+
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build the web app
+        run: pnpm --filter @halyard/web build
+        env:
+          # The build must not require a live database or any platform secret.
+          NEXT_TELEMETRY_DISABLED: '1'

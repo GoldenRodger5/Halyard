@@ -1,0 +1,87 @@
+{
+  "recipeName": "Sally's Artisan Bread, gluten-free",
+  "sourceUrl": "https://sallysbakingaddiction.com/homemade-artisan-bread/",
+  "dietary": ["gluten_free"],
+  "servings": { "original": 1, "adapted": 1, "unit": "loaf" },
+  "ingredients": [
+    {
+      "original": "3 1/4 cups bread flour",
+      "adapted": "3 1/4 cups gluten-free bread flour blend",
+      "changed": true,
+      "changeType": "substitution",
+      "changeReason": "A 1:1 gluten-free blend with xanthan gum is the only swap that keeps the dough workable. Expect a wetter dough than the original.",
+      "alternative": "Equal parts white rice flour, tapioca starch and sorghum, plus 1 tsp xanthan gum per cup"
+    },
+    {
+      "original": "2 teaspoons instant yeast",
+      "adapted": "1 3/4 teaspoons instant yeast",
+      "changed": true,
+      "changeType": "scaled",
+      "changeReason": "Scaled to roughly 85 percent of linear because gluten-free dough proofs faster and over-proofing collapses the crumb.",
+      "alternative": null
+    },
+    {
+      "original": "2 teaspoons coarse salt",
+      "adapted": "1 3/4 teaspoons coarse salt",
+      "changed": true,
+      "changeType": "scaled",
+      "changeReason": "Scaled with the yeast to keep the ratio intact.",
+      "alternative": null
+    },
+    {
+      "original": "1 1/2 cups warm water",
+      "adapted": "1 3/4 cups warm water",
+      "changed": true,
+      "changeType": "adjustment",
+      "changeReason": "Rice and tapioca starches absorb more water than wheat flour, so hydration goes up or the crumb reads dry.",
+      "alternative": null
+    },
+    {
+      "original": null,
+      "adapted": "1 teaspoon apple cider vinegar",
+      "changed": true,
+      "changeType": "addition",
+      "changeReason": "Acid strengthens the protein network that gluten would normally build, which is what stops the loaf collapsing as it cools.",
+      "alternative": "Lemon juice, same quantity"
+    }
+  ],
+  "steps": [
+    {
+      "index": 1,
+      "title": "Mix the dough",
+      "original_note": "Stir until a shaggy dough forms.",
+      "updated_note": "Gluten-free dough will look like a thick batter rather than a shaggy dough. That is correct. Do not add flour to firm it up."
+    },
+    {
+      "index": 2,
+      "title": "First rise",
+      "original_note": "Cover and rise 2 to 3 hours.",
+      "updated_note": "Cut the rise to 60 to 90 minutes. There is no gluten to develop, so extra time only exhausts the yeast."
+    },
+    {
+      "index": 3,
+      "title": "Bake",
+      "original_note": "Bake at 475°F for 25 minutes.",
+      "updated_note": "Drop the oven to 450°F and bake 35 to 40 minutes. Gluten-free browns faster than it sets, so a hot oven gives you a dark crust over a raw centre."
+    },
+    {
+      "index": 4,
+      "title": "Cool",
+      "original_note": "Cool before slicing.",
+      "updated_note": "Cool completely, at least 2 hours. Slicing a warm gluten-free loaf is the single most common cause of a gummy crumb."
+    }
+  ],
+  "explanations": [
+    "The vinegar is doing structural work, not flavour work. You will not taste it in the finished loaf.",
+    "Dropping the oven 25 degrees and extending the bake is the trade that makes the centre set before the crust burns.",
+    "Gluten-free bread stales faster. Slice and freeze what you will not eat in two days."
+  ],
+  "nutrition": {
+    "per_serving": { "calories": 168, "protein_g": 3.1, "carbs_g": 34.2, "fat_g": 1.4 },
+    "confidence": "estimated",
+    "disclaimer": "Estimated from ingredient databases. Not verified."
+  },
+  "warnings": [
+    "Gluten-free blends vary. Start with 1 3/4 cups water and add more only if the batter will not fall from a spoon."
+  ]
+}

@@ -1,0 +1,60 @@
+@import 'tailwindcss';
+
+@source "../../../../packages/ui/src";
+
+/*
+ * The palette is the product's own brand tokens (build pack §2 step 1):
+ * terracotta #C4714A on warm cream, Instrument Serif headings, Inter body.
+ * Halyard markets a cooking product; it should not look like a SaaS dashboard.
+ */
+@theme {
+  --color-canvas: #f6f3ec;
+  --color-surface: #fdfbf7;
+  --color-sunk: #efe9df;
+  --color-line: #e2d9cb;
+  --color-ink: #2a2320;
+  --color-muted: #7a6e66;
+
+  --color-primary: #c4714a;
+  --color-primary-dark: #a85c39;
+
+  --color-good: #4f7a52;
+  --color-warn: #c99a2e;
+  --color-warn-ink: #8a6512;
+  --color-danger: #a8433a;
+
+  --font-serif: 'Instrument Serif', 'Iowan Old Style', Georgia, serif;
+  --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, monospace;
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+  }
+
+  h1,
+  h2.serif,
+  .font-serif {
+    font-family: var(--font-serif);
+    font-weight: 400;
+  }
+
+  ::selection {
+    background-color: color-mix(in srgb, var(--color-primary) 22%, transparent);
+  }
+}
+
+/* The queue must be fully usable on a phone (v1 §8), so the mobile tab bar is
+   fixed and the content area reserves room for it. */
+@layer utilities {
+  .pb-tabbar {
+    padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
+  }
+}

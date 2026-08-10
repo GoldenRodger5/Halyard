@@ -1,0 +1,9 @@
+packages:
+  - 'apps/*'
+  - 'packages/*'
+
+# esbuild ships a prebuilt binary via a postinstall script; vitest and tsx need it.
+allowBuilds:
+  esbuild: true
+  sharp: true
+  '@resvg/resvg-js': true

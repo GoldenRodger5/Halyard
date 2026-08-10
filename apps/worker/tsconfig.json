@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node", "vitest/globals"],
+    "paths": {
+      "@halyard/core": ["../../packages/core/src/index.ts"],
+      "@halyard/core/*": ["../../packages/core/src/*"],
+      "@halyard/db": ["../../packages/db/src/index.ts"],
+      "@halyard/render": ["../../packages/render/src/index.ts"]
+    }
+  },
+  "include": ["src/**/*.ts"]
+}

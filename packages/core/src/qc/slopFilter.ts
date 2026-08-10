@@ -1,0 +1,672 @@
+/**
+ * Gate 1 — Copy quality. v2 Part F.1.
+ *
+ * A lint pass, not a model call. Deterministic, fast, and non-negotiable: it runs
+ * before anything reaches the approval queue, and the specific violation is shown
+ * in the UI so the operator can see *why* something was rewritten.
+ *
+ * Severity contract:
+ *   error   → the item never enters the queue. Regenerate.
+ *   warning → visible on the card, does not block approval.
+ *
+ * The em dash rule is an error, not a style note. It is the single strongest LLM
+ * tell in short-form copy.
+ */
+
+export type SlopSeverity = 'error' | 'warning';
+
+export interface SlopViolation {
+  /** Stable machine id, e.g. 'punctuation.em_dash'. Used for analytics and tests. */
+  rule: string;
+  severity: SlopSeverity;
+  /** Operator-facing, written to be read on a phone. */
+  message: string;
+  /** The offending text, when there is a specific span. */
+  excerpt?: string;
+  /** Character offset into `body`, when known. */
+  index?: number;
+  /** What to do instead. */
+  fix?: string;
+}
+
+export interface SlopStats {
+  characters: number;
+  words: number;
+  sentences: number;
+  averageSentenceWords: number;
+  sentenceLengthCv: number;
+  openingWords: number;
+  questionMarks: number;
+  emojiCount: number;
+  hashtagCount: number;
+}
+
+export interface SlopFilterResult {
+  passed: boolean;
+  violations: SlopViolation[];
+  errors: SlopViolation[];
+  warnings: SlopViolation[];
+  stats: SlopStats;
+}
+
+export type SlopPlatform =
+  | 'x'
+  | 'instagram'
+  | 'tiktok'
+  | 'pinterest'
+  | 'youtube'
+  | 'threads';
+
+export interface SlopFilterInput {
+  body: string;
+  platform: SlopPlatform;
+  /** Hashtags as stored on content_items — without the leading '#'. */
+  hashtags?: string[];
+  /** products.content_rules.banned_phrases, merged with the built-in list. */
+  extraBannedPhrases?: string[];
+  /** products.content_rules.forbidden_claims. Matched as substrings, case-insensitive. */
+  forbiddenClaims?: string[];
+  /**
+   * Long-form surfaces (YouTube descriptions, Pinterest board copy) legitimately
+   * run longer than a feed post. Relaxes sentence-length and opening-line limits.
+   */
+  longForm?: boolean;
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// Rule tables
+// ───────────────────────────────────────────────────────────────────────────
+
+/**
+ * v2 F.1 — banned phrases and constructions, verbatim from the doc plus the
+ * near-synonyms that trip the same tell. Matched case-insensitively on word
+ * boundaries.
+ */
+export const BANNED_PHRASES: readonly string[] = [
+  // The single most recognisable LLM sentence shape gets its own regex below.
+  "let's dive in",
+  "let's explore",
+  'lets dive in',
+  'dive into',
+  "in today's fast-paced world",
+  'in a world where',
+  'game changer',
+  'game-changer',
+  'revolutionize',
+  'revolutionise',
+  'revolutionizing',
+  'revolutionising',
+  '10x',
+  'unlock',
+  'unlocking',
+  'elevate',
+  'elevates',
+  'elevating',
+  'the secret to',
+  "here's the thing",
+  'seamlessly',
+  'seamless',
+  'effortlessly',
+  'effortless',
+  'leverage',
+  'leveraging',
+  'utilize',
+  'utilise',
+  'utilizing',
+  'robust',
+  'delve',
+  'delving',
+  'tapestry',
+  'testament to',
+  'navigate the landscape',
+  'landscape of',
+  'in the realm of',
+  'at the end of the day',
+  'when it comes to',
+  'look no further',
+  'buckle up',
+  'the bottom line',
+  'supercharge',
+  'transformative',
+  'cutting-edge',
+  'best-in-class',
+  'needle-moving',
+];
+
+/** Constructions that need more than a substring match. */
+const CONSTRUCTION_RULES: Array<{
+  rule: string;
+  severity: SlopSeverity;
+  pattern: RegExp;
+  message: string;
+  fix: string;
+}> = [
+  {
+    rule: 'construction.not_just_but',
+    severity: 'error',
+    // "It's not just X, it's Y" and its variants.
+    pattern:
+      /\b(it'?s|this is|that'?s|they'?re|we'?re)\s+not\s+just\b[^.!?]{0,80}?[,;]\s*(it'?s|this is|that'?s|they'?re|we'?re|but)\b/i,
+    message: 'The "not just X, it\'s Y" construction. The most recognisable LLM sentence shape.',
+    fix: 'State the second half on its own. The contrast is doing no work.',
+  },
+  {
+    rule: 'construction.whether_youre',
+    severity: 'error',
+    pattern: /\bwhether\s+you'?re\b[^.!?]{0,60}?\bor\b/i,
+    message: '"Whether you\'re X or Y" opener.',
+    fix: 'Pick one reader and write to them.',
+  },
+  {
+    rule: 'construction.thats_where_x_comes_in',
+    severity: 'error',
+    pattern: /\bthat'?s\s+where\s+[\w\s]{1,30}\s+comes?\s+in\b/i,
+    message: '"That\'s where {product} comes in" — reads as ad copy.',
+    fix: 'Show the product doing the thing instead of announcing it.',
+  },
+  {
+    rule: 'construction.more_than_just',
+    severity: 'error',
+    pattern: /\b(more than just|not merely|far more than)\b/i,
+    message: 'Hype comparative ("more than just ...").',
+    fix: 'Delete the comparative and keep the claim.',
+  },
+];
+
+/**
+ * Hashtag ceilings. X / Instagram / TikTok / Pinterest are stated in v2 F.1.
+ * Threads and YouTube are not, and are inferred:
+ *   Threads — behaves like X in the feed, so the same restraint applies.
+ *   YouTube — description tags, capped low to avoid keyword stuffing.
+ * Both are marked INFERRED so the source of the number is never ambiguous.
+ */
+export const HASHTAG_LIMITS: Record<SlopPlatform, { min: number; max: number; inferred?: boolean }> =
+  {
+    x: { min: 0, max: 2 },
+    instagram: { min: 3, max: 8 },
+    tiktok: { min: 3, max: 5 },
+    pinterest: { min: 0, max: 0 },
+    threads: { min: 0, max: 3, inferred: true },
+    youtube: { min: 0, max: 5, inferred: true },
+  };
+
+/** Emoji that are banned outright rather than merely rationed (v2 F.1). */
+const BANNED_EMOJI = ['🚀', '🛸', '🛰', '🌠', '💫'];
+
+// Variation selectors are excluded from the class: they modify a preceding
+// emoji rather than being one, and counting them doubles the emoji tally.
+const EMOJI_PATTERN =
+  /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{1F000}-\u{1F02F}]/gu;
+
+/** Adjective shapes used by the stacking detector. */
+const ADJECTIVE_SUFFIX = /(y|ous|ful|less|able|ible|ish|ive|ic|al|ed|ing)$/i;
+const ADJECTIVE_LEXICON = new Set([
+  'delicious',
+  'tender',
+  'rich',
+  'fresh',
+  'crisp',
+  'warm',
+  'bold',
+  'simple',
+  'easy',
+  'quick',
+  'perfect',
+  'great',
+  'amazing',
+  'incredible',
+  'stunning',
+  'gorgeous',
+  'smooth',
+  'light',
+  'moist',
+  'soft',
+  'sweet',
+  'savory',
+  'savoury',
+  'hearty',
+  'vibrant',
+  'authentic',
+  'wholesome',
+]);
+
+/**
+ * v2 F.2 — hard blocks that hold regardless of source. These are copy-level and
+ * therefore cheap to catch here; the claim verifier (Gate 2) catches the rest.
+ */
+const HARD_BLOCK_RULES: Array<{ rule: string; pattern: RegExp; message: string }> = [
+  {
+    rule: 'hard_block.nutrition_accuracy',
+    pattern:
+      /\b(accurate|verified|exact|precise|guaranteed)\s+(nutrition|macros|calories|nutritional)/i,
+    message: 'Claims nutrition figures are accurate or verified. Never permitted.',
+  },
+  {
+    rule: 'hard_block.nutrition_accuracy_reverse',
+    pattern: /\b(nutrition|macros|calorie counts?)\s+(are|is)\s+(accurate|verified|exact|precise)/i,
+    message: 'Claims nutrition figures are accurate or verified. Never permitted.',
+  },
+  {
+    rule: 'hard_block.one_to_one',
+    pattern: /\b(perfect|exact|true|straight)\s*1\s*[:\-–]\s*1\b|\bperfect\s+(1\s*to\s*1|one[- ]to[- ]one)\b/i,
+    message: 'Claims a perfect 1:1 substitution. Never permitted — substitutions are never 1:1.',
+  },
+  {
+    rule: 'hard_block.medical_guarantee',
+    pattern:
+      /\b(safe for (celiacs?|coeliacs?|allergies|allergy sufferers)|allergen[- ]free guarantee|guaranteed (gluten|dairy|nut)[- ]free|will not (trigger|cause) (a )?(reaction|flare))\b/i,
+    message: 'Medical or allergy-safety guarantee. Never permitted.',
+  },
+  {
+    rule: 'hard_block.cures',
+    pattern: /\b(cures?|treats?|heals?|prevents?)\s+(your\s+)?(ibs|celiac|coeliac|diabetes|inflammation)\b/i,
+    message: 'Medical claim. Never permitted.',
+  },
+];
+
+/** Competitor names are configured per product; these are the always-on ones. */
+const COMPETITOR_PATTERN =
+  /\b(chatgpt|copy\s?me\s?that|paprika|mealime|yummly|allrecipes|whisk|samsung food)\b/i;
+
+// ───────────────────────────────────────────────────────────────────────────
+// Text utilities
+// ───────────────────────────────────────────────────────────────────────────
+
+/** Split into sentences without breaking on decimals, abbreviations, or 350°F. */
+export function splitSentences(text: string): string[] {
+  // Periods inside numbers and abbreviations are swapped for a sentinel before the
+  // split and restored afterwards, so "Rest 3.5 min. Then slice." is two sentences.
+  const SENTINEL = '\u0001';
+  const guarded = text
+    .replace(/(\d)\.(\d)/g, `$1${SENTINEL}$2`)
+    .replace(/\b(Mr|Mrs|Ms|Dr|vs|etc|e\.g|i\.e|approx|tsp|tbsp|oz|lb|min|hr)\./gi, `$1${SENTINEL}`);
+
+  return guarded
+    .split(/(?<=[.!?])[\s\n]+/)
+    .map((s) => s.split(SENTINEL).join('.').trim())
+    .filter((s) => s.length > 0);
+}
+
+export function countWords(text: string): number {
+  const matches = text.trim().match(/[\p{L}\p{N}][\p{L}\p{N}'’-]*/gu);
+  return matches ? matches.length : 0;
+}
+
+function firstWord(sentence: string): string {
+  const m = sentence.trim().match(/[\p{L}\p{N}']+/u);
+  return m ? m[0].toLowerCase() : '';
+}
+
+function coefficientOfVariation(values: number[]): number {
+  if (values.length < 2) return 0;
+  const mean = values.reduce((a, b) => a + b, 0) / values.length;
+  if (mean === 0) return 0;
+  const variance = values.reduce((a, b) => a + (b - mean) ** 2, 0) / values.length;
+  return Math.sqrt(variance) / mean;
+}
+
+function excerptAround(text: string, index: number, span = 48): string {
+  const start = Math.max(0, index - 12);
+  return text.slice(start, Math.min(text.length, start + span)).replace(/\s+/g, ' ').trim();
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// The filter
+// ───────────────────────────────────────────────────────────────────────────
+
+export function slopFilter(input: SlopFilterInput): SlopFilterResult {
+  const { body, platform, hashtags = [], longForm = false } = input;
+  const violations: SlopViolation[] = [];
+  const push = (v: SlopViolation) => violations.push(v);
+
+  // ── Punctuation and typography (v2 F.1) ──────────────────────────────────
+  const emDashIndex = body.indexOf('—');
+  if (emDashIndex >= 0) {
+    push({
+      rule: 'punctuation.em_dash',
+      severity: 'error',
+      message: 'Em dash. The strongest LLM tell in short-form copy.',
+      excerpt: excerptAround(body, emDashIndex),
+      index: emDashIndex,
+      fix: 'Rewrite the sentence, or use a period or a comma.',
+    });
+  }
+
+  // En dash is acceptable only inside a numeric range (10–15 minutes).
+  for (const match of body.matchAll(/–/g)) {
+    const i = match.index ?? 0;
+    const before = body.slice(Math.max(0, i - 4), i);
+    const after = body.slice(i + 1, i + 5);
+    const isNumericRange = /\d\s?$/.test(before) && /^\s?\d/.test(after);
+    if (!isNumericRange) {
+      push({
+        rule: 'punctuation.en_dash_in_prose',
+        severity: 'error',
+        message: 'En dash in prose. Only acceptable in a numeric range.',
+        excerpt: excerptAround(body, i),
+        index: i,
+        fix: 'Use a comma, a period, or a hyphen.',
+      });
+      break;
+    }
+  }
+
+  const ellipsisIndex = body.indexOf('…');
+  if (ellipsisIndex >= 0) {
+    push({
+      rule: 'punctuation.ellipsis_char',
+      severity: 'error',
+      message: 'Ellipsis character.',
+      excerpt: excerptAround(body, ellipsisIndex),
+      index: ellipsisIndex,
+      fix: 'Use three periods, or nothing at all.',
+    });
+  }
+
+  // Any curly quotation mark, including the right single quote LLMs emit inside
+  // contractions. v2 F.1 is unqualified: straight quotes only.
+  const curlyIndex = body.search(/[\u201C\u201D\u2018\u2019]/);
+  if (curlyIndex >= 0) {
+    push({
+      rule: 'punctuation.curly_quotes',
+      severity: 'error',
+      message: 'Curly quote. Some platforms mangle them.',
+      excerpt: excerptAround(body, curlyIndex),
+      index: curlyIndex,
+      fix: "Use straight quotes (' and \").",
+    });
+  }
+
+  // ── Emoji ────────────────────────────────────────────────────────────────
+  const emojiMatches = [...body.matchAll(EMOJI_PATTERN)];
+  const emojiCount = emojiMatches.length;
+  for (const banned of BANNED_EMOJI) {
+    const i = body.indexOf(banned);
+    if (i >= 0) {
+      push({
+        rule: 'emoji.banned',
+        severity: 'error',
+        message: `Banned emoji ${banned}. Rocket-adjacent emoji are excluded entirely.`,
+        excerpt: excerptAround(body, i),
+        index: i,
+        fix: 'Remove it.',
+      });
+    }
+  }
+  if (emojiCount > 1) {
+    push({
+      rule: 'emoji.too_many',
+      severity: 'error',
+      message: `${emojiCount} emoji in the body. Maximum is 1, and only where it carries meaning.`,
+      fix: 'Keep at most the one that means something.',
+    });
+  }
+
+  // ── Banned phrases ───────────────────────────────────────────────────────
+  const allBanned = [...BANNED_PHRASES, ...(input.extraBannedPhrases ?? [])];
+  const lower = body.toLowerCase();
+  const seenPhrases = new Set<string>();
+  for (const phrase of allBanned) {
+    const needle = phrase.toLowerCase().trim();
+    if (!needle || seenPhrases.has(needle)) continue;
+    const escaped = needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const boundaryStart = /^[\p{L}\p{N}]/u.test(needle) ? '\\b' : '';
+    const boundaryEnd = /[\p{L}\p{N}]$/u.test(needle) ? '\\b' : '';
+    const re = new RegExp(`${boundaryStart}${escaped}${boundaryEnd}`, 'i');
+    const m = re.exec(body);
+    if (m) {
+      seenPhrases.add(needle);
+      push({
+        rule: 'phrase.banned',
+        severity: 'error',
+        message: `Banned phrase: "${m[0]}".`,
+        excerpt: excerptAround(body, m.index),
+        index: m.index,
+        fix: 'Say the thing plainly instead.',
+      });
+    }
+  }
+  void lower;
+
+  // ── Constructions ────────────────────────────────────────────────────────
+  for (const rule of CONSTRUCTION_RULES) {
+    const m = rule.pattern.exec(body);
+    if (m) {
+      push({
+        rule: rule.rule,
+        severity: rule.severity,
+        message: rule.message,
+        excerpt: m[0].slice(0, 80),
+        index: m.index,
+        fix: rule.fix,
+      });
+    }
+  }
+
+  // ── Hard blocks (v2 F.2) ─────────────────────────────────────────────────
+  for (const rule of HARD_BLOCK_RULES) {
+    const m = rule.pattern.exec(body);
+    if (m) {
+      push({
+        rule: rule.rule,
+        severity: 'error',
+        message: rule.message,
+        excerpt: m[0].slice(0, 80),
+        index: m.index,
+        fix: 'Remove the claim. There is no rewording that makes it acceptable.',
+      });
+    }
+  }
+  const competitor = COMPETITOR_PATTERN.exec(body);
+  if (competitor) {
+    push({
+      rule: 'hard_block.competitor',
+      severity: 'error',
+      message: `Names a competitor ("${competitor[0]}"). Never permitted.`,
+      excerpt: excerptAround(body, competitor.index),
+      index: competitor.index,
+      fix: 'Describe the problem, not the rival.',
+    });
+  }
+  for (const claim of input.forbiddenClaims ?? []) {
+    const needle = claim.trim();
+    if (!needle) continue;
+    const i = body.toLowerCase().indexOf(needle.toLowerCase());
+    if (i >= 0) {
+      push({
+        rule: 'hard_block.forbidden_claim',
+        severity: 'error',
+        message: `Forbidden claim for this product: "${needle}".`,
+        excerpt: excerptAround(body, i),
+        index: i,
+        fix: 'Remove it.',
+      });
+    }
+  }
+
+  // ── Structural checks ────────────────────────────────────────────────────
+  const sentences = splitSentences(body);
+  const sentenceWordCounts = sentences.map(countWords);
+  const words = countWords(body);
+  const averageSentenceWords =
+    sentenceWordCounts.length > 0
+      ? sentenceWordCounts.reduce((a, b) => a + b, 0) / sentenceWordCounts.length
+      : 0;
+  const cv = coefficientOfVariation(sentenceWordCounts);
+
+  const sentenceCeiling = longForm ? 28 : 22;
+  if (averageSentenceWords > sentenceCeiling) {
+    push({
+      rule: 'structure.sentence_length',
+      severity: 'error',
+      message: `Average sentence is ${averageSentenceWords.toFixed(1)} words. Ceiling is ${sentenceCeiling}.`,
+      fix: 'Break the long ones. Short-form rewards short sentences.',
+    });
+  }
+
+  // Extension beyond v2 F.1, which specifies an average only: a single very long
+  // sentence hides behind a short hook and never moves the mean. Caught separately
+  // so the two failures read differently in the queue.
+  const longestSentenceIndex = sentenceWordCounts.indexOf(Math.max(...sentenceWordCounts, 0));
+  const longestSentenceWords = sentenceWordCounts[longestSentenceIndex] ?? 0;
+  const singleSentenceCeiling = longForm ? 45 : 30;
+  if (longestSentenceWords > singleSentenceCeiling) {
+    push({
+      rule: 'structure.sentence_too_long',
+      severity: 'error',
+      message: `One sentence runs ${longestSentenceWords} words. Ceiling is ${singleSentenceCeiling}.`,
+      excerpt: (sentences[longestSentenceIndex] ?? '').slice(0, 80),
+      fix: 'Split it. Nobody reads a 30-word sentence on a phone.',
+    });
+  }
+
+  // Humans vary wildly. Uniform sentence length is a generation artifact.
+  if (sentences.length >= 4 && averageSentenceWords >= 8 && cv < 0.25) {
+    push({
+      rule: 'structure.uniform_rhythm',
+      severity: 'error',
+      message: `Sentence lengths are near-identical (variation ${(cv * 100).toFixed(0)}%). Humans vary wildly.`,
+      fix: 'Make one sentence very short. Let another run long.',
+    });
+  }
+
+  const openingSentence = sentences[0] ?? '';
+  const openingWords = countWords(openingSentence);
+  const openingCeiling = longForm ? 20 : 12;
+  if (openingWords > openingCeiling) {
+    push({
+      rule: 'structure.opening_line',
+      severity: 'error',
+      message: `Opening line is ${openingWords} words. Ceiling is ${openingCeiling}; the hook is the first 3 to 5.`,
+      excerpt: openingSentence.slice(0, 80),
+      index: 0,
+      fix: 'Lead with the reader\'s problem in five words.',
+    });
+  }
+
+  const questionMarks = (body.match(/\?/g) ?? []).length;
+  if (words >= 8 && questionMarks / words > 1 / 40) {
+    push({
+      rule: 'structure.question_density',
+      severity: 'error',
+      message: `${questionMarks} question marks in ${words} words. Ceiling is 1 per 40.`,
+      fix: 'Make the questions statements.',
+    });
+  }
+
+  // Three consecutive sentences opening with the same word.
+  for (let i = 0; i + 2 < sentences.length; i++) {
+    const a = firstWord(sentences[i] ?? '');
+    if (!a) continue;
+    if (a === firstWord(sentences[i + 1] ?? '') && a === firstWord(sentences[i + 2] ?? '')) {
+      push({
+        rule: 'structure.anaphora',
+        severity: 'error',
+        message: `Three consecutive sentences start with "${a}".`,
+        excerpt: [sentences[i], sentences[i + 1], sentences[i + 2]].join(' ').slice(0, 90),
+        fix: 'Vary the openings, or cut two of them.',
+      });
+      break;
+    }
+  }
+
+  // Rule-of-three lists as a default rhythm. One tricolon is human; two is a tic.
+  const ITEM = "[\\p{L}'\\-]+(?:\\s[\\p{L}'\\-]+){0,2}";
+  const tricolonPattern = new RegExp(
+    `\\b(${ITEM}),\\s+(${ITEM}),\\s+(?:and\\s+)?(${ITEM})\\b`,
+    'gu',
+  );
+  const tricolons = [...body.matchAll(tricolonPattern)];
+  if (tricolons.length >= 2) {
+    push({
+      rule: 'structure.rule_of_three',
+      severity: 'error',
+      message: `${tricolons.length} rule-of-three lists. It reads as a default rhythm.`,
+      excerpt: tricolons[0]?.[0]?.slice(0, 80),
+      fix: 'Keep one list at most, and give it a different shape.',
+    });
+  } else if (tricolons.length === 1) {
+    push({
+      rule: 'structure.rule_of_three',
+      severity: 'warning',
+      message: 'One rule-of-three list. Fine once; watch it becoming the default.',
+      excerpt: tricolons[0]?.[0]?.slice(0, 80),
+    });
+  }
+
+  // Adjective stacking: "delicious, tender, perfectly-seasoned".
+  for (const m of tricolons) {
+    const candidates = [m[1], m[2], m[3]].filter(Boolean) as string[];
+    const adjectiveish = candidates.filter((c) =>
+      c
+        .split(/\s+/)
+        .some(
+          (w) =>
+            ADJECTIVE_LEXICON.has(w.toLowerCase()) ||
+            (w.length > 4 && ADJECTIVE_SUFFIX.test(w)) ||
+            (w.includes('-') && w.length > 6),
+        ),
+    );
+    if (adjectiveish.length >= 3) {
+      push({
+        rule: 'structure.adjective_stacking',
+        severity: 'error',
+        message: `Stacked adjectives: "${m[0].slice(0, 60)}".`,
+        index: m.index,
+        fix: 'Keep the one adjective that carries information. Delete the rest.',
+      });
+      break;
+    }
+  }
+
+  // ── Hashtags ─────────────────────────────────────────────────────────────
+  const limits = HASHTAG_LIMITS[platform];
+  const inlineHashtags = (body.match(/(?:^|\s)#[\p{L}\p{N}_]+/gu) ?? []).length;
+  const hashtagCount = hashtags.length + inlineHashtags;
+  if (hashtagCount > limits.max) {
+    push({
+      rule: 'hashtags.too_many',
+      severity: 'error',
+      message: `${hashtagCount} hashtags on ${platform}. Ceiling is ${limits.max}.${
+        limits.inferred ? ' (Limit inferred — see HASHTAG_LIMITS.)' : ''
+      }`,
+      fix: `Cut to ${limits.max} or fewer.`,
+    });
+  }
+  if (hashtagCount < limits.min) {
+    push({
+      rule: 'hashtags.too_few',
+      severity: 'warning',
+      message: `${hashtagCount} hashtags on ${platform}. Expected at least ${limits.min}.`,
+      fix: `Add ${limits.min - hashtagCount} that describe the dish or the constraint.`,
+    });
+  }
+
+  const errors = violations.filter((v) => v.severity === 'error');
+  const warnings = violations.filter((v) => v.severity === 'warning');
+
+  return {
+    passed: errors.length === 0,
+    violations,
+    errors,
+    warnings,
+    stats: {
+      characters: body.length,
+      words,
+      sentences: sentences.length,
+      averageSentenceWords: Number(averageSentenceWords.toFixed(2)),
+      sentenceLengthCv: Number(cv.toFixed(3)),
+      openingWords,
+      questionMarks,
+      emojiCount,
+      hashtagCount,
+    },
+  };
+}
+
+/** Compact one-line summary for the queue card. */
+export function slopSummary(result: SlopFilterResult): string {
+  if (result.passed && result.warnings.length === 0) return 'passed (0 flags)';
+  if (result.passed) return `passed (${result.warnings.length} warning${result.warnings.length === 1 ? '' : 's'})`;
+  return `failed (${result.errors.length} violation${result.errors.length === 1 ? '' : 's'})`;
+}
