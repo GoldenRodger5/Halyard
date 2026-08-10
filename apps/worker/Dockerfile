@@ -22,13 +22,32 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # ── whisper.cpp, for caption timing (v2 D.3) ───────────────────────────────
+#
+# Built statically (`BUILD_SHARED_LIBS=OFF`) so the single copied binary works —
+# a dynamically linked whisper-cli needs libwhisper.so alongside it, and copying
+# one file out of a build stage is the whole point of doing it in a stage.
+#
+# ggml's CPU backend uses ARM FP16 vector intrinsics that GCC only accepts when
+# the target architecture advertises them. `-DGGML_NATIVE=OFF` stops it probing
+# the *build* host (which is wrong under emulation anyway) and the explicit
+# armv8.2-a+fp16 baseline is what every Apple silicon and Graviton machine has.
+# Without these two flags the arm64 build dies in ggml-cpu/ops.cpp.
 FROM base AS whisper
-RUN git clone --depth 1 https://github.com/ggml-org/whisper.cpp /opt/whisper \
-    && cd /opt/whisper \
-    && cmake -B build -DCMAKE_BUILD_TYPE=Release \
-    && cmake --build build --config Release -j"$(nproc)" \
-    && ./models/download-ggml-model.sh base.en \
-    && find /opt/whisper -name '*.o' -delete
+ARG TARGETARCH
+RUN set -eux; \
+    git clone --depth 1 https://github.com/ggml-org/whisper.cpp /opt/whisper; \
+    cd /opt/whisper; \
+    if [ "${TARGETARCH}" = "arm64" ]; then \
+      EXTRA="-DGGML_NATIVE=OFF -DGGML_CPU_ARM_ARCH=armv8.2-a+fp16"; \
+    else \
+      EXTRA="-DGGML_NATIVE=OFF"; \
+    fi; \
+    cmake -B build -DCMAKE_BUILD_TYPE=Release \
+      -DBUILD_SHARED_LIBS=OFF \
+      -DWHISPER_BUILD_TESTS=OFF -DWHISPER_BUILD_SERVER=OFF ${EXTRA}; \
+    cmake --build build --config Release -j"$(nproc)"; \
+    ./models/download-ggml-model.sh base.en; \
+    find /opt/whisper -name '*.o' -delete
 
 # ── application ────────────────────────────────────────────────────────────
 FROM base AS app
@@ -47,6 +66,7 @@ RUN pnpm install --frozen-lockfile --filter @halyard/worker...
 COPY packages/ packages/
 COPY apps/worker/ apps/worker/
 COPY supabase/ supabase/
+COPY scripts/ scripts/
 
 COPY --from=whisper /opt/whisper/build/bin/whisper-cli /usr/local/bin/whisper-cli
 COPY --from=whisper /opt/whisper/models/ggml-base.en.bin /opt/models/ggml-base.en.bin

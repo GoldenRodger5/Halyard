@@ -1,0 +1,177 @@
+#!/usr/bin/env bash
+# Halyard environment doctor.
+#
+#   ./scripts/doctor
+#
+# Checks everything the app needs and prints the exact command to fix each
+# failure. Never changes anything — that is `./scripts/halyard`'s job.
+
+set -uo pipefail
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$REPO_ROOT"
+
+PG_FORMULA="postgresql@17"
+DB_NAME="${HALYARD_DB_NAME:-halyard}"
+DB_USER="${HALYARD_DB_USER:-$USER}"
+PORT="${HALYARD_PORT:-3200}"
+ENV_FILE="apps/web/.env.local"
+DB_URL="postgres://${DB_USER}@localhost:5432/${DB_NAME}"
+
+for candidate in /opt/homebrew/opt/$PG_FORMULA/bin /usr/local/opt/$PG_FORMULA/bin "$HOME/.orbstack/bin"; do
+  [[ -d "$candidate" ]] && export PATH="$candidate:$PATH"
+done
+
+FAILURES=0
+WARNINGS=0
+
+row() {
+  local status="$1" name="$2" detail="$3" fix="$4"
+  local mark colour
+  case "$status" in
+    pass) mark="✓"; colour="32" ;;
+    warn) mark="!"; colour="33"; WARNINGS=$((WARNINGS + 1)) ;;
+    fail) mark="✗"; colour="31"; FAILURES=$((FAILURES + 1)) ;;
+  esac
+  printf "\033[${colour}m%s\033[0m  %-26s %s\n" "$mark" "$name" "$detail"
+  [[ -n "$fix" && "$status" != "pass" ]] && printf "   %-26s \033[2m%s\033[0m\n" "" "$fix"
+  return 0
+}
+
+echo ""
+printf "\033[1mHalyard doctor\033[0m  —  %s\n\n" "$(date '+%Y-%m-%d %H:%M')"
+
+# ── toolchain ──────────────────────────────────────────────────────────────
+if command -v node >/dev/null 2>&1; then
+  major="$(node -p 'process.versions.node.split(".")[0]')"
+  if [[ "$major" -ge 20 ]]; then
+    row pass "node" "$(node -v)" ""
+  else
+    row fail "node" "$(node -v), need 20 or newer" "brew install node"
+  fi
+else
+  row fail "node" "not installed" "brew install node"
+fi
+
+command -v pnpm >/dev/null 2>&1 \
+  && row pass "pnpm" "$(pnpm -v)" "" \
+  || row fail "pnpm" "not installed" "corepack enable pnpm"
+
+[[ -d node_modules ]] \
+  && row pass "dependencies" "installed" "" \
+  || row fail "dependencies" "not installed" "pnpm install"
+
+# ── postgres ───────────────────────────────────────────────────────────────
+if command -v pg_isready >/dev/null 2>&1; then
+  if pg_isready -q -h localhost -p 5432 2>/dev/null; then
+    row pass "postgres" "accepting connections on 5432" ""
+
+    if psql -lqt 2>/dev/null | cut -d\| -f1 | grep -qw "$DB_NAME"; then
+      row pass "database" "'$DB_NAME' exists" ""
+
+      tables="$(psql "$DB_URL" -tAc \
+        "select count(*) from information_schema.tables where table_schema='public'" 2>/dev/null || echo 0)"
+      expected="$(ls supabase/migrations/*.sql | wc -l | tr -d ' ')"
+      if [[ "$tables" -ge 30 ]]; then
+        row pass "migrations" "$tables tables, $expected migration files" ""
+      else
+        row fail "migrations" "only $tables tables" "./scripts/halyard --reset"
+      fi
+
+      items="$(psql "$DB_URL" -tAc 'select count(*) from content_items' 2>/dev/null || echo 0)"
+      if [[ "$items" -gt 0 ]]; then
+        row pass "seed data" "$items content items" ""
+      else
+        row warn "seed data" "database is empty" "./scripts/halyard --reset"
+      fi
+
+      assets="$(psql "$DB_URL" -tAc \
+        "select count(*) from assets where public_url is not null" 2>/dev/null || echo 0)"
+      if [[ "$assets" -gt 0 ]]; then
+        row pass "rendered assets" "$assets with public urls" ""
+      else
+        row warn "rendered assets" "queue previews will be empty" "pnpm exec tsx scripts/seed-assets.ts"
+      fi
+    else
+      row fail "database" "'$DB_NAME' does not exist" "createdb $DB_NAME"
+    fi
+  else
+    row fail "postgres" "not accepting connections" "brew services start $PG_FORMULA"
+  fi
+else
+  row fail "postgres" "client not on PATH" "brew install $PG_FORMULA"
+fi
+
+# ── env ────────────────────────────────────────────────────────────────────
+if [[ -f "$ENV_FILE" ]]; then
+  row pass "env file" "$ENV_FILE" ""
+
+  configured="$(grep '^DATABASE_URL=' "$ENV_FILE" 2>/dev/null | head -1 | cut -d= -f2-)"
+  if [[ "$configured" == "$DB_URL" ]]; then
+    row pass "DATABASE_URL" "matches this machine" ""
+  elif [[ -z "$configured" ]]; then
+    row fail "DATABASE_URL" "not set in $ENV_FILE" "./scripts/halyard"
+  else
+    row fail "DATABASE_URL" "points at $configured" "./scripts/halyard  (repairs it)"
+  fi
+
+  # Required for anything that generates, publishes, or speaks.
+  for key in ANTHROPIC_API_KEY:"generation and co-pilot" \
+             RECIPEFIX_MCP_URL:"live product data" \
+             ELEVENLABS_API_KEY:"voiceover" \
+             GITHUB_TOKEN:"changelog signals" \
+             TOKEN_ENCRYPTION_KEY:"OAuth token sealing"; do
+    name="${key%%:*}"; purpose="${key#*:}"
+    if grep -qE "^${name}=[[:space:]]*[^[:space:]#]" "$ENV_FILE" 2>/dev/null; then
+      row pass "$name" "set" ""
+    else
+      row warn "$name" "unset — $purpose stays offline" "add ${name}= to $ENV_FILE"
+    fi
+  done
+else
+  row fail "env file" "missing" "cp .env.example $ENV_FILE"
+fi
+
+# ── port ───────────────────────────────────────────────────────────────────
+if lsof -ti :"$PORT" >/dev/null 2>&1; then
+  pid="$(lsof -ti :"$PORT" | head -1)"
+  row warn "port $PORT" "in use by pid $pid" "kill $pid  (or ./scripts/halyard frees it)"
+else
+  row pass "port $PORT" "free" ""
+fi
+
+# ── container runtime ──────────────────────────────────────────────────────
+if command -v docker >/dev/null 2>&1; then
+  if docker info >/dev/null 2>&1; then
+    row pass "docker" "$(docker version --format '{{.Server.Version}}' 2>/dev/null)" ""
+    if docker ps -q -f name=halyard-worker 2>/dev/null | grep -q .; then
+      row pass "worker container" "running" ""
+    else
+      row warn "worker container" "not running" "./scripts/halyard --worker"
+    fi
+  else
+    row warn "docker" "installed, daemon not running" "open -a OrbStack"
+  fi
+else
+  row warn "docker" "not installed — no rendering or publishing" "brew install orbstack"
+fi
+
+# ── worker heartbeat ───────────────────────────────────────────────────────
+if pg_isready -q -h localhost -p 5432 2>/dev/null; then
+  beat="$(psql "$DB_URL" -tAc \
+    "select coalesce(extract(epoch from now() - max(last_seen_at))::int, -1) from worker_heartbeats" 2>/dev/null || echo -1)"
+  if [[ "$beat" -lt 0 ]]; then
+    row warn "worker heartbeat" "never seen" "./scripts/halyard --worker"
+  elif [[ "$beat" -lt 900 ]]; then
+    row pass "worker heartbeat" "${beat}s ago" ""
+  else
+    row fail "worker heartbeat" "${beat}s ago — worker is dead" "docker restart halyard-worker"
+  fi
+fi
+
+echo ""
+if [[ $FAILURES -gt 0 ]]; then
+  printf "\033[31m%d failing\033[0m, %d warnings\n\n" "$FAILURES" "$WARNINGS"
+  exit 1
+fi
+printf "\033[32mall checks pass\033[0m%s\n\n" "$([[ $WARNINGS -gt 0 ]] && echo ", $WARNINGS warnings")"

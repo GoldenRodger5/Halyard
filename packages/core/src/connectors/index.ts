@@ -4,6 +4,8 @@ import type { ProductConnector } from './types.js';
 export * from './types.js';
 export * from './mcpClient.js';
 export * from './recipefix.js';
+export * from './artifactCache.js';
+export * from './github.js';
 
 export interface ConnectorConfigRow {
   id: string;

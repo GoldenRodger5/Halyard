@@ -16,6 +16,7 @@ import {
   useVideoConfig,
 } from 'remotion';
 import { DEFAULT_BRAND, type BrandTokens } from '../brand.js';
+import { Fonts } from './fonts.js';
 import { layoutScenes, type CaptionCue } from './timing.js';
 
 export interface VideoBaseProps {
@@ -56,6 +57,27 @@ function useBrand(brand?: BrandTokens): BrandTokens {
   return brand ?? DEFAULT_BRAND;
 }
 
+/**
+ * One scene, padded inside the safe area and vertically centred.
+ *
+ * Remotion renders `Sequence` children into a bare absolute layer, so without
+ * this every scene stacks against the top-left corner — which is exactly what
+ * the first real render showed.
+ */
+const Scene: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <AbsoluteFill
+    style={{
+      paddingTop: SAFE,
+      paddingBottom: SAFE,
+      paddingLeft: 72,
+      paddingRight: 72,
+      justifyContent: 'center',
+    }}
+  >
+    {children}
+  </AbsoluteFill>
+);
+
 const Stage: React.FC<{ brand: BrandTokens; children: React.ReactNode; wordmark?: string }> = ({
   brand,
   children,
@@ -66,19 +88,15 @@ const Stage: React.FC<{ brand: BrandTokens; children: React.ReactNode; wordmark?
       backgroundColor: brand.background,
       color: brand.ink,
       fontFamily: brand.bodyFont,
-      paddingTop: SAFE,
-      paddingBottom: SAFE,
-      paddingLeft: 72,
-      paddingRight: 72,
-      justifyContent: 'center',
     }}
   >
+    <Fonts />
     {children}
     {wordmark ? (
       <div
         style={{
           position: 'absolute',
-          bottom: `calc(${SAFE} - 40px)`,
+          bottom: '6%',
           left: 72,
           fontSize: 26,
           letterSpacing: 3,
@@ -160,18 +178,20 @@ export const TransformationDiffVideo: React.FC<TransformationDiffVideoProps> = (
 
       {scenes.map((scene, index) => (
         <Sequence key={scene.id} from={scene.startFrame} durationInFrames={scene.durationFrames}>
-          {index === 0 ? (
-            <Rise>
+          <Scene>
+            {index === 0 ? (
+              <Rise>
               <div style={{ fontSize: 30, letterSpacing: 3, textTransform: 'uppercase', color: brand.primary }}>
                 One adaptation
               </div>
               <div style={{ fontFamily: brand.headingFont, fontSize: 86, lineHeight: 1.05, marginTop: 20 }}>
-                {props.headline}
-              </div>
-            </Rise>
-          ) : (
-            <SwapScene swap={props.swaps[index - 1]!} brand={brand} />
-          )}
+                  {props.headline}
+                </div>
+              </Rise>
+            ) : (
+              <SwapScene swap={props.swaps[index - 1]!} brand={brand} />
+            )}
+          </Scene>
         </Sequence>
       ))}
 
@@ -247,18 +267,18 @@ export const SubstitutionExplainer: React.FC<SubstitutionExplainerProps> = (prop
       {props.audioSrc ? <Audio src={props.audioSrc} /> : null}
 
       <Sequence from={scenes[0]!.startFrame} durationInFrames={scenes[0]!.durationFrames}>
-        <Rise>
+        <Scene><Rise>
           <div style={{ fontFamily: brand.headingFont, fontSize: 78, lineHeight: 1.08 }}>
             {props.ingredient}
           </div>
           <div style={{ fontSize: 40, color: brand.muted, marginTop: 16 }}>
             swapped for {props.substitute}
           </div>
-        </Rise>
+        </Rise></Scene>
       </Sequence>
 
       <Sequence from={scenes[1]!.startFrame} durationInFrames={scenes[1]!.durationFrames}>
-        <Rise>
+        <Scene><Rise>
           <div
             style={{
               alignSelf: 'flex-start',
@@ -272,16 +292,16 @@ export const SubstitutionExplainer: React.FC<SubstitutionExplainerProps> = (prop
           >
             {props.ratio}
           </div>
-        </Rise>
+        </Rise></Scene>
       </Sequence>
 
       <Sequence from={scenes[2]!.startFrame} durationInFrames={scenes[2]!.durationFrames}>
-        <Rise>
+        <Scene><Rise>
           <div style={{ fontSize: 28, letterSpacing: 3, textTransform: 'uppercase', color: brand.muted }}>
             What goes wrong
           </div>
           <div style={{ fontSize: 46, lineHeight: 1.35, marginTop: 18 }}>{props.failureMode}</div>
-        </Rise>
+        </Rise></Scene>
       </Sequence>
 
       {props.captions ? <Captions cues={props.captions} brand={brand} /> : null}
@@ -298,6 +318,7 @@ export const ScalingMathVideo: React.FC<ScalingMathVideoProps> = (props) => {
     <Stage brand={brand} wordmark={props.wordmark}>
       {props.audioSrc ? <Audio src={props.audioSrc} /> : null}
 
+      <Scene>
       <Rise>
         <div style={{ fontSize: 30, letterSpacing: 3, textTransform: 'uppercase', color: brand.primary }}>
           {props.fromServings} servings down to {props.toServings}
@@ -333,6 +354,7 @@ export const ScalingMathVideo: React.FC<ScalingMathVideoProps> = (props) => {
           {props.note}
         </div>
       </Rise>
+      </Scene>
 
       {props.captions ? <Captions cues={props.captions} brand={brand} /> : null}
     </Stage>
@@ -349,6 +371,7 @@ export const ChefNoteCardVideo: React.FC<ChefNoteCardProps> = (props) => {
     <Stage brand={brand} wordmark={props.wordmark}>
       {props.audioSrc ? <Audio src={props.audioSrc} /> : null}
 
+      <Scene>
       <div
         style={{
           fontFamily: brand.headingFont,
@@ -371,6 +394,7 @@ export const ChefNoteCardVideo: React.FC<ChefNoteCardProps> = (props) => {
           <div style={{ fontSize: 32, color: brand.muted, marginTop: 40 }}>{props.attribution}</div>
         </Rise>
       ) : null}
+      </Scene>
 
       {props.captions ? <Captions cues={props.captions} brand={brand} /> : null}
     </Stage>

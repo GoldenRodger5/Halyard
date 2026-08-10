@@ -1,0 +1,134 @@
+#!/usr/bin/env bash
+# Halyard dev launcher.
+#   ./scripts/halyard           start everything, open the browser
+#   ./scripts/halyard --reset   wipe and reseed the database first
+#   ./scripts/halyard --stop    stop Postgres and any running dev server
+#
+# Install once:  chmod +x scripts/halyard
+# Optional:      echo "alias halyard='$(pwd)/scripts/halyard'" >> ~/.zshrc
+
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$REPO_ROOT"
+
+PG_FORMULA="postgresql@17"
+DB_NAME="halyard"
+DB_USER="${USER}"
+PORT=3200
+ENV_FILE="apps/web/.env.local"
+BROWSER="Google Chrome"
+
+RESET=0
+STOP=0
+for arg in "$@"; do
+  case "$arg" in
+    --reset) RESET=1 ;;
+    --stop)  STOP=1 ;;
+    *) echo "unknown flag: $arg"; exit 1 ;;
+  esac
+done
+
+c_ok()   { printf "\033[32m✓\033[0m %s\n" "$1"; }
+c_info() { printf "\033[36m·\033[0m %s\n" "$1"; }
+c_warn() { printf "\033[33m!\033[0m %s\n" "$1"; }
+c_err()  { printf "\033[31m✗\033[0m %s\n" "$1"; }
+
+# ── stop ─────────────────────────────────────────────────────────────
+if [[ $STOP -eq 1 ]]; then
+  lsof -ti :$PORT | xargs kill -9 2>/dev/null && c_ok "dev server stopped" || c_info "no dev server on :$PORT"
+  brew services stop "$PG_FORMULA" >/dev/null 2>&1 && c_ok "postgres stopped" || true
+  exit 0
+fi
+
+# ── postgres ─────────────────────────────────────────────────────────
+if ! pg_isready -q -h localhost -p 5432 2>/dev/null; then
+  c_info "starting postgres"
+  brew services start "$PG_FORMULA" >/dev/null
+  for i in {1..30}; do
+    pg_isready -q -h localhost -p 5432 2>/dev/null && break
+    [[ $i -eq 30 ]] && { c_err "postgres did not come up in 30s"; exit 1; }
+    sleep 1
+  done
+fi
+c_ok "postgres running"
+
+# ── database ─────────────────────────────────────────────────────────
+export DATABASE_URL="postgres://${DB_USER}@localhost:5432/${DB_NAME}"
+
+if ! psql -lqt 2>/dev/null | cut -d\| -f1 | grep -qw "$DB_NAME"; then
+  c_info "creating database '$DB_NAME'"
+  createdb "$DB_NAME"
+  RESET=1
+fi
+
+if [[ $RESET -eq 1 ]]; then
+  c_info "resetting schema and seeding"
+  pnpm db:reset -- --fresh --seed
+  [[ -f supabase/seed-demo.sql ]] && psql "$DATABASE_URL" -f supabase/seed-demo.sql -q
+  c_ok "database reset"
+else
+  c_ok "database ready"
+fi
+
+# ── env ──────────────────────────────────────────────────────────────
+if [[ ! -f "$ENV_FILE" ]]; then
+  c_info "creating $ENV_FILE"
+  cp .env.example "$ENV_FILE"
+fi
+
+# The web app reads its own env file; a shell export never reaches it.
+# Keep DATABASE_URL in sync with the role that actually exists on this machine.
+if grep -q '^DATABASE_URL=' "$ENV_FILE"; then
+  current="$(grep '^DATABASE_URL=' "$ENV_FILE" | head -1 | cut -d= -f2-)"
+  if [[ "$current" != "$DATABASE_URL" ]]; then
+    c_warn "correcting DATABASE_URL in $ENV_FILE"
+    # macOS sed needs the empty -i argument
+    sed -i '' "s|^DATABASE_URL=.*|DATABASE_URL=${DATABASE_URL}|" "$ENV_FILE"
+  fi
+else
+  echo "DATABASE_URL=${DATABASE_URL}" >> "$ENV_FILE"
+fi
+
+grep -q '^HALYARD_DEV_UNAUTHENTICATED=' "$ENV_FILE" \
+  || echo 'HALYARD_DEV_UNAUTHENTICATED=1' >> "$ENV_FILE"
+
+c_ok "env ready"
+
+# Warn about keys that are absent rather than failing — most of the app
+# works without them, and it is better to say which parts will not.
+missing=()
+for key in ANTHROPIC_API_KEY RECIPEFIX_MCP_URL RECIPEFIX_MCP_TOKEN ELEVENLABS_API_KEY; do
+  grep -q "^${key}=." "$ENV_FILE" 2>/dev/null || missing+=("$key")
+done
+if [[ ${#missing[@]} -gt 0 ]]; then
+  c_warn "not set: ${missing[*]}"
+  c_info "generation, live product data, and voice stay offline until these exist"
+fi
+
+# ── port ─────────────────────────────────────────────────────────────
+if lsof -ti :$PORT >/dev/null 2>&1; then
+  c_warn "port $PORT in use, killing"
+  lsof -ti :$PORT | xargs kill -9 2>/dev/null || true
+  sleep 1
+fi
+
+# ── run ──────────────────────────────────────────────────────────────
+c_info "starting dev server"
+
+(
+  for i in {1..60}; do
+    if curl -sf "http://localhost:$PORT" >/dev/null 2>&1; then
+      open -a "$BROWSER" "http://localhost:$PORT" 2>/dev/null \
+        || open "http://localhost:$PORT"
+      exit 0
+    fi
+    sleep 1
+  done
+) &
+
+echo ""
+c_ok "http://localhost:$PORT"
+echo ""
+
+exec pnpm --filter @halyard/web dev

@@ -33,6 +33,13 @@ export interface RecipeFixStep {
   updated_note?: string | null;
 }
 
+export interface RecipeFixToolStatus {
+  name: string;
+  present: boolean;
+  required: boolean;
+  gates: string;
+}
+
 export interface RecipeFixAdaptation {
   recipeName: string;
   sourceUrl?: string;
@@ -48,30 +55,92 @@ export interface RecipeFixAdaptation {
 export interface RecipeFixConnectorOptions extends Omit<McpClientOptions, 'clientName'> {
   /** Injected in tests; defaults to a real MCP client. */
   client?: Pick<McpClient, 'callToolJson' | 'listTools'>;
+  /**
+   * An adaptation takes 60 to 75 seconds against the live server. 150s leaves
+   * room for a slow day without the generate job hanging forever.
+   */
+  adaptTimeoutMs?: number;
+  /** One retry. A second failure is a real failure, not a blip. */
+  adaptRetries?: number;
+  /** Injected in tests so a retry does not actually sleep. */
+  sleep?: (ms: number) => Promise<void>;
 }
+
+/** Tools the health check probes, and what each one gates. */
+export const RECIPEFIX_TOOLS: Array<{ name: string; required: boolean; gates: string }> = [
+  { name: 'adapt_recipe', required: true, gates: 'all generated content' },
+  { name: 'list_adaptation_history', required: false, gates: 'product-activity signals' },
+  { name: 'estimate_nutrition', required: false, gates: 'macro callouts only' },
+  { name: 'search_recipes', required: false, gates: 'idea seeding from real recipes' },
+];
 
 export class RecipeFixConnector implements ProductConnector {
   readonly id = 'recipefix';
   private readonly client: Pick<McpClient, 'callToolJson' | 'listTools'>;
+  private readonly adaptTimeoutMs: number;
+  private readonly adaptRetries: number;
+  private readonly sleep: (ms: number) => Promise<void>;
 
   constructor(options: RecipeFixConnectorOptions) {
+    this.adaptTimeoutMs = options.adaptTimeoutMs ?? 150_000;
+    this.adaptRetries = options.adaptRetries ?? 1;
+    this.sleep = options.sleep ?? ((ms) => new Promise((r) => setTimeout(r, ms)));
     this.client =
-      options.client ?? new McpClient({ ...options, clientName: 'halyard-recipefix-connector' });
+      options.client ??
+      new McpClient({
+        ...options,
+        timeoutMs: options.timeoutMs ?? this.adaptTimeoutMs,
+        clientName: 'halyard-recipefix-connector',
+      });
   }
 
   async generateSample(spec: SampleSpec): Promise<ProductArtifact> {
-    let recipe: RecipeFixAdaptation;
-    try {
-      recipe = await this.client.callToolJson<RecipeFixAdaptation>('adapt_recipe', {
-        url: spec.params.url,
-        dietary: spec.params.dietary,
-        servings: spec.params.servings,
-        notes: spec.intent,
-      });
-    } catch (err) {
-      throw new ConnectorUnavailableError(this.id, (err as Error).message);
+    const recipe = await this.adaptWithRetry(spec);
+
+    // Nutrition is enrichment, never a dependency. `estimate_nutrition` returns
+    // non-2xx in production today, and a post about a bread swap does not need
+    // macros to be worth publishing.
+    if (spec.params.withNutrition === true && !recipe.nutrition) {
+      try {
+        recipe.nutrition = await this.client.callToolJson('estimate_nutrition', {
+          recipe: recipe.recipeName,
+          ingredients: recipe.ingredients.map((i) => i.adapted),
+        });
+      } catch {
+        // Deliberately swallowed. The artifact is still complete without it.
+      }
     }
+
     return toArtifact(recipe);
+  }
+
+  /**
+   * One retry, then give up. A 75-second call that fails twice is a real
+   * outage, and burning three attempts on it delays every other draft.
+   */
+  private async adaptWithRetry(spec: SampleSpec): Promise<RecipeFixAdaptation> {
+    let lastError: Error | null = null;
+
+    for (let attempt = 0; attempt <= this.adaptRetries; attempt++) {
+      try {
+        return await this.client.callToolJson<RecipeFixAdaptation>('adapt_recipe', {
+          url: spec.params.url,
+          dietary: spec.params.dietary,
+          servings: spec.params.servings,
+          notes: spec.intent,
+        });
+      } catch (err) {
+        lastError = err as Error;
+        if (attempt < this.adaptRetries) await this.sleep(5_000);
+      }
+    }
+
+    throw new ConnectorUnavailableError(
+      this.id,
+      `${lastError?.message ?? 'unknown error'} (after ${this.adaptRetries + 1} attempts, ${
+        this.adaptTimeoutMs / 1000
+      }s timeout each)`,
+    );
   }
 
   async listRecentActivity(since: Date): Promise<ActivityItem[]> {
@@ -103,18 +172,37 @@ export class RecipeFixConnector implements ProductConnector {
     return [];
   }
 
-  async healthCheck(): Promise<ConnectorHealth> {
+  /**
+   * Per-tool health, not a single boolean. `estimate_nutrition` being down is a
+   * footnote; `adapt_recipe` being down stops all generation, and the health
+   * page needs to say which is which.
+   */
+  async healthCheck(): Promise<ConnectorHealth & { tools: RecipeFixToolStatus[] }> {
     const startedAt = Date.now();
     try {
-      const tools = await this.client.listTools();
-      const hasAdapt = tools.some((t) => t.name === 'adapt_recipe');
+      const available = new Set((await this.client.listTools()).map((t) => t.name));
+
+      const tools: RecipeFixToolStatus[] = RECIPEFIX_TOOLS.map((tool) => ({
+        name: tool.name,
+        present: available.has(tool.name),
+        required: tool.required,
+        gates: tool.gates,
+      }));
+
+      const missingRequired = tools.filter((t) => t.required && !t.present);
+      const missingOptional = tools.filter((t) => !t.required && !t.present);
+
       return {
-        ok: hasAdapt,
-        detail: hasAdapt
-          ? `${tools.length} tools available`
-          : `Connected, but adapt_recipe is not exposed. Saw: ${tools.map((t) => t.name).join(', ')}`,
+        ok: missingRequired.length === 0,
+        detail:
+          missingRequired.length > 0
+            ? `Connected, but ${missingRequired.map((t) => t.name).join(', ')} is not exposed. Generation cannot run.`
+            : missingOptional.length > 0
+              ? `${available.size} tools available. Missing ${missingOptional.map((t) => t.name).join(', ')} — ${missingOptional.map((t) => t.gates).join('; ')} unavailable.`
+              : `${available.size} tools available.`,
         latencyMs: Date.now() - startedAt,
         checkedAt: new Date(),
+        tools,
       };
     } catch (err) {
       return {
@@ -122,6 +210,12 @@ export class RecipeFixConnector implements ProductConnector {
         detail: (err as Error).message,
         latencyMs: Date.now() - startedAt,
         checkedAt: new Date(),
+        tools: RECIPEFIX_TOOLS.map((tool) => ({
+          name: tool.name,
+          present: false,
+          required: tool.required,
+          gates: tool.gates,
+        })),
       };
     }
   }

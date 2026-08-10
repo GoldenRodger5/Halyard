@@ -7,14 +7,18 @@
     "node": ">=20"
   },
   "scripts": {
-    "dev": "turbo run dev --parallel",
+    "dev": "./scripts/halyard --no-open",
     "build": "turbo run build",
     "typecheck": "turbo run typecheck",
     "lint": "turbo run lint",
     "test": "vitest run",
     "test:watch": "vitest",
     "db:reset": "tsx scripts/db-reset.ts",
-    "db:types": "tsx scripts/gen-types.ts"
+    "db:types": "tsx scripts/gen-types.ts",
+    "dev:all": "tsx scripts/dev-all.ts",
+    "doctor": "./scripts/doctor",
+    "db:seed:assets": "tsx scripts/seed-assets.ts",
+    "test:e2e": "playwright test"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

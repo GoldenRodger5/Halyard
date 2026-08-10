@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@halyard/core": "workspace:*",
+    "@remotion/bundler": "^4.0.507",
     "@remotion/captions": "^4.0.507",
     "@remotion/media-utils": "^4.0.507",
     "@remotion/renderer": "^4.0.507",

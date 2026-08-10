@@ -1,0 +1,209 @@
+#!/usr/bin/env bash
+# Halyard dev launcher.
+#
+#   ./scripts/halyard            start everything, open the browser
+#   ./scripts/halyard --reset    wipe and reseed the database first
+#   ./scripts/halyard --worker   also build and run the worker container
+#   ./scripts/halyard --stop     stop the dev server, the worker, and Postgres
+#   ./scripts/halyard --no-open  start without opening a browser
+#
+# Install once:  chmod +x scripts/halyard
+# Optional:      echo "alias halyard='$(pwd)/scripts/halyard'" >> ~/.zshrc
+#
+# The two things that break most often are a stopped Postgres and a DATABASE_URL
+# pointing at a role that does not exist on this machine. Both are repaired here
+# rather than reported.
+
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$REPO_ROOT"
+
+PG_FORMULA="postgresql@17"
+DB_NAME="${HALYARD_DB_NAME:-halyard}"
+DB_USER="${HALYARD_DB_USER:-$USER}"
+PORT="${HALYARD_PORT:-3200}"
+ENV_FILE="apps/web/.env.local"
+WORKER_ENV_FILE="apps/worker/.env"
+BROWSER="Google Chrome"
+
+RESET=0
+STOP=0
+WORKER=0
+OPEN_BROWSER=1
+
+for arg in "$@"; do
+  case "$arg" in
+    --reset)    RESET=1 ;;
+    --stop)     STOP=1 ;;
+    --worker)   WORKER=1 ;;
+    --no-open)  OPEN_BROWSER=0 ;;
+    -h|--help)  sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    *) echo "unknown flag: $arg (try --help)"; exit 1 ;;
+  esac
+done
+
+c_ok()   { printf "\033[32m✓\033[0m %s\n" "$1"; }
+c_info() { printf "\033[36m·\033[0m %s\n" "$1"; }
+c_warn() { printf "\033[33m!\033[0m %s\n" "$1"; }
+c_err()  { printf "\033[31m✗\033[0m %s\n" "$1"; }
+
+# Homebrew keeps postgres out of PATH unless it is linked. Find it either way.
+if ! command -v pg_isready >/dev/null 2>&1; then
+  for candidate in /opt/homebrew/opt/$PG_FORMULA/bin /usr/local/opt/$PG_FORMULA/bin; do
+    [[ -d "$candidate" ]] && export PATH="$candidate:$PATH"
+  done
+fi
+
+# ── stop ───────────────────────────────────────────────────────────────────
+if [[ $STOP -eq 1 ]]; then
+  if lsof -ti :"$PORT" >/dev/null 2>&1; then
+    lsof -ti :"$PORT" | xargs kill -9 2>/dev/null || true
+    c_ok "dev server stopped"
+  else
+    c_info "no dev server on :$PORT"
+  fi
+
+  if command -v docker >/dev/null 2>&1 && docker ps -q -f name=halyard-worker | grep -q .; then
+    docker stop halyard-worker >/dev/null && c_ok "worker container stopped"
+  fi
+
+  brew services stop "$PG_FORMULA" >/dev/null 2>&1 && c_ok "postgres stopped" || true
+  exit 0
+fi
+
+# ── postgres ───────────────────────────────────────────────────────────────
+if ! pg_isready -q -h localhost -p 5432 2>/dev/null; then
+  c_info "starting postgres"
+  brew services start "$PG_FORMULA" >/dev/null 2>&1 || {
+    c_err "could not start $PG_FORMULA. Install it with: brew install $PG_FORMULA"
+    exit 1
+  }
+  for i in {1..30}; do
+    pg_isready -q -h localhost -p 5432 2>/dev/null && break
+    [[ $i -eq 30 ]] && { c_err "postgres did not come up in 30s"; exit 1; }
+    sleep 1
+  done
+fi
+c_ok "postgres running"
+
+# ── database ───────────────────────────────────────────────────────────────
+# Homebrew creates a superuser named after the macOS account, not `postgres`.
+export DATABASE_URL="postgres://${DB_USER}@localhost:5432/${DB_NAME}"
+
+if ! psql -lqt 2>/dev/null | cut -d\| -f1 | grep -qw "$DB_NAME"; then
+  c_info "creating database '$DB_NAME'"
+  createdb "$DB_NAME"
+  RESET=1
+fi
+
+if [[ $RESET -eq 1 ]]; then
+  c_info "resetting schema and seeding"
+  pnpm db:reset -- --fresh --seed >/dev/null
+  [[ -f supabase/seed-demo.sql ]] && psql "$DATABASE_URL" -f supabase/seed-demo.sql -q
+  # Real rendered PNGs, so the queue is not full of grey placeholders.
+  pnpm exec tsx scripts/seed-assets.ts >/dev/null 2>&1 || c_warn "asset seeding skipped"
+  c_ok "database reset and seeded"
+else
+  items="$(psql "$DATABASE_URL" -tAc 'select count(*) from content_items' 2>/dev/null || echo 0)"
+  if [[ "$items" == "0" ]]; then
+    c_warn "database is empty. Run with --reset to seed it"
+  else
+    c_ok "database ready ($items content items)"
+  fi
+fi
+
+# ── env ────────────────────────────────────────────────────────────────────
+if [[ ! -f "$ENV_FILE" ]]; then
+  c_info "creating $ENV_FILE"
+  cp .env.example "$ENV_FILE"
+fi
+
+# Next reads its own env file; a shell export never reaches it. This is the
+# single most common cause of "every screen is empty".
+if grep -q '^DATABASE_URL=' "$ENV_FILE"; then
+  current="$(grep '^DATABASE_URL=' "$ENV_FILE" | head -1 | cut -d= -f2-)"
+  if [[ "$current" != "$DATABASE_URL" ]]; then
+    c_warn "correcting DATABASE_URL in $ENV_FILE"
+    sed -i '' "s|^DATABASE_URL=.*|DATABASE_URL=${DATABASE_URL}|" "$ENV_FILE"
+  fi
+else
+  echo "DATABASE_URL=${DATABASE_URL}" >> "$ENV_FILE"
+fi
+
+grep -q '^HALYARD_DEV_UNAUTHENTICATED=' "$ENV_FILE" \
+  || echo 'HALYARD_DEV_UNAUTHENTICATED=1' >> "$ENV_FILE"
+
+c_ok "env ready"
+
+# Absent keys are a warning, not a failure. Most of the app works without them,
+# and it is more useful to say which parts will not.
+env_has() {
+  # `KEY=` followed only by whitespace or a comment is unset, not set.
+  grep -qE "^$1=[[:space:]]*[^[:space:]#]" "$ENV_FILE" 2>/dev/null
+}
+
+missing=()
+for key in ANTHROPIC_API_KEY RECIPEFIX_MCP_URL RECIPEFIX_MCP_TOKEN ELEVENLABS_API_KEY GITHUB_TOKEN; do
+  env_has "$key" || missing+=("$key")
+done
+if [[ ${#missing[@]} -gt 0 ]]; then
+  c_warn "not set: ${missing[*]}"
+  c_info "generation, live product data, voice and changelog stay offline until these exist"
+fi
+
+# ── worker ─────────────────────────────────────────────────────────────────
+if [[ $WORKER -eq 1 ]]; then
+  if ! command -v docker >/dev/null 2>&1; then
+    c_err "docker not found. Install OrbStack: brew install orbstack"
+    exit 1
+  fi
+  if ! docker info >/dev/null 2>&1; then
+    c_info "starting the container runtime"
+    open -a OrbStack 2>/dev/null || true
+    for i in {1..30}; do docker info >/dev/null 2>&1 && break; sleep 2; done
+  fi
+
+  [[ -f "$WORKER_ENV_FILE" ]] || {
+    c_info "creating $WORKER_ENV_FILE"
+    {
+      echo "DATABASE_URL=postgres://${DB_USER}@host.docker.internal:5432/${DB_NAME}"
+      echo "WORKER_ID=worker-local"
+    } > "$WORKER_ENV_FILE"
+  }
+
+  c_info "building worker image (first build takes a few minutes)"
+  docker build -q -t halyard-worker -f apps/worker/Dockerfile . >/dev/null
+  docker rm -f halyard-worker >/dev/null 2>&1 || true
+  docker run -d --name halyard-worker --add-host=host.docker.internal:host-gateway \
+    --env-file "$WORKER_ENV_FILE" halyard-worker >/dev/null
+  c_ok "worker running — docker logs -f halyard-worker"
+fi
+
+# ── port ───────────────────────────────────────────────────────────────────
+if lsof -ti :"$PORT" >/dev/null 2>&1; then
+  c_warn "port $PORT in use, freeing it"
+  lsof -ti :"$PORT" | xargs kill -9 2>/dev/null || true
+  sleep 1
+fi
+
+# ── run ────────────────────────────────────────────────────────────────────
+c_info "starting dev server"
+
+if [[ $OPEN_BROWSER -eq 1 ]]; then
+  (
+    for _ in {1..60}; do
+      if curl -sf "http://localhost:$PORT" >/dev/null 2>&1; then
+        open -a "$BROWSER" "http://localhost:$PORT" 2>/dev/null || open "http://localhost:$PORT"
+        exit 0
+      fi
+      sleep 1
+    done
+  ) &
+fi
+
+echo ""
+c_ok "http://localhost:$PORT"
+echo ""
+
+exec pnpm --filter @halyard/web dev

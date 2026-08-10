@@ -337,6 +337,39 @@ export interface ComposeSessionsUpdate {
   updated_at?: string;
 }
 
+export interface ConnectorCallsRow {
+  id: string;
+  product_id: string;
+  tool: string;
+  ok: boolean;
+  duration_ms: number | null;
+  error: string | null;
+  cached: boolean;
+  called_at: string;
+}
+
+export interface ConnectorCallsInsert {
+  id?: string;
+  product_id: string;
+  tool: string;
+  ok: boolean;
+  duration_ms?: number | null;
+  error?: string | null;
+  cached?: boolean;
+  called_at?: string;
+}
+
+export interface ConnectorCallsUpdate {
+  id?: string;
+  product_id?: string;
+  tool?: string;
+  ok?: boolean;
+  duration_ms?: number | null;
+  error?: string | null;
+  cached?: boolean;
+  called_at?: string;
+}
+
 export interface ContentItemsRow {
   id: string;
   product_id: string;
@@ -379,6 +412,8 @@ export interface ContentItemsRow {
   reposted_from_id: string | null;
   created_at: string;
   updated_at: string;
+  product_artifact_id: string | null;
+  about_product_id: string | null;
 }
 
 export interface ContentItemsInsert {
@@ -422,6 +457,8 @@ export interface ContentItemsInsert {
   reposted_from_id?: string | null;
   created_at?: string;
   updated_at?: string;
+  product_artifact_id?: string | null;
+  about_product_id?: string | null;
 }
 
 export interface ContentItemsUpdate {
@@ -465,6 +502,8 @@ export interface ContentItemsUpdate {
   reposted_from_id?: string | null;
   created_at?: string;
   updated_at?: string;
+  product_artifact_id?: string | null;
+  about_product_id?: string | null;
 }
 
 export interface HooksRow {
@@ -526,6 +565,7 @@ export interface IdeasRow {
   snoozed_until: string | null;
   expires_at: string | null;
   created_at: string;
+  about_product_id: string | null;
 }
 
 export interface IdeasInsert {
@@ -545,6 +585,7 @@ export interface IdeasInsert {
   snoozed_until?: string | null;
   expires_at?: string | null;
   created_at?: string;
+  about_product_id?: string | null;
 }
 
 export interface IdeasUpdate {
@@ -564,6 +605,7 @@ export interface IdeasUpdate {
   snoozed_until?: string | null;
   expires_at?: string | null;
   created_at?: string;
+  about_product_id?: string | null;
 }
 
 export interface JobsRow {
@@ -791,6 +833,54 @@ export interface PostMetricsUpdate {
   purge_after?: string | null;
 }
 
+export interface ProductArtifactsRow {
+  id: string;
+  product_id: string;
+  kind: string;
+  request_key: string;
+  request: Json;
+  raw: Json;
+  headline: string | null;
+  highlights: Json;
+  visual_hints: string[];
+  duration_ms: number | null;
+  fetched_at: string;
+  expires_at: string | null;
+  hit_count: number;
+}
+
+export interface ProductArtifactsInsert {
+  id?: string;
+  product_id: string;
+  kind?: string;
+  request_key: string;
+  request?: Json;
+  raw: Json;
+  headline?: string | null;
+  highlights?: Json;
+  visual_hints?: string[];
+  duration_ms?: number | null;
+  fetched_at?: string;
+  expires_at?: string | null;
+  hit_count?: number;
+}
+
+export interface ProductArtifactsUpdate {
+  id?: string;
+  product_id?: string;
+  kind?: string;
+  request_key?: string;
+  request?: Json;
+  raw?: Json;
+  headline?: string | null;
+  highlights?: Json;
+  visual_hints?: string[];
+  duration_ms?: number | null;
+  fetched_at?: string;
+  expires_at?: string | null;
+  hit_count?: number;
+}
+
 export interface ProductsRow {
   id: string;
   name: string;
@@ -809,6 +899,9 @@ export interface ProductsRow {
   operator_timezone: string;
   created_at: string;
   updated_at: string;
+  kind: 'product' | 'personal';
+  repo_config: Json;
+  brief_staleness_threshold: number;
 }
 
 export interface ProductsInsert {
@@ -829,6 +922,9 @@ export interface ProductsInsert {
   operator_timezone?: string;
   created_at?: string;
   updated_at?: string;
+  kind?: 'product' | 'personal';
+  repo_config?: Json;
+  brief_staleness_threshold?: number;
 }
 
 export interface ProductsUpdate {
@@ -849,6 +945,9 @@ export interface ProductsUpdate {
   operator_timezone?: string;
   created_at?: string;
   updated_at?: string;
+  kind?: 'product' | 'personal';
+  repo_config?: Json;
+  brief_staleness_threshold?: number;
 }
 
 export interface PublicationsRow {
@@ -1050,6 +1149,45 @@ export interface SettingsUpdate {
   daily_digest_enabled?: boolean;
   learning_min_posts_per_category?: number;
   updated_at?: string;
+}
+
+export interface ShippedFeaturesRow {
+  id: string;
+  product_id: string;
+  title: string;
+  description: string;
+  source_refs: Json;
+  shipped_at: string;
+  user_facing: boolean;
+  status: 'new' | 'used' | 'ignored';
+  content_item_id: string | null;
+  created_at: string;
+}
+
+export interface ShippedFeaturesInsert {
+  id?: string;
+  product_id: string;
+  title: string;
+  description: string;
+  source_refs?: Json;
+  shipped_at: string;
+  user_facing?: boolean;
+  status?: 'new' | 'used' | 'ignored';
+  content_item_id?: string | null;
+  created_at?: string;
+}
+
+export interface ShippedFeaturesUpdate {
+  id?: string;
+  product_id?: string;
+  title?: string;
+  description?: string;
+  source_refs?: Json;
+  shipped_at?: string;
+  user_facing?: boolean;
+  status?: 'new' | 'used' | 'ignored';
+  content_item_id?: string | null;
+  created_at?: string;
 }
 
 export interface SignalsRow {
@@ -1334,6 +1472,7 @@ export interface Database {
     comment_replies: { Row: CommentRepliesRow; Insert: CommentRepliesInsert; Update: CommentRepliesUpdate; Relationships: [] };
     comments: { Row: CommentsRow; Insert: CommentsInsert; Update: CommentsUpdate; Relationships: [] };
     compose_sessions: { Row: ComposeSessionsRow; Insert: ComposeSessionsInsert; Update: ComposeSessionsUpdate; Relationships: [] };
+    connector_calls: { Row: ConnectorCallsRow; Insert: ConnectorCallsInsert; Update: ConnectorCallsUpdate; Relationships: [] };
     content_items: { Row: ContentItemsRow; Insert: ContentItemsInsert; Update: ContentItemsUpdate; Relationships: [] };
     hooks: { Row: HooksRow; Insert: HooksInsert; Update: HooksUpdate; Relationships: [] };
     ideas: { Row: IdeasRow; Insert: IdeasInsert; Update: IdeasUpdate; Relationships: [] };
@@ -1342,12 +1481,14 @@ export interface Database {
     onboarding_state: { Row: OnboardingStateRow; Insert: OnboardingStateInsert; Update: OnboardingStateUpdate; Relationships: [] };
     performance_scores: { Row: PerformanceScoresRow; Insert: PerformanceScoresInsert; Update: PerformanceScoresUpdate; Relationships: [] };
     post_metrics: { Row: PostMetricsRow; Insert: PostMetricsInsert; Update: PostMetricsUpdate; Relationships: [] };
+    product_artifacts: { Row: ProductArtifactsRow; Insert: ProductArtifactsInsert; Update: ProductArtifactsUpdate; Relationships: [] };
     products: { Row: ProductsRow; Insert: ProductsInsert; Update: ProductsUpdate; Relationships: [] };
     publications: { Row: PublicationsRow; Insert: PublicationsInsert; Update: PublicationsUpdate; Relationships: [] };
     references_swipe: { Row: ReferencesSwipeRow; Insert: ReferencesSwipeInsert; Update: ReferencesSwipeUpdate; Relationships: [] };
     renders: { Row: RendersRow; Insert: RendersInsert; Update: RendersUpdate; Relationships: [] };
     series: { Row: SeriesRow; Insert: SeriesInsert; Update: SeriesUpdate; Relationships: [] };
     settings: { Row: SettingsRow; Insert: SettingsInsert; Update: SettingsUpdate; Relationships: [] };
+    shipped_features: { Row: ShippedFeaturesRow; Insert: ShippedFeaturesInsert; Update: ShippedFeaturesUpdate; Relationships: [] };
     signals: { Row: SignalsRow; Insert: SignalsInsert; Update: SignalsUpdate; Relationships: [] };
     slots: { Row: SlotsRow; Insert: SlotsInsert; Update: SlotsUpdate; Relationships: [] };
     social_accounts: { Row: SocialAccountsRow; Insert: SocialAccountsInsert; Update: SocialAccountsUpdate; Relationships: [] };
