@@ -409,9 +409,13 @@ select public.apply_admin_rls();
 
 -- ── Seeds ──────────────────────────────────────────────────────────────────
 
--- RecipeFix destinations. `applinks:recipefix.app` is already configured, so the
--- default is the web URL rather than the App Store: an installed app opens via
--- universal links and an uninstalled one still lands somewhere useful.
+-- RecipeFix destinations, for a database that already has the product. A fresh
+-- database gets these from seed.sql, which runs after this file — the same trap
+-- as DECISIONS §12, so this is an update rather than the source of truth.
+--
+-- `applinks:recipefix.app` is already configured, so the default is the web URL
+-- rather than the App Store: an installed app opens via universal links and an
+-- uninstalled one still lands somewhere useful.
 update products
    set expected_handles = jsonb_build_object('brand', 'recipefix')
  where id = 'recipefix';
@@ -426,7 +430,15 @@ update products
      'app_store_id', '6759676502',
      'universal_link_domain', 'recipefix.app',
      'deep_link_scheme', 'recipefix',
-     'share_path', '/r'
+     -- A saved adaptation gets a public page at /recipe/<share_token>, which is
+     -- the most specific destination the product has. Verified against a real
+     -- saved recipe: recipefix.app/recipe/<token> renders without sign-in, and
+     -- the app's apple-app-site-association covers every path, so an installed
+     -- iOS app opens it directly.
+     'share_url_template', 'https://recipefix.app/recipe/{shareToken}'
+     -- app_analytics_provider_token is deliberately absent. It comes from App
+     -- Store Connect → Analytics → Campaigns, and until it is set every App
+     -- Store install reads as organic. /settings/readiness says so.
    )
  where id = 'recipefix';
 

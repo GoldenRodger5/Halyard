@@ -15,6 +15,7 @@ export * from './claimVerifier.js';
 export * from './visualQC.js';
 export * from './audioQC.js';
 export * from './retentionQC.js';
+export * from './destinationQC.js';
 
 import { slopFilter, slopSummary, type SlopFilterInput, type SlopFilterResult } from './slopFilter.js';
 import { verifyClaims, type Claim, type ClaimVerificationResult } from './claimVerifier.js';
@@ -26,8 +27,13 @@ import {
   type VisualTarget,
 } from './visualQC.js';
 import { runAudioQC, type AudioProbe, type AudioQCResult } from './audioQC.js';
+import {
+  runDestinationQC,
+  type DestinationQCInput,
+  type DestinationQCResult,
+} from './destinationQC.js';
 
-export type GateName = 'copy' | 'claims' | 'visual' | 'audio';
+export type GateName = 'copy' | 'claims' | 'visual' | 'audio' | 'destination';
 export type GateStatus = 'passed' | 'warning' | 'failed' | 'skipped';
 
 export interface GateResult {
@@ -53,6 +59,8 @@ export interface RunAllGatesInput {
   audio?: AudioProbe;
   /** Loudness measured on the finished cut, surfaced in the audio line. */
   loudnessLufs?: number;
+  /** Milestone 42 — where the post sends people, checked before approval. */
+  destination?: DestinationQCInput;
 }
 
 export function runAllGates(input: RunAllGatesInput): QCResults {
@@ -108,6 +116,24 @@ export function runAllGates(input: RunAllGatesInput): QCResults {
     });
   } else {
     gates.push({ gate: 'audio', status: 'skipped', summary: 'no voiceover', detail: null });
+  }
+
+  if (input.destination) {
+    const destination: DestinationQCResult = runDestinationQC(input.destination);
+    const warnings = destination.findings.filter((f) => f.severity === 'warning');
+    gates.push({
+      gate: 'destination',
+      status: !destination.passed ? 'failed' : warnings.length > 0 ? 'warning' : 'passed',
+      summary: destination.summary,
+      detail: destination,
+    });
+  } else {
+    gates.push({
+      gate: 'destination',
+      status: 'skipped',
+      summary: 'no link',
+      detail: null,
+    });
   }
 
   return {

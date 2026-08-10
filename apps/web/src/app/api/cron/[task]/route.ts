@@ -29,6 +29,9 @@ const TASKS = [
   'digest_email',
   'account_health',
   'purge_request_logs',
+  'collect_app_store',
+  'mark_stale_assets',
+  'verify_flows',
 ] as const;
 
 type Task = (typeof TASKS)[number];
@@ -61,6 +64,20 @@ export async function POST(request: NextRequest, context: { params: Promise<{ ta
       'delete from platform_requests where purge_after < now() returning id',
     );
     return NextResponse.json({ task, purged: purged.length });
+  }
+
+  // Weekly flow verification (milestone 41 Part B) is a capture job in verify
+  // mode: it never records, it only proves the selectors still resolve.
+  if (task === 'verify_flows') {
+    const enqueued = await query<{ id: string }>(
+      `insert into jobs (kind, payload, priority, dedupe_key)
+       select 'capture', jsonb_build_object('flowId', 'adapt_and_reveal', 'productId', id, 'verifyOnly', true),
+              30, 'verify_flows:' || id || ':' || to_char(now(), 'IYYY-IW')
+         from products where status = 'active' and kind = 'product'
+       on conflict do nothing
+       returning id`,
+    );
+    return NextResponse.json({ task, enqueued: enqueued.length });
   }
 
   const products = await query<{ id: string }>(`select id from products where status = 'active'`);

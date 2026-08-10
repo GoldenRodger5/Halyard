@@ -10,10 +10,12 @@ import {
   PlatformDot,
   SectionTitle,
 } from '@halyard/ui';
+import { extractShareToken, runDestinationQC, type DestinationType } from '@halyard/core';
 import { AssetPicker } from '@/components/AssetPicker';
 import { getItemArtifact, getProducts, getQueueItem } from '@/lib/queries';
 import { formatInOperatorTz } from '@/lib/format';
 import { editItem, rescheduleItem } from '../actions';
+import { resetDestination, setDestination } from '../destinationActions';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,6 +36,18 @@ export default async function QueueItemPage({ params }: { params: Promise<{ id: 
   const staleAttached = (
     (item.qc_results as { staleAssets?: Array<{ reason: string | null }> }).staleAssets ?? []
   ).filter((s) => s.reason);
+
+  // Milestone 42 — where this post sends people, shown before approval rather
+  // than discovered after publication.
+  const shareToken = extractShareToken(item.product_artifact);
+  const destinationQc = runDestinationQC({
+    category: item.category,
+    destinationType: item.destination_type as DestinationType | null,
+    destinationUrl: item.destination_url,
+    webUrl: item.product_web_url,
+    hasShareToken: Boolean(shareToken),
+    hasShareTemplate: Boolean(item.product_share_template),
+  });
 
   return (
     <>
@@ -138,6 +152,88 @@ export default async function QueueItemPage({ params }: { params: Promise<{ id: 
                 ))}
               </ul>
             )}
+          </Card>
+
+          <Card className="p-4">
+            <SectionTitle hint="decided at click time by device, and logged">
+              Destination
+            </SectionTitle>
+
+            <p className="text-sm text-ink">
+              {item.destination_url ? (
+                <a
+                  href={item.destination_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="break-all text-primary underline"
+                >
+                  {item.destination_url}
+                </a>
+              ) : (
+                'Nothing set.'
+              )}
+            </p>
+            {item.destination_reason ? (
+              <p className="mt-1.5 text-sm text-muted">{item.destination_reason}</p>
+            ) : null}
+
+            {destinationQc.findings.map((finding) => (
+              <p
+                key={finding.rule}
+                className={`mt-2 rounded-lg px-3 py-2 text-xs ${
+                  finding.severity === 'error' ? 'bg-danger/10 text-danger' : 'bg-warn/10 text-ink'
+                }`}
+              >
+                {finding.message} <span className="text-muted">{finding.fix}</span>
+              </p>
+            ))}
+
+            <p className="mt-3 text-xs text-muted">
+              The published link is{' '}
+              <code className="text-primary">{item.link_url ?? 'not stamped yet'}</code>, which
+              routes by device: iOS opens the installed app through a universal link, everyone else
+              gets the web page.
+            </p>
+
+            <form action={setDestination} className="mt-3 flex flex-wrap items-end gap-2">
+              <input type="hidden" name="id" value={item.id} />
+              <label className="text-sm">
+                <span className="mb-1 block text-xs uppercase tracking-[0.08em] text-muted">
+                  Type
+                </span>
+                <select
+                  name="destinationType"
+                  defaultValue={item.destination_type ?? 'web'}
+                  className="rounded-lg border border-line bg-paper px-3 py-1.5 text-sm text-ink"
+                >
+                  <option value="share_link" disabled={!shareToken}>
+                    the specific recipe{shareToken ? '' : ' — no share token'}
+                  </option>
+                  <option value="web">the web page</option>
+                  <option value="app_store">the App Store</option>
+                  <option value="link_in_bio">the link-in-bio page</option>
+                </select>
+              </label>
+              <label className="min-w-0 flex-1 text-sm">
+                <span className="mb-1 block text-xs uppercase tracking-[0.08em] text-muted">
+                  Or a URL of your own
+                </span>
+                <input
+                  name="destinationUrl"
+                  placeholder="https://recipefix.app/recipe/…"
+                  className="w-full rounded-lg border border-line bg-paper px-3 py-1.5 text-sm text-ink placeholder:text-muted"
+                />
+              </label>
+              <button className="rounded-lg border border-line px-3 py-1.5 text-sm text-muted hover:bg-sunk hover:text-ink">
+                Set
+              </button>
+            </form>
+            <form action={resetDestination} className="mt-2">
+              <input type="hidden" name="id" value={item.id} />
+              <button className="text-xs text-muted underline hover:text-ink">
+                Recompute from the artifact
+              </button>
+            </form>
           </Card>
 
           <Card className="p-4">

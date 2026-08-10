@@ -132,6 +132,95 @@ export default async function AnalyticsPage() {
             </Card>
           )}
         </section>
+
+        {/* ── Routed clicks and App Store conversions ─────────────────────── */}
+        <section className="min-w-0">
+          <SectionTitle hint="every click through /r, by the device that made it">
+            Where clicks came from
+          </SectionTitle>
+          {analytics.clicksByDevice.length === 0 ? (
+            <EmptyState
+              title="No routed clicks yet"
+              body="Published links point at Halyard's router, which decides the destination by device and records the click. The first one appears here once a post goes out and someone taps it."
+            />
+          ) : (
+            <Card className="overflow-x-auto">
+              <table className="w-full min-w-[24rem] text-sm">
+                <thead>
+                  <tr className="border-b border-line text-left text-xs uppercase tracking-[0.08em] text-muted">
+                    <th className="px-4 py-2.5 font-medium">Device</th>
+                    <th className="px-4 py-2.5 text-right font-medium">Clicks</th>
+                    <th className="px-4 py-2.5 text-right font-medium">Posts</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-line">
+                  {analytics.clicksByDevice.map((row) => (
+                    <tr key={row.device_class}>
+                      <td className="px-4 py-2.5 text-ink">
+                        {row.device_class}
+                        {row.device_class === 'bot' ? (
+                          <span className="ml-2 text-xs text-muted">
+                            preview crawlers, counted separately so they do not inflate the rest
+                          </span>
+                        ) : null}
+                      </td>
+                      <td className="px-4 py-2.5 text-right tabular-nums text-ink">
+                        {formatNumber(row.clicks)}
+                      </td>
+                      <td className="px-4 py-2.5 text-right tabular-nums text-muted">{row.posts}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </Card>
+          )}
+        </section>
+
+        <section className="min-w-0">
+          <SectionTitle hint="a different system, never summed with web sessions">
+            App Store
+          </SectionTitle>
+          <Card className="p-4">
+            {!analytics.appStore.configured ? (
+              <p className="text-sm text-muted">
+                No App Analytics provider token is configured, so every App Store install reads as
+                organic and mobile-first platforms are systematically under-scored. Find it in App
+                Store Connect under Analytics → Campaigns and set{' '}
+                <code className="text-primary">app_analytics_provider_token</code> in the
+                product&rsquo;s destinations. Campaign links then carry{' '}
+                <code className="text-primary">pt</code>, <code className="text-primary">ct</code>{' '}
+                and <code className="text-primary">mt=8</code>, which is what App Store Connect
+                reads.
+              </p>
+            ) : analytics.appStore.installs === 0 ? (
+              <p className="text-sm text-muted">
+                Campaign links are configured; no conversions collected yet.
+              </p>
+            ) : (
+              <dl className="grid grid-cols-2 gap-4 sm:grid-cols-5">
+                {[
+                  ['Impressions', analytics.appStore.impressions],
+                  ['Product page views', analytics.appStore.productPageViews],
+                  ['Installs', analytics.appStore.installs],
+                  ['First-time', analytics.appStore.firstTimeDownloads],
+                  ['Redownloads', analytics.appStore.redownloads],
+                ].map(([label, value]) => (
+                  <div key={String(label)}>
+                    <dt className="text-xs uppercase tracking-[0.08em] text-muted">{label}</dt>
+                    <dd className="mt-1 text-xl tabular-nums text-ink">
+                      {formatNumber(Number(value))}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            )}
+            <p className="mt-3 text-xs text-muted">
+              These are App Store conversions, kept in their own columns. An install is not a web
+              session and Apple counts a redownload separately, so adding them to the funnel above
+              would produce a number that means nothing.
+            </p>
+          </Card>
+        </section>
       </div>
     </>
   );

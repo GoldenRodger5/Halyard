@@ -17,11 +17,14 @@ import {
   ConnectorUnavailableError,
   DraftRejectedError,
   createConnector,
+  resolveDestination,
+  routerUrlFor,
   selectIdeas,
   writeDraft,
   type IdeaCandidate,
   type LlmClient,
   type ProductArtifact,
+  type ProductDestinations,
   type SlopPlatform,
 } from '@halyard/core';
 import { carouselProps, transformationDiffProps } from '@halyard/render';
@@ -80,6 +83,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
     content_rules: { forbidden_claims?: string[]; banned_phrases?: string[] };
     connector_type: 'mcp' | 'rest' | 'none';
     connector_config: Record<string, unknown>;
+    destinations: ProductDestinations;
   }>('select * from products where id = $1', [productId]);
 
   const product = productRows.rows[0];
@@ -245,12 +249,22 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
           llm,
         );
 
+        // Milestone 42 — where this post should send people, decided from the
+        // artifact rather than defaulting to the homepage.
+        const destination = resolveDestination({
+          category: idea.category,
+          destinations: product.destinations ?? {},
+          artifact: artifact ? { raw: artifact.raw } : null,
+        });
+
         const inserted = await ctx.pool.query<{ id: string }>(
           `insert into content_items
              (product_id, idea_id, account_id, platform, persona, format, category,
               body, title, alt_text, hashtags, product_artifact, claims, qc_results,
-              ai_components, status, generation_meta)
-           values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,'pending_approval',$16)
+              ai_components, status, generation_meta,
+              destination_type, destination_url, destination_reason)
+           values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,'pending_approval',$16,
+                   $17,$18,$19)
            returning id`,
           [
             productId,
@@ -269,10 +283,25 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
             JSON.stringify(draft.qc),
             ['copy'],
             draft.generationMeta,
+            destination.type,
+            destination.url,
+            destination.blockedBy
+              ? `${destination.reason} ${destination.blockedBy}`
+              : destination.reason,
           ],
         );
 
         const contentItemId = inserted.rows[0]!.id;
+
+        // The published link points at Halyard's router, not at the destination,
+        // so the device decision happens at click time and the click is counted.
+        await ctx.pool.query('update content_items set link_url = $2 where id = $1', [
+          contentItemId,
+          routerUrlFor(
+            process.env.HALYARD_PUBLIC_URL ?? 'http://localhost:3200',
+            contentItemId,
+          ),
+        ]);
 
         // Enqueue renders from the artifact, if it supports the template.
         if (artifact) {

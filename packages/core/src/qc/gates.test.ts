@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 import fixture from '../connectors/__fixtures__/recipeAdaptation.json' with { type: 'json' };
 import {
   disclosureSatisfied,
+  isBareHomepage,
   requiresAiLabel,
   runAllGates,
+  runDestinationQC,
   suggestedDisclosure,
 } from './index.js';
 import { runVisualQC, VISION_RUBRIC, type MediaProbe } from './visualQC.js';
@@ -338,7 +340,13 @@ describe('runAllGates — the queue contract, v2 F.5', () => {
       },
     });
 
-    expect(results.gates.map((g) => g.gate)).toEqual(['copy', 'claims', 'visual', 'audio']);
+    expect(results.gates.map((g) => g.gate)).toEqual([
+      'copy',
+      'claims',
+      'visual',
+      'audio',
+      'destination',
+    ]);
     expect(results.passed).toBe(true);
     expect(results.gates[1]?.summary).toBe('1/1 verified against artifact');
     expect(results.gates[3]?.status).toBe('skipped');
@@ -350,5 +358,87 @@ describe('runAllGates — the queue contract, v2 F.5', () => {
     });
     expect(results.passed).toBe(false);
     expect(results.gates[0]?.status).toBe('failed');
+  });
+});
+
+/**
+ * Destination QC. Milestone 42.
+ *
+ * A post about one exact adapted recipe that links to the front page asks the
+ * reader to reproduce what they just read. Most will not.
+ */
+describe('destination gate', () => {
+  const base = {
+    category: 'transformation' as const,
+    webUrl: 'https://recipefix.app',
+    hasShareTemplate: true,
+  };
+
+  it('warns when a specific transformation points at the bare homepage', () => {
+    const result = runDestinationQC({
+      ...base,
+      destinationType: 'web',
+      destinationUrl: 'https://recipefix.app',
+    });
+    expect(result.passed).toBe(true); // a warning, not a block
+    expect(result.findings[0]!.rule).toBe('destination.bare_homepage');
+    expect(result.summary).toMatch(/warning/);
+  });
+
+  it('recognises the homepage through trailing slashes, www and query strings', () => {
+    for (const url of [
+      'https://recipefix.app/',
+      'https://www.recipefix.app',
+      'http://recipefix.app/?utm_source=x',
+      'https://RecipeFix.app',
+    ]) {
+      expect(isBareHomepage(url, 'https://recipefix.app'), url).toBe(true);
+    }
+    expect(isBareHomepage('https://recipefix.app/recipe/abc', 'https://recipefix.app')).toBe(false);
+  });
+
+  it('says what to do when the artifact has a share token available', () => {
+    const result = runDestinationQC({
+      ...base,
+      destinationType: 'web',
+      destinationUrl: 'https://recipefix.app',
+      hasShareToken: true,
+    });
+    expect(result.findings[0]!.fix).toMatch(/switch the destination to the share link/);
+  });
+
+  it('names the missing product configuration when there is no template', () => {
+    const result = runDestinationQC({
+      ...base,
+      hasShareTemplate: false,
+      destinationType: 'web',
+      destinationUrl: 'https://recipefix.app',
+    });
+    expect(result.findings[0]!.fix).toMatch(/share_url_template/);
+  });
+
+  it('says nothing about a general post that points at the homepage', () => {
+    const result = runDestinationQC({
+      ...base,
+      category: 'education',
+      destinationType: 'web',
+      destinationUrl: 'https://recipefix.app',
+    });
+    expect(result.findings).toEqual([]);
+  });
+
+  it('is happy with a specific share link', () => {
+    const result = runDestinationQC({
+      ...base,
+      destinationType: 'share_link',
+      destinationUrl: 'https://recipefix.app/recipe/be1b2a5f-5015-4e0c-9194-8bae735e9e01',
+    });
+    expect(result.findings).toEqual([]);
+    expect(result.summary).toBe('points at the specific recipe');
+  });
+
+  it('fails outright when there is no destination', () => {
+    const result = runDestinationQC({ ...base, destinationType: null, destinationUrl: null });
+    expect(result.passed).toBe(false);
   });
 });

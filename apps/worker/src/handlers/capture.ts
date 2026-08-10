@@ -50,6 +50,10 @@ export async function captureHandler(job: Job, ctx: HandlerContext): Promise<voi
     productRows[0]?.website_url ??
     'https://recipefix.app';
 
+  // The weekly gate verifies without recording: it proves the selectors still
+  // resolve, which is the whole point of running it on a schedule.
+  const verifyOnly = job.payload.verifyOnly === true;
+
   const outDir = `${CAPTURE_ROOT}/${Date.now()}`;
   const browser = await chromium.launch({ headless: true });
 
@@ -82,6 +86,18 @@ export async function captureHandler(job: Job, ctx: HandlerContext): Promise<voi
     }
 
     const appVersion = await detectAppVersion(baseUrl);
+
+    if (verifyOnly) {
+      // A release since the last capture is worth saying out loud: every asset
+      // taken against the old build is now stale.
+      await ctx.pool.query(
+        `update products set observed_app_version = $2, observed_app_version_at = now()
+          where id = $1 and $2::text is not null`,
+        [productId, appVersion],
+      );
+      ctx.log('verified flows', { flow: flow.id, appVersion });
+      return;
+    }
     await ctx.pool.query(
       `update products set observed_app_version = $2, observed_app_version_at = now()
         where id = $1 and ($2::text is not null)`,

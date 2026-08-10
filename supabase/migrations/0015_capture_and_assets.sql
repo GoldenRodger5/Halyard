@@ -67,7 +67,31 @@ alter table jobs drop constraint jobs_kind_check;
 alter table jobs add constraint jobs_kind_check check (kind in (
   'generate','render','tts','capture','publish','collect_metrics','collect_signals',
   'collect_comments','collect_attribution','refresh_tokens','score_performance',
-  'digest_email','reconcile_schedule','mark_stale_assets'
+  'digest_email','reconcile_schedule','mark_stale_assets','collect_app_store'
 ));
+
+/**
+ * Metrics are cumulative counts and cannot be negative.
+ *
+ * A seed that used `hashtext(x) % n` — which is negative for about half of all
+ * inputs, because hashtext returns a signed int4 — put negative impressions into
+ * this table, and /analytics rendered "−3,449 impressions per post" without
+ * complaint. A constraint turns that class of mistake into a failed insert
+ * rather than a plausible-looking chart.
+ */
+alter table post_metrics add constraint post_metrics_non_negative check (
+  coalesce(impressions, 0) >= 0 and coalesce(reach, 0) >= 0 and
+  coalesce(likes, 0) >= 0 and coalesce(comments, 0) >= 0 and
+  coalesce(shares, 0) >= 0 and coalesce(saves, 0) >= 0 and
+  coalesce(link_clicks, 0) >= 0 and coalesce(follows, 0) >= 0 and
+  coalesce(video_views, 0) >= 0 and coalesce(profile_visits, 0) >= 0
+);
+
+alter table attribution add constraint attribution_non_negative check (
+  coalesce(sessions, 0) >= 0 and coalesce(signups, 0) >= 0 and
+  coalesce(activated_users, 0) >= 0 and coalesce(adaptations, 0) >= 0 and
+  coalesce(saves, 0) >= 0 and coalesce(cook_starts, 0) >= 0 and
+  coalesce(paid_conversions, 0) >= 0
+);
 
 select public.apply_admin_rls();

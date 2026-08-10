@@ -290,17 +290,22 @@ select ci.id, ci.account_id, ci.platform,
 
 -- Metrics that differ per post, so /library and /analytics can be read rather
 -- than just rendered.
+--
+-- abs(...::bigint) because hashtext() returns a *signed* int4: `hashtext(x) % n`
+-- is negative for about half of all inputs, which is how /analytics ended up
+-- showing −3,449 impressions per post. The cast to bigint is not optional
+-- either — abs(-2147483648) overflows int4.
 insert into post_metrics (publication_id, impressions, reach, likes, comments, shares,
                           saves, link_clicks, follows, collected_at)
 select p.id,
-       (2400 + (hashtext(p.id::text) % 9000))::int,
-       (1900 + (hashtext(p.id::text) % 7000))::int,
-       (60 + (hashtext(p.id::text) % 300))::int,
-       (2 + (hashtext(p.id::text) % 25))::int,
-       (1 + (hashtext(p.id::text) % 40))::int,
-       (18 + (hashtext(p.id::text) % 180))::int,
-       (12 + (hashtext(p.id::text) % 110))::int,
-       (1 + (hashtext(p.id::text) % 20))::int,
+       (2400 + (abs(hashtext(p.id::text)::bigint) % 9000))::int,
+       (1900 + (abs(hashtext(p.id::text)::bigint) % 7000))::int,
+       (60 + (abs(hashtext(p.id::text)::bigint) % 300))::int,
+       (2 + (abs(hashtext(p.id::text)::bigint) % 25))::int,
+       (1 + (abs(hashtext(p.id::text)::bigint) % 40))::int,
+       (18 + (abs(hashtext(p.id::text)::bigint) % 180))::int,
+       (12 + (abs(hashtext(p.id::text)::bigint) % 110))::int,
+       (1 + (abs(hashtext(p.id::text)::bigint) % 20))::int,
        now() - interval '2 hours'
   from publications p
  where p.published_at is not null
@@ -309,13 +314,13 @@ select p.id,
 insert into attribution (content_item_id, sessions, signups, activated_users,
                          adaptations, saves, cook_starts, paid_conversions)
 select p.content_item_id,
-       (40 + (hashtext(p.id::text) % 120))::int,
-       (4 + (hashtext(p.id::text) % 18))::int,
-       (2 + (hashtext(p.id::text) % 12))::int,
-       (3 + (hashtext(p.id::text) % 14))::int,
-       (1 + (hashtext(p.id::text) % 9))::int,
-       (1 + (hashtext(p.id::text) % 7))::int,
-       (hashtext(p.id::text) % 3)::int
+       (40 + (abs(hashtext(p.id::text)::bigint) % 120))::int,
+       (4 + (abs(hashtext(p.id::text)::bigint) % 18))::int,
+       (2 + (abs(hashtext(p.id::text)::bigint) % 12))::int,
+       (3 + (abs(hashtext(p.id::text)::bigint) % 14))::int,
+       (1 + (abs(hashtext(p.id::text)::bigint) % 9))::int,
+       (1 + (abs(hashtext(p.id::text)::bigint) % 7))::int,
+       (abs(hashtext(p.id::text)::bigint) % 3)::int
   from publications p
  where p.published_at is not null
    and not exists (select 1 from attribution a where a.content_item_id = p.content_item_id);
@@ -368,3 +373,19 @@ update onboarding_state
  where product_id = 'recipefix';
 
 update settings set publishing_enabled = true;
+
+-- Destinations, resolved the way the generator would. Milestone 42: a post about
+-- one specific adaptation points at that adaptation's own public page; a general
+-- post points at the web app. The share token is a real one, from a saved
+-- RecipeFix recipe.
+update content_items
+   set destination_type = 'share_link',
+       destination_url  = 'https://recipefix.app/recipe/be1b2a5f-5015-4e0c-9194-8bae735e9e01',
+       destination_reason = 'The post is about one specific adaptation and the product gave it a public share page, so the link goes straight there.'
+ where category = 'transformation' and destination_type is null;
+
+update content_items
+   set destination_type = 'web',
+       destination_url  = 'https://recipefix.app',
+       destination_reason = 'A general post, so the web page is the right destination.'
+ where destination_type is null;

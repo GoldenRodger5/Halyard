@@ -59,6 +59,7 @@ export const JOB_KINDS = [
   'digest_email',
   'reconcile_schedule',
   'mark_stale_assets',
+  'collect_app_store',
 ] as const;
 export type JobKind = (typeof JOB_KINDS)[number];
 
@@ -83,4 +84,7 @@ export const JOB_POLICY: Record<
   digest_email: { timeoutMs: 2 * 60_000, maxAttempts: 2, backoffSeconds: 300 },
   reconcile_schedule: { timeoutMs: 2 * 60_000, maxAttempts: 2, backoffSeconds: 120 },
   mark_stale_assets: { timeoutMs: 2 * 60_000, maxAttempts: 2, backoffSeconds: 300 },
+  // Apple's first report for a new request can take a day, so a "pending" result
+  // is normal rather than a failure worth retrying quickly.
+  collect_app_store: { timeoutMs: 5 * 60_000, maxAttempts: 2, backoffSeconds: 3600 },
 };

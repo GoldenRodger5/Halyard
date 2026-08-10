@@ -7,14 +7,15 @@
 -- ═══════════════════════════════════════════════════════════════════════════
 
 insert into products (
-  id, name, tagline, website_url, status,
+  id, name, tagline, website_url, app_store_url, status,
   connector_type, connector_config, brand_tokens, content_rules,
-  audience_timezone, operator_timezone
+  audience_timezone, operator_timezone, expected_handles, destinations
 ) values (
   'recipefix',
   'RecipeFix',
   'Adapt any recipe to how you actually eat',
   'https://recipefix.app',
+  'https://apps.apple.com/app/id6759676502',
   'active',
   'mcp',
   jsonb_build_object('url_env', 'RECIPEFIX_MCP_URL', 'token_env', 'RECIPEFIX_MCP_TOKEN'),
@@ -38,7 +39,30 @@ insert into products (
     'banned_phrases', jsonb_build_array('chef-approved', 'foolproof', 'restaurant-quality')
   ),
   'America/New_York',
-  'America/New_York'
+  'America/New_York',
+  jsonb_build_object('brand', 'recipefix'),
+  /**
+   * Where a RecipeFix post sends people. Milestone 42.
+   *
+   * `share_url_template` is the important one: a saved adaptation gets a public
+   * page at /recipe/<share_token>, verified against a real saved recipe — it
+   * renders without sign-in. The app's apple-app-site-association covers every
+   * path with a wildcard, so an installed iOS app opens that URL directly and
+   * nobody is bounced through an App Store page for an app they already have.
+   *
+   * `app_analytics_provider_token` is deliberately absent. It comes from App
+   * Store Connect → Analytics → Campaigns, and until it is set every App Store
+   * install reads as organic. /settings/readiness says so rather than letting it
+   * be a silent gap.
+   */
+  jsonb_build_object(
+    'web', 'https://recipefix.app',
+    'app_store', 'https://apps.apple.com/app/id6759676502',
+    'app_store_id', '6759676502',
+    'universal_link_domain', 'recipefix.app',
+    'deep_link_scheme', 'recipefix',
+    'share_url_template', 'https://recipefix.app/recipe/{shareToken}'
+  )
 ) on conflict (id) do nothing;
 
 insert into onboarding_state (product_id) values ('recipefix')

@@ -219,6 +219,12 @@ export interface QueueItem {
   product_id: string;
   attached_asset_ids: string[];
   attached_urls: string[];
+  destination_type: string | null;
+  destination_url: string | null;
+  destination_reason: string | null;
+  product_web_url: string | null;
+  product_share_template: string | null;
+  product_artifact: unknown;
 }
 
 const QUEUE_SELECT = `
@@ -227,6 +233,9 @@ const QUEUE_SELECT = `
          ci.scheduled_at, ci.qc_results, ci.claims, ci.ai_components,
          ci.requires_ai_label, ci.disclosure_text, ci.audio_mode,
          ci.edited_by_human, ci.sequence_number, ci.product_id, ci.attached_asset_ids,
+         ci.destination_type, ci.destination_url, ci.destination_reason, ci.product_artifact,
+         p.destinations ->> 'web' as product_web_url,
+         p.destinations ->> 'share_url_template' as product_share_template,
          i.title as idea_title,
          s.name as series_name,
          ci.product_artifact ->> 'recipeName' as artifact_headline,
@@ -237,6 +246,7 @@ const QUEUE_SELECT = `
          coalesce(r.urls, '{}') as preview_urls,
          coalesce(att.urls, '{}') as attached_urls
     from content_items ci
+    join products p on p.id = ci.product_id
     left join ideas i on i.id = ci.idea_id
     left join series s on s.id = ci.series_id
     left join lateral (
@@ -476,6 +486,24 @@ export interface AnalyticsSnapshot {
   funnel: { impressions: number; clicks: number; signups: number; activated: number };
   attributionRows: number;
   stampedLinks: number;
+  /**
+   * Milestone 42. Routed clicks by device class, and App Store conversions.
+   *
+   * App Store numbers stay in their own columns and are never added to web
+   * sessions: they come from a different system with different semantics — an
+   * install is not a session, and Apple counts a redownload separately — and
+   * summing them would produce a single number that means nothing.
+   */
+  clicksByDevice: Array<{ device_class: string; clicks: number; posts: number }>;
+  appStore: {
+    configured: boolean;
+    impressions: number;
+    productPageViews: number;
+    installs: number;
+    firstTimeDownloads: number;
+    redownloads: number;
+    lastCollectedAt: string | null;
+  };
 }
 
 export async function getAnalytics(): Promise<AnalyticsSnapshot> {
@@ -522,6 +550,34 @@ export async function getAnalytics(): Promise<AnalyticsSnapshot> {
               where final_link_url is not null and status = 'published') as stamped`,
   );
 
+  const clicksByDevice = await query<{ device_class: string; clicks: string; posts: string }>(
+    `select device_class, count(*) as clicks, count(distinct content_item_id) as posts
+       from link_clicks
+      where clicked_at > now() - interval '90 days'
+      group by device_class order by count(*) desc`,
+  );
+
+  const appStore = await one<{
+    impressions: string;
+    product_page_views: string;
+    installs: string;
+    first_time_downloads: string;
+    redownloads: string;
+    last_collected_at: string | null;
+  }>(
+    `select coalesce(sum(impressions),0) as impressions,
+            coalesce(sum(product_page_views),0) as product_page_views,
+            coalesce(sum(installs),0) as installs,
+            coalesce(sum(first_time_downloads),0) as first_time_downloads,
+            coalesce(sum(redownloads),0) as redownloads,
+            max(collected_at)::text as last_collected_at
+       from app_store_attribution`,
+  );
+
+  const providerToken = await one<{ configured: boolean }>(
+    `select bool_or(destinations ? 'app_analytics_provider_token') as configured from products`,
+  );
+
   return {
     postsPerCategory,
     byPlatform,
@@ -533,5 +589,19 @@ export async function getAnalytics(): Promise<AnalyticsSnapshot> {
     },
     attributionRows: Number(counts?.attribution_rows ?? 0),
     stampedLinks: Number(counts?.stamped ?? 0),
+    clicksByDevice: clicksByDevice.map((r) => ({
+      device_class: r.device_class,
+      clicks: Number(r.clicks),
+      posts: Number(r.posts),
+    })),
+    appStore: {
+      configured: providerToken?.configured === true,
+      impressions: Number(appStore?.impressions ?? 0),
+      productPageViews: Number(appStore?.product_page_views ?? 0),
+      installs: Number(appStore?.installs ?? 0),
+      firstTimeDownloads: Number(appStore?.first_time_downloads ?? 0),
+      redownloads: Number(appStore?.redownloads ?? 0),
+      lastCollectedAt: appStore?.last_collected_at ?? null,
+    },
   };
 }
