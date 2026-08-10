@@ -217,6 +217,7 @@ export const PLATFORM_LABELS: Record<string, string> = {
   pinterest: 'Pinterest',
   youtube: 'YouTube',
   threads: 'Threads',
+  bluesky: 'Bluesky',
 };
 
 export const PLATFORM_COLORS: Record<string, string> = {
@@ -226,6 +227,7 @@ export const PLATFORM_COLORS: Record<string, string> = {
   pinterest: '#B03A2E',
   youtube: '#8E4A3C',
   threads: '#5C6B73',
+  bluesky: '#4A6FA5',
 };
 
 export function PlatformDot({ platform, className }: { platform: string; className?: string }) {

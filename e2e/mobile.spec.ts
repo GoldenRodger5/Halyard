@@ -29,9 +29,17 @@ test('the whole approve flow works at phone width', async ({ page }) => {
 
 test('no screen scrolls horizontally on a phone', async ({ page }) => {
   for (const path of ['/', '/queue', '/calendar', '/analytics', '/take', '/swipe', '/inbox']) {
-    // `waitUntil: 'load'` races the app's own client-side navigation on a slow
-    // first compile, so wait for the DOM and then for the network to settle.
-    await page.goto(path, { waitUntil: 'domcontentloaded' });
+    // Two races to survive here, both artefacts of the dev server rather than
+    // the app: `waitUntil: 'load'` races the first compile, and a hydrating page
+    // can still fire its own soft navigation while the next goto is in flight,
+    // which aborts it. So wait for the DOM, then the network, and retry once if
+    // the previous page pulled the rug out.
+    try {
+      await page.goto(path, { waitUntil: 'domcontentloaded' });
+    } catch (err) {
+      if (!/interrupted by another navigation/.test((err as Error).message)) throw err;
+      await page.goto(path, { waitUntil: 'domcontentloaded' });
+    }
     await page.waitForLoadState('networkidle');
 
     const overflows = await page.evaluate(

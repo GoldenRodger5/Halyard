@@ -20,6 +20,7 @@ import {
   type PlatformAdapter,
   type PlatformComment,
   type PlatformConstraints,
+  type PlatformIdentity,
   type PublishAccount,
   type PublishAsset,
   type PublishItem,
@@ -141,6 +142,29 @@ export class BlueskyAdapter implements PlatformAdapter {
       refreshToken: session.refreshJwt,
       expiresAt: new Date(Date.now() + 90 * 60_000),
       meta: tokens.meta,
+    };
+  }
+
+  async fetchIdentity(account: PublishAccount): Promise<PlatformIdentity> {
+    // The session response carries the DID; the profile carries everything a
+    // human would recognise.
+    const did = account.platformUserId ?? (account.meta?.did as string | undefined) ??
+      (account.tokens.meta?.did as string | undefined);
+    if (!did) {
+      throw new PublishError('Bluesky session returned no DID.', 'auth');
+    }
+    const profile = (await this.get(`app.bsky.actor.getProfile?actor=${did}`, account)) as {
+      handle?: string;
+      displayName?: string;
+      avatar?: string;
+      followersCount?: number;
+    };
+    return {
+      platformUserId: did,
+      handle: profile.handle ?? did,
+      displayName: profile.displayName,
+      avatarUrl: profile.avatar,
+      followerCount: profile.followersCount,
     };
   }
 

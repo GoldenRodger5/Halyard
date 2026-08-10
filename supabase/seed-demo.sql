@@ -19,7 +19,9 @@ values
   ('recipefix','x','brand','@recipefix','live',
    'No review gate on X. Posting is live and billed per call.',
    array['text','image','video'],'first_reply'),
-  ('recipefix','x','founder','@isaacmineo','live',
+  -- The founder account lives on the personal product, not on RecipeFix: it is
+  -- one identity shared across every product, and its routing scope says so.
+  ('founder','x','founder','@isaacmineo','live',
    'Founder account. Opinion content is input-gated: no take without your input.',
    array['text','image'],'first_reply'),
   ('recipefix','instagram','brand','@recipefix','draft_only',
@@ -37,6 +39,17 @@ values
   ('recipefix','threads','brand','@recipefix','pending_auth',
    null, array['text','image'],'in_body')
 on conflict (product_id, platform, persona) do nothing;
+
+-- Demo accounts are shown as identity-confirmed, because an account whose
+-- identity has never been checked is a state the accounts screen is supposed to
+-- shout about, and every row shouting is the same as none of them shouting.
+-- No token is seeded: a fake credential is worse than an absent one.
+update social_accounts
+   set identity_confirmed_at = now() - interval '9 days',
+       platform_user_id      = 'demo-' || platform || '-' || persona,
+       display_name          = case when persona = 'founder' then 'Isaac Mineo' else 'RecipeFix' end,
+       follower_count        = case when persona = 'founder' then 480 else 2140 end
+ where identity_confirmed_at is null;
 
 -- ── Ideas, with real score breakdowns ──────────────────────────────────────
 insert into ideas (product_id, title, angle, category, rationale, score, score_breakdown, status)
@@ -69,7 +82,10 @@ on conflict do nothing;
 
 -- ── Twenty content items across every status, platform and format ──────────
 with acct as (
-  select id, platform, persona from social_accounts where product_id = 'recipefix'
+  -- Brand accounts are RecipeFix's; the founder account is shared and lives on
+  -- the personal product. Both are reachable from RecipeFix content.
+  select id, platform, persona from social_accounts
+   where (persona = 'brand' and product_id = 'recipefix') or persona = 'founder'
 )
 insert into content_items (product_id, account_id, platform, persona, format, category, body,
                            title, alt_text, hashtags, link_url, status, scheduled_at,

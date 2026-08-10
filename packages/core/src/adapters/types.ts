@@ -140,6 +140,27 @@ export interface PlatformComment {
   postedAt?: Date;
 }
 
+/**
+ * Who a freshly authorised token actually belongs to.
+ *
+ * Connecting the wrong account — because a browser was already signed in as
+ * someone else — is the most common failure in this flow, and it is invisible
+ * until the first post lands on the wrong feed. So the identity is fetched and
+ * shown before any token is written to the accounts table.
+ */
+export interface PlatformIdentity {
+  platformUserId: string;
+  /** Without the leading @. */
+  handle: string;
+  displayName?: string;
+  avatarUrl?: string;
+  followerCount?: number;
+  /** Anything else worth seeing on the confirmation screen. */
+  detail?: string;
+  /** More than one identity is reachable with this token (Meta pages, YouTube brand channels). */
+  alternatives?: Array<{ platformUserId: string; handle: string; displayName?: string; detail?: string }>;
+}
+
 export interface PlatformAdapter {
   platform: PlatformId;
   constraints: PlatformConstraints;
@@ -148,6 +169,9 @@ export interface PlatformAdapter {
   exchangeCode(code: string, options: OAuthExchangeOptions): Promise<TokenSet>;
   refresh(tokens: TokenSet, options: OAuthClientOptions): Promise<TokenSet>;
   verifyCapabilities(account: PublishAccount): Promise<CapabilityReport>;
+
+  /** Called between the token exchange and the token being saved. */
+  fetchIdentity(account: PublishAccount): Promise<PlatformIdentity>;
 
   publish(
     item: PublishItem,

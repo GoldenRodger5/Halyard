@@ -31,6 +31,7 @@ import {
   type PlatformAdapter,
   type PlatformComment,
   type PlatformConstraints,
+  type PlatformIdentity,
   type PublishAccount,
   type PublishAsset,
   type PublishItem,
@@ -122,6 +123,33 @@ export class XAdapter implements PlatformAdapter {
       'X token refresh',
     )) as TokenResponse;
     return toTokenSet(response);
+  }
+
+  async fetchIdentity(account: PublishAccount): Promise<PlatformIdentity> {
+    const me = (await this.get(
+      '/users/me?user.fields=profile_image_url,public_metrics,name,verified',
+      account,
+    )) as {
+      data?: {
+        id?: string;
+        username?: string;
+        name?: string;
+        profile_image_url?: string;
+        public_metrics?: { followers_count?: number };
+      };
+    };
+    const data = me.data;
+    if (!data?.id || !data.username) {
+      throw new PublishError('X returned no user for this token.', 'malformed_response', undefined, undefined, me);
+    }
+    return {
+      platformUserId: data.id,
+      handle: data.username,
+      displayName: data.name,
+      // The default avatar URL is the 48px "_normal" crop; ask for the full one.
+      avatarUrl: data.profile_image_url?.replace('_normal', ''),
+      followerCount: data.public_metrics?.followers_count,
+    };
   }
 
   async verifyCapabilities(account: PublishAccount): Promise<CapabilityReport> {

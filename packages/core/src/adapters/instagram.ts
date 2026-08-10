@@ -27,6 +27,7 @@ import {
   type PlatformAdapter,
   type PlatformComment,
   type PlatformConstraints,
+  type PlatformIdentity,
   type PublishAccount,
   type PublishAsset,
   type PublishItem,
@@ -122,6 +123,59 @@ export class InstagramAdapter implements PlatformAdapter {
       'Instagram token refresh',
     )) as TokenResponse;
     return { ...toTokenSet(refreshed), meta: tokens.meta };
+  }
+
+  /**
+   * A Meta token commonly reaches several Pages, each with its own Instagram
+   * Professional account. Picking the wrong one is silent until the first post
+   * appears on a business account you forgot you administered, so all of them
+   * are returned and the operator chooses.
+   */
+  async fetchIdentity(account: PublishAccount): Promise<PlatformIdentity> {
+    const pages = (await this.get(
+      '/me/accounts?fields=name,instagram_business_account{id,username,name,profile_picture_url,followers_count}',
+      account,
+    )) as {
+      data?: Array<{
+        name?: string;
+        instagram_business_account?: {
+          id?: string;
+          username?: string;
+          name?: string;
+          profile_picture_url?: string;
+          followers_count?: number;
+        };
+      }>;
+    };
+
+    const linked = (pages.data ?? [])
+      .filter((p) => p.instagram_business_account?.id)
+      .map((p) => ({ page: p.name, ig: p.instagram_business_account! }));
+
+    if (linked.length === 0) {
+      throw new PublishError(
+        'This Facebook account administers no Page with a linked Instagram Professional account. ' +
+          'In the Instagram app: Settings → Account type and tools → Switch to professional account, ' +
+          'then link it to a Facebook Page under Settings → Page.',
+        'permanent',
+      );
+    }
+
+    const [first, ...rest] = linked;
+    return {
+      platformUserId: first!.ig.id!,
+      handle: first!.ig.username ?? first!.ig.id!,
+      displayName: first!.ig.name,
+      avatarUrl: first!.ig.profile_picture_url,
+      followerCount: first!.ig.followers_count,
+      detail: `Linked to the Facebook Page "${first!.page ?? 'unnamed'}".`,
+      alternatives: rest.map((r) => ({
+        platformUserId: r.ig.id!,
+        handle: r.ig.username ?? r.ig.id!,
+        displayName: r.ig.name,
+        detail: `Page "${r.page ?? 'unnamed'}"`,
+      })),
+    };
   }
 
   async verifyCapabilities(account: PublishAccount): Promise<CapabilityReport> {

@@ -22,6 +22,7 @@ import {
   type PlatformAdapter,
   type PlatformComment,
   type PlatformConstraints,
+  type PlatformIdentity,
   type PublishAccount,
   type PublishAsset,
   type PublishItem,
@@ -116,6 +117,48 @@ export class YouTubeAdapter implements PlatformAdapter {
     // Google does not return the refresh token again; keep the one we have.
     const next = toTokenSet(response);
     return { ...next, refreshToken: next.refreshToken ?? tokens.refreshToken };
+  }
+
+  /**
+   * A Google account can own a personal channel and any number of brand
+   * channels. `mine=true` returns whichever the consent screen selected, so the
+   * confirmation step matters more here than anywhere else.
+   */
+  async fetchIdentity(account: PublishAccount): Promise<PlatformIdentity> {
+    const channels = (await this.get(
+      '/channels?part=snippet,statistics&mine=true',
+      account,
+    )) as {
+      items?: Array<{
+        id: string;
+        snippet?: { title?: string; customUrl?: string; thumbnails?: { default?: { url?: string } } };
+        statistics?: { subscriberCount?: string };
+      }>;
+    };
+
+    const items = channels.items ?? [];
+    if (items.length === 0) {
+      throw new PublishError(
+        'This Google account has no YouTube channel. Create one at youtube.com/create_channel, then reconnect.',
+        'permanent',
+      );
+    }
+
+    const [first, ...rest] = items;
+    return {
+      platformUserId: first!.id,
+      handle: first!.snippet?.customUrl?.replace(/^@/, '') ?? first!.id,
+      displayName: first!.snippet?.title,
+      avatarUrl: first!.snippet?.thumbnails?.default?.url,
+      followerCount: first!.statistics?.subscriberCount
+        ? Number(first!.statistics.subscriberCount)
+        : undefined,
+      alternatives: rest.map((c) => ({
+        platformUserId: c.id,
+        handle: c.snippet?.customUrl?.replace(/^@/, '') ?? c.id,
+        displayName: c.snippet?.title,
+      })),
+    };
   }
 
   async verifyCapabilities(account: PublishAccount): Promise<CapabilityReport> {

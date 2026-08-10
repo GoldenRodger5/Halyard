@@ -21,6 +21,7 @@ import {
   type OAuthUrlOptions,
   type PlatformAdapter,
   type PlatformConstraints,
+  type PlatformIdentity,
   type PublishAccount,
   type PublishAsset,
   type PublishItem,
@@ -108,6 +109,28 @@ export class PinterestAdapter implements PlatformAdapter {
       'Pinterest token refresh',
     )) as TokenResponse;
     return toTokenSet(response);
+  }
+
+  async fetchIdentity(account: PublishAccount): Promise<PlatformIdentity> {
+    const me = (await this.get('/user_account', account)) as {
+      id?: string;
+      username?: string;
+      profile_image?: string;
+      account_type?: string;
+      follower_count?: number;
+    };
+    if (!me.username) {
+      throw new PublishError('Pinterest returned no account for this token.', 'malformed_response', undefined, undefined, me);
+    }
+    return {
+      platformUserId: me.id ?? me.username,
+      handle: me.username,
+      avatarUrl: me.profile_image,
+      followerCount: me.follower_count,
+      detail: me.account_type
+        ? `Account type: ${me.account_type.toLowerCase()}.`
+        : undefined,
+    };
   }
 
   async verifyCapabilities(account: PublishAccount): Promise<CapabilityReport> {

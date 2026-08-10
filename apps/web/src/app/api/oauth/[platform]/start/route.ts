@@ -8,6 +8,14 @@ import {
   type PlatformId,
 } from '@halyard/core';
 import { requireOperator } from '@/lib/auth';
+import { query } from '@/lib/db';
+
+async function personalProductId(): Promise<string | null> {
+  const rows = await query<{ id: string }>(
+    `select id from products where kind = 'personal' order by created_at limit 1`,
+  );
+  return rows[0]?.id ?? null;
+}
 
 export const dynamic = 'force-dynamic';
 
@@ -50,7 +58,16 @@ export async function GET(
   const redirectUri = `${base.replace(/\/$/, '')}/api/oauth/${platform}/callback`;
 
   const persona = (request.nextUrl.searchParams.get('persona') ?? 'brand') as 'brand' | 'founder';
-  const productId = request.nextUrl.searchParams.get('product') ?? 'recipefix';
+
+  // The founder account is one identity shared across every product, so it is
+  // always connected against the personal product regardless of which product
+  // page the operator started from.
+  const productId =
+    persona === 'founder'
+      ? (await personalProductId()) ??
+        request.nextUrl.searchParams.get('product') ??
+        'recipefix'
+      : (request.nextUrl.searchParams.get('product') ?? 'recipefix');
 
   const state = signState({ productId, platform, persona });
   const pkce = createPkcePair();

@@ -1,5 +1,14 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { needsRefresh, openToken, safeEqual, sealToken, getAdapter, PLATFORM_CLIENT_ENV, type PlatformId } from '@halyard/core';
+import {
+  needsRefresh,
+  openToken,
+  safeEqual,
+  sealToken,
+  getAdapter,
+  tokenExpiryState,
+  PLATFORM_CLIENT_ENV,
+  type PlatformId,
+} from '@halyard/core';
 import { query } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
@@ -18,6 +27,8 @@ const TASKS = [
   'score_performance',
   'refresh_tokens',
   'digest_email',
+  'account_health',
+  'purge_request_logs',
 ] as const;
 
 type Task = (typeof TASKS)[number];
@@ -38,6 +49,18 @@ export async function POST(request: NextRequest, context: { params: Promise<{ ta
   // the worker's environment, so it is the one cron that does real work inline.
   if (task === 'refresh_tokens') {
     return NextResponse.json(await refreshTokens());
+  }
+
+  if (task === 'account_health') {
+    return NextResponse.json(await accountHealth());
+  }
+
+  if (task === 'purge_request_logs') {
+    // build pack §8 — request logs are kept for seven days and no longer.
+    const purged = await query<{ id: string }>(
+      'delete from platform_requests where purge_after < now() returning id',
+    );
+    return NextResponse.json({ task, purged: purged.length });
   }
 
   const products = await query<{ id: string }>(`select id from products where status = 'active'`);
@@ -125,4 +148,54 @@ async function refreshTokens(): Promise<{ refreshed: number; failed: number }> {
   }
 
   return { refreshed, failed };
+}
+
+/**
+ * Daily account health. Milestone 40.
+ *
+ * Two things are worth knowing a week early: a token about to expire, and an
+ * identity that was confirmed with a warning and then forgotten. Both are quiet
+ * failures — the account looks connected right up to the moment a slot misses.
+ */
+async function accountHealth(): Promise<{ warned: number; expired: number }> {
+  const accounts = await query<{
+    id: string;
+    platform: string;
+    handle: string;
+    token_expires_at: string | null;
+  }>(
+    `select id, platform, handle, token_expires_at
+       from social_accounts
+      where capability_state in ('live','draft_only')
+        and access_token_enc is not null`,
+  );
+
+  let warned = 0;
+  let expired = 0;
+
+  for (const account of accounts) {
+    const state = tokenExpiryState(
+      account.token_expires_at ? new Date(account.token_expires_at) : null,
+    );
+    if (state.level === 'none') continue;
+    if (state.level === 'expired') expired++;
+    else warned++;
+
+    // One notification per account per day: re-warning hourly trains you to
+    // ignore the thing you most need to act on.
+    await query(
+      `insert into notifications (kind, severity, title, body, entity_type, entity_id, dedupe_key)
+       values ('auth_failure', $1, $2, $3, 'social_account', $4, $5)
+       on conflict (dedupe_key) do nothing`,
+      [
+        state.level === 'expired' ? 'critical' : 'warning',
+        `${account.platform} token for ${account.handle} ${state.level === 'expired' ? 'has expired' : `expires in ${state.days} days`}`,
+        `${state.message} Reconnect on the Accounts screen.`,
+        account.id,
+        `token_expiry:${account.id}:${new Date().toISOString().slice(0, 10)}`,
+      ],
+    );
+  }
+
+  return { warned, expired };
 }

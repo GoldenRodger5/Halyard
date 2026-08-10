@@ -30,6 +30,7 @@ import {
   type OAuthUrlOptions,
   type PlatformAdapter,
   type PlatformConstraints,
+  type PlatformIdentity,
   type PublishAccount,
   type PublishAsset,
   type PublishItem,
@@ -104,6 +105,39 @@ export class TikTokAdapter implements PlatformAdapter {
       'TikTok token refresh',
     )) as TokenResponse;
     return { ...toTokenSet(response), meta: tokens.meta };
+  }
+
+  async fetchIdentity(account: PublishAccount): Promise<PlatformIdentity> {
+    const fetchImpl = (account.meta?.fetchImpl as typeof fetch | undefined) ?? fetch;
+    const response = (await platformFetch(
+      fetchImpl,
+      `${API}/user/info/?fields=open_id,union_id,display_name,avatar_url,follower_count,username`,
+      { headers: { authorization: `Bearer ${account.tokens.accessToken}` } },
+      'TikTok user info',
+    )) as {
+      data?: {
+        user?: {
+          open_id?: string;
+          display_name?: string;
+          avatar_url?: string;
+          follower_count?: number;
+          username?: string;
+        };
+      };
+    };
+
+    const user = response.data?.user;
+    const openId = user?.open_id ?? (account.tokens.meta?.openId as string | undefined);
+    if (!openId) {
+      throw new PublishError('TikTok returned no open_id for this token.', 'malformed_response', undefined, undefined, response);
+    }
+    return {
+      platformUserId: openId,
+      handle: user?.username ?? user?.display_name ?? openId,
+      displayName: user?.display_name,
+      avatarUrl: user?.avatar_url,
+      followerCount: user?.follower_count,
+    };
   }
 
   async verifyCapabilities(account: PublishAccount): Promise<CapabilityReport> {

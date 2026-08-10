@@ -126,9 +126,15 @@ export async function getOnboarding(productId: string): Promise<OnboardingRow | 
 
 export interface AccountRow {
   id: string;
+  product_id: string;
+  product_name: string;
+  product_kind: string;
   platform: string;
   persona: string;
   handle: string;
+  display_name: string | null;
+  avatar_url: string | null;
+  follower_count: number | null;
   capability_state: string;
   capability_detail: string | null;
   supported_formats: string[];
@@ -137,18 +143,46 @@ export interface AccountRow {
   token_expires_at: string | null;
   last_verified_at: string | null;
   last_error: string | null;
+  identity_confirmed_at: string | null;
+  identity_warning: string | null;
+  last_self_test_at: string | null;
+  last_self_test_ok: boolean | null;
+  last_self_test_detail: string | null;
+  last_published_at: string | null;
+  has_token: boolean;
 }
 
+const ACCOUNT_COLUMNS = `sa.id, sa.product_id, p.name as product_name, p.kind as product_kind,
+        sa.platform, sa.persona, sa.handle, sa.display_name, sa.avatar_url, sa.follower_count,
+        sa.capability_state, sa.capability_detail, sa.supported_formats, sa.link_strategy,
+        sa.bio_link_url, sa.token_expires_at, sa.last_verified_at, sa.last_error,
+        sa.identity_confirmed_at, sa.identity_warning, sa.last_self_test_at,
+        sa.last_self_test_ok, sa.last_self_test_detail, sa.last_published_at,
+        (sa.access_token_enc is not null) as has_token`;
+
+/**
+ * Accounts reachable from a product: its own brand accounts, plus the founder
+ * account, which is shared across every product and lives on the personal one.
+ * Token ciphertext is deliberately absent from this projection.
+ */
 export async function getAccounts(productId?: string): Promise<AccountRow[]> {
-  // Token ciphertext is deliberately absent from this projection.
   return query<AccountRow>(
-    `select id, platform, persona, handle, capability_state, capability_detail,
-            supported_formats, link_strategy, bio_link_url, token_expires_at,
-            last_verified_at, last_error
-       from social_accounts
-      where ($1::text is null or product_id = $1)
-      order by platform, persona`,
+    `select ${ACCOUNT_COLUMNS}
+       from social_accounts sa
+       join products p on p.id = sa.product_id
+      where $1::text is null or sa.product_id = $1 or sa.persona = 'founder'
+      order by sa.persona desc, sa.platform`,
     [productId ?? null],
+  );
+}
+
+/** Every account on every product, for the accounts screen and readiness gate. */
+export async function getAllAccounts(): Promise<AccountRow[]> {
+  return query<AccountRow>(
+    `select ${ACCOUNT_COLUMNS}
+       from social_accounts sa
+       join products p on p.id = sa.product_id
+      order by (p.kind = 'product') desc, p.created_at, sa.persona desc, sa.platform`,
   );
 }
 

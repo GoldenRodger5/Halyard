@@ -37,6 +37,27 @@ export class DuplicatePublishAbort extends Error {
   }
 }
 
+/**
+ * Milestone 40. The database already makes this pairing impossible through the
+ * routing-scope foreign key, so reaching here means the constraint was dropped,
+ * the row was written by something that bypassed it, or the job payload was
+ * built from stale data. Any of those is a reason to stop, not to post.
+ */
+export class RoutingViolation extends Error {
+  constructor(
+    contentItemId: string,
+    itemScope: string,
+    accountScope: string,
+    accountHandle: string,
+  ) {
+    super(
+      `Refusing to publish ${contentItemId}: the item routes to '${itemScope}' but account ${accountHandle} serves '${accountScope}'. ` +
+        'A brand post cannot go out on the founder account, and no product can post from another product\'s account.',
+    );
+    this.name = 'RoutingViolation';
+  }
+}
+
 export class PublishingDisabled extends Error {
   constructor(reason: string | null) {
     super(`Publishing is disabled${reason ? `: ${reason}` : ''}. Kill switch is on.`);
@@ -63,6 +84,8 @@ interface ContentRow {
   requires_ai_label: boolean | null;
   render_ids: string[];
   series_id: string | null;
+  persona: 'founder' | 'brand';
+  routing_scope: string;
 }
 
 interface AccountRow {
@@ -77,6 +100,8 @@ interface AccountRow {
   scopes: string[];
   link_strategy: string;
   rate_limit_config: Record<string, unknown>;
+  persona: 'founder' | 'brand';
+  routing_scope: string;
 }
 
 export async function publishHandler(job: Job, ctx: HandlerContext): Promise<void> {
@@ -122,6 +147,30 @@ export async function publishHandler(job: Job, ctx: HandlerContext): Promise<voi
   if (!accountRow) throw new Error(`account ${item.account_id} not found`);
   if (accountRow.capability_state === 'disabled' || accountRow.capability_state === 'error') {
     throw new Error(`account ${accountRow.handle} is ${accountRow.capability_state}; not publishing`);
+  }
+
+  // ── 1b. Routing, asserted a second time ──────────────────────────────────
+  // The constraint in the schema is the real defence. This is the belt to its
+  // braces, and it is cheap: two strings already loaded.
+  if (item.routing_scope !== accountRow.routing_scope) {
+    await ctx.pool.query(
+      `insert into audit_log (actor, action, entity_type, entity_id, detail)
+       values ('system', 'routing_violation', 'content_item', $1, $2)`,
+      [
+        item.id,
+        {
+          itemScope: item.routing_scope,
+          accountScope: accountRow.routing_scope,
+          accountId: accountRow.id,
+        },
+      ],
+    );
+    throw new RoutingViolation(
+      item.id,
+      item.routing_scope,
+      accountRow.routing_scope,
+      accountRow.handle,
+    );
   }
 
   // ── 2. Compliance, as a code path rather than a habit (v2 C.3) ───────────
@@ -234,6 +283,12 @@ export async function publishHandler(job: Job, ctx: HandlerContext): Promise<voi
         where id = $1`,
       [item.id, result.mode === 'draft' ? 'awaiting_manual_publish' : 'published'],
     );
+
+    // An account that has posted recently is an account whose credential is
+    // known good, which is what /accounts and the readiness gate read.
+    await ctx.pool.query('update social_accounts set last_published_at = now() where id = $1', [
+      accountRow.id,
+    ]);
 
     await ctx.pool.query(
       `insert into audit_log (actor, action, entity_type, entity_id, detail)

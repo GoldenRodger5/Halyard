@@ -18,6 +18,7 @@ import {
   type PlatformAdapter,
   type PlatformComment,
   type PlatformConstraints,
+  type PlatformIdentity,
   type PublishAccount,
   type PublishAsset,
   type PublishItem,
@@ -97,6 +98,24 @@ export class ThreadsAdapter implements PlatformAdapter {
       'Threads token refresh',
     )) as TokenResponse;
     return { ...toTokenSet(refreshed), meta: tokens.meta };
+  }
+
+  async fetchIdentity(account: PublishAccount): Promise<PlatformIdentity> {
+    const me = (await this.get(
+      '/me?fields=id,username,name,threads_profile_picture_url',
+      account,
+    )) as { id?: string; username?: string; name?: string; threads_profile_picture_url?: string };
+
+    if (!me.id) {
+      throw new PublishError('Threads returned no user for this token.', 'malformed_response', undefined, undefined, me);
+    }
+    return {
+      platformUserId: me.id,
+      handle: me.username ?? me.id,
+      displayName: me.name,
+      avatarUrl: me.threads_profile_picture_url,
+      detail: 'Threads shares an identity with Instagram; the handle should match.',
+    };
   }
 
   async verifyCapabilities(account: PublishAccount): Promise<CapabilityReport> {
