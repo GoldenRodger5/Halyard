@@ -52,6 +52,16 @@ create index capture_runs_recent_idx on capture_runs (flow_id, started_at desc);
 alter table products add column observed_app_version text;
 alter table products add column observed_app_version_at timestamptz;
 
+/**
+ * Assets attached by hand, as opposed to media the render pipeline produced.
+ *
+ * These are two different things and conflating them loses information:
+ * `render_ids` holds *render* rows, which have a slide index, a quality and a
+ * failure state. An asset picked out of the library has none of those — it is
+ * simply a file the operator chose. Publishing sends both.
+ */
+alter table content_items add column attached_asset_ids uuid[] not null default '{}';
+
 -- The staleness sweep is a job, so it needs to be a legal job kind.
 alter table jobs drop constraint jobs_kind_check;
 alter table jobs add constraint jobs_kind_check check (kind in (

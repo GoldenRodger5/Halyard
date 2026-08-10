@@ -58,6 +58,15 @@ export interface CarouselSlideProps extends TemplateBase {
   kicker: string;
   headline: string;
   bodyLines: string[];
+  /**
+   * A real screenshot of the product, as a data URI. Milestone 41.
+   *
+   * Satori cannot fetch a URL, so the bytes are inlined by the render handler
+   * from the asset the composition picked. A slide showing the actual result
+   * card is worth more than any amount of typography describing it.
+   */
+  screenshotDataUri?: string;
+  screenshotCaption?: string;
 }
 
 function frame(props: TemplateBase, ...children: SatoriElement[]): SatoriElement {
@@ -311,11 +320,48 @@ export function carouselSlide(props: CarouselSlideProps): SatoriElement {
     }),
     box(
       { flexDirection: 'column' },
-      ...props.bodyLines.slice(0, 5).map((line) =>
+      ...props.bodyLines.slice(0, props.screenshotDataUri ? 2 : 5).map((line) =>
         text(line, { fontSize: 36, lineHeight: 1.4, marginBottom: 18, color: props.brand.ink }),
       ),
     ),
+    props.screenshotDataUri
+      ? box(
+          {
+            flexDirection: 'column',
+            marginTop: 24,
+            borderRadius: 24,
+            overflow: 'hidden',
+            // A screenshot on a bare background reads as a bug report. The
+            // border and inset give it the edge a device would.
+            border: `2px solid ${props.brand.muted}`,
+          },
+          screenshot(props.screenshotDataUri),
+        )
+      : box({ height: 0 }),
+    props.screenshotCaption
+      ? text(props.screenshotCaption, {
+          fontSize: 26,
+          marginTop: 16,
+          color: props.brand.muted,
+        })
+      : box({ height: 0 }),
   );
+}
+
+/**
+ * An inlined screenshot, cropped to its top edge.
+ *
+ * `objectFit: 'cover'` with a fixed height keeps every slide the same shape,
+ * which matters because Instagram crops slides 2..n to match slide 1.
+ */
+function screenshot(dataUri: string): SatoriElement {
+  return {
+    type: 'img',
+    props: {
+      src: dataUri,
+      style: { width: '100%', height: 560, objectFit: 'cover', objectPosition: 'top' },
+    },
+  };
 }
 
 export const TEMPLATE_REGISTRY = {

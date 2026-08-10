@@ -216,6 +216,9 @@ export interface QueueItem {
   preview_urls: string[];
   artifact_headline: string | null;
   edited_by_human: boolean;
+  product_id: string;
+  attached_asset_ids: string[];
+  attached_urls: string[];
 }
 
 const QUEUE_SELECT = `
@@ -223,7 +226,7 @@ const QUEUE_SELECT = `
          ci.alt_text, ci.hashtags, ci.final_link_url, ci.link_url, ci.status,
          ci.scheduled_at, ci.qc_results, ci.claims, ci.ai_components,
          ci.requires_ai_label, ci.disclosure_text, ci.audio_mode,
-         ci.edited_by_human, ci.sequence_number,
+         ci.edited_by_human, ci.sequence_number, ci.product_id, ci.attached_asset_ids,
          i.title as idea_title,
          s.name as series_name,
          ci.product_artifact ->> 'recipeName' as artifact_headline,
@@ -231,7 +234,8 @@ const QUEUE_SELECT = `
          coalesce(r.done, 0)   as render_done,
          coalesce(r.failed, 0) as render_failed,
          r.first_error         as render_error,
-         coalesce(r.urls, '{}') as preview_urls
+         coalesce(r.urls, '{}') as preview_urls,
+         coalesce(att.urls, '{}') as attached_urls
     from content_items ci
     left join ideas i on i.id = ci.idea_id
     left join series s on s.id = ci.series_id
@@ -245,6 +249,11 @@ const QUEUE_SELECT = `
         left join assets a on a.id = rr.output_asset_id
        where rr.content_item_id = ci.id and rr.quality = 'final'
     ) r on true
+    left join lateral (
+      select array_remove(array_agg(a.public_url order by array_position(ci.attached_asset_ids, a.id)), null) as urls
+        from assets a
+       where a.id = any(ci.attached_asset_ids)
+    ) att on true
 `;
 
 export async function getQueue(filters: {

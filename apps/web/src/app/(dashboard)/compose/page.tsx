@@ -1,4 +1,6 @@
+import Link from 'next/link';
 import { Card, PageHeader, SectionTitle } from '@halyard/ui';
+import { AssetPicker } from '@/components/AssetPicker';
 import { query } from '@/lib/db';
 import { getProducts } from '@/lib/queries';
 import { ComposeClient } from './ComposeClient';
@@ -9,9 +11,22 @@ export default async function ComposePage() {
   const products = await getProducts();
   const product = products[0];
 
-  const sessions = await query<{ id: string; title: string | null; created_at: string }>(
-    'select id, title, created_at from compose_sessions order by created_at desc limit 12',
-  );
+  const [sessions, recentDrafts] = await Promise.all([
+    query<{ id: string; title: string | null; created_at: string }>(
+      'select id, title, created_at from compose_sessions order by created_at desc limit 12',
+    ),
+    // Drafts queued from the co-pilot, which is what an asset gets attached to.
+    query<{ id: string; body: string; attached_asset_ids: string[] }>(
+      `select id, body, attached_asset_ids
+         from content_items
+        where product_id = $1
+          and status in ('draft','pending_approval')
+          and generation_meta ->> 'source' = 'compose'
+        order by created_at desc limit 3`,
+      [product?.id ?? 'recipefix'],
+    ),
+  ]);
+  const latestDraft = recentDrafts[0];
 
   return (
     <>
@@ -43,6 +58,33 @@ export default async function ComposePage() {
                 </li>
               ))}
             </ul>
+          </Card>
+
+          <Card className="p-4">
+            <SectionTitle hint="captures of the live product, and photographs">
+              Attach an asset
+            </SectionTitle>
+            {latestDraft ? (
+              <>
+                <p className="mb-3 line-clamp-2 text-xs text-muted">
+                  Attaches to your most recent draft: “{latestDraft.body.slice(0, 80)}…”
+                </p>
+                <AssetPicker
+                  contentItemId={latestDraft.id}
+                  productId={product?.id ?? 'recipefix'}
+                  attachedIds={latestDraft.attached_asset_ids ?? []}
+                />
+              </>
+            ) : (
+              <p className="text-sm text-muted">
+                Queue a draft from the conversation and its assets can be picked here. The library
+                lives on{' '}
+                <Link href="/assets" className="text-primary underline">
+                  Assets
+                </Link>
+                .
+              </p>
+            )}
           </Card>
 
           <Card className="p-4">

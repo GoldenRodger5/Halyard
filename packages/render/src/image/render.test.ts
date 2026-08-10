@@ -5,7 +5,7 @@
  * Set HALYARD_WRITE_SNAPSHOTS=1 to drop the PNGs into .render-output/ for a
  * visual look. They are not committed.
  */
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
@@ -172,6 +172,63 @@ describe('renderTemplate produces real PNGs', () => {
       expect(result.width).toBe(canvas.width);
       expect(result.height).toBe(canvas.height);
     }
+  }, 60_000);
+
+  /**
+   * Milestone 41's definition of done: "A carousel renders containing a real
+   * screenshot of the result card."
+   *
+   * The screenshot comes from scripts/capture-flows.ts, which drives the live
+   * recipefix.app. When no capture exists on this machine the test falls back to
+   * a generated stand-in of the same shape rather than skipping, so it still
+   * proves the composition path — and says which it used.
+   */
+  it('renders a carousel slide around a real screenshot of the product', async () => {
+    const captureDir = path.resolve(
+      path.dirname(fileURLToPath(import.meta.url)),
+      '../../../../apps/web/public/dev-assets',
+    );
+    const capture = existsSync(captureDir)
+      ? readdirSync(captureDir).find((f) => f.startsWith('screenshot-') && f.endsWith('.png'))
+      : undefined;
+
+    const png = capture
+      ? readFileSync(path.join(captureDir, capture))
+      : (await renderTemplate({
+          templateId: 'chef_note_quote',
+          props: chefNoteProps(artifact) as unknown as Record<string, unknown>,
+          aspectRatio: '1:1',
+        })).png;
+
+    const slide = {
+      ...carouselProps(artifact)[0]!,
+      kicker: 'the result',
+      headline: 'This is what comes back',
+      bodyLines: ['Every substitution carries the reason it was made.'],
+      screenshotDataUri: `data:image/png;base64,${png.toString('base64')}`,
+      screenshotCaption: capture
+        ? 'Captured from recipefix.app'
+        : 'Stand-in: no capture on this machine',
+    };
+
+    const result = await renderTemplate({
+      templateId: 'carousel_6',
+      props: slide as unknown as Record<string, unknown>,
+      aspectRatio: '4:5',
+      wordmark: 'recipefix',
+    });
+    save('carousel_with_screenshot.png', result.png);
+
+    expect(result.png.byteLength).toBeGreaterThan(20_000);
+    expect(result.width).toBe(CANVAS['4:5']!.width);
+
+    // The slide must not be the screenshot alone: the headline is what makes it
+    // a carousel slide rather than a pasted image.
+    const qc = runVisualQC(
+      { kind: 'image', width: result.width, height: result.height },
+      { aspectRatio: '4:5', platform: 'instagram', format: 'carousel' },
+    );
+    expect(qc.passed, qc.summary).toBe(true);
   }, 60_000);
 
   it('renders all six carousel slides at one aspect ratio — Instagram crops otherwise', async () => {

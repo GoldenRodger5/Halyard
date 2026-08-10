@@ -10,6 +10,7 @@ import {
   PlatformDot,
   SectionTitle,
 } from '@halyard/ui';
+import { AssetPicker } from '@/components/AssetPicker';
 import { getItemArtifact, getProducts, getQueueItem } from '@/lib/queries';
 import { formatInOperatorTz } from '@/lib/format';
 import { editItem, rescheduleItem } from '../actions';
@@ -29,6 +30,10 @@ export default async function QueueItemPage({ params }: { params: Promise<{ id: 
   } | null;
 
   const gates = item.qc_results?.gates ?? [];
+  const media = [...item.preview_urls, ...(item.attached_urls ?? [])];
+  const staleAttached = (
+    (item.qc_results as { staleAssets?: Array<{ reason: string | null }> }).staleAssets ?? []
+  ).filter((s) => s.reason);
 
   return (
     <>
@@ -54,13 +59,14 @@ export default async function QueueItemPage({ params }: { params: Promise<{ id: 
             <SectionTitle hint={`${item.render_done} of ${item.render_total} rendered`}>
               Preview
             </SectionTitle>
-            {item.preview_urls.length === 0 ? (
+            {media.length === 0 ? (
               <p className="py-8 text-center text-sm text-muted">
-                No rendered media yet.
+                No media yet. Rendered slides appear here once the render job finishes; you can also
+                attach a real screenshot or a photograph below.
               </p>
             ) : (
               <div className="flex gap-3 overflow-x-auto pb-2">
-                {item.preview_urls.map((url, i) => (
+                {media.map((url, i) => (
                     <img
                     key={url}
                     src={url}
@@ -70,6 +76,26 @@ export default async function QueueItemPage({ params }: { params: Promise<{ id: 
                 ))}
               </div>
             )}
+
+            <div className="mt-4 border-t border-line pt-4">
+              <SectionTitle hint="captures of the live product, and photographs">
+                Attach from the library
+              </SectionTitle>
+              {staleAttached.length > 0 ? (
+                <p className="mb-3 rounded-lg bg-warn/10 px-3 py-2 text-xs text-ink">
+                  {staleAttached.length === 1
+                    ? 'An attached asset is stale: '
+                    : `${staleAttached.length} attached assets are stale: `}
+                  {staleAttached[0]!.reason}
+                </p>
+              ) : null}
+              <AssetPicker
+                contentItemId={item.id}
+                productId={item.product_id}
+                attachedIds={item.attached_asset_ids ?? []}
+                usableFor={item.format === 'video' ? 'video' : 'image'}
+              />
+            </div>
           </Card>
 
           <Card className="p-4">

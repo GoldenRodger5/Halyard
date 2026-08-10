@@ -83,6 +83,7 @@ interface ContentRow {
   disclosure_text: string | null;
   requires_ai_label: boolean | null;
   render_ids: string[];
+  attached_asset_ids: string[];
   series_id: string | null;
   persona: 'founder' | 'brand';
   routing_scope: string;
@@ -197,7 +198,11 @@ export async function publishHandler(job: Job, ctx: HandlerContext): Promise<voi
     ]);
   }
 
-  const assets = await loadAssets(ctx, item.render_ids);
+  // Rendered media first, then anything the operator attached from the library.
+  const assets = [
+    ...(await loadAssets(ctx, item.render_ids)),
+    ...(await loadAttachedAssets(ctx, item.attached_asset_ids)),
+  ];
 
   const account: PublishAccount = {
     id: accountRow.id,
@@ -381,6 +386,49 @@ export async function publishHandler(job: Job, ctx: HandlerContext): Promise<voi
     await ctx.pool.query(`update content_items set status = 'approved' where id = $1`, [item.id]);
     throw error;
   }
+}
+
+/**
+ * Assets the operator picked out of the library, which have no render row and
+ * therefore no slide index — they keep the order they were attached in.
+ */
+async function loadAttachedAssets(
+  ctx: HandlerContext,
+  assetIds: string[],
+): Promise<PublishAsset[]> {
+  if (!assetIds || assetIds.length === 0) return [];
+  const { rows } = await ctx.pool.query<{
+    id: string;
+    public_url: string | null;
+    mime_type: string;
+    width: number | null;
+    height: number | null;
+    duration_seconds: string | null;
+    caption: string | null;
+    alt_text: string | null;
+  }>(
+    `select a.id, a.public_url, a.mime_type, a.width, a.height, a.duration_seconds,
+            a.caption, a.alt_text
+       from assets a
+      where a.id = any($1::uuid[]) and a.archived_at is null
+      order by array_position($1::uuid[], a.id)`,
+    [assetIds],
+  );
+
+  return rows.map((row) => ({
+    id: row.id,
+    publicUrl: row.public_url ?? '',
+    mimeType: row.mime_type,
+    kind: row.mime_type.startsWith('video')
+      ? ('video' as const)
+      : row.mime_type.startsWith('audio')
+        ? ('audio' as const)
+        : ('image' as const),
+    width: row.width ?? undefined,
+    height: row.height ?? undefined,
+    durationSeconds: row.duration_seconds ? Number(row.duration_seconds) : undefined,
+    altText: row.alt_text ?? row.caption,
+  }));
 }
 
 async function loadAssets(ctx: HandlerContext, renderIds: string[]): Promise<PublishAsset[]> {
