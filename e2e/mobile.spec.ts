@@ -38,6 +38,8 @@ test('no screen scrolls horizontally on a phone', async ({ page }) => {
     '/inbox',
     '/setup-kit',
     '/accounts',
+    '/launch',
+    '/first-30-days',
   ]) {
     // Two races to survive here, both artefacts of the dev server rather than
     // the app: `waitUntil: 'load'` races the first compile, and a hydrating page

@@ -76,6 +76,29 @@ d('seed.sql', () => {
     expect(Object.keys(rows[0]?.mix_targets ?? {}).length).toBeGreaterThan(0);
   });
 
+  it('seeds enough hooks per type that rotation has something to rotate', async () => {
+    // Hook selection applies a 30-day cooldown per pattern. With one entry per
+    // type, every type is on cooldown after a single use and selection falls
+    // back to whatever is least stale rather than what fits the post.
+    const { rows } = await pool.query<{ hook_type: string; n: string }>(
+      `select hook_type, count(*) as n from hooks
+        where product_id = 'recipefix' group by hook_type`,
+    );
+    expect(rows.length).toBe(8);
+    for (const row of rows) {
+      expect(Number(row.n), `only ${row.n} ${row.hook_type} hook(s)`).toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  it('gives every seeded hook the columns the schema demands', async () => {
+    const { rows } = await pool.query<{ n: string }>(
+      `select count(*) as n from hooks
+        where product_id = 'recipefix'
+          and (hook_type is null or pattern_template is null or layer is null)`,
+    );
+    expect(Number(rows[0]!.n)).toBe(0);
+  });
+
   it('leaves no product-scoped table stranded by the migration ordering', async () => {
     // A migration that inserts per-product rows inserts zero on a fresh
     // database, because the product does not exist yet. Any table that is meant

@@ -4,10 +4,17 @@
  */
 import 'server-only';
 import {
+  computeBestTimes,
+  describeFunnel,
   describeGap,
+  describeSlotConfidence,
+  describeWhatIsNotMeasurable,
   missingMetrics,
+  type ColdStartReadout,
+  type FunnelHonesty,
   type PlatformId,
   type ScoredMetric,
+  type TimingResult,
 } from '@halyard/core';
 import { one, query } from './db';
 
@@ -538,6 +545,20 @@ export interface AnalyticsSnapshot {
    * different facts, and only one of them should change strategy.
    */
   transportGaps: Array<{ platform: string; missing: string[]; note: string }>;
+  /**
+   * Milestone 51. What is not yet knowable, and the timing windows with their
+   * provenance attached — default, still learning, or actually measured.
+   */
+  coldStart: {
+    lines: string[];
+    funnel: FunnelHonesty;
+    publishedPosts: number;
+  };
+  timing: Array<{
+    platform: string;
+    slots: Array<{ name: string; window: string; posts: number; readout: ColdStartReadout }>;
+    result: TimingResult;
+  }>;
   appStore: {
     configured: boolean;
     impressions: number;
@@ -640,7 +661,99 @@ export async function getAnalytics(): Promise<AnalyticsSnapshot> {
     .filter((gap) => gap !== null)
     .map((gap) => ({ platform: gap!.platform, missing: [...gap!.missing] as string[], note: gap!.note }));
 
+  // ── Milestone 51: what is not yet knowable ───────────────────────────────
+  const learningSettings = await getSettings();
+  const minPostsForLearning = learningSettings.learning_min_posts_per_category;
+
+  const published = await one<{ posts: string; platforms: string; first_at: string | null }>(
+    `select count(*) as posts,
+            count(distinct platform) as platforms,
+            min(published_at) as first_at
+       from content_items where status = 'published'`,
+  );
+
+  const publishedPosts = Number(published?.posts ?? 0);
+  const daysSinceFirstPost = published?.first_at
+    ? Math.max(
+        0,
+        Math.floor((Date.now() - new Date(published.first_at).getTime()) / 86_400_000),
+      )
+    : null;
+
+  const coldStart = {
+    lines: describeWhatIsNotMeasurable({
+      publishedPosts,
+      daysSinceFirstPost,
+      platformsWithPosts: Number(published?.platforms ?? 0),
+      categoriesAtThreshold: postsPerCategory.filter((c) => c.posts >= minPostsForLearning).length,
+    }),
+    funnel: describeFunnel(
+      {
+        impressions: Number(funnel?.impressions ?? 0),
+        clicks: Number(funnel?.clicks ?? 0),
+        signups: Number(funnel?.signups ?? 0),
+        activated: Number(funnel?.activated ?? 0),
+      },
+      publishedPosts,
+    ),
+    publishedPosts,
+  };
+
+  // Timing, per platform, with each window's provenance. `computeBestTimes`
+  // has always refused to answer below its sample threshold; until now nothing
+  // asked it, so the refusal was never shown to anyone.
+  const slotRows = await query<{
+    platform: string;
+    name: string;
+    window_start: string;
+    window_end: string;
+    posts: string;
+  }>(
+    `select s.platform, s.name, s.window_start, s.window_end,
+            (select count(*) from content_items ci
+              where ci.slot_id = s.id and ci.status = 'published') as posts
+       from slots s
+      where s.enabled
+      order by s.platform, s.window_start`,
+  );
+
+  // Impressions as the timing measure, from the latest snapshot per post.
+  // Timing is a question about reach — when were more people around — and using
+  // a blended engagement score here would confound *when* it went out with *how
+  // good it was*, which is the other chart's job.
+  const timings = await query<{ platform: string; weekday: number; hour: number; score: number }>(
+    `select ci.platform,
+            extract(isodow from ci.published_at at time zone p.audience_timezone)::int as weekday,
+            extract(hour from ci.published_at at time zone p.audience_timezone)::int as hour,
+            coalesce(
+              (select m.impressions from post_metrics m
+                 join publications pub on pub.id = m.publication_id
+                where pub.content_item_id = ci.id
+                order by m.collected_at desc limit 1),
+              0
+            )::float as score
+       from content_items ci
+       join products p on p.id = ci.product_id
+      where ci.status = 'published' and ci.published_at is not null`,
+  );
+
+  const timingPlatforms = [...new Set(slotRows.map((row) => row.platform))];
+  const timing = timingPlatforms.map((platform) => ({
+    platform,
+    slots: slotRows
+      .filter((row) => row.platform === platform)
+      .map((row) => ({
+        name: row.name,
+        window: `${row.window_start.slice(0, 5)}–${row.window_end.slice(0, 5)}`,
+        posts: Number(row.posts),
+        readout: describeSlotConfidence(Number(row.posts)),
+      })),
+    result: computeBestTimes(timings, { platform }),
+  }));
+
   return {
+    coldStart,
+    timing,
     postsPerCategory,
     byPlatform,
     funnel: {

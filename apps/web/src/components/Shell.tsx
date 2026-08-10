@@ -42,6 +42,7 @@ const NAV: Array<{ href: string; label: string; group: 'work' | 'plan' | 'config
   { href: '/templates', label: 'Templates', group: 'config' },
   { href: '/submissions', label: 'Submissions', group: 'config' },
   { href: '/settings/readiness', label: 'Readiness', group: 'config' },
+  { href: '/first-30-days', label: 'First 30 days', group: 'config' },
   { href: '/settings', label: 'Settings', group: 'config' },
 ];
 

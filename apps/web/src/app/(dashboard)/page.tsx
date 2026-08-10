@@ -273,9 +273,19 @@ export default async function DashboardPage() {
             ].map(([label, value]) => (
               <div key={String(label)} className="flex items-baseline justify-between px-5 py-3">
                 <span className="text-sm text-muted">{label}</span>
-                <span className="font-serif text-2xl text-ink">{Number(value).toLocaleString()}</span>
+                <span className="font-serif text-2xl text-ink">
+                  {/* An em dash rather than a zero. Nothing measured and nobody
+                      engaged look identical as "0", and only one of them is a
+                      reason to change anything. */}
+                  {analytics.coldStart.funnel.empty ? '—' : Number(value).toLocaleString()}
+                </span>
               </div>
             ))}
+            {analytics.coldStart.funnel.message ? (
+              <p className="px-5 py-3 text-xs leading-relaxed text-muted">
+                {analytics.coldStart.funnel.message}
+              </p>
+            ) : null}
           </Card>
 
           <div className="mt-6">

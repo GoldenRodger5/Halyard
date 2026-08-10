@@ -1,5 +1,15 @@
-import { Banner, Card, EmptyState, MiniBar, PLATFORM_LABELS, PageHeader, SectionTitle } from '@halyard/ui';
-import { attributionReadiness } from '@halyard/core';
+import {
+  Badge,
+  Banner,
+  Card,
+  EmptyState,
+  MiniBar,
+  PLATFORM_LABELS,
+  PageHeader,
+  PlatformDot,
+  SectionTitle,
+} from '@halyard/ui';
+import { attributionReadiness, type PlatformId } from '@halyard/core';
 import { getAnalytics, getSettings } from '@/lib/queries';
 import { formatNumber } from '@/lib/format';
 
@@ -30,7 +40,23 @@ export default async function AnalyticsPage() {
         </Banner>
       ) : null}
 
-      <div className="mb-8 grid gap-4 sm:grid-cols-4">
+      {/* ── what is not yet measurable ──────────────────────────────────────
+          Read before the charts rather than after, so somebody knows whether to
+          believe a number while they are looking at it. */}
+      {analytics.coldStart.lines.length > 0 ? (
+        <Card className="mb-6 p-4">
+          <h2 className="text-sm font-medium text-ink">What is not measurable yet</h2>
+          <ul className="mt-2 space-y-1.5">
+            {analytics.coldStart.lines.map((line) => (
+              <li key={line} className="text-sm leading-relaxed text-muted">
+                {line}
+              </li>
+            ))}
+          </ul>
+        </Card>
+      ) : null}
+
+      <div className="mb-2 grid gap-4 sm:grid-cols-4">
         {[
           ['Impressions', analytics.funnel.impressions],
           ['Link clicks', analytics.funnel.clicks],
@@ -38,11 +64,20 @@ export default async function AnalyticsPage() {
           ['Activated users', analytics.funnel.activated],
         ].map(([label, value], i, all) => {
           const previous = i === 0 ? null : Number(all[i - 1]![1]);
-          const rate = previous && previous > 0 ? (Number(value) / previous) * 100 : null;
+          // A rate needs both halves. "0.0% of the step before" computed from
+          // nothing reads as a catastrophic conversion rate rather than as an
+          // empty database, which is the single most misleading thing this page
+          // can render on day one.
+          const rate =
+            !analytics.coldStart.funnel.suppressRates && previous && previous > 0
+              ? (Number(value) / previous) * 100
+              : null;
           return (
             <Card key={String(label)} className="p-4">
               <p className="text-xs uppercase tracking-[0.1em] text-muted">{label}</p>
-              <p className="mt-1 font-serif text-3xl text-ink">{formatNumber(Number(value))}</p>
+              <p className="mt-1 font-serif text-3xl text-ink">
+                {analytics.coldStart.funnel.empty ? '—' : formatNumber(Number(value))}
+              </p>
               {rate !== null ? (
                 <p className="mt-1 text-xs text-muted">{rate.toFixed(1)}% of the step before</p>
               ) : null}
@@ -50,6 +85,13 @@ export default async function AnalyticsPage() {
           );
         })}
       </div>
+      {analytics.coldStart.funnel.message ? (
+        <p className="mb-8 max-w-3xl text-sm leading-relaxed text-muted">
+          {analytics.coldStart.funnel.message}
+        </p>
+      ) : (
+        <div className="mb-8" />
+      )}
 
       <div className="grid gap-6 lg:grid-cols-2">
         <section className="min-w-0">
@@ -194,6 +236,51 @@ export default async function AnalyticsPage() {
             </Card>
           </section>
         ) : null}
+
+        {/* ── best time to post ─────────────────────────────────────────── */}
+        <section className="min-w-0">
+          <SectionTitle hint="shipped defaults until enough posts have run through each window">
+            Best time to post
+          </SectionTitle>
+          <Card className="divide-y divide-line">
+            {analytics.timing.map((platform) => (
+              <div key={platform.platform} className="p-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <PlatformDot platform={platform.platform} />
+                  <span className="text-sm font-medium text-ink">
+                    {PLATFORM_LABELS[platform.platform as PlatformId] ?? platform.platform}
+                  </span>
+                  {platform.result.ready ? (
+                    <Badge tone="good">measured</Badge>
+                  ) : (
+                    <Badge tone="neutral">defaults</Badge>
+                  )}
+                </div>
+
+                {!platform.result.ready ? (
+                  <p className="mt-1 text-sm text-muted">{platform.result.reason}</p>
+                ) : null}
+
+                <ul className="mt-2 space-y-1">
+                  {platform.slots.map((slot) => (
+                    <li key={slot.name} className="flex flex-wrap items-baseline gap-2 text-sm">
+                      <span className="w-24 shrink-0 text-ink">{slot.name}</span>
+                      <span className="tabular-nums text-muted">{slot.window}</span>
+                      <span className="text-xs text-muted">
+                        {slot.readout.n} of {slot.readout.needed} posts &mdash; {slot.readout.label}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+            {analytics.timing.length === 0 ? (
+              <p className="p-4 text-sm text-muted">
+                No slot windows are configured yet. They are created with the product.
+              </p>
+            ) : null}
+          </Card>
+        </section>
 
         <section className="min-w-0">
           <SectionTitle hint="a different system, never summed with web sessions">

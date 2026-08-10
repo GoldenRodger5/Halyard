@@ -204,7 +204,54 @@ insert into hooks (product_id, pattern, pattern_template, hook_type, layer, plat
   ('recipefix', 'Watch the crumb when the acid goes in.', 'Watch {thing} when {event}.',
    'demonstration', 'visual', 'tiktok', 'transformation', 'seeded'),
   ('recipefix', 'If you bake without gluten, this one is for you.', 'If you {activity}, this one is for you.',
-   'segment_call', 'text', null, 'education', 'seeded')
+   'segment_call', 'text', null, 'education', 'seeded'),
+
+  -- Milestone 51: three patterns per type rather than one.
+  --
+  -- One each was enough to prove the shape and not enough to use. Hook
+  -- selection applies a 30-day cooldown per pattern, so a library with a single
+  -- entry per type has every type on cooldown after a single use and rotation
+  -- falls back to whatever is least stale rather than what fits. Three gives the
+  -- rotation something to rotate.
+  ('recipefix', 'Your {dish} is {problem} and it is not your fault.', 'Your {dish} is {problem} and it is not your fault.',
+   'problem_state', 'text', null, 'education', 'seeded'),
+  ('recipefix', 'The {diet} version fails at exactly one step.', 'The {diet} version fails at exactly one step.',
+   'problem_state', 'text', null, 'transformation', 'seeded'),
+
+  ('recipefix', 'It works. Nobody can tell you why.', 'It works. Nobody can tell you why.',
+   'open_loop', 'text', null, 'education', 'seeded'),
+  ('recipefix', 'One line in this recipe is doing all the work.', 'One line in this {thing} is doing all the work.',
+   'open_loop', 'text', null, 'transformation', 'seeded'),
+
+  ('recipefix', 'The expensive ingredient is the one you can skip.', 'The expensive {thing} is the one you can skip.',
+   'contradiction', 'text', null, 'education', 'seeded'),
+  ('recipefix', 'Less liquid. Wetter crumb.', 'Less {thing}. {adjective} {thing_2}.',
+   'contradiction', 'text', null, 'transformation', 'seeded'),
+
+  ('recipefix', 'Twelve minutes longer. Twenty-five degrees lower.', '{n} minutes longer. {m} degrees lower.',
+   'specificity', 'text', null, 'education', 'seeded'),
+  ('recipefix', 'One teaspoon changes the whole texture.', '{n} {unit} changes the whole {thing}.',
+   'specificity', 'text', null, 'transformation', 'seeded'),
+
+  ('recipefix', 'Resting dough is not about the gluten.', '{activity} is not about the {thing}.',
+   'myth_bust', 'text', null, 'education', 'seeded'),
+  ('recipefix', 'Room-temperature butter is not a temperature.', '{thing} is not a {category}.',
+   'myth_bust', 'text', null, 'education', 'seeded'),
+
+  ('recipefix', 'I got this wrong for two years.', 'I got {thing} wrong for {n} years.',
+   'confession', 'text', 'x', 'founder_insight', 'seeded'),
+  ('recipefix', 'The first version of this feature was useless.', 'The first version of {thing} was useless.',
+   'confession', 'text', 'x', 'founder_insight', 'seeded'),
+
+  ('recipefix', 'Watch what happens at the four minute mark.', 'Watch what happens at the {n} {unit} mark.',
+   'demonstration', 'visual', 'tiktok', 'transformation', 'seeded'),
+  ('recipefix', 'Same recipe. Both pans. One swap.', 'Same {thing}. Both {thing_2}. One swap.',
+   'demonstration', 'visual', 'instagram', 'transformation', 'seeded'),
+
+  ('recipefix', 'For anybody cooking around somebody else''s allergy.', 'For anybody {activity}.',
+   'segment_call', 'text', null, 'community', 'seeded'),
+  ('recipefix', 'If you have ever thrown out a whole loaf, read this.', 'If you have ever {activity}, read this.',
+   'segment_call', 'text', null, 'community', 'seeded')
 on conflict do nothing;
 
 -- ── Voice lexicon (v2 D.2) — cooking is full of terms TTS gets wrong ───────

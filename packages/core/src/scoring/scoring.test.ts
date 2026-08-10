@@ -8,6 +8,13 @@ import {
   stampUtm,
 } from './attribution.js';
 import {
+  MIN_POSTS_PER_SLOT,
+  canMakeClaim,
+  describeFunnel,
+  describeSlotConfidence,
+  describeWhatIsNotMeasurable,
+} from './coldStart.js';
+import {
   ENGAGEMENT_WEIGHTS,
   LOW_CONFIDENCE_IMPRESSIONS,
   SCORE_WEIGHTS,
@@ -177,5 +184,120 @@ describe('opportunities panel — v1 §8', () => {
     });
     expect(out.join(' ')).toMatch(/transformation converted 2\.7× better than community/);
     expect(out.join(' ')).toMatch(/pinterest link clicks convert at 3\.1×/);
+  });
+
+  it('distinguishes "no data" from "enough data, nothing stands out"', () => {
+    // Telling somebody to keep collecting evidence they already have is a
+    // different mistake from telling them they have none, and it sends them
+    // the wrong way.
+    const out = findOpportunities({
+      byCategory: [
+        { category: 'transformation', posts: 24, activatedPer1k: 5.0 },
+        { category: 'community', posts: 22, activatedPer1k: 4.6 },
+      ],
+      byPlatform: [],
+    });
+    expect(out[0]).toMatch(/Nothing stands out yet/);
+    expect(out[0]).not.toMatch(/Not enough data/);
+    expect(out[0]).toMatch(/not the lever/);
+  });
+
+  it('says how far off the threshold is when it genuinely is short', () => {
+    const out = findOpportunities({
+      byCategory: [{ category: 'transformation', posts: 3, activatedPer1k: 9 }],
+      byPlatform: [],
+    });
+    expect(out[0]).toMatch(/the busiest has 3/);
+  });
+});
+
+describe('cold start — milestone 51', () => {
+  it('calls an untouched slot window a default, not a measurement', () => {
+    const readout = describeSlotConfidence(0);
+    expect(readout.provenance).toBe('default');
+    expect(readout.detail).toContain('not a measurement');
+  });
+
+  it('keeps calling it a default while it is still learning', () => {
+    const readout = describeSlotConfidence(4);
+    expect(readout.provenance).toBe('learning');
+    expect(readout.label).toContain('default');
+    expect(readout.detail).toContain('4 of about 12');
+  });
+
+  it('only calls it measured once there is enough behind it', () => {
+    expect(describeSlotConfidence(MIN_POSTS_PER_SLOT).provenance).toBe('measured');
+  });
+
+  it('suppresses funnel rates when nothing has published', () => {
+    const honesty = describeFunnel({ impressions: 0, clicks: 0, signups: 0, activated: 0 }, 0);
+    expect(honesty.empty).toBe(true);
+    expect(honesty.suppressRates).toBe(true);
+    // The distinction that matters: absent, not low.
+    expect(honesty.message).toContain('absent');
+  });
+
+  it('separates "published but no metrics yet" from "published and ignored"', () => {
+    const honesty = describeFunnel({ impressions: 0, clicks: 0, signups: 0, activated: 0 }, 6);
+    expect(honesty.empty).toBe(true);
+    expect(honesty.message).toContain('delay');
+  });
+
+  it('holds back a conversion rate that would divide by an empty stage', () => {
+    const honesty = describeFunnel({ impressions: 5000, clicks: 0, signups: 0, activated: 0 }, 6);
+    expect(honesty.empty).toBe(false);
+    expect(honesty.suppressRates).toBe(true);
+  });
+
+  it('shows rates once both halves exist', () => {
+    const honesty = describeFunnel({ impressions: 5000, clicks: 90, signups: 20, activated: 8 }, 6);
+    expect(honesty.suppressRates).toBe(false);
+    expect(honesty.message).toBe('');
+  });
+
+  it('names activation as the missing half when clicks arrive but nothing converts', () => {
+    const honesty = describeFunnel({ impressions: 5000, clicks: 90, signups: 0, activated: 0 }, 6);
+    expect(honesty.message).toContain('utm_content');
+  });
+
+  it('says everything is a starting position when nothing has published', () => {
+    const lines = describeWhatIsNotMeasurable({
+      publishedPosts: 0,
+      daysSinceFirstPost: null,
+      platformsWithPosts: 0,
+      categoriesAtThreshold: 0,
+    });
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toContain('starting position');
+  });
+
+  it('names each thing that is not yet separable from noise', () => {
+    const lines = describeWhatIsNotMeasurable({
+      publishedPosts: 8,
+      daysSinceFirstPost: 5,
+      platformsWithPosts: 1,
+      categoriesAtThreshold: 1,
+    }).join(' ');
+    expect(lines).toContain('8 posts published over 5 days');
+    expect(lines).toContain('Conversion by category');
+    expect(lines).toContain('Only one platform');
+    expect(lines).toContain('separable from noise');
+  });
+
+  it('stops explaining once there is enough to go on', () => {
+    const lines = describeWhatIsNotMeasurable({
+      publishedPosts: 200,
+      daysSinceFirstPost: 90,
+      platformsWithPosts: 5,
+      categoriesAtThreshold: 4,
+    });
+    expect(lines).toHaveLength(1);
+  });
+
+  it('refuses a claim when either side is short, and says by how much', () => {
+    const verdict = canMakeClaim(3, 40, 20);
+    expect(verdict.allowed).toBe(false);
+    expect(verdict.reason).toContain('there are 3 and 40');
+    expect(canMakeClaim(40, 40, 20).allowed).toBe(true);
   });
 });

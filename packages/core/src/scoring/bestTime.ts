@@ -59,7 +59,9 @@ export function computeBestTimes(
     return {
       ready: false,
       samples: scoped.length,
-      reason: `${scoped.length} posts${options.platform ? ` on ${options.platform}` : ''}. Timing computed from fewer than ${minSamples} is noise, so the seeded windows stay as they are.`,
+      reason:
+        `${scoped.length} post${scoped.length === 1 ? '' : 's'}${options.platform ? ` on ${options.platform}` : ''}. ` +
+        `Timing computed from fewer than ${minSamples} is noise, so the seeded windows stay as they are.`,
     };
   }
 

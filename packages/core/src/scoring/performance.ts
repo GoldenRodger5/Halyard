@@ -189,8 +189,15 @@ export function findOpportunities(input: OpportunityInput): string[] {
   }
 
   if (out.length === 0) {
+    // "Not enough data" and "enough data, no difference worth acting on" are
+    // different findings, and only one of them means keep waiting. Saying the
+    // first when the second is true tells the operator to keep collecting
+    // evidence they already have.
+    const comparable = categories.length >= 2 || platforms.length >= 2;
     out.push(
-      `Not enough data for a claim yet. Meaningful comparison needs about ${min} posts per category.`,
+      comparable
+        ? `Nothing stands out yet. There is enough data to compare — ${categories.length} categories and ${platforms.length} platforms above the threshold — and no category or platform is running 1.5× another. That is a real finding, not a gap: it means the mix is not the lever right now.`
+        : `Not enough data for a claim yet. Meaningful comparison needs about ${min} posts per category, and the busiest has ${Math.max(0, ...input.byCategory.map((c) => c.posts))}.`,
     );
   }
   return out;
