@@ -106,6 +106,9 @@ describe('stagger — v2 E.2', () => {
   it('jitters deterministically, within bounds, and differently per item', () => {
     for (const id of ['a', 'b', 'item-1234', 'x']) {
       const j = deterministicJitterMinutes(id, 7);
+      // Never zero: a slot midpoint is a round hour, and hh:00:00 is the
+      // fingerprint the jitter exists to remove.
+      expect(j).not.toBe(0);
       expect(j).toBeGreaterThanOrEqual(-7);
       expect(j).toBeLessThanOrEqual(7);
       expect(deterministicJitterMinutes(id, 7)).toBe(j); // stable

@@ -1,14 +1,20 @@
 /**
- * Filling one campaign slot. Milestone 44.
+ * Filling one staged slot. Milestone 44, generalised in 51.
  *
- * The planner produces the shape of a launch sequence as empty slots, each with
- * a purpose. This writes into one of them. It is a separate path from daily
+ * A planner produces the shape of a sequence as empty slots, each with a
+ * purpose. This writes into one of them. It is a separate path from daily
  * generation because the inputs are different: daily generation picks what to
- * post from the mix, while a campaign slot has already been told what it is for
+ * post from the mix, while a staged slot has already been told what it is for
  * and only needs the words.
  *
  * The slot's intent goes to the copywriter as a constraint, which is what stops
  * a five-day launch turning into five variations of "we launched".
+ *
+ * **A slot need not belong to a campaign.** Milestone 51's launch batch stages
+ * slots with no campaign at all, and this handler used to `return` silently
+ * when the campaign lookup came back empty — which would have staged a
+ * fortnight and written none of it, with nothing anywhere saying so. The
+ * campaign is optional context now; the slot's own intent is what drives it.
  */
 import {
   ConnectorUnavailableError,
@@ -27,7 +33,7 @@ import { notify } from './publish.js';
 interface SlotRow {
   id: string;
   product_id: string;
-  campaign_id: string;
+  campaign_id: string | null;
   platform: SlopPlatform;
   persona: 'brand' | 'founder';
   format: string;
@@ -54,18 +60,51 @@ export async function fillCampaignSlot(
 
   // Already written, by a previous run or by hand. Never overwrite.
   if (slot.body !== '') {
-    ctx.log('campaign slot already written, skipping', { contentItemId });
+    ctx.log('slot already written, skipping', { contentItemId });
     return;
   }
 
-  const { rows: campaignRows } = await ctx.pool.query<{
-    name: string;
-    kind: string;
-    brief: string | null;
-    goal: string | null;
-  }>('select name, kind, brief, goal from campaigns where id = $1', [slot.campaign_id]);
-  const campaign = campaignRows[0];
-  if (!campaign) return;
+  // Null for a launch-batch slot, which belongs to no campaign.
+  let campaign: { name: string; kind: string; brief: string | null; goal: string | null } | null =
+    null;
+  if (slot.campaign_id) {
+    const { rows } = await ctx.pool.query<{
+      name: string;
+      kind: string;
+      brief: string | null;
+      goal: string | null;
+    }>('select name, kind, brief, goal from campaigns where id = $1', [slot.campaign_id]);
+    campaign = rows[0] ?? null;
+    if (!campaign) {
+      // A campaign id that resolves to nothing is a deleted campaign, not a
+      // standalone slot. Writing anyway would attach copy to a plan that no
+      // longer exists.
+      ctx.log('slot references a campaign that no longer exists', {
+        contentItemId,
+        campaignId: slot.campaign_id,
+      });
+      return;
+    }
+  }
+
+  /**
+   * What this post is about, when it is not a campaign slot.
+   *
+   * A launch-batch introduction carries its own intent. A regular launch slot
+   * carries only a category, so it takes a proposed idea of that category the
+   * same way daily generation does — the idea engine stays in the loop rather
+   * than being bypassed by a second, dumber path.
+   */
+  let idea: { id: string; title: string; angle: string } | null = null;
+  if (!campaign && !slot.generation_meta?.intent) {
+    const { rows } = await ctx.pool.query<{ id: string; title: string; angle: string }>(
+      `select id, title, angle from ideas
+        where product_id = $1 and category = $2 and status = 'proposed'
+        order by created_at limit 1`,
+      [slot.product_id, slot.category],
+    );
+    idea = rows[0] ?? null;
+  }
 
   const { rows: productRows } = await ctx.pool.query<{
     id: string;
@@ -102,7 +141,9 @@ export async function fillCampaignSlot(
   if (wantsArtifact && connector) {
     try {
       artifact = await connector.generateSample({
-        intent: `${campaign.name}: ${slot.generation_meta?.intent ?? campaign.brief ?? ''}`,
+        intent: campaign
+          ? `${campaign.name}: ${slot.generation_meta?.intent ?? campaign.brief ?? ''}`
+          : (slot.generation_meta?.intent ?? idea?.angle ?? slot.category),
         params: {},
       });
     } catch (err) {
@@ -112,7 +153,7 @@ export async function fillCampaignSlot(
           'connector_down',
           'critical',
           `${product.name} connector unreachable`,
-          `${err.message} The campaign slot was left empty rather than written without real product output.`,
+          `${err.message} The slot was left empty rather than written without real product output.`,
         );
         return;
       }
@@ -127,13 +168,17 @@ export async function fillCampaignSlot(
       category: slot.category,
       persona: slot.persona,
       idea: {
-        title: `${campaign.name} — ${(slot.generation_meta?.purpose ?? 'post').replace(/_/g, ' ')}`,
+        title: campaign
+          ? `${campaign.name} — ${(slot.generation_meta?.purpose ?? 'post').replace(/_/g, ' ')}`
+          : (idea?.title ??
+            `${slot.category.replace(/_/g, ' ')} post for ${slot.platform}`),
         // The slot's purpose is the constraint. Without it every post in the
         // sequence regresses to the same announcement.
         angle: [
           slot.generation_meta?.intent,
-          campaign.brief ? `The campaign: ${campaign.brief}` : null,
-          campaign.goal ? `The goal: ${campaign.goal}` : null,
+          campaign?.brief ? `The campaign: ${campaign.brief}` : null,
+          campaign?.goal ? `The goal: ${campaign.goal}` : null,
+          !campaign ? idea?.angle : null,
         ]
           .filter(Boolean)
           .join(' '),
@@ -209,9 +254,16 @@ export async function fillCampaignSlot(
     ],
   );
 
-  ctx.log('campaign slot written', {
+  // The idea is consumed only once something was actually written from it.
+  if (idea) {
+    await ctx.pool.query(`update ideas set status = 'used' where id = $1`, [idea.id]);
+  }
+
+  ctx.log('slot written', {
     contentItemId,
+    campaignId: slot.campaign_id,
     purpose: slot.generation_meta?.purpose,
+    usedIdea: idea?.id ?? null,
     qcPassed: qc.passed,
   });
 }

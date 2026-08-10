@@ -69,9 +69,14 @@ export interface ScheduleDecision {
 }
 
 /**
- * Deterministic jitter in [-jitter, +jitter] minutes, derived from an id.
- * FNV-1a: small, stable across runtimes, and good enough to decorrelate ids
- * that differ by one character.
+ * Deterministic jitter, derived from an id. FNV-1a: small, stable across
+ * runtimes, and good enough to decorrelate ids that differ by one character.
+ *
+ * The range is [-jitter, +jitter] **excluding zero**, and the exclusion is the
+ * point rather than a detail. A slot window's midpoint is usually a round hour,
+ * and `planSchedule` walks the window in five-minute steps — so a zero jitter
+ * puts a post at exactly hh:00:00, which is the automation fingerprint this
+ * function exists to remove. Milestone 51 found one in a planned fortnight.
  */
 export function deterministicJitterMinutes(seed: string, jitterMinutes: number): number {
   let hash = 0x811c9dc5;
@@ -83,8 +88,11 @@ export function deterministicJitterMinutes(seed: string, jitterMinutes: number):
   // `hash % span` cannot come out negative and the jitter stays inside
   // [-jitterMinutes, +jitterMinutes]. Without it this drifts the same way the
   // seeded metrics did.
-  const span = jitterMinutes * 2 + 1;
-  return (hash % span) - jitterMinutes;
+  if (jitterMinutes <= 0) return 0;
+  // 2n values rather than 2n+1: every offset except zero.
+  const span = jitterMinutes * 2;
+  const offset = hash % span;
+  return offset < jitterMinutes ? offset - jitterMinutes : offset - jitterMinutes + 1;
 }
 
 const MINUTE = 60_000;

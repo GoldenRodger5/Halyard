@@ -24,6 +24,7 @@ const NAV: Array<{ href: string; label: string; group: 'work' | 'plan' | 'config
   { href: '/take', label: 'Daily Take', group: 'work' },
   { href: '/compose', label: 'Compose', group: 'work' },
   { href: '/inbox', label: 'Inbox', group: 'work' },
+  { href: '/launch', label: 'First two weeks', group: 'plan' },
   { href: '/calendar', label: 'Calendar', group: 'plan' },
   { href: '/ideas', label: 'Ideas', group: 'plan' },
   { href: '/swipe', label: 'Swipe file', group: 'plan' },

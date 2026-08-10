@@ -27,6 +27,8 @@ import {
   type LlmClient,
   type ProductArtifact,
   type ProductDestinations,
+  classifyHookType,
+  extractHookPattern,
   type SlopPlatform,
 } from '@halyard/core';
 import { carouselProps, transformationDiffProps } from '@halyard/render';
@@ -36,14 +38,38 @@ import { fillCampaignSlot } from './campaignSlot.js';
 
 export async function generateHandler(job: Job, ctx: HandlerContext): Promise<void> {
   const productId = String(job.payload.productId ?? 'recipefix');
-  const llm: LlmClient = (job.payload.llm as LlmClient) ?? new AnthropicLlmClient();
+
+  /**
+   * Built on first use rather than at the top.
+   *
+   * Constructing it eagerly meant a run the guards below were about to refuse
+   * still died on a missing API key, and it died *before* logging the reason it
+   * was going to be refused — so the operator saw a credential error for a job
+   * that was never going to generate anything anyway.
+   */
+  let cached: LlmClient | null = (job.payload.llm as LlmClient | undefined) ?? null;
+  const llmFor = (): LlmClient => (cached ??= new AnthropicLlmClient());
 
   // A campaign slot has already been told what it is for, so it takes a
   // different path: no idea selection, no mix arithmetic, just the words.
   if (job.payload.contentItemId) {
-    await fillCampaignSlot(job, ctx, llm);
+    await fillCampaignSlot(job, ctx, llmFor());
     return;
   }
+
+  /**
+   * The calibration batch is what *makes* calibration possible.
+   *
+   * Milestone 51 found this deadlocked: `startCalibrationBatch` enqueues a
+   * generate job with `calibration: true`, and the guard below refused it
+   * because `step_calibration_done` was false — which is exactly what the batch
+   * exists to make true. The job was consumed and silently did nothing, so the
+   * onboarding wizard simply never produced its twenty drafts.
+   *
+   * A calibration run still needs a voice and a brief to write from. It just
+   * does not need calibration to have already happened.
+   */
+  const calibration = job.payload.calibration === true;
 
   // ── Cold-start guard (build pack §2) ─────────────────────────────────────
   const onboarding = await ctx.pool.query<{
@@ -55,11 +81,11 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
 
   const state = onboarding.rows[0];
   const incomplete = !state
-    ? ['ingest', 'voice', 'calibration', 'templates']
+    ? ['ingest', 'voice', ...(calibration ? [] : ['calibration']), 'templates']
     : [
         !state.step_ingest_done && 'ingest',
         !state.step_voice_done && 'voice',
-        !state.step_calibration_done && 'calibration',
+        !calibration && !state.step_calibration_done && 'calibration',
         !state.step_templates_done && 'templates',
       ].filter(Boolean);
 
@@ -83,6 +109,8 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
     ctx.log('generation disabled in settings', { productId });
     return;
   }
+
+  if (calibration) ctx.log('calibration batch', { productId, limit: job.payload.limit });
 
   // ── Product context ──────────────────────────────────────────────────────
   const productRows = await ctx.pool.query<{
@@ -300,7 +328,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
               bannedPhrases: product.content_rules?.banned_phrases,
             },
           },
-          llm,
+          llmFor(),
         );
 
         // Milestone 42 — where this post should send people, decided from the
@@ -382,11 +410,24 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
         }
 
         if (draft.hookPattern) {
+          // `hook_type` is NOT NULL as of migration 0012 and this insert never
+          // supplied it, so every hook a draft produced was lost to a
+          // constraint violation — inside a try that treats the failure as a
+          // failed draft. Classified here from the pattern itself, which is
+          // what /hooks groups by.
           await ctx.pool.query(
-            `insert into hooks (product_id, pattern, platform, category, source, uses)
-             values ($1,$2,$3,$4,'approved_post',1)
+            `insert into hooks
+               (product_id, pattern, pattern_template, hook_type, layer, platform, category, source, uses)
+             values ($1,$2,$3,$4,'text',$5,$6,'approved_post',1)
              on conflict do nothing`,
-            [productId, draft.hookPattern, account.platform, idea.category],
+            [
+              productId,
+              draft.hookPattern,
+              extractHookPattern(draft.hookPattern).template,
+              classifyHookType(draft.hookPattern),
+              account.platform,
+              idea.category,
+            ],
           );
         }
 
