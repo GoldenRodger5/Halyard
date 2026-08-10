@@ -87,6 +87,9 @@ export default async function LaunchPage({
             {stagedTotal} posts staged, {written} written so far. The rest are being generated one
             job at a time.
           </p>
+          <p className="mt-1 text-xs leading-relaxed text-muted">
+            Replanning replaces the slots nobody has touched. A draft you have edited stays.
+          </p>
           <div className="mt-3 flex flex-wrap gap-3">
             <Link
               href="/queue"
@@ -147,7 +150,10 @@ export default async function LaunchPage({
               disabled={placed.length === 0}
               className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-40"
             >
-              Generate my first two weeks
+              {/* The label has to say which of the two things this does. A batch
+                  already exists, and "Generate" next to it reads as "add more"
+                  when it actually replaces the untouched slots. */}
+              {stagedTotal > 0 ? 'Replan the batch' : 'Generate my first two weeks'}
             </button>
           </form>
         </div>

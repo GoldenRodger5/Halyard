@@ -76,8 +76,17 @@ export async function buildLaunchPlan(
     [productId],
   );
 
-  // Anything already on the calendar in the window, so the batch works around
-  // it rather than double-booking a day that already has posts.
+  /**
+   * Anything already on the calendar in the window, so the batch works around it
+   * rather than double-booking a day that already has posts.
+   *
+   * A previous batch's *untouched* slots are excluded, because replanning
+   * deletes them moments later. Counting them would make the plan collide with
+   * the thing it is replacing: the second run would see a full fortnight,
+   * defer almost every candidate, and stage five posts where there had been
+   * forty-two. An edited draft is not excluded — that one survives a replan, so
+   * the new plan genuinely has to work around it.
+   */
   const existing = await query<{
     id: string;
     platform: string;
@@ -87,8 +96,9 @@ export async function buildLaunchPlan(
     `select id, platform, persona, scheduled_at from content_items
       where product_id = $1 and scheduled_at is not null
         and status not in ('rejected', 'failed')
+        and not (body = '' and status = 'draft' and generation_meta->>'source' = $3)
         and scheduled_at between now() and now() + ($2 || ' days')::interval`,
-    [productId, String(days + 1)],
+    [productId, String(days + 1), LAUNCH_SOURCE],
   );
 
   const plan = planLaunchBatch({
