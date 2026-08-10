@@ -59,6 +59,12 @@ packages/ui      shared primitives
 | 18 | Metrics, attribution, performance scoring | **Done, produces zeroes** | Scoring and UTM tested. Blocked downstream — see §3 |
 | 19 | Series, hooks, submissions, swipe file, repost decay | **Schema + wiring done, thin UI** | Tables, seeds and write paths exist; no dedicated screens |
 | 20 | Calendar, mobile polish, kill switch, health | **Done** | Kill switch tested at the top of the publish job; mobile checked at 390px |
+| 21–39 | Addendum v2 and round 2 | **Done** | See `docs/STATUS_ROUND2.md` |
+| 40–47 | Round 3: accounts, capture, destinations, campaigns, proof, readiness | **Done** | See `docs/halyard_round3.md`; 596 tests at close |
+| 48 | Deploy groundwork | **Done, deploy is yours** | `docs/DEPLOY.md`; needs browser logins with a card on file |
+| 49 | Unified transport | **Built, refusing to publish until probed** | `UnifiedAdapter` implements `PlatformAdapter`; every capability starts `unknown`. Needs `BLOTATO_API_KEY` and `pnpm verify-provider --publish` |
+| 50 | Account setup kit | **Done** | `/setup-kit`; images render at each platform's exact size, ZIP verified with `unzip -t`, handle checks run against live public endpoints |
+| 51 | Launch batch and cold-start honesty | **Done** | `planLaunchBatch` is the first caller of the scheduler primitives; 737 unit tests, 37 E2E |
 
 ---
 

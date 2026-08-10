@@ -325,3 +325,105 @@ for products that already exist; `seed.sql` owns the rows a new database needs.*
 `packages/db/src/__tests__/seed.test.ts` applies migrations *and* the seed to an
 isolated database and asserts that every product-scoped configuration table has
 rows, so the next occurrence fails in CI instead of in the UI.
+
+---
+
+## 26. Unknown is not permission
+
+**Milestone 49** asked for a unified publishing provider. The obvious shape is a
+capability table listing what the provider supports, defaulting to "supported"
+because the vendor says so.
+
+`packages/core/src/adapters/unified/capabilities.ts` defaults every capability to
+`unknown` instead, and `canPublish()` treats `unknown` as a refusal. A platform
+cannot be switched to the unified transport, and a job cannot be carried by it,
+until `scripts/verify-provider.ts` has watched it work against a real account.
+
+The reason is specific rather than general caution. The single claim the provider
+recommendation rests on — that their TikTok connection posts publicly without our
+own Content Posting audit — is one that only their own marketing asserts. Nothing
+neutral confirms it. Building on that assumption and finding out later would mean
+a fortnight of posts that went somewhere unexpected.
+
+This is the same rule `verify-flows` established for capture and the QC gates now
+follow for empty input. **Never verified is not the same as passed.**
+
+---
+
+## 27. The metrics gap is named per platform, never rendered as a zero
+
+Blotato's analytics response has no `savesCount`. Saves are weighted two to three
+times a like in `engagementRate()`, and they matter most on exactly the two
+platforms where they are missing.
+
+A zero would have been arithmetically defensible and completely misleading:
+"nobody saved this" and "this transport cannot see saves" are different facts and
+only one of them is a reason to change what gets posted. `describeGap()` produces
+the sentence and `/analytics` renders it per platform.
+
+The general form, applied throughout milestone 51 as well: **an absent
+measurement and a measured zero must never render the same way.**
+
+---
+
+## 28. Profile limits live in code, conservative where sources disagreed
+
+**Milestone 50** needed per-platform bio limits, avatar sizes and banner
+dimensions. Nothing in the repository knew any of it — `PlatformConstraints`
+describes what a *post* may contain, which is a different question.
+
+`PROFILE_SPECS` records them, checked against each platform's own documentation
+and **rounded down wherever two sources disagreed**. Copy generated to fit a
+conservative limit fits the real one; the reverse is not true, and a bio the
+platform truncates mid-sentence is worse than a shorter one written deliberately.
+
+The UI shows the character count against the limit for the same reason: when a
+platform disagrees with this file, the operator sees the disagreement rather than
+discovering it in a paste box.
+
+---
+
+## 29. A handle that cannot be checked is unknown, not free
+
+Only Bluesky has a real availability API. Everywhere else the only unauthenticated
+signal is whether a public profile page 404s, and that signal is corrupted by bot
+walls, consent interstitials, login redirects and soft-404s that return 200.
+
+So each platform declares its method and how far it can be trusted, an ambiguous
+response resolves to `unknown`, and X and TikTok — which cannot be checked at all
+without logging in — say so rather than guessing. Telling somebody a handle is
+free when it is not costs a rebrand across seven profiles. Telling them to spend
+fifteen seconds checking by hand costs fifteen seconds.
+
+---
+
+## 30. The launch batch was the first caller of the scheduler
+
+`planSchedule`, `checkCadence` and `cadenceDebt` were built in earlier rounds and
+had **no call sites outside their own tests**. Daily generation never set
+`scheduled_at` at all, so no slot window, stagger rule or per-format cadence
+ceiling had ever run in production.
+
+Milestone 51's launch batch is their first caller, and wiring them up immediately
+found a defect none of their unit tests had: `deterministicJitterMinutes` returned
+a value in `[-n, +n]` **including zero**, and since a slot midpoint is usually a
+round hour and the placer walks in five-minute steps, a post could land on exactly
+`hh:00:00` — the automation fingerprint the jitter exists to remove. The range now
+excludes zero.
+
+The lesson is about coverage rather than about jitter: a module with thorough unit
+tests and no callers is not tested, it is rehearsed.
+
+---
+
+## 31. `docs/halyard_first_run.md` does not exist
+
+Milestone 51 asks for a first-30-days view "drawn from `halyard_first_run.md`".
+That document is cited by the spec and was never written.
+
+Rather than invent a citation or skip the deliverable, the content lives in
+`packages/core/src/readiness/firstThirtyDays.ts` and is drawn from what the system
+actually does. Every threshold on the page is imported from the module that
+enforces it — `LEARNING_MIN_POSTS_PER_CATEGORY`, `MIN_POSTS_FOR_TIMING`,
+`HOOK_PATTERN_COOLDOWN_DAYS` — so a constant that changes cannot leave the page
+quietly describing the old one. That is also why it is code rather than markdown.

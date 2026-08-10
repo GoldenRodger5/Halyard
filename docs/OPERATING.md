@@ -70,6 +70,9 @@ The web app runs fine without it. Nothing generates, renders or publishes.
 | `/submissions` | Where each platform review stands, with dates |
 | `/settings/health` | The four things that fail silently |
 | `/settings/readiness` | Can this run unattended tomorrow |
+| `/setup-kit` | Everything needed to create the accounts: bios, images, checklists |
+| `/launch` | Generate and review a fortnight in one pass |
+| `/first-30-days` | What to expect, and which of the things that look broken are not |
 
 ## What is deliberately not automated
 
@@ -135,6 +138,40 @@ RecipeFix repo. `/settings/readiness` → Attribution says so explicitly.
 
 The adaptation rate limit is twenty an hour and it is a hard stop, not a warning.
 It is a spend ceiling rather than a throughput one.
+
+## Before any of this: creating the accounts
+
+Once, at the start, and in this order.
+
+1. **Deploy first.** `/setup-kit` needs a public origin, because the link-in-bio
+   URL goes into every profile and a bio pointing at `localhost` is worse than a
+   bio with no link. The kit says so rather than handing you a broken URL.
+2. **`pnpm check-handle <name>`** — or the same check on `/setup-kit`. Only
+   Bluesky can be answered definitively. X and TikTok cannot be checked without
+   logging in and say `unknown`, which is not the same as free.
+3. **`/setup-kit` → Generate → Download everything.** A folder of correctly sized
+   images and one text file with every bio, display name, pinned post and
+   per-platform checklist.
+4. **Create the profiles in the order the page lists them.** Instagram first:
+   Threads inherits its handle and cannot be renamed afterwards.
+5. **Mind the `[!]` items.** An Instagram Creator account cannot be published to
+   by any API however approved the app is, and fixing it later usually means
+   creating the account again.
+6. **`/accounts` → Connect**, each in a private window, then confirm each
+   identity. A token is not an account until you have looked at whose it is.
+
+## The first two weeks
+
+`/launch` plans a fortnight across every connected account in one pass: an
+introduction post per account on day one, then regular posts respecting mix
+targets, per-format weekly cadence ceilings and every spacing rule. The preview
+is computed from exactly the inputs the commit uses, so what you see is what gets
+staged — including what could not be placed, which is listed with the reason
+rather than dropped quietly.
+
+Staging is separate from writing. Rows appear on the calendar immediately, then
+one generation job runs per slot, so a failure costs one post rather than the
+batch. Re-running replaces only slots nobody has edited.
 
 ## Going live on a platform
 
