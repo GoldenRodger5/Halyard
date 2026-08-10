@@ -14,10 +14,12 @@
  * Plus the kill switch, checked first, every time (v1 §10).
  */
 import {
+  PLATFORM_CLIENT_ENV,
   disclosureSatisfied,
   getAdapter,
   openToken,
   publishFailurePolicy,
+  sealToken,
   stampUtm,
   type AiComponent,
   type PlatformId,
@@ -255,7 +257,30 @@ export async function publishHandler(job: Job, ctx: HandlerContext): Promise<voi
   const adapter = getAdapter(item.platform);
 
   try {
-    const result = await adapter.publish(publishItem, assets, account);
+    let result: Awaited<ReturnType<typeof adapter.publish>>;
+    try {
+      result = await adapter.publish(publishItem, assets, account);
+    } catch (err) {
+      // ── Token expiry mid-publish (build pack §3) ─────────────────────────
+      //
+      // A token can expire between the refresh cron's last pass and this call.
+      // Refreshing and retrying once here is safe *because the failure was
+      // auth*: a 401 means the platform rejected the request before creating
+      // anything, so the retry cannot double-post. Any other failure kind is
+      // rethrown untouched — that is the distinction the whole idempotency
+      // design rests on.
+      const failure = err as PublishError;
+      if (failure.kind !== 'auth') throw err;
+
+      const refreshed = await refreshAccountToken(ctx, accountRow, account);
+      if (!refreshed) throw err;
+
+      ctx.log('token refreshed mid-publish, retrying once', {
+        contentItemId: item.id,
+        platform: item.platform,
+      });
+      result = await adapter.publish(publishItem, assets, refreshed);
+    }
 
     await ctx.pool.query(
       `update publications
@@ -385,6 +410,70 @@ export async function publishHandler(job: Job, ctx: HandlerContext): Promise<voi
     await ctx.pool.query('delete from publications where id = $1', [publicationId]);
     await ctx.pool.query(`update content_items set status = 'approved' where id = $1`, [item.id]);
     throw error;
+  }
+}
+
+/**
+ * Refresh a token in the middle of a publish, once.
+ *
+ * Returns the account with the new token, or null when a refresh is impossible
+ * or fails — in which case the caller falls through to the normal auth-failure
+ * path, which marks the account and pauses its queue rather than retrying
+ * against a dead credential.
+ */
+async function refreshAccountToken(
+  ctx: HandlerContext,
+  accountRow: AccountRow,
+  account: PublishAccount,
+): Promise<PublishAccount | null> {
+  if (!accountRow.refresh_token_enc) return null;
+
+  const env = PLATFORM_CLIENT_ENV[accountRow.platform];
+  const clientId = process.env[env.id];
+  const clientSecret = process.env[env.secret];
+  if (!clientId || !clientSecret) {
+    ctx.log('cannot refresh mid-publish, client credentials absent', {
+      platform: accountRow.platform,
+      needs: `${env.id} and ${env.secret}`,
+    });
+    return null;
+  }
+
+  try {
+    const adapter = getAdapter(accountRow.platform);
+    const next = await adapter.refresh(
+      {
+        accessToken: account.tokens.accessToken,
+        refreshToken: openToken(accountRow.refresh_token_enc),
+      },
+      { clientId, clientSecret, fetchImpl: account.meta?.fetchImpl as typeof fetch | undefined },
+    );
+
+    await ctx.pool.query(
+      `update social_accounts
+          set access_token_enc = $2, refresh_token_enc = $3, token_expires_at = $4,
+              last_error = null
+        where id = $1`,
+      [
+        accountRow.id,
+        sealToken(next.accessToken),
+        next.refreshToken ? sealToken(next.refreshToken) : accountRow.refresh_token_enc,
+        next.expiresAt ?? null,
+      ],
+    );
+
+    return {
+      ...account,
+      tokens: {
+        ...account.tokens,
+        accessToken: next.accessToken,
+        refreshToken: next.refreshToken ?? account.tokens.refreshToken,
+        expiresAt: next.expiresAt ?? null,
+      },
+    };
+  } catch (err) {
+    ctx.log('mid-publish token refresh failed', { error: (err as Error).message });
+    return null;
   }
 }
 
