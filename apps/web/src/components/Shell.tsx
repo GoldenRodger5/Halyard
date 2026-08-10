@@ -29,6 +29,8 @@ const NAV: Array<{ href: string; label: string; group: 'work' | 'plan' | 'config
   { href: '/swipe', label: 'Swipe file', group: 'plan' },
   { href: '/finds', label: 'Finds', group: 'plan' },
   { href: '/library', label: 'Library', group: 'plan' },
+  { href: '/assets', label: 'Assets', group: 'plan' },
+  { href: '/campaigns', label: 'Campaigns', group: 'plan' },
   { href: '/analytics', label: 'Analytics', group: 'plan' },
   { href: '/products', label: 'Products', group: 'config' },
   { href: '/accounts', label: 'Accounts', group: 'config' },

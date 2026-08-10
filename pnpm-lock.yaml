@@ -126,6 +126,9 @@ importers:
       pg:
         specifier: ^8.13.1
         version: 8.23.0
+      playwright:
+        specifier: ^1.62.1
+        version: 1.62.1
       tsx:
         specifier: ^4.19.2
         version: 4.23.11

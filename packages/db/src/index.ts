@@ -58,6 +58,7 @@ export const JOB_KINDS = [
   'score_performance',
   'digest_email',
   'reconcile_schedule',
+  'mark_stale_assets',
 ] as const;
 export type JobKind = (typeof JOB_KINDS)[number];
 
@@ -69,7 +70,9 @@ export const JOB_POLICY: Record<
   generate: { timeoutMs: 5 * 60_000, maxAttempts: 2, backoffSeconds: 60 },
   render: { timeoutMs: 15 * 60_000, maxAttempts: 3, backoffSeconds: 10 },
   tts: { timeoutMs: 2 * 60_000, maxAttempts: 3, backoffSeconds: 30 },
-  capture: { timeoutMs: 5 * 60_000, maxAttempts: 2, backoffSeconds: 60 },
+  // A capture drives a real browser through a real adaptation twice — once to
+  // verify and once to record — so it gets far longer than anything else here.
+  capture: { timeoutMs: 20 * 60_000, maxAttempts: 2, backoffSeconds: 300 },
   publish: { timeoutMs: 5 * 60_000, maxAttempts: 3, backoffSeconds: 60 },
   collect_metrics: { timeoutMs: 5 * 60_000, maxAttempts: 3, backoffSeconds: 300 },
   collect_signals: { timeoutMs: 5 * 60_000, maxAttempts: 2, backoffSeconds: 300 },
@@ -79,4 +82,5 @@ export const JOB_POLICY: Record<
   score_performance: { timeoutMs: 5 * 60_000, maxAttempts: 2, backoffSeconds: 300 },
   digest_email: { timeoutMs: 2 * 60_000, maxAttempts: 2, backoffSeconds: 300 },
   reconcile_schedule: { timeoutMs: 2 * 60_000, maxAttempts: 2, backoffSeconds: 120 },
+  mark_stale_assets: { timeoutMs: 2 * 60_000, maxAttempts: 2, backoffSeconds: 300 },
 };

@@ -6,4 +6,5 @@ export * from './scheduling/index.js';
 export * from './scoring/index.js';
 export * from './crypto/index.js';
 export * from './accounts/index.js';
+export * from './capture/index.js';
 export * from './founder/index.js';

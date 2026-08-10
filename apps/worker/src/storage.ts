@@ -6,6 +6,8 @@
  * holds rendered output only — never tokens, never source material.
  */
 import { createHash } from 'node:crypto';
+import { mkdir, writeFile } from 'node:fs/promises';
+import path from 'node:path';
 import type { HandlerContext } from './poller.js';
 
 export const ASSET_BUCKET = 'halyard-assets';
@@ -18,8 +20,17 @@ export interface UploadInput {
   height?: number;
   durationSeconds?: number;
   caption?: string | null;
+  altText?: string | null;
   contentItemId?: string | null;
   productId?: string | null;
+  /** 'render' by default; 'capture' for footage of the live product. */
+  source?: string;
+  tags?: string[];
+  usableFor?: string[];
+  flowId?: string | null;
+  appVersion?: string | null;
+  sourceUrl?: string | null;
+  originalFilename?: string | null;
 }
 
 export interface UploadedAsset {
@@ -68,13 +79,29 @@ export async function uploadAsset(
     }
     publicUrl = `${supabaseUrl.replace(/\/$/, '')}/storage/v1/object/public/${ASSET_BUCKET}/${storagePath}`;
   } else {
-    ctx.log('storage not configured, recording asset without upload', { storagePath });
+    // No Supabase Storage configured. Rather than record an unusable
+    // `file://` URL, the bytes go into the web app's public directory so the
+    // asset is at least visible in the library and renderable locally. A Meta
+    // publish still needs a real public URL, and /settings/readiness says so.
+    const publicDir = process.env.HALYARD_LOCAL_ASSET_DIR;
+    if (publicDir) {
+      const target = path.join(publicDir, storagePath.replace(/\//g, '-'));
+      await mkdir(path.dirname(target), { recursive: true });
+      await writeFile(target, new Uint8Array(input.bytes));
+      publicUrl = `/dev-assets/${path.basename(target)}`;
+      ctx.log('storage not configured, wrote asset locally', { publicUrl });
+    } else {
+      ctx.log('storage not configured, recording asset without upload', { storagePath });
+    }
   }
 
   const { rows } = await ctx.pool.query<{ id: string }>(
     `insert into assets (product_id, kind, storage_path, mime_type, width, height,
-                         duration_seconds, bytes, caption, source, public_url)
-     values ($1,$2,$3,$4,$5,$6,$7,$8,$9,'render',$10)
+                         duration_seconds, bytes, caption, alt_text, source, public_url,
+                         tags, usable_for, flow_id, app_version, captured_at, source_url,
+                         original_filename, checksum)
+     values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,
+             case when $15::text is null then null else now() end, $17,$18,$19)
      returning id`,
     [
       productId,
@@ -86,7 +113,16 @@ export async function uploadAsset(
       input.durationSeconds ?? null,
       input.bytes.byteLength,
       input.caption ?? null,
+      input.altText ?? null,
+      input.source ?? 'render',
       publicUrl,
+      input.tags ?? [],
+      input.usableFor ?? [],
+      input.flowId ?? null,
+      input.appVersion ?? null,
+      input.sourceUrl ?? null,
+      input.originalFilename ?? null,
+      digest,
     ],
   );
 
@@ -99,6 +135,8 @@ function extensionFor(mimeType: string): string {
     'image/jpeg': 'jpg',
     'image/webp': 'webp',
     'video/mp4': 'mp4',
+    'video/webm': 'webm',
+    'video/quicktime': 'mov',
     'audio/mpeg': 'mp3',
     'audio/wav': 'wav',
     'audio/mp4': 'm4a',

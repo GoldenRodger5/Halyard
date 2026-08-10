@@ -16,6 +16,7 @@
     "@remotion/bundler": "^4.0.507",
     "@remotion/renderer": "^4.0.507",
     "pg": "^8.13.1",
+    "playwright": "^1.62.1",
     "tsx": "^4.19.2"
   },
   "devDependencies": {

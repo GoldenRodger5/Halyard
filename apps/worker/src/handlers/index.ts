@@ -18,6 +18,7 @@ import { publishHandler } from './publish.js';
 import { renderHandler } from './render.js';
 import { generateHandler } from './generate.js';
 import { reconcileScheduleHandler } from './reconcile.js';
+import { captureHandler, markStaleAssetsHandler } from './capture.js';
 
 async function loadAccount(ctx: HandlerContext, accountId: string): Promise<PublishAccount> {
   const { rows } = await ctx.pool.query<{
@@ -334,6 +335,8 @@ export const HANDLERS: Partial<Record<JobKind, JobHandler>> = {
   collect_attribution: collectAttribution,
   score_performance: scorePerformance,
   refresh_tokens: refreshTokens,
+  capture: captureHandler,
+  mark_stale_assets: markStaleAssetsHandler,
 };
 
 export type { Job, HandlerContext };
