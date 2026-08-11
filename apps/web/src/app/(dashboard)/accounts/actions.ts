@@ -198,7 +198,9 @@ export async function setTransport(formData: FormData): Promise<void> {
     );
   }
 
-  const capabilities = await one<{ capabilities: { platforms?: Record<string, { publish?: string }> } }>(
+  const capabilities = await one<{
+    capabilities: { platforms?: Record<string, { publish?: string; altText?: string }> };
+  }>(
     `select capabilities from provider_capabilities where provider = 'blotato'`,
   );
   const account = await one<{ platform: string }>(
@@ -207,7 +209,8 @@ export async function setTransport(formData: FormData): Promise<void> {
   );
 
   if (transport === 'unified') {
-    const verified = capabilities?.capabilities?.platforms?.[account?.platform ?? '']?.publish;
+    const platformCapability = capabilities?.capabilities?.platforms?.[account?.platform ?? ''];
+    const verified = platformCapability?.publish;
     if (verified !== 'yes') {
       // Unknown is not permission. The same rule the QC gates now follow.
       redirect(
@@ -227,10 +230,15 @@ export async function setTransport(formData: FormData): Promise<void> {
     [id, transport, providerAccountId || null],
   );
 
+  // Recorded so a later "why did alt text stop appearing" has an answer.
+  const losesAltText =
+    transport === 'unified' &&
+    capabilities?.capabilities?.platforms?.[account?.platform ?? '']?.altText === 'no';
+
   await query(
     `insert into audit_log (actor, action, entity_type, entity_id, detail)
      values ('human', 'transport_changed', 'social_account', $1, $2)`,
-    [id, { transport }],
+    [id, { transport, losesAltText }],
   );
 
   revalidatePath('/accounts');

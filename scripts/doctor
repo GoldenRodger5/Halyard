@@ -209,13 +209,29 @@ ACQUIRE
       5. pnpm verify-provider
            Read-only. Lists every connected account with its provider id,
            which is what /accounts asks for when you switch transport.
-      6. pnpm verify-provider --publish
-           Posts real content to your real accounts, TikTok first and alone,
-           to settle the one claim their marketing cannot: whether TikTok
-           posts publicly or only to drafts. Delete the test posts after.
+      6. pnpm verify-provider --publish --video <path to an mp4>
+           Posts real content to your real TikTok, first and alone, to settle
+           the one claim their marketing cannot: whether TikTok posts
+           publicly or only to drafts. The video is uploaded to their CDN
+           first, so a local file works before you have deployed anything.
+           Takes about four minutes; resume with --resume <submissionId>.
+      7. Look at the post in the TikTok app.
+           The API reports "published" either way, and says nothing about
+           visibility. A padlock or an "Only you" badge means it was forced
+           private. Record what you saw:
+             pnpm verify-provider --tiktok-public yes
+             pnpm verify-provider --tiktok-public no
 
-      Until step 6 has run for a platform, switching it to the unified
+      Until a platform has been verified, switching it to the unified
       transport is refused rather than attempted. Unknown is not permission.
+
+      Worth knowing before you switch anything:
+        · Alt text exists only on Instagram and Pinterest through this
+          provider. X, Threads, YouTube and TikTok lose it entirely.
+        · There is no reply endpoint, so X's link-in-first-reply cannot
+          work here. X stays direct, and publishing refuses rather than
+          putting the link in the body at $0.20 against $0.015.
+        · Bluesky is not connected in Blotato and does not need to be.
 
 ACQUIRE
   fi

@@ -474,12 +474,22 @@ function describeTransport(platform: PlatformId, capability: PlatformCapability 
     );
   }
 
-  const thin = (['carousel', 'shortVideo', 'altText', 'scheduling'] as const).filter(
-    (k) => capability[k] !== 'yes',
-  );
-  if (thin.length > 0) {
-    parts.push(`Not confirmed working: ${thin.join(', ')}.`);
+  // A capability verified as absent is a different fact from one nobody has
+  // checked, and only the first is a reason not to use this transport here.
+  if (capability.altText === 'no') {
+    parts.push(
+      'This transport has no alt-text field for this platform, so every post routed through it goes out without alt text. The direct adapter carries it.',
+    );
   }
+
+  const unchecked = (['carousel', 'shortVideo', 'scheduling'] as const).filter(
+    (k) => capability[k] === 'unknown',
+  );
+  const absent = (['carousel', 'shortVideo', 'scheduling'] as const).filter(
+    (k) => capability[k] === 'no',
+  );
+  if (absent.length > 0) parts.push(`Not supported here: ${absent.join(', ')}.`);
+  if (unchecked.length > 0) parts.push(`Not confirmed working: ${unchecked.join(', ')}.`);
 
   const gap = describeGap(platform, capability.metrics);
   if (gap) parts.push(gap);

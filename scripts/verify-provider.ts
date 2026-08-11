@@ -137,6 +137,7 @@ async function verifyTikTok(
   accounts: ConnectedAccount[],
   allowPublish: boolean,
   videoUrl: string | null,
+  resumeId: string | null,
 ): Promise<Partial<PlatformCapability>> {
   heading('1. TikTok — does it publish publicly, or only to drafts?');
 
@@ -146,6 +147,12 @@ async function verifyTikTok(
     return { publish: 'unknown', publishesPublicly: 'unknown', notes: ['No TikTok account connected.'] };
   }
   ok('TikTok account connected', account.username ?? account.id);
+
+  // A submission takes minutes to settle. Resuming from one already sent means
+  // a re-run costs nothing rather than another post on a real account.
+  if (resumeId) {
+    return settleTikTok(resumeId);
+  }
 
   if (!allowPublish) {
     unknown(
@@ -216,71 +223,7 @@ async function verifyTikTok(
       return { publish: 'unknown', publishesPublicly: 'unknown', notes: ['Malformed response.'] };
     }
 
-    // The submission is asynchronous: TikTok transcodes before it decides, so
-    // reading once returns `in-progress` and settles nothing. Poll to a terminal
-    // state, because "inconclusive" from an impatient read is exactly the kind
-    // of non-answer this script exists to avoid producing.
-    ok('post accepted', `submission ${id}`);
-    let submission: {
-      status?: string;
-      privacyLevel?: string;
-      error?: string;
-      errorMessage?: string;
-      target?: { privacyLevel?: string };
-    } = {};
-
-    for (let attempt = 0; attempt < 40; attempt += 1) {
-      submission = (await api(`/posts/${id}`)) as typeof submission;
-      if (submission.status && submission.status !== 'in-progress') break;
-      if (attempt === 0) console.log(`  ${DIM}waiting for TikTok to finish processing${RESET}`);
-      await new Promise((resolve) => setTimeout(resolve, 15_000));
-    }
-
-    if (submission.status === 'in-progress') {
-      unknown(
-        'still processing after ten minutes',
-        `check the submission by hand: GET /v2/posts/${id}`,
-      );
-      return {
-        publish: 'unknown',
-        publishesPublicly: 'unknown',
-        notes: [`Submission ${id} had not settled after ten minutes.`],
-      };
-    }
-
-    const level = submission.privacyLevel ?? submission.target?.privacyLevel;
-    ok('settled', `status ${submission.status ?? 'unknown'}`);
-
-    const failure = submission.error ?? submission.errorMessage;
-    if (submission.status === 'failed' || failure) {
-      no('the provider could not publish it', String(failure ?? 'no reason given'));
-      return {
-        publish: 'no',
-        publishesPublicly: 'no',
-        notes: [`Publish failed: ${String(failure ?? 'no reason given')}`],
-      };
-    }
-
-    if (level === 'PUBLIC_TO_EVERYONE') {
-      ok('published publicly', 'the provider app has cleared the Content Posting audit');
-      notes.push('Verified publishing publicly through the provider.');
-      return { publish: 'yes', publishesPublicly: 'yes', notes };
-    }
-
-    if (level === 'SELF_ONLY') {
-      no(
-        'forced to SELF_ONLY',
-        'the provider app has not cleared the audit either — draft-first it is',
-      );
-      notes.push(
-        'TikTok forced SELF_ONLY, so the provider is not pre-audited. Halyard uploads to drafts and you finish them in the app.',
-      );
-      return { publish: 'yes', publishesPublicly: 'no', notes };
-    }
-
-    unknown('inconclusive', `privacy level came back as ${level ?? 'absent'}`);
-    notes.push(`Inconclusive: privacy level ${level ?? 'absent'}. Check the post in TikTok.`);
-    return { publish: 'yes', publishesPublicly: 'unknown', notes };
+    return await settleTikTok(id);
   } catch (err) {
     no('publish attempt failed', (err as Error).message);
     return {
@@ -294,6 +237,98 @@ async function verifyTikTok(
         `  trending audio, and that is most of TikTok's distribution.${RESET}`,
     );
   }
+}
+
+/**
+ * Read a TikTok submission to a terminal state and decide what it proves.
+ *
+ * Separated so a re-run can resume from a submission already sent. The
+ * distinction it exists to draw: **"published" is not "published publicly".**
+ * TikTok forces SELF_ONLY for apps that have not cleared the Content Posting
+ * audit, and a forced-private post still reports as published. If the response
+ * does not state the privacy level, this returns `unknown` and says which screen
+ * settles it — because recording `yes` here on the strength of a status string
+ * is precisely the assumption this script exists to prevent.
+ */
+async function settleTikTok(id: string): Promise<Partial<PlatformCapability>> {
+  let submission: {
+    status?: string;
+    privacyLevel?: string;
+    publicUrl?: string;
+    error?: string;
+    errorMessage?: string;
+    target?: { privacyLevel?: string };
+  } = {};
+
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    submission = (await api(`/posts/${id}`)) as typeof submission;
+    if (submission.status && submission.status !== 'in-progress') break;
+    if (attempt === 0) {
+      console.log(`  ${DIM}waiting for TikTok to finish processing (about four minutes)${RESET}`);
+    }
+    await new Promise((resolve) => setTimeout(resolve, 15_000));
+  }
+
+  if (submission.status === 'in-progress') {
+    unknown('still processing after ten minutes', `resume with: pnpm verify-provider --resume ${id}`);
+    return {
+      publish: 'unknown',
+      publishesPublicly: 'unknown',
+      notes: [`Submission ${id} had not settled after ten minutes.`],
+    };
+  }
+
+  const failure = submission.error ?? submission.errorMessage;
+  if (submission.status === 'failed' || failure) {
+    no('the provider could not publish it', String(failure ?? 'no reason given'));
+    return {
+      publish: 'no',
+      publishesPublicly: 'no',
+      notes: [`Publish failed: ${String(failure ?? 'no reason given')}`],
+    };
+  }
+
+  ok('published', `status ${submission.status ?? 'unknown'}`);
+  const level = submission.privacyLevel ?? submission.target?.privacyLevel;
+
+  if (level === 'PUBLIC_TO_EVERYONE') {
+    ok('published publicly', 'the provider app has cleared the Content Posting audit');
+    return {
+      publish: 'yes',
+      publishesPublicly: 'yes',
+      notes: ['Verified publishing publicly through the provider.'],
+    };
+  }
+
+  if (level === 'SELF_ONLY') {
+    no('forced to SELF_ONLY', 'the provider app has not cleared the audit either');
+    return {
+      publish: 'yes',
+      publishesPublicly: 'no',
+      notes: [
+        'TikTok forced SELF_ONLY, so the provider is not pre-audited. Halyard uploads to drafts and you finish them in the app.',
+      ],
+    };
+  }
+
+  // The common case: it published, and said nothing about visibility.
+  unknown(
+    'published, but visibility unconfirmed',
+    'the response carries no privacy level, and a forced-private post also reports as published',
+  );
+  console.log(
+    `\n  ${DIM}Open TikTok on your phone: profile → the newest post.\n` +
+      `  A padlock or an "Only you" badge means it was forced private, and the\n` +
+      `  provider is not pre-audited. No badge means public posting works.\n` +
+      `  Record it with: pnpm verify-provider --tiktok-public yes|no${RESET}`,
+  );
+  return {
+    publish: 'yes',
+    publishesPublicly: 'unknown',
+    notes: [
+      'The provider published it, but reported no privacy level, and a post forced to SELF_ONLY also reports as published. Confirm in the TikTok app.',
+    ],
+  };
 }
 
 /**
@@ -477,6 +512,17 @@ async function main(): Promise<void> {
   const videoArg = process.argv.includes('--video')
     ? (process.argv[process.argv.indexOf('--video') + 1] ?? null)
     : null;
+  const resumeId = process.argv.includes('--resume')
+    ? (process.argv[process.argv.indexOf('--resume') + 1] ?? null)
+    : null;
+  const tiktokPublic = process.argv.includes('--tiktok-public')
+    ? (process.argv[process.argv.indexOf('--tiktok-public') + 1] ?? null)
+    : null;
+
+  if (tiktokPublic && !['yes', 'no'].includes(tiktokPublic)) {
+    console.error('--tiktok-public takes yes or no, from looking at the post in the app.');
+    process.exit(1);
+  }
 
   if (!KEY) {
     console.error(
@@ -538,7 +584,22 @@ async function main(): Promise<void> {
   };
 
   // TikTok first, alone, because the whole recommendation rested on it.
-  const tiktok = await verifyTikTok(accounts, allowPublish, videoUrl);
+  let tiktok = await verifyTikTok(accounts, allowPublish, videoUrl, resumeId);
+
+  // The operator looked at the app and is recording what they saw. That is a
+  // real observation, and the only available one for this question.
+  if (tiktokPublic) {
+    tiktok = {
+      publish: 'yes',
+      publishesPublicly: tiktokPublic === 'yes' ? 'yes' : 'no',
+      notes: [
+        tiktokPublic === 'yes'
+          ? 'Confirmed public by the operator, in the TikTok app.'
+          : 'Confirmed forced-private by the operator, in the TikTok app. The provider is not pre-audited.',
+      ],
+    };
+    ok('recorded from the app', `public: ${tiktokPublic}`);
+  }
 
   heading('2. Per-platform capability');
   for (const platform of platforms) {
