@@ -5,16 +5,27 @@
  * implements, so the queue, the six QC gates, scheduling, idempotency, routing
  * safety and attribution are all untouched. **Only the transport changes.**
  *
- * Endpoints and field names here come from Blotato's published API corpus, not
- * from guesswork:
+ * Endpoints and field names are taken from Blotato's OpenAPI reference, read
+ * directly rather than inferred:
  *
  *   POST /v2/posts                 publish or schedule
  *   GET  /v2/posts/:id             submission status
- *   GET  /v2/posts/:id/analytics   metrics snapshots
- *   GET  /v2/accounts              connected accounts
- *   POST /v2/media/uploads         host a media URL on their CDN
+ *   GET  /v2/posts/:id/analytics   metrics for one published post
+ *   GET  /v2/users/me/accounts     connected accounts
+ *   POST /v2/media                 host a media URL on their CDN
  *
- * Authentication is a `blotato-api-key` header, not a bearer token.
+ * Authentication is a `blotato-api-key` header, not a bearer token. Post
+ * creation is rate limited to 30 requests a minute.
+ *
+ * **This file was wrong in six places before the reference was read.** The
+ * response field is `postSubmissionId`, not `id`; accounts live under
+ * `/users/me/accounts`, not `/accounts`; Instagram's `mediaType` is `reel` or
+ * `story`, never `reels` or `carousel`; TikTok requires six booleans this
+ * adapter did not send; Pinterest and YouTube each have a required field it
+ * omitted; and the analytics response is `metrics`/`history`, not
+ * `latestMetrics`/`metricsHistory`. Every one of those would have failed on
+ * first contact. They are recorded here because "the endpoint shape was
+ * guessed" is exactly the class of error the capability probe exists to catch.
  *
  * What this adapter will *not* do is publish to a platform whose capability has
  * never been verified. Unknown is not permission.
@@ -65,12 +76,12 @@ export interface UnifiedAdapterOptions {
 /**
  * Platform-specific options on a Blotato post target.
  *
- * TikTok is the interesting one. `privacyLevel` exists in their API, but whether
- * `PUBLIC_TO_EVERYONE` is *honoured* depends on whether their app has cleared
- * TikTok's Content Posting audit — which no documentation states and only a real
- * post can settle. `scripts/verify-provider --publish` settles it, and what it
- * settles is what `/accounts` and the docs are allowed to claim. What gets sent
- * is draft either way, for the reason in the branch below.
+ * Every required field is sent, because the API rejects a target that is missing
+ * one and the rejection arrives as a validation error rather than as anything
+ * actionable. Where a required field encodes a policy decision — TikTok's
+ * privacy level, YouTube's visibility, whether subscribers get notified — the
+ * value follows the same rule the direct adapter follows, so the two transports
+ * cannot disagree about what Halyard is willing to publish.
  */
 export function buildTarget(
   platform: PlatformId,
@@ -81,16 +92,25 @@ export function buildTarget(
 
   switch (platform) {
     case 'tiktok': {
-      // Draft-first even where the probe confirms public posting works, and this
-      // is a product decision rather than a limitation: no API of any kind can
-      // attach trending commercial audio, and sound is a large share of TikTok
-      // distribution. A video published without it underperforms one finished by
-      // hand in the app. So the capability probe settles what the *docs* and
-      // /accounts are allowed to claim, not what gets sent here.
+      // Six booleans are required, not optional. Sending none of them, as this
+      // adapter originally did, is a rejected request.
+      //
+      // Draft-first even where the probe confirms public posting works, and
+      // that is a product decision rather than a limitation: no API of any kind
+      // can attach trending commercial audio, and sound is a large share of
+      // TikTok distribution. `autoAddMusic` is Blotato's nearest offer and it
+      // is not the same thing — it does not reach the trending catalogue.
       target.privacyLevel = 'SELF_ONLY';
       target.isDraft = true;
-      target.isAiGenerated = item.requiresAiLabel ?? false;
       target.disabledComments = false;
+      target.disabledDuet = false;
+      target.disabledStitch = false;
+      // Declared, not guessed: this is Halyard publishing on behalf of the
+      // product it markets, which is exactly what "your brand" means here.
+      target.isBrandedContent = false;
+      target.isYourBrand = true;
+      target.isAiGenerated = item.requiresAiLabel ?? false;
+      if (item.title) target.title = item.title.slice(0, 90);
       break;
     }
     case 'pinterest': {
@@ -100,21 +120,31 @@ export function buildTarget(
           'permanent',
         );
       }
+      // `title` is required here, and Pinterest is a search index: a Pin with no
+      // title is a Pin nobody finds. Falling back to the opening line beats
+      // failing the request, but the caller should be setting it.
       target.boardId = item.boardId;
-      if (item.title) target.title = item.title;
-      if (item.finalLinkUrl) target.link = item.finalLinkUrl;
+      target.title = (item.title ?? item.body.split('\n')[0] ?? 'Untitled').slice(0, 100);
+      if (item.finalLinkUrl) target.link = item.finalLinkUrl.slice(0, 2048);
+      if (item.altText) target.altText = item.altText.slice(0, 500);
       break;
     }
     case 'youtube': {
-      target.title = item.title ?? item.body.slice(0, 90);
+      target.title = (item.title ?? item.body.slice(0, 90)).replace(/[<>]/g, '').slice(0, 100);
       // Uploads stay private until the compliance audit passes, the same rule
-      // the direct adapter follows.
+      // the direct adapter follows and the same rule YouTube enforces anyway.
       target.privacyStatus = account.meta?.complianceAuditPassed === true ? 'public' : 'private';
+      // Required. False on purpose: a private upload that notifies subscribers
+      // sends people to something they cannot watch.
+      target.shouldNotifySubscribers = false;
+      target.containsSyntheticMedia = item.requiresAiLabel ?? false;
       break;
     }
     case 'instagram': {
-      if (item.format === 'video') target.mediaType = 'reels';
-      else if (item.format === 'carousel') target.mediaType = 'carousel';
+      // `reel` or `story`, singular, and nothing else. A carousel is not a
+      // media type here — it is what several mediaUrls produce.
+      if (item.format === 'video') target.mediaType = 'reel';
+      if (item.altText) target.altText = item.altText.slice(0, 1000);
       break;
     }
     default:
@@ -165,13 +195,14 @@ export class UnifiedAdapter implements PlatformAdapter {
   }
 
   async fetchIdentity(account: PublishAccount): Promise<PlatformIdentity> {
-    const accounts = (await this.get('/accounts')) as {
+    // `/users/me/accounts`, not `/accounts`. The response carries `fullname`
+    // rather than `displayName`, and no avatar at all.
+    const accounts = (await this.get('/users/me/accounts')) as {
       items?: Array<{
         id: string;
         platform?: string;
         username?: string;
-        displayName?: string;
-        profileImageUrl?: string;
+        fullname?: string;
       }>;
     };
 
@@ -193,14 +224,13 @@ export class UnifiedAdapter implements PlatformAdapter {
       .map((a) => ({
         platformUserId: a.id,
         handle: a.username ?? a.id,
-        displayName: a.displayName,
+        displayName: a.fullname,
       }));
 
     return {
       platformUserId: match.id,
       handle: match.username ?? match.id,
-      displayName: match.displayName,
-      avatarUrl: match.profileImageUrl,
+      displayName: match.fullname,
       detail: 'Connected through the unified provider, which holds the platform token.',
       alternatives: alternatives.length > 0 ? alternatives : undefined,
     };
@@ -264,8 +294,36 @@ export class UnifiedAdapter implements PlatformAdapter {
       );
     }
 
+    /**
+     * There is no reply endpoint, and that decides something.
+     *
+     * The published schema has no `replyToId`, no `in_reply_to`, and no way to
+     * attach a post to an existing one. A platform whose link strategy is
+     * `first_reply` — X — therefore cannot be served correctly by this
+     * transport at all.
+     *
+     * The tempting fallback is to put the link in the body instead. That is
+     * refused: on X a post containing a URL costs $0.20 against $0.015, so the
+     * "graceful degradation" is a thirteenfold cost increase applied silently to
+     * every post. Halyard would rather not publish.
+     *
+     * `additionalPosts` does build a thread, but every entry goes out as part of
+     * the same submission — it cannot carry a link that the first post is
+     * deliberately keeping out of its own body, because the pricing applies to
+     * the submission.
+     */
+    if (linkForReply && this.constraints.linkStrategy === 'first_reply') {
+      throw new PublishError(
+        `${this.platform} puts its link in the first reply, and the unified provider has no reply endpoint. ` +
+          'Putting the link in the body instead would cost $0.20 a post against $0.015, so this is refused rather than degraded. ' +
+          `Keep ${this.platform} on the direct transport.`,
+        'permanent',
+      );
+    }
+
     // Their API fetches media by URL, so assets are passed through rather than
     // uploaded — the same reason the direct Meta path needs public URLs.
+    // `mediaUrls` is required even when empty.
     const mediaUrls = assets.map((asset) => asset.publicUrl).filter(Boolean);
 
     const body = {
@@ -274,21 +332,21 @@ export class UnifiedAdapter implements PlatformAdapter {
         content: {
           text,
           platform: TARGET_TYPE[this.platform],
-          ...(mediaUrls.length > 0 ? { mediaUrls } : {}),
+          mediaUrls,
         },
         target: buildTarget(this.platform, item, account),
       },
     };
 
     const response = (await this.post('/posts', body)) as {
-      id?: string;
-      submissionId?: string;
-      status?: string;
-      permalink?: string;
-      url?: string;
+      postSubmissionId?: string;
+      scheduledTime?: string;
     };
 
-    const postId = response.id ?? response.submissionId;
+    // `postSubmissionId` is the only id this API returns. Reading `id` — which
+    // is what this adapter did before the reference was read — would have made
+    // every successful publish look malformed.
+    const postId = response.postSubmissionId;
     if (!postId) {
       // build pack §3: success with an unknown id is never retried. A retry here
       // double-posts to a real account, and that rule does not relax because a
@@ -298,26 +356,14 @@ export class UnifiedAdapter implements PlatformAdapter {
 
     const capability = this.capabilities.platforms[this.platform];
     const draftOnly = capability?.publishesPublicly !== 'yes' || this.platform === 'tiktok';
-
-    let linkReplyPostId: string | undefined;
-    if (linkForReply && this.constraints.linkStrategy === 'first_reply') {
-      // X carries its link in a reply. Blotato models that as a second post
-      // targeting the first, and losing it would silently drop every
-      // destination on the platform Halyard publishes to most.
-      const reply = (await this.post('/posts', {
-        post: {
-          accountId: providerAccountId,
-          content: { text: linkForReply, platform: TARGET_TYPE[this.platform] },
-          target: { targetType: TARGET_TYPE[this.platform], replyToId: postId },
-        },
-      })) as { id?: string; submissionId?: string };
-      linkReplyPostId = reply.id ?? reply.submissionId;
-    }
+    const linkReplyPostId: string | undefined = undefined;
 
     return {
       mode: draftOnly ? 'draft' : 'direct',
       platformPostId: postId,
-      permalink: response.permalink ?? response.url,
+      // The submission response carries no permalink. It is resolved later from
+      // GET /v2/posts/:id, rather than fabricated here.
+      permalink: undefined,
       manualPublishUrl: draftOnly ? 'https://my.blotato.com/published' : undefined,
       linkReplyPostId,
       raw: response,
@@ -327,9 +373,15 @@ export class UnifiedAdapter implements PlatformAdapter {
   /**
    * Metrics, mapped from the provider's field names.
    *
+   * The response is `{ metrics, history: [{ fetchedAt, metrics }], lastFetchedAt,
+   * lastError }`. This adapter previously read `latestMetrics`/`metricsHistory`,
+   * which are the field names of the *list* endpoint — so it would have found
+   * nothing on every call and reported a permanent absence of data as a
+   * transient delay.
+   *
    * Only what is actually present is mapped. A field the provider does not
-   * return stays `undefined` rather than becoming zero — `/analytics` shows
-   * "not reported by this transport", which is a different fact from "nobody
+   * return stays `undefined` rather than becoming zero: `/analytics` shows "not
+   * reported by this transport", which is a different fact from "nobody
    * engaged" and the only one of the two that should change strategy.
    */
   async collectMetrics(
@@ -337,17 +389,25 @@ export class UnifiedAdapter implements PlatformAdapter {
     _account: PublishAccount,
   ): Promise<MetricSnapshot> {
     const response = (await this.get(`/posts/${publication.platformPostId}/analytics`)) as {
-      latestMetrics?: Record<string, number | null>;
-      metricsHistory?: Array<{ fetchedAt: string; metrics: Record<string, number | null> }>;
+      metrics?: Record<string, number | null> | null;
+      history?: Array<{ fetchedAt: string; metrics: Record<string, number | null> }>;
+      lastFetchedAt?: string | null;
+      lastError?: string | null;
     };
 
     const metrics =
-      response.latestMetrics ??
-      response.metricsHistory?.[response.metricsHistory.length - 1]?.metrics;
+      response.metrics ?? response.history?.[response.history.length - 1]?.metrics ?? null;
 
     if (!metrics) {
-      // Their analytics run on a delay — around two hours on the higher plans,
-      // up to a day on the lowest — and are absent entirely on the free trial.
+      if (response.lastError) {
+        // The provider tried and failed. That is the platform's answer, not a
+        // delay, and retrying on a schedule will not change it.
+        throw new PublishError(
+          `The provider could not collect metrics for this post: ${response.lastError}`,
+          'permanent',
+        );
+      }
+      // Their collection runs on a delay, and analytics need a paid plan.
       throw new PublishError(
         'The provider has no metrics snapshot for this post yet. Analytics are collected on a delay ' +
           'and need a paid plan; a post published minutes ago will have none.',
@@ -358,17 +418,24 @@ export class UnifiedAdapter implements PlatformAdapter {
     const num = (value: number | null | undefined): number | undefined =>
       typeof value === 'number' ? value : undefined;
 
+    const watchMs = num(metrics.watchTimeMsAvg) ?? num(metrics.viewTimeMsSum);
+
     return {
       impressions: num(metrics.impressionsCount),
       reach: num(metrics.reachCount),
       likes: num(metrics.likesCount),
       comments: num(metrics.commentsCount ?? metrics.repliesCount),
       shares: num(metrics.sharesCount ?? metrics.twitterRetweetsCount),
-      videoViews: num(metrics.viewsCount ?? metrics.facebookTotalVideoViewsCount),
-      // Deliberately absent: saves, watchTimeSeconds, profileVisits, follows and
-      // linkClicks. The provider does not report them, and inventing a zero
-      // would corrupt the engagement weighting that treats a save as worth two
-      // to three likes.
+      // Saves *are* reported, contrary to what an earlier reading of the
+      // marketing pages concluded. They are weighted two to three times a like
+      // in scoring, so getting this wrong changed what every Instagram and
+      // Pinterest post was worth.
+      saves: num(metrics.savesCount),
+      videoViews: num(metrics.viewsCount ?? metrics.playsCount),
+      watchTimeSeconds: watchMs === undefined ? undefined : Math.round(watchMs / 1000),
+      profileVisits: num(metrics.profileVisitsCount ?? metrics.profileActivityCount),
+      linkClicks: num(metrics.clicksCount),
+      follows: num(metrics.followsCount),
       raw: response,
     };
   }
@@ -401,12 +468,22 @@ export class UnifiedAdapter implements PlatformAdapter {
   }
 }
 
-/** The metrics this transport is documented to return, for the gap report. */
+/**
+ * The metrics this transport is documented to return, for the gap report.
+ *
+ * Read from the analytics schema rather than from the marketing pages, which is
+ * how `saves` came to be missing from this list for an entire milestone.
+ */
 export const UNIFIED_METRICS: ScoredMetric[] = [
   'impressions',
   'reach',
   'likes',
   'comments',
   'shares',
+  'saves',
   'videoViews',
+  'watchTimeSeconds',
+  'profileVisits',
+  'linkClicks',
+  'follows',
 ];

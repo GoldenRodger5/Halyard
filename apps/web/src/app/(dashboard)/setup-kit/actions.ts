@@ -76,6 +76,28 @@ export async function generateKit(formData: FormData): Promise<void> {
   const bioLink = await linkInBioUrl(productId);
   const platforms = only ? [only as PlatformId] : CREATION_ORDER;
 
+  /**
+   * The handle each platform actually uses.
+   *
+   * Prefer the connected account's real handle over the one typed into the
+   * availability checker, because the connected one is the truth. They differ
+   * per platform by necessity — different legal characters, different names
+   * already taken — so a bio must never cite a sibling platform's handle.
+   */
+  const handleRows = await query<{ platform: string; handle: string }>(
+    `select platform, handle from (
+       select platform, handle, 1 as rank from social_accounts
+        where persona = $2 and (product_id = $1 or persona = 'founder')
+       union all
+       select platform, handle, 2 as rank from desired_handles where product_id = $1
+     ) h order by rank`,
+    [productId, persona],
+  );
+  const handleFor = new Map<string, string>();
+  for (const row of handleRows) {
+    if (!handleFor.has(row.platform)) handleFor.set(row.platform, row.handle.replace(/^@/, ''));
+  }
+
   // Constructed before the loop so a bad key is one clear sentence rather than
   // the same sentence seven times.
   let llm: AnthropicLlmClient;
@@ -104,6 +126,10 @@ export async function generateKit(formData: FormData): Promise<void> {
             dontRules: voice!.dont_rules ?? [],
           },
           linkInBioUrl: bioLink,
+          handle: handleFor.get(platform) ?? null,
+          otherHandles: [...handleFor.entries()]
+            .filter(([p, h]) => p !== platform && h !== handleFor.get(platform))
+            .map(([p, h]) => ({ platform: p, handle: h })),
           forbiddenClaims: product!.content_rules?.forbidden_claims ?? [],
         },
         llm,

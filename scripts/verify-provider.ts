@@ -19,6 +19,8 @@
  *
  * Read-only by default. `--publish` sends real posts and says so first.
  */
+import { readFile, stat } from 'node:fs/promises';
+import path from 'node:path';
 import pg from 'pg';
 import {
   DIRECT_METRICS,
@@ -32,6 +34,14 @@ import {
 } from '@halyard/core';
 
 const API = 'https://backend.blotato.com/v2';
+
+/**
+ * Platforms whose Blotato target object has an `altText` field.
+ *
+ * From the OpenAPI reference: Instagram (max 1,000 characters) and Pinterest
+ * (max 500). No other target accepts it. This is not a gap a probe can close.
+ */
+const ALT_TEXT_SUPPORTED = new Set<PlatformId>(['instagram', 'pinterest']);
 
 const RESET = '[0m';
 const DIM = '[2m';
@@ -72,10 +82,47 @@ async function api(path: string, init?: RequestInit): Promise<unknown> {
   return body;
 }
 
+/**
+ * Put a local file on the provider's CDN and return its public URL.
+ *
+ * Blotato fetches media by URL, so a rendered video sitting on a laptop is
+ * unreachable to it. `/v2/media/uploads` hands back a presigned URL to PUT the
+ * bytes to, which is what makes the TikTok question answerable before this is
+ * deployed anywhere.
+ */
+async function uploadLocalMedia(filePath: string): Promise<string> {
+  const info = await stat(filePath);
+  const bytes = await readFile(filePath);
+  console.log(
+    `  ${DIM}uploading ${path.basename(filePath)} (${(info.size / 1_000_000).toFixed(1)} MB)${RESET}`,
+  );
+
+  const created = (await api('/media/uploads', {
+    method: 'POST',
+    body: JSON.stringify({ filename: path.basename(filePath) }),
+  })) as { presignedUrl?: string; publicUrl?: string };
+
+  if (!created.presignedUrl || !created.publicUrl) {
+    throw new Error(`No presigned URL returned: ${JSON.stringify(created).slice(0, 200)}`);
+  }
+
+  const put = await fetch(created.presignedUrl, {
+    method: 'PUT',
+    body: new Uint8Array(bytes),
+    headers: { 'content-type': 'video/mp4' },
+  });
+  if (!put.ok) {
+    throw new Error(`Upload failed: HTTP ${put.status} ${(await put.text()).slice(0, 200)}`);
+  }
+
+  return created.publicUrl;
+}
+
 interface ConnectedAccount {
   id: string;
   platform?: string;
   username?: string;
+  fullname?: string;
 }
 
 /**
@@ -89,6 +136,7 @@ interface ConnectedAccount {
 async function verifyTikTok(
   accounts: ConnectedAccount[],
   allowPublish: boolean,
+  videoUrl: string | null,
 ): Promise<Partial<PlatformCapability>> {
   heading('1. TikTok — does it publish publicly, or only to drafts?');
 
@@ -111,6 +159,24 @@ async function verifyTikTok(
     };
   }
 
+  if (!videoUrl) {
+    // TikTok takes video or photo, never text. Blotato fetches media by URL, so
+    // the file has to be reachable from the public internet — a localhost asset
+    // path cannot settle this, and pretending otherwise would produce a failure
+    // that says nothing about the audit.
+    unknown(
+      'no publicly reachable video',
+      'pass --video <https url>, or deploy so rendered assets have public URLs',
+    );
+    return {
+      publish: 'unknown',
+      publishesPublicly: 'unknown',
+      notes: [
+        'Could not test: TikTok needs a video and the provider fetches media by URL, which needs a public origin.',
+      ],
+    };
+  }
+
   // Ask for public explicitly. If the app is unaudited, TikTok forces SELF_ONLY
   // and the response says so — which is the answer either way.
   const notes: string[] = [];
@@ -121,31 +187,79 @@ async function verifyTikTok(
         post: {
           accountId: account.id,
           content: {
-            text: 'Halyard capability check. This post exists to determine whether the API can publish publicly.',
+            // This may land publicly on a real brand account, so it reads as
+            // something a person could have posted rather than as debug output.
+            text: 'Testing the posting setup. Back shortly with actual recipes.',
             platform: 'tiktok',
-            mediaUrls: [],
+            mediaUrls: videoUrl ? [videoUrl] : [],
           },
-          target: { targetType: 'tiktok', privacyLevel: 'PUBLIC_TO_EVERYONE', isDraft: false },
+          // Every one of these is required by the schema. The interesting one is
+          // privacyLevel: asking for public is the whole experiment.
+          target: {
+            targetType: 'tiktok',
+            privacyLevel: 'PUBLIC_TO_EVERYONE',
+            isDraft: false,
+            disabledComments: false,
+            disabledDuet: false,
+            disabledStitch: false,
+            isBrandedContent: false,
+            isYourBrand: true,
+            isAiGenerated: false,
+          },
         },
       }),
-    })) as { id?: string; submissionId?: string; status?: string };
+    })) as { postSubmissionId?: string };
 
-    const id = created.id ?? created.submissionId;
+    const id = created.postSubmissionId;
     if (!id) {
       no('no submission id returned', JSON.stringify(created).slice(0, 200));
       return { publish: 'unknown', publishesPublicly: 'unknown', notes: ['Malformed response.'] };
     }
 
-    // Read the submission back — the status is where a forced downgrade shows.
-    const submission = (await api(`/posts/${id}`)) as {
+    // The submission is asynchronous: TikTok transcodes before it decides, so
+    // reading once returns `in-progress` and settles nothing. Poll to a terminal
+    // state, because "inconclusive" from an impatient read is exactly the kind
+    // of non-answer this script exists to avoid producing.
+    ok('post accepted', `submission ${id}`);
+    let submission: {
       status?: string;
       privacyLevel?: string;
       error?: string;
+      errorMessage?: string;
       target?: { privacyLevel?: string };
-    };
+    } = {};
+
+    for (let attempt = 0; attempt < 40; attempt += 1) {
+      submission = (await api(`/posts/${id}`)) as typeof submission;
+      if (submission.status && submission.status !== 'in-progress') break;
+      if (attempt === 0) console.log(`  ${DIM}waiting for TikTok to finish processing${RESET}`);
+      await new Promise((resolve) => setTimeout(resolve, 15_000));
+    }
+
+    if (submission.status === 'in-progress') {
+      unknown(
+        'still processing after ten minutes',
+        `check the submission by hand: GET /v2/posts/${id}`,
+      );
+      return {
+        publish: 'unknown',
+        publishesPublicly: 'unknown',
+        notes: [`Submission ${id} had not settled after ten minutes.`],
+      };
+    }
 
     const level = submission.privacyLevel ?? submission.target?.privacyLevel;
-    ok('post accepted', `submission ${id}, status ${submission.status ?? 'unknown'}`);
+    ok('settled', `status ${submission.status ?? 'unknown'}`);
+
+    const failure = submission.error ?? submission.errorMessage;
+    if (submission.status === 'failed' || failure) {
+      no('the provider could not publish it', String(failure ?? 'no reason given'));
+      return {
+        publish: 'no',
+        publishesPublicly: 'no',
+        notes: [`Publish failed: ${String(failure ?? 'no reason given')}`],
+      };
+    }
 
     if (level === 'PUBLIC_TO_EVERYONE') {
       ok('published publicly', 'the provider app has cleared the Content Posting audit');
@@ -153,7 +267,7 @@ async function verifyTikTok(
       return { publish: 'yes', publishesPublicly: 'yes', notes };
     }
 
-    if (level === 'SELF_ONLY' || submission.error) {
+    if (level === 'SELF_ONLY') {
       no(
         'forced to SELF_ONLY',
         'the provider app has not cleared the audit either — draft-first it is',
@@ -193,7 +307,8 @@ async function verifyPlatform(
   accounts: ConnectedAccount[],
 ): Promise<PlatformCapability> {
   const target = TARGET_TYPE[platform];
-  const account = accounts.find((a) => a.platform === target);
+  const matching = accounts.filter((a) => a.platform === target);
+  const account = matching[0];
 
   const capability: PlatformCapability = {
     platform,
@@ -214,17 +329,50 @@ async function verifyPlatform(
     return capability;
   }
 
-  // Scheduling is settled by the API surface rather than by sending a post:
-  // /v2/posts accepts a scheduledTime, and a rejected schedule returns 4xx.
-  capability.scheduling = 'yes';
+  /**
+   * Some capabilities are settled by the schema, not by a post.
+   *
+   * A field that does not exist in the request body cannot be sent, so no
+   * amount of publishing will discover it. Alt text is the sharp case: the
+   * target object accepts `altText` on Instagram and Pinterest and **nowhere
+   * else**, so on X, Threads, Bluesky and YouTube this transport cannot carry
+   * alt text at all. That is a schema fact, and calling it "unverified" would
+   * be false modesty that hides a real accessibility regression.
+   */
+  capability.scheduling = 'yes'; // top-level scheduledTime, every platform
+  capability.altText = ALT_TEXT_SUPPORTED.has(platform) ? 'yes' : 'no';
+  // Multiple media are accepted on every platform — up to 20 mediaUrls — and a
+  // carousel is what several of them produce rather than a separate mode.
+  capability.carousel = 'yes';
 
-  // Everything else needs a real post of that shape to settle honestly, so it
-  // stays unknown until --publish is used for it. Saying "probably" here would
-  // be the precise failure this script exists to prevent.
+  if (capability.altText === 'no') {
+    capability.notes.push(
+      'The provider has no alt-text field for this platform, so a post routed through it loses alt text. The direct adapter keeps it.',
+    );
+  }
+
+  // Whether a *published* post actually behaves stays unknown until one has
+  // been sent. Saying "probably" here would be the precise failure this script
+  // exists to prevent.
   capability.notes.push(
-    'Connected. Carousel, video and alt-text support are unverified until a post of each shape has been sent.',
+    'Connected. Publishing and video behaviour are unverified until a post of each shape has been sent.',
   );
-  ok(platform, `connected as ${account.username ?? account.id}`);
+
+  if (matching.length > 1) {
+    // Two accounts on one platform is the founder/brand split, and the provider
+    // account id has to be chosen per Halyard account rather than guessed here.
+    capability.notes.push(
+      `${matching.length} accounts connected on this platform (${matching
+        .map((a) => a.username || a.fullname || a.id)
+        .join(', ')}). Set the provider account id per account on /accounts.`,
+    );
+  }
+
+  (capability.altText === 'no' ? unknown : ok)(
+    platform,
+    `connected as ${matching.map((a) => a.username || a.fullname || a.id).join(', ')}` +
+      (capability.altText === 'no' ? ' · no alt-text support on this platform' : ''),
+  );
   return capability;
 }
 
@@ -235,15 +383,24 @@ async function verifyMetrics(
 ): Promise<void> {
   heading('3. Metrics — what actually comes back');
 
+  // Only posts that actually went out through this transport. Reading a
+  // directly-published post's id against the provider's analytics returns 404,
+  // and reporting that as "no snapshot yet" reads as a provider problem when it
+  // is a category error.
   const { rows } = await pool.query<{ platform: PlatformId; platform_post_id: string }>(
     `select ci.platform, p.platform_post_id
-       from publications p join content_items ci on ci.id = p.content_item_id
-      where p.platform_post_id is not null
+       from publications p
+       join content_items ci on ci.id = p.content_item_id
+       join social_accounts sa on sa.id = ci.account_id
+      where p.platform_post_id is not null and sa.transport = 'unified'
       order by p.published_at desc limit 20`,
   );
 
   if (rows.length === 0) {
-    unknown('nothing published yet', 'publish one post through the provider, then re-run');
+    unknown(
+      'nothing has been published through this transport yet',
+      'switch an account to unified on /accounts, publish once, then re-run',
+    );
   }
 
   for (const platform of Object.keys(capabilities.platforms) as PlatformId[]) {
@@ -254,16 +411,19 @@ async function verifyMetrics(
       const gap = DIRECT_METRICS[platform] ?? [];
       unknown(
         platform,
-        `no published post to read. Direct would give: ${gap.join(', ')}`,
+        `no post published through the provider. Direct would give: ${gap.join(', ')}`,
       );
       continue;
     }
 
     try {
       const analytics = (await api(`/posts/${sample.platform_post_id}/analytics`)) as {
-        latestMetrics?: Record<string, number | null>;
+        metrics?: Record<string, number | null> | null;
+        history?: Array<{ metrics: Record<string, number | null> }>;
       };
-      const present = Object.entries(analytics.latestMetrics ?? {})
+      const latest =
+        analytics.metrics ?? analytics.history?.[analytics.history.length - 1]?.metrics ?? {};
+      const present = Object.entries(latest)
         .filter(([, v]) => typeof v === 'number')
         .map(([k]) => k);
 
@@ -296,13 +456,27 @@ export function mapMetricNames(fields: string[]): ScoredMetric[] {
     sharesCount: 'shares',
     twitterRetweetsCount: 'shares',
     viewsCount: 'videoViews',
+    playsCount: 'videoViews',
     facebookTotalVideoViewsCount: 'videoViews',
+    // Present in the analytics schema, and absent from this map until the
+    // reference was read — which is how the transport came to be described as
+    // unable to report saves.
+    savesCount: 'saves',
+    clicksCount: 'linkClicks',
+    followsCount: 'follows',
+    profileVisitsCount: 'profileVisits',
+    profileActivityCount: 'profileVisits',
+    watchTimeMsAvg: 'watchTimeSeconds',
+    viewTimeMsSum: 'watchTimeSeconds',
   };
   return [...new Set(fields.map((f) => map[f]).filter(Boolean) as ScoredMetric[])];
 }
 
 async function main(): Promise<void> {
   const allowPublish = process.argv.includes('--publish');
+  const videoArg = process.argv.includes('--video')
+    ? (process.argv[process.argv.indexOf('--video') + 1] ?? null)
+    : null;
 
   if (!KEY) {
     console.error(
@@ -334,13 +508,26 @@ async function main(): Promise<void> {
   heading('0. Connection');
   let accounts: ConnectedAccount[] = [];
   try {
-    const response = (await api('/accounts')) as { items?: ConnectedAccount[] };
+    const response = (await api('/users/me/accounts')) as { items?: ConnectedAccount[] };
     accounts = response.items ?? [];
     ok('API key works', `${accounts.length} accounts connected`);
   } catch (err) {
     no('could not reach the provider', (err as Error).message);
     await pool.end();
     process.exit(1);
+  }
+
+  // A local path is uploaded to the provider's CDN; an https URL is used as is.
+  let videoUrl: string | null = null;
+  if (videoArg) {
+    try {
+      videoUrl = /^https:\/\//.test(videoArg) ? videoArg : await uploadLocalMedia(videoArg);
+      ok('media ready', videoUrl);
+    } catch (err) {
+      no('media upload failed', (err as Error).message);
+      await pool.end();
+      process.exit(1);
+    }
   }
 
   const platforms: PlatformId[] = ['x', 'instagram', 'threads', 'pinterest', 'youtube', 'tiktok', 'bluesky'];
@@ -351,7 +538,7 @@ async function main(): Promise<void> {
   };
 
   // TikTok first, alone, because the whole recommendation rested on it.
-  const tiktok = await verifyTikTok(accounts, allowPublish);
+  const tiktok = await verifyTikTok(accounts, allowPublish, videoUrl);
 
   heading('2. Per-platform capability');
   for (const platform of platforms) {

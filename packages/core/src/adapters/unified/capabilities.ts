@@ -114,6 +114,13 @@ export const DIRECT_METRICS: Record<PlatformId, ScoredMetric[]> = {
  * Recorded separately from what a probe observes, because the two disagree more
  * often than vendors admit — and because a metric that is documented but never
  * arrives is exactly the kind of thing that renders as a confident zero.
+ *
+ * Corrected against the analytics schema after an earlier reading of the
+ * marketing pages concluded that saves were not available. They are:
+ * `savesCount`, `clicksCount`, `profileVisitsCount`, `followsCount` and
+ * `watchTimeMsAvg` all exist. The earlier conclusion made the unified transport
+ * look far thinner than it is, and would have kept Instagram on a direct
+ * adapter for a reason that was not true.
  */
 export const BLOTATO_DOCUMENTED_METRICS: ScoredMetric[] = [
   'impressions',
@@ -121,7 +128,12 @@ export const BLOTATO_DOCUMENTED_METRICS: ScoredMetric[] = [
   'likes',
   'comments',
   'shares',
+  'saves',
   'videoViews',
+  'watchTimeSeconds',
+  'profileVisits',
+  'linkClicks',
+  'follows',
 ];
 
 /**

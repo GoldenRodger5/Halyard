@@ -38,6 +38,17 @@ export interface KitRequest {
   voice: KitVoice;
   /** The URL going in the profile's link field, so the bio can point at it. */
   linkInBioUrl: string | null;
+  /**
+   * The handle this account actually uses on this platform.
+   *
+   * Handles do not survive across platforms. RecipeFix is `@recipe.fix` on
+   * Meta, `@recipefix` on TikTok and `@Recipe_Fix` on X, because each platform
+   * has different legal characters and different names already taken. A bio
+   * that says "also on @recipefix" while written for X points at nothing.
+   */
+  handle?: string | null;
+  /** Handles on other platforms, so the bio can be told not to cite them. */
+  otherHandles?: Array<{ platform: string; handle: string }>;
   forbiddenClaims?: string[];
   maxAttempts?: number;
 }
@@ -132,6 +143,19 @@ function buildPrompt(request: KitRequest): { system: string; user: string } {
     request.linkInBioUrl
       ? `\nThe profile links to ${request.linkInBioUrl}. Do not paste the URL into the bio text; it has its own field.`
       : `\nThis platform has no link field: ${spec.linkNote}`,
+    '',
+    // Handles are per platform and inconsistent by necessity. A bio that cites
+    // the wrong one sends people to a profile that does not exist.
+    `HANDLES — never write a handle other than this account's own.`,
+    request.handle
+      ? `This account is @${request.handle.replace(/^@/, '')} on ${request.platform}.`
+      : `This account's handle is not settled yet, so do not write one at all.`,
+    request.otherHandles && request.otherHandles.length > 0
+      ? `The same brand uses different handles elsewhere (${request.otherHandles
+          .map((h) => `@${h.handle.replace(/^@/, '')} on ${h.platform}`)
+          .join(', ')}). Do NOT mention any of them: they do not resolve on ${request.platform}, ` +
+        'and a bio that points at a handle which does not exist on the platform reading it is worse than one that points nowhere.'
+      : 'Do not invite people to find this brand on another platform by handle.',
     '',
     `Write THREE bio variants, each taking a different angle:`,
     ...ANGLES.map((angle, i) => `${i + 1}. ${angle}`),
@@ -230,6 +254,25 @@ export async function generateProfileCopy(
         problems.push(`Pinned post: ${violation.message}`);
       }
     }
+    // Asked for above, and checked here: a prompt instruction is a request, and
+    // a wrong handle in a bio is a dead link at the top of the profile forever.
+    const foreign = (request.otherHandles ?? []).map((h) => h.handle.replace(/^@/, '').toLowerCase());
+    const own = request.handle?.replace(/^@/, '').toLowerCase();
+    for (const bio of bios) {
+      for (const mention of bio.text.match(/@[A-Za-z0-9._]+/g) ?? []) {
+        // A period is legal inside an Instagram or TikTok handle *and* is how
+        // the sentence ends, so "@recipe.fix." captures one character too many
+        // and matches nothing in the list.
+        const cited = mention.slice(1).replace(/\.+$/, '').toLowerCase();
+        if (cited === own) continue;
+        if (foreign.includes(cited) || !own) {
+          problems.push(
+            `Bio cites ${mention}, which is not this account's handle on ${request.platform}. Remove it.`,
+          );
+        }
+      }
+    }
+
     if (bios.length === 0) problems.push('No bios were returned.');
     if (displayNames.length === 0) problems.push('No display names were returned.');
     if (!pinnedPost) problems.push('No pinned post was returned.');

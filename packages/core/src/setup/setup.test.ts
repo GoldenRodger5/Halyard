@@ -334,6 +334,73 @@ describe('generateProfileCopy', () => {
     expect(llm.calls[0]!.messages[0]!.content).toContain('it has its own field');
   });
 
+  it('tells the model this account’s own handle, and forbids the others', async () => {
+    // RecipeFix is @recipe.fix on Meta, @recipefix on TikTok and @Recipe_Fix on
+    // X. A bio written for X that says "also on @recipe.fix" points at nothing.
+    const llm = stubLlm([goodReply]);
+    await generateProfileCopy(
+      {
+        ...request,
+        handle: 'Recipe_Fix',
+        otherHandles: [
+          { platform: 'instagram', handle: 'recipe.fix' },
+          { platform: 'tiktok', handle: 'recipefix' },
+        ],
+      },
+      llm,
+    );
+    const prompt = llm.calls[0]!.messages[0]!.content;
+    expect(prompt).toContain('@Recipe_Fix on x');
+    expect(prompt).toContain('@recipe.fix on instagram');
+    expect(prompt).toContain('do not resolve on x');
+  });
+
+  it('rejects a bio that cites a handle from another platform', async () => {
+    const wrongHandle = JSON.stringify({
+      bios: [{ text: 'Recipes that survive a swap. Also on @recipe.fix.', angle: 'plain' }],
+      display_names: ['RecipeFix'],
+      pinned_post: 'This account is about one thing.',
+    });
+    const llm = stubLlm([wrongHandle, goodReply]);
+    const result = await generateProfileCopy(
+      {
+        ...request,
+        handle: 'Recipe_Fix',
+        otherHandles: [{ platform: 'instagram', handle: 'recipe.fix' }],
+      },
+      llm,
+    );
+
+    // Asked for in the prompt and enforced afterwards, because a prompt
+    // instruction is a request and this one costs a dead link on the profile.
+    expect(llm.calls).toHaveLength(2);
+    expect(llm.calls[1]!.messages[0]!.content).toContain('not this account');
+    expect(result.bios.every((bio) => !bio.text.includes('@recipe.fix'))).toBe(true);
+  });
+
+  it('keeps the account’s own handle when a bio uses it', async () => {
+    const ownHandle = JSON.stringify({
+      bios: [{ text: 'Recipes that survive a swap. That is all @Recipe_Fix does.', angle: 'plain' }],
+      display_names: ['RecipeFix'],
+      pinned_post: 'This account is about one thing.',
+    });
+    const llm = stubLlm([ownHandle]);
+    const result = await generateProfileCopy({ ...request, handle: 'Recipe_Fix' }, llm);
+    expect(llm.calls).toHaveLength(1);
+    expect(result.bios[0]!.text).toContain('@Recipe_Fix');
+  });
+
+  it('forbids every handle when this account has none settled yet', async () => {
+    const anyHandle = JSON.stringify({
+      bios: [{ text: 'Recipes that survive a swap. Find us at @whatever.', angle: 'plain' }],
+      display_names: ['RecipeFix'],
+      pinned_post: 'This account is about one thing.',
+    });
+    const llm = stubLlm([anyHandle, goodReply]);
+    await generateProfileCopy(request, llm);
+    expect(llm.calls).toHaveLength(2);
+  });
+
   it('tells the model when a platform has no link field at all', async () => {
     const llm = stubLlm([goodReply]);
     await generateProfileCopy(

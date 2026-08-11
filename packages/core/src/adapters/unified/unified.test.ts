@@ -13,6 +13,7 @@ import {
   BLOTATO_DOCUMENTED_METRICS,
   DIRECT_METRICS,
   SCORED_METRICS,
+  type ScoredMetric,
   TARGET_TYPE,
   UnifiedAdapter,
   buildTarget,
@@ -23,7 +24,12 @@ import {
   unverified,
   type ProviderCapabilities,
 } from './index.js';
-import { PublishError, type PublishAccount, type PublishItem } from '../types.js';
+import {
+  PublishError,
+  type PlatformId,
+  type PublishAccount,
+  type PublishItem,
+} from '../types.js';
 import { X_CONSTRAINTS } from '../x.js';
 import { TIKTOK_CONSTRAINTS } from '../tiktok.js';
 import { INSTAGRAM_CONSTRAINTS } from '../instagram.js';
@@ -149,22 +155,37 @@ describe('capability model', () => {
 // ── the gap is named, never rendered as a zero ──────────────────────────────
 
 describe('metric gap reporting', () => {
-  it('names what the transport cannot see rather than reporting it as zero', () => {
-    const gap = describeGap('instagram', BLOTATO_DOCUMENTED_METRICS);
+  it('finds no documented gap, because the provider reports every scored metric', () => {
+    // This is the corrected position. An earlier reading of the marketing pages
+    // concluded saves were unavailable; the analytics schema has `savesCount`,
+    // `clicksCount`, `profileVisitsCount`, `followsCount` and `watchTimeMsAvg`.
+    for (const platform of Object.keys(DIRECT_METRICS) as PlatformId[]) {
+      expect(
+        missingMetrics(platform, BLOTATO_DOCUMENTED_METRICS),
+        `${platform} should have no documented gap`,
+      ).toEqual([]);
+      expect(describeGap(platform, BLOTATO_DOCUMENTED_METRICS)).toBeNull();
+    }
+  });
+
+  it('still reports a gap against what a probe actually observed', () => {
+    // Documented and observed are different things, which is the whole reason
+    // they are stored separately. A probe that never saw saves come back
+    // produces a gap even though the schema promises them.
+    const observed: ScoredMetric[] = ['impressions', 'likes', 'comments'];
+    const gap = describeGap('instagram', observed);
     expect(gap).toContain('saves');
     expect(gap).toContain('does not report');
   });
 
   it('calls out saves specifically, because they are weighted above a like', () => {
-    expect(describeGap('instagram', BLOTATO_DOCUMENTED_METRICS)).toContain('two to three times');
+    expect(describeGap('instagram', ['impressions', 'likes'])).toContain('two to three times');
     // Threads has no saves to lose, so no such clause.
-    expect(describeGap('threads', BLOTATO_DOCUMENTED_METRICS) ?? '').not.toContain(
-      'two to three times',
-    );
+    expect(describeGap('threads', ['impressions']) ?? '').not.toContain('two to three times');
   });
 
   it('reassures on link clicks, which Halyard counts itself through /r', () => {
-    expect(describeGap('x', BLOTATO_DOCUMENTED_METRICS)).toContain('/r');
+    expect(describeGap('x', ['impressions', 'likes'])).toContain('/r');
   });
 
   it('returns null when nothing is lost, so /analytics stays quiet', () => {
@@ -172,16 +193,17 @@ describe('metric gap reporting', () => {
     expect(missingMetrics('threads', DIRECT_METRICS.threads)).toEqual([]);
   });
 
-  it('never claims the provider returns saves — the documented list has none', () => {
-    expect(BLOTATO_DOCUMENTED_METRICS).not.toContain('saves');
-    expect(missingMetrics('pinterest', BLOTATO_DOCUMENTED_METRICS)).toContain('saves');
-  });
-
   it('keeps DIRECT_METRICS inside the set the scorer actually reads', () => {
     for (const metrics of Object.values(DIRECT_METRICS)) {
       for (const metric of metrics) {
         expect(SCORED_METRICS).toContain(metric);
       }
+    }
+  });
+
+  it('keeps the documented list inside the set the scorer reads', () => {
+    for (const metric of BLOTATO_DOCUMENTED_METRICS) {
+      expect(SCORED_METRICS).toContain(metric);
     }
   });
 });
@@ -229,14 +251,66 @@ describe('buildTarget', () => {
     expect(audited.privacyStatus).toBe('public');
   });
 
-  it('distinguishes a Reel from a carousel on Instagram', () => {
+  it('marks a video as a reel, singular, which is the only value the API takes', () => {
     expect(
       buildTarget('instagram', item({ platform: 'instagram', format: 'video' }), account()).mediaType,
-    ).toBe('reels');
-    expect(
-      buildTarget('instagram', item({ platform: 'instagram', format: 'carousel' }), account())
-        .mediaType,
-    ).toBe('carousel');
+    ).toBe('reel');
+  });
+
+  it('sends no mediaType for a carousel, because a carousel is not a media type', () => {
+    // `mediaType` is `reel` or `story`. A carousel is what several mediaUrls
+    // produce, and sending "carousel" is a rejected request.
+    const target = buildTarget('instagram', item({ platform: 'instagram', format: 'carousel' }), account());
+    expect(target.mediaType).toBeUndefined();
+  });
+
+  it('carries alt text on the platforms whose target accepts it', () => {
+    const ig = buildTarget(
+      'instagram',
+      item({ platform: 'instagram', format: 'image', altText: 'A collapsed loaf beside a risen one.' }),
+      account(),
+    );
+    expect(ig.altText).toContain('collapsed loaf');
+
+    const pin = buildTarget(
+      'pinterest',
+      item({ platform: 'pinterest', boardId: 'b1', title: 'Gluten-free bread', altText: 'A sliced loaf.' }),
+      account(),
+    );
+    expect(pin.altText).toBe('A sliced loaf.');
+  });
+
+  it('sends every boolean TikTok requires, not just the interesting ones', () => {
+    // Six are required. Omitting them is a rejected request, and the rejection
+    // is a validation error rather than anything actionable.
+    const target = buildTarget('tiktok', item({ platform: 'tiktok', format: 'video' }), account());
+    for (const key of [
+      'disabledComments',
+      'disabledDuet',
+      'disabledStitch',
+      'isBrandedContent',
+      'isYourBrand',
+      'isAiGenerated',
+    ]) {
+      expect(target[key], `TikTok target is missing ${key}`).toBeTypeOf('boolean');
+    }
+    expect(target.privacyLevel).toBe('SELF_ONLY');
+  });
+
+  it('always gives Pinterest a title, which the API requires and search needs', () => {
+    const target = buildTarget(
+      'pinterest',
+      item({ platform: 'pinterest', boardId: 'b1', body: 'Your gluten-free loaf is gummy.' }),
+      account(),
+    );
+    expect(target.title).toBe('Your gluten-free loaf is gummy.');
+    expect(String(target.title).length).toBeLessThanOrEqual(100);
+  });
+
+  it('tells YouTube not to notify subscribers about a private upload', () => {
+    const target = buildTarget('youtube', item({ platform: 'youtube', format: 'video' }), account());
+    expect(target.privacyStatus).toBe('private');
+    expect(target.shouldNotifySubscribers).toBe(false);
   });
 });
 
@@ -278,14 +352,16 @@ describe('UnifiedAdapter.publish', () => {
   });
 
   it('authenticates with the provider header, not a bearer token', async () => {
-    const { adapter, calls } = adapterFor('x', verifiedFor('x'), () => json({ id: 'post-1' }));
+    const { adapter, calls } = adapterFor('x', verifiedFor('x'), () =>
+      json({ postSubmissionId: 'post-1' }),
+    );
     await adapter.publish(item(), [], account());
     expect(calls[0]!.apiKey).toBe('key-123');
     expect(calls[0]!.url).toContain('/v2/posts');
   });
 
   it('names the missing environment variable when the key is absent', async () => {
-    const { fetchImpl } = scriptedFetch(() => json({ id: 'post-1' }));
+    const { fetchImpl } = scriptedFetch(() => json({ postSubmissionId: 'post-1' }));
     const adapter = new UnifiedAdapter({
       platform: 'x',
       constraints: X_CONSTRAINTS,
@@ -300,36 +376,51 @@ describe('UnifiedAdapter.publish', () => {
   });
 
   it('refuses when no provider account id is stored, rather than posting somewhere', async () => {
-    const { adapter } = adapterFor('x', verifiedFor('x'), () => json({ id: 'post-1' }));
+    const { adapter } = adapterFor('x', verifiedFor('x'), () =>
+      json({ postSubmissionId: 'post-1' }),
+    );
     await expect(
       adapter.publish(item(), [], account({ meta: {}, platformUserId: null })),
     ).rejects.toThrow(/provider account id/);
   });
 
-  it('puts the X link in a reply to the post it just made', async () => {
-    const { adapter, calls } = adapterFor('x', verifiedFor('x'), (_url, made) =>
-      json({ id: made.length === 1 ? 'post-1' : 'reply-1' }),
+  it('refuses an X post whose link belongs in a reply, rather than degrading it', async () => {
+    // There is no reply endpoint in this API at all. The tempting fallback is
+    // to put the link in the body, which on X costs $0.20 against $0.015 — a
+    // thirteenfold cost increase applied silently to every post.
+    const { adapter, calls } = adapterFor('x', verifiedFor('x'), () =>
+      json({ postSubmissionId: 'should-never-be-called' }),
     );
 
-    const result = await adapter.publish(
-      item({ finalLinkUrl: 'https://recipefix.app/r/abc' }),
-      [],
-      account(),
-    );
+    await expect(
+      adapter.publish(item({ finalLinkUrl: 'https://recipefix.app/r/abc' }), [], account()),
+    ).rejects.toThrow(/no reply endpoint/);
+    expect(calls).toHaveLength(0);
+  });
 
-    expect(calls).toHaveLength(2);
-    const reply = calls[1]!.body.post as { target: { replyToId: string }; content: { text: string } };
-    expect(reply.target.replyToId).toBe('post-1');
-    expect(reply.content.text).toContain('https://recipefix.app/r/abc');
-    expect(result.linkReplyPostId).toBe('reply-1');
-    // The body itself must not carry the link — that is a $0.20 post instead of
-    // a $0.015 one.
-    const first = calls[0]!.body.post as { content: { text: string } };
-    expect(first.content.text).not.toContain('https://recipefix.app/r/abc');
+  it('publishes an X post with no link, since nothing is being degraded', async () => {
+    const { adapter, calls } = adapterFor('x', verifiedFor('x'), () =>
+      json({ postSubmissionId: 'post-1' }),
+    );
+    const result = await adapter.publish(item(), [], account());
+    expect(result.platformPostId).toBe('post-1');
+    expect(calls).toHaveLength(1);
+  });
+
+  it('always sends mediaUrls, which the schema requires even when empty', async () => {
+    const { adapter, calls } = adapterFor('x', verifiedFor('x'), () =>
+      json({ postSubmissionId: 'post-1' }),
+    );
+    await adapter.publish(item(), [], account());
+    const content = (calls[0]!.body.post as { content: { mediaUrls: string[] } }).content;
+    expect(Array.isArray(content.mediaUrls)).toBe(true);
+    expect(content.mediaUrls).toEqual([]);
   });
 
   it('never retries a response with no id — a retry double-posts', async () => {
-    const { adapter, calls } = adapterFor('x', verifiedFor('x'), () => json({ status: 'queued' }));
+    // Note the shape: `id` is exactly what this adapter used to read, and it is
+    // not what the API returns. A response like this must read as malformed.
+    const { adapter, calls } = adapterFor('x', verifiedFor('x'), () => json({ id: 'wrong-field' }));
     const result = await adapter.publish(item(), [], account());
 
     expect(result.malformedResponse).toBe(true);
@@ -340,7 +431,7 @@ describe('UnifiedAdapter.publish', () => {
 
   it('reports a draft as a draft, with somewhere to go and finish it', async () => {
     const caps = verifiedFor('tiktok', { publishesPublicly: 'no' });
-    const { adapter } = adapterFor('tiktok', caps, () => json({ id: 'post-9' }));
+    const { adapter } = adapterFor('tiktok', caps, () => json({ postSubmissionId: 'post-9' }));
     const result = await adapter.publish(
       item({ platform: 'tiktok', format: 'video' }),
       [],
@@ -351,7 +442,9 @@ describe('UnifiedAdapter.publish', () => {
   });
 
   it('reports TikTok as a draft even when the provider posts publicly elsewhere', async () => {
-    const { adapter } = adapterFor('tiktok', verifiedFor('tiktok'), () => json({ id: 'post-9' }));
+    const { adapter } = adapterFor('tiktok', verifiedFor('tiktok'), () =>
+      json({ postSubmissionId: 'post-9' }),
+    );
     const result = await adapter.publish(
       item({ platform: 'tiktok', format: 'video' }),
       [],
@@ -405,15 +498,19 @@ describe('UnifiedAdapter.collectMetrics', () => {
       fetchImpl: scriptedFetch(respond).fetchImpl,
     });
 
-  it('leaves unreported metrics undefined rather than zero', async () => {
+  it('maps saves, which this transport does report', async () => {
     const adapter = build(() =>
       json({
-        latestMetrics: {
+        metrics: {
           impressionsCount: 1200,
           reachCount: 900,
           likesCount: 44,
           commentsCount: 3,
           sharesCount: 2,
+          savesCount: 17,
+          clicksCount: 8,
+          followsCount: 2,
+          profileVisitsCount: 30,
         },
       }),
     );
@@ -421,18 +518,32 @@ describe('UnifiedAdapter.collectMetrics', () => {
 
     expect(snapshot.impressions).toBe(1200);
     expect(snapshot.likes).toBe(44);
-    // The whole point. A save that was never reported is not a save that never
-    // happened, and zero here would understate every post on this transport.
+    expect(snapshot.saves).toBe(17);
+    expect(snapshot.linkClicks).toBe(8);
+    expect(snapshot.follows).toBe(2);
+    expect(snapshot.profileVisits).toBe(30);
+  });
+
+  it('leaves a genuinely absent metric undefined rather than zero', async () => {
+    const adapter = build(() => json({ metrics: { impressionsCount: 1200, likesCount: 44 } }));
+    const snapshot = await adapter.collectMetrics({ platformPostId: 'post-1' }, account());
+
+    // A save that was never reported is not a save that never happened, and a
+    // zero here would understate every post on this transport.
     expect(snapshot.saves).toBeUndefined();
     expect(snapshot.watchTimeSeconds).toBeUndefined();
-    expect(snapshot.profileVisits).toBeUndefined();
     expect(snapshot.follows).toBeUndefined();
-    expect(snapshot.linkClicks).toBeUndefined();
+  });
+
+  it('converts watch time from the milliseconds the API reports', async () => {
+    const adapter = build(() => json({ metrics: { watchTimeMsAvg: 12_400 } }));
+    const snapshot = await adapter.collectMetrics({ platformPostId: 'post-1' }, account());
+    expect(snapshot.watchTimeSeconds).toBe(12);
   });
 
   it('accepts the platform-specific aliases the provider returns', async () => {
     const adapter = build(() =>
-      json({ latestMetrics: { repliesCount: 7, twitterRetweetsCount: 5, viewsCount: 300 } }),
+      json({ metrics: { repliesCount: 7, twitterRetweetsCount: 5, playsCount: 300 } }),
     );
     const snapshot = await adapter.collectMetrics({ platformPostId: 'post-1' }, account());
     expect(snapshot.comments).toBe(7);
@@ -440,10 +551,10 @@ describe('UnifiedAdapter.collectMetrics', () => {
     expect(snapshot.videoViews).toBe(300);
   });
 
-  it('falls back to the last history entry when there is no latest snapshot', async () => {
+  it('falls back to the last history entry when there is no current snapshot', async () => {
     const adapter = build(() =>
       json({
-        metricsHistory: [
+        history: [
           { fetchedAt: '2026-08-09T00:00:00Z', metrics: { likesCount: 1 } },
           { fetchedAt: '2026-08-10T00:00:00Z', metrics: { likesCount: 9 } },
         ],
@@ -451,6 +562,15 @@ describe('UnifiedAdapter.collectMetrics', () => {
     );
     const snapshot = await adapter.collectMetrics({ platformPostId: 'post-1' }, account());
     expect(snapshot.likes).toBe(9);
+  });
+
+  it('treats a collection error as permanent, because retrying will not fix it', async () => {
+    const adapter = build(() =>
+      json({ metrics: null, lastError: 'The account revoked access to insights.' }),
+    );
+    await expect(
+      adapter.collectMetrics({ platformPostId: 'post-1' }, account()),
+    ).rejects.toMatchObject({ kind: 'permanent' });
   });
 
   it('treats an absent snapshot as transient, because their analytics lag', async () => {

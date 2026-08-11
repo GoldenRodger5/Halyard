@@ -108,13 +108,17 @@ them.
 Stated plainly, because a guessed fact here costs weeks:
 
 1. **That Blotato's TikTok connection genuinely posts publicly without your own
-   audit.** Most of the supporting material is Blotato's own marketing.
-2. **Read coverage.** Whether the provider returns impressions, saves and video
-   retention per post, or only the shallow counts. This matters more than it
-   sounds: conversion by category is the chart that decides strategy here, and
-   `activated users` is already the metric that drives it.
-3. **Carousel and Reels support** through the API specifically.
-4. **Alt text.** Non-negotiable, and quietly missing from several of these.
+   audit.** Still the open question. `pnpm verify-provider --publish --video <path>`
+   settles it by sending one real post and reading back the privacy level TikTok
+   actually applied.
+2. ~~Read coverage.~~ **Settled: every scored metric is returned, saves
+   included.** See above.
+3. **Carousel and Reels support** through the API specifically. Multiple
+   `mediaUrls` are accepted everywhere (max 20) and Instagram takes
+   `mediaType: 'reel'`, but neither is confirmed until a post of that shape has
+   gone out.
+4. ~~Alt text.~~ **Settled, and it is the bad news: Instagram and Pinterest
+   only.** Four platforms lose alt text entirely on this transport.
 
 `/settings/readiness` and `/analytics` are built to say what is missing rather
 than render a zero, so a thin read surface degrades honestly instead of looking
@@ -126,16 +130,23 @@ like nobody engaged.
   that matter: the link in the first reply (a URL in the body costs $0.20 against
   $0.015) and per-call billing.
 - **Bluesky.** No gate, no cost, an app password.
+- **Anything that needs alt text.** Only Instagram and Pinterest can carry it
+  through this transport. On X, Threads, YouTube and TikTok the field does not
+  exist, so routing them through it drops alt text silently. This is the single
+  strongest reason to stay direct, and it replaced the metrics argument, which
+  turned out to be based on a misreading.
+
 - **Instagram, if direct works.** Test it before defaulting to unified:
 
       pnpm first-contact --dry-run --platform=instagram
       pnpm first-contact --publish --platform=instagram
       pnpm first-contact --verify  --platform=instagram
 
-  Standard Access may already cover accounts you own. `--verify` checks
-  **saves** specifically on Instagram, because that is the field the unified
-  transport cannot return and therefore the whole argument for keeping Instagram
-  direct. If saves come back, leave it on `direct` and do not switch it.
+  Standard Access may already cover accounts you own, and the direct path
+  returns richer per-post fields. Note that the original reason given here —
+  that the unified transport could not report saves — was wrong; it can. The
+  remaining reasons are alt text, which Instagram *does* have on both
+  transports, and the general one that fewer intermediaries fail in fewer ways.
 
 ## What is built, and what it refuses to do
 
@@ -160,26 +171,80 @@ against `DIRECT_METRICS`, which is what each platform's own API documents.
 Whatever it observes is what `/accounts` and this document are permitted to say.
 Nothing is described as working because a vendor page describes it as working.
 
-## What is already known about the metrics gap
+## What the API actually returns
 
-From Blotato's own published API corpus, the analytics response contains
+**Corrected 10 August 2026, after reading the OpenAPI reference instead of the
+marketing pages.** The earlier version of this document was wrong about the most
+consequential thing on it, and the correction is recorded rather than quietly
+applied.
+
+### Metrics: saves *are* reported
+
+The analytics response includes `savesCount`, `clicksCount`, `followsCount`,
+`profileVisitsCount`, `profileActivityCount`, `watchTimeMsAvg`, `viewTimeMsSum`,
 `impressionsCount`, `reachCount`, `likesCount`, `commentsCount`, `repliesCount`,
-`sharesCount`, `viewsCount`, `twitterRetweetsCount` and
-`facebookTotalVideoViewsCount`.
+`sharesCount`, `viewsCount` and `playsCount`, plus platform-specific variants
+such as `twitterRetweetsCount` and `pinterestSaveRate`.
 
-There is **no `savesCount`**. Saves are weighted two to three times a like in
-`engagementRate()`, so losing them does not thin the chart — it changes what the
-chart means, on exactly the two platforms where saves matter most (Instagram and
-Pinterest). `/analytics` names this per platform rather than rendering a zero,
-because "nobody saved this" and "this transport cannot see saves" are different
-facts and only one of them is a reason to change strategy.
+The previous claim — that saves were unavailable, and that the transport was
+therefore materially thinner than a direct adapter — **was false**. It came from
+reading the vendor's prose rather than the schema. Every scored metric Halyard
+uses is present, so there is no documented gap on any platform.
 
-Also absent: watch time, profile visits, follows. Link clicks are unaffected —
-every published link goes through `/r` and Halyard counts them itself.
+`/analytics` still reports gaps, and still should: it compares against what a
+probe *observed*, not against what the schema promises. Documented and observed
+are different things, which is exactly why they are stored separately.
 
-Analytics additionally require a paid plan and arrive on a delay of roughly two
-hours to a day, so `collectMetrics` treats an absent snapshot as transient rather
-than as a post nobody saw.
+### Alt text: only Instagram and Pinterest
+
+This is the real gap, and it is structural rather than a matter of verification.
+The `target` object accepts `altText` on **Instagram** (max 1,000 characters) and
+**Pinterest** (max 500). It exists nowhere else. Routing X, Threads, YouTube or
+TikTok through this transport means those posts go out without alt text, and no
+amount of probing will change that, because the field does not exist in the
+request body.
+
+The direct adapters carry alt text on every platform. That is now the strongest
+argument for keeping a platform direct — stronger than metrics, which turned out
+to be a non-issue.
+
+### No reply endpoint, which settles X
+
+There is no `replyToId`, no `in_reply_to`, and no way to attach a post to an
+existing one. `additionalPosts` builds a thread within a single submission, but
+it cannot carry a link the first post is deliberately keeping out of its own
+body, because X's pricing applies to the submission.
+
+So a platform whose link strategy is `first_reply` cannot be served correctly
+here. The adapter **refuses** rather than falling back to putting the link in the
+body: on X that is $0.20 a post against $0.015, a thirteenfold increase applied
+silently to every post. X stays direct, permanently, and not only by preference.
+
+### Other corrections found the same way
+
+| What the adapter assumed | What the schema says |
+|---|---|
+| `POST /v2/posts` returns `id` | It returns `postSubmissionId` |
+| Accounts at `GET /v2/accounts` | `GET /v2/users/me/accounts`, and the name field is `fullname` |
+| Instagram `mediaType: 'reels' \| 'carousel'` | `'reel' \| 'story'` only; a carousel is what several `mediaUrls` produce |
+| TikTok needs `privacyLevel` and `isDraft` | Also requires `disabledComments`, `disabledDuet`, `disabledStitch`, `isBrandedContent`, `isYourBrand`, `isAiGenerated` |
+| Pinterest needs `boardId` | Also requires `title` |
+| YouTube needs `privacyStatus` | Also requires `shouldNotifySubscribers` |
+| Analytics returns `latestMetrics` / `metricsHistory` | `metrics` / `history`; those other names belong to the *list* endpoint |
+| `mediaUrls` optional | Required, and `[]` for a text post |
+
+Every one of those would have failed on first contact. They are listed because
+"the endpoint shape was guessed" is the same class of error as "the capability
+was assumed", and this document was the source of both.
+
+### Media, and why the probe can run before deploying
+
+`POST /v2/media/uploads` returns a presigned URL to PUT a local file to, and a
+public URL to use afterwards. That is what makes the TikTok question answerable
+from a laptop: the provider fetches media by URL, and a rendered video on disk is
+unreachable to it otherwise.
+
+Post creation is rate limited to 30 requests a minute.
 
 ## TikTok, stated plainly
 

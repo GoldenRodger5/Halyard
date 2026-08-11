@@ -160,8 +160,13 @@ failure there is always the code. Elsewhere a failure may be the review not
 having landed, which is why the self-test runs first — it separates a dead
 credential from an unapproved one.
 
-One platform has a specific reason to be tested this way. Instagram's Standard
-Access may already cover accounts you own, and the direct adapter returns
-**saves** while the unified transport does not. Saves are weighted two to three
-times a like in scoring, so if a real post to your own account works, Instagram
-should stay direct. `--verify --platform=instagram` checks that field by name.
+One platform has a specific reason to be tested this way: Instagram's Standard
+Access may already cover accounts you own, and the direct path returns richer
+per-post fields than any intermediary. `--verify --platform=instagram` checks
+**saves** by name, because saves are weighted two to three times a like and are
+the field most worth confirming actually arrives.
+
+An earlier version of this note said the unified transport could not return
+saves at all. That was wrong — `savesCount` is in its analytics schema. The real
+reason to prefer direct is alt text, which the unified transport carries on
+Instagram and Pinterest and nowhere else.
