@@ -24,6 +24,16 @@ export interface DestinationQCInput {
   hasShareTemplate?: boolean;
   /** True when the post names one specific thing, e.g. one adapted recipe. */
   isSpecific?: boolean;
+
+  /**
+   * Pinterest only: which board this pin was routed to, and why.
+   *
+   * Checked here rather than at publish because `board_id` is required by every
+   * API that publishes a pin, and a post that cannot be published should never
+   * reach the approval queue. Discovering it at publish means an approved post
+   * failing at its slot, which is the worst time to find out.
+   */
+  board?: { boardId: string | null; reason: string; problem?: 'no_boards' | 'no_match' } | null;
 }
 
 export interface DestinationFinding {
@@ -61,6 +71,32 @@ export function isBareHomepage(url: string | null, webUrl: string | null | undef
 export function runDestinationQC(input: DestinationQCInput): DestinationQCResult {
   const findings: DestinationFinding[] = [];
   const specific = input.isSpecific ?? SPECIFIC_CATEGORIES.has(input.category);
+
+  if (input.board) {
+    if (!input.board.boardId) {
+      findings.push({
+        rule:
+          input.board.problem === 'no_boards'
+            ? 'destination.no_pinterest_boards'
+            : 'destination.no_matching_board',
+        severity: 'error',
+        message: input.board.reason,
+        fix:
+          input.board.problem === 'no_boards'
+            ? 'Create a board on Pinterest, then run `pnpm pinterest-boards`.'
+            : 'Mark a default board on /accounts, or give this post a dietary hashtag so it can be filed.',
+      });
+    } else if (input.board.reason.includes('default')) {
+      // Placed, but placed generically. Pinterest treats the board as a
+      // classification, so this costs ranking rather than the post.
+      findings.push({
+        rule: 'destination.default_board',
+        severity: 'warning',
+        message: input.board.reason,
+        fix: 'Add a dietary hashtag so the pin files itself onto a more specific board.',
+      });
+    }
+  }
 
   if (!input.destinationUrl) {
     findings.push({

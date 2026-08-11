@@ -33,6 +33,7 @@ import {
 } from '@halyard/core';
 import { carouselProps, transformationDiffProps } from '@halyard/render';
 import type { Job, HandlerContext } from '../poller.js';
+import { routeToBoard } from './boards.js';
 import { notify } from './publish.js';
 import { fillCampaignSlot } from './campaignSlot.js';
 
@@ -339,14 +340,46 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
           artifact: artifact ? { raw: artifact.raw } : null,
         });
 
+        /**
+         * Which board this pin lands on, decided now rather than at publish.
+         *
+         * `board_id` is required by every API that publishes a pin. Leaving it
+         * to publish time means an approved post failing at its slot, which is
+         * the worst moment to discover that nobody has created a board.
+         */
+        const board =
+          account.platform === 'pinterest'
+            ? await routeToBoard(ctx, account.id, {
+                hashtags: draft.hashtags,
+                body: draft.body,
+                title: draft.title ?? undefined,
+                artifact: artifact?.raw,
+              })
+            : null;
+
+        if (board && !board.boardId) {
+          // Refused rather than queued: this post cannot publish, and a queue
+          // full of items that cannot publish is worse than an empty one.
+          ctx.log('pin has nowhere to go', { platform: account.platform, reason: board.reason });
+          await notify(
+            ctx,
+            'connector_down',
+            'warning',
+            'A pin could not be filed',
+            `${board.reason} No Pinterest drafts will be queued until this is fixed.`,
+          );
+          continue;
+        }
+
         const inserted = await ctx.pool.query<{ id: string }>(
           `insert into content_items
              (product_id, idea_id, account_id, platform, persona, format, category,
               body, title, alt_text, hashtags, product_artifact, claims, qc_results,
               ai_components, status, generation_meta,
-              destination_type, destination_url, destination_reason)
+              destination_type, destination_url, destination_reason,
+              board_id, board_reason)
            values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,'pending_approval',$16,
-                   $17,$18,$19)
+                   $17,$18,$19,$20,$21)
            returning id`,
           [
             productId,
@@ -370,6 +403,8 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
             destination.blockedBy
               ? `${destination.reason} ${destination.blockedBy}`
               : destination.reason,
+            board?.boardId ?? null,
+            board?.reason ?? null,
           ],
         );
 

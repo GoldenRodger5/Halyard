@@ -74,6 +74,12 @@ The web app runs fine without it. Nothing generates, renders or publishes.
 | `/launch` | Generate and review a fortnight in one pass |
 | `/first-30-days` | What to expect, and which of the things that look broken are not |
 
+Pinterest boards are synced with `pnpm pinterest-boards`. A pin is routed to a
+board from its dietary signals at draft time, so a post that cannot be filed is
+refused before it reaches the queue rather than failing at its slot. See
+`docs/TRANSPORT_DEFAULTS.md` for which transport each platform should use and
+why two of them are deliberately on the harder path.
+
 ## What is deliberately not automated
 
 Fixed, and enforced in code rather than by policy:

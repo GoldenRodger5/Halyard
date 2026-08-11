@@ -332,6 +332,113 @@ async function settleTikTok(id: string): Promise<Partial<PlatformCapability>> {
 }
 
 /**
+ * Settle one platform by publishing to it, as harmlessly as the platform allows.
+ *
+ * Every platform gets the least destructive setting it offers: YouTube private,
+ * TikTok a draft, Pinterest a real pin on the default board (Pinterest has no
+ * draft concept through this API). Instagram and Threads have neither, so those
+ * are real posts and the caption says so.
+ */
+async function verifyPlatformByPublishing(
+  platform: PlatformId,
+  accounts: ConnectedAccount[],
+  boards: Array<{ id: string; name: string }>,
+  videoUrl: string | null,
+): Promise<Partial<PlatformCapability>> {
+  const account = accounts.find((a) => a.platform === TARGET_TYPE[platform]);
+  if (!account) {
+    unknown(platform, 'not connected to the provider');
+    return { publish: 'unknown', notes: ['Not connected.'] };
+  }
+
+  const text = 'Testing the posting setup. Back shortly with actual recipes.';
+  const target: Record<string, unknown> = { targetType: TARGET_TYPE[platform] };
+  const mediaUrls: string[] = [];
+
+  switch (platform) {
+    case 'youtube':
+      if (!videoUrl) {
+        unknown(platform, 'needs --video, since YouTube takes nothing but video');
+        return { publish: 'unknown', notes: ['No video supplied.'] };
+      }
+      mediaUrls.push(videoUrl);
+      Object.assign(target, {
+        title: 'Halyard posting check',
+        privacyStatus: 'private',
+        shouldNotifySubscribers: false,
+      });
+      break;
+    case 'pinterest': {
+      const board = boards[0];
+      if (!board) {
+        no(platform, 'no boards exist, and every pin needs one');
+        return { publish: 'no', notes: ['No Pinterest boards exist.'] };
+      }
+      if (!videoUrl) {
+        unknown(platform, 'needs --video or an image, since a pin must carry media');
+        return { publish: 'unknown', notes: ['No media supplied.'] };
+      }
+      mediaUrls.push(videoUrl);
+      Object.assign(target, {
+        boardId: board.id,
+        title: 'Halyard posting check',
+        altText: 'A test pin published to confirm the posting setup works.',
+      });
+      break;
+    }
+    case 'instagram':
+      if (!videoUrl) {
+        unknown(platform, 'needs --video or an image, since Instagram must carry media');
+        return { publish: 'unknown', notes: ['No media supplied.'] };
+      }
+      mediaUrls.push(videoUrl);
+      Object.assign(target, {
+        mediaType: 'reel',
+        altText: 'A test post published to confirm the posting setup works.',
+      });
+      break;
+    default:
+      break;
+  }
+
+  try {
+    const created = (await api('/posts', {
+      method: 'POST',
+      body: JSON.stringify({
+        post: { accountId: account.id, content: { text, platform: TARGET_TYPE[platform], mediaUrls }, target },
+      }),
+    })) as { postSubmissionId?: string };
+
+    if (!created.postSubmissionId) {
+      no(platform, 'accepted but returned no submission id');
+      return { publish: 'unknown', notes: ['Malformed response.'] };
+    }
+
+    let submission: { status?: string; error?: string; errorMessage?: string } = {};
+    for (let attempt = 0; attempt < 40; attempt += 1) {
+      submission = (await api(`/posts/${created.postSubmissionId}`)) as typeof submission;
+      if (submission.status && submission.status !== 'in-progress') break;
+      await new Promise((resolve) => setTimeout(resolve, 15_000));
+    }
+
+    const failure = submission.error ?? submission.errorMessage;
+    if (submission.status === 'published') {
+      ok(platform, `published, submission ${created.postSubmissionId}`);
+      return {
+        publish: 'yes',
+        video: mediaUrls.length > 0 ? 'yes' : 'unknown',
+        notes: [`Verified by publishing on ${new Date().toISOString().slice(0, 10)}. Delete the test post.`],
+      };
+    }
+    no(platform, `${submission.status ?? 'no status'}${failure ? `: ${failure}` : ''}`);
+    return { publish: 'no', notes: [`Publish failed: ${failure ?? submission.status ?? 'unknown'}`] };
+  } catch (err) {
+    no(platform, (err as Error).message.slice(0, 200));
+    return { publish: 'no', notes: [`Publish failed: ${(err as Error).message.slice(0, 200)}`] };
+  }
+}
+
+/**
  * Step 2. Per platform, one at a time.
  *
  * A provider that "supports nine platforms" may support carousels on two of
@@ -347,7 +454,13 @@ async function verifyPlatform(
 
   const capability: PlatformCapability = {
     platform,
-    publish: account ? 'yes' : 'unknown',
+    // **Connected is not verified.** An account being linked in the provider
+    // dashboard says nothing about whether a post to it succeeds — the app
+    // review, the account type and the platform's own rules all sit between the
+    // two. This said 'yes' for merely being connected, which would have let a
+    // platform be switched to the unified transport on no evidence at all, and
+    // that is the precise failure this script exists to prevent.
+    publish: 'unknown',
     publishesPublicly: 'unknown',
     carousel: 'unknown',
     video: 'unknown',
@@ -386,11 +499,9 @@ async function verifyPlatform(
     );
   }
 
-  // Whether a *published* post actually behaves stays unknown until one has
-  // been sent. Saying "probably" here would be the precise failure this script
-  // exists to prevent.
   capability.notes.push(
-    'Connected. Publishing and video behaviour are unverified until a post of each shape has been sent.',
+    `Connected as ${account.username || account.fullname || account.id}, but nothing has been ` +
+      `published through it. Run \`pnpm verify-provider --verify-platform ${platform}\` to settle it.`,
   );
 
   if (matching.length > 1) {
@@ -518,6 +629,9 @@ async function main(): Promise<void> {
   const tiktokPublic = process.argv.includes('--tiktok-public')
     ? (process.argv[process.argv.indexOf('--tiktok-public') + 1] ?? null)
     : null;
+  const verifyPlatformArg = process.argv.includes('--verify-platform')
+    ? (process.argv[process.argv.indexOf('--verify-platform') + 1] ?? null)
+    : null;
 
   if (tiktokPublic && !['yes', 'no'].includes(tiktokPublic)) {
     console.error('--tiktok-public takes yes or no, from looking at the post in the app.');
@@ -577,6 +691,36 @@ async function main(): Promise<void> {
   }
 
   const platforms: PlatformId[] = ['x', 'instagram', 'threads', 'pinterest', 'youtube', 'tiktok', 'bluesky'];
+
+  /**
+   * Accounts connected to the provider that Halyard cannot reach.
+   *
+   * The provider supports platforms Halyard has no adapter for. A connected
+   * account there looks like a live channel and is not one: nothing is ever
+   * drafted for it, scheduled, or published. It also consumes one of the plan's
+   * twenty account slots.
+   *
+   * Named rather than ignored, because "connected" and "usable" looking the same
+   * is the whole class of problem this script exists for.
+   */
+  const supported = new Set(platforms.map((platform) => TARGET_TYPE[platform]));
+  const orphans = accounts.filter((a) => a.platform && !supported.has(a.platform));
+  if (orphans.length > 0) {
+    heading('Connected to the provider, unreachable from Halyard');
+    for (const orphan of orphans) {
+      no(
+        orphan.platform ?? 'unknown platform',
+        `${orphan.username || orphan.fullname || orphan.id} — Halyard has no ${orphan.platform} ` +
+          'adapter, so nothing is drafted, scheduled or published here.',
+      );
+    }
+    console.log(
+      `\n  ${DIM}Either disconnect it in the provider dashboard, which frees an account\n` +
+        `  slot, or accept that it is inert. It is not a channel until Halyard has a\n` +
+        `  platform id for it: mix targets, cadence, slots, QC briefs and the profile\n` +
+        `  spec all key off that.${RESET}`,
+    );
+  }
   const capabilities: ProviderCapabilities = {
     provider: 'blotato',
     verifiedAt: new Date().toISOString(),
@@ -612,6 +756,65 @@ async function main(): Promise<void> {
 
   for (const platform of platforms) {
     capabilities.platforms[platform]!.verifiedAt = new Date().toISOString();
+  }
+
+  // Settle one platform by publishing to it, keeping whatever the previous run
+  // proved about the others.
+  if (verifyPlatformArg) {
+    heading(`Publishing to ${verifyPlatformArg} to settle it`);
+    const previous = await pool.query<{ capabilities: ProviderCapabilities }>(
+      `select capabilities from provider_capabilities where provider = 'blotato'`,
+    );
+    for (const [name, was] of Object.entries(previous.rows[0]?.capabilities?.platforms ?? {})) {
+      const platform = name as PlatformId;
+      if (capabilities.platforms[platform] && was?.publish === 'yes') {
+        capabilities.platforms[platform] = {
+          ...capabilities.platforms[platform]!,
+          publish: was.publish,
+          publishesPublicly: was.publishesPublicly,
+          video: was.video,
+          notes: was.notes,
+        };
+      }
+    }
+
+    const pinterestAccount = accounts.find((a) => a.platform === 'pinterest');
+    let boards: Array<{ id: string; name: string }> = [];
+    if (verifyPlatformArg === 'pinterest' && pinterestAccount) {
+      const listed = (await api(
+        `/social/pinterest/boards?accountId=${encodeURIComponent(pinterestAccount.id)}`,
+      )) as { items?: Array<{ id: string; name: string }> };
+      boards = listed.items ?? [];
+    }
+
+    const result = await verifyPlatformByPublishing(
+      verifyPlatformArg as PlatformId,
+      accounts,
+      boards,
+      videoUrl,
+    );
+    capabilities.platforms[verifyPlatformArg as PlatformId] = {
+      ...capabilities.platforms[verifyPlatformArg as PlatformId]!,
+      ...result,
+    } as PlatformCapability;
+  } else {
+    // Carry forward anything a previous run proved, so a read-only re-run does
+    // not quietly downgrade a verified platform back to unknown.
+    const previous = await pool.query<{ capabilities: ProviderCapabilities }>(
+      `select capabilities from provider_capabilities where provider = 'blotato'`,
+    );
+    for (const [name, was] of Object.entries(previous.rows[0]?.capabilities?.platforms ?? {})) {
+      const platform = name as PlatformId;
+      if (capabilities.platforms[platform] && was?.publish === 'yes') {
+        capabilities.platforms[platform] = {
+          ...capabilities.platforms[platform]!,
+          publish: was.publish,
+          publishesPublicly: was.publishesPublicly,
+          video: was.video,
+          notes: was.notes,
+        };
+      }
+    }
   }
 
   await verifyMetrics(capabilities, pool);

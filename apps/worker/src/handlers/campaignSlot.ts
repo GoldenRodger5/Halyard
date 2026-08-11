@@ -29,10 +29,12 @@ import {
 } from '@halyard/core';
 import type { Job, HandlerContext } from '../poller.js';
 import { notify } from './publish.js';
+import { routeToBoard } from './boards.js';
 
 interface SlotRow {
   id: string;
   product_id: string;
+  account_id: string | null;
   campaign_id: string | null;
   platform: SlopPlatform;
   persona: 'brand' | 'founder';
@@ -50,7 +52,7 @@ export async function fillCampaignSlot(
   const contentItemId = String(job.payload.contentItemId);
 
   const { rows: slotRows } = await ctx.pool.query<SlotRow>(
-    `select id, product_id, campaign_id, platform, persona, format, category, body,
+    `select id, product_id, account_id, campaign_id, platform, persona, format, category, body,
             generation_meta
        from content_items where id = $1`,
     [contentItemId],
@@ -207,6 +209,18 @@ export async function fillCampaignSlot(
     artifact: artifact ? { raw: artifact.raw } : null,
   });
 
+  // A pin needs a board, and the gate below turns a missing one into a failed
+  // draft with a readable reason rather than a publish-time surprise.
+  const board =
+    slot.platform === 'pinterest' && slot.account_id
+      ? await routeToBoard(ctx, slot.account_id, {
+          hashtags: draft.hashtags,
+          body: draft.body,
+          title: draft.title ?? undefined,
+          artifact: artifact?.raw,
+        })
+      : null;
+
   const qc = runAllGates({
     copy: {
       body: draft.body,
@@ -223,6 +237,7 @@ export async function fillCampaignSlot(
       webUrl: product.destinations?.web ?? null,
       hasShareToken: Boolean(artifact),
       hasShareTemplate: Boolean(product.destinations?.share_url_template),
+      board,
     },
   });
 
@@ -232,7 +247,7 @@ export async function fillCampaignSlot(
             product_artifact = $6, claims = $7, qc_results = $8,
             ai_components = array['copy'], generation_meta = generation_meta || $9::jsonb,
             destination_type = $10, destination_url = $11, destination_reason = $12,
-            status = $13
+            status = $13, board_id = $14, board_reason = $15
       where id = $1`,
     [
       slot.id,
@@ -251,6 +266,8 @@ export async function fillCampaignSlot(
         : destination.reason,
       // QC failures never reach the approval queue, here as anywhere else.
       qc.passed ? 'pending_approval' : 'failed',
+      board?.boardId ?? null,
+      board?.reason ?? null,
     ],
   );
 

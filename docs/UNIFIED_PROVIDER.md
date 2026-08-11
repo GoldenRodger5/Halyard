@@ -107,18 +107,25 @@ them.
 
 Stated plainly, because a guessed fact here costs weeks:
 
-1. **That Blotato's TikTok connection genuinely posts publicly without your own
-   audit.** Still the open question. `pnpm verify-provider --publish --video <path>`
-   settles it by sending one real post and reading back the privacy level TikTok
-   actually applied.
+1. ~~That Blotato's TikTok connection genuinely posts publicly without your own
+   audit.~~ **Settled on 11 August 2026: it does.** One real post through
+   `pnpm verify-provider --publish --video <path>`, confirmed publicly visible in
+   the TikTok app with no padlock and no "Only you" badge. The API alone could
+   not answer it — a forced-private post also reports as `published` — so the
+   capability row carries an operator observation rather than an inference.
 2. ~~Read coverage.~~ **Settled: every scored metric is returned, saves
    included.** See above.
 3. **Carousel and Reels support** through the API specifically. Multiple
    `mediaUrls` are accepted everywhere (max 20) and Instagram takes
    `mediaType: 'reel'`, but neither is confirmed until a post of that shape has
    gone out.
-4. ~~Alt text.~~ **Settled, and it is the bad news: Instagram and Pinterest
-   only.** Four platforms lose alt text entirely on this transport.
+4. **Pinterest boards** are at `GET /v2/social/pinterest/boards?accountId=`,
+   which is missing from the endpoint list on the publishing page. `pnpm
+   pinterest-boards` syncs them, and a pin is routed to a board from its dietary
+   signals at draft time.
+5. ~~Alt text.~~ **Settled: Instagram and Pinterest only.** Costly on Threads,
+   which is why Threads stays direct. Not costly on YouTube or TikTok, which
+   never carried alt text on either transport.
 
 `/settings/readiness` and `/analytics` are built to say what is missing rather
 than render a zero, so a thin read surface degrades honestly instead of looking
@@ -197,16 +204,19 @@ are different things, which is exactly why they are stored separately.
 
 ### Alt text: only Instagram and Pinterest
 
-This is the real gap, and it is structural rather than a matter of verification.
 The `target` object accepts `altText` on **Instagram** (max 1,000 characters) and
-**Pinterest** (max 500). It exists nowhere else. Routing X, Threads, YouTube or
-TikTok through this transport means those posts go out without alt text, and no
-amount of probing will change that, because the field does not exist in the
-request body.
+**Pinterest** (max 500), and nowhere else. No amount of probing changes that: the
+field is absent from the request body.
 
-The direct adapters carry alt text on every platform. That is now the strongest
-argument for keeping a platform direct — stronger than metrics, which turned out
-to be a non-issue.
+**But the cost is narrower than "four platforms lose alt text", which is what an
+earlier version of this document said.** The direct adapters only send alt text
+on x, instagram, threads, pinterest and bluesky — never on youtube or tiktok,
+which are video, where the accessibility mechanism is captions and Halyard burns
+those in already.
+
+So the loss is real on **X and Threads only**. X is staying direct for a stronger
+reason anyway, which leaves Threads as the one platform alt text alone decides.
+See `TRANSPORT_DEFAULTS.md`.
 
 ### No reply endpoint, which settles X
 

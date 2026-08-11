@@ -91,6 +91,8 @@ interface ContentRow {
   series_id: string | null;
   persona: 'founder' | 'brand';
   routing_scope: string;
+  /** Pinterest only. Chosen at draft time so the queue shows where it lands. */
+  board_id: string | null;
 }
 
 interface AccountRow {
@@ -237,7 +239,9 @@ export async function publishHandler(job: Job, ctx: HandlerContext): Promise<voi
     altText: item.alt_text,
     hashtags: item.hashtags ?? [],
     finalLinkUrl: finalLink,
-    boardId: (job.payload.boardId as string | undefined) ?? null,
+    // Routed at draft time and stored on the item, so the board shown in the
+    // queue is the board the pin lands on.
+    boardId: item.board_id ?? (job.payload.boardId as string | undefined) ?? null,
     disclosureText: item.disclosure_text,
     requiresAiLabel: item.requires_ai_label ?? false,
   };

@@ -10,7 +10,12 @@ import {
   PlatformDot,
   SectionTitle,
 } from '@halyard/ui';
-import { extractShareToken, runDestinationQC, type DestinationType } from '@halyard/core';
+import {
+  extractShareToken,
+  runDestinationQC,
+  type DestinationType,
+  type PlatformId,
+} from '@halyard/core';
 import { AssetPicker } from '@/components/AssetPicker';
 import { getItemArtifact, getProducts, getQueueItem } from '@/lib/queries';
 import { formatInOperatorTz } from '@/lib/format';
@@ -135,7 +140,29 @@ export default async function QueueItemPage({ params }: { params: Promise<{ id: 
               </KeyValue>
               <KeyValue label="Link">{item.final_link_url ?? item.link_url ?? 'none'}</KeyValue>
               <KeyValue label="Audio mode">{item.audio_mode.replace(/_/g, ' ')}</KeyValue>
+              {item.board_id ? (
+                <KeyValue label="Pinterest board">{item.board_reason ?? item.board_id}</KeyValue>
+              ) : null}
             </dl>
+
+            {/* ── what this transport will drop ────────────────────────────
+                Alt text is generated for every image and checked by the visual
+                gate. If the transport carrying this post has no field for it,
+                that work is discarded in transit, and the queue is the last
+                place anybody could notice. */}
+            {item.transport === 'unified' &&
+            item.transport_alt_text === 'no' &&
+            item.alt_text ? (
+              <p className="mt-3 rounded-lg bg-warn/10 px-3 py-2 text-sm leading-relaxed text-ink">
+                This post has alt text, and the unified transport has no alt-text field for{' '}
+                {PLATFORM_LABELS[item.platform as PlatformId] ?? item.platform}. It will be dropped
+                on the way out. Switch this account to the direct transport on{' '}
+                <Link href="/accounts" className="text-primary hover:underline">
+                  /accounts
+                </Link>{' '}
+                if the image carries meaning.
+              </p>
+            ) : null}
           </Card>
 
           <Card className="p-4">

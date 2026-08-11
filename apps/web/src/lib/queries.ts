@@ -238,6 +238,12 @@ export interface QueueItem {
   destination_type: string | null;
   destination_url: string | null;
   destination_reason: string | null;
+  /** Pinterest only: where this pin lands, decided at draft time. */
+  board_id: string | null;
+  board_reason: string | null;
+  transport: 'direct' | 'unified' | null;
+  /** 'yes' | 'no' | 'unknown' | null — what the transport can carry. */
+  transport_alt_text: string | null;
   product_web_url: string | null;
   product_share_template: string | null;
   product_artifact: unknown;
@@ -250,6 +256,13 @@ const QUEUE_SELECT = `
          ci.requires_ai_label, ci.disclosure_text, ci.audio_mode,
          ci.edited_by_human, ci.sequence_number, ci.product_id, ci.attached_asset_ids,
          ci.destination_type, ci.destination_url, ci.destination_reason, ci.product_artifact,
+         ci.board_id, ci.board_reason,
+         sa.transport,
+         -- Milestone 49. Whether the transport this item will actually go out
+         -- on can carry alt text. A post whose alt text is generated, checked
+         -- by the visual gate and then dropped in transit is worse than one
+         -- without it, and the queue is the last place to notice.
+         (pc.capabilities -> 'platforms' -> ci.platform ->> 'altText') as transport_alt_text,
          p.destinations ->> 'web' as product_web_url,
          p.destinations ->> 'share_url_template' as product_share_template,
          i.title as idea_title,
@@ -263,6 +276,8 @@ const QUEUE_SELECT = `
          coalesce(att.urls, '{}') as attached_urls
     from content_items ci
     join products p on p.id = ci.product_id
+    left join social_accounts sa on sa.id = ci.account_id
+    left join provider_capabilities pc on pc.provider = 'blotato'
     left join ideas i on i.id = ci.idea_id
     left join series s on s.id = ci.series_id
     left join lateral (
