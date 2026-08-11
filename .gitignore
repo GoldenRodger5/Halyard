@@ -37,3 +37,5 @@ coverage/
 # and scripts/capture-flows.ts, and large.
 .discovery/
 apps/web/public/uploads/
+.vercel
+.env*

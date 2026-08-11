@@ -36,6 +36,22 @@ const TASKS = [
 
 type Task = (typeof TASKS)[number];
 
+/**
+ * Vercel Cron issues **GET**, not POST.
+ *
+ * This route exported only POST, so all three scheduled tasks would have
+ * returned 405 forever — and quietly, because a cron that 405s does not page
+ * anybody. `refresh_tokens` is on that list, so the first thing to break would
+ * have been every OAuth token expiring with nothing to renew it, about an hour
+ * into production.
+ *
+ * Both verbs are exported: GET because that is what the scheduler sends, POST
+ * because that is what `scripts/` and any manual trigger send.
+ */
+export async function GET(request: NextRequest, context: { params: Promise<{ task: string }> }) {
+  return POST(request, context);
+}
+
 export async function POST(request: NextRequest, context: { params: Promise<{ task: string }> }) {
   const secret = process.env.CRON_SECRET;
   const provided = request.headers.get('authorization')?.replace(/^Bearer\s+/i, '') ?? '';

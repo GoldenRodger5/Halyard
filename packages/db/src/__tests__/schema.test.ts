@@ -179,6 +179,30 @@ d('row level security', () => {
     }
   });
 
+  it('grants anon and authenticated nothing at all', async () => {
+    /**
+     * The half that RLS does not cover, and that only a hosted deploy exposed.
+     *
+     * Supabase creates `anon` and `authenticated`, grants them table privileges
+     * in `public` by default, and serves every table over PostgREST. RLS filters
+     * *rows*; the grant is permission to reach the table in the first place. On
+     * the first hosted deploy, 27 of 57 tables answered the anon key with
+     * `200 []` rather than 401 — among them `pending_connections`, which holds
+     * sealed OAuth tokens, and `link_clicks`.
+     *
+     * Nothing here uses PostgREST, so the grant buys nothing and costs a second
+     * lock. This asserts it stays revoked.
+     */
+    const { rows } = await pool.query<{ table_name: string; grantee: string }>(
+      `select table_name, grantee from information_schema.role_table_grants
+        where grantee in ('anon', 'authenticated') and table_schema = 'public'`,
+    );
+    expect(
+      rows.map((r) => `${r.grantee} on ${r.table_name}`),
+      'anon or authenticated can reach a table through PostgREST',
+    ).toEqual([]);
+  });
+
   it('has RLS enabled and forced on every table', async () => {
     const { rows } = await pool.query<{ relname: string }>(
       `select relname from pg_class c

@@ -1,17 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "crons": [
-    {
-      "path": "/api/cron/refresh_tokens",
-      "schedule": "0 * * * *"
-    },
-    {
-      "path": "/api/cron/account_health",
-      "schedule": "0 9 * * *"
-    },
-    {
-      "path": "/api/cron/purge_request_logs",
-      "schedule": "30 3 * * *"
-    }
+    { "path": "/api/cron/refresh_tokens", "schedule": "0 4 * * *" },
+    { "path": "/api/cron/account_health", "schedule": "0 9 * * *" },
+    { "path": "/api/cron/purge_request_logs", "schedule": "30 3 * * *" }
   ]
 }

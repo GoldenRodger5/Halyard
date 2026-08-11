@@ -76,3 +76,55 @@ test.describe('cold start', () => {
     }
   });
 });
+
+test.describe('cron entrypoints', () => {
+  /**
+   * Vercel Cron issues GET. This route exported only POST, so every scheduled
+   * task would have returned 405 in production — silently, because a cron that
+   * 405s does not page anybody. `refresh_tokens` is one of them, so the first
+   * visible symptom would have been tokens expiring with nothing renewing them.
+   */
+  const SCHEDULED = ['refresh_tokens', 'account_health', 'purge_request_logs'];
+
+  for (const task of SCHEDULED) {
+    test(`${task} answers the GET that the scheduler actually sends`, async ({ request }) => {
+      const secret = process.env.CRON_SECRET;
+      test.skip(!secret, 'CRON_SECRET is not set in this environment');
+
+      const response = await request.get(`/api/cron/${task}`, {
+        headers: { authorization: `Bearer ${secret}` },
+      });
+      expect(response.status(), `${task} must not 405`).toBe(200);
+    });
+  }
+
+  test('refuses an unauthenticated call', async ({ request }) => {
+    expect((await request.get('/api/cron/account_health')).status()).toBe(401);
+  });
+
+  test('refuses a task that is not on the list', async ({ request }) => {
+    const secret = process.env.CRON_SECRET;
+    test.skip(!secret, 'CRON_SECRET is not set in this environment');
+    const response = await request.get('/api/cron/rm_rf', {
+      headers: { authorization: `Bearer ${secret}` },
+    });
+    expect(response.status()).toBe(404);
+  });
+
+  test('every cron declared in vercel.json is a task the route knows', async ({ request }) => {
+    // A schedule pointing at a path the route rejects is a job that never runs.
+    const secret = process.env.CRON_SECRET;
+    test.skip(!secret, 'CRON_SECRET is not set in this environment');
+
+    const declared = JSON.parse(
+      await import('node:fs/promises').then((fs) => fs.readFile('apps/web/vercel.json', 'utf8')),
+    ) as { crons: Array<{ path: string; schedule: string }> };
+
+    for (const cron of declared.crons) {
+      const response = await request.get(cron.path, {
+        headers: { authorization: `Bearer ${secret}` },
+      });
+      expect(response.status(), `${cron.path} is declared in vercel.json`).toBe(200);
+    }
+  });
+});

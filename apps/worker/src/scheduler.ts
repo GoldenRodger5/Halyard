@@ -32,6 +32,26 @@ export interface Schedule {
 
 export const SCHEDULES: Schedule[] = [
   {
+    /**
+     * Token refresh, hourly, here rather than on the web tier.
+     *
+     * It was declared as a Vercel cron at `0 * * * *` and nothing else. The
+     * first production deploy refused it: **Hobby accounts are limited to one
+     * cron run per day**, so the schedule that keeps every OAuth token alive
+     * would have run once daily at best — and on a plan change or a rebuild,
+     * possibly not at all.
+     *
+     * The worker has no such limit and already holds a scheduler, so this is
+     * where it belongs. The web tier keeps a daily run as a backstop for the
+     * case where the worker is down, which is the one failure the worker cannot
+     * cover for itself.
+     */
+    kind: 'refresh_tokens',
+    everyMinutes: 60,
+    priority: 10,
+    why: 'Access tokens expire in hours on most platforms, and a dead token is only discovered by a publish job failing at its slot. Hourly costs nothing and bounds the exposure to an hour.',
+  },
+  {
     // The release check is cheap — one GET of the product's homepage — and it is
     // the trigger for everything else that reacts to a deploy.
     kind: 'detect_release',

@@ -1,4 +1,5 @@
 import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
 import { Shell } from '@/components/Shell';
 import { databaseReachable } from '@/lib/db';
 import { getCurrentProduct, getNavCounts, getProducts, getSettings } from '@/lib/queries';
@@ -31,14 +32,17 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   const operator = await getOperator();
   if (!operator) {
+    // Configured means there is somewhere to go. Unconfigured means there is
+    // not, and a redirect would loop, so that case explains itself here.
+    if (supabaseConfigured()) redirect('/signin');
+
     return (
       <div className="mx-auto max-w-2xl px-6 py-24">
         <Card className="p-8">
           <h1 className="font-serif text-3xl">Sign in</h1>
           <p className="mt-3 text-sm leading-relaxed text-muted">
-            {supabaseConfigured()
-              ? 'This Halyard instance is protected by Supabase Auth, and the signed-in user must appear in admin_users.'
-              : 'Supabase Auth is not configured. For local work, set HALYARD_DEV_UNAUTHENTICATED=1 — it is refused when NODE_ENV is production.'}
+            Supabase Auth is not configured. For local work, set
+            HALYARD_DEV_UNAUTHENTICATED=1 — it is refused when NODE_ENV is production.
           </p>
         </Card>
       </div>
