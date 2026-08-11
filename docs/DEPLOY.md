@@ -29,6 +29,21 @@ committed.** Every value below lives in a dashboard.
 
 ---
 
+## Where things actually are
+
+| | |
+|---|---|
+| Web | https://halyard-ten.vercel.app — Vercel project `halyard`, root directory `apps/web` |
+| Database | Supabase `halyard`, ref `aleiahgcxhglnsvaajzn`, us-east-1 |
+| Worker | Railway project `halyard`, service `worker`, built from `apps/worker/Dockerfile` |
+
+**Connect to the database through the pooler, not the direct host.**
+`db.<ref>.supabase.co` is IPv6-only and Vercel functions are IPv4, so the direct
+host does not resolve from a deployed function at all. The pooler
+(`aws-0-us-east-1.pooler.supabase.com`, user `postgres.<ref>`) is not an
+optimisation here, it is the only route that works. Migrations still use the
+direct host, which is correct — they run from a laptop with IPv6.
+
 ## What goes where
 
 | Piece | Host | Why there |

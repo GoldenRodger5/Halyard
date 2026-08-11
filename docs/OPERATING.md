@@ -28,6 +28,15 @@ Ten minutes, most days.
 
 Everything else is weekly at most.
 
+## Signing in
+
+https://halyard-ten.vercel.app — a magic link by email. The address behind it
+must appear in `admin_users`; **the first person to sign in claims an empty
+instance**, so do that before anything else and before sharing the URL.
+
+`/l/recipefix` and `/r/<id>` are public on purpose — the link-in-bio page and
+the click router. Everything else redirects to sign-in.
+
 ## Starting and stopping
 
 ```bash
