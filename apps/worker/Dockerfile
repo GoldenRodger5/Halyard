@@ -75,6 +75,21 @@ COPY --from=whisper /opt/whisper/models/ggml-base.en.bin /opt/models/ggml-base.e
 # a cold download.
 RUN npx --yes remotion browser ensure || true
 
+# Playwright's Chromium, which is a different browser from Remotion's and was
+# missing entirely.
+#
+# The apt block above installs Chromium's *runtime dependencies* — libnss3,
+# libgbm1 and the rest — which looks like installing Chromium and is not. Every
+# capture job on the first deploy died with:
+#
+#     browserType.launch: Executable doesn't exist at
+#     /root/.cache/ms-playwright/chromium_headless_shell-.../chrome-headless-shell
+#
+# 43 dead jobs before anybody looked. Deliberately not `|| true`: a worker that
+# cannot capture should fail to build rather than fail one job at a time in
+# production, which is exactly how this went unnoticed.
+RUN pnpm --filter @halyard/worker exec playwright install chromium
+
 ENV WHISPER_MODEL_PATH=/opt/models/ggml-base.en.bin \
     REMOTION_LICENSE_KEY=free-license
 

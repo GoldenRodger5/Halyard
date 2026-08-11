@@ -1,5 +1,26 @@
 # Deploying Halyard
 
+**Live:** https://halyard-ten.vercel.app — Supabase `halyard` (us-east-1),
+Vercel `halyard`, Railway `halyard/worker`. Deployed 11 August 2026.
+
+## What the first deploy found
+
+Five defects, none of which could appear locally. They are listed first because
+the pattern matters more than the individual fixes: **everything that broke was
+something the local run had no way to exercise.**
+
+| What | Why local could not see it |
+|---|---|
+| 27 of 57 tables granted `anon` full write access | No PostgREST and no `anon` role locally. RLS was on and forced, which is what a local check confirms — and RLS filters rows, while the grant is permission to reach the table at all |
+| Vercel Cron sends GET; the route exported only POST | Nothing local calls a cron the way Vercel does |
+| Hobby caps crons at one run a day; `refresh_tokens` was hourly | Plan limits do not exist locally |
+| Every schedule ran once a minute instead of on its interval | Needs the worker left running for longer than one interval. Eleven hours produced 694 runs of a thirty-minute job |
+| Playwright's Chromium was never installed in the worker image | The apt block installs Chromium's *dependencies*, which looks like installing Chromium. 43 dead capture jobs |
+
+The two that were silent are the ones worth remembering: a cron returning 405
+pages nobody, and a scheduler over-firing looks like a healthy busy worker.
+
+
 Three pieces, three hosts. The web app on Vercel, the database on Supabase, the
 worker anywhere that will run a container with Chromium and FFmpeg in it.
 

@@ -157,9 +157,32 @@ export async function enqueueDueJobs(
       };
       const dedupeKey = `sched:${schedule.kind}:${productId ?? 'all'}:${bucket}`;
 
+      /**
+       * `on conflict do nothing` is not enough here, and production proved it.
+       *
+       * The dedupe index is partial:
+       *
+       *     create unique index jobs_dedupe_idx on jobs (dedupe_key)
+       *       where dedupe_key is not null and status in ('queued','running')
+       *
+       * which is right for its original purpose — a retried publish should be
+       * able to reuse a key once the first attempt has finished. But it means a
+       * *completed* job leaves the index, the conflict stops firing, and the
+       * next tick enqueues the same bucket again. The scheduler ticks every
+       * minute, so every schedule ran every minute regardless of its interval:
+       * eleven hours of production produced 694 runs of a thirty-minute job,
+       * and 6,284 jobs in total.
+       *
+       * It could not show up locally, because it needs the worker to be left
+       * running for longer than one interval.
+       *
+       * So the guard is on the row existing in *any* status, which is what
+       * "already done this bucket" actually means.
+       */
       const { rowCount } = await pool.query(
         `insert into jobs (kind, payload, priority, dedupe_key)
-         values ($1, $2, $3, $4)
+         select $1, $2, $3, $4
+          where not exists (select 1 from jobs where dedupe_key = $4)
          on conflict do nothing`,
         [schedule.kind, payload, schedule.priority ?? 50, dedupeKey],
       );

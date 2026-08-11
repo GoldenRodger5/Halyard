@@ -116,6 +116,44 @@ export default async function HealthPage() {
           </div>
         </section>
 
+        {/* ── Scheduled tasks ────────────────────────────────────────────
+            A cron that stops firing errors nowhere. The work simply stops, and
+            the first sign is a symptom weeks later — so the only useful
+            question is when each one last ran. */}
+        <section>
+          <SectionTitle hint="a task that has not run recently is the quietest failure here">
+            Scheduled tasks
+          </SectionTitle>
+          <Card className="p-4">
+            {health.crons.length === 0 ? (
+              <p className="text-sm leading-relaxed text-muted">
+                No scheduled task has recorded a run. Either this deployment is new, or the
+                scheduler is not reaching{' '}
+                <code className="font-mono text-xs">/api/cron/[task]</code>. The three declared in{' '}
+                <code className="font-mono text-xs">apps/web/vercel.json</code> run daily, so give
+                it twenty-four hours before treating it as broken.
+              </p>
+            ) : (
+              <ul className="divide-y divide-line">
+                {health.crons.map((cron) => {
+                  // Daily tasks, so two days without a run is a real absence
+                  // rather than the gap between one run and the next.
+                  const stale = cron.seconds_ago > 2 * 24 * 60 * 60;
+                  return (
+                    <li key={cron.task} className="flex items-baseline justify-between gap-4 py-2">
+                      <span className="font-mono text-sm text-ink">{cron.task}</span>
+                      <span className={`text-sm ${stale ? 'text-danger' : 'text-muted'}`}>
+                        {formatRelative(cron.last_run_at, timeZone)}
+                        {stale ? ' — overdue' : ''}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </Card>
+        </section>
+
         {/* ── What is actually deployed ──────────────────────────────────
             The product this markets ran sixteen days out of sync with its repo
             because nothing surfaced this. */}

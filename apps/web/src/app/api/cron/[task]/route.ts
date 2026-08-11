@@ -64,6 +64,29 @@ export async function POST(request: NextRequest, context: { params: Promise<{ ta
     return NextResponse.json({ error: `unknown task '${task}'` }, { status: 404 });
   }
 
+  /**
+   * Record that it ran.
+   *
+   * A cron that stops firing is invisible: nothing errors, work simply does not
+   * happen, and the first sign is a symptom weeks later. That a route *responds*
+   * when called by hand — which is all a deploy can prove — says nothing about
+   * whether the scheduler is actually calling it. This row is the difference
+   * between the two, and `/settings/health` reads it.
+   */
+  await query(
+    // The task name goes in `detail`, not `entity_id`: that column is a uuid,
+    // and this is a task name. The first version of this line put it there and
+    // failed on every call — invisibly, because the catch below swallowed it.
+    `insert into audit_log (actor, action, entity_type, detail)
+     values ('system', 'cron_ran', 'cron', $1)`,
+    [{ task, at: new Date().toISOString() }],
+  ).catch((err: unknown) => {
+    // Bookkeeping must never stop the work it describes — but it must not be
+    // silent either. A swallowed error here is what made the broken insert
+    // above look like a working one.
+    console.error('cron_ran audit insert failed', { task, error: String(err) });
+  });
+
   // Token refresh needs the client credentials, which live here rather than in
   // the worker's environment, so it is the one cron that does real work inline.
   if (task === 'refresh_tokens') {

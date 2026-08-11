@@ -474,6 +474,13 @@ export async function getCalendar(fromIso: string, toIso: string): Promise<Calen
 }
 
 export interface HealthSnapshot {
+  /**
+   * When each scheduled task last ran. Milestone 48.
+   *
+   * A cron that stops firing errors nowhere; the work just stops. This is the
+   * only way to see it, and it is the reason the route records a row.
+   */
+  crons: Array<{ task: string; last_run_at: string; seconds_ago: number }>;
   queue: { queued: number; running: number; failed_24h: number; dead: number; oldest_queued_seconds: number };
   workers: Array<{ worker_id: string; last_seen_at: string; seconds_ago: number }>;
   accounts: AccountRow[];
@@ -511,6 +518,24 @@ export async function getHealth(): Promise<HealthSnapshot> {
   );
 
   /**
+   * When each scheduled task last actually ran.
+   *
+   * A route answering when called by hand proves it is reachable, not that
+   * anything is calling it. On the first production deploy those were different
+   * facts: the route existed, responded correctly to a manual POST, and would
+   * never have been called at all, because Vercel Cron sends GET.
+   */
+  const crons = await query<{ task: string; last_run_at: string; seconds_ago: string }>(
+    `select distinct on (detail ->> 'task')
+            detail ->> 'task' as task,
+            created_at as last_run_at,
+            extract(epoch from now() - created_at)::int as seconds_ago
+       from audit_log
+      where action = 'cron_ran' and detail ? 'task'
+      order by detail ->> 'task', created_at desc`,
+  );
+
+  /**
    * Capture flows, and whether the last verification of each one passed.
    *
    * A flow that stopped resolving is the failure this whole subsystem exists to
@@ -528,6 +553,7 @@ export async function getHealth(): Promise<HealthSnapshot> {
 
   const total = Number(renders?.total ?? 0);
   return {
+    crons: crons.map((c) => ({ ...c, seconds_ago: Number(c.seconds_ago) })),
     queue: queue ?? { queued: 0, running: 0, failed_24h: 0, dead: 0, oldest_queued_seconds: 0 },
     workers: workers.map((w) => ({ ...w, seconds_ago: Number(w.seconds_ago) })),
     accounts: await getAccounts(),

@@ -125,3 +125,38 @@ d('a learned hook survives its own table', () => {
     ).rejects.toThrow(/hook_type/);
   });
 });
+
+d('the scheduler enqueues once per bucket, not once per tick', () => {
+  beforeEach(async () => {
+    await pool.query(`delete from jobs where dedupe_key like 'sched:%'`);
+  });
+
+  it('does not re-enqueue a bucket whose job has already finished', async () => {
+    const { enqueueDueJobs } = await import('./scheduler.js');
+
+    const first = await enqueueDueJobs(pool);
+    expect(first.enqueued).toBeGreaterThan(0);
+
+    // The tick runs every minute. Completing the work must not free the bucket:
+    // the partial dedupe index only covers queued and running, so before this
+    // was fixed the next tick enqueued the whole schedule again — every minute,
+    // whatever the interval. Eleven hours of production ran a thirty-minute job
+    // 694 times.
+    await pool.query(`update jobs set status = 'done' where dedupe_key like 'sched:%'`);
+
+    const second = await enqueueDueJobs(pool);
+    expect(second.enqueued, 'a finished bucket was enqueued again').toBe(0);
+  });
+
+  it('enqueues again once the bucket actually advances', async () => {
+    const { enqueueDueJobs } = await import('./scheduler.js');
+
+    await enqueueDueJobs(pool);
+    await pool.query(`update jobs set status = 'done' where dedupe_key like 'sched:%'`);
+
+    // Two days on, every bucket in SCHEDULES has moved.
+    const later = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
+    const next = await enqueueDueJobs(pool, later);
+    expect(next.enqueued).toBeGreaterThan(0);
+  });
+});
