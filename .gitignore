@@ -39,3 +39,4 @@ coverage/
 apps/web/public/uploads/
 .vercel
 .env*
+supabase/.temp/
