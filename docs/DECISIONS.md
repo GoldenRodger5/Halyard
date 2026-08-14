@@ -788,3 +788,65 @@ The URL back is **required**. Without it there is nothing to collect metrics
 against and nothing to prove the post exists, and the item would claim
 `published` on an assertion alone. That is the shape of every "it looked done"
 bug in this codebase, so it is refused rather than defaulted.
+
+## 46. The Explorer's unit of discovery is a claim plus a way to re-perform it
+
+Phase 3 says build verification before the crawler. The reason is worth stating
+in full: a list of forty features a model believed it saw would immediately
+become the ground truth every prompt draws on, and **nothing downstream would
+ever question it**. An inventory nobody can check is worse than no inventory,
+because it reads as knowledge.
+
+So `feature_claims` rows carry `replay` — the steps that demonstrate the
+feature and the things that must be observable when they run. `status` is
+decided by running them, never by asserting them.
+
+Four statuses, and the fourth is the one that matters:
+
+- `unverified` — not run yet, or the last run broke part-way
+- `verified` — ran, and every required expectation held
+- `refuted` — ran to the end and something promised was absent
+- `unverifiable` — **ran cleanly and asserted nothing**
+
+That last one is the most likely way this system starts lying. Nine navigation
+steps with no expectation complete cleanly every time, including on a page that
+has lost the feature entirely, and "no failures" reads exactly like "confirmed".
+`verdictFor` has no path to `verified` without a satisfied required expectation.
+
+A flow that broke part-way stays `unverified` rather than `refuted`, because a
+moved selector and a removed feature look identical from here, and refuting on
+ambiguity would delete real features from the inventory on a flaky run.
+
+Verification also expires. RecipeFix ships through Lovable with no release
+notes, so a check from a month ago is a guess — `canMarket` reads status *and*
+recency, and `verified_at` moves only on a pass.
+
+## 47. The model proposes, the denylist decides
+
+The capture flows in `capture/flows.ts` are hand-written and were read by a
+person before they ever ran. The Explorer's flows are proposed by a model from
+what it saw, and then driven through a real browser against a real signed-in
+account. Identical-looking data structure, completely different risk.
+
+No prompt instruction is a control here. "Please don't click delete" is a
+request, subject to every failure mode prompts have, and the thing on the other
+side of the click is someone's account. `checkFlowSafety` is deterministic code:
+allowed action vocabulary, destructive/transactional/identity term matching on
+both label *and* selector, no typing into credential or payment fields, and
+origin scoping that compares hosts rather than string suffixes — because
+`'evil-recipefix.app'.endsWith('recipefix.app')` is true, and that is how an
+authenticated browser gets handed to someone else.
+
+Two decisions inside it worth keeping:
+
+- **A flow with one refused step is refused entirely.** Dropping step 4 of 9
+  and running the rest produces a sequence nobody designed, against live state.
+- **Safety is re-checked on every run**, not once at discovery. `replay` is a
+  mutable jsonb column; checking once would mean the property holds only for as
+  long as nothing edits the row.
+
+The denylist is a heuristic and text matching has gaps — a button labelled "Tidy
+up" that deletes everything passes it. It is therefore one layer, and the other
+is that exploration is meant to run against a dedicated account with no payment
+method and nothing worth losing. That control does not depend on guessing what
+a button means.

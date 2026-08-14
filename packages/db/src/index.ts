@@ -67,6 +67,8 @@ export const JOB_KINDS = [
   'collect_reviews',
   /** Milestone 52: look at what was actually rendered. */
   'review_media',
+  /** Phase 3: replay a feature claim and decide whether it still holds. */
+  'verify_feature',
 ] as const;
 export type JobKind = (typeof JOB_KINDS)[number];
 
@@ -90,6 +92,12 @@ export const JOB_POLICY: Record<
   // Frame sampling plus one describer call per frame. Slow, and worth waiting
   // for: it is the only thing that looks at the finished media.
   review_media: { timeoutMs: 5 * 60_000, maxAttempts: 2, backoffSeconds: 90 },
+  /**
+   * A real browser walking a real product flow. Generous, like `capture`, and
+   * for the same reason: the thing being measured is someone's live app, and a
+   * timeout that fires early records a refutation that never happened.
+   */
+  verify_feature: { timeoutMs: 10 * 60_000, maxAttempts: 2, backoffSeconds: 600 },
   score_performance: { timeoutMs: 5 * 60_000, maxAttempts: 2, backoffSeconds: 300 },
   digest_email: { timeoutMs: 2 * 60_000, maxAttempts: 2, backoffSeconds: 300 },
   reconcile_schedule: { timeoutMs: 2 * 60_000, maxAttempts: 2, backoffSeconds: 120 },
