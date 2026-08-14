@@ -121,6 +121,24 @@ export const SCHEDULES: Schedule[] = [
     why: 'A missed slot should be noticed within the hour, not the next morning.',
   },
   {
+    /**
+     * Re-verify one stale feature claim.
+     *
+     * The inventory expires on purpose — a check from a month ago against a
+     * product that ships without release notes is a guess — so something has to
+     * re-run them or the whole thing ages out and silently stops being usable.
+     *
+     * One claim per run, six-hourly. This walks the operator's live product,
+     * and the gentlest cadence that keeps the inventory honest is the right one.
+     * Exploration itself is *not* scheduled: it costs model calls and may spend
+     * product credits, so it stays a deliberate act.
+     */
+    kind: 'verify_feature',
+    everyMinutes: 6 * 60,
+    priority: 70,
+    why: 'Verification expires at 14 days. Without a sweep the inventory decays to unusable, and a decayed inventory looks identical to an empty one from the outside.',
+  },
+  {
     kind: 'score_performance',
     everyMinutes: 24 * 60,
     perProduct: true,

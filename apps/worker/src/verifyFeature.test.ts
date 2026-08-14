@@ -183,6 +183,59 @@ d('verifyFeatureHandler', () => {
     }
   }, 180_000);
 
+  it('picks the stalest claim when no claim is named', async () => {
+    /**
+     * Verification expires, and `canMarket` reads recency as well as status.
+     * Without a sweep the whole inventory ages out and quietly stops being
+     * usable — a decay that looks identical to an empty inventory from outside.
+     */
+    const fresh = await seedClaim(
+      [
+        { name: 'open', action: 'goto', value: 'https://recipefix.app/a' },
+        { name: 'check', action: 'expectText', target: 'x' },
+      ],
+      'Recently checked',
+    );
+    const stale = await seedClaim(
+      [
+        { name: 'open', action: 'goto', value: 'https://recipefix.app/b' },
+        { name: 'check', action: 'expectText', target: 'y' },
+      ],
+      'Checked long ago',
+    );
+    await pool.query(`update feature_claims set verified_at = now() where id = $1`, [fresh]);
+    await pool.query(
+      `update feature_claims set verified_at = now() - interval '60 days' where id = $1`,
+      [stale],
+    );
+
+    await verifyFeatureHandler(
+      { id: 'j', kind: 'verify_feature', payload: {}, attempts: 1, max_attempts: 2 } as unknown as Job,
+      context(),
+    );
+
+    const { rows } = await pool.query<{ name: string; attempts: number }>(
+      'select name, attempts from feature_claims order by attempts desc',
+    );
+    expect(rows[0]!.name).toBe('Checked long ago');
+    expect(rows[0]!.attempts).toBe(1);
+  }, 180_000);
+
+  it('says so when nothing is due, rather than failing', async () => {
+    const id = await seedClaim([
+      { name: 'open', action: 'goto', value: 'https://recipefix.app/a' },
+      { name: 'check', action: 'expectText', target: 'x' },
+    ]);
+    await pool.query(`update feature_claims set verified_at = now() where id = $1`, [id]);
+
+    const ctx = context();
+    await verifyFeatureHandler(
+      { id: 'j', kind: 'verify_feature', payload: {}, attempts: 1, max_attempts: 2 } as unknown as Job,
+      ctx,
+    );
+    expect(ctx.logs.map(([m]) => m)).toContain('no feature claims are due for re-verification');
+  }, 60_000);
+
   it('will not replay a product with nowhere to replay against', async () => {
     await pool.query(
       `insert into products (id, name, connector_type) values ('noweb','No Web','none')`,

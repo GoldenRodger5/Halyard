@@ -27,6 +27,7 @@ import { collectReviewsHandler } from './reviews.js';
 import { reviewMediaHandler } from './reviewMedia.js';
 import { collectSignalsHandler } from './signals.js';
 import { ttsHandler } from './tts.js';
+import { exploreHandler } from './explore.js';
 import { verifyFeatureHandler } from './verifyFeature.js';
 
 async function loadAccount(ctx: HandlerContext, accountId: string): Promise<PublishAccount> {
@@ -347,6 +348,7 @@ export const HANDLERS: Partial<Record<JobKind, JobHandler>> = {
   review_media: reviewMediaHandler,
   tts: ttsHandler,
   verify_feature: verifyFeatureHandler,
+  explore_product: exploreHandler,
   collect_signals: collectSignalsHandler,
   capture: captureHandler,
   mark_stale_assets: markStaleAssetsHandler,

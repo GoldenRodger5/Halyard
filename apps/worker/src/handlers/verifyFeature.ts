@@ -22,6 +22,7 @@ import { chromium, type Page } from 'playwright';
 import {
   checkFlowSafety,
   verdictFor,
+  VERIFICATION_TTL_DAYS,
   type ExplorerStep,
   type Expectation,
   type ReplayOutcome,
@@ -49,15 +50,41 @@ async function allowedOriginsFor(ctx: HandlerContext, productId: string): Promis
 const DEFAULT_TIMEOUT_MS = 15_000;
 
 export async function verifyFeatureHandler(job: Job, ctx: HandlerContext): Promise<void> {
-  const claimId = String(job.payload.claimId ?? '');
-  if (!claimId) throw new Error('verify_feature job has no claimId');
+  const claimId = job.payload.claimId ? String(job.payload.claimId) : null;
 
-  const { rows } = await ctx.pool.query<ClaimRow>(
-    'select id, product_id, name, replay, attempts from feature_claims where id = $1',
-    [claimId],
-  );
+  /**
+   * With no claim named, take the one most in need of checking.
+   *
+   * Verification expires — the product ships with no release notes, so a check
+   * from a month ago is a guess — and `canMarket` reads recency as well as
+   * status. Without something re-running them the whole inventory ages out and
+   * quietly becomes unusable, which is a decay that looks like nothing at all
+   * from the outside.
+   *
+   * One claim per run, on a slow schedule. This walks someone's live product,
+   * so the gentlest thing that keeps the inventory honest is the right amount.
+   */
+  const { rows } = claimId
+    ? await ctx.pool.query<ClaimRow>(
+        'select id, product_id, name, replay, attempts from feature_claims where id = $1',
+        [claimId],
+      )
+    : await ctx.pool.query<ClaimRow>(
+        `select id, product_id, name, replay, attempts
+           from feature_claims
+          where status <> 'unverifiable'
+            and (verified_at is null or verified_at < now() - ($1 || ' days')::interval)
+          order by last_attempt_at nulls first, verified_at nulls first
+          limit 1`,
+        [String(VERIFICATION_TTL_DAYS)],
+      );
+
   const claim = rows[0];
-  if (!claim) throw new Error(`feature claim ${claimId} not found`);
+  if (!claim) {
+    if (claimId) throw new Error(`feature claim ${claimId} not found`);
+    ctx.log('no feature claims are due for re-verification', {});
+    return;
+  }
 
   const steps = claim.replay.steps ?? [];
   const allowedOrigins = await allowedOriginsFor(ctx, claim.product_id);

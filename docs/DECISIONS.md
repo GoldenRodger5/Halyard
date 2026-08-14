@@ -850,3 +850,54 @@ up" that deletes everything passes it. It is therefore one layer, and the other
 is that exploration is meant to run against a dedicated account with no payment
 method and nothing worth losing. That control does not depend on guessing what
 a button means.
+
+## 48. The model proposes claims; it cannot propose that they are true
+
+The discovering half of the Explorer is arranged so the model can only ever
+suggest. It cannot mark anything verified — `status` is not read from its reply
+at all — it cannot widen the action vocabulary, and it cannot get a claim stored
+that has nothing observable in it.
+
+That last rule is what makes this an inventory rather than a list of
+impressions. The obvious prompt is "list the features you can see", which
+produces prose; prose becomes the brief, the brief becomes every prompt, and
+nothing downstream can tell an observed feature from an imagined one. So the
+schema demands the demonstration — the steps, and what must be true when they
+finish. **A model that cannot say how it would prove a feature has not found
+one**, and `validateClaims` rejects it with that as the reason.
+
+Rejections are returned rather than filtered away. What a model *tried* to
+propose is the signal for whether the prompt is working, and a run that
+repeatedly proposes destructive flows is something to know about.
+
+The model is shown an accessibility-style outline — roles, names, visible text —
+not raw HTML. Markup is mostly framework noise, it is enormous, and it invites
+invented CSS selectors that happen to parse. Names are what a person navigating
+the page would use, and they survive a redeploy far better than a hashed class.
+
+Signing in is code, using credentials from the environment, and runs before any
+discovered flow. That is *why* the denylist refuses a proposed `fill` into a
+password field outright: there is no legitimate reason for a discovered flow to
+type a credential, because signing in has already happened.
+
+Exploration is deliberately **not scheduled**. It costs model calls and may
+spend product credits, so it stays a deliberate act. Re-verification *is*
+scheduled, one stale claim every six hours, because verification expires and
+without a sweep the inventory decays into uselessness — a decay that looks
+identical to an empty inventory from the outside.
+
+## 49. Two lists of the same thing, in two languages
+
+`JOB_KINDS` in TypeScript and `jobs_kind_check` in Postgres are the same list
+written twice. Adding the Explorer's kinds to one and not the other typechecked
+cleanly and then failed at the first insert.
+
+It surfaced only because the scheduler tests enqueue against a real database. A
+unit test over the TypeScript constant would have passed happily, and the
+failure would have been the scheduler dying in production on its first tick
+after deploy — every periodic job, not just the new ones.
+
+The two lists are now compared directly against `pg_constraint`. The general
+form of this is worth watching for: **any constant duplicated across a language
+boundary needs a test that reads both copies**, because the compiler only ever
+sees one of them.

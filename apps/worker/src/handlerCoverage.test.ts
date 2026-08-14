@@ -13,6 +13,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { JOB_KINDS, JOB_POLICY, type JobKind } from '@halyard/db';
+import { createIsolatedPool, databaseAvailable } from '../../../packages/db/src/__tests__/testDb.js';
 import { HANDLERS } from './handlers/index.js';
 import { SCHEDULES } from './scheduler.js';
 
@@ -81,4 +82,37 @@ describe('handler coverage', () => {
       expect(scheduled, `${kind} is scheduled but knowingly unhandled`).not.toContain(kind);
     }
   });
+});
+
+/**
+ * `JOB_KINDS` and the database's `jobs_kind_check` are the same list written
+ * twice, in two languages, in two files.
+ *
+ * Adding to one without the other typechecks cleanly and then fails at the
+ * first insert — which is what happened when the Explorer's kinds went in. It
+ * surfaced only because the scheduler tests enqueue against a real database; a
+ * unit test over the TypeScript constant alone would have passed happily, and
+ * the failure would have been the scheduler dying in production.
+ *
+ * So the two lists are compared directly.
+ */
+const dbAvailable = await databaseAvailable();
+const withDb = dbAvailable ? describe : describe.skip;
+
+withDb('the job kinds the database will actually accept', () => {
+  it('accepts every kind declared in TypeScript', async () => {
+    const pool = await createIsolatedPool('jobkinds', 4);
+    try {
+      const { rows } = await pool.query<{ def: string }>(
+        `select pg_get_constraintdef(oid) as def from pg_constraint where conname = 'jobs_kind_check'`,
+      );
+      const constraint = rows[0]?.def ?? '';
+      expect(constraint, 'jobs_kind_check is missing entirely').not.toBe('');
+
+      const missing = JOB_KINDS.filter((kind) => !constraint.includes(`'${kind}'`));
+      expect(missing, 'declared in JOB_KINDS but rejected by the database').toEqual([]);
+    } finally {
+      await pool.end();
+    }
+  }, 120_000);
 });

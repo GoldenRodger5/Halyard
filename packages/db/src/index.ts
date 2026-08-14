@@ -69,6 +69,8 @@ export const JOB_KINDS = [
   'review_media',
   /** Phase 3: replay a feature claim and decide whether it still holds. */
   'verify_feature',
+  /** Phase 3: walk the product and propose claims for verification. */
+  'explore_product',
 ] as const;
 export type JobKind = (typeof JOB_KINDS)[number];
 
@@ -98,6 +100,12 @@ export const JOB_POLICY: Record<
    * timeout that fires early records a refutation that never happened.
    */
   verify_feature: { timeoutMs: 10 * 60_000, maxAttempts: 2, backoffSeconds: 600 },
+  /**
+   * A browser walking up to a dozen pages, with a model call on each. The
+   * longest job here by design, and the rarest — the product does not change
+   * hourly, and this reads someone's live app.
+   */
+  explore_product: { timeoutMs: 20 * 60_000, maxAttempts: 2, backoffSeconds: 3600 },
   score_performance: { timeoutMs: 5 * 60_000, maxAttempts: 2, backoffSeconds: 300 },
   digest_email: { timeoutMs: 2 * 60_000, maxAttempts: 2, backoffSeconds: 300 },
   reconcile_schedule: { timeoutMs: 2 * 60_000, maxAttempts: 2, backoffSeconds: 120 },

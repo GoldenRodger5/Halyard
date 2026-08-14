@@ -14,6 +14,7 @@ import {
   type ExplorerStep,
 } from './safety.js';
 import { canMarket, isStale, verdictFor, VERIFICATION_TTL_DAYS } from './verify.js';
+import { MAX_CLAIMS_PER_PAGE, validateClaims } from './discovery.js';
 
 const ORIGINS = ['https://recipefix.app'];
 const safe = (over: Partial<ExplorerStep> = {}): ExplorerStep => ({
@@ -233,5 +234,127 @@ describe('what may be said publicly', () => {
 
   it('treats never-verified as stale rather than as recent', () => {
     expect(isStale(null, now)).toBe(true);
+  });
+});
+
+describe('validateClaims', () => {
+  const ORIGINS2 = ['https://recipefix.app'];
+  const good = {
+    name: 'Adapt a recipe',
+    summary: 'Turns a recipe you paste in into one that fits your diet.',
+    steps: [
+      { name: 'open the adapter', action: 'goto', value: 'https://recipefix.app/adapt' },
+      { name: 'the swapped badge appears', action: 'expectText', target: 'Swapped' },
+    ],
+  };
+
+  it('accepts a claim that says how it would be proved', () => {
+    const { accepted } = validateClaims({ claims: [good] }, { allowedOrigins: ORIGINS2 });
+    expect(accepted).toHaveLength(1);
+  });
+
+  it('rejects a claim whose steps only navigate', () => {
+    /**
+     * The rule that makes this an inventory rather than a list of impressions.
+     * Steps that only navigate replay cleanly forever and confirm nothing.
+     */
+    const { accepted, rejected } = validateClaims(
+      {
+        claims: [
+          {
+            ...good,
+            steps: [{ name: 'open', action: 'goto', value: 'https://recipefix.app/adapt' }],
+          },
+        ],
+      },
+      { allowedOrigins: ORIGINS2 },
+    );
+    expect(accepted).toHaveLength(0);
+    expect(rejected[0]!.reason).toMatch(/No required expectation/);
+  });
+
+  it('does not count an optional expectation as proof', () => {
+    const { accepted } = validateClaims(
+      {
+        claims: [
+          {
+            ...good,
+            steps: [
+              { name: 'open', action: 'goto', value: 'https://recipefix.app/adapt' },
+              { name: 'maybe', action: 'expectText', target: 'Swapped', optional: true },
+            ],
+          },
+        ],
+      },
+      { allowedOrigins: ORIGINS2 },
+    );
+    expect(accepted).toHaveLength(0);
+  });
+
+  it('never stores an unsafe proposal, even to refuse it later', () => {
+    const { accepted, rejected } = validateClaims(
+      {
+        claims: [
+          {
+            ...good,
+            name: 'Delete a saved recipe',
+            steps: [
+              { name: 'open', action: 'goto', value: 'https://recipefix.app/saved' },
+              { name: 'remove it', action: 'click', target: 'Delete' },
+              { name: 'it is gone', action: 'expectText', target: 'Deleted' },
+            ],
+          },
+        ],
+      },
+      { allowedOrigins: ORIGINS2 },
+    );
+    expect(accepted).toHaveLength(0);
+    expect(rejected[0]!.reason).toMatch(/Unsafe/);
+  });
+
+  it('gives back the rejections rather than silently filtering', () => {
+    // What a model *tried* to propose is the signal for whether the prompt
+    // works — and repeated destructive proposals are worth knowing about.
+    const { rejected } = validateClaims(
+      { claims: [{ name: '', summary: 'x', steps: [] }] },
+      { allowedOrigins: ORIGINS2 },
+    );
+    expect(rejected).toHaveLength(1);
+  });
+
+  it('does not re-add something already claimed', () => {
+    const { accepted, rejected } = validateClaims(
+      { claims: [good] },
+      { allowedOrigins: ORIGINS2, existingNames: ['adapt a recipe'] },
+    );
+    expect(accepted).toHaveLength(0);
+    expect(rejected[0]!.reason).toMatch(/Already claimed/);
+  });
+
+  it('caps how many one page can yield', () => {
+    const many = Array.from({ length: MAX_CLAIMS_PER_PAGE + 5 }, (_, i) => ({
+      ...good,
+      name: `Feature ${i}`,
+    }));
+    const { accepted } = validateClaims({ claims: many }, { allowedOrigins: ORIGINS2 });
+    expect(accepted.length).toBeLessThanOrEqual(MAX_CLAIMS_PER_PAGE);
+  });
+
+  it('survives a reply that is not shaped like a reply', () => {
+    expect(validateClaims({}, { allowedOrigins: ORIGINS2 }).accepted).toHaveLength(0);
+    expect(validateClaims(null, { allowedOrigins: ORIGINS2 }).accepted).toHaveLength(0);
+  });
+
+  it('ignores any status the model tries to assert', () => {
+    /**
+     * The model has no route to `verified`. It is not read from the reply at
+     * all — the only way a claim becomes verified is a replay.
+     */
+    const { accepted } = validateClaims(
+      { claims: [{ ...good, status: 'verified', verified_at: '2026-01-01' }] },
+      { allowedOrigins: ORIGINS2 },
+    );
+    expect(accepted[0]).not.toHaveProperty('status');
+    expect(accepted[0]).not.toHaveProperty('verified_at');
   });
 });
