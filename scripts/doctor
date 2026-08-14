@@ -238,7 +238,8 @@ ACQUIRE
 
   # Sending needs Resend, and the milestone is explicit that it must be the
   # account RecipeFix already uses rather than a second one.
-  for key in RESEND_API_KEY:"newsletter sending" \
+  for key in OPENAI_API_KEY:"speaking a daily take instead of typing it" \
+             RESEND_API_KEY:"newsletter sending" \
              APP_STORE_KEY_ID:"App Store attribution and reviews" \
              SENTRY_DSN:"error reporting"; do
     name="${key%%:*}"; purpose="${key#*:}"
