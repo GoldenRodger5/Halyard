@@ -589,3 +589,26 @@ A conditional skip is only honest when the condition is a real capability the
 environment cannot have. "The secret was not exported" and "the data happened to
 be absent" are not that — they are the test quietly declining to check, in
 exactly the environments where checking mattered.
+
+## 37. Source weight had a `why` for every row and no effect on anything
+
+With story ages fixed, the take screen showed five arXiv preprints. Every day.
+
+Each source carries a `weight` and a written `why`: Hacker News 1.4, Anthropic
+and OpenAI 1.3, arXiv deliberately lowest at 0.6 *because* it publishes hundreds
+of preprints daily. That column was read in exactly one place — `order by weight
+desc` on the polling loop, deciding which feed gets fetched first, which affects
+nothing at all.
+
+So relevance was convergence alone, every single-outlet story tied at 0.33, the
+tie broke on recency, and the highest-volume lowest-rated source took all five
+slots. The seeded editorial judgment was decoration.
+
+Relevance now scales convergence by the highest contributing outlet's weight.
+Convergence still leads — three outlets on the same morning beats one trusted
+one — but a Hacker News story alone (0.47) now outranks a preprint nobody else
+picked up (0.20).
+
+This is the third bug this week of the same shape as §33: a field that exists,
+is populated with care, reads as if it does something, and is wired to nothing.
+Worth asking of every column that looks like a knob — **who reads this?**

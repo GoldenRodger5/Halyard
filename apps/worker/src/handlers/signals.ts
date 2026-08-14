@@ -37,6 +37,34 @@ interface SourceRow {
 export const STORY_TTL_HOURS = 48;
 
 /**
+ * How much a story matters: convergence, scaled by who carried it.
+ *
+ * Every source is seeded with a `weight` and a `why` — Hacker News at 1.4,
+ * Anthropic and OpenAI at 1.3, arXiv deliberately lowest at 0.6 because it
+ * publishes hundreds of preprints a day. That column was read in exactly one
+ * place: `order by weight desc` on the polling loop, which decides the order
+ * feeds are fetched in and nothing else.
+ *
+ * So the editorial judgment had no effect. With convergence alone, every
+ * single-outlet story scored an identical 0.33 and the tie broke on recency —
+ * which handed the entire take screen to arXiv, the one source explicitly rated
+ * least important. All five slots, every day.
+ *
+ * Convergence still leads: three outlets covering the same morning is the
+ * strongest signal here. Weight scales it, so a story Hacker News carried alone
+ * (0.47) outranks a preprint nobody else picked up (0.20), and anything three
+ * outlets carried saturates regardless.
+ *
+ * The highest contributing weight wins rather than the mean: if Hacker News and
+ * arXiv both carried it, it is a Hacker News story.
+ */
+export function relevanceOf(outletWeights: number[]): number {
+  if (outletWeights.length === 0) return 0;
+  const convergence = outletWeights.length / 3;
+  return Math.min(1, convergence * Math.max(...outletWeights));
+}
+
+/**
  * Is this story still worth an opinion?
  *
  * The TTL was originally applied as `now() + 48 hours` at insert — expiry
@@ -204,7 +232,9 @@ async function collectForProduct(productId: string, ctx: HandlerContext): Promis
         // what `sourceNames` actually measures.
         cluster.sourceNames.length,
         String(STORY_TTL_HOURS),
-        Math.min(1, cluster.sourceNames.length / 3),
+        relevanceOf(
+          cluster.sourceNames.map((n) => sources.find((s) => s.name === n)?.weight ?? 1),
+        ),
       ],
     );
     stored += rowCount ?? 0;

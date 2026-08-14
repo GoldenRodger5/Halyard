@@ -5,7 +5,7 @@
 import type pg from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createIsolatedPool, databaseAvailable } from '../../../packages/db/src/__tests__/testDb.js';
-import { collectSignalsHandler, STORY_TTL_HOURS } from './handlers/signals.js';
+import { collectSignalsHandler, relevanceOf, STORY_TTL_HOURS } from './handlers/signals.js';
 import type { HandlerContext, Job } from './poller.js';
 
 const available = await databaseAvailable();
@@ -69,13 +69,40 @@ const job = (): Job =>
     dedupe_key: null,
   }) as Job;
 
-async function addSource(name: string, url: string): Promise<void> {
+async function addSource(name: string, url: string, weight = 1): Promise<void> {
   await pool.query(
     `insert into rss_sources (product_id, name, feed_url, why, weight, enabled)
-     values ('recipefix',$1,$2,'test',1,true)`,
-    [name, url],
+     values ('recipefix',$1,$2,'test',$3,true)`,
+    [name, url, weight],
   );
 }
+
+describe('relevanceOf', () => {
+  it('ranks a story one trusted outlet carried above a preprint nobody else did', () => {
+    // The take screen was entirely arXiv: every single-outlet story scored an
+    // identical 0.33, so the tie broke on recency and the highest-volume,
+    // lowest-weighted source took all five slots.
+    expect(relevanceOf([1.4])).toBeGreaterThan(relevanceOf([0.6]));
+  });
+
+  it('still lets convergence beat a single trusted outlet', () => {
+    expect(relevanceOf([0.6, 0.6, 0.6])).toBeGreaterThan(relevanceOf([1.4]));
+  });
+
+  it('takes the highest contributing weight, not the average', () => {
+    // Carried by Hacker News and arXiv, it is a Hacker News story.
+    expect(relevanceOf([1.4, 0.6])).toBe(relevanceOf([0.6, 1.4]));
+    expect(relevanceOf([1.4, 0.6])).toBeCloseTo(Math.min(1, (2 / 3) * 1.4), 5);
+  });
+
+  it('never exceeds 1, whatever the weights', () => {
+    expect(relevanceOf([1.4, 1.3, 1.3, 1.0])).toBe(1);
+  });
+
+  it('is zero when nothing carried it', () => {
+    expect(relevanceOf([])).toBe(0);
+  });
+});
 
 d('collectSignalsHandler — reaching the feeds at all', () => {
   it('collects for the founder persona, whose feeds these are', async () => {
@@ -162,7 +189,7 @@ d('collectSignalsHandler', () => {
      * Y" and "Introducing Z" absorbs its own headlines on title similarity —
      * scoring a single-source story as maximum convergence.
      */
-    await addSource('Only feed', 'https://one.test/rss');
+    await addSource('Only feed', 'https://one.test/rss', 0.6);
     vi.stubGlobal(
       'fetch',
       vi.fn(
