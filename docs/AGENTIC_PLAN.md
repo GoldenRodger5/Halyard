@@ -301,6 +301,30 @@ non-determinism to a solved problem.
 Six phases. Each has an acceptance test that could fail, because a phase whose
 success is unfalsifiable is a phase that will be declared successful.
 
+### What building Phase 2 found, which was not on this plan
+
+Three subsystems designed and never wired, all with the same shape — **a thing
+that does nothing looks exactly like a thing that works.**
+
+| Found | Symptom |
+|---|---|
+| `runAllGates` takes `visual` and `audio` as optional inputs, and no production path ever supplied one | Two gates unable to run since written; `visionScore` never populated |
+| `collect_signals` scheduled every six hours since day one, no handler registered | 13 jobs stuck in production over 75 hours; the daily take never had a story |
+| `tts` job kind, voice lexicon, audio gate and `writeVoScript` all built | **No ElevenLabs integration exists anywhere.** Voiceover is not implemented |
+
+The first two are fixed. The third is now *documented* as unimplemented rather
+than merely absent, which is the difference between a decision and an oversight.
+
+`handlerCoverage.test.ts` makes the class impossible: it fails if a scheduled
+kind has no handler, if a handler has no timeout policy, or if a declared kind is
+unhandled without a written reason. The poller now raises a notification instead
+of silently requeueing forever.
+
+**This changes the reading of `STRATEGY.md`.** It said the learning loop was
+"built, unexercised". Part of it was not built. Any claim in that document about
+a subsystem working should be treated as a claim about code existing, not about
+code running, until something has run it.
+
 ### Phase 0 — Publish (days, not weeks)
 
 Nothing below can be evaluated without baseline output. Ship the launch batch,
