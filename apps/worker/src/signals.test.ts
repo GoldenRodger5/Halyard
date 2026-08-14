@@ -5,7 +5,7 @@
 import type pg from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createIsolatedPool, databaseAvailable } from '../../../packages/db/src/__tests__/testDb.js';
-import { collectSignalsHandler } from './handlers/signals.js';
+import { collectSignalsHandler, STORY_TTL_HOURS } from './handlers/signals.js';
 import type { HandlerContext, Job } from './poller.js';
 
 const available = await databaseAvailable();
@@ -13,11 +13,19 @@ const d = available ? describe : describe.skip;
 
 let pool: pg.Pool;
 
-const feed = (items: Array<{ guid: string; title: string }>): string =>
+const hoursAgo = (h: number): string => new Date(Date.now() - h * 3_600_000).toUTCString();
+
+/**
+ * Ages are relative on purpose. The first version of this helper hardcoded
+ * `Wed, 13 Aug 2026` — inside the freshness window on the day it was written
+ * and outside it two days later, which is a test that passes now and fails on
+ * a date nobody will connect to this file.
+ */
+const feed = (items: Array<{ guid: string; title: string; ageHours?: number }>): string =>
   `<?xml version="1.0"?><rss version="2.0"><channel>${items
     .map(
       (i) =>
-        `<item><guid>${i.guid}</guid><link>https://example.test/${i.guid}</link><title>${i.title}</title><pubDate>Wed, 13 Aug 2026 10:00:00 GMT</pubDate></item>`,
+        `<item><guid>${i.guid}</guid><link>https://example.test/${i.guid}</link><title>${i.title}</title><pubDate>${hoursAgo(i.ageHours ?? 2)}</pubDate></item>`,
     )
     .join('')}</channel></rss>`;
 
@@ -211,6 +219,77 @@ d('collectSignalsHandler', () => {
     );
 
     await collectSignalsHandler(job(), context());
+    await collectSignalsHandler(job(), context());
+
+    const { rows } = await pool.query('select 1 from rss_items');
+    expect(rows).toHaveLength(1);
+    vi.unstubAllGlobals();
+  });
+
+  it('does not offer a story from 2015 as something to react to today', async () => {
+    /**
+     * Several of these feeds serve a deep archive rather than a recent window.
+     * Expiry was written as `now() + 48 hours` — measured from when we happened
+     * to fetch, not when it was published — so the first successful production
+     * run stored 2,118 stories, marked every one `new`, and the take screen
+     * offered a story from **2015** as today's news. 1,135 were over a year old.
+     *
+     * Nothing errored; the count went up, which read as the feature working.
+     */
+    await addSource('Archive feed', 'https://archive.test/rss');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response(
+            feed([
+              { guid: 'ancient', title: 'A story from years ago', ageHours: 24 * 365 * 10 },
+              { guid: 'stale', title: 'A story from last week', ageHours: 24 * 7 },
+              { guid: 'fresh', title: 'A story from this morning', ageHours: 3 },
+            ]),
+          ),
+      ),
+    );
+
+    await collectSignalsHandler(job(), context());
+
+    const { rows } = await pool.query<{ guid: string }>('select guid from rss_items');
+    expect(rows.map((r) => r.guid)).toEqual(['fresh']);
+    vi.unstubAllGlobals();
+  });
+
+  it('expires from publication, so a story fetched late is already old', async () => {
+    // The window is a property of the story, not of when we got round to it.
+    await addSource('Test feed', 'https://feed.test/rss');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response(feed([{ guid: 'late', title: 'Published a while back', ageHours: 40 }])),
+      ),
+    );
+
+    await collectSignalsHandler(job(), context());
+
+    const { rows } = await pool.query<{ hours: string }>(
+      `select extract(epoch from (expires_at - published_at)) / 3600 as hours from rss_items`,
+    );
+    expect(Math.round(Number(rows[0]!.hours))).toBe(STORY_TTL_HOURS);
+    vi.unstubAllGlobals();
+  });
+
+  it('keeps an undated item, since fetch time is the only clock there is', async () => {
+    await addSource('Undated feed', 'https://undated.test/rss');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response(
+            `<?xml version="1.0"?><rss version="2.0"><channel><item><guid>u</guid><link>https://example.test/u</link><title>No date on this one</title></item></channel></rss>`,
+          ),
+      ),
+    );
+
     await collectSignalsHandler(job(), context());
 
     const { rows } = await pool.query('select 1 from rss_items');

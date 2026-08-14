@@ -542,3 +542,50 @@ returned.
 
 **The general rule: assert on the side effect, never on the absence of an
 error.** Four of this week's bugs would have been caught by that alone.
+
+## 35. A story's age belongs to the story, not to when we fetched it
+
+`collect_signals` finally reached the feeds, and stored 2,118 stories.
+
+The number going up read as the feature working. It was not. Expiry was written
+as `now() + 48 hours` — measured from the moment of fetch — while several of
+these sources serve a deep archive rather than a recent window. So every item
+arrived `new` regardless of when it was published: **1,135 were more than a year
+old, and the oldest was from 2015**. The take screen ranks by convergence and
+shows the top five, so the founder's "what happened today" could have been a
+decade-old post that three feeds happened to carry.
+
+Nothing errored, nothing was in a dead letter, and the count looked healthy.
+
+Freshness is now anchored to `published_at`, and stale items are refused at
+ingest rather than stored and expired in the same pass — writing 1,135 rows in
+order to immediately retire them would have taught the health screen to expect
+churn that means nothing. An item with **no** date is still kept: fetch time is
+the only clock available for it, and dropping every undated item would blind the
+take screen to whole sources without saying so.
+
+## 36. A skipped test is an unrun test, and the suite reports it as green
+
+Chasing the story-age bug turned up something worse in the harness.
+
+The same commit reported "47 passed, 1 skipped" and "42 passed, 6 skipped"
+depending on which shell invoked it, and both looked fine. Two causes:
+
+- Five cron tests guard on `test.skip(!process.env.CRON_SECRET)`. Playwright's
+  process never loaded an env file, so they ran only if the operator happened to
+  have exported the secret by hand. **Those are the tests that catch the
+  GET/POST mismatch that would have made every scheduled task 405 in
+  production** — the exact bug they exist for, unrun by default.
+- One safety test skipped when no unexpired story happened to be in the
+  database, which made its coverage a function of when the feeds last ran. It
+  skipped for real the day expiry was corrected, because the whole local table
+  aged out at once.
+
+Both are now unconditional: the config loads `apps/web/.env.local`, and the
+safety test seeds the story it needs instead of excusing itself. The suite runs
+**48 of 48** from a clean shell.
+
+A conditional skip is only honest when the condition is a real capability the
+environment cannot have. "The secret was not exported" and "the data happened to
+be absent" are not that — they are the test quietly declining to check, in
+exactly the environments where checking mattered.

@@ -33,8 +33,39 @@ interface SourceRow {
   weight: number;
 }
 
-/** How long a story stays worth reacting to. */
+/** How long a story stays worth reacting to, measured from when it was published. */
 export const STORY_TTL_HOURS = 48;
+
+/**
+ * Is this story still worth an opinion?
+ *
+ * The TTL was originally applied as `now() + 48 hours` at insert — expiry
+ * measured from **when we happened to fetch it**, not when it was published.
+ * Several of these feeds serve a deep archive rather than a recent window, so
+ * the first successful run stored 2,118 stories and marked every one of them
+ * `new`: 1,135 were more than a year old and the oldest was from **2015**. The
+ * take screen dutifully offered all of them as things to react to today.
+ *
+ * Nothing errored. The count went up, which read as the feature working.
+ *
+ * A story's age is a property of the story. Fetching it late does not make it
+ * news, so the window is anchored to `publishedAt` and stale items are never
+ * ingested at all — storing them just to expire them in the same transaction
+ * would inflate `stored` and teach the health screen to expect churn.
+ *
+ * A feed with no date on an item is the one case where fetch time is the only
+ * clock available. Those are kept: an undated item from a feed we poll every
+ * six hours is far more likely to be new than to be from 2015, and dropping
+ * everything undated would silently blind the take screen to whole sources.
+ */
+export function isWorthReacting(
+  publishedAt: Date | null | undefined,
+  now: Date = new Date(),
+): boolean {
+  if (!publishedAt) return true;
+  const ageHours = (now.getTime() - publishedAt.getTime()) / 3_600_000;
+  return ageHours < STORY_TTL_HOURS;
+}
 
 /**
  * Which products to collect for.
@@ -135,7 +166,13 @@ async function collectForProduct(productId: string, ctx: HandlerContext): Promis
   );
 
   let stored = 0;
+  let stale = 0;
   for (const cluster of clusters) {
+    if (!isWorthReacting(cluster.publishedAt)) {
+      stale += 1;
+      continue;
+    }
+
     const origin = fetched.find((f) => f.item.guid === cluster.guid)?.source ?? sources[0]!;
 
     const { rowCount } = await ctx.pool.query(
@@ -143,7 +180,7 @@ async function collectForProduct(productId: string, ctx: HandlerContext): Promis
          (source_id, product_id, guid, url, title, summary, author, published_at,
           fetched_at, cluster_key, feed_count, expires_at, relevance, status)
        values ($1,$2,$3,$4,$5,$6,$7,$8, now(), $9, $10,
-               now() + ($11 || ' hours')::interval, $12, 'new')
+               coalesce($8::timestamptz, now()) + ($11 || ' hours')::interval, $12, 'new')
        on conflict (product_id, guid) do nothing`,
       [
         origin.id,
@@ -188,5 +225,8 @@ async function collectForProduct(productId: string, ctx: HandlerContext): Promis
     fetched: fetched.length,
     clusters: clusters.length,
     stored,
+    // Logged rather than dropped quietly: a source whose every item is stale is
+    // an archive feed, not a news feed, and that is worth being able to see.
+    stale,
   });
 }

@@ -87,8 +87,31 @@ test.describe('the Daily Take is input-gated', () => {
   });
 
   test('the composer refuses to submit an empty take', async ({ page }) => {
-    const stories = await db().query('select count(*)::int as n from rss_items where expires_at > now()');
-    test.skip((stories.rows[0] as { n: number }).n === 0, 'no stories ingested yet');
+    /**
+     * This used to `test.skip` when no unexpired story happened to be in the
+     * database, which made the coverage a function of when the feeds last ran.
+     * It skipped for real the day story expiry was corrected to run from
+     * publication rather than fetch — the whole local table aged out at once
+     * and the rule this test guards stopped being checked, silently.
+     *
+     * A test that needs a story should make one.
+     */
+    await db().query(
+      `insert into rss_sources (id, product_id, name, feed_url, why, weight, enabled)
+       values ('00000000-0000-0000-0000-0000000000e2', 'founder', 'E2E source',
+               'https://e2e.test/rss', 'E2E', 1, false)
+       on conflict (id) do nothing`,
+    );
+    await db().query(
+      `insert into rss_items
+         (source_id, product_id, guid, url, title, fetched_at, published_at,
+          cluster_key, feed_count, expires_at, relevance, status)
+       values ('00000000-0000-0000-0000-0000000000e2', 'founder', 'E2E story',
+               'https://e2e.test/s', 'E2E story worth an opinion', now(), now(),
+               'e2e', 1, now() + interval '1 hour', 1, 'new')
+       on conflict (product_id, guid) do update set expires_at = now() + interval '1 hour',
+                                                    status = 'new'`,
+    );
 
     await page.goto('/take');
     await page.getByRole('button', { name: 'I have a take on this' }).first().click();

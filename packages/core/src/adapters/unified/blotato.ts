@@ -36,9 +36,8 @@ import {
   platformFetch,
   type CapabilityReport,
   type MetricSnapshot,
-  type OAuthClientOptions,
-  type OAuthExchangeOptions,
-  type OAuthUrlOptions,
+  // No OAuth option types: this transport's `getAuthUrl` and `exchangeCode`
+  // take no arguments, because the provider dashboard owns the connection.
   type PlatformAdapter,
   type PlatformConstraints,
   type PlatformIdentity,

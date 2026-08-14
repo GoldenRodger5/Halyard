@@ -74,6 +74,10 @@ export async function seedItem(
 export async function cleanup(): Promise<void> {
   await db().query(`delete from content_items where generation_meta ->> 'e2e' = 'true'`);
   await db().query(`delete from takes where raw_input like 'E2E %'`);
+  // The story the take composer test creates for itself, and the disabled
+  // source it hangs off. Deleted in that order for the foreign key.
+  await db().query(`delete from rss_items where guid = 'E2E story'`);
+  await db().query(`delete from rss_sources where name = 'E2E source'`);
 }
 
 export const test = base.extend<{ seeded: void }>({

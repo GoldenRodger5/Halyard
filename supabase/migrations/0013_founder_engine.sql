@@ -165,7 +165,11 @@ on conflict (product_id, format) do nothing;
 insert into rss_sources (product_id, name, feed_url, why, weight) values
   ('founder', 'Hacker News, 100+ points', 'https://hnrss.org/frontpage?points=100',
    'Community-filtered. Dramatically less noise than the raw front page.', 1.4),
-  ('founder', 'Anthropic news', 'https://www.anthropic.com/news/rss.xml',
+  -- Anthropic publish no official RSS feed. This is a community mirror, and it
+  -- is the one source here that can disappear without warning — the seeded URL
+  -- (anthropic.com/news/rss.xml) 404'd from the day it was written, which the
+  -- feed-error column now surfaces on /settings/health instead of hiding.
+  ('founder', 'Anthropic news', 'https://rsshub.bestblogs.dev/anthropic/news',
    'Primary source for model and policy announcements.', 1.3),
   ('founder', 'OpenAI news', 'https://openai.com/news/rss.xml',
    'Primary source.', 1.3),

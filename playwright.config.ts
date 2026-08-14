@@ -1,6 +1,30 @@
 import { defineConfig, devices } from '@playwright/test';
 
 /**
+ * Load `.env` before the tests decide what they can check.
+ *
+ * Several specs guard on a secret being present — `test.skip(!secret, ...)` —
+ * which is right when the secret genuinely cannot exist, and quietly wrong
+ * here. Playwright's own process never read `.env`, so the five tests covering
+ * the cron entrypoints skipped unless the operator happened to have exported
+ * `CRON_SECRET` into that shell. Those are the tests that catch the GET/POST
+ * mismatch that would have made every scheduled task 405 in production.
+ *
+ * The suite reported "47 passed" and "42 passed, 6 skipped" on the same commit
+ * depending on how it was invoked, and both looked green.
+ */
+if (!process.env.CRON_SECRET) {
+  // `apps/web/.env.local` is where the web app's secrets actually live — the
+  // first version of this looked for a root `.env`, which does not exist, and
+  // so fixed nothing while appearing to.
+  try {
+    process.loadEnvFile('apps/web/.env.local');
+  } catch {
+    // Absent is a legitimate state — CI supplies the environment directly.
+  }
+}
+
+/**
  * End-to-end tests. Milestone 29.
  *
  * 400+ unit and integration tests cover the parts; none of them cover the path
