@@ -109,6 +109,62 @@ function okFetch(): typeof fetch {
   }) as unknown as typeof fetch;
 }
 
+d('accounts with no API path', () => {
+  it('hands a draft_only account to manual publish rather than failing at the adapter', async () => {
+    /**
+     * `draft_only` and `awaiting_manual_publish` were designed together — the
+     * capability state, the item state, the schema constraints and the
+     * architecture doc all describe this path — and **neither end was ever
+     * built**. The handler refused only `disabled` and `error`, so a
+     * `draft_only` account fell straight through to the adapter and failed
+     * there, which reads as a broken integration rather than as a post waiting
+     * for a person.
+     *
+     * Any account whose platform review has not landed sits in this state.
+     * (Facebook cannot even be represented — it is not in the platform check
+     * constraint, so it is not a supported platform here at all.)
+     */
+    const account = await pool.query<{ id: string }>(
+      `insert into social_accounts (product_id, platform, persona, handle, capability_state)
+       values ('recipefix','instagram','brand','@recipe.fix','draft_only') returning id`,
+    );
+    const itemId = await makeItem();
+    await pool.query('update content_items set account_id = $2, platform = $1 where id = $3', [
+      'instagram',
+      account.rows[0]!.id,
+      itemId,
+    ]);
+
+    // No fetch stub: reaching the network at all would be the bug.
+    currentFetch = (() => {
+      throw new Error('the adapter must not be called for a draft_only account');
+    }) as unknown as typeof fetch;
+
+    await publishHandler(job(itemId), context());
+
+    const { rows } = await pool.query<{ status: string }>(
+      'select status from content_items where id = $1',
+      [itemId],
+    );
+    expect(rows[0]!.status).toBe('awaiting_manual_publish');
+
+    // Nothing was published, so nothing claims to have been.
+    const { rows: pubs } = await pool.query('select 1 from publications where content_item_id = $1', [
+      itemId,
+    ]);
+    expect(pubs).toHaveLength(0);
+
+    // And it is recorded as a decision rather than inferred from the state.
+    const { rows: audit } = await pool.query<{ action: string }>(
+      `select action from audit_log where entity_id = $1 and action = 'handed_to_manual_publish'`,
+      [itemId],
+    );
+    expect(audit).toHaveLength(1);
+
+    await pool.query('delete from social_accounts where id = $1', [account.rows[0]!.id]);
+  }, 60_000);
+});
+
 d('publish idempotency — the bug that must never ship', () => {
   it('publishes once and records the publication', async () => {
     currentFetch = okFetch();

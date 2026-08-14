@@ -205,3 +205,89 @@ export async function retryRender(formData: FormData): Promise<void> {
   await audit('retry_render', id, { renders: renders.length });
   revalidatePath('/queue');
 }
+
+/**
+ * Post it now, rather than at the slot it was scheduled for.
+ *
+ * Approval and posting were the same decision: `approveItem` enqueues a publish
+ * job only if the slot has already passed, so approving something scheduled for
+ * Thursday means waiting until Thursday with no way to say "actually, now".
+ *
+ * They are different decisions. Approving says the post is good; posting says
+ * it should go out. Keeping them separate is what makes the queue reviewable in
+ * one sitting and postable on your own timing.
+ *
+ * The job is still the worker's to run — this does not publish inline. The
+ * publish handler owns the idempotency guard, the kill switch and the
+ * cross-product routing check, and a second path around it would be a second
+ * path around all three.
+ */
+export async function publishNow(formData: FormData): Promise<void> {
+  const id = String(formData.get('id'));
+  const item = await one<{ status: string }>('select status from content_items where id = $1', [id]);
+  if (!item) return;
+
+  // Only from a state a human has already blessed. Publishing straight from
+  // `pending_approval` would route around the review this whole screen is for.
+  if (!['approved', 'scheduled'].includes(item.status)) return;
+
+  await query(
+    `update content_items set scheduled_at = now(), status = 'approved' where id = $1`,
+    [id],
+  );
+  await query(
+    `insert into jobs (kind, payload, priority, dedupe_key)
+     values ('publish', $1, 5, $2) on conflict do nothing`,
+    [{ contentItemId: id }, `publish:${id}`],
+  );
+  await audit('publish_now', id, { previousStatus: item.status });
+
+  revalidatePath('/queue');
+  revalidatePath(`/queue/${id}`);
+}
+
+/**
+ * Record a post that was made by hand.
+ *
+ * Some accounts have no API path at all — Facebook has no adapter here, and any
+ * account whose platform review has not landed sits in `draft_only`. Those
+ * items are handed over rather than failed, and this is where they come back.
+ *
+ * The URL is required and is not decoration: without it there is no way to
+ * collect metrics for the post, no way to verify it actually went out, and the
+ * item would claim `published` on nothing but an assertion. That is the same
+ * shape as every "it looked done" bug in this codebase, so it is refused.
+ */
+export async function markManuallyPublished(formData: FormData): Promise<void> {
+  const id = String(formData.get('id'));
+  const url = String(formData.get('url') ?? '').trim();
+
+  if (!url) throw new Error('The URL of the post is required. Without it nothing can verify it.');
+  if (!/^https?:\/\//i.test(url)) {
+    throw new Error(`"${url}" is not a link. Paste the URL of the post you made.`);
+  }
+
+  const item = await one<{ account_id: string; platform: string; status: string }>(
+    'select account_id, platform, status from content_items where id = $1',
+    [id],
+  );
+  if (!item) return;
+  if (item.status !== 'awaiting_manual_publish') return;
+
+  await query(
+    `insert into publications
+       (content_item_id, account_id, platform, publish_mode, manual_publish_url,
+        permalink, published_at)
+     values ($1, $2, $3, 'draft', $4, $4, now())
+     on conflict do nothing`,
+    [id, item.account_id, item.platform, url],
+  );
+  await query(
+    `update content_items set status = 'published', published_at = now() where id = $1`,
+    [id],
+  );
+  await audit('manual_publish_recorded', id, { url, platform: item.platform });
+
+  revalidatePath('/queue');
+  revalidatePath(`/queue/${id}`);
+}

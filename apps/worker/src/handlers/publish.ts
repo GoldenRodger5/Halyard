@@ -158,6 +158,46 @@ export async function publishHandler(job: Job, ctx: HandlerContext): Promise<voi
     throw new Error(`account ${accountRow.handle} is ${accountRow.capability_state}; not publishing`);
   }
 
+  /**
+   * An account that cannot post through an API is not a failure. It is a
+   * handover.
+   *
+   * `draft_only` and `awaiting_manual_publish` were designed together — the
+   * capability state, the item state, the schema constraints and the
+   * architecture doc all describe this path — and **neither end was ever
+   * built**. The handler refused only `disabled` and `error`, so a `draft_only`
+   * account fell straight through to the adapter and failed there, which reads
+   * as a broken integration rather than as a post waiting for a person.
+   *
+   * This matters more than it looks. Several platforms Halyard targets cannot
+   * be posted to programmatically for this account — Facebook has no adapter at
+   * all, and any account whose review has not landed sits here. Without this
+   * branch those posts are generated, approved, and then simply fail.
+   *
+   * Everything needed to post by hand is already on the item: the body, the
+   * rendered media, the destination link. The queue surfaces it, the operator
+   * posts it, and records the URL. Nothing is lost and nothing is pretended.
+   */
+  if (accountRow.capability_state === 'draft_only') {
+    await ctx.pool.query(
+      `update content_items
+          set status = 'awaiting_manual_publish', updated_at = now()
+        where id = $1`,
+      [item.id],
+    );
+    await ctx.pool.query(
+      `insert into audit_log (actor, action, entity_type, entity_id, detail)
+       values ('system', 'handed_to_manual_publish', 'content_item', $1, $2)`,
+      [item.id, { account: accountRow.handle, platform: accountRow.platform }],
+    );
+    ctx.log('handed to manual publish', {
+      contentItemId: item.id,
+      account: accountRow.handle,
+      why: 'the account is draft_only, so there is no API path to post through',
+    });
+    return;
+  }
+
   // ── 1b. Routing, asserted a second time ──────────────────────────────────
   // The constraint in the schema is the real defence. This is the belt to its
   // braces, and it is cheap: two strings already loaded.

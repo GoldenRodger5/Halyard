@@ -17,9 +17,10 @@ import {
   type PlatformId,
 } from '@halyard/core';
 import { AssetPicker } from '@/components/AssetPicker';
+import { ManualPublish } from '@/components/ManualPublish';
 import { getItemArtifact, getProducts, getQueueItem } from '@/lib/queries';
 import { formatInOperatorTz } from '@/lib/format';
-import { editItem, rescheduleItem } from '../actions';
+import { editItem, markManuallyPublished, publishNow, rescheduleItem } from '../actions';
 import { resetDestination, setDestination } from '../destinationActions';
 
 export const dynamic = 'force-dynamic';
@@ -341,6 +342,44 @@ export default async function QueueItemPage({ params }: { params: Promise<{ id: 
               </details>
             ) : null}
           </Card>
+
+          {item.status === 'awaiting_manual_publish' ? (
+            <Card className="p-4">
+              <SectionTitle hint="this account has no API path">Post this yourself</SectionTitle>
+              <ManualPublish
+                itemId={item.id}
+                platform={item.platform}
+                body={item.body}
+                hashtags={item.hashtags}
+                title={item.title}
+                altText={item.alt_text}
+                linkUrl={item.final_link_url ?? item.link_url}
+                assets={item.preview_urls.map((url, index) => ({
+                  id: `${item.id}-${index}`,
+                  url,
+                  kind: item.format,
+                }))}
+                onRecord={markManuallyPublished}
+              />
+            </Card>
+          ) : null}
+
+          {item.status === 'approved' || item.status === 'scheduled' ? (
+            <Card className="p-4">
+              <SectionTitle hint="approving is not the same as sending">Post now</SectionTitle>
+              <p className="mb-3 text-sm text-muted">
+                {item.scheduled_at
+                  ? `Otherwise it goes out at ${formatInOperatorTz(item.scheduled_at, timeZone)}.`
+                  : 'This has no slot, so it will not go out on its own.'}
+              </p>
+              <form action={publishNow}>
+                <input type="hidden" name="id" value={item.id} />
+                <button className="w-full rounded-lg bg-accent px-2 py-1.5 text-sm font-medium text-white hover:opacity-90">
+                  Post it now
+                </button>
+              </form>
+            </Card>
+          ) : null}
 
           <Card className="p-4">
             <SectionTitle>Schedule</SectionTitle>

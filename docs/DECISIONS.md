@@ -745,3 +745,46 @@ says what it saw; the rules decide what that means.
 frames. A video that holds one card for its entire length passes the hook check
 at worst as a warning, because its opening is exactly as static as the rest of
 it, and being uniformly motionless was never the thing being measured.
+
+## 44. Approving a post and sending it are two decisions
+
+`approveItem` enqueued a publish job only if the slot had already passed. So
+approving something scheduled for Thursday meant waiting until Thursday, with no
+way to say "this is fine, send it".
+
+Those are different judgements. Approval says the post is good; posting says it
+should go out. Fusing them makes the queue reviewable only at the moment you
+also want to publish, which is not how anyone reviews a fortnight of drafts.
+
+`publishNow` still enqueues rather than publishing inline. The publish handler
+owns the idempotency guard, the kill switch and the cross-product routing check,
+and a second path around it would be a second path around all three. It refuses
+anything not already in `approved` or `scheduled`, because publishing straight
+from `pending_approval` would route around the review the screen exists for.
+
+## 45. An account with no API is a handover, not a failure
+
+`draft_only` and `awaiting_manual_publish` were designed together. The
+capability state, the item state, both schema constraints, `publications.publish_mode`,
+`publications.manual_publish_url`, the demo seed and the architecture doc all
+describe this path in detail.
+
+**Neither end was ever built.** The publish handler refused only `disabled` and
+`error`, so a `draft_only` account fell through to the adapter and failed there
+— which reads as a broken integration rather than as a post waiting for a
+person. Nothing in the UI ever showed `awaiting_manual_publish` either, so an
+item in that state was invisible.
+
+This is not an edge case. Facebook is not in the platform check constraint at
+all, so it cannot even be represented; any account whose platform review has not
+landed sits in `draft_only` indefinitely.
+
+The handover is designed so posting by hand costs one visit: the caption is one
+click from the clipboard *already joined to its hashtags* — assembling it by
+hand is where the posted version drifts from the reviewed one — the media is one
+click from disk, and the platform's composer is one click away.
+
+The URL back is **required**. Without it there is nothing to collect metrics
+against and nothing to prove the post exists, and the item would claim
+`published` on an assertion alone. That is the shape of every "it looked done"
+bug in this codebase, so it is refused rather than defaulted.
