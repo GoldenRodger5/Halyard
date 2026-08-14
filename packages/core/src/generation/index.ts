@@ -9,3 +9,4 @@ export * from './autoClip.js';
 export * from './openai.js';
 export * from './client.js';
 export * from './vision.js';
+export * from './speech.js';

@@ -47,19 +47,35 @@ describe('handler coverage', () => {
      * oversight, and that distinction is the entire point of this test.
      */
     const knowinglyUnhandled: Record<string, string> = {
-      tts: 'Voiceover is not implemented. There is no ElevenLabs integration anywhere in the codebase — the job kind, the voice lexicon, the audio gate and writeVoScript were all built around a synthesis step that was never written. Nothing enqueues it.',
       digest_email: 'The digest is not implemented. Nothing enqueues it.',
-      send_newsletter: 'Drafting is implemented and sending is not. Nothing enqueues it.',
     };
 
     const unaccounted = JOB_KINDS.filter(
       (kind) => !registered.has(kind) && !(kind in knowinglyUnhandled),
     );
     expect(unaccounted, 'unhandled and undocumented').toEqual([]);
+
+    /**
+     * The list has to be exact, not merely a superset.
+     *
+     * It was a superset, and it went stale the moment `tts` was implemented:
+     * the entry claiming "there is no ElevenLabs integration anywhere in the
+     * codebase" sat next to a working ElevenLabs integration, and nothing
+     * failed, because a documented-as-missing kind that turns out to exist
+     * still satisfies a check for kinds that are missing *and* undocumented.
+     *
+     * Left alone it would have been worse than stale. If the handler were ever
+     * unregistered, this file would have called that a deliberate decision and
+     * gone green.
+     */
+    const documentedButActuallyHandled = Object.keys(knowinglyUnhandled).filter((kind) =>
+      registered.has(kind as (typeof JOB_KINDS)[number]),
+    );
+    expect(documentedButActuallyHandled, 'documented as unhandled but registered').toEqual([]);
   });
 
   it('does not enqueue a kind it knowingly cannot run', () => {
-    const knowinglyUnhandled = ['tts', 'digest_email', 'send_newsletter'];
+    const knowinglyUnhandled = ['digest_email'];
     const scheduled = SCHEDULES.map((s) => s.kind as string);
     for (const kind of knowinglyUnhandled) {
       expect(scheduled, `${kind} is scheduled but knowingly unhandled`).not.toContain(kind);

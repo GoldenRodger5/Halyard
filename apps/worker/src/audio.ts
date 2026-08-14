@@ -375,3 +375,53 @@ export async function mixAudio(input: MixInput): Promise<MixResult> {
     await rm(work, { recursive: true, force: true });
   }
 }
+
+/**
+ * Attach a finished audio track to a finished video.
+ *
+ * The alternative is letting Remotion play the audio during the render, via the
+ * `audioSrc` prop the compositions accept. That needs the file to be reachable
+ * from inside headless Chromium — a public URL, or a copy staged into the
+ * bundle's public directory — and it buys nothing, because no composition here
+ * reacts to the audio. It only draws.
+ *
+ * So the render stays silent and the mix is muxed on afterwards: no asset
+ * serving, no CORS, no decoding audio in a browser, and the video stream is
+ * copied rather than re-encoded.
+ *
+ * `-shortest` is deliberate. The video's frame count is derived from the audio
+ * length, so the two should already agree; if they ever disagree, ending on the
+ * shorter of the two is the failure that is visible in QC rather than the one
+ * that leaves a frozen final frame or a stretch of black.
+ */
+export async function muxAudioIntoVideo(
+  videoPath: string,
+  audioPath: string,
+  outputPath: string,
+): Promise<void> {
+  await execFileAsync(
+    'ffmpeg',
+    [
+      '-hide_banner',
+      '-nostats',
+      '-y',
+      '-i',
+      videoPath,
+      '-i',
+      audioPath,
+      '-map',
+      '0:v:0',
+      '-map',
+      '1:a:0',
+      '-c:v',
+      'copy',
+      '-c:a',
+      'aac',
+      '-b:a',
+      '192k',
+      '-shortest',
+      outputPath,
+    ],
+    { maxBuffer: 8 * 1024 * 1024 },
+  );
+}

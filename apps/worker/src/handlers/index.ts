@@ -26,6 +26,7 @@ import { draftNewsletterHandler, sendNewsletterHandler } from './newsletter.js';
 import { collectReviewsHandler } from './reviews.js';
 import { reviewMediaHandler } from './reviewMedia.js';
 import { collectSignalsHandler } from './signals.js';
+import { ttsHandler } from './tts.js';
 
 async function loadAccount(ctx: HandlerContext, accountId: string): Promise<PublishAccount> {
   const { rows } = await ctx.pool.query<{
@@ -343,6 +344,7 @@ export const HANDLERS: Partial<Record<JobKind, JobHandler>> = {
   score_performance: scorePerformance,
   refresh_tokens: refreshTokens,
   review_media: reviewMediaHandler,
+  tts: ttsHandler,
   collect_signals: collectSignalsHandler,
   capture: captureHandler,
   mark_stale_assets: markStaleAssetsHandler,

@@ -19,6 +19,11 @@ export default defineConfig({
   },
   resolve: {
     alias: {
+      // Ordered: the subpath has to match before the package root, because
+      // Vite resolves aliases by prefix in declaration order and
+      // '@halyard/render' is a prefix of '@halyard/render/timing'. The general
+      // alias would otherwise rewrite it to src/timing, which does not exist.
+      '@halyard/render/timing': path.resolve(root, 'packages/render/src/video/timing.ts'),
       '@halyard/core': path.resolve(root, 'packages/core/src'),
       '@halyard/db': path.resolve(root, 'packages/db/src'),
       '@halyard/render': path.resolve(root, 'packages/render/src'),

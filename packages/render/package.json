@@ -8,7 +8,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./image": "./src/image/index.ts",
-    "./video": "./src/video/index.tsx"
+    "./video": "./src/video/index.tsx",
+    "./timing": "./src/video/timing.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
