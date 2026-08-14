@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { one, query } from '@/lib/db';
 import { requireOperator } from '@/lib/auth';
-import { AnthropicLlmClient, extractJson } from '@halyard/core';
+import { createLlmClient, extractJson } from '@halyard/core';
 
 export async function addFind(formData: FormData): Promise<void> {
   await requireOperator();
@@ -49,7 +49,7 @@ export async function draftFind(formData: FormData): Promise<void> {
   if (!find || !account) return;
 
   try {
-    const llm = new AnthropicLlmClient();
+    const llm = createLlmClient();
     const response = await llm.complete({
       system: `You write a short post about a tool or technique the founder found useful.
 

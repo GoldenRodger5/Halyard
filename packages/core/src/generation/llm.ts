@@ -139,3 +139,71 @@ export function extractJson<T = unknown>(text: string): T {
   }
   throw new Error(`Unbalanced JSON in model response: ${text.slice(0, 200)}`);
 }
+
+/**
+ * Which provider to talk to.
+ *
+ * Halyard was written against Anthropic and the model names above are still the
+ * intent. But the seam exists so the provider is a runtime choice, and there is
+ * no reason to be unable to generate anything because one vendor's key is
+ * missing while another's is sitting right there.
+ *
+ * Order: an explicit `LLM_PROVIDER` wins, then whichever key is actually
+ * present, Anthropic first. Deliberately *not* a silent preference — the choice
+ * is reported by `describeLlmProvider()` and shown on /settings, because "which
+ * model wrote this" is the first question asked when output quality changes.
+ */
+export type LlmProvider = 'anthropic' | 'openai';
+
+function keyLooksReal(value: string | undefined, prefix: string): boolean {
+  const key = value?.trim();
+  return Boolean(key && key.startsWith(prefix));
+}
+
+export function resolveLlmProvider(env: NodeJS.ProcessEnv = process.env): LlmProvider | null {
+  const explicit = env.LLM_PROVIDER?.trim().toLowerCase();
+  if (explicit === 'anthropic' || explicit === 'openai') return explicit;
+
+  if (keyLooksReal(env.ANTHROPIC_API_KEY, 'sk-ant-')) return 'anthropic';
+  if (keyLooksReal(env.OPENAI_API_KEY, 'sk-')) return 'openai';
+  return null;
+}
+
+/**
+ * The models each provider uses for the two roles.
+ *
+ * Kept together so "the strategy model" means something regardless of who is
+ * serving it, and so a caller passing `STRATEGY_MODEL` to an OpenAI client does
+ * not silently ask for a model that does not exist there.
+ */
+export function modelsFor(provider: LlmProvider): { strategy: string; draft: string } {
+  return provider === 'anthropic'
+    ? { strategy: STRATEGY_MODEL, draft: DRAFT_MODEL }
+    : { strategy: 'gpt-5.5', draft: 'gpt-5.5' };
+}
+
+/** One sentence for /settings and for logs. */
+export function describeLlmProvider(env: NodeJS.ProcessEnv = process.env): string {
+  const provider = resolveLlmProvider(env);
+  if (!provider) {
+    return 'No model provider is configured. Set ANTHROPIC_API_KEY or OPENAI_API_KEY — nothing generates without one.';
+  }
+  const models = modelsFor(provider);
+  const explicit = env.LLM_PROVIDER?.trim().toLowerCase();
+  // Anthropic is the intended provider; OpenAI is the fallback. Saying which of
+  // those is currently true matters, because output quality moving is the first
+  // thing anybody notices and "which model wrote this" is the first question.
+  const role =
+    provider === 'anthropic'
+      ? 'primary'
+      : explicit
+        ? 'chosen explicitly'
+        : 'fallback — ANTHROPIC_API_KEY is not set';
+
+  return (
+    `${provider} (${role}): ${models.strategy} for strategy, ${models.draft} for drafts.` +
+    (provider === 'openai' && !explicit
+      ? ' Set ANTHROPIC_API_KEY to return to the primary provider.'
+      : '')
+  );
+}

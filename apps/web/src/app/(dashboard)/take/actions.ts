@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { one, query } from '@/lib/db';
 import { requireOperator } from '@/lib/auth';
-import { AnthropicLlmClient, runTakeLoop } from '@halyard/core';
+import { createLlmClient, runTakeLoop } from '@halyard/core';
 
 /**
  * Submit a take. Milestone 28, B.3.
@@ -51,7 +51,7 @@ export async function submitTake(formData: FormData): Promise<void> {
         voiceDescription: voice?.description ?? 'direct and specific',
         audience,
       },
-      new AnthropicLlmClient(),
+      createLlmClient(),
     );
 
     if (result.stage === 'needs_input') {

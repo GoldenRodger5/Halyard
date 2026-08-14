@@ -3,7 +3,8 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import {
-  AnthropicLlmClient,
+  createLlmClient,
+  type LlmClient,
   CREATION_ORDER,
   checkHandle,
   generateProfileCopy,
@@ -100,9 +101,9 @@ export async function generateKit(formData: FormData): Promise<void> {
 
   // Constructed before the loop so a bad key is one clear sentence rather than
   // the same sentence seven times.
-  let llm: AnthropicLlmClient;
+  let llm: LlmClient;
   try {
-    llm = new AnthropicLlmClient();
+    llm = createLlmClient();
   } catch (err) {
     fail(`${(err as Error).message} Nothing was generated.`);
     return;

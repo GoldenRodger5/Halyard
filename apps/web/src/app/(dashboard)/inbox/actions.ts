@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { one, query } from '@/lib/db';
 import { requireOperator } from '@/lib/auth';
-import { AnthropicLlmClient, buildReplyDraftPrompt, extractJson } from '@halyard/core';
+import { createLlmClient, buildReplyDraftPrompt, extractJson } from '@halyard/core';
 
 /**
  * Draft a reply. The model writes; a human sends. There is no code path in this
@@ -38,7 +38,7 @@ export async function draftReply(formData: FormData): Promise<void> {
   });
 
   try {
-    const llm = new AnthropicLlmClient();
+    const llm = createLlmClient();
     const response = await llm.complete({
       system: prompt.system,
       messages: [{ role: 'user', content: prompt.user }],

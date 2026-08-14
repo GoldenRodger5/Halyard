@@ -427,3 +427,62 @@ actually does. Every threshold on the page is imported from the module that
 enforces it — `LEARNING_MIN_POSTS_PER_CATEGORY`, `MIN_POSTS_FOR_TIMING`,
 `HOOK_PATTERN_COOLDOWN_DAYS` — so a constant that changes cannot leave the page
 quietly describing the old one. That is also why it is code rather than markdown.
+
+---
+
+## 32. OpenAI is a fallback, and the seam is what made that cheap
+
+Anthropic is the intended provider and the model names in `llm.ts` still say so.
+But nothing should be unable to generate because one vendor's key is missing
+while another's is present, so `createLlmClient()` picks by what is configured —
+explicit `LLM_PROVIDER` first, then whichever key is real, Anthropic preferred.
+
+The `LlmClient` interface was built in milestone 4 so a provider change would be
+one file. It was: one new class, one factory, six call sites swapped from a
+constructor to a function. Nothing in the copywriter, the idea engine, the QC
+retry loop or the co-pilot changed.
+
+`describeLlmProvider()` says which is in use *and which role it is playing* —
+"openai (fallback — ANTHROPIC_API_KEY is not set)". Output quality moving is the
+first thing anybody notices, and "which model wrote this" is the first question.
+
+### Everything about the OpenAI API was verified, not recalled
+
+Four things were true of the real API and not of my memory of it:
+
+1. **`max_tokens` is rejected** by the gpt-5 family. It is `max_completion_tokens`.
+2. **`temperature` is rejected by some models and not others.** `gpt-5.5` allows
+   only the default; `gpt-5.4-mini` takes 0.7. No stable documentation says which.
+3. **`response_format: json_object` requires the word "json" in the messages**,
+   or the request 400s.
+4. **`gpt-5.5-pro` is not a chat model at all** and answers only on the responses
+   endpoint.
+
+Rather than a table of which model tolerates what — wrong the moment a model
+ships — the client drops a parameter the API names in its error and retries once.
+
+### The draft model is the *expensive* one, on purpose
+
+The instinct is a cheap model on the high-frequency path. Benchmarked on one
+draft through the real copywriter:
+
+| model | attempts | time | cost |
+|---|---|---|---|
+| gpt-5.4-mini | 2 | 2.4s | $0.00087 |
+| gpt-5.4 | 2 | 2.0s | $0.00084 |
+| gpt-5.5 | **1** | **1.6s** | **$0.00051** |
+
+The smaller models failed QC on the first pass and were regenerated, so they were
+slower *and* dearer than the better one. Retries dominate at this size, and the
+copy was plainly worse. This is the copy that gets published.
+
+### Reasoning tokens are counted against the output budget
+
+`maxTokens` means "text I want back" on Anthropic. On a gpt-5 model the same
+number must also cover reasoning tokens, which are invisible and spent *before*
+any text. The copywriter asks for 1500 because that is a sensible Claude number,
+and the first real generation returned `finish_reason: length` with an empty
+string — not truncated output, none at all.
+
+The headroom lives in the OpenAI client rather than in every caller, with one
+retry at a much larger budget if a future model thinks harder still.

@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import {
-  AnthropicLlmClient,
+  createLlmClient,
   HARD_RULES_BLOCK,
   STYLE_RULES_BLOCK,
   runAllGates,
@@ -72,7 +72,7 @@ looking at.`;
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
 
       try {
-        const llm = new AnthropicLlmClient();
+        const llm = createLlmClient();
         const response = await llm.complete({
           system,
           messages,

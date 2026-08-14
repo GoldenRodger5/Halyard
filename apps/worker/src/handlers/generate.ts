@@ -13,7 +13,7 @@
  * rather than producing generic content silently (build pack §2).
  */
 import {
-  AnthropicLlmClient,
+  createLlmClient,
   ConnectorUnavailableError,
   DraftRejectedError,
   createConnector,
@@ -49,7 +49,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
    * that was never going to generate anything anyway.
    */
   let cached: LlmClient | null = (job.payload.llm as LlmClient | undefined) ?? null;
-  const llmFor = (): LlmClient => (cached ??= new AnthropicLlmClient());
+  const llmFor = (): LlmClient => (cached ??= createLlmClient());
 
   // A campaign slot has already been told what it is for, so it takes a
   // different path: no idea selection, no mix arithmetic, just the words.

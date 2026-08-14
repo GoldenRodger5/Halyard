@@ -6,3 +6,5 @@ export * from './ideaEngine.js';
 export * from './hooks.js';
 export * from './rejectionClusters.js';
 export * from './autoClip.js';
+export * from './openai.js';
+export * from './client.js';

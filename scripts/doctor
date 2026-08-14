@@ -115,6 +115,21 @@ if [[ -f "$ENV_FILE" ]]; then
     row fail "DATABASE_URL" "points at $configured" "./scripts/halyard  (repairs it)"
   fi
 
+  # ── the model provider ───────────────────────────────────────────────────
+  #
+  # Anthropic is the intended one; OpenAI is the fallback. Either works, but
+  # which is in use has to be visible: output quality moving is the first thing
+  # anybody notices, and "which model wrote this" is the first question.
+  if grep -qE "^ANTHROPIC_API_KEY=[[:space:]]*sk-ant-" "$ENV_FILE" 2>/dev/null; then
+    row pass "model provider" "anthropic (primary)" ""
+  elif grep -qE "^OPENAI_API_KEY=[[:space:]]*sk-" "$ENV_FILE" 2>/dev/null; then
+    row warn "model provider" "openai (fallback) — gpt-5.5" \
+      "set ANTHROPIC_API_KEY to return to the primary provider"
+  else
+    row fail "model provider" "none — nothing can generate" \
+      "set ANTHROPIC_API_KEY or OPENAI_API_KEY in $ENV_FILE"
+  fi
+
   # Required for anything that generates, publishes, or speaks.
   for key in ANTHROPIC_API_KEY:"generation and co-pilot" \
              RECIPEFIX_MCP_URL:"live product data" \

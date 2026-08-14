@@ -154,6 +154,10 @@ export async function writeDraft(request: DraftRequest, llm: LlmClient): Promise
         qc,
         attempts: attempt,
         generationMeta: {
+          // What actually served it, not what was asked for. With a fallback
+          // provider those differ — a request for DRAFT_MODEL is served by
+          // gpt-5.4-mini — and "which model wrote this" is the first question
+          // asked when output quality moves.
           model: model ?? DRAFT_MODEL,
           promptVersion: version,
           inputTokens: totalInput,
