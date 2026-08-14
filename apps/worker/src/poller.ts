@@ -56,6 +56,8 @@ export class Poller {
   private readonly pool: pg.Pool;
   private readonly workerId: string;
   private readonly handlers: Partial<Record<JobKind, JobHandler>>;
+  /** Kinds already reported this process, so a rolling deploy does not spam. */
+  private readonly unhandledKindsSeen = new Set<string>();
   private readonly pollIntervalMs: number;
   private readonly heartbeatIntervalMs: number;
   private readonly reapIntervalMs: number;
@@ -114,11 +116,43 @@ export class Poller {
     const handler = this.handlers[job.kind];
 
     if (!handler) {
-      // Claimed something we cannot run. Put it back rather than failing it.
+      /**
+       * Claimed something we cannot run.
+       *
+       * Putting it back is right — a rolling deploy can leave one worker on an
+       * older image that genuinely does not know a new kind, and failing the job
+       * would lose work the next worker could do.
+       *
+       * **Saying nothing about it was not right.** `collect_signals` is on the
+       * schedule and has never had a handler, so for as long as this system has
+       * run it enqueued the job, claimed it, put it back, and repeated — thirteen
+       * of them accumulated over seventy-five hours in production while every
+       * other kind completed. No error, no dead letter, no alert. The one place
+       * that could have noticed was this branch, and it returned quietly.
+       */
       await this.pool.query(
         `update jobs set status='queued', locked_at=null, locked_by=null, attempts=attempts-1 where id=$1`,
         [job.id],
       );
+      this.log('no handler for job kind', { kind: job.kind, jobId: job.id });
+
+      // Once per kind per process, so a rolling deploy does not spam, but a
+      // permanently missing handler reaches somebody.
+      if (!this.unhandledKindsSeen.has(job.kind)) {
+        this.unhandledKindsSeen.add(job.kind);
+        await this.pool
+          .query(
+            `insert into notifications (kind, severity, title, body, dedupe_key)
+             values ('connector_down', 'critical', $1, $2, $3)
+             on conflict (dedupe_key) do nothing`,
+            [
+              `No handler for '${job.kind}' jobs`,
+              `Jobs of kind '${job.kind}' are being enqueued and put straight back, because this worker has no handler registered for them. They will accumulate forever and the work never happens. Either register a handler or stop enqueueing the kind.`,
+              `no_handler:${job.kind}`,
+            ],
+          )
+          .catch(() => undefined);
+      }
       return true;
     }
 
