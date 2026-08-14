@@ -216,7 +216,9 @@ export interface QueueItem {
   link_url: string | null;
   status: string;
   scheduled_at: string | null;
-  qc_results: { gates?: Array<{ gate: string; status: string; summary: string }> };
+  qc_results: {
+    gates?: Array<{ gate: string; status: string; summary: string; detail?: unknown }>;
+  };
   claims: Array<{ text: string; source: string }>;
   ai_components: string[];
   requires_ai_label: boolean | null;
@@ -241,6 +243,8 @@ export interface QueueItem {
   /** Pinterest only: where this pin lands, decided at draft time. */
   board_id: string | null;
   board_reason: string | null;
+  /** Milestone 52: what the frame describers observed, for the queue detail. */
+  media_observations: unknown;
   transport: 'direct' | 'unified' | null;
   /** 'yes' | 'no' | 'unknown' | null — what the transport can carry. */
   transport_alt_text: string | null;
@@ -256,7 +260,7 @@ const QUEUE_SELECT = `
          ci.requires_ai_label, ci.disclosure_text, ci.audio_mode,
          ci.edited_by_human, ci.sequence_number, ci.product_id, ci.attached_asset_ids,
          ci.destination_type, ci.destination_url, ci.destination_reason, ci.product_artifact,
-         ci.board_id, ci.board_reason,
+         ci.board_id, ci.board_reason, ci.media_observations,
          sa.transport,
          -- Milestone 49. Whether the transport this item will actually go out
          -- on can carry alt text. A post whose alt text is generated, checked

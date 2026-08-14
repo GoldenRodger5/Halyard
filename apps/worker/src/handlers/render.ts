@@ -85,6 +85,30 @@ export async function renderHandler(job: Job, ctx: HandlerContext): Promise<void
       ms: Date.now() - started,
       quality: render.quality,
     });
+
+    /**
+     * When the last render for an item lands, look at what was produced.
+     *
+     * Enqueued here rather than run inline because describing frames is slow
+     * and this handler holds a render slot. Deduped per item so a carousel's
+     * six slides do not queue six reviews.
+     *
+     * Only for final renders: a preview is a 480px draft nobody publishes.
+     */
+    if (render.content_item_id && render.quality === 'final') {
+      const { rows: outstanding } = await ctx.pool.query<{ n: string }>(
+        `select count(*) as n from renders
+          where content_item_id = $1 and quality = 'final' and status not in ('done','failed')`,
+        [render.content_item_id],
+      );
+      if (Number(outstanding[0]?.n ?? 0) === 0) {
+        await ctx.enqueue(
+          'review_media',
+          { contentItemId: render.content_item_id },
+          { dedupeKey: `review_media:${render.content_item_id}`, priority: 40 },
+        );
+      }
+    }
   } catch (err) {
     await ctx.pool.query(`update renders set status = 'failed', error = $2 where id = $1`, [
       renderId,

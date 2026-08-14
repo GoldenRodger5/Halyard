@@ -8,3 +8,4 @@ export * from './rejectionClusters.js';
 export * from './autoClip.js';
 export * from './openai.js';
 export * from './client.js';
+export * from './vision.js';

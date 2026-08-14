@@ -24,6 +24,7 @@ import { detectReleaseHandler } from './detectRelease.js';
 import { collectWatchTermsHandler } from './watch.js';
 import { draftNewsletterHandler, sendNewsletterHandler } from './newsletter.js';
 import { collectReviewsHandler } from './reviews.js';
+import { reviewMediaHandler } from './reviewMedia.js';
 
 async function loadAccount(ctx: HandlerContext, accountId: string): Promise<PublishAccount> {
   const { rows } = await ctx.pool.query<{
@@ -340,6 +341,7 @@ export const HANDLERS: Partial<Record<JobKind, JobHandler>> = {
   collect_attribution: collectAttribution,
   score_performance: scorePerformance,
   refresh_tokens: refreshTokens,
+  review_media: reviewMediaHandler,
   capture: captureHandler,
   mark_stale_assets: markStaleAssetsHandler,
   collect_app_store: collectAppStoreAttribution,

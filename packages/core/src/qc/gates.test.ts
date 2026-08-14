@@ -347,6 +347,9 @@ describe('runAllGates — the queue contract, v2 F.5', () => {
       'claims',
       'visual',
       'audio',
+      // Milestone 52. Sits after the media gates because it compares what they
+      // measured against what the post claimed.
+      'coherence',
       'destination',
       'proof',
     ]);

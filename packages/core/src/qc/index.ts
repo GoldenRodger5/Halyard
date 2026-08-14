@@ -16,6 +16,7 @@ export * from './visualQC.js';
 export * from './audioQC.js';
 export * from './retentionQC.js';
 export * from './destinationQC.js';
+export * from './coherence.js';
 
 import { slopFilter, slopSummary, type SlopFilterInput, type SlopFilterResult } from './slopFilter.js';
 import { verifyClaims, type Claim, type ClaimVerificationResult } from './claimVerifier.js';
@@ -33,8 +34,20 @@ import {
   type DestinationQCResult,
 } from './destinationQC.js';
 import { runProofQC, type ProofQCInput, type ProofQCResult } from '../proof/testimonials.js';
+import { runCoherenceQC, type CoherenceInput, type CoherenceResult } from './coherence.js';
 
-export type GateName = 'copy' | 'claims' | 'visual' | 'audio' | 'destination' | 'proof';
+export type GateName =
+  | 'copy'
+  | 'claims'
+  | 'visual'
+  | 'audio'
+  | 'destination'
+  | 'proof'
+  /**
+   * Does the artifact show what the post claims? Every other gate passes on a
+   * video whose voiceover describes a feature the footage never shows.
+   */
+  | 'coherence';
 export type GateStatus = 'passed' | 'warning' | 'failed' | 'skipped';
 
 export interface GateResult {
@@ -67,6 +80,13 @@ export interface RunAllGatesInput {
   copy: SlopFilterInput;
   claims?: { claims: Claim[]; artifact: unknown };
   visual?: { probe: MediaProbe; target: VisualTarget; visionScore?: VisionScore };
+  /**
+   * Frame and audio observations against the post's own intent.
+   *
+   * Omitted where nothing was rendered, or where frames could not be sampled —
+   * the gate then reports `skipped`, never `passed`.
+   */
+  coherence?: CoherenceInput;
   audio?: AudioProbe;
   /** Loudness measured on the finished cut, surfaced in the audio line. */
   loudnessLufs?: number;
@@ -184,6 +204,36 @@ export function runAllGates(input: RunAllGatesInput): QCResults {
     });
   } else {
     gates.push({ gate: 'audio', status: 'skipped', summary: 'no voiceover', detail: null });
+  }
+
+  if (input.coherence) {
+    const coherence: CoherenceResult = runCoherenceQC(input.coherence);
+    const warnings = coherence.findings.filter((f) => f.severity === 'warning');
+    gates.push({
+      gate: 'coherence',
+      // `examined: 0` means no frame was ever looked at, and runCoherenceQC
+      // reports that as a failure rather than a pass — so the status follows it
+      // rather than the finding count.
+      status:
+        coherence.examined === 0
+          ? 'skipped'
+          : !coherence.passed
+            ? 'failed'
+            : warnings.length > 0
+              ? 'warning'
+              : 'passed',
+      summary: coherence.summary,
+      detail: coherence,
+      examined: coherence.examined,
+    });
+  } else {
+    gates.push({
+      gate: 'coherence',
+      status: 'skipped',
+      summary: 'nothing rendered to compare against the post',
+      detail: null,
+      examined: 0,
+    });
   }
 
   if (input.destination) {

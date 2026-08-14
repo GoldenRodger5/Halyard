@@ -263,3 +263,79 @@ export async function transcribeWords(audioPath: string): Promise<WhisperWord[]>
     await rm(dir, { recursive: true, force: true });
   }
 }
+
+/**
+ * Where to sample frames, given how long the video is.
+ *
+ * Weighted heavily toward the opening, because that is where the audience is
+ * won or lost: 71% of viewers decide in the first few seconds, and 63% of the
+ * highest click-through videos hook within three. Sampling evenly across a
+ * 26-second video would put one frame in the window that decides everything.
+ *
+ * Three in the hook, three across the body, and never past the end.
+ */
+export function frameSampleTimes(durationSeconds: number): number[] {
+  const hook = [0, 0.8, 2].filter((t) => t < durationSeconds);
+  const bodyStart = 3;
+  const body: number[] = [];
+  if (durationSeconds > bodyStart) {
+    const span = durationSeconds - bodyStart;
+    for (let i = 1; i <= 3; i += 1) {
+      const at = bodyStart + (span * i) / 4;
+      if (at < durationSeconds) body.push(Number(at.toFixed(2)));
+    }
+  }
+  return [...hook, ...body];
+}
+
+export interface SampledFrame {
+  atSeconds: number;
+  bytes: Uint8Array;
+  mimeType: string;
+}
+
+/**
+ * Pull real frames out of a rendered video, as PNG bytes.
+ *
+ * Seeks per frame rather than decoding the whole file: six seeks on a
+ * thirty-second video is faster than one full decode, and the accuracy of
+ * `-ss` before `-i` is good enough for a frame that is going to be described in
+ * a sentence.
+ *
+ * Returns whatever it managed to extract. A frame that fails to decode is
+ * skipped rather than fatal, and the coherence gate reports `skipped` when the
+ * result is empty — an unmeasured render must never read as a coherent one.
+ */
+export async function sampleFrames(
+  filePath: string,
+  atSeconds: number[],
+): Promise<SampledFrame[]> {
+  const dir = await mkdtemp(path.join(tmpdir(), 'halyard-frames-'));
+  const frames: SampledFrame[] = [];
+
+  try {
+    for (const at of atSeconds) {
+      const out = path.join(dir, `frame-${at.toFixed(2)}.png`);
+      try {
+        await execFileAsync('ffmpeg', [
+          '-y',
+          '-loglevel', 'error',
+          '-ss', String(at),
+          '-i', filePath,
+          '-frames:v', '1',
+          // Downscaled on the way out. A describer does not need 1080p, and the
+          // bytes are base64'd into a request body where size is latency.
+          '-vf', 'scale=512:-2',
+          out,
+        ]);
+        frames.push({ atSeconds: at, bytes: await readFile(out), mimeType: 'image/png' });
+      } catch {
+        // One unreadable frame is not a reason to abandon the other five.
+      }
+    }
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+
+  return frames;
+}

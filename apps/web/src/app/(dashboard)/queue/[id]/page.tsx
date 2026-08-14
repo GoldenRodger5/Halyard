@@ -37,6 +37,15 @@ export default async function QueueItemPage({ params }: { params: Promise<{ id: 
   } | null;
 
   const gates = item.qc_results?.gates ?? [];
+
+  // The coherence gate's findings and the frame descriptions they came from.
+  // A rule name is not an explanation; the evidence is.
+  const coherence = gates.find((g) => g.gate === 'coherence')?.detail as
+    | { findings: Array<{ rule: string; severity: string; message: string; fix: string }> }
+    | undefined;
+  const observations =
+    (item.media_observations as { frames?: Array<{ atSeconds: number; describes: string; visibleText: string[] }> } | null)
+      ?.frames ?? [];
   const media = [...item.preview_urls, ...(item.attached_urls ?? [])];
   const staleAttached = (
     (item.qc_results as { staleAssets?: Array<{ reason: string | null }> }).staleAssets ?? []
@@ -293,6 +302,44 @@ export default async function QueueItemPage({ params }: { params: Promise<{ id: 
                 ))
               )}
             </div>
+
+            {/* ── what the describers actually saw ────────────────────────
+                A rule name is not an explanation. When the coherence gate
+                objects, the operator's first question is what the frames
+                showed, and the answer is the evidence the verdict came from. */}
+            {coherence && coherence.findings.length > 0 ? (
+              <div className="mt-3 space-y-2 border-t border-line pt-3">
+                {coherence.findings.map((finding) => (
+                  <div key={finding.rule} className="text-sm">
+                    <p className={finding.severity === 'error' ? 'text-danger' : 'text-ink'}>
+                      {finding.message}
+                    </p>
+                    <p className="text-xs leading-relaxed text-muted">{finding.fix}</p>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+
+            {observations.length > 0 ? (
+              <details className="mt-3 border-t border-line pt-3">
+                <summary className="cursor-pointer text-xs uppercase tracking-[0.08em] text-muted">
+                  What was on screen ({observations.length} frames)
+                </summary>
+                <ul className="mt-2 space-y-2">
+                  {observations.map((frame) => (
+                    <li key={frame.atSeconds} className="text-xs leading-relaxed text-muted">
+                      <span className="tabular-nums text-ink">{frame.atSeconds.toFixed(1)}s</span>{' '}
+                      {frame.describes}
+                      {frame.visibleText.length > 0 ? (
+                        <span className="block font-mono text-[11px]">
+                          text: {frame.visibleText.join(' | ')}
+                        </span>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            ) : null}
           </Card>
 
           <Card className="p-4">

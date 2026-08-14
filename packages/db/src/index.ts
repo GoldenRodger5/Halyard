@@ -65,6 +65,8 @@ export const JOB_KINDS = [
   'draft_newsletter',
   'send_newsletter',
   'collect_reviews',
+  /** Milestone 52: look at what was actually rendered. */
+  'review_media',
 ] as const;
 export type JobKind = (typeof JOB_KINDS)[number];
 
@@ -85,6 +87,9 @@ export const JOB_POLICY: Record<
   collect_comments: { timeoutMs: 5 * 60_000, maxAttempts: 3, backoffSeconds: 120 },
   collect_attribution: { timeoutMs: 5 * 60_000, maxAttempts: 3, backoffSeconds: 300 },
   refresh_tokens: { timeoutMs: 2 * 60_000, maxAttempts: 2, backoffSeconds: 120 },
+  // Frame sampling plus one describer call per frame. Slow, and worth waiting
+  // for: it is the only thing that looks at the finished media.
+  review_media: { timeoutMs: 5 * 60_000, maxAttempts: 2, backoffSeconds: 90 },
   score_performance: { timeoutMs: 5 * 60_000, maxAttempts: 2, backoffSeconds: 300 },
   digest_email: { timeoutMs: 2 * 60_000, maxAttempts: 2, backoffSeconds: 300 },
   reconcile_schedule: { timeoutMs: 2 * 60_000, maxAttempts: 2, backoffSeconds: 120 },
