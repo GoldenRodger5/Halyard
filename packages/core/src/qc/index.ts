@@ -14,6 +14,7 @@ export * from './slopFilter.js';
 export * from './claimVerifier.js';
 export * from './visualQC.js';
 export * from './audioQC.js';
+export * from './deliveryQC.js';
 export * from './retentionQC.js';
 export * from './destinationQC.js';
 export * from './coherence.js';

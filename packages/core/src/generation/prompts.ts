@@ -9,7 +9,13 @@
  * because it must be impossible to ship a copywriter call without it.
  */
 import type { SlopPlatform } from '../qc/slopFilter.js';
-import { HASHTAG_LIMITS } from '../qc/slopFilter.js';
+import { BODY_LIMITS, HASHTAG_LIMITS } from '../qc/slopFilter.js';
+import {
+  CAPTION_ARCHITECTURE,
+  formatSpecBlock,
+  selectFormatSpec,
+  type FormatSubtype,
+} from './formatPrompts.js';
 import type { ProductArtifact } from '../connectors/types.js';
 
 /** v1 §4.4 — every copywriter prompt ends with this. */
@@ -40,6 +46,8 @@ export const STYLE_RULES_BLOCK = `STYLE — the automated lint rejects all of th
 export interface CopywriterContext {
   platform: SlopPlatform;
   format: string;
+  /** Overrides the default subtype for this platform-and-format pair. */
+  formatSubtype?: FormatSubtype;
   category: string;
   persona: 'founder' | 'brand';
   idea: { title: string; angle: string };
@@ -87,6 +95,7 @@ export function buildCopywriterPrompt(context: CopywriterContext): {
   version: string;
 } {
   const limits = HASHTAG_LIMITS[context.platform];
+  const spec = selectFormatSpec(context.platform, context.format ?? 'image', context.formatSubtype);
 
   const system = [
     `You are writing one social post as ${context.voice.displayName}, the ${context.persona} voice for a product.`,
@@ -99,6 +108,18 @@ export function buildCopywriterPrompt(context: CopywriterContext): {
     '',
     `PLATFORM\n${PLATFORM_BRIEFS[context.platform]}`,
     `Hashtags: ${limits.min} to ${limits.max}.`,
+    `Hard ceiling: ${BODY_LIMITS[context.platform]} characters including hashtags. The platform rejects anything longer.`,
+    '',
+    /**
+     * The format spec, which selects between eleven declared craft prompts.
+     *
+     * Nothing chose between them before, so a carousel and a single image were
+     * written identically and the slide structure a carousel needs was never
+     * asked for. Absent for platforms with no spec, which get the shared
+     * architecture alone rather than a near-match borrowed from a neighbour.
+     */
+    spec ? formatSpecBlock(spec) : '',
+    CAPTION_ARCHITECTURE,
     '',
     STYLE_RULES_BLOCK,
     '',

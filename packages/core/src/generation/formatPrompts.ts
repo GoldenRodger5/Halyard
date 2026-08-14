@@ -272,3 +272,73 @@ ${spec.rules.map((rule) => `- ${rule}`).join('\n')}
 
 ${CAPTION_ARCHITECTURE}${output}`;
 }
+
+/**
+ * Which format spec governs a post, given the platform and the format chosen.
+ *
+ * `FORMAT_SPECS` declares eleven of these — X insights and threads, Instagram
+ * carousels, singles and reel scripts, TikTok scripts, Pinterest pins, YouTube
+ * shorts, Threads posts — each with its own craft notes, shape rules and extra
+ * output fields. **Nothing selected between them.** The copywriter used one
+ * generic prompt with a per-platform brief appended, so a carousel and a single
+ * image were written identically and the slide structure a carousel needs was
+ * never asked for.
+ *
+ * Returns null where no spec exists rather than substituting a near-match.
+ * Bluesky has none, and writing it a Threads prompt because they look similar
+ * is how a platform quietly gets someone else's voice.
+ */
+export function selectFormatSpec(
+  platform: string,
+  format: string,
+  preferred?: FormatSubtype,
+): FormatSpec | null {
+  const candidates = FORMAT_SPECS.filter((spec) => spec.platform === platform);
+  if (candidates.length === 0) return null;
+
+  if (preferred) {
+    const exact = candidates.find((spec) => spec.subtype === preferred);
+    if (exact) return exact;
+  }
+
+  /**
+   * The default subtype for each platform-and-format pair.
+   *
+   * A carousel is not a longer single post and a reel script is not a caption;
+   * they are different jobs with different outputs, which is why the mapping is
+   * on the pair rather than on the platform alone.
+   */
+  const byFormat: Record<string, FormatSubtype | undefined> = {
+    carousel: 'carousel',
+    video: platform === 'instagram' ? 'reel_script' : platform === 'youtube' ? 'short' : 'script',
+    pin: 'pin',
+    image: platform === 'instagram' ? 'single' : 'insight',
+    text: platform === 'threads' ? 'post' : 'insight',
+  };
+
+  const wanted = byFormat[format];
+  return (
+    candidates.find((spec) => spec.subtype === wanted) ??
+    // A platform with specs but none matching this format still gets its own
+    // voice rather than the generic prompt.
+    candidates[0] ??
+    null
+  );
+}
+
+/** The spec's craft notes and shape rules, ready to inject into a prompt. */
+export function formatSpecBlock(spec: FormatSpec): string {
+  return [
+    `FORMAT — ${spec.id}`,
+    spec.craft,
+    '',
+    ...spec.rules.map((rule) => `- ${rule}`),
+    spec.extraOutput
+      ? `\nThis format also returns:\n${Object.entries(spec.extraOutput)
+          .map(([key, description]) => `  "${key}": ${description}`)
+          .join('\n')}`
+      : '',
+  ]
+    .filter(Boolean)
+    .join('\n');
+}

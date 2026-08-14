@@ -4,8 +4,7 @@ import {
   countWords,
   slopFilter,
   slopSummary,
-  splitSentences,
-} from './slopFilter.js';
+  splitSentences, BODY_LIMITS } from './slopFilter.js';
 import { KNOWN_BAD_COPY, KNOWN_GOOD_COPY } from './__fixtures__/knownBadCopy.js';
 import { allAdapters, type PlatformId } from '../adapters/index.js';
 import { PLATFORM_BRIEFS } from '../generation/prompts.js';
@@ -205,3 +204,67 @@ function defaultHashtagsFor(platform: string): string[] {
   if (platform === 'tiktok') return ['glutenfree', 'baking', 'bread'];
   return [];
 }
+
+describe('length against the platform ceiling', () => {
+  /**
+   * `maxChars` is declared on every adapter and was checked nowhere. A draft
+   * over the limit passed every gate, sat in the queue looking finished, and
+   * would have been rejected by the platform at publish — the first symptom
+   * being a failed post rather than a flagged draft.
+   */
+  it('fails a body over the platform limit', () => {
+    const result = slopFilter({ body: 'a'.repeat(300), platform: 'x' });
+    expect(result.passed).toBe(false);
+    expect(result.errors.map((e) => e.rule)).toContain('length.over_limit');
+  });
+
+  it('counts hashtags against the same ceiling, because they are posted together', () => {
+    const result = slopFilter({
+      body: 'a'.repeat(270),
+      platform: 'x',
+      hashtags: ['glutenfree', 'baking'],
+    });
+    expect(result.errors.map((e) => e.rule)).toContain('length.over_limit');
+  });
+
+  it('warns before the ceiling, because feeds truncate first', () => {
+    const result = slopFilter({ body: 'a'.repeat(260), platform: 'x' });
+    expect(result.warnings.map((w) => w.rule)).toContain('length.near_limit');
+    // A warning, not a failure: it is still publishable.
+    expect(result.errors.map((e) => e.rule)).not.toContain('length.over_limit');
+  });
+
+  it('does not apply a character ceiling to a spoken script', () => {
+    // A voiceover has no character limit; its length is measured in seconds.
+    const result = slopFilter({
+      body: 'Vinegar firms the crumb. '.repeat(30),
+      platform: 'x',
+      spoken: true,
+    });
+    expect(result.errors.map((e) => e.rule)).not.toContain('length.over_limit');
+  });
+
+  it('matches every adapter, which is the only thing making a second copy safe', async () => {
+    /**
+     * `qc` does not depend on `adapters` — a cycle would be worse than a second
+     * copy — so the copies are compared here instead. Two constants of the same
+     * fact drift silently; the compiler only ever sees one of them.
+     */
+    const adapters = await Promise.all([
+      import('../adapters/x.js').then((m) => ['x', m.X_CONSTRAINTS] as const),
+      import('../adapters/instagram.js').then((m) => ['instagram', m.INSTAGRAM_CONSTRAINTS] as const),
+      import('../adapters/tiktok.js').then((m) => ['tiktok', m.TIKTOK_CONSTRAINTS] as const),
+      import('../adapters/pinterest.js').then((m) => ['pinterest', m.PINTEREST_CONSTRAINTS] as const),
+      import('../adapters/threads.js').then((m) => ['threads', m.THREADS_CONSTRAINTS] as const),
+      import('../adapters/youtube.js').then((m) => ['youtube', m.YOUTUBE_CONSTRAINTS] as const),
+      import('../adapters/bluesky.js').then((m) => ['bluesky', m.BLUESKY_CONSTRAINTS] as const),
+    ]);
+
+    for (const [platform, constraints] of adapters) {
+      expect(
+        BODY_LIMITS[platform as keyof typeof BODY_LIMITS],
+        `${platform} body limit drifted from its adapter`,
+      ).toBe(constraints.maxChars);
+    }
+  });
+});

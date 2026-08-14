@@ -997,3 +997,60 @@ as orphaned because I had grepped for `factCheck(`, which does not match
 `factCheckTake(`. It is wired, inside `runTakeLoop`, and runs on every founder
 take. **An audit is only worth the precision of its query**, and a grep that
 silently matches nothing looks exactly like a grep that found nothing.
+
+## 54. Delivery is measured, not judged
+
+The one thing no gate covered was whether a read *sounds* like a person. The
+obvious fix is to hand the audio to a model and ask. That is a vibe, it is
+unfalsifiable, and it is the kind of judgement this project has spent weeks
+moving out of models and into code.
+
+The things that make synthetic speech sound synthetic are visible in data
+already produced. Whisper returns per-word timings for the finished mix, and the
+script says where the sentences are. From those: pace variation (a flat read
+holds one rate; a person speeds through a familiar clause and slows on the
+point), whether there are audible pauses at all, word-duration outliers that are
+usually mispronunciations, and whether the opening is rushed.
+
+**Every finding is a warning, and stays one.** No ElevenLabs key exists on this
+deployment, so no real synthesised speech has ever been measured by this module
+— the thresholds come from the pacing band the audio gate already used, not from
+observed output. A gate that blocks publishing on an invented number is worse
+than no gate, because the number acquires authority it never earned.
+
+## 55. Eleven per-platform prompts, and nothing chose between them
+
+`FORMAT_SPECS` declares eleven craft prompts — X insights and threads, Instagram
+carousels, singles and reel scripts, TikTok scripts, Pinterest pins, YouTube
+shorts, Threads posts — each with its own craft notes, shape rules and extra
+output fields.
+
+`selectFormatSpec` did not exist. The copywriter used one generic prompt with a
+per-platform brief appended, so **a carousel and a single image were written
+identically**, and the slide structure a carousel declares it returns was never
+asked for.
+
+Selection is on the platform *and* format pair, not the platform alone: a
+carousel is not a longer single post and a reel script is not a caption. Where
+no spec exists — Bluesky — it returns null and the post gets the shared caption
+architecture rather than a near-match. Handing Bluesky the Threads prompt
+because they look similar is how a platform quietly acquires someone else's
+voice.
+
+## 56. maxChars was declared on every adapter and checked nowhere
+
+Every platform adapter carries `maxChars`. Nothing read it. A 400-character X
+post passed every gate, sat in the queue looking finished, and would have been
+rejected by the platform at publish — the first symptom a failed post rather
+than a flagged draft.
+
+Now enforced in the slop filter, counting hashtags against the same ceiling
+because they are posted together, with a warning band at 90% because feeds
+truncate well before the limit and a caption that only reads correctly when
+expanded is one most people read wrong.
+
+The limits live in `qc` rather than being imported from `adapters`, because a
+cycle between them is worse than a second copy — and the second copy is only
+safe because a test compares it against every adapter. That is the same lesson
+as §49: **a constant duplicated across a boundary needs a test that reads both
+copies**, because the compiler only ever sees one.

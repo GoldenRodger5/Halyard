@@ -220,6 +220,38 @@ export const HASHTAG_LIMITS: Record<SlopPlatform, { min: number; max: number; in
     bluesky: { min: 0, max: 2, inferred: true },
   };
 
+/**
+ * The hard character ceiling each platform enforces on the post body.
+ *
+ * Declared on every adapter as `maxChars` and **checked nowhere**. A draft
+ * exceeding it passed every gate, sat in the queue looking finished, and would
+ * have been rejected by the platform at publish — the first symptom being a
+ * failed post rather than a flagged draft.
+ *
+ * Duplicated here rather than imported because `qc` does not depend on
+ * `adapters`, and a cycle between the two is worse than a second copy. The
+ * copies are compared in `slopFilter.test.ts`, which is the only thing that
+ * makes a second copy safe.
+ */
+export const BODY_LIMITS: Record<SlopPlatform, number> = {
+  x: 280,
+  instagram: 2200,
+  tiktok: 2200,
+  pinterest: 500,
+  threads: 500,
+  youtube: 5000,
+  bluesky: 300,
+};
+
+/**
+ * Where a warning turns into an error.
+ *
+ * Over the ceiling is a hard failure. Approaching it is worth flagging because
+ * feeds truncate well before the limit and a caption that only reads correctly
+ * when expanded is a caption most people read wrong.
+ */
+export const BODY_WARN_FRACTION = 0.9;
+
 /** Emoji that are banned outright rather than merely rationed (v2 F.1). */
 const BANNED_EMOJI = ['🚀', '🛸', '🛰', '🌠', '💫'];
 
@@ -779,6 +811,32 @@ export function slopFilter(input: SlopFilterInput): SlopFilterResult {
           fix: 'Break it. Under twelve words each.',
         });
       }
+    }
+  }
+
+  // ── Length, against the platform's own ceiling ────────────────────────────
+  //
+  // Skipped for spoken scripts: a voiceover has no character limit, and the
+  // length that matters there is measured in seconds by the audio gate.
+  if (!spoken) {
+    const limit = BODY_LIMITS[platform];
+    // Hashtags are posted with the body and count against the same ceiling.
+    const posted = body.length + hashtags.reduce((sum, h) => sum + h.length + 2, 0);
+
+    if (posted > limit) {
+      push({
+        rule: 'length.over_limit',
+        severity: 'error',
+        message: `${posted} characters with hashtags. ${platform} accepts ${limit}.`,
+        fix: `Cut ${posted - limit} characters. The platform will reject this outright.`,
+      });
+    } else if (posted > limit * BODY_WARN_FRACTION) {
+      push({
+        rule: 'length.near_limit',
+        severity: 'warning',
+        message: `${posted} of ${limit} characters on ${platform}.`,
+        fix: 'Feeds truncate well before the ceiling. A caption that only reads correctly when expanded is one most people read wrong.',
+      });
     }
   }
 

@@ -34,6 +34,7 @@ import {
   ElevenLabsSpeechClient,
   normaliseForSpeech,
   runAudioQC,
+  runDeliveryQC,
   slopFilter,
   type SlopPlatform,
   SpeechUnavailableError,
@@ -205,6 +206,25 @@ export async function ttsHandler(job: Job, ctx: HandlerContext, deps: TtsDeps = 
       spoken: true,
     });
 
+    /**
+     * Delivery: whether the read sounds like a person or like a machine.
+     *
+     * Measured from the word timings whisper already produced, not judged by a
+     * model — flat pace, sentences run together, laboured words, a rushed
+     * opening. Every finding is a warning, because no real synthesised speech
+     * has been measured against these thresholds yet and a gate that blocks on
+     * an invented number is worse than no gate.
+     */
+    const delivery = runDeliveryQC({
+      words: words.map((w) => ({
+        text: w.text,
+        startSeconds: w.startSeconds,
+        endSeconds: w.endSeconds,
+      })),
+      script,
+      durationSeconds: mix.durationSeconds,
+    });
+
     const qc = runAudioQC({
       script,
       transcript,
@@ -259,6 +279,13 @@ export async function ttsHandler(job: Job, ctx: HandlerContext, deps: TtsDeps = 
             openingSentence: firstSentence(transcript),
             // Recorded, not thrown: the audio exists and is attached, and what
             // the transcript reveals is a judgement for the queue to act on.
+            delivery: {
+              measured: delivery.measured,
+              summary: delivery.summary,
+              findings: delivery.findings,
+              paceVariation: delivery.paceVariation,
+              pauseCount: delivery.pauseCount,
+            },
             spokenSlop: {
               passed: spokenSlop.passed,
               violations: spokenSlop.errors,
@@ -308,6 +335,7 @@ export async function ttsHandler(job: Job, ctx: HandlerContext, deps: TtsDeps = 
       music: mix.hadMusic,
       qc: qc.passed ? 'passed' : 'findings',
       spokenSlop: spokenSlop.passed ? 'clean' : `${spokenSlop.errors.length} errors`,
+      delivery: delivery.measured ? delivery.summary : 'not measured',
       wer: Number((qc.wordErrorRate * 100).toFixed(2)),
       wpm: Math.round(qc.wordsPerMinute),
     });
