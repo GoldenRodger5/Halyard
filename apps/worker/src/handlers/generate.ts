@@ -34,6 +34,7 @@ import {
 import { carouselProps, transformationDiffProps } from '@halyard/render';
 import { chooseFormat, needsVideo, writeVoScript } from '@halyard/core';
 import { chooseVideoComposition } from '@halyard/render/video-props';
+import { applyHookToBody, runHookStage } from '../hooks.js';
 
 /**
  * Target length for a voiceover script, in seconds.
@@ -538,6 +539,36 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
             { contentItemId },
             { dedupeKey: `tts:${contentItemId}`, priority: 45 },
           );
+        }
+
+        /**
+         * The hook stage — generate variants, score them, apply the best.
+         *
+         * `surfaceBestVariants` had no caller. Generation only ever *recorded*
+         * a hook after the fact, by classifying whatever first line the
+         * copywriter happened to write, so the half of the system that chooses
+         * a better opening never ran. The module calls itself "the loop that
+         * compounds"; it was recording its results and never acting on them.
+         */
+        const hookStage = await runHookStage(
+          ctx,
+          {
+            contentItemId,
+            productId,
+            platform: account.platform,
+            category: idea.category,
+            format,
+            body: draft.body,
+            brandNames: [product.name],
+          },
+          llmFor(),
+        );
+
+        if (hookStage.applied) {
+          await ctx.pool.query('update content_items set body = $2 where id = $1', [
+            contentItemId,
+            applyHookToBody(draft.body, hookStage.applied.textHook),
+          ]);
         }
 
         if (draft.hookPattern) {

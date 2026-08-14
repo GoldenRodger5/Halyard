@@ -948,3 +948,52 @@ no longer decides it.
 
 **Three layers, three bugs, each found by the layer above it.** The list was
 wrong, the test caught it; the validator was wrong, the test caught that too.
+
+## 52. The loop that compounds was recording its results and never acting on them
+
+`hooks.ts` opens by saying it is "the highest-leverage three seconds in the
+product" and "the loop that compounds: everything else in Halyard makes
+production faster, this makes the output better over time."
+
+`surfaceBestVariants` had no caller.
+
+Generation *recorded* a hook after the fact — classifying whichever first line
+the copywriter happened to write — and the half that generates eight variants,
+filters them against a typed taxonomy, checks for near-duplicates and clickbait,
+scores them on recency-weighted history and predicts a stop rate never ran. Three
+tables behind it, reachable only from tests.
+
+This is the largest quality change available before anything publishes, and it
+was found by enumerating every exported agent function and counting its real
+callers rather than by reading the architecture docs, which describe it as
+working.
+
+Two decisions in the joining-up:
+
+- **Five surfaced, the top one applied.** The scoring leans on measured stop
+  rates that do not exist yet, so ranking is a suggestion; applying the top one
+  means an unattended run still produces a complete post, and swapping is the
+  operator's.
+- **The payoff check runs on the applied hook only.** Checking all five costs
+  five model calls to reject four hooks nobody chose.
+
+Writing the test then proved the filter is real: a fixture whose `spoken_hook`
+was the on-screen text plus a full stop had **all eight variants rejected** for
+`hook.layers_identical` — two channels saying one thing wastes one of them. The
+filter was right; the fixture was the bad hook.
+
+## 53. Counting callers is how you find out what runs
+
+The agent audit was done by enumerating every LLM call site, then every exported
+agent function, then counting real callers of each — excluding tests and build
+output. Not by reading `social_engine_architecture.md`, which describes all of
+it as working.
+
+Three of thirteen agents had no caller. One of them, the hook system, was the
+highest-leverage component in the product by its own documentation.
+
+It also caught me being wrong in the other direction: I reported `factCheckTake`
+as orphaned because I had grepped for `factCheck(`, which does not match
+`factCheckTake(`. It is wired, inside `runTakeLoop`, and runs on every founder
+take. **An audit is only worth the precision of its query**, and a grep that
+silently matches nothing looks exactly like a grep that found nothing.
