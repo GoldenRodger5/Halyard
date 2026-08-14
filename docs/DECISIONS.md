@@ -486,3 +486,59 @@ string — not truncated output, none at all.
 
 The headroom lives in the OpenAI client rather than in every caller, with one
 retry at a much larger budget if a future model thinks harder still.
+
+---
+
+## 33. A gate whose input is optional is a gate that never runs
+
+Three subsystems were found designed-and-unwired in a single afternoon, and they
+shared one shape. Recording it because the shape is the lesson, not the
+instances.
+
+| Subsystem | How it looked | What was true |
+|---|---|---|
+| Visual and audio QC | Two of six gates in every stored verdict | `runAllGates` takes their probes as **optional** inputs and no production path ever supplied one. Unable to run since written |
+| `visionScore` rubric | A scored vision check with tests | Never populated by anything |
+| `collect_signals` | On the schedule every six hours since day one | **No handler registered.** The poller claimed each job, put it back, repeated. 13 accumulated over 75 hours in production |
+| `tts` | A job kind, a voice lexicon, an audio gate, `writeVoScript` | **No ElevenLabs integration exists anywhere.** Voiceover is not implemented |
+
+In every case the failure is silent *by construction*:
+
+- An optional input nobody provides produces a gate that never objects, which
+  renders identically to a gate that examined the media and approved it.
+- A job with no handler is put back rather than failed — which is correct, since
+  a rolling deploy produces exactly that — and so never errors, never
+  dead-letters, never alerts.
+
+**The structural fixes, which matter more than the individual repairs:**
+
+- `handlerCoverage.test.ts` fails if a scheduled kind has no handler, if a
+  handler has no timeout policy, or if a declared kind is unhandled *without a
+  written reason*. `tts`, `digest_email` and `send_newsletter` are now
+  documented as knowingly unimplemented, which is the difference between a
+  decision and an oversight.
+- The poller raises a notification, once per kind per process, when it meets a
+  job it cannot run.
+
+## 34. "It drains" is not "it works"
+
+The first fix for `collect_signals` was a correct handler that never ran.
+
+All eight RSS sources belong to `founder`, which is `kind = 'personal'`. The
+scheduler's `perProduct` option enqueues one job per `kind = 'product'` row, so
+the job arrived with `productId: 'recipefix'`, found no sources, logged "no rss
+sources configured", and returned successfully. Thirteen stuck jobs drained from
+`queued` to `done` on deploy and **zero stories were stored**. `last_polled_at`
+stayed null on every feed.
+
+Every dashboard would have shown that as fixed.
+
+The handler now follows the data rather than the payload — it collects for
+whichever products actually have enabled feeds. And the tests assert the
+*effect* rather than the completion: one checks a story lands under `founder`
+when the payload carries no product at all, the other checks `last_polled_at` is
+set, which is proof the feeds were reached rather than proof the function
+returned.
+
+**The general rule: assert on the side effect, never on the absence of an
+error.** Four of this week's bugs would have been caught by that alone.
