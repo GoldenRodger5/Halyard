@@ -325,7 +325,32 @@ silent short-form video reads as amateur.
 **Accepts when:** every video render has a music bed and burned-in captions, and
 the audio gate measures the mix rather than a single track.
 
-### Phase 2 — The Critic panel (2–3 weeks)
+### Phase 2 — The Critic panel — **BUILT, 14 August 2026**
+
+Shipped as `qc/coherence.ts` (the deterministic verdict), `generation/vision.ts`
+(the describer, which has no parameter for intent) and the `review_media` job.
+
+Acceptance met: it passes a truthful post, fails one whose copy is about
+sourdough when the footage is about flour substitution, and reports `skipped`
+rather than `passed` when no frame could be sampled. Validated against a real
+32-second render, not fixtures.
+
+**What building it found, which is more than it fixed:** `runAllGates` takes
+`visual` and `audio` as optional inputs and *no production path had ever
+supplied one*. Two gates have been structurally unable to run since they were
+written, and the `visionScore` rubric was never populated either. The render
+handler wrote an asset row and stopped. An optional input nobody provides is a
+gate that never objects.
+
+**Two mistakes caught during the build**, both recorded because the pattern
+matters more than the instances: two `as never` casts hid the fields the visual
+gate actually needs, and the hook-text check counted the brand wordmark as a
+text overlay — passing exactly the openings it exists to catch.
+
+**Kill criterion still stands:** if, on 30 real posts, the findings do not
+correlate with the operator's own rejections, it is decoration. Delete it.
+
+### Phase 2 — original plan (2–3 weeks)
 
 Built as Part 3 describes: perception plus deterministic comparison.
 
