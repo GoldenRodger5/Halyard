@@ -166,6 +166,51 @@ not a PEM, and the resulting 401 says nothing useful.
 
 ---
 
+## Configuring a fresh production database
+
+Migrations and `seed.sql` give a working schema and sensible defaults. They do
+not give it *your* product. This is the sequence that takes a fresh deployment
+from empty to ready, and it is written down because it was performed once by
+hand and would otherwise be archaeology.
+
+Point `DATABASE_URL` at production for each of these. The pooler URL, not the
+direct host.
+
+```bash
+# 1. The brief. Nothing generates without it — the copywriter would invent the
+#    product rather than describe it, which is the one failure mode the whole
+#    system exists to avoid.
+DATABASE_URL="$PROD" pnpm load-brief --from ../recipe-fix/RecipeFix_OVERVIEW.md
+
+# 2. Pinterest boards, if Pinterest is in the mix. A pin cannot be drafted
+#    without one, and the failure is caught at draft time rather than publish.
+DATABASE_URL="$PROD" pnpm pinterest-boards --default "Ingredient Substitutions"
+
+# 3. Provider capabilities, if the unified transport is in use. This is a record
+#    of what was *observed*, so it can be copied between environments — the
+#    TikTok result is a fact about Blotato's app, not about your database.
+```
+
+Accounts are inserted as **targets**, not connections: real handles and provider
+account ids, `capability_state = 'pending_auth'`, no token, nothing confirmed.
+That is the truthful state of a fresh deployment, and it keeps the
+identity-confirmation gate meaningful — an account is not connected until you
+have looked at whose account it is, in that environment.
+
+### What is left for a person
+
+Three of the four onboarding steps are judgement, not configuration, and cannot
+be done on your behalf:
+
+| Step | Why it needs you |
+|---|---|
+| Ingest the brief | **Done by step 1 above.** |
+| Voice bootstrap | Eight questions about how you write. Seeded voices exist, but they are a starting position, not your voice |
+| Calibration batch | Twenty drafts, approved or rejected with a reason. Those reasons become the negative examples the copywriter is held to |
+| Template preview | Which templates look like your product |
+
+Then connect the accounts on `/accounts`, each in a private window.
+
 ## What version is live
 
 `/settings/health` shows the commit, the build time and the branch. They are
