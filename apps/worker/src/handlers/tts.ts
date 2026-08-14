@@ -31,10 +31,11 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import {
   clampMusicLength,
-  ElevenLabsMusicClient,
   ElevenLabsSpeechClient,
   normaliseForSpeech,
   runAudioQC,
+  slopFilter,
+  type SlopPlatform,
   SpeechUnavailableError,
   type LexiconEntry,
   type MusicClient,
@@ -46,12 +47,14 @@ import {
 import { buildCaptionCues, durationInFrames } from '@halyard/render/timing';
 import { audioDuration, measureEdgeSilence, mixAudio } from '../audio.js';
 import type { HandlerContext, Job } from '../poller.js';
-import { uploadAsset } from '../storage.js';
+import { LibraryBedClient } from '../bed.js';
+import { readAssetBytes, uploadAsset } from '../storage.js';
 import { transcribeWords } from '../video.js';
 
 interface ItemRow {
   id: string;
   product_id: string;
+  platform: string;
   vo_script: string | null;
   audio_mode: string;
   format: string;
@@ -77,7 +80,8 @@ export async function ttsHandler(job: Job, ctx: HandlerContext, deps: TtsDeps = 
   if (!contentItemId) throw new Error('tts job has no contentItemId');
 
   const { rows } = await ctx.pool.query<ItemRow>(
-    `select id, product_id, vo_script, audio_mode, format from content_items where id = $1`,
+    `select id, product_id, platform, vo_script, audio_mode, format
+       from content_items where id = $1`,
     [contentItemId],
   );
   const item = rows[0];
@@ -108,9 +112,24 @@ export async function ttsHandler(job: Job, ctx: HandlerContext, deps: TtsDeps = 
   const script = normaliseForSpeech(item.vo_script, lexicon);
 
   const speech = deps.speech ?? new ElevenLabsSpeechClient();
-  const music = deps.music === undefined ? new ElevenLabsMusicClient() : deps.music;
 
   const work = await mkdtemp(path.join(tmpdir(), 'halyard-tts-'));
+
+  /**
+   * Beds come from the operator's own library, not from a generator.
+   *
+   * ElevenLabs Music is not licensed for advertising and this is advertising,
+   * so that path is shut. Synthesising a drone instead would be ours outright
+   * and would also sound like a synthesised drone, indistinguishable in the
+   * pipeline from a real bed — so nobody would ever notice which one shipped.
+   *
+   * No library means narration alone, normalised. That is a normal short-form
+   * style, and the reason is recorded on the item either way.
+   */
+  const music =
+    deps.music === undefined
+      ? new LibraryBedClient(ctx, item.product_id, work, readAssetBytes)
+      : deps.music;
   const narrationPath = path.join(work, 'narration.mp3');
   const mixPath = path.join(work, 'mix.mp3');
 
@@ -140,7 +159,9 @@ export async function ttsHandler(job: Job, ctx: HandlerContext, deps: TtsDeps = 
       } catch (err) {
         musicPath = null;
         musicSkipped =
-          err instanceof SpeechUnavailableError ? err.reason : (err as Error).message.slice(0, 200);
+          err instanceof SpeechUnavailableError
+            ? err.reason
+            : (err as Error).message.slice(0, 200);
         ctx.log('music bed skipped', { contentItemId, reason: musicSkipped });
       }
     }
@@ -166,6 +187,23 @@ export async function ttsHandler(job: Job, ctx: HandlerContext, deps: TtsDeps = 
      */
     const cues = buildCaptionCues(words);
     const silence = await measureEdgeSilence(mixPath);
+
+    /**
+     * Slop-check the transcript: what was *said*, not what was written.
+     *
+     * The script is gated before synthesis, which catches the writing. This
+     * catches the synthesis — a model that reads "3/4" as "three slash four",
+     * or drops a clause, produces narration that never existed as text and that
+     * no earlier gate ever saw. `runAudioQC` measures whether the words came
+     * out *accurately*; this measures whether the words that came out are any
+     * good.
+     */
+    const spokenSlop = slopFilter({
+      body: transcript,
+      platform: item.platform as SlopPlatform,
+      hashtags: [],
+      spoken: true,
+    });
 
     const qc = runAudioQC({
       script,
@@ -219,6 +257,12 @@ export async function ttsHandler(job: Job, ctx: HandlerContext, deps: TtsDeps = 
             // meant three of its rules could never fire.
             transcript,
             openingSentence: firstSentence(transcript),
+            // Recorded, not thrown: the audio exists and is attached, and what
+            // the transcript reveals is a judgement for the queue to act on.
+            spokenSlop: {
+              passed: spokenSlop.passed,
+              violations: spokenSlop.errors,
+            },
             captions: cues,
             durationInFrames: durationInFrames(mix.durationSeconds),
           },
@@ -263,6 +307,7 @@ export async function ttsHandler(job: Job, ctx: HandlerContext, deps: TtsDeps = 
       lufs: Number(mix.lufs.toFixed(1)),
       music: mix.hadMusic,
       qc: qc.passed ? 'passed' : 'findings',
+      spokenSlop: spokenSlop.passed ? 'clean' : `${spokenSlop.errors.length} errors`,
       wer: Number((qc.wordErrorRate * 100).toFixed(2)),
       wpm: Math.round(qc.wordsPerMinute),
     });

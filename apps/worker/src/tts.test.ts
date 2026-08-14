@@ -310,6 +310,78 @@ d('ttsHandler', () => {
     expect(ctx.enqueued.filter(([kind]) => kind === 'render')).toEqual([]);
   }, 180_000);
 
+  it('uses a bed from the operator library, rotating least-recently-used', async () => {
+    /**
+     * Beds are not generated. ElevenLabs Music is not licensed for advertising
+     * and this is advertising, so the bed has to be a file the operator owns.
+     * Rotation is least-recently-used rather than random: sixty posts a month
+     * over a handful of beds collides constantly, and the same bed twice in a
+     * row is the first thing a viewer notices.
+     */
+    const bytes = await realMp3(12, 1150);
+    for (const [name, used] of [
+      ['old', '2020-01-01'],
+      ['recent', '2030-01-01'],
+    ] as const) {
+      await pool.query(
+        `insert into assets (product_id, kind, mime_type, storage_path, public_url, tags, last_used_at, caption)
+         values ('recipefix','audio','audio/mpeg',$1,$1,array['music_bed'],$2,'CC-BY test bed')`,
+        [`bed-${name}.mp3`, used],
+      );
+    }
+
+    const { selectBed } = await import('./bed.js');
+    const chosen = await selectBed(context(), 'recipefix');
+    expect(chosen?.storagePath).toBe('bed-old.mp3');
+    expect(chosen?.licence).toBe('CC-BY test bed');
+    expect(bytes.byteLength).toBeGreaterThan(0);
+
+    await pool.query(`delete from assets where kind = 'audio'`);
+  }, 60_000);
+
+  it('says the library is empty rather than substituting something', async () => {
+    const id = await seedItem();
+    const ctx = context();
+    // No `music` override, so the real library client runs against an empty library.
+    await ttsHandler(job(id), ctx, { speech: speechStub() });
+
+    const { rows } = await pool.query<{ qc: { audio: { hadMusic: boolean; musicSkipped: string } } }>(
+      'select qc_results as qc from content_items where id = $1',
+      [id],
+    );
+    expect(rows[0]!.qc.audio.hadMusic).toBe(false);
+    expect(rows[0]!.qc.audio.musicSkipped).toMatch(/No music bed is available/);
+  }, 180_000);
+
+  it('slop-checks what was said, not only what was written', async () => {
+    /**
+     * The script is gated before synthesis, which catches the writing. This
+     * catches the synthesis: narration that never existed as text, because the
+     * model read something differently from how it was written, and which no
+     * earlier gate ever saw.
+     */
+    const { transcribeWords } = await import('./video.js');
+    vi.mocked(transcribeWords).mockResolvedValueOnce([
+      { text: 'Use', startSeconds: 0, endSeconds: 0.2 },
+      { text: 'three', startSeconds: 0.2, endSeconds: 0.4 },
+      { text: 'slash', startSeconds: 0.4, endSeconds: 0.6 },
+      { text: 'four', startSeconds: 0.6, endSeconds: 0.8 },
+      { text: 'cup', startSeconds: 0.8, endSeconds: 1.0 },
+      { text: '#baking', startSeconds: 1.0, endSeconds: 1.4 },
+    ]);
+
+    const id = await seedItem();
+    await ttsHandler(job(id), context(), { speech: speechStub(), music: null });
+
+    const { rows } = await pool.query<{
+      qc: { audio: { spokenSlop: { passed: boolean; violations: Array<{ rule: string }> } } };
+    }>('select qc_results as qc from content_items where id = $1', [id]);
+
+    const slop = rows[0]!.qc.audio.spokenSlop;
+    expect(slop.passed).toBe(false);
+    expect(slop.violations.map((v) => v.rule)).toContain('spoken.hashtag');
+  }, 180_000);
+
   it('stores caption cues as whole clauses, not two-word karaoke', async () => {
     const id = await seedItem();
     await ttsHandler(job(id), context(), { speech: speechStub(), music: null });

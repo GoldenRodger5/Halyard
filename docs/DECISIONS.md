@@ -685,3 +685,63 @@ audio gate anyway, and reported as `not_measured` when there is no voiceover.
 now the caller has not, and every time the result read as a pass.** The pattern
 is worth distrusting on sight: if a gate takes an optional input, find the
 caller before believing the gate runs.
+
+## 41. The caption was gated. The narration was not.
+
+`writeDraft` runs the slop filter and the claim verifier over the post body, on
+a retry loop, and refuses to return copy that fails. `writeVoScript` called the
+model once and returned whatever came back.
+
+So the words beside a video were held to the standard and **the words in it were
+not** — not for banned phrasing, not against the product's own forbidden-claims
+list. A script could state a health claim nobody can support and the only gate
+downstream measured whether it was *pronounced* correctly.
+
+A voiceover script also has failure modes a caption does not. A hashtag is read
+aloud as "hash tag". A URL is spelled out. A fraction reaches the synthesiser as
+a symbol. A parenthetical has no spoken form at all, and a sentence a reader can
+re-scan is one a listener has already lost. Those are now `spoken` rules in the
+slop filter, and hashtag-count rules are skipped there, because counting
+hashtags in something nobody can say is meaningless.
+
+The script is gated before synthesis and the **transcript** is gated after. The
+second pass is not redundant: it catches the synthesis rather than the writing —
+narration that never existed as text, which no earlier gate could have seen.
+
+## 42. No licence means no music, not a cheaper imitation of music
+
+ElevenLabs Music is off: their terms carve advertising out of the standard
+commercial grant, and Halyard's entire output is product marketing.
+
+The tempting workaround is to synthesise a bed with FFmpeg. A drone is
+unambiguously ours and needs no licence from anybody. It is also, plainly, a
+drone — and worse, it would be indistinguishable *inside the pipeline* from a
+real bed. Every gate would pass it, the mix would report `hadMusic: true`, and
+nobody would ever discover which one shipped.
+
+Beds come from the asset library instead: licensed audio the operator owns,
+tagged `music_bed`, rotated least-recently-used because sixty posts a month over
+a handful of beds collides constantly and the same bed twice running is the
+first thing a viewer notices.
+
+With no library, videos ship with narration alone, normalised — a normal
+short-form style rather than a degraded one — and the reason is recorded on the
+item rather than inferred from silence.
+
+**Where a licence is the blocker, the honest output is the unlicensed feature
+switched off and labelled, not a lookalike that clears the same checks.**
+
+## 43. Coherence is not the same question as quality
+
+The coherence gate asks whether a video is *about* the right thing. A video can
+answer that perfectly and still be a static card with thirty words on it, which
+is the clearest signature there is of content nobody made by hand.
+
+`visual_slop` rules are separate for that reason, and deterministic over what
+the describer reported — no judgement is delegated to a model. The describer
+says what it saw; the rules decide what that means.
+
+`entirely_static` matters most because `static_open` only compares the first two
+frames. A video that holds one card for its entire length passes the hook check
+at worst as a warning, because its opening is exactly as static as the rest of
+it, and being uniformly motionless was never the thing being measured.

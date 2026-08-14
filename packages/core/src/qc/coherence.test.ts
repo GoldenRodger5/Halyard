@@ -327,3 +327,108 @@ describe('the gate registry', () => {
     expect(result.gates.find((g) => g.gate === 'coherence')!.status).toBe('passed');
   });
 });
+
+
+describe('visual slop', () => {
+  /**
+   * Distinct from coherence. These do not ask whether the video is about the
+   * right thing — they ask whether it looks like a person made it. A video can
+   * be perfectly on-topic and still be a static card with a wall of text on it,
+   * which is the clearest signature of generated content.
+   */
+  const intent = {
+    body: 'Swap the flour and the crumb changes.',
+    keyTerms: ['flour'],
+    format: 'video',
+    durationSeconds: 20,
+  };
+
+  const frame = (atSeconds: number, describes: string, visibleText: string[] = ['flour']) => ({
+    atSeconds,
+    describes,
+    visibleText,
+  });
+
+  it('catches a video that never moves, which the hook check cannot', () => {
+    /**
+     * `static_open` only compares the first two frames, so a video that holds
+     * one card for its entire length passes it — the opening is as static as
+     * everything else, and the rule fires once as a warning at most.
+     */
+    const result = runCoherenceQC({
+      intent,
+      frames: [
+        frame(0, 'A flour substitution card'),
+        frame(1, 'A flour substitution card'),
+        frame(2, 'A flour substitution card'),
+        frame(10, 'A flour substitution card'),
+      ],
+    });
+
+    const rules = result.findings.map((f) => f.rule);
+    expect(rules).toContain('visual_slop.entirely_static');
+    // An error, not a note: this is a still image with audio over it.
+    expect(result.passed).toBe(false);
+  });
+
+  it('does not fire on a video that actually cuts', () => {
+    const result = runCoherenceQC({
+      intent,
+      frames: [
+        frame(0, 'A bag of flour on a counter'),
+        frame(1, 'A close-up of the crumb'),
+        frame(2, 'A flour substitution card'),
+        frame(10, 'A finished loaf'),
+      ],
+    });
+    expect(result.findings.map((f) => f.rule)).not.toContain('visual_slop.entirely_static');
+  });
+
+  it('flags a wall of text nobody can read in a beat', () => {
+    const wall = Array.from({ length: 30 }, (_, i) => `word${i}`);
+    const result = runCoherenceQC({
+      intent,
+      frames: [
+        frame(0, 'A card of dense text', wall),
+        frame(1, 'A bag of flour'),
+        frame(2, 'The crumb'),
+      ],
+    });
+    expect(result.findings.map((f) => f.rule)).toContain('visual_slop.text_wall');
+  });
+
+  it('reports the text wall once rather than once per frame', () => {
+    const wall = Array.from({ length: 30 }, (_, i) => `word${i}`);
+    const result = runCoherenceQC({
+      intent,
+      frames: [
+        frame(0, 'Dense text', wall),
+        frame(1, 'Different dense text', wall),
+        frame(2, 'More dense text', wall),
+      ],
+    });
+    expect(result.findings.filter((f) => f.rule === 'visual_slop.text_wall')).toHaveLength(1);
+  });
+
+  it('notices when the on-screen text never changes', () => {
+    const result = runCoherenceQC({
+      intent,
+      frames: [
+        frame(0, 'A bag of flour', ['flour', 'swap']),
+        frame(1, 'A close-up of crumb', ['flour', 'swap']),
+        frame(2, 'A finished loaf', ['flour', 'swap']),
+      ],
+    });
+    expect(result.findings.map((f) => f.rule)).toContain('visual_slop.text_never_changes');
+  });
+
+  it('needs at least three frames before calling anything static', () => {
+    // Two frames is the hook check's territory, and too little to conclude the
+    // whole video never moves.
+    const result = runCoherenceQC({
+      intent,
+      frames: [frame(0, 'A flour card'), frame(1, 'A flour card')],
+    });
+    expect(result.findings.map((f) => f.rule)).not.toContain('visual_slop.entirely_static');
+  });
+});

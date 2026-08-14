@@ -498,8 +498,24 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
             continue;
           }
 
+          /**
+           * The same content rules the caption is held to.
+           *
+           * They reached `writeDraft` and never `writeVoScript`, so a product's
+           * forbidden-claims list governed what was written beside a video and
+           * not what was said in it.
+           */
           const vo = await writeVoScript(
-            { body: draft.body, artifact, targetSeconds: VO_TARGET_SECONDS },
+            {
+              body: draft.body,
+              artifact,
+              targetSeconds: VO_TARGET_SECONDS,
+              platform: account.platform,
+              contentRules: {
+                bannedPhrases: product.content_rules?.banned_phrases,
+                forbiddenClaims: product.content_rules?.forbidden_claims,
+              },
+            },
             llmFor(),
           );
 

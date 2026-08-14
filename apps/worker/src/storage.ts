@@ -6,7 +6,7 @@
  * holds rendered output only — never tokens, never source material.
  */
 import { createHash } from 'node:crypto';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import type { HandlerContext } from './poller.js';
 
@@ -142,4 +142,44 @@ function extensionFor(mimeType: string): string {
     'audio/mp4': 'm4a',
   };
   return map[mimeType] ?? 'bin';
+}
+
+/**
+ * Read an asset's bytes back, by whichever route `uploadAsset` used to store
+ * them — the bucket in production, the web app's public directory locally.
+ *
+ * A `file://local/...` URL means storage was not configured *and* no local
+ * directory was set, so the bytes were never written anywhere. That returns
+ * null: there is genuinely nothing to read, and pretending otherwise would
+ * produce a video muxed against a file that does not exist.
+ */
+export async function readAssetBytes(
+  storagePath: string | null,
+  publicUrl: string | null,
+): Promise<Buffer | null> {
+  const supabaseUrl = process.env.SUPABASE_URL?.replace(/\/$/, '');
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (supabaseUrl && serviceKey && storagePath) {
+    const response = await fetch(
+      `${supabaseUrl}/storage/v1/object/${ASSET_BUCKET}/${storagePath}`,
+      { headers: { authorization: `Bearer ${serviceKey}` } },
+    );
+    if (!response.ok) {
+      throw new Error(
+        `Could not read the voiceover back from storage (${storagePath}): HTTP ${response.status}. ` +
+          'Rendering would otherwise produce a silent video from an item that has audio.',
+      );
+    }
+    return Buffer.from(await response.arrayBuffer());
+  }
+
+  // The local fallback flattens the storage path into one filename, so the
+  // basename of the URL is the filename on disk.
+  const localDir = process.env.HALYARD_LOCAL_ASSET_DIR;
+  if (localDir && publicUrl?.startsWith('/dev-assets/')) {
+    return readFile(path.join(localDir, path.basename(publicUrl))).catch(() => null);
+  }
+
+  return null;
 }

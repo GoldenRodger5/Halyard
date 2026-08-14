@@ -214,14 +214,45 @@ export function buildFeedback(qc: QCResults): string {
  * v1 §4.3 step 6 — the VO script is a separate prompt, written for the ear:
  * short sentences, no parentheticals, numbers spoken.
  */
+/**
+ * The voiceover script, gated the same way the post copy is.
+ *
+ * ## The half nobody checked
+ *
+ * `writeDraft` runs the slop filter and the claim verifier over the post body,
+ * on a retry loop, and refuses to return copy that fails. `writeVoScript` ran
+ * neither. It called the model once and returned whatever came back.
+ *
+ * So the caption beside a video was held to the standard, and **the words the
+ * viewer actually hears were not** — not for banned phrasing, not for
+ * unverifiable claims, not against the product's own forbidden-claims list. A
+ * script could state a health benefit nobody can support, and the only gate
+ * downstream measured whether it was *pronounced* correctly.
+ *
+ * The spoken rules are their own thing: a hashtag, a URL, a fraction or a
+ * parenthetical is fine to read and unspeakable out loud, and a sentence a
+ * reader can re-scan is one a listener has already lost.
+ */
 export async function writeVoScript(
-  input: { body: string; artifact?: ProductArtifact | null; targetSeconds: number },
+  input: {
+    body: string;
+    artifact?: ProductArtifact | null;
+    targetSeconds: number;
+    platform: SlopPlatform;
+    contentRules?: { bannedPhrases?: string[]; forbiddenClaims?: string[] };
+    maxAttempts?: number;
+  },
   llm: LlmClient,
-): Promise<{ script: string; costUsd: number }> {
+): Promise<{ script: string; costUsd: number; qc: QCResults; attempts: number }> {
   const targetWords = Math.round((input.targetSeconds / 60) * 158); // mid-band pacing
+  const maxAttempts = input.maxAttempts ?? 3;
+  let feedback = '';
+  let totalCost = 0;
+  let lastQc: QCResults | null = null;
 
-  const response = await llm.complete({
-    system: `You write voiceover scripts for short cooking videos. Write for the ear.
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const response = await llm.complete({
+      system: `You write voiceover scripts for short cooking videos. Write for the ear.
 
 RULES
 - Short sentences. Under twelve words each.
@@ -233,23 +264,64 @@ RULES
 ${HARD_RULES_BLOCK}
 
 Reply with the script text only.`,
-    messages: [
-      {
-        role: 'user',
-        content: `Post copy this narrates:\n${input.body}\n\n${
-          input.artifact
-            ? `Source artifact highlights:\n${input.artifact.highlights
-                .slice(0, 6)
-                .map((h) => `- ${h.reason ?? h.note ?? h.text}`)
-                .join('\n')}`
-            : ''
-        }`,
-      },
-    ],
-    model: DRAFT_MODEL,
-    maxTokens: 600,
-    promptVersion: 'vo_script.v1',
-  });
+      messages: [
+        {
+          role: 'user',
+          content: `Post copy this narrates:\n${input.body}\n\n${
+            input.artifact
+              ? `Source artifact highlights:\n${input.artifact.highlights
+                  .slice(0, 6)
+                  .map((h) => `- ${h.reason ?? h.note ?? h.text}`)
+                  .join('\n')}`
+              : ''
+          }${feedback ? `\n\n## Revision notes\n${feedback}` : ''}`,
+        },
+      ],
+      model: DRAFT_MODEL,
+      maxTokens: 600,
+      promptVersion: 'vo_script.v2',
+    });
 
-  return { script: response.text.trim(), costUsd: response.costUsd };
+    totalCost += response.costUsd;
+    const script = response.text.trim();
+
+    /**
+     * The same two gates the body gets, with the spoken rules switched on.
+     *
+     * The claim gate is the one that matters most here. A script is prose with
+     * no `claims` array to check against the artifact, so every factual
+     * sentence in it is unsourced by construction — which is precisely why the
+     * forbidden-claims list has to reach it.
+     */
+    const qc = runAllGates({
+      copy: {
+        body: script,
+        platform: input.platform,
+        hashtags: [],
+        spoken: true,
+        extraBannedPhrases: input.contentRules?.bannedPhrases,
+        forbiddenClaims: input.contentRules?.forbiddenClaims,
+      },
+    });
+
+    lastQc = qc;
+    if (qc.passed) {
+      return { script, costUsd: totalCost, qc, attempts: attempt };
+    }
+
+    feedback = buildFeedback(qc);
+  }
+
+  /**
+   * Refused rather than returned.
+   *
+   * A voiceover that cannot pass is not a video worth rendering, and returning
+   * the last failing attempt would put it in front of a viewer with the failure
+   * recorded somewhere nobody reads.
+   */
+  throw new DraftRejectedError(
+    `The voiceover script failed QC after ${maxAttempts} attempts. Nothing was queued.`,
+    lastQc!,
+    maxAttempts,
+  );
 }

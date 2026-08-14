@@ -83,6 +83,21 @@ export interface SlopFilterInput {
    * run longer than a feed post. Relaxes sentence-length and opening-line limits.
    */
   longForm?: boolean;
+  /**
+   * The text is a voiceover script — something a person will hear rather than
+   * read.
+   *
+   * Different failure modes entirely. Hashtag counts are meaningless because a
+   * hashtag cannot be spoken, and the things that ruin a read — a symbol, a
+   * parenthetical, a URL, a sentence too long to follow by ear — are invisible
+   * to the rules written for a caption.
+   *
+   * This matters because the voiceover is the half of a video that viewers
+   * actually receive, and it was the half nothing checked: `writeDraft` gated
+   * the post body through the slop filter and the claim verifier on a retry
+   * loop, while `writeVoScript` ran neither.
+   */
+  spoken?: boolean;
 }
 
 // ───────────────────────────────────────────────────────────────────────────
@@ -364,7 +379,7 @@ function excerptAround(text: string, index: number, span = 48): string {
 // ───────────────────────────────────────────────────────────────────────────
 
 export function slopFilter(input: SlopFilterInput): SlopFilterResult {
-  const { body, platform, hashtags = [], longForm = false } = input;
+  const { body, platform, hashtags = [], longForm = false, spoken = false } = input;
   const violations: SlopViolation[] = [];
   const push = (v: SlopViolation) => violations.push(v);
 
@@ -710,11 +725,70 @@ export function slopFilter(input: SlopFilterInput): SlopFilterResult {
     }
   }
 
+  // ── Spoken scripts ───────────────────────────────────────────────────────
+  if (spoken) {
+    /**
+     * Things that cannot be said out loud, or that fall apart when they are.
+     * Each is an error rather than a warning: unlike a caption, there is no
+     * reading of these that a listener can recover from.
+     */
+    const unspeakable: Array<[RegExp, string, string, string]> = [
+      [
+        /(?:^|\s)#[\p{L}\p{N}_]+/u,
+        'spoken.hashtag',
+        'A hashtag in a voiceover script is read aloud as "hash tag".',
+        'Move it to the caption. Hashtags are not spoken.',
+      ],
+      [
+        /https?:\/\/|www\./i,
+        'spoken.url',
+        'A URL in a voiceover script gets read out character by character.',
+        'Say where to go in words, and put the link in the caption.',
+      ],
+      [
+        /\([^)]*\)/,
+        'spoken.parenthetical',
+        'A parenthetical has no spoken equivalent — it just becomes a clause that arrives from nowhere.',
+        'Cut it, or make it its own sentence.',
+      ],
+      [
+        /\d+\s*(?:°|℉|℃)|\b\d+\/\d+\b|[%&@]/u,
+        'spoken.unspoken_symbol',
+        'A symbol or fraction here reaches the synthesiser as a symbol.',
+        'Spell it: "four hundred fifty degrees", "three quarters", "percent".',
+      ],
+    ];
+
+    for (const [pattern, rule, message, fix] of unspeakable) {
+      if (pattern.test(body)) push({ rule, severity: 'error', message, fix });
+    }
+
+    /**
+     * A sentence a listener cannot hold.
+     *
+     * Reading gives you a second pass; hearing does not. Twenty words is
+     * already generous for narration — the prompt asks for under twelve.
+     */
+    for (const sentence of splitSentences(body)) {
+      const words = countWords(sentence);
+      if (words > 20) {
+        push({
+          rule: 'spoken.sentence_too_long',
+          severity: 'error',
+          message: `A ${words}-word sentence is too long to follow by ear: "${sentence.slice(0, 60)}…"`,
+          fix: 'Break it. Under twelve words each.',
+        });
+      }
+    }
+  }
+
   // ── Hashtags ─────────────────────────────────────────────────────────────
+  // Skipped for spoken scripts: a script has no hashtag field, and counting the
+  // ones it must not contain against a per-platform minimum is meaningless.
   const limits = HASHTAG_LIMITS[platform];
   const inlineHashtags = (body.match(/(?:^|\s)#[\p{L}\p{N}_]+/gu) ?? []).length;
   const hashtagCount = hashtags.length + inlineHashtags;
-  if (hashtagCount > limits.max) {
+  if (!spoken && hashtagCount > limits.max) {
     push({
       rule: 'hashtags.too_many',
       severity: 'error',
@@ -724,7 +798,7 @@ export function slopFilter(input: SlopFilterInput): SlopFilterResult {
       fix: `Cut to ${limits.max} or fewer.`,
     });
   }
-  if (hashtagCount < limits.min) {
+  if (!spoken && hashtagCount < limits.min) {
     push({
       rule: 'hashtags.too_few',
       severity: 'warning',

@@ -124,6 +124,14 @@ const SHORT_FORM = new Set(['video', 'reel', 'short', 'pin']);
 /** Seconds within which the hook has to have happened. */
 export const HOOK_WINDOW_SECONDS = 3;
 
+/**
+ * The most words that can usefully sit on screen at once.
+ *
+ * A viewer reads about four words a second and is listening at the same time.
+ * Twenty-five is already generous for a frame that is on screen for a beat.
+ */
+export const MAX_WORDS_ON_SCREEN = 25;
+
 const STOPWORDS = new Set([
   'the', 'a', 'an', 'and', 'or', 'but', 'of', 'to', 'in', 'on', 'for', 'with',
   'is', 'it', 'this', 'that', 'your', 'you', 'we', 'our', 'be', 'are', 'was',
@@ -315,6 +323,60 @@ export function runCoherenceQC(input: CoherenceInput): CoherenceResult {
         message: `The voiceover talks about ${unshown.join(', ')} and no frame shows it.`,
         fix: 'Narration describing something off screen is the most common way an automated edit goes wrong.',
       });
+    }
+  }
+
+  // ── 5. Visual slop: the tells of an automated edit ────────────────────────
+  //
+  // Distinct from coherence. These do not ask whether the video is *about* the
+  // right thing — they ask whether it looks like something a person made. A
+  // video can be perfectly on-topic and still be a static card with a wall of
+  // text on it, which is the single most recognisable signature of generated
+  // content and the thing an audience scrolls past without registering why.
+  //
+  // Deterministic, over what the describer reported. No judgement call is
+  // delegated to a model: the describer says what it saw, and these rules
+  // decide what that means.
+  if (frames.length >= 3) {
+    const descriptions = frames.map((f) => normalise(f.describes));
+    if (new Set(descriptions).size === 1) {
+      findings.push({
+        rule: 'visual_slop.entirely_static',
+        severity: 'error',
+        message: `All ${frames.length} sampled frames are the same shot: ${frames[0]!.describes}`,
+        fix: 'This is a still image with audio over it. The hook check only looks at the first second, so a video that never moves at all passes it.',
+      });
+    }
+
+    const textPerFrame = frames.map((f) => f.visibleText.join(' ').trim());
+    const nonEmpty = textPerFrame.filter((t) => t.length > 0);
+    if (nonEmpty.length >= 3 && new Set(nonEmpty).size === 1) {
+      findings.push({
+        rule: 'visual_slop.text_never_changes',
+        severity: 'warning',
+        message: 'The same on-screen text is held for the whole video.',
+        fix: 'Nothing is revealed, so there is no reason to keep watching. Break the text across beats.',
+      });
+    }
+  }
+
+  /**
+   * A frame nobody can read in the time it is on screen.
+   *
+   * Short-form frames last a beat. Reading speed is roughly four words a
+   * second at best, and a viewer is also listening — thirty words on one card
+   * is not a card, it is a paragraph nobody finishes.
+   */
+  for (const frame of frames) {
+    const words = frame.visibleText.join(' ').trim().split(/\s+/).filter(Boolean).length;
+    if (words > MAX_WORDS_ON_SCREEN) {
+      findings.push({
+        rule: 'visual_slop.text_wall',
+        severity: 'warning',
+        message: `${words} words on screen at ${frame.atSeconds}s.`,
+        fix: `Over ${MAX_WORDS_ON_SCREEN} words is a paragraph, not an overlay. Cut it to the line that matters.`,
+      });
+      break; // One finding is the point; ten identical ones is noise.
     }
   }
 

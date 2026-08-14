@@ -231,10 +231,84 @@ describe('writeVoScript', () => {
       outputTokens: 1,
       costUsd: 0,
     });
-    await writeVoScript({ body: 'copy', artifact, targetSeconds: 30 }, { complete });
+    await writeVoScript(
+      { body: 'copy', artifact, targetSeconds: 30, platform: 'tiktok' },
+      { complete },
+    );
     const system = complete.mock.calls[0]![0].system as string;
     expect(system).toContain('79 words'); // 30s at 158 wpm
     expect(system).toContain('Spell every number as words');
+  });
+
+  it('refuses a script that would be unspeakable, rather than returning it', async () => {
+    /**
+     * The post body has always been gated by the slop filter and the claim
+     * verifier on a retry loop. The voiceover — the half the viewer actually
+     * hears — was returned from a single call, unchecked.
+     *
+     * A hashtag is read aloud as "hash tag". A fraction reaches the synthesiser
+     * as a symbol. Neither is recoverable by a listener.
+     */
+    const complete = vi.fn().mockResolvedValue({
+      text: 'Use 3/4 cup of the blend #baking (it matters).',
+      model: 'stub',
+      inputTokens: 1,
+      outputTokens: 1,
+      costUsd: 0,
+    });
+
+    await expect(
+      writeVoScript(
+        { body: 'copy', artifact, targetSeconds: 20, platform: 'tiktok', maxAttempts: 2 },
+        { complete },
+      ),
+    ).rejects.toThrow(/failed QC/);
+
+    // It retried with feedback rather than giving up on the first reply.
+    expect(complete).toHaveBeenCalledTimes(2);
+    expect(String(complete.mock.calls[1]![0].messages[0].content)).toContain('Revision notes');
+  });
+
+  it('enforces the product forbidden-claims list on what is spoken', async () => {
+    // The list reached the caption and never the narration.
+    const complete = vi.fn().mockResolvedValue({
+      text: 'This will cure your gluten intolerance for good.',
+      model: 'stub',
+      inputTokens: 1,
+      outputTokens: 1,
+      costUsd: 0,
+    });
+
+    await expect(
+      writeVoScript(
+        {
+          body: 'copy',
+          artifact,
+          targetSeconds: 20,
+          platform: 'tiktok',
+          maxAttempts: 1,
+          contentRules: { forbiddenClaims: ['cure'] },
+        },
+        { complete },
+      ),
+    ).rejects.toThrow(/failed QC/);
+  });
+
+  it('returns a clean script with its verdict attached', async () => {
+    const complete = vi.fn().mockResolvedValue({
+      text: 'Your loaf is gummy. The starch holds water. Give it time to set.',
+      model: 'stub',
+      inputTokens: 1,
+      outputTokens: 1,
+      costUsd: 0,
+    });
+
+    const result = await writeVoScript(
+      { body: 'copy', artifact, targetSeconds: 20, platform: 'tiktok' },
+      { complete },
+    );
+    expect(result.qc.passed).toBe(true);
+    expect(result.attempts).toBe(1);
   });
 });
 

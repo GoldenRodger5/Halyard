@@ -13,7 +13,7 @@ import { renderTemplate, type TemplateId } from '@halyard/render';
 import { durationInFrames, type CaptionCue } from '@halyard/render/timing';
 import { muxAudioIntoVideo } from '../audio.js';
 import type { Job, HandlerContext } from '../poller.js';
-import { ASSET_BUCKET, uploadAsset, type UploadedAsset } from '../storage.js';
+import { readAssetBytes, uploadAsset, type UploadedAsset } from '../storage.js';
 import { renderVideo } from '../video.js';
 
 interface RenderRow {
@@ -158,46 +158,6 @@ async function loadVoiceover(
     durationSeconds: Number(row.duration_seconds ?? 0),
     captions: row.qc?.audio?.captions ?? null,
   };
-}
-
-/**
- * Read an asset's bytes back, by whichever route `uploadAsset` used to store
- * them — the bucket in production, the web app's public directory locally.
- *
- * A `file://local/...` URL means storage was not configured *and* no local
- * directory was set, so the bytes were never written anywhere. That returns
- * null: there is genuinely nothing to read, and pretending otherwise would
- * produce a video muxed against a file that does not exist.
- */
-async function readAssetBytes(
-  storagePath: string | null,
-  publicUrl: string | null,
-): Promise<Buffer | null> {
-  const supabaseUrl = process.env.SUPABASE_URL?.replace(/\/$/, '');
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (supabaseUrl && serviceKey && storagePath) {
-    const response = await fetch(
-      `${supabaseUrl}/storage/v1/object/${ASSET_BUCKET}/${storagePath}`,
-      { headers: { authorization: `Bearer ${serviceKey}` } },
-    );
-    if (!response.ok) {
-      throw new Error(
-        `Could not read the voiceover back from storage (${storagePath}): HTTP ${response.status}. ` +
-          'Rendering would otherwise produce a silent video from an item that has audio.',
-      );
-    }
-    return Buffer.from(await response.arrayBuffer());
-  }
-
-  // The local fallback flattens the storage path into one filename, so the
-  // basename of the URL is the filename on disk.
-  const localDir = process.env.HALYARD_LOCAL_ASSET_DIR;
-  if (localDir && publicUrl?.startsWith('/dev-assets/')) {
-    return readFile(path.join(localDir, path.basename(publicUrl))).catch(() => null);
-  }
-
-  return null;
 }
 
 export async function renderHandler(job: Job, ctx: HandlerContext): Promise<void> {
