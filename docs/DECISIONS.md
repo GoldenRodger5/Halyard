@@ -612,3 +612,47 @@ picked up (0.20).
 This is the third bug this week of the same shape as §33: a field that exists,
 is populated with care, reads as if it does something, and is wired to nothing.
 Worth asking of every column that looks like a knob — **who reads this?**
+
+## 38. TikTok has been getting image drafts since generation was written
+
+Generation chose format with `platform === 'pinterest' ? 'pin' : 'image'`.
+
+TikTok's adapter declares `supportedFormats: ['video']`. YouTube's declares
+`['video']`. Both were therefore issued image drafts for every post — a format
+neither can accept. Nothing caught it because nothing has published yet, so the
+first symptom would have been the launch batch failing at the publish step on
+two platforms simultaneously.
+
+The capability was already recorded, per platform, by the adapter that knows it.
+`chooseFormat` reads it, and **throws rather than defaulting** when nothing
+matches: a fallback that is always *a* valid value is indistinguishable from a
+correct one right up until something tries to publish it, which is exactly how
+this survived.
+
+The same commit joined up the rest of the video path, which had never run: four
+Remotion templates marked `enabled` and unreachable, `renderVideo` called only
+by a demo script, `writeVoScript` called by nothing, `tts` declared with a
+timeout policy and no handler, and `runAudioQC` — a complete gate — with no
+input in its life.
+
+## 39. A list of known gaps has to be exact, or it becomes a place gaps hide
+
+`handlerCoverage.test.ts` was written to catch a scheduled job with no handler.
+Its `knowinglyUnhandled` map was checked as a *superset*: fail if a kind is
+unregistered **and** undocumented.
+
+That is one-directional, and it rotted immediately. The entry for `tts` read
+"there is no ElevenLabs integration anywhere in the codebase" while sitting in
+the same repository as a working ElevenLabs integration. Nothing failed, because
+a kind documented as missing that actually exists still satisfies a check for
+kinds that are missing and undocumented.
+
+Worse than stale: if the handler were ever unregistered, this file would have
+called it a deliberate decision and gone green.
+
+Now asserted in both directions — which immediately caught `send_newsletter`,
+documented as "sending is not implemented" while being fully implemented, with
+an approval gate and a Resend integration, for who knows how long.
+
+**A file whose job is to record what is missing needs a test that it is still
+right about what is present.**

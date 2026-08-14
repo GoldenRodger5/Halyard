@@ -78,6 +78,11 @@ beforeAll(async () => {
     `insert into social_accounts (id, product_id, platform, persona, handle)
      values ('11111111-1111-1111-1111-111111111111','recipefix','tiktok','brand','@recipefix')`,
   );
+  await pool.query(
+    `insert into templates (id, renderer, format, aspect_ratio, enabled)
+     values ('ChefNoteCard','remotion','video','9:16',true)
+     on conflict (id) do update set enabled = true`,
+  );
   // Transcription needs a whisper model on disk, which CI does not have. The
   // stub returns the script back as words, which is what a perfect read sounds
   // like — the gate's own logic is exercised in its own unit tests.
@@ -98,19 +103,30 @@ afterAll(async () => {
 
 beforeEach(async () => {
   if (!available) return;
+  await pool.query('delete from renders');
   await pool.query('delete from content_items');
   await pool.query('delete from voice_lexicon');
 });
 
-function context(): HandlerContext & { logs: Array<[string, unknown]> } {
+function context(): HandlerContext & {
+  logs: Array<[string, unknown]>;
+  enqueued: Array<[string, Record<string, unknown>]>;
+} {
   const logs: Array<[string, unknown]> = [];
+  const enqueued: Array<[string, Record<string, unknown>]> = [];
   return {
     pool,
     workerId: 'test',
     logs,
+    enqueued,
     log: (m: string, det?: unknown) => logs.push([m, det]),
-    enqueue: async () => undefined,
-  } as unknown as HandlerContext & { logs: Array<[string, unknown]> };
+    enqueue: async (kind: string, payload: Record<string, unknown>) => {
+      enqueued.push([kind, payload]);
+    },
+  } as unknown as HandlerContext & {
+    logs: Array<[string, unknown]>;
+    enqueued: Array<[string, Record<string, unknown>]>;
+  };
 }
 
 async function seedItem(overrides: { audioMode?: string; script?: string | null } = {}): Promise<string> {
@@ -259,6 +275,40 @@ d('ttsHandler', () => {
     const { rows } = await pool.query('select vo_asset_id from content_items where id = $1', [id]);
     expect(rows[0]!.vo_asset_id).toBeNull();
   }, 60_000);
+
+  it('releases the render it was gating, so a video item cannot stall silently', async () => {
+    /**
+     * Generation creates the Remotion render row without enqueueing it, because
+     * the video's length and audio both come from this mix. If this handler did
+     * not release it, a video item would sit in `queued` forever with no error
+     * to explain why — the queue would simply never finish it.
+     */
+    const id = await seedItem();
+    const render = await pool.query<{ id: string }>(
+      `insert into renders (content_item_id, template_id, renderer, input_props, quality)
+       values ($1,'ChefNoteCard','remotion','{}'::jsonb,'final') returning id`,
+      [id],
+    );
+
+    const ctx = context();
+    await ttsHandler(job(id), ctx, { speech: speechStub(), music: null });
+
+    expect(ctx.enqueued).toContainEqual(['render', { renderId: render.rows[0]!.id }]);
+  }, 180_000);
+
+  it('does not release a render that is already done', async () => {
+    const id = await seedItem();
+    await pool.query(
+      `insert into renders (content_item_id, template_id, renderer, input_props, quality, status)
+       values ($1,'ChefNoteCard','remotion','{}'::jsonb,'final','done')`,
+      [id],
+    );
+
+    const ctx = context();
+    await ttsHandler(job(id), ctx, { speech: speechStub(), music: null });
+
+    expect(ctx.enqueued.filter(([kind]) => kind === 'render')).toEqual([]);
+  }, 180_000);
 
   it('stores caption cues as whole clauses, not two-word karaoke', async () => {
     const id = await seedItem();

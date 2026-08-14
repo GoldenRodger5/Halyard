@@ -32,6 +32,18 @@ import {
   type SlopPlatform,
 } from '@halyard/core';
 import { carouselProps, transformationDiffProps } from '@halyard/render';
+import { chooseFormat, needsVideo, writeVoScript } from '@halyard/core';
+import { chooseVideoComposition } from '@halyard/render/video-props';
+
+/**
+ * Target length for a voiceover script, in seconds.
+ *
+ * Short-form retention falls off a cliff past about thirty seconds for
+ * explainer content, and the compositions are built around 16-32s. The script
+ * is written to this and the video is then cut to the *measured* audio, so a
+ * read that runs long produces a longer video rather than a truncated one.
+ */
+const VO_TARGET_SECONDS = 22;
 import type { Job, HandlerContext } from '../poller.js';
 import { routeToBoard } from './boards.js';
 import { notify } from './publish.js';
@@ -306,11 +318,21 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
       if (account.persona !== 'brand') continue; // founder posts are composed, not generated
 
       try {
+        /**
+         * The format the account can actually take, rather than a guess.
+         *
+         * This was `platform === 'pinterest' ? 'pin' : 'image'`, and TikTok and
+         * YouTube both declare `supportedFormats: ['video']` — so every draft
+         * for either was an image neither could publish. Invisible so far only
+         * because nothing has published.
+         */
+        const format = chooseFormat(account.platform, account.supported_formats ?? []);
+
         // One call per platform. Never one call producing all platforms.
         const draft = await writeDraft(
           {
             platform: account.platform,
-            format: account.platform === 'pinterest' ? 'pin' : 'image',
+            format,
             category: idea.category,
             persona: account.persona,
             idea: { title: idea.title, angle: idea.angle },
@@ -387,7 +409,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
             account.id,
             account.platform,
             account.persona,
-            account.platform === 'pinterest' ? 'pin' : 'image',
+            format,
             idea.category,
             draft.body,
             draft.title ?? null,
@@ -442,6 +464,64 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
               await ctx.enqueue('render', { renderId: render.rows[0]!.id }, { priority: 50 });
             }
           }
+        }
+
+        /**
+         * Video: a voiceover script, a Remotion render, and a `tts` job.
+         *
+         * The render row is created here but **not enqueued**. Its length and
+         * its audio both come from the mix, so rendering before the voiceover
+         * exists would produce a silent video of the wrong duration — and the
+         * queue would show it as finished. The `tts` handler enqueues the
+         * render once the audio has landed.
+         */
+        if (needsVideo(format)) {
+          const composition = chooseVideoComposition(artifact, enabledTemplates);
+          if (!composition) {
+            // No enabled Remotion template can carry this. Refused, not queued:
+            // a video item with no render never becomes publishable.
+            ctx.log('no video template available', {
+              platform: account.platform,
+              enabled: enabledTemplates,
+            });
+            await ctx.pool.query(
+              `update content_items set status = 'failed',
+                      generation_meta = generation_meta || $2::jsonb
+                where id = $1`,
+              [
+                contentItemId,
+                JSON.stringify({
+                  failed_because: 'No enabled Remotion template could render this item.',
+                }),
+              ],
+            );
+            continue;
+          }
+
+          const vo = await writeVoScript(
+            { body: draft.body, artifact, targetSeconds: VO_TARGET_SECONDS },
+            llmFor(),
+          );
+
+          await ctx.pool.query(
+            `update content_items
+                set vo_script = $2, audio_mode = 'founder_cloned',
+                    ai_components = array_append(ai_components, 'voiceover')
+              where id = $1`,
+            [contentItemId, vo.script],
+          );
+
+          await ctx.pool.query(
+            `insert into renders (content_item_id, template_id, renderer, input_props, quality)
+             values ($1, $2, 'remotion', $3, 'final')`,
+            [contentItemId, composition.id, { ...composition.props, alt_text: draft.altText }],
+          );
+
+          await ctx.enqueue(
+            'tts',
+            { contentItemId },
+            { dedupeKey: `tts:${contentItemId}`, priority: 45 },
+          );
         }
 
         if (draft.hookPattern) {

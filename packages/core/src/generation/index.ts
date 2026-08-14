@@ -10,3 +10,4 @@ export * from './openai.js';
 export * from './client.js';
 export * from './vision.js';
 export * from './speech.js';
+export * from './formatChoice.js';

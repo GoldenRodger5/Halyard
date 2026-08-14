@@ -229,7 +229,30 @@ export async function ttsHandler(job: Job, ctx: HandlerContext, deps: TtsDeps = 
      * would retry the synthesis three times and reach the same verdict, because
      * the same script produces the same speech.
      */
+    /**
+     * Release the renders this item was waiting on.
+     *
+     * Generation creates the Remotion render row but deliberately does not
+     * enqueue it: the video's length and its audio both come from this mix, so
+     * rendering first would produce a silent video of the wrong duration and
+     * mark it done. This is the other half of that contract, and without it a
+     * video item would sit in `queued` forever with no error to explain it.
+     */
+    const { rows: waiting } = await ctx.pool.query<{ id: string }>(
+      `select id from renders
+        where content_item_id = $1 and renderer = 'remotion' and status = 'queued'`,
+      [contentItemId],
+    );
+    for (const render of waiting) {
+      await ctx.enqueue(
+        'render',
+        { renderId: render.id },
+        { dedupeKey: `render:${render.id}`, priority: 50 },
+      );
+    }
+
     ctx.log('voiceover produced', {
+      rendersReleased: waiting.length,
       contentItemId,
       seconds: Number(mix.durationSeconds.toFixed(2)),
       lufs: Number(mix.lufs.toFixed(1)),

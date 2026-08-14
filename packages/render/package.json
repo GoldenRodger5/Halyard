@@ -9,7 +9,8 @@
     ".": "./src/index.ts",
     "./image": "./src/image/index.ts",
     "./video": "./src/video/index.tsx",
-    "./timing": "./src/video/timing.ts"
+    "./timing": "./src/video/timing.ts",
+    "./video-props": "./src/video/artifactProps.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
