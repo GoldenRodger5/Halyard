@@ -12,7 +12,7 @@ import { createBrowserClient } from '@supabase/ssr';
  */
 export function SignInForm() {
   const [email, setEmail] = useState('');
-  const [state, setState] = useState<'idle' | 'sending' | 'error'>('idle');
+  const [state, setState] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
   const [message, setMessage] = useState('');
 
   async function send(event: React.FormEvent) {
@@ -35,7 +35,32 @@ export function SignInForm() {
       setMessage(error.message);
       return;
     }
-    window.location.href = `/signin?sent=${encodeURIComponent(email)}`;
+
+    // Shown in place rather than by navigating. A full page load here reads as
+    // a spinner that never resolves, which is exactly how it looked the first
+    // time somebody used it — the mail had already been sent.
+    setState('sent');
+  }
+
+  if (state === 'sent') {
+    return (
+      <div className="mt-6">
+        <p className="text-sm leading-relaxed text-ink">
+          Sent to {email}. The link signs you in and expires in an hour.
+        </p>
+        <p className="mt-3 text-sm leading-relaxed text-muted">
+          Open it in this browser if you can. If nothing arrives, the address is probably not on
+          the allow-list — the mail is sent either way, and the session is refused on return, so a
+          stranger who guesses the URL learns nothing about who the operator is.
+        </p>
+        <button
+          onClick={() => setState('idle')}
+          className="mt-4 text-sm text-primary underline"
+        >
+          Use a different address
+        </button>
+      </div>
+    );
   }
 
   return (

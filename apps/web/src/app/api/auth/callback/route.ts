@@ -18,11 +18,20 @@ export const dynamic = 'force-dynamic';
  * step that gets skipped by pasting a service-role key somewhere worse.
  */
 export async function GET(request: NextRequest) {
-  const code = request.nextUrl.searchParams.get('code');
+  const params = request.nextUrl.searchParams;
+  const code = params.get('code');
+  const tokenHash = params.get('token_hash');
+  const type = params.get('type');
   const origin = request.nextUrl.origin;
 
-  if (!code) {
-    return NextResponse.redirect(`${origin}/signin?error=${encodeURIComponent('That link carried no code. Ask for a new one.')}`);
+  if (!code && !tokenHash) {
+    // Supabase puts the reason here when it refuses before redirecting.
+    const upstream = params.get('error_description') ?? params.get('error');
+    return NextResponse.redirect(
+      `${origin}/signin?error=${encodeURIComponent(
+        upstream ?? 'That link carried no code. Ask for a new one.',
+      )}`,
+    );
   }
 
   const response = NextResponse.redirect(`${origin}/`);
@@ -41,10 +50,33 @@ export async function GET(request: NextRequest) {
     },
   );
 
-  const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+  /**
+   * Two ways in, because a magic link is usually opened in the wrong browser.
+   *
+   * PKCE (`?code=`) needs the verifier that was generated when the link was
+   * requested, which lives in the *requesting* browser. Mail is read in Gmail's
+   * webview or on a phone, and the exchange then fails with a message about a
+   * missing code verifier that means nothing to anybody.
+   *
+   * The token-hash flow (`?token_hash=&type=`) carries everything it needs in
+   * the link, so it works from any browser. Both are accepted: whichever the
+   * project's email template produces will land here and work.
+   */
+  const { data, error } = code
+    ? await supabase.auth.exchangeCodeForSession(code)
+    : await supabase.auth.verifyOtp({
+        token_hash: tokenHash!,
+        type: (type as 'magiclink') ?? 'magiclink',
+      });
+
   if (error || !data.user) {
+    const detail = error?.message ?? 'That link has expired. Ask for a new one.';
     return NextResponse.redirect(
-      `${origin}/signin?error=${encodeURIComponent(error?.message ?? 'That link has expired. Ask for a new one.')}`,
+      `${origin}/signin?error=${encodeURIComponent(
+        /verifier/i.test(detail)
+          ? 'That link was opened in a different browser from the one that asked for it. Ask for a new link and open it in the same browser.'
+          : detail,
+      )}`,
     );
   }
 

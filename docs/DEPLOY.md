@@ -166,6 +166,35 @@ not a PEM, and the resulting 401 says nothing useful.
 
 ---
 
+## Supabase Auth, which does not work out of the box
+
+A new Supabase project ships with `site_url = http://localhost:3000` and an
+**empty redirect allow-list**. That combination fails in the least helpful way
+available: `signInWithOtp` succeeds, the mail arrives, and the link in it points
+at localhost — because when a requested redirect is not on the allow-list,
+Supabase silently substitutes the site URL rather than refusing.
+
+Nothing in the app can detect this. It is a project setting.
+
+```bash
+TOK=$(security find-generic-password -s "Supabase CLI" -w | sed 's/^go-keyring-base64://' | base64 -d)
+curl -X PATCH "https://api.supabase.com/v1/projects/$REF/config/auth" \
+  -H "Authorization: Bearer $TOK" -H "Content-Type: application/json" \
+  -d '{
+    "site_url": "https://halyard-ten.vercel.app",
+    "uri_allow_list": "https://halyard-ten.vercel.app/api/auth/callback,https://halyard-ten.vercel.app/**,http://localhost:3200/api/auth/callback,http://localhost:3200/**"
+  }'
+```
+
+**Change the deployment URL and this has to change with it**, or sign-in breaks
+in exactly the same silent way.
+
+The callback accepts both `?code=` (PKCE) and `?token_hash=&type=` because a
+magic link is usually opened in a different browser from the one that asked for
+it — Gmail's webview, or a phone. PKCE needs a verifier that only the requesting
+browser has, and its failure message mentions a "code verifier", which means
+nothing to anybody.
+
 ## Configuring a fresh production database
 
 Migrations and `seed.sql` give a working schema and sensible defaults. They do
