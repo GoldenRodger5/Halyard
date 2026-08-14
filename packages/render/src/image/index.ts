@@ -11,7 +11,7 @@ import { Resvg } from '@resvg/resvg-js';
 import satori, { type SatoriOptions } from 'satori';
 import { CANVAS, resolveBrand, type BrandTokens } from '../brand.js';
 import type { SatoriElement } from './elements.js';
-import { TEMPLATE_REGISTRY, type TemplateId } from './templates.js';
+import { TEMPLATE_REGISTRY, TEMPLATE_REQUIRED_PROPS, type TemplateId } from './templates.js';
 
 export * from './templates.js';
 export * from './elements.js';
@@ -111,6 +111,37 @@ export interface RenderTemplateInput {
 export async function renderTemplate(input: RenderTemplateInput): Promise<RenderedImage> {
   const template = TEMPLATE_REGISTRY[input.templateId];
   if (!template) throw new Error(`Unknown template '${input.templateId}'.`);
+
+  /**
+   * A missing prop is a failed render, not a blank area on a finished card.
+   *
+   * Nothing validated these. The templates draw a heading and then draw the
+   * value under it, so an absent value produced a card promising an
+   * explanation and delivering empty space — and it passed every gate, because
+   * the contrast was fine, the ratio was fine, and the claimed term was still
+   * on the card. The only way to see it was to look at one.
+   */
+  const missing = TEMPLATE_REQUIRED_PROPS[input.templateId].filter((key) => {
+    const value = (input.props as Record<string, unknown>)[key];
+    if (value === undefined || value === null) return true;
+    if (typeof value === 'string' && value.trim() === '') return true;
+    /**
+     * An empty array is *present*, and for some templates it is correct.
+     *
+     * The first version treated `[]` as missing, which immediately failed a
+     * caller that was right: `carouselProps` deliberately emits
+     * `bodyLines: []` for a slide carrying a screenshot instead of copy. Whether
+     * emptiness is a defect depends on the template, so it is not decided here.
+     */
+    return false;
+  });
+
+  if (missing.length > 0) {
+    throw new Error(
+      `Template '${input.templateId}' is missing required props: ${missing.join(', ')}. ` +
+        'Rendering anyway would produce a card with a heading over empty space, which passes every gate.',
+    );
+  }
 
   const brand: BrandTokens = resolveBrand(input.brandTokens);
   const element = (template as (p: never) => SatoriElement)({

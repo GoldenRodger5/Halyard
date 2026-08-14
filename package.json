@@ -28,7 +28,8 @@
     "llm-check": "tsx scripts/llm-check.ts",
     "critic-check": "tsx scripts/critic-check.ts",
     "pinterest-boards": "tsx scripts/pinterest-boards.ts",
-    "capture": "tsx scripts/capture-flows.ts"
+    "capture": "tsx scripts/capture-flows.ts",
+    "render-templates": "tsx scripts/render-templates.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

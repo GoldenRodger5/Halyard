@@ -901,3 +901,50 @@ The two lists are now compared directly against `pg_constraint`. The general
 form of this is worth watching for: **any constant duplicated across a language
 boundary needs a test that reads both copies**, because the compiler only ever
 sees one of them.
+
+## 50. Nobody had looked at a rendered card
+
+Every gate measures something real — contrast, aspect ratio, whether the claimed
+term appears, whether the frames match the copy. None of them answers "would a
+person stop scrolling for this", and until now nothing put the actual pixels
+anywhere a human could see them without running the whole pipeline first.
+
+`pnpm render-templates` renders all seven image templates to disk. Looking at
+the output found, in the first five minutes, things no gate could have caught:
+
+- **`substitution_ratio` rendered a heading over nothing.** "WHAT GOES WRONG IF
+  YOU IGNORE IT" with empty space beneath it, because the caller passed `note`
+  where the template wanted `failureMode` and `text(undefined)` renders as blank
+  rather than throwing. Contrast fine, ratio fine, claimed term present — every
+  gate passed a card that promised an explanation and delivered nothing.
+- **`pinterest_tall` crashed outright** on `.slice` of undefined. It had never
+  been rendered by anything but its own unit test.
+- **All of them carry a great deal of dead space** — content occupying roughly
+  the middle half of the frame, on surfaces where vertical space is the scarcest
+  thing there is. That is a judgement, not a defect, and it is the sort of
+  judgement only looking produces.
+
+`renderTemplate` now validates required props and refuses rather than rendering
+a partial card, because a blank area on a finished-looking card is worse than a
+failed render: the failed render is visible in the queue.
+
+## 51. A hand-written list about code is wrong the moment the code moves
+
+`TEMPLATE_REQUIRED_PROPS` was wrong on the day it was written — `pinterest_tall`
+declared as needing `headline`/`before`/`after` when it takes
+`title`/`subtitle`/`bullets`. So validation passed a call that then crashed
+inside the template.
+
+The fix is not care. It is a test that gives each template exactly what it
+declares it needs and nothing else: if it cannot render from that, the
+declaration is incomplete. Seven templates, checked both ways — renders from its
+declared props, refuses without one of them.
+
+Writing that test then caught the *validation itself* being wrong. It treated an
+empty array as missing, which failed a caller that was correct: `carouselProps`
+deliberately emits `bodyLines: []` for a slide carrying a screenshot instead of
+copy. Whether emptiness is a defect depends on the template, so the validator
+no longer decides it.
+
+**Three layers, three bugs, each found by the layer above it.** The list was
+wrong, the test caught it; the validator was wrong, the test caught that too.

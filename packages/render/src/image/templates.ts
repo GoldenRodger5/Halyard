@@ -376,4 +376,28 @@ export const TEMPLATE_REGISTRY = {
 
 export type TemplateId = keyof typeof TEMPLATE_REGISTRY;
 
+/**
+ * The props each template cannot render without.
+ *
+ * These templates draw section headings unconditionally and then draw the value
+ * beneath them. A missing value therefore does not fail — it renders as empty
+ * space under a heading that promises something, which is a worse artefact than
+ * a hard error and one that passes every gate: the contrast is fine, the aspect
+ * ratio is fine, and the claimed term is still on the card.
+ *
+ * Found by rendering the templates and looking at them. `substitution_ratio`
+ * produced a card reading "WHAT GOES WRONG IF YOU IGNORE IT" above nothing at
+ * all, because the caller passed `note` where the template wanted `failureMode`
+ * and `text(undefined)` renders as empty rather than throwing.
+ */
+export const TEMPLATE_REQUIRED_PROPS: Record<TemplateId, readonly string[]> = {
+  transformation_diff_1x1: ['headline', 'before', 'after', 'reason'],
+  transformation_diff_4x5: ['headline', 'before', 'after', 'reason'],
+  substitution_ratio: ['ingredient', 'substitute', 'ratio', 'failureMode'],
+  chef_note_quote: ['quote'],
+  scaling_math: ['fromServings', 'toServings', 'rows', 'note'],
+  pinterest_tall: ['title', 'subtitle', 'bullets'],
+  carousel_6: ['index', 'total', 'kicker', 'headline', 'bodyLines'],
+};
+
 export { h, box, text };

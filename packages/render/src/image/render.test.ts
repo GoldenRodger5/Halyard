@@ -21,7 +21,12 @@ import {
 } from './artifactProps.js';
 import { contrastRatio, renderTemplate } from './index.js';
 import { collectText } from './elements.js';
-import { carouselSlide, transformationDiff } from './templates.js';
+import {
+  carouselSlide,
+  transformationDiff,
+  TEMPLATE_REQUIRED_PROPS,
+  type TemplateId,
+} from './templates.js';
 
 const artifact = toArtifact(fixture as unknown as RecipeFixAdaptation);
 const OUTPUT_DIR = path.resolve(
@@ -311,4 +316,78 @@ describe('contrast — WCAG AA, checked against the real palette', () => {
   it('computes a known ratio correctly', () => {
     expect(contrastRatio('#000000', '#ffffff')).toBeCloseTo(21, 0);
   });
+});
+
+describe('required props are declared correctly', () => {
+  /**
+   * `TEMPLATE_REQUIRED_PROPS` is a hand-written list, and a hand-written list
+   * about code is wrong the moment the code moves. It was wrong on the day it
+   * was written: `pinterest_tall` was declared as needing headline/before/after
+   * when it actually takes title/subtitle/bullets, so validation passed a call
+   * that then crashed inside the template on `.slice` of undefined.
+   *
+   * A list nobody checks is the thing this project keeps finding. So the check
+   * is: give each template exactly what it declares it needs, and nothing else.
+   * If it still cannot render, the declaration is incomplete.
+   */
+  const SAMPLES: Record<string, unknown> = {
+    headline: 'A headline',
+    before: '3 cups bread flour',
+    after: '3 cups gluten-free blend',
+    reason: 'A 1:1 blend with xanthan gum keeps the dough workable.',
+    ingredient: 'bread flour',
+    substitute: 'gluten-free blend',
+    ratio: 'Same volume, more water',
+    failureMode: 'Skip the water and the crumb reads dry.',
+    quote: 'The vinegar is doing structural work.',
+    fromServings: 8,
+    toServings: 2,
+    rows: [{ label: 'Salt', linear: '1/2 tsp', actual: '3/4 tsp' }],
+    note: 'Salt scales to about 85 percent of linear.',
+    title: 'A title',
+    subtitle: 'A subtitle',
+    bullets: ['One bullet'],
+    index: 1,
+    total: 6,
+    kicker: 'One change',
+    bodyLines: ['A line of body copy.'],
+  };
+
+  for (const [templateId, required] of Object.entries(TEMPLATE_REQUIRED_PROPS)) {
+    it(`${templateId} renders from its declared props alone`, async () => {
+      const props: Record<string, unknown> = {};
+      for (const key of required) {
+        expect(SAMPLES[key], `no sample value for '${key}'`).toBeDefined();
+        props[key] = SAMPLES[key];
+      }
+
+      const result = await renderTemplate({
+        templateId: templateId as TemplateId,
+        props,
+        brandTokens: null,
+        aspectRatio: templateId === 'pinterest_tall' ? '2:3' : '1:1',
+        quality: 'preview',
+        wordmark: 'recipefix',
+      });
+      expect(result.png.byteLength).toBeGreaterThan(1000);
+    }, 60_000);
+
+    it(`${templateId} refuses to render with a required prop missing`, async () => {
+      // A missing value renders as empty space under a heading that promises
+      // something, and passes every gate: contrast fine, ratio fine, term shown.
+      const props: Record<string, unknown> = {};
+      for (const key of required.slice(1)) props[key] = SAMPLES[key];
+
+      await expect(
+        renderTemplate({
+          templateId: templateId as TemplateId,
+          props,
+          brandTokens: null,
+          aspectRatio: '1:1',
+          quality: 'preview',
+          wordmark: 'recipefix',
+        }),
+      ).rejects.toThrow(new RegExp(required[0]!));
+    }, 60_000);
+  }
 });
