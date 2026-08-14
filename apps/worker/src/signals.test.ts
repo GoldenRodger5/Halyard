@@ -37,6 +37,7 @@ beforeEach(async () => {
   if (!available) return;
   await pool.query('delete from rss_items');
   await pool.query('delete from rss_sources');
+  await pool.query(`delete from products where id = 'founder'`);
 });
 
 function context(): HandlerContext & { logs: Array<[string, unknown]> } {
@@ -68,11 +69,66 @@ async function addSource(name: string, url: string): Promise<void> {
   );
 }
 
+d('collectSignalsHandler — reaching the feeds at all', () => {
+  it('collects for the founder persona, whose feeds these are', async () => {
+    /**
+     * The bug that survived the first fix and looked exactly like a fix.
+     *
+     * Every RSS source belongs to `founder`, which is `kind = 'personal'`. The
+     * scheduler's perProduct option enqueues one job per `kind = 'product'`
+     * row, so the job arrived with `productId: 'recipefix'`, found no sources,
+     * logged "no rss sources configured" and returned. Thirteen jobs drained
+     * from queued to done in production and the feeds were still never polled.
+     */
+    await pool.query(
+      `insert into products (id, name, kind, connector_type)
+       values ('founder','Isaac','personal','none') on conflict do nothing`,
+    );
+    await pool.query(
+      `insert into rss_sources (product_id, name, feed_url, why, weight, enabled)
+       values ('founder','Founder feed','https://founder.test/rss','test',1,true)`,
+    );
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(feed([{ guid: 'f1', title: 'A story worth reacting to' }]))),
+    );
+
+    // No productId in the payload, exactly as the scheduler now enqueues it.
+    const ctx = context();
+    await collectSignalsHandler(
+      { ...job(), payload: {} } as Job,
+      ctx,
+    );
+
+    const { rows } = await pool.query<{ product_id: string }>('select product_id from rss_items');
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.product_id).toBe('founder');
+    vi.unstubAllGlobals();
+  });
+
+  it('polls the sources, so last_polled_at proves it ran', async () => {
+    await pool.query(
+      `insert into rss_sources (product_id, name, feed_url, why, weight, enabled)
+       values ('recipefix','Product feed','https://p.test/rss','test',1,true)`,
+    );
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(feed([{ guid: 'p', title: 'A story' }]))));
+
+    await collectSignalsHandler({ ...job(), payload: {} } as Job, context());
+
+    const { rows } = await pool.query<{ polled: string | null }>(
+      'select last_polled_at as polled from rss_sources',
+    );
+    expect(rows[0]!.polled).not.toBeNull();
+    vi.unstubAllGlobals();
+  });
+});
+
 d('collectSignalsHandler', () => {
   it('says so when there are no sources rather than looking successful', async () => {
     const ctx = context();
     await collectSignalsHandler(job(), ctx);
-    expect(ctx.logs.map(([m]) => m)).toContain('no rss sources configured');
+    expect(ctx.logs.map(([m]) => m)).toContain('no products have rss sources');
   });
 
   it('stores what it fetched', async () => {

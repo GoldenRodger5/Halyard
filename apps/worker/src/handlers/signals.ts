@@ -36,9 +36,51 @@ interface SourceRow {
 /** How long a story stays worth reacting to. */
 export const STORY_TTL_HOURS = 48;
 
-export async function collectSignalsHandler(job: Job, ctx: HandlerContext): Promise<void> {
-  const productId = String(job.payload.productId ?? 'recipefix');
+/**
+ * Which products to collect for.
+ *
+ * **Not the one in the payload, and that distinction is the whole bug.** The
+ * scheduler's `perProduct` option enqueues one job per row in
+ * `products where kind = 'product'`, which is `recipefix`. Every RSS source
+ * belongs to `founder`, the *personal* persona — these are the feeds the daily
+ * take reacts to, and a founder's opinions are not a product's.
+ *
+ * So the first fixed version ran, found no sources for recipefix, logged "no
+ * rss sources configured" and returned. Thirteen jobs drained from `queued` to
+ * `done` and the feeds were still never polled. It looked exactly like a fix.
+ *
+ * Following the data rather than the payload: collect for whichever products
+ * actually have enabled sources. An explicit `productId` still narrows it, for
+ * a manual run.
+ */
+async function productsToCollect(ctx: HandlerContext, requested?: string): Promise<string[]> {
+  const { rows } = await ctx.pool.query<{ product_id: string }>(
+    `select distinct s.product_id
+       from rss_sources s
+       join products p on p.id = s.product_id
+      where s.enabled and p.status = 'active'
+        and ($1::text is null or s.product_id = $1)
+      order by 1`,
+    [requested ?? null],
+  );
+  return rows.map((r) => r.product_id);
+}
 
+export async function collectSignalsHandler(job: Job, ctx: HandlerContext): Promise<void> {
+  const requested = job.payload.productId ? String(job.payload.productId) : undefined;
+  const products = await productsToCollect(ctx, requested);
+
+  if (products.length === 0) {
+    ctx.log('no products have rss sources', { requested: requested ?? 'any' });
+    return;
+  }
+
+  for (const productId of products) {
+    await collectForProduct(productId, ctx);
+  }
+}
+
+async function collectForProduct(productId: string, ctx: HandlerContext): Promise<void> {
   const { rows: sources } = await ctx.pool.query<SourceRow>(
     `select id, product_id, name, feed_url, weight
        from rss_sources where product_id = $1 and enabled

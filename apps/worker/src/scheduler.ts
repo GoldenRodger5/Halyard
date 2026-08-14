@@ -91,7 +91,11 @@ export const SCHEDULES: Schedule[] = [
   {
     kind: 'collect_signals',
     everyMinutes: 6 * 60,
-    perProduct: true,
+    // Deliberately *not* perProduct. That option enqueues one job per row in
+    // `products where kind = 'product'`, and every RSS source belongs to the
+    // founder persona, which is `kind = 'personal'`. The handler follows the
+    // data instead: it collects for whichever products actually have feeds.
+    perProduct: false,
     priority: 50,
     why: 'Watch terms and RSS. Frequent enough to catch a story the same day, rare enough not to hammer Reddit.',
   },
