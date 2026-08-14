@@ -245,6 +245,63 @@ d('reviewMediaHandler', () => {
     expect(rows[0]!.qc_results.gates.find((g) => g.gate === 'coherence')?.status).toBe('failed');
   }, 60_000);
 
+  it.skipIf(!hasVideo)('lets the narration rules fire, which they never could before', async () => {
+    /**
+     * `runCoherenceQC` has always accepted an optional `audio`, and nothing ever
+     * supplied one — so the rules that compare what is *said* against what is
+     * *shown* were unreachable in a gate built to catch exactly that class of
+     * bug. The transcript now comes from the tts handler, which produced it for
+     * the audio gate anyway.
+     *
+     * Here the narration talks about proofing while every frame shows a flour
+     * substitution table. Frames alone look fine; only the audio catches it.
+     */
+    const id = await seedItem({ body: 'Swap the flour and the crumb changes.' });
+    await pool.query(
+      `update content_items
+          set vo_script = $2,
+              qc_results = qc_results || $3::jsonb
+        where id = $1`,
+      [
+        id,
+        'Swap the flour and the crumb changes.',
+        JSON.stringify({
+          audio: {
+            transcript: 'Let the dough proof overnight in a cold oven for best results.',
+            openingSentence: 'Let the dough proof overnight in a cold oven for best results.',
+          },
+        }),
+      ],
+    );
+    await attachVideo(id, VIDEO);
+
+    await reviewMediaHandler(
+      job(id),
+      context(),
+      scriptedVision([
+        { atSeconds: 0, describes: 'A flour substitution table', visibleText: ['flour', 'swap'] },
+        { atSeconds: 1, describes: 'A flour substitution table', visibleText: ['flour', 'swap'] },
+        { atSeconds: 2, describes: 'A flour substitution table', visibleText: ['flour', 'swap'] },
+      ]),
+    );
+
+    const { rows } = await pool.query<{
+      qc_results: { gates: Array<{ gate: string } & Record<string, unknown>> };
+    }>('select qc_results from content_items where id = $1', [id]);
+
+    const coherence = rows[0]!.qc_results.gates.find((g) => g.gate === 'coherence');
+
+    /**
+     * Asserted on the rule id, not on prose.
+     *
+     * `opening_line_buries_it` reads `audio.openingSentence` and can only fire
+     * when an observation is supplied — which is the whole point. It says the
+     * first thing spoken names none of the key terms, which is true here: the
+     * narration opens on proofing while the post is about a substitution.
+     */
+    expect(JSON.stringify(coherence)).toContain('coherence.opening_line_buries_it');
+  }, 60_000);
+
   it.skipIf(!hasVideo)('reports skipped, never passed, when no frame was described', async () => {
     const id = await seedItem();
     await attachVideo(id, VIDEO);

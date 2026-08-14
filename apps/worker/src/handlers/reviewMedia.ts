@@ -43,7 +43,14 @@ interface ItemRow {
   title: string | null;
   hashtags: string[];
   category: string;
-  qc_results: { gates?: GateResult[]; passed?: boolean; ranAt?: string } | null;
+  vo_script: string | null;
+  qc_results: {
+    gates?: GateResult[];
+    passed?: boolean;
+    ranAt?: string;
+    /** Written by the tts handler: what was actually said, in the finished mix. */
+    audio?: { transcript?: string; openingSentence?: string };
+  } | null;
   product_artifact: Record<string, unknown> | null;
   status: string;
 }
@@ -121,7 +128,7 @@ export async function reviewMediaHandler(
 
   const { rows } = await ctx.pool.query<ItemRow>(
     `select id, product_id, platform, format, body, title, hashtags, category,
-            qc_results, product_artifact, status
+            vo_script, qc_results, product_artifact, status
        from content_items where id = $1`,
     [contentItemId],
   );
@@ -174,14 +181,36 @@ export async function reviewMediaHandler(
 
     const intent: CoherenceIntent = {
       body: item.body,
-      script: null,
+      // The script was always available on the item and was passed as null, so
+      // every rule comparing what was said against what was scripted compared
+      // against nothing.
+      script: item.vo_script,
       keyTerms: keyTermsFor(item),
       format: item.format,
       durationSeconds: probe.durationSeconds,
       brandTerms: productRows[0]?.name ? [productRows[0].name] : [],
     };
 
-    const coherence = runCoherenceQC({ intent, frames });
+    /**
+     * What the finished mix actually says.
+     *
+     * `runCoherenceQC` has always accepted an optional `audio`, and nothing
+     * ever passed one — so `silent_open_says_nothing`, `narration_shows_nothing`
+     * and `opening_line_buries_it` could not fire. Three rules, written and
+     * unreachable, in a gate added specifically to catch the class of bug where
+     * a check exists and never runs.
+     *
+     * The transcript comes from the tts handler, which had to produce it for the
+     * audio gate anyway. Absent when the item has no voiceover, which is a real
+     * state and reported as `not_measured` rather than as a pass.
+     */
+    const spoken = item.qc_results?.audio;
+    const audio =
+      spoken?.transcript && spoken.openingSentence
+        ? { transcript: spoken.transcript, openingSentence: spoken.openingSentence }
+        : null;
+
+    const coherence = runCoherenceQC({ intent, frames, audio });
     // Built as the real types rather than cast into them. An `as never` here
     // would have hidden the two fields the gate actually needs — `kind`, which
     // selects the video-only rules, and `platform`, which selects the aspect

@@ -214,6 +214,11 @@ export async function ttsHandler(job: Job, ctx: HandlerContext, deps: TtsDeps = 
             truePeakDb: mix.truePeakDb,
             hadMusic: mix.hadMusic,
             musicSkipped,
+            // Kept so the coherence gate can compare what is said against what
+            // is shown. Its `audio` input was optional and unsupplied, which
+            // meant three of its rules could never fire.
+            transcript,
+            openingSentence: firstSentence(transcript),
             captions: cues,
             durationInFrames: durationInFrames(mix.durationSeconds),
           },
@@ -264,6 +269,20 @@ export async function ttsHandler(job: Job, ctx: HandlerContext, deps: TtsDeps = 
   } finally {
     await rm(work, { recursive: true, force: true });
   }
+}
+
+/**
+ * The first sentence, which is the only one most viewers hear.
+ *
+ * Falls back to the first dozen words when the transcript has no terminator —
+ * whisper does not always punctuate, and returning the entire transcript as
+ * "the opening sentence" would make the gate's opening checks meaningless.
+ */
+export function firstSentence(transcript: string): string {
+  const trimmed = transcript.trim();
+  const match = trimmed.match(/^[^.!?]+[.!?]/);
+  if (match) return match[0].trim();
+  return trimmed.split(/\s+/).slice(0, 12).join(' ');
 }
 
 async function readFileBuffer(file: string): Promise<Buffer> {

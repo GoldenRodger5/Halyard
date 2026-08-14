@@ -656,3 +656,32 @@ an approval gate and a Resend integration, for who knows how long.
 
 **A file whose job is to record what is missing needs a test that it is still
 right about what is present.**
+
+## 40. The gate built to catch unreachable checks had three of its own
+
+Phase 2 added `runCoherenceQC` specifically to catch the pattern in §33 — a
+check that exists, reads as coverage, and never runs. Building it found
+`runAllGates` taking `visual` and `audio` as optional inputs that no production
+path had ever supplied.
+
+It shipped with the same defect. `runCoherenceQC` accepts an optional `audio`,
+and `reviewMedia` called it as `runCoherenceQC({ intent, frames })`. So
+`silent_open_says_nothing`, `narration_shows_nothing` and
+`opening_line_buries_it` were unreachable from the day they were written.
+
+`intent.script` was passed as `null` in the same call, while `vo_script` sat on
+the row being read. Every rule comparing what was said against what was scripted
+compared against nothing.
+
+There was a reason available at the time — no voiceover existed, so there was
+genuinely no audio to observe. That is an argument for the code failing to be
+written, not for it appearing to be complete. The gate reported `passed` on
+posts it had not fully examined.
+
+Now supplied from the tts handler's transcript, which it had to produce for the
+audio gate anyway, and reported as `not_measured` when there is no voiceover.
+
+**An optional parameter is a promise that something will pass it. Three times
+now the caller has not, and every time the result read as a pass.** The pattern
+is worth distrusting on sight: if a gate takes an optional input, find the
+caller before believing the gate runs.
