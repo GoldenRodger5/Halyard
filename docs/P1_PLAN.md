@@ -78,9 +78,16 @@ two.
 
 `category ∈ (identity, mission, users, personas, jobs_to_be_done, workflows,
 differentiators, pricing, monetization, competitors, brand_voice,
-visual_identity, claims, prohibited_claims, ux_model, conversion_funnel,
-app_store_positioning, content_pillars)` — from the architecture's list, minus
-`features`, for the reason above.
+visual_identity, claims, ux_model, conversion_funnel, app_store_positioning,
+content_pillars)` — the architecture's list, minus `features` for the reason
+above and minus `prohibited_claims`.
+
+**`prohibited_claims` was removed during implementation**, and by the Auditor
+rather than by judgement: `brain.category_unreachable` fired on it on the rule's
+first run. It is an *instruction* — the operator forbidding Halyard from saying
+something — already living in `products.content_rules.forbidden_claims` and
+enforced by the slop filter. This table holds *observations*, and a category a
+model proposes into is the worst available home for a safety list.
 
 **Staleness is computed, never stored.** A stored `stale` drifts the moment the
 clock moves past it.
@@ -94,7 +101,7 @@ clock moves past it.
 | `status` | `deriveFactStatus()` | A model that can write `verified` will eventually write it about something it invented. |
 | `confidence` | `computeConfidence()` | A self-reported confidence is a number the model chose, not a measurement. |
 | contradiction detection | `findContradictions()` | Exact comparison of `(category, key)` across sources has an exact answer. |
-| marketable? | `canMarket()`, existing | Already the gate for feature claims; extended to facts unchanged in meaning. |
+| safe to quote? | `canStatePublicly()` | The same rule `canMarket` applies to feature claims: a fact is fine to show an operator long before it is fine to put in a post. |
 | staleness | `isStale()`, existing | Derived from `last_verified_at`. |
 
 `verified` requires **two independent evidence sources agreeing** — never one,
@@ -111,7 +118,7 @@ word for "observed once, uncorroborated".
 | `store-listing` | App Store listing | app_store_positioning, competitors, claims | ✅ id6759676502 |
 | `code-intelligence` | connector tool surface + product stats | ux_model, workflows, monetization — *implementation truth* | ✅ RecipeFix MCP |
 | `visual-brand` | screenshots | visual_identity | ⚠️ needs captured assets |
-| `product-reconciler` | contradictions **code already found** | an explanation of which side to believe | derived |
+| `product-reconciler` | contradictions **code already found** | prose on why two sources might differ — never which is right | derived |
 
 The reconciler is deliberately narrow: **code finds the contradiction**, the
 agent explains it. An agent asked to "compare everything" would be a policy
@@ -158,7 +165,9 @@ shell that implies a feature exists.
 - Five new contracts → audited automatically by the existing rules.
 - **`brain.category_unreachable`** (new rule): a fact category the UI offers that
   no registered agent can ever produce. The phantom-capability pattern applied
-  to the Brain — a screen promising knowledge nothing can supply.
+  to the Brain — a screen promising knowledge nothing can supply. **It found one
+  on its first run** (`prohibited_claims`), which is how that category came to be
+  removed rather than papered over.
 - **`markOutputConsumed` gets its first production callers.** It currently has
   none, which means no agent can reach `implemented_exercised` regardless of how
   often it runs. The Brain's consumers stamp it.
