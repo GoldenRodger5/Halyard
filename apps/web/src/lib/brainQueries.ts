@@ -11,6 +11,7 @@ import {
   CATEGORY_LABELS,
   FACT_CATEGORIES,
   REACHABLE_CATEGORIES,
+  canStatePublicly,
   isStale,
   type FactCategory,
   type FactStatus,
@@ -32,6 +33,14 @@ export interface BrainFact {
   contradicts: string | null;
   reconciliation: string | null;
   stale: boolean;
+  /**
+   * Whether this fact may be repeated outside Halyard.
+   *
+   * The operational distinction that matters most on these screens: a fact is
+   * fine to show an operator long before it is fine to put in a post. Decided
+   * by `canStatePublicly`, the same rule `canMarket` applies to feature claims.
+   */
+  safeToQuote: boolean;
 }
 
 interface FactRow {
@@ -69,6 +78,7 @@ function toFact(row: FactRow): BrainFact {
     // Computed at read time rather than stored. A stored staleness flag is
     // wrong the moment the clock passes it and nothing re-runs.
     stale: row.status === 'verified' && isStale(lastVerifiedAt),
+    safeToQuote: canStatePublicly({ status: row.status, lastVerifiedAt }),
   };
 }
 

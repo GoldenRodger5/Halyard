@@ -89,6 +89,17 @@ export default async function CategoryPage({
 
               {fact.detail ? <p className="mt-2 text-sm text-muted">{fact.detail}</p> : null}
 
+              {/*
+                * The distinction that matters most in practice: a fact is fine
+                * to show an operator long before it is fine to put in a post.
+                * Stated rather than left to be inferred from the status word.
+                */}
+              <p className="mt-2 text-xs text-muted">
+                {fact.safeToQuote
+                  ? 'Verified and current — safe to state publicly.'
+                  : 'Not safe to state publicly: only a verified, current fact may be quoted outside Halyard.'}
+              </p>
+
               {fact.reconciliation ? (
                 <div className="mt-3 border-l-2 border-l-warn pl-3">
                   <p className="text-xs font-medium text-warn">Another source disagrees</p>
