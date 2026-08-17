@@ -265,3 +265,60 @@ insert into voice_lexicon (product_id, term, phonetic, notes) values
   ('recipefix', '450°F',   'four hundred fifty degrees','normalise before synthesis'),
   ('recipefix', '1¾',      'one and three quarters',    'fractions are a common TTS failure')
 on conflict (product_id, term) do nothing;
+
+-- ── Accounts ───────────────────────────────────────────────────────────────
+--
+-- The account topology: which product owns which platform account, under which
+-- persona, and what that platform permits once connected.
+--
+-- This is configuration, not sample content, and it belongs here rather than in
+-- seed-demo.sql. `products.expected_handles` above already declares `recipefix`
+-- and `isaacmineo` as the intended handles, so these rows complete a topology
+-- the canonical seed had otherwise declared only half of. It lived in the demo
+-- seed because it happened to be written alongside twenty demo content items,
+-- which is a filing accident rather than a design decision — and the cost of it
+-- was that `db:reset --fresh --seed`, the path CI runs, produced a database
+-- with no accounts at all.
+--
+-- ## Why seeding these is not a claim that anything is connected
+--
+-- Three things are deliberately absent, and each is load-bearing:
+--
+--   * **No token.** `access_token_enc` stays null, so `publish` refuses at
+--     `openToken` before it reaches a platform. A seeded row cannot post.
+--   * **No confirmed identity.** `identity_confirmed_at` stays null, so the
+--     accounts screen badges every one of these "identity unconfirmed" — which
+--     is exactly the state it is built to shout about.
+--   * **No credentials of any kind.** Same rule as the rest of this file.
+--
+-- `capability_state` records what the *platform* allows for this kind of
+-- account, not whether this install has connected one: X has no review gate, so
+-- `live`; TikTok and Meta gate on an audit, so `draft_only`. Those are facts
+-- about the platforms and they are true before anybody authenticates.
+insert into social_accounts (product_id, platform, persona, handle, capability_state,
+                             capability_detail, supported_formats, link_strategy)
+values
+  ('recipefix','x','brand','@recipefix','live',
+   'No review gate on X. Posting is live and billed per call.',
+   array['text','image','video'],'first_reply'),
+  -- The founder account hangs off the personal product rather than RecipeFix:
+  -- it is one identity shared across every product, and its routing scope says
+  -- so. The routing constraint that enforces this is what accounts.spec tests.
+  ('founder','x','founder','@isaacmineo','live',
+   'Founder account. Opinion content is input-gated: no take without your input.',
+   array['text','image'],'first_reply'),
+  ('recipefix','instagram','brand','@recipefix','draft_only',
+   'Connected. Publishing works against your own account in dev mode; public use needs Meta App Review (2 to 4 weeks per submission).',
+   array['image','carousel','video'],'bio_only'),
+  ('recipefix','pinterest','brand','@recipefix','draft_only',
+   'Trial access. Pins are created as sandbox entities and are visible only to you.',
+   array['pin','image'],'pin_destination'),
+  ('recipefix','youtube','brand','RecipeFix','draft_only',
+   'Connected. Until the compliance audit passes, uploads land as private.',
+   array['video'],'description'),
+  ('recipefix','tiktok','brand','@recipefix','draft_only',
+   'Unaudited clients can only post SELF_ONLY with the account private, so uploads go to your drafts. The API also cannot attach trending audio.',
+   array['video'],'bio_only'),
+  ('recipefix','threads','brand','@recipefix','pending_auth',
+   null, array['text','image'],'in_body')
+on conflict (product_id, platform, persona) do nothing;
