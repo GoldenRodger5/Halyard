@@ -516,6 +516,172 @@ export const AGENT_REGISTRY: AgentContract[] = [
       'RecipeFix ships through Lovable and has no merged pull requests to read. The Explorer supersedes this by inspecting the product rather than its history.',
   },
 
+  /*
+   * P1 — the Product Brain.
+   *
+   * Five agents that propose facts from observed evidence. What none of them
+   * can do is decide anything: `parseProposals` discards every field that is
+   * not a proposal, and status and confidence are computed by
+   * `deriveFactStatus` and `computeConfidence` from the evidence rows alone.
+   *
+   * Their shared downstream consumer is `product_facts`, read by the Brain UI
+   * and stamped through `markOutputConsumed` — which before this phase had no
+   * production caller at all, meaning no agent could ever have reached
+   * `implemented_exercised` however often it ran.
+   */
+  {
+    agentId: 'product-discovery',
+    name: 'Product Discovery',
+    team: 'product_intelligence',
+    kind: 'model',
+    version: '1.0',
+    purpose:
+      "Proposes what a product is and who it serves, from its public web surface. Cannot set a fact's status or confidence.",
+    model: 'strategy',
+    runtimeAttribution: 'prompt_version',
+    promptVersions: ['product_discovery.v1'],
+    implementation: 'packages/core/src/brain/agents.ts#discoverProductFacts',
+    inputSchema: {
+      productName: 'string',
+      evidence: 'EvidenceForPrompt[] — collected web pages, verbatim',
+    },
+    outputSchema: {
+      accepted: 'ProposedFact[] — category, key, value, detail',
+      rejected: 'Array<{ key, reason }> — kept, so a failing prompt is visible',
+    },
+    tools: ['llm'],
+    expectedCallers: ['apps/worker/src/handlers/buildBrain.ts#buildBrainHandler'],
+    downstreamConsumer: 'product_facts — read by /brain and its category screens',
+    permissions: ['read:product_evidence', 'write:product_facts'],
+    retries: 0,
+    timeoutMs: null,
+    state: ['product_evidence', 'product_facts'],
+    observations: ['what a product says it is, on its own website'],
+    acceptanceTests: ['packages/core/src/brain/brain.test.ts', 'apps/worker/src/buildBrain.test.ts'],
+    declaredStatus: 'implemented_partial',
+    statusNote:
+      'Wired to build_product_brain and covered by tests. Until the job runs against a real product there is no recorded execution, and a caller is not proof of one.',
+  },
+  {
+    agentId: 'store-listing',
+    name: 'Store Listing',
+    team: 'product_intelligence',
+    kind: 'model',
+    version: '1.0',
+    purpose:
+      'Proposes how a product positions itself in an app store listing, where the constraints reveal what the operator thinks matters most.',
+    model: 'strategy',
+    runtimeAttribution: 'prompt_version',
+    promptVersions: ['store_listing.v1'],
+    implementation: 'packages/core/src/brain/agents.ts#discoverListingFacts',
+    inputSchema: {
+      productName: 'string',
+      evidence: 'EvidenceForPrompt[] — the listing page and its JSON-LD',
+    },
+    outputSchema: { accepted: 'ProposedFact[]', rejected: 'Array<{ key, reason }>' },
+    tools: ['llm'],
+    expectedCallers: ['apps/worker/src/handlers/buildBrain.ts#buildBrainHandler'],
+    downstreamConsumer: 'product_facts — read by /brain/app_store_positioning',
+    permissions: ['read:product_evidence', 'write:product_facts'],
+    retries: 0,
+    timeoutMs: null,
+    state: ['product_evidence', 'product_facts'],
+    observations: ['how a product presents itself under store constraints'],
+    acceptanceTests: ['packages/core/src/brain/brain.test.ts'],
+    declaredStatus: 'implemented_partial',
+    statusNote:
+      'Wired and tested; no recorded run until the job executes against the live listing.',
+  },
+  {
+    agentId: 'code-intelligence',
+    name: 'Code Intelligence',
+    team: 'product_intelligence',
+    kind: 'model',
+    version: '1.0',
+    purpose:
+      'Proposes what a product genuinely supports, from the API surface it actually exposes rather than from what it says about itself.',
+    model: 'strategy',
+    runtimeAttribution: 'prompt_version',
+    promptVersions: ['code_intelligence.v1'],
+    implementation: 'packages/core/src/brain/agents.ts#discoverImplementationFacts',
+    inputSchema: {
+      productName: 'string',
+      evidence: 'EvidenceForPrompt[] — the connector tool surface',
+    },
+    outputSchema: { accepted: 'ProposedFact[]', rejected: 'Array<{ key, reason }>' },
+    tools: ['llm'],
+    expectedCallers: ['apps/worker/src/handlers/buildBrain.ts#buildBrainHandler'],
+    downstreamConsumer: 'product_facts — read by /brain/workflows and /brain/ux_model',
+    permissions: ['read:product_evidence', 'write:product_facts'],
+    retries: 0,
+    timeoutMs: null,
+    state: ['product_evidence', 'product_facts'],
+    observations: ['which capabilities a product API really exposes'],
+    acceptanceTests: ['packages/core/src/brain/brain.test.ts'],
+    declaredStatus: 'implemented_partial',
+    statusNote:
+      "Reads the connector's advertised tool surface, which is the available implementation truth for a product that ships without a repository. Deliberately not a second GitHub agent — shipped-feature-summariser is already blocked on the same absent input.",
+  },
+  {
+    agentId: 'visual-brand',
+    name: 'Visual Brand',
+    team: 'product_intelligence',
+    kind: 'model',
+    version: '1.0',
+    purpose:
+      "Proposes a product's design language from descriptions of its screens — what recurs, rather than what one screenshot shows.",
+    model: 'strategy',
+    runtimeAttribution: 'prompt_version',
+    promptVersions: ['visual_brand.v1'],
+    implementation: 'packages/core/src/brain/agents.ts#discoverVisualFacts',
+    inputSchema: {
+      productName: 'string',
+      evidence: 'EvidenceForPrompt[] — screenshot descriptions from the vision describer',
+    },
+    outputSchema: { accepted: 'ProposedFact[]', rejected: 'Array<{ key, reason }>' },
+    tools: ['llm'],
+    expectedCallers: ['apps/worker/src/handlers/buildBrain.ts#buildBrainHandler'],
+    downstreamConsumer: 'product_facts — read by /brain/visual_identity',
+    permissions: ['read:product_evidence', 'write:product_facts'],
+    retries: 0,
+    timeoutMs: null,
+    state: ['product_evidence', 'product_facts'],
+    observations: ['what a product consistently looks like'],
+    acceptanceTests: ['packages/core/src/brain/brain.test.ts'],
+    declaredStatus: 'implemented_partial',
+    statusNote:
+      'Wired and tested. It runs only when screenshot evidence exists; with none collected it is skipped and says so, rather than proposing a design language from nothing.',
+  },
+  {
+    agentId: 'product-reconciler',
+    name: 'Product Reconciler',
+    team: 'product_intelligence',
+    kind: 'model',
+    version: '1.0',
+    purpose:
+      'Explains why two observations of one fact differ. It does not decide which is right, and it does not go looking — findContradictions does that.',
+    model: 'strategy',
+    runtimeAttribution: 'prompt_version',
+    promptVersions: ['product_reconciler.v1'],
+    implementation: 'packages/core/src/brain/agents.ts#explainContradiction',
+    inputSchema: {
+      contradiction: 'ReconciliationInput — one slot, two values, their sources',
+    },
+    outputSchema: { explanation: 'string — prose, never a decision' },
+    tools: ['llm'],
+    expectedCallers: ['apps/worker/src/handlers/buildBrain.ts#buildBrainHandler'],
+    downstreamConsumer: 'product_facts.reconciliation — read by /brain/contradictions',
+    permissions: ['read:product_facts', 'write:product_facts'],
+    retries: 0,
+    timeoutMs: null,
+    state: ['product_facts'],
+    observations: ['why two sources might disagree'],
+    acceptanceTests: ['packages/core/src/brain/brain.test.ts'],
+    declaredStatus: 'implemented_partial',
+    statusNote:
+      'Wired and tested. It runs only when the deterministic pass finds a contradiction, so an empty run is the correct outcome on a consistent product rather than a missing feature.',
+  },
+
   // ── Team: content (media) ────────────────────────────────────────────────
   {
     agentId: 'auto-clip',

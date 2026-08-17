@@ -1253,7 +1253,7 @@ export interface IdeasUpdate {
 
 export interface JobsRow {
   id: string;
-  kind: 'generate' | 'render' | 'tts' | 'capture' | 'publish' | 'collect_metrics' | 'collect_signals' | 'collect_comments' | 'collect_attribution' | 'refresh_tokens' | 'score_performance' | 'digest_email' | 'reconcile_schedule' | 'mark_stale_assets' | 'collect_app_store' | 'detect_release' | 'collect_watch_terms' | 'draft_newsletter' | 'send_newsletter' | 'collect_reviews' | 'review_media' | 'verify_feature' | 'explore_product';
+  kind: 'generate' | 'render' | 'tts' | 'capture' | 'publish' | 'collect_metrics' | 'collect_signals' | 'collect_comments' | 'collect_attribution' | 'refresh_tokens' | 'score_performance' | 'digest_email' | 'reconcile_schedule' | 'mark_stale_assets' | 'collect_app_store' | 'detect_release' | 'collect_watch_terms' | 'draft_newsletter' | 'send_newsletter' | 'collect_reviews' | 'review_media' | 'verify_feature' | 'explore_product' | 'collect_product_evidence' | 'build_product_brain';
   payload: Json;
   status: 'queued' | 'running' | 'done' | 'failed' | 'dead';
   priority: number;
@@ -1270,7 +1270,7 @@ export interface JobsRow {
 
 export interface JobsInsert {
   id?: string;
-  kind: 'generate' | 'render' | 'tts' | 'capture' | 'publish' | 'collect_metrics' | 'collect_signals' | 'collect_comments' | 'collect_attribution' | 'refresh_tokens' | 'score_performance' | 'digest_email' | 'reconcile_schedule' | 'mark_stale_assets' | 'collect_app_store' | 'detect_release' | 'collect_watch_terms' | 'draft_newsletter' | 'send_newsletter' | 'collect_reviews' | 'review_media' | 'verify_feature' | 'explore_product';
+  kind: 'generate' | 'render' | 'tts' | 'capture' | 'publish' | 'collect_metrics' | 'collect_signals' | 'collect_comments' | 'collect_attribution' | 'refresh_tokens' | 'score_performance' | 'digest_email' | 'reconcile_schedule' | 'mark_stale_assets' | 'collect_app_store' | 'detect_release' | 'collect_watch_terms' | 'draft_newsletter' | 'send_newsletter' | 'collect_reviews' | 'review_media' | 'verify_feature' | 'explore_product' | 'collect_product_evidence' | 'build_product_brain';
   payload?: Json;
   status?: 'queued' | 'running' | 'done' | 'failed' | 'dead';
   priority?: number;
@@ -1287,7 +1287,7 @@ export interface JobsInsert {
 
 export interface JobsUpdate {
   id?: string;
-  kind?: 'generate' | 'render' | 'tts' | 'capture' | 'publish' | 'collect_metrics' | 'collect_signals' | 'collect_comments' | 'collect_attribution' | 'refresh_tokens' | 'score_performance' | 'digest_email' | 'reconcile_schedule' | 'mark_stale_assets' | 'collect_app_store' | 'detect_release' | 'collect_watch_terms' | 'draft_newsletter' | 'send_newsletter' | 'collect_reviews' | 'review_media' | 'verify_feature' | 'explore_product';
+  kind?: 'generate' | 'render' | 'tts' | 'capture' | 'publish' | 'collect_metrics' | 'collect_signals' | 'collect_comments' | 'collect_attribution' | 'refresh_tokens' | 'score_performance' | 'digest_email' | 'reconcile_schedule' | 'mark_stale_assets' | 'collect_app_store' | 'detect_release' | 'collect_watch_terms' | 'draft_newsletter' | 'send_newsletter' | 'collect_reviews' | 'review_media' | 'verify_feature' | 'explore_product' | 'collect_product_evidence' | 'build_product_brain';
   payload?: Json;
   status?: 'queued' | 'running' | 'done' | 'failed' | 'dead';
   priority?: number;
@@ -1774,6 +1774,111 @@ export interface ProductArtifactsUpdate {
   fetched_at?: string;
   expires_at?: string | null;
   hit_count?: number;
+}
+
+export interface ProductEvidenceRow {
+  id: string;
+  product_id: string;
+  kind: 'web_page' | 'app_store_listing' | 'connector_surface' | 'connector_artifact' | 'screenshot' | 'repository' | 'operator_brief';
+  source_url: string | null;
+  content_hash: string;
+  title: string | null;
+  body: string;
+  meta: Json;
+  collected_at: string;
+  collector: string;
+  superseded_by: string | null;
+}
+
+export interface ProductEvidenceInsert {
+  id?: string;
+  product_id: string;
+  kind: 'web_page' | 'app_store_listing' | 'connector_surface' | 'connector_artifact' | 'screenshot' | 'repository' | 'operator_brief';
+  source_url?: string | null;
+  content_hash: string;
+  title?: string | null;
+  body?: string;
+  meta?: Json;
+  collected_at?: string;
+  collector: string;
+  superseded_by?: string | null;
+}
+
+export interface ProductEvidenceUpdate {
+  id?: string;
+  product_id?: string;
+  kind?: 'web_page' | 'app_store_listing' | 'connector_surface' | 'connector_artifact' | 'screenshot' | 'repository' | 'operator_brief';
+  source_url?: string | null;
+  content_hash?: string;
+  title?: string | null;
+  body?: string;
+  meta?: Json;
+  collected_at?: string;
+  collector?: string;
+  superseded_by?: string | null;
+}
+
+export interface ProductFactsRow {
+  id: string;
+  product_id: string;
+  category: 'identity' | 'mission' | 'users' | 'personas' | 'jobs_to_be_done' | 'workflows' | 'differentiators' | 'pricing' | 'monetization' | 'competitors' | 'brand_voice' | 'visual_identity' | 'claims' | 'ux_model' | 'conversion_funnel' | 'app_store_positioning' | 'content_pillars';
+  key: string;
+  value: string;
+  detail: string | null;
+  status: 'unverified' | 'verified' | 'refuted' | 'unverifiable';
+  confidence: number;
+  evidence_ids: string[];
+  contradicts: string | null;
+  reconciliation: string | null;
+  agent_id: string;
+  agent_version: string;
+  prompt_version: string | null;
+  first_seen_at: string;
+  last_verified_at: string | null;
+  updated_at: string;
+  superseded_by: string | null;
+}
+
+export interface ProductFactsInsert {
+  id?: string;
+  product_id: string;
+  category: 'identity' | 'mission' | 'users' | 'personas' | 'jobs_to_be_done' | 'workflows' | 'differentiators' | 'pricing' | 'monetization' | 'competitors' | 'brand_voice' | 'visual_identity' | 'claims' | 'ux_model' | 'conversion_funnel' | 'app_store_positioning' | 'content_pillars';
+  key: string;
+  value: string;
+  detail?: string | null;
+  status?: 'unverified' | 'verified' | 'refuted' | 'unverifiable';
+  confidence?: number;
+  evidence_ids?: string[];
+  contradicts?: string | null;
+  reconciliation?: string | null;
+  agent_id: string;
+  agent_version: string;
+  prompt_version?: string | null;
+  first_seen_at?: string;
+  last_verified_at?: string | null;
+  updated_at?: string;
+  superseded_by?: string | null;
+}
+
+export interface ProductFactsUpdate {
+  id?: string;
+  product_id?: string;
+  category?: 'identity' | 'mission' | 'users' | 'personas' | 'jobs_to_be_done' | 'workflows' | 'differentiators' | 'pricing' | 'monetization' | 'competitors' | 'brand_voice' | 'visual_identity' | 'claims' | 'ux_model' | 'conversion_funnel' | 'app_store_positioning' | 'content_pillars';
+  key?: string;
+  value?: string;
+  detail?: string | null;
+  status?: 'unverified' | 'verified' | 'refuted' | 'unverifiable';
+  confidence?: number;
+  evidence_ids?: string[];
+  contradicts?: string | null;
+  reconciliation?: string | null;
+  agent_id?: string;
+  agent_version?: string;
+  prompt_version?: string | null;
+  first_seen_at?: string;
+  last_verified_at?: string | null;
+  updated_at?: string;
+  superseded_by?: string | null;
 }
 
 export interface ProductsRow {
@@ -2970,6 +3075,8 @@ export interface Database {
     platform_requests: { Row: PlatformRequestsRow; Insert: PlatformRequestsInsert; Update: PlatformRequestsUpdate; Relationships: [] };
     post_metrics: { Row: PostMetricsRow; Insert: PostMetricsInsert; Update: PostMetricsUpdate; Relationships: [] };
     product_artifacts: { Row: ProductArtifactsRow; Insert: ProductArtifactsInsert; Update: ProductArtifactsUpdate; Relationships: [] };
+    product_evidence: { Row: ProductEvidenceRow; Insert: ProductEvidenceInsert; Update: ProductEvidenceUpdate; Relationships: [] };
+    product_facts: { Row: ProductFactsRow; Insert: ProductFactsInsert; Update: ProductFactsUpdate; Relationships: [] };
     products: { Row: ProductsRow; Insert: ProductsInsert; Update: ProductsUpdate; Relationships: [] };
     provider_capabilities: { Row: ProviderCapabilitiesRow; Insert: ProviderCapabilitiesInsert; Update: ProviderCapabilitiesUpdate; Relationships: [] };
     publications: { Row: PublicationsRow; Insert: PublicationsInsert; Update: PublicationsUpdate; Relationships: [] };

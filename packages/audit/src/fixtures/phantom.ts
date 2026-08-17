@@ -146,6 +146,31 @@ export const PHANTOM_UNREACHABLE_FEATURE = {
 };
 
 /**
+ * PHANTOM 4b — a Brain category the UI offers and no agent can fill.
+ *
+ * The real instance: the Product Brain's first draft carried a
+ * `prohibited_claims` category. `/brain/[category]` renders a page for every
+ * category, so the heading existed — and nothing could ever put a fact under
+ * it, because prohibited claims are an operator instruction living in
+ * `products.content_rules`, not an observation any agent makes.
+ *
+ * It was found by this rule on the first run after the rule was written, and
+ * fixed by removing the category rather than by inventing an agent for it.
+ */
+export const PHANTOM_UNREACHABLE_CATEGORY = {
+  category: 'ghost_category',
+  reachable: false,
+  factCount: 0,
+};
+
+/** The same, but with facts already stored — a worse variant, and a real risk. */
+export const PHANTOM_ORPHANED_CATEGORY = {
+  category: 'abandoned_category',
+  reachable: false,
+  factCount: 7,
+};
+
+/**
  * PHANTOM 5 — a contract naming a caller that does not call it.
  *
  * The real instance: this registry, on its first run, named the setup-kit

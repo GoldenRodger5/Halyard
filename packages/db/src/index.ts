@@ -71,6 +71,10 @@ export const JOB_KINDS = [
   'verify_feature',
   /** Phase 3: walk the product and propose claims for verification. */
   'explore_product',
+  /** P1: fetch the product's public surfaces into product_evidence. No model. */
+  'collect_product_evidence',
+  /** P1: run the product intelligence agents over collected evidence. */
+  'build_product_brain',
 ] as const;
 export type JobKind = (typeof JOB_KINDS)[number];
 
@@ -106,6 +110,18 @@ export const JOB_POLICY: Record<
    * hourly, and this reads someone's live app.
    */
   explore_product: { timeoutMs: 20 * 60_000, maxAttempts: 2, backoffSeconds: 3600 },
+  /**
+   * Several plain HTTP fetches of someone's public site. Retried more freely
+   * than the model jobs because it costs nothing but bandwidth, and evidence
+   * that was expensive to gather is what everything downstream rests on.
+   */
+  collect_product_evidence: { timeoutMs: 5 * 60_000, maxAttempts: 3, backoffSeconds: 300 },
+  /**
+   * Five model calls over the collected evidence. Not retried aggressively: a
+   * second attempt re-reads the same evidence and costs the same tokens to
+   * reach the same conclusion.
+   */
+  build_product_brain: { timeoutMs: 10 * 60_000, maxAttempts: 2, backoffSeconds: 600 },
   score_performance: { timeoutMs: 5 * 60_000, maxAttempts: 2, backoffSeconds: 300 },
   digest_email: { timeoutMs: 2 * 60_000, maxAttempts: 2, backoffSeconds: 300 },
   reconcile_schedule: { timeoutMs: 2 * 60_000, maxAttempts: 2, backoffSeconds: 120 },

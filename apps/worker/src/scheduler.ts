@@ -145,6 +145,31 @@ export const SCHEDULES: Schedule[] = [
     priority: 30,
     why: 'Scoring reads metric time series that only move on the polling schedule.',
   },
+  {
+    /**
+     * Re-read the product's public surfaces, weekly.
+     *
+     * Only the collection is scheduled. It costs plain HTTP and no model
+     * tokens, and the Brain is worth nothing if its evidence quietly ages out —
+     * a fact verified against a page that has since changed is a fact about the
+     * past wearing a current timestamp.
+     *
+     * Weekly rather than daily because re-collection cannot manufacture
+     * agreement: evidence is keyed on a content hash, so an unchanged page
+     * collides with the row already there and corroborates nothing. The cadence
+     * therefore tracks how often a product's positioning actually changes, not
+     * how often we would like to feel current.
+     *
+     * `build_product_brain` is not scheduled separately — collection chains it
+     * when something was collected, so the model calls happen when there is new
+     * evidence rather than on a timer.
+     */
+    kind: 'collect_product_evidence',
+    everyMinutes: 7 * 24 * 60,
+    perProduct: true,
+    priority: 25,
+    why: 'A product brain built on evidence nobody re-reads decays into confident history. Weekly matches how often positioning actually moves.',
+  },
 ];
 
 /**
