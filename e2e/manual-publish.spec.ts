@@ -21,13 +21,26 @@ test.describe('posting on your own timing', () => {
     await page.getByRole('button', { name: 'Post it now' }).click();
     await page.waitForLoadState('networkidle');
 
-    // The worker owns publishing, so what this proves is that the job was
-    // queued — not that a network call happened on the web tier.
-    const { rows } = await db().query<{ n: string }>(
-      `select count(*) as n from jobs where kind = 'publish' and payload ->> 'contentItemId' = $1`,
-      [item.id],
-    );
-    expect(Number(rows[0]!.n)).toBe(1);
+    /**
+     * The worker owns publishing, so what this proves is that the job was
+     * queued — not that a network call happened on the web tier.
+     *
+     * Polled rather than read once. `waitForLoadState('networkidle')` returns
+     * when the network is quiet, which is not the same as the server action
+     * having committed; on a slower runner the read landed first and saw zero.
+     * Same assertion, correct waiting — the convention campaigns.spec already
+     * uses for exactly this.
+     */
+    await expect
+      .poll(async () => {
+        const { rows } = await db().query<{ n: string }>(
+          `select count(*) as n from jobs
+            where kind = 'publish' and payload ->> 'contentItemId' = $1`,
+          [item.id],
+        );
+        return Number(rows[0]!.n);
+      })
+      .toBe(1);
   });
 
   test('the button is not offered for something nobody has approved', async ({ page }) => {
