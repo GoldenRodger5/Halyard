@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { one, query } from '@/lib/db';
 import { requireOperator } from '@/lib/auth';
+import { recordingClient } from '@/lib/agentRuns';
 import { createLlmClient, runTakeLoop } from '@halyard/core';
 
 /**
@@ -51,7 +52,7 @@ export async function submitTake(formData: FormData): Promise<void> {
         voiceDescription: voice?.description ?? 'direct and specific',
         audience,
       },
-      createLlmClient(),
+      recordingClient(createLlmClient(), { trigger: 'ui_action', triggerRef: takeId }),
     );
 
     if (result.stage === 'needs_input') {

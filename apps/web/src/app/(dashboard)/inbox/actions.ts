@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { one, query } from '@/lib/db';
 import { requireOperator } from '@/lib/auth';
+import { recordingClient } from '@/lib/agentRuns';
 import { createLlmClient, buildReplyDraftPrompt, extractJson } from '@halyard/core';
 
 /**
@@ -38,7 +39,7 @@ export async function draftReply(formData: FormData): Promise<void> {
   });
 
   try {
-    const llm = createLlmClient();
+    const llm = recordingClient(createLlmClient(), { trigger: 'ui_action', triggerRef: id });
     const response = await llm.complete({
       system: prompt.system,
       messages: [{ role: 'user', content: prompt.user }],

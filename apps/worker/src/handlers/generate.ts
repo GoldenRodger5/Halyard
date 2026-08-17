@@ -49,6 +49,7 @@ import type { Job, HandlerContext } from '../poller.js';
 import { routeToBoard } from './boards.js';
 import { notify } from './publish.js';
 import { fillCampaignSlot } from './campaignSlot.js';
+import { recordingClient } from '../agentRuns.js';
 
 export async function generateHandler(job: Job, ctx: HandlerContext): Promise<void> {
   const productId = String(job.payload.productId ?? 'recipefix');
@@ -62,7 +63,19 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
    * that was never going to generate anything anyway.
    */
   let cached: LlmClient | null = (job.payload.llm as LlmClient | undefined) ?? null;
-  const llmFor = (): LlmClient => (cached ??= createLlmClient());
+  /**
+   * Wrapped so every agent that runs inside this job is recorded.
+   *
+   * One wrapper covers the copywriter, the VO scriptwriter, the hook generator
+   * and the payoff verifier, because they all reach the model through this
+   * client. Instrumenting the seam rather than the four call sites means a
+   * fifth agent added here is recorded without anyone remembering to.
+   */
+  const llmFor = (): LlmClient =>
+    (cached ??= recordingClient(ctx.pool, createLlmClient(), {
+      trigger: 'job',
+      triggerRef: job.id,
+    }));
 
   // A campaign slot has already been told what it is for, so it takes a
   // different path: no idea selection, no mix arithmetic, just the words.

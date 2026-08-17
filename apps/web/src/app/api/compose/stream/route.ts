@@ -8,6 +8,7 @@ import {
 } from '@halyard/core';
 import { one } from '@/lib/db';
 import { requireOperator } from '@/lib/auth';
+import { recordingClient } from '@/lib/agentRuns';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -72,7 +73,7 @@ looking at.`;
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
 
       try {
-        const llm = createLlmClient();
+        const llm = recordingClient(createLlmClient(), { trigger: 'ui_action' });
         const response = await llm.complete({
           system,
           messages,

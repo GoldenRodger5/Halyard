@@ -13,6 +13,7 @@ import {
 import { one, query } from '@/lib/db';
 import { linkInBioUrl } from '@/lib/origin';
 import { requireOperator } from '@/lib/auth';
+import { recordingClient } from '@/lib/agentRuns';
 
 interface ProductRow {
   id: string;
@@ -103,7 +104,7 @@ export async function generateKit(formData: FormData): Promise<void> {
   // the same sentence seven times.
   let llm: LlmClient;
   try {
-    llm = createLlmClient();
+    llm = recordingClient(createLlmClient(), { trigger: 'ui_action' });
   } catch (err) {
     fail(`${(err as Error).message} Nothing was generated.`);
     return;

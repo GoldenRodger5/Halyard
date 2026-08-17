@@ -16,3 +16,4 @@ export * from './proof/index.js';
 export * from './readiness/index.js';
 export * from './founder/index.js';
 export * from './explorer/index.js';
+export * from './agents/index.js';
