@@ -1054,3 +1054,64 @@ cycle between them is worse than a second copy — and the second copy is only
 safe because a test compares it against every adapter. That is the same lesson
 as §49: **a constant duplicated across a boundary needs a test that reads both
 copies**, because the compiler only ever sees one.
+
+## 57. A fact cites its evidence, or the database refuses it
+
+The Product Brain could have been a table of things a model said about a
+product. That version works on the first run and is indefensible by the
+hundredth: nothing downstream can tell an observed fact from an invented one,
+and everything downstream — every prompt, every claim check — treats both the
+same.
+
+So `product_facts.evidence_ids` is checked by a trigger. A fact with no evidence
+raises rather than inserting. The rule lives in the database rather than in the
+writer because a check in the handler holds only for as long as every future
+writer remembers it, and this is the one rule the whole design rests on.
+
+**Two independent sources make a fact verified.** Never one — one source means
+"observed", which is what `unverified` already says. And evidence is keyed on a
+hash of its content, so re-collecting an unchanged page collides with the row
+already there. Without that, the weekly collector would have corroborated every
+fact in the Brain with itself, and the entire thing would have read `verified`
+inside a month. Corroboration by repetition is the failure mode a knowledge
+store is most naturally shaped to produce.
+
+## 58. Features stay in feature_claims; prohibited claims stay in content_rules
+
+The architecture lists both among the Product Brain's categories. Neither is
+there, for opposite reasons.
+
+**Features** already have a stronger home. A `feature_claims` row becomes
+`verified` by *replaying its steps in a real browser* and observing the result —
+far better evidence than two pages agreeing. Adding a `features` fact category
+would have given one question two answers, and the weaker one would have won
+arguments by being easier to write to.
+
+**Prohibited claims** are not an observation at all. They are the operator
+telling Halyard what it must never say, they live in
+`products.content_rules.forbidden_claims`, and the slop filter and copywriter
+enforce them. Copying them into a table that agents propose into would create a
+second home for a safety rule *and* put a model in a position to write to it.
+
+Both are departures from the architecture's category list, taken on §21: do not
+rewrite a working subsystem to make its name match the document.
+
+## 59. The contradiction table could not hold a contradiction
+
+`product_facts` was first keyed unique on `(product_id, category, key)` — one
+row per slot, which reads as obviously correct. It made the entire
+contradictions feature impossible.
+
+Two agents proposing different values for one slot collide on that index, and
+the upsert overwrites the first with the second. `findContradictions` groups by
+slot and looks for two values; it would have found one, always. The screen, the
+reconciler agent and the rule behind them were all wired to something that could
+never happen.
+
+The key is now `(product_id, category, key, value)`. A slot holds every distinct
+value observed for it, re-observing the same value still collides and updates,
+and disagreement is representable.
+
+Found by a test asserting two rows and getting one. It would not have been found
+by reading the code, and it would never have been found in production — an
+absence of contradictions looks exactly like a consistent product.

@@ -46,7 +46,7 @@ social account's platform capability (`pending_auth` / `draft_only` / `live` /
 
 ## 3. The registry, as of P0
 
-Seventeen agents. Observed states come from `pnpm audit-halyard`; this table
+Twenty-two agents. Observed states come from `pnpm audit-halyard`; this table
 records the *contract*.
 
 | Agent | Team | Prompt version | Declared | Note |
@@ -68,6 +68,11 @@ records the *contract*.
 | `rejection-clusterer` | learning | `rejection_clusters.v1` | **no caller** | Per-item loop works; pattern layer unwired |
 | `shipped-feature-summariser` | product_intelligence | `shipped_features.v1` | **blocked** | No merged PRs to read |
 | `auto-clip` | content | `autoclip.v1` | **blocked** | No long-form footage exists |
+| `product-discovery` | product_intelligence | `product_discovery.v1` | partial | P1; proposes from web evidence |
+| `store-listing` | product_intelligence | `store_listing.v1` | partial | P1; proposes from the App Store listing |
+| `code-intelligence` | product_intelligence | `code_intelligence.v1` | partial | P1; reads the connector's tool surface |
+| `visual-brand` | product_intelligence | `visual_brand.v1` | partial | P1; runs only with described screenshots |
+| `product-reconciler` | product_intelligence | `product_reconciler.v1` | partial | P1; explains, never decides |
 
 **Registering an orphan is the point.** An orphan absent from the registry is
 invisible; an orphan present is a tracked defect with a name and a reason.
@@ -128,6 +133,7 @@ searching for `factCheck(`, and it counted `.next` build output as callers.
 | `feature.enabled_unreachable` | Enabled and no code path produces it |
 | `tool.unavailable` | Declared tool this deployment cannot provide |
 | `capability.overclaimed` | Contract declares better than the evidence supports |
+| `brain.category_unreachable` | A Product Brain category no agent can fill |
 | `contract.*` | Structural violations of the contract schema |
 
 ### Without `--runtime`
@@ -164,10 +170,40 @@ development, each fixed and each now covered by a regression test:
 
 ---
 
+## 6a. P1 — the Product Brain
+
+Five agents propose product facts; **none can decide one**. `parseProposals`
+keeps only `category`, `key`, `value` and `detail`, so a reply supplying
+`"status":"verified"` loses that field on the way in rather than being trusted
+and then corrected — a field that is read and overridden is one refactor away
+from being read and kept.
+
+Status and confidence come from `deriveFactStatus` and `computeConfidence`,
+which read the evidence rows and take **no parameter a proposal could reach** —
+the same arrangement as `deriveState` above. `verified` requires two independent
+sources; evidence is keyed on a content hash so re-collecting an unchanged page
+corroborates nothing.
+
+`findContradictions` — code — decides *that* two facts conflict. The reconciler
+explains *why* they might, in prose, and picks no winner.
+
+Building P1 closed two things P0 left structurally unable to work:
+
+- **`explore_product` had no trigger.** Handler, policy and contract all
+  shipped; nothing enqueued it. It now has a button on `/brain/features`.
+- **`markOutputConsumed` had no production caller**, so `deriveState` could
+  never observe consumed output and no agent could reach
+  `implemented_exercised` however often it ran.
+
 ## 7. Tables
 
 `agent_runs`, `capability_audit_state`, `auditor_runs`, `auditor_findings` —
 migration `0025_agent_operating_system.sql`.
+
+`product_evidence`, `product_facts` — migration `0027_product_brain.sql`.
+**Not created:** a `features` category, because `feature_claims` already is the
+feature inventory and verifies by replay; and no `prohibited_claims` category,
+because that is an instruction in `products.content_rules`, not an observation.
 
 **Not created:** a registry table. The registry stays in code so it is versioned
 with the implementation it describes and cannot drift between deploys. **Not

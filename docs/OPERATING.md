@@ -80,6 +80,7 @@ The web app runs fine without it. Nothing generates, renders or publishes.
 | `/settings/health` | The four things that fail silently |
 | `/settings/readiness` | Can this run unattended tomorrow |
 | `/setup-kit` | Everything needed to create the accounts: bios, images, checklists |
+| `/brain` | What Halyard knows about the product, and what each thing rests on |
 | `/launch` | Generate and review a fortnight in one pass |
 | `/first-30-days` | What to expect, and which of the things that look broken are not |
 
