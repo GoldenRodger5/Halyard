@@ -1,0 +1,69 @@
+{
+  "project": "Halyard",
+  "auditType": "repository-grounded implementation audit",
+  "summary": {
+    "overallStatus": "real production-shaped monorepo with strong implementation and human-in-the-loop governance",
+    "greenfield": false,
+    "autonomousPublishingProven": false,
+    "humanApprovalCentral": true
+  },
+  "classification": {
+    "implemented": [
+      "Monorepo structure with web app, worker, shared core, db, render, and UI packages",
+      "Dashboard, queue, inbox, accounts, onboarding, and operator tooling",
+      "OAuth flows and platform-specific adapter architecture",
+      "Real background worker with scheduler and job registry",
+      "Publish pipeline with duplicate prevention and kill switch",
+      "AI generation pipeline and prompt system",
+      "DB-backed content lifecycle with ideas, content_items, hooks, series, and campaigns",
+      "Routing, account identity confirmation, and product/persona safety",
+      "Attribution, link tracking, and app-store attribution model",
+      "Render and video/TTS support paths"
+    ],
+    "partial": [
+      "Live platform posting requires valid credentials, account review, and platform compliance",
+      "Draft-only/manual-publish paths are implemented but not fully autonomous",
+      "Some platform-specific capabilities are intentionally gated by API restrictions"
+    ],
+    "plannedOrUnprovenInCode": [
+      "Fully autonomous social-media operation without human approval",
+      "A complete platform-agnostic no-human-signoff rollout across every network"
+    ]
+  },
+  "coreEvidence": {
+    "webApp": [
+      "apps/web/src/app/(dashboard)/page.tsx",
+      "apps/web/src/app/(dashboard)/queue/page.tsx",
+      "apps/web/src/app/(dashboard)/inbox/page.tsx",
+      "apps/web/src/lib/queries.ts"
+    ],
+    "worker": [
+      "apps/worker/src/index.ts",
+      "apps/worker/src/scheduler.ts",
+      "apps/worker/src/handlers/index.ts",
+      "apps/worker/src/handlers/publish.ts",
+      "apps/worker/src/handlers/generate.ts"
+    ],
+    "core": [
+      "packages/core/src/adapters/oauth.ts",
+      "packages/core/src/adapters/x.ts",
+      "packages/core/src/adapters/instagram.ts",
+      "packages/core/src/generation/llm.ts",
+      "packages/core/src/generation/prompts.ts",
+      "packages/core/src/accounts/preflight.ts"
+    ],
+    "database": [
+      "supabase/migrations/0004_ideas_and_content.sql",
+      "supabase/migrations/0014_accounts_destinations_campaigns.sql"
+    ]
+  },
+  "keyFindings": [
+    "The repo contains a working social operations system, not a mock or placeholder project.",
+    "Content moves through a queue and approval model rather than auto-publishing without review.",
+    "The system explicitly enforces duplicate publish protection and routing safety.",
+    "Platform live publishing is gated by OAuth setup, account review, API permissions, and account state.",
+    "The architecture is designed to automate drafting and orchestration while leaving final approval and compliance in the operator path."
+  ],
+  "confidence": "high",
+  "sourceOfTruth": "repository code and migration files"
+}

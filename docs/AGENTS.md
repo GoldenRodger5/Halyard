@@ -32,8 +32,9 @@ REVIEW       vision describer ────── describes frames, cannot see th
                │
 DECIDE       you ─────────────────── approve, or post now, or post by hand
                │
-LEARN        rejection clusterer ─── why you said no, fed back to the copywriter
+LEARN        anti-examples ───────── why you said no, fed back to the copywriter
              hook history ────────── which openings were used, and how they did
+             ✗ rejection clusterer ─ groups rejections into patterns. NOT WIRED
 
 SEPARATE LOOPS
   Daily Take   fact-check → verify story → strengthen → counter → risk → draft
@@ -53,12 +54,26 @@ SEPARATE LOOPS
 | **Vision describer** | Describes sampled frames | ✅ |
 | **Fact checker** | Founder's claims, *before* drafting | ✅ inside `runTakeLoop` |
 | **Take drafter** | Founder's opinion, opinion preserved | ✅ |
-| **Rejection clusterer** | Learns from what you reject | ✅ |
+| **Rejection clusterer** | Groups rejections into patterns | ❌ **no caller** (the per-item loop *is* wired — see below) |
 | **Setup kit writer** | Profile bios, pinned posts | ✅ |
 | **Explorer discovery** | Proposes feature claims | ✅ built this week |
 | **Co-pilot** | The compose screen | ✅ |
 | **Auto-clip** | Picks clip candidates from long footage | ❌ **no caller** |
 | **Shipped-feature summariser** | Reads merged PRs for what shipped | ❌ **no caller** |
+
+### A correction to an earlier version of this file
+
+This document previously listed the **rejection clusterer** as wired. It is not.
+`clusterRejections` is referenced only by its own tests — the earlier count
+included `.next` build output, which is compiled copies of the same source and
+should never have been counted as callers.
+
+The distinction that matters: **the per-item learning loop is wired.** Rejecting
+a draft with a reason appends it to `brand_voices.anti_examples`, and the
+copywriter reads those on the next run, so the same draft is not produced again.
+What is missing is the layer above it — grouping rejections into *patterns*
+("three of your last five rejections opened with a question") and surfacing that
+as a rule rather than as five separate examples.
 
 ### What the audit actually found
 
@@ -74,12 +89,15 @@ near-duplicate check, a clickbait check, a stop-rate predictor — all reachable
 only from tests. That is now joined up, and it is the single largest quality
 change available before anything publishes.
 
-Two agents remain orphaned and are **not** urgent:
+Three agents remain orphaned. Only one of them is worth building soon:
 
 - **Auto-clip** needs long-form footage to clip from, and there is none.
 - **Shipped-feature summariser** reads merged pull requests; RecipeFix ships
   through Lovable, so there are none to read. The Explorer supersedes it by
   looking at the product instead of its history.
+- **Rejection clusterer** is the one worth building: it turns five separate
+  rejections into one rule the copywriter can follow. It needs a body of
+  rejections to cluster, which arrives once the queue is being worked.
 
 ---
 
