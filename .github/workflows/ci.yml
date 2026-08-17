@@ -45,9 +45,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # No `version:` here. package.json pins `packageManager: pnpm@11.21.0`,
+      # and pnpm/action-setup@v4 fails outright when both are specified rather
+      # than preferring one — so the manifest is the single source of truth.
       - uses: pnpm/action-setup@v4
-        with:
-          version: 11
 
       - uses: actions/setup-node@v4
         with:
@@ -112,9 +113,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+      # No `version:` here. package.json pins `packageManager: pnpm@11.21.0`,
+      # and pnpm/action-setup@v4 fails outright when both are specified rather
+      # than preferring one — so the manifest is the single source of truth.
       - uses: pnpm/action-setup@v4
-        with:
-          version: 11
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -144,9 +146,10 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+      # No `version:` here. package.json pins `packageManager: pnpm@11.21.0`,
+      # and pnpm/action-setup@v4 fails outright when both are specified rather
+      # than preferring one — so the manifest is the single source of truth.
       - uses: pnpm/action-setup@v4
-        with:
-          version: 11
       - uses: actions/setup-node@v4
         with:
           node-version: 22
