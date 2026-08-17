@@ -55,10 +55,16 @@ test.describe('identity confirmation', () => {
     ]);
     expect(after.rows).toHaveLength(0);
 
-    const pending = await db().query('select id from pending_connections where id = $1', [
-      pendingId,
-    ]);
-    expect(pending.rows).toHaveLength(0);
+    // Polled: the discard is a server action, and `networkidle` reports a quiet
+    // network rather than a committed transaction.
+    await expect
+      .poll(async () => {
+        const { rows } = await db().query('select id from pending_connections where id = $1', [
+          pendingId,
+        ]);
+        return rows.length;
+      })
+      .toBe(0);
   });
 
   test('an expired staging row cannot be confirmed after the fact', async ({ page }) => {

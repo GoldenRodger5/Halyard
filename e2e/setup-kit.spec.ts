@@ -118,11 +118,22 @@ test.describe('setup kit', () => {
     await page.getByRole('button', { name: 'Check everywhere' }).click();
     await page.waitForLoadState('networkidle');
 
+    // Polled: the check is a server action writing rows, and `networkidle`
+    // reports a quiet network rather than a committed transaction.
+    await expect
+      .poll(async () => {
+        const { rowCount } = await db().query(
+          `select 1 from desired_handles where handle = $1`,
+          ['e2ehalyardcheck'],
+        );
+        return rowCount ?? 0;
+      })
+      .toBeGreaterThan(0);
+
     const rows = await db().query<{ platform: string; last_status: string }>(
       `select platform, last_status from desired_handles where handle = $1`,
       ['e2ehalyardcheck'],
     );
-    expect(rows.rowCount).toBeGreaterThan(0);
 
     // X and TikTok cannot be checked without logging in. Neither may ever come
     // back as available: acting on a false "free" costs a rebrand across seven

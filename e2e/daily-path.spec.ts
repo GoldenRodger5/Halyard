@@ -57,6 +57,24 @@ test.describe('the daily path', () => {
     await page.locator(`#queue-item-${item.id}`).getByRole('button', { name: 'Approve' }).click();
     await page.waitForLoadState('networkidle');
 
+    /**
+     * Polled, not read once.
+     *
+     * `networkidle` means the network went quiet, which is not the same as the
+     * server action having committed. On a fast machine the read lands after
+     * the write and on a CI runner it does not — the assertion is unchanged,
+     * only the waiting is correct.
+     */
+    await expect
+      .poll(async () => {
+        const { rows } = await db().query<{ status: string }>(
+          'select status from content_items where id = $1',
+          [item.id],
+        );
+        return rows[0]?.status;
+      })
+      .toBe('approved');
+
     const { rows } = await db().query<{ status: string; approved_at: string | null }>(
       'select status, approved_at from content_items where id = $1',
       [item.id],
