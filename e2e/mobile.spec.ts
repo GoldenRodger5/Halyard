@@ -20,11 +20,18 @@ test('the whole approve flow works at phone width', async ({ page }) => {
   await card.getByRole('button', { name: 'Approve' }).click();
   await page.waitForLoadState('networkidle');
 
-  const { rows } = await db().query<{ status: string }>(
-    'select status from content_items where id = $1',
-    [item.id],
-  );
-  expect(rows[0]?.status).toBe('approved');
+  // Polled, like every other read of a server action's effect in this suite:
+  // a quiet network is not a committed transaction, and this read landed first
+  // on a CI runner. Same assertion, correct waiting.
+  await expect
+    .poll(async () => {
+      const { rows } = await db().query<{ status: string }>(
+        'select status from content_items where id = $1',
+        [item.id],
+      );
+      return rows[0]?.status;
+    })
+    .toBe('approved');
 });
 
 test('no screen scrolls horizontally on a phone', async ({ page }) => {
