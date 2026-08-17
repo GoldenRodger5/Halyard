@@ -25,6 +25,7 @@ import {
   rulePromptVersionDrift,
   ruleStatusOverclaim,
   ruleToolAvailability,
+  ruleUnreachableBrainCategory,
   ruleUnreachableFeature,
   ruleUnsuppliedGateInput,
   ruleUnusedOutput,
@@ -38,6 +39,8 @@ import {
   PHANTOM_SCHEDULED_NO_HANDLER,
   PHANTOM_STALE_VERSION,
   PHANTOM_TEST_ONLY_CALLER,
+  PHANTOM_ORPHANED_CATEGORY,
+  PHANTOM_UNREACHABLE_CATEGORY,
   PHANTOM_UNREACHABLE_FEATURE,
   PHANTOM_UNREGISTERED,
   PHANTOM_UNSUPPLIED_GATE,
@@ -77,6 +80,27 @@ describe('phantom capabilities the Auditor must catch', () => {
     expect(findings).toHaveLength(1);
     expect(findings[0]!.rule).toBe('gate.input_never_supplied');
     expect(findings[0]!.evidence.neverSupplied).toEqual(['audio', 'visual']);
+  });
+
+  it('catches a Brain category no agent can fill', () => {
+    const findings = ruleUnreachableBrainCategory(PHANTOM_UNREACHABLE_CATEGORY);
+    expect(findings).toHaveLength(1);
+    expect(findings[0]!.rule).toBe('brain.category_unreachable');
+    expect(findings[0]!.detail).toContain('stay empty');
+  });
+
+  it('says so more sharply when the unreachable category already holds facts', () => {
+    // Worse than empty: something wrote facts nothing can now maintain, so they
+    // will age out with no producer able to refresh them.
+    const findings = ruleUnreachableBrainCategory(PHANTOM_ORPHANED_CATEGORY);
+    expect(findings[0]!.detail).toContain('nothing can now maintain');
+    expect(findings[0]!.evidence.factCount).toBe(7);
+  });
+
+  it('passes a category an agent can fill', () => {
+    expect(
+      ruleUnreachableBrainCategory({ category: 'identity', reachable: true, factCount: 0 }),
+    ).toEqual([]);
   });
 
   it('catches a feature enabled and unreachable', () => {

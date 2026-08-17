@@ -429,6 +429,51 @@ export function ruleUnreachableFeature(feature: FeatureFact): Finding[] {
   ];
 }
 
+// ── Rule: a Brain category nothing can fill ────────────────────────────────
+
+export interface BrainCategoryFact {
+  category: string;
+  /** Whether some registered agent declares it can propose facts here. */
+  reachable: boolean;
+  /** Facts currently stored in it, when runtime evidence is available. */
+  factCount: number;
+}
+
+/**
+ * A fact category the Product Brain offers and no agent can produce.
+ *
+ * The same phantom-capability pattern as `feature.enabled_unreachable`, applied
+ * to knowledge instead of media: `/brain/[category]` will render a heading for
+ * any category in `FACT_CATEGORIES`, and a category no agent proposes into is a
+ * promise the system cannot keep.
+ *
+ * A **warning**, not an error. The architecture names eighteen categories and
+ * P1 builds agents for a subset on purpose — an unbuilt category is a tracked
+ * gap, exactly like a registered orphan agent, and calling it an error would
+ * make a truthful roadmap look like a broken build.
+ *
+ * What makes this worth a rule rather than a comment is regression: an agent
+ * losing a category from its declared list silently turns a working section
+ * into an empty one, and nothing else in the system would notice.
+ */
+export function ruleUnreachableBrainCategory(fact: BrainCategoryFact): Finding[] {
+  if (fact.reachable) return [];
+
+  return [
+    {
+      rule: 'brain.category_unreachable',
+      severity: 'warning',
+      subject: fact.category,
+      subjectKind: 'feature',
+      detail:
+        fact.factCount > 0
+          ? `The Brain offers this category and no registered agent proposes into it, yet ${fact.factCount} fact(s) are stored — so something wrote facts nothing can now maintain.`
+          : 'The Brain offers this category and no registered agent can propose into it. It will stay empty however much evidence is collected.',
+      evidence: { category: fact.category, factCount: fact.factCount },
+    },
+  ];
+}
+
 // ── Capability state derivation ────────────────────────────────────────────
 
 export interface AgentAudit {

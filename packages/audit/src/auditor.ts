@@ -32,12 +32,14 @@ import {
   ruleStatusOverclaim,
   ruleToolAvailability,
   ruleUnreachableFeature,
+  ruleUnreachableBrainCategory,
   ruleUnsuppliedGateInput,
   ruleUnusedOutput,
   ruleVersionNeverInvoked,
   EMPTY_RUNTIME,
   type AgentAudit,
   type FeatureFact,
+  type BrainCategoryFact,
   type Finding,
   type GateFact,
   type JobFacts,
@@ -54,6 +56,8 @@ export interface AuditInput {
   jobs?: JobFacts;
   gates?: GateFact[];
   features?: FeatureFact[];
+  /** Product Brain fact categories, and whether an agent can fill each. */
+  brainCategories?: BrainCategoryFact[];
   /** Tools this deployment can actually provide. */
   availableTools?: Set<string>;
   runtime?: RuntimeEvidence;
@@ -119,6 +123,8 @@ export function runAudit(input: AuditInput): AuditReport {
   if (input.jobs) findings.push(...ruleJobGraph(input.jobs));
   for (const gate of input.gates ?? []) findings.push(...ruleUnsuppliedGateInput(gate));
   for (const feature of input.features ?? []) findings.push(...ruleUnreachableFeature(feature));
+  for (const category of input.brainCategories ?? [])
+    findings.push(...ruleUnreachableBrainCategory(category));
 
   return {
     startedAt,

@@ -15,6 +15,7 @@ import { fileURLToPath } from 'node:url';
 import pg from 'pg';
 import { STATE_COLOUR, type CapabilityAuditState } from '@halyard/core';
 import {
+  collectBrainCategoryFacts,
   collectFeatureFacts,
   collectGateFacts,
   collectJobFacts,
@@ -55,6 +56,12 @@ async function main(): Promise<void> {
   let pool: pg.Pool | null = null;
   let runtime = EMPTY_RUNTIME;
   let features: Awaited<ReturnType<typeof collectFeatureFacts>> = [];
+  /**
+   * Null on a static run, which is honest rather than degraded: reachability is
+   * decided by the registry, and the database only adds how many facts a
+   * category already holds.
+   */
+  let brainQuery: Parameters<typeof collectBrainCategoryFacts>[0] = null;
 
   if (withRuntime || persist) {
     const connectionString = process.env.DATABASE_URL;
@@ -68,6 +75,7 @@ async function main(): Promise<void> {
 
     runtime = await collectRuntimeEvidence(query);
     features = await collectFeatureFacts(query, facts);
+    brainQuery = query;
   }
 
   /**
@@ -87,6 +95,7 @@ async function main(): Promise<void> {
     jobs: collectJobFacts(REPO_ROOT),
     gates: collectGateFacts(facts),
     features,
+    brainCategories: await collectBrainCategoryFacts(brainQuery),
     availableTools,
     runtime,
   });

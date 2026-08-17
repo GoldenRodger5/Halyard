@@ -36,6 +36,7 @@ const NAV: Array<{ href: string; label: string; group: 'work' | 'plan' | 'config
   { href: '/assets', label: 'Assets', group: 'plan' },
   { href: '/campaigns', label: 'Campaigns', group: 'plan' },
   { href: '/analytics', label: 'Analytics', group: 'plan' },
+  { href: '/brain', label: 'Product Brain', group: 'plan' },
   { href: '/products', label: 'Products', group: 'config' },
   { href: '/accounts', label: 'Accounts', group: 'config' },
   { href: '/setup-kit', label: 'Setup kit', group: 'config' },

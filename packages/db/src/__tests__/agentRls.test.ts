@@ -25,9 +25,20 @@ const d = available ? describe : describe.skip;
 
 let pool: pg.Pool;
 
-/** The four tables this phase added, plus the one 0026 corrects. */
+/** The four tables P0 added, plus the one 0026 corrects. */
 const P0_TABLES = ['agent_runs', 'capability_audit_state', 'auditor_runs', 'auditor_findings'];
-const ALL_PROTECTED = [...P0_TABLES, 'feature_claims'];
+
+/**
+ * The two P1 added.
+ *
+ * Held to the same boundary, and for a sharper reason than the P0 tables: the
+ * Product Brain holds an operator's understanding of their own product —
+ * positioning, pricing, audience — which is commercially sensitive in a way an
+ * execution log is not.
+ */
+const P1_TABLES = ['product_evidence', 'product_facts'];
+
+const ALL_PROTECTED = [...P0_TABLES, ...P1_TABLES, 'feature_claims'];
 
 const ADMIN_ID = '11111111-1111-1111-1111-111111111111';
 const OUTSIDER_ID = '22222222-2222-2222-2222-222222222222';
@@ -100,6 +111,18 @@ beforeAll(async () => {
     `insert into feature_claims (product_id, name, summary, source, replay)
      values ('recipefix','Seeded','summary','crawl','{"steps":[]}'::jsonb)
      on conflict do nothing`,
+  );
+  const seededEvidence = await pool.query<{ id: string }>(
+    `insert into product_evidence (product_id, kind, source_url, content_hash, body, collector)
+     values ('recipefix','web_page','https://seed.test','seedhash','seeded for the RLS test','test')
+     returning id`,
+  );
+  await pool.query(
+    `insert into product_facts
+       (product_id, category, key, value, evidence_ids, agent_id, agent_version)
+     values ('recipefix','identity','seeded','Seeded for the RLS test', array[$1::uuid],
+             'product-discovery','1.0')`,
+    [seededEvidence.rows[0]!.id],
   );
 }, 180_000);
 
@@ -204,7 +227,7 @@ d('anon is denied', () => {
     }
   });
 
-  it.each(P0_TABLES)('cannot write to %s', async (table) => {
+  it.each([...P0_TABLES, ...P1_TABLES])('cannot write to %s', async (table) => {
     const result = await asRole('anon', null, `delete from ${table}`);
     if (result.ok) {
       const { rows } = await pool.query<{ n: string }>(`select count(*) as n from ${table}`);
@@ -230,8 +253,15 @@ d('a non-admin authenticated user is denied', () => {
     }
   });
 
-  it.each(P0_TABLES)('cannot insert into %s', async (table) => {
+  it.each([...P0_TABLES, ...P1_TABLES])('cannot insert into %s', async (table) => {
     const sql: Record<string, string> = {
+      product_evidence: `insert into product_evidence
+                           (product_id, kind, content_hash, body, collector)
+                         values ('recipefix','web_page','injected','injected','injected')`,
+      product_facts: `insert into product_facts
+                        (product_id, category, key, value, evidence_ids, agent_id, agent_version)
+                      values ('recipefix','identity','injected','injected',
+                              array[gen_random_uuid()], 'injected','1.0')`,
       agent_runs: `insert into agent_runs (agent_id, agent_version, team, trigger, status)
                    values ('x','1','content','job','succeeded')`,
       capability_audit_state: `insert into capability_audit_state (capability_id, kind, state, reason)
@@ -251,23 +281,26 @@ d('a non-admin authenticated user is denied', () => {
     expect(result.error).toMatch(/permission denied|violates row-level security|foreign key/i);
   });
 
-  it.each(P0_TABLES)('cannot update or delete %s', async (table) => {
+  /** The column each table is probed through, so the vandalism is detectable. */
+  const HACK_COLUMN: Record<string, string> = {
+    agent_runs: 'agent_id',
+    capability_audit_state: 'reason',
+    auditor_runs: 'triggered_by',
+    auditor_findings: 'detail',
+    product_evidence: 'collector',
+    product_facts: 'value',
+  };
+
+  it.each([...P0_TABLES, ...P1_TABLES])('cannot update or delete %s', async (table) => {
+    const column = HACK_COLUMN[table]!;
     const update = await asRole(
       'authenticated',
       OUTSIDER_ID,
-      `update ${table} set ${table === 'agent_runs' ? "agent_id = 'hacked'" : table === 'capability_audit_state' ? "reason = 'hacked'" : table === 'auditor_runs' ? "triggered_by = 'hacked'" : "detail = 'hacked'"}`,
+      `update ${table} set ${column} = 'hacked'`,
     );
     if (update.ok) {
       const { rows } = await pool.query<{ n: string }>(
-        `select count(*) as n from ${table} where ${
-          table === 'agent_runs'
-            ? "agent_id = 'hacked'"
-            : table === 'capability_audit_state'
-              ? "reason = 'hacked'"
-              : table === 'auditor_runs'
-                ? "triggered_by = 'hacked'"
-                : "detail = 'hacked'"
-        }`,
+        `select count(*) as n from ${table} where ${column} = 'hacked'`,
       );
       expect(Number(rows[0]!.n), `${table} was modified by a non-admin`).toBe(0);
     } else {

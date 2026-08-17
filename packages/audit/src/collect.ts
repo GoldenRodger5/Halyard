@@ -13,7 +13,14 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import type { FactBase } from './scanner.js';
-import type { FeatureFact, GateFact, JobFacts, RuntimeEvidence } from './rules.js';
+import { FACT_CATEGORIES, REACHABLE_CATEGORIES } from '@halyard/core';
+import type {
+  BrainCategoryFact,
+  FeatureFact,
+  GateFact,
+  JobFacts,
+  RuntimeEvidence,
+} from './rules.js';
 
 /**
  * The job graph, read from source rather than from a list somebody maintains.
@@ -229,5 +236,43 @@ export async function collectFeatureFacts(
     why: producible.has(t.renderer)
       ? ''
       : `No non-test code path inserts a '${t.renderer}' render, so nothing can produce it.`,
+  }));
+}
+
+/**
+ * The Brain's fact categories, and whether an agent can fill each.
+ *
+ * `REACHABLE_CATEGORIES` is built by spreading the four per-agent category
+ * arrays, so it cannot drift from what the agents actually declare — the
+ * comparison is therefore between what the **UI offers** (`FACT_CATEGORIES`,
+ * which `/brain/[category]` will render a page for) and what the **agents can
+ * produce**. Two independent lists, which is what makes this a real check
+ * rather than a constant compared with itself.
+ *
+ * The fact count needs the database, so it is zero on a static run. That
+ * understates one variant of the finding and never invents one: a category with
+ * no producer is unreachable whether or not anything is stored in it.
+ */
+export async function collectBrainCategoryFacts(
+  query: DbQuery | null,
+): Promise<BrainCategoryFact[]> {
+  let counts = new Map<string, number>();
+  if (query) {
+    try {
+      const rows = await query<{ category: string; n: string }>(
+        'select category, count(*) as n from product_facts group by category',
+      );
+      counts = new Map(rows.map((r) => [r.category, Number(r.n)]));
+    } catch {
+      // No table reachable. Reporting every category as holding zero facts is
+      // accurate about reachability, which is what the rule turns on.
+      counts = new Map();
+    }
+  }
+
+  return FACT_CATEGORIES.map((category) => ({
+    category,
+    reachable: REACHABLE_CATEGORIES.has(category),
+    factCount: counts.get(category) ?? 0,
   }));
 }

@@ -183,6 +183,19 @@ export class RecipeFixConnector implements ProductConnector {
   }
 
   /**
+   * The live tool list, as the server advertises it.
+   *
+   * Deliberately not `RECIPEFIX_TOOLS`, which is the *expected* set this client
+   * probes for. The Product Brain wants what the product actually exposes,
+   * including tools Halyard has never heard of — a hardcoded list would report
+   * the shape of Halyard's expectations as though it were the shape of the
+   * product.
+   */
+  async describeSurface(): Promise<Array<{ name: string; description?: string }>> {
+    return this.client.listTools();
+  }
+
+  /**
    * Per-tool health, not a single boolean. `estimate_nutrition` being down is a
    * footnote; `adapt_recipe` being down stops all generation, and the health
    * page needs to say which is which.

@@ -66,6 +66,20 @@ export interface ProductConnector {
   listRecentActivity(since: Date): Promise<ActivityItem[]>;
   getChangelog(): Promise<ChangelogEntry[]>;
   healthCheck(): Promise<ConnectorHealth>;
+
+  /**
+   * What this product's API actually advertises.
+   *
+   * Optional, because it only means something for a connector talking to a
+   * self-describing surface — an MCP server lists its tools, a GitHub repo does
+   * not. Used by the Product Brain as implementation truth: a tool the server
+   * advertises is a capability the product really has, whatever its landing
+   * page says about itself.
+   *
+   * Added rather than reaching past the interface into a connector's private
+   * client, which would make the Brain depend on one connector's internals.
+   */
+  describeSurface?(): Promise<Array<{ name: string; description?: string }>>;
 }
 
 export class ConnectorUnavailableError extends Error {
