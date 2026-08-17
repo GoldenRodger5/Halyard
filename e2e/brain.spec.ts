@@ -98,6 +98,25 @@ test.describe('the Product Brain', () => {
     await page.goto('/brain/users');
     await expect(page.getByText(/unverified · 0\.25 · 1 source/)).toBeVisible();
     await expect(page.getByText('never verified').first()).toBeVisible();
+    // A fact is fine to show an operator long before it is fine to quote.
+    await expect(page.getByText(/Not safe to state publicly/)).toBeVisible();
+  });
+
+  test('a verified, current fact is marked safe to quote', async ({ page }) => {
+    const a = await seedEvidence('https://e2e.test/q1', 'e2e-hash-q1');
+    const b = await seedEvidence('https://e2e.test/q2', 'e2e-hash-q2');
+    await db().query(
+      `insert into product_facts
+         (product_id, category, key, value, status, confidence, evidence_ids,
+          agent_id, agent_version, last_verified_at)
+       values ('recipefix','differentiators','e2e_diff','Adapts rather than substitutes',
+               'verified', 0.50, array[$1::uuid,$2::uuid], 'product-discovery','1.0', now())`,
+      [a, b],
+    );
+
+    await page.goto('/brain/differentiators');
+    await expect(page.getByText(/safe to state publicly/)).toBeVisible();
+    await expect(page.getByText(/Not safe to state publicly/)).toHaveCount(0);
   });
 
   test('a contradiction shows both sides and resolves neither', async ({ page }) => {
