@@ -129,6 +129,37 @@ d('evidence collection is idempotent', () => {
 });
 
 d('the database refuses a fact with no evidence', () => {
+  it('refuses to delete evidence a fact still cites', async () => {
+    /**
+     * `evidence_ids` is a `uuid[]` and Postgres cannot foreign-key an array
+     * element, so without this the insert-time check was the only protection:
+     * deleting the evidence left a fact citing a uuid resolving to nothing,
+     * rendering with an empty provenance list — sourced-looking and unsourced.
+     *
+     * `restrict` rather than `cascade` on purpose. Cascading would silently
+     * delete the conclusions, trading a visible dangling reference for an
+     * invisible disappearance.
+     */
+    const id = await seedEvidence('web_page', 'https://x.test/cited', 'body');
+    await pool.query(
+      `insert into product_facts
+         (product_id, category, key, value, evidence_ids, agent_id, agent_version)
+       values ('recipefix','identity','cited','A fact', array[$1::uuid],
+               'product-discovery','1.0')`,
+      [id],
+    );
+
+    await expect(
+      pool.query('delete from product_evidence where id = $1', [id]),
+    ).rejects.toThrow(/cannot delete evidence/);
+
+    // Deleting the conclusion first is allowed, because that is a deliberate act.
+    await pool.query(`delete from product_facts where key = 'cited'`);
+    await expect(
+      pool.query('delete from product_evidence where id = $1', [id]),
+    ).resolves.toBeTruthy();
+  });
+
   it('rejects the insert rather than trusting the writer', async () => {
     /**
      * The single rule the whole design rests on, enforced where it cannot be
