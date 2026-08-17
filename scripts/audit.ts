@@ -135,10 +135,12 @@ async function main(): Promise<void> {
 
   // ── Persist ──────────────────────────────────────────────────────────────
   if (persist && pool) {
-    let gitSha = '';
+    let gitSha: string;
     try {
       gitSha = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: REPO_ROOT }).toString().trim();
     } catch {
+      // Not a git checkout, or git is unavailable. The finding is still valid;
+      // it just cannot be traced to a commit.
       gitSha = '';
     }
 

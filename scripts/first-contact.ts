@@ -223,7 +223,7 @@ async function pickItem(ctx: Ctx, itemId?: string): Promise<{
 
   // Missing or unopenable — either way there is no live account, which is a
   // different problem from having no item and is reported as such.
-  let account: PublishAccount | null = null;
+  let account: PublishAccount | null;
   try {
     account = (await loadAccount(ctx, row.persona))?.account ?? null;
   } catch {

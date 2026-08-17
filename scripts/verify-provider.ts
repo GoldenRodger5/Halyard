@@ -26,7 +26,6 @@ import {
   DIRECT_METRICS,
   TARGET_TYPE,
   missingMetrics,
-  type Capability,
   type PlatformCapability,
   type PlatformId,
   type ProviderCapabilities,
@@ -186,7 +185,6 @@ async function verifyTikTok(
 
   // Ask for public explicitly. If the app is unaudited, TikTok forces SELF_ONLY
   // and the response says so — which is the answer either way.
-  const notes: string[] = [];
   try {
     const created = (await api('/posts', {
       method: 'POST',
