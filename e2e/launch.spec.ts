@@ -77,10 +77,20 @@ test.describe('launch batch', () => {
   test('generating twice does not write the fortnight twice', async ({ page }) => {
     await stage(page);
 
+    // Polled: staging is a server action, and the count below races its commit
+    // on a slower runner. The assertion is unchanged.
+    await expect
+      .poll(async () => {
+        const { rows } = await db().query<{ n: string }>(
+          `select count(*) as n from content_items where generation_meta->>'source' = 'launch_batch'`,
+        );
+        return Number(rows[0]!.n);
+      })
+      .toBeGreaterThan(0);
+
     const first = await db().query<{ n: string }>(
       `select count(*) as n from content_items where generation_meta->>'source' = 'launch_batch'`,
     );
-    expect(Number(first.rows[0]!.n)).toBeGreaterThan(0);
 
     // Replanning must not see its own untouched slots as a full calendar and
     // defer everything — the bug this test was written to catch.

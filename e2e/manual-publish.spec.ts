@@ -68,11 +68,16 @@ test.describe('posts you have to make yourself', () => {
     await page.getByRole('button', { name: 'I posted it' }).click();
     await page.waitForLoadState('networkidle');
 
-    const { rows } = await db().query<{ status: string }>(
-      'select status from content_items where id = $1',
-      [item.id],
-    );
-    expect(rows[0]!.status).toBe('published');
+    // Polled, for the same reason as the job read above.
+    await expect
+      .poll(async () => {
+        const { rows } = await db().query<{ status: string }>(
+          'select status from content_items where id = $1',
+          [item.id],
+        );
+        return rows[0]!.status;
+      })
+      .toBe('published');
 
     // Recorded against the real URL, so metrics have something to collect on
     // and the claim of "published" rests on more than an assertion.

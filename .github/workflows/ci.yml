@@ -65,6 +65,14 @@ jobs:
       - name: Install FFmpeg
         run: sudo apt-get update && sudo apt-get install -y ffmpeg
 
+      # The Explorer's replay tests drive a real browser: `verifyFeature.test.ts`
+      # calls `chromium.launch()` directly, so the verify job needs the browser
+      # as well as ffmpeg. Driving a real browser is the point of those tests —
+      # a stubbed Playwright would prove only that the code calls the functions
+      # it calls.
+      - name: Install the browser for the replay tests
+        run: pnpm exec playwright install --with-deps chromium
+
       - name: Apply migrations to a real Postgres
         run: pnpm db:reset -- --fresh --seed
         env:
