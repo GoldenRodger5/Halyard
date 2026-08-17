@@ -12,34 +12,13 @@
 -- Idempotent.
 -- ═══════════════════════════════════════════════════════════════════════════
 
--- ── Accounts, one per capability state ─────────────────────────────────────
-insert into social_accounts (product_id, platform, persona, handle, capability_state,
-                             capability_detail, supported_formats, link_strategy)
-values
-  ('recipefix','x','brand','@recipefix','live',
-   'No review gate on X. Posting is live and billed per call.',
-   array['text','image','video'],'first_reply'),
-  -- The founder account lives on the personal product, not on RecipeFix: it is
-  -- one identity shared across every product, and its routing scope says so.
-  ('founder','x','founder','@isaacmineo','live',
-   'Founder account. Opinion content is input-gated: no take without your input.',
-   array['text','image'],'first_reply'),
-  ('recipefix','instagram','brand','@recipefix','draft_only',
-   'Connected. Publishing works against your own account in dev mode; public use needs Meta App Review (2 to 4 weeks per submission).',
-   array['image','carousel','video'],'bio_only'),
-  ('recipefix','pinterest','brand','@recipefix','draft_only',
-   'Trial access. Pins are created as sandbox entities and are visible only to you.',
-   array['pin','image'],'pin_destination'),
-  ('recipefix','youtube','brand','RecipeFix','draft_only',
-   'Connected. Until the compliance audit passes, uploads land as private.',
-   array['video'],'description'),
-  ('recipefix','tiktok','brand','@recipefix','draft_only',
-   'Unaudited clients can only post SELF_ONLY with the account private, so uploads go to your drafts. The API also cannot attach trending audio.',
-   array['video'],'bio_only'),
-  ('recipefix','threads','brand','@recipefix','pending_auth',
-   null, array['text','image'],'in_body')
-on conflict (product_id, platform, persona) do nothing;
-
+-- ── Accounts ───────────────────────────────────────────────────────────────
+--
+-- The account rows themselves now live in `seed.sql`, where they belong: the
+-- topology is configuration, and filing it here meant the canonical seed path
+-- CI runs produced a database with no accounts at all.
+--
+-- What stays here is the part that is genuinely demo presentation.
 -- Demo accounts are shown as identity-confirmed, because an account whose
 -- identity has never been checked is a state the accounts screen is supposed to
 -- shout about, and every row shouting is the same as none of them shouting.

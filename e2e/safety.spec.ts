@@ -5,6 +5,23 @@
 import { db, expect, seedItem, test } from './fixtures';
 
 test.describe('the kill switch', () => {
+  /**
+   * Establish the precondition rather than inherit it.
+   *
+   * This test pauses publishing, so it needs publishing to be running first.
+   * It had an `afterEach` restoring that state and no `beforeEach` setting it,
+   * which worked only because `seed-demo.sql` happens to enable publishing —
+   * and the canonical `db:reset --fresh --seed` path that CI runs does not.
+   *
+   * The schema default is `false` and that is deliberate: publishing is off
+   * until somebody turns it on. Enabling it in the canonical seed to satisfy a
+   * test would weaken a safety default, so the test arranges its own state
+   * instead. No assertion below changes.
+   */
+  test.beforeEach(async () => {
+    await db().query('update settings set publishing_enabled = true, publishing_disabled_reason = null');
+  });
+
   test.afterEach(async () => {
     await db().query('update settings set publishing_enabled = true, publishing_disabled_reason = null');
   });
