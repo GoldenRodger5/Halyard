@@ -1,5 +1,15 @@
 # Halyard — full repository audit
 
+> **Superseded as a source of current numbers.** This is a snapshot of one day,
+> kept as written — its counts were true on 17 August 2026 and are not now.
+> The live audit is `pnpm audit-halyard [--runtime]`, which derives the same
+> facts from the TypeScript AST on every run; `docs/AGENT_REGISTRY.md` describes
+> it. This hand audit was wrong twice using `grep` (it missed `factCheckTake`
+> and counted `.next` build output as callers), which is why the tool exists.
+>
+> What remains valuable here is the reasoning — the topology, the design
+> positions, and why each judgement was made.
+
 **17 August 2026.** Audited against the code and against the production database,
 not against the architecture documents — which describe several things as
 working that are not.
