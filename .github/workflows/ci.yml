@@ -57,6 +57,14 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      # The audio, tts, review-media and render tests shell out to ffmpeg and
+      # ffprobe. Without them five test files fail with `spawn ffmpeg ENOENT`,
+      # which was invisible while Actions was billing-locked. Installing the
+      # binary is the honest fix — skipping those tests when it is absent would
+      # make coverage a property of the runner image.
+      - name: Install FFmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
       - name: Apply migrations to a real Postgres
         run: pnpm db:reset -- --fresh --seed
         env:
@@ -127,7 +135,11 @@ jobs:
         run: pnpm db:reset -- --fresh --seed
 
       - name: Install the browser
-        run: pnpm exec playwright install --with-deps chromium
+        # Both browsers: the `desktop` project is Chromium and the `mobile`
+        # project is an iPhone 14, which Playwright drives with WebKit. Only
+        # chromium was installed, so every mobile test failed on a missing
+        # executable rather than on anything about the app.
+        run: pnpm exec playwright install --with-deps chromium webkit
 
       - name: End-to-end
         run: pnpm exec playwright test
