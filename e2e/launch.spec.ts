@@ -141,10 +141,17 @@ test.describe('launch batch', () => {
     await page.getByRole('button', { name: 'Discard the batch' }).click();
     await page.waitForLoadState('networkidle');
 
-    const left = await db().query<{ n: string }>(
-      `select count(*) as n from content_items
-        where generation_meta->>'source' = 'launch_batch' and status = 'draft'`,
-    );
-    expect(Number(left.rows[0]!.n)).toBe(0);
+    // Polled, for the same reason as the counts above: discarding is a server
+    // action, and a quiet network is not a committed transaction. Read once,
+    // this saw the full batch still present on a CI runner. Same assertion.
+    await expect
+      .poll(async () => {
+        const { rows } = await db().query<{ n: string }>(
+          `select count(*) as n from content_items
+            where generation_meta->>'source' = 'launch_batch' and status = 'draft'`,
+        );
+        return Number(rows[0]!.n);
+      })
+      .toBe(0);
   });
 });
