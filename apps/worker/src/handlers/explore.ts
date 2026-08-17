@@ -30,6 +30,7 @@ import {
   type PageOutline,
 } from '@halyard/core';
 import type { HandlerContext, Job } from '../poller.js';
+import { recordingClient } from '../agentRuns.js';
 
 /** How many pages one exploration run visits. */
 export const MAX_PAGES = 12;
@@ -78,7 +79,7 @@ export async function exploreHandler(job: Job, ctx: HandlerContext): Promise<voi
   );
   const existingNames = existing.map((e) => e.name);
 
-  const llm = createLlmClient();
+  const llm = recordingClient(ctx.pool, createLlmClient(), { trigger: 'job', triggerRef: job.id });
   const browser = await chromium.launch({ headless: true });
   let proposed = 0;
   let refused = 0;

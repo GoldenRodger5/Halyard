@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { one, query } from '@/lib/db';
 import { requireOperator } from '@/lib/auth';
+import { recordingClient } from '@/lib/agentRuns';
 import { createLlmClient, extractJson } from '@halyard/core';
 
 export async function addFind(formData: FormData): Promise<void> {
@@ -49,7 +50,7 @@ export async function draftFind(formData: FormData): Promise<void> {
   if (!find || !account) return;
 
   try {
-    const llm = createLlmClient();
+    const llm = recordingClient(createLlmClient(), { trigger: 'ui_action', triggerRef: id });
     const response = await llm.complete({
       system: `You write a short post about a tool or technique the founder found useful.
 

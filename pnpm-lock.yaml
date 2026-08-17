@@ -11,6 +11,9 @@ importers:
       '@eslint/js':
         specifier: ^10.0.1
         version: 10.0.1(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))
+      '@halyard/audit':
+        specifier: workspace:*
+        version: link:packages/audit
       '@playwright/test':
         specifier: ^1.62.1
         version: 1.62.1
@@ -139,6 +142,18 @@ importers:
       '@types/pg':
         specifier: ^8.11.10
         version: 8.21.0
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+
+  packages/audit:
+    dependencies:
+      '@halyard/core':
+        specifier: workspace:*
+        version: link:../core
+      '@halyard/db':
+        specifier: workspace:*
+        version: link:../db
       typescript:
         specifier: ^5.7.3
         version: 5.9.3
