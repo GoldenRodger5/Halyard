@@ -42,7 +42,18 @@ test.describe('planning a campaign', () => {
     await expect(page.getByRole('heading', { name: 'E2E Product Hunt launch' })).toBeVisible();
 
     await page.getByRole('button', { name: 'Plan the sequence' }).click();
-    await expect.poll(() => planned('E2E Product Hunt launch')).toBeGreaterThan(0);
+
+    /**
+     * Wait for the count this test actually needs, not for the first row.
+     *
+     * The planner inserts one slot per statement in a loop, each its own
+     * autocommit, so a reader can observe the table part-filled. Polling for
+     * `> 0` returned as soon as the *first* insert landed and the assertions
+     * below then read a partial plan — reliably on a slow CI runner, never on
+     * a fast local machine. The assertions are unchanged; only the barrier is,
+     * and it now matches what they require.
+     */
+    await expect.poll(() => planned('E2E Product Hunt launch')).toBeGreaterThanOrEqual(10);
 
     const { rows } = await db().query<{
       platform: string;
