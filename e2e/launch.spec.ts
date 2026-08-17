@@ -23,8 +23,21 @@ async function stage(page: Page): Promise<void> {
   await page.goto('/launch');
   await generateButton(page).click();
   await page.waitForLoadState('networkidle');
-  await page.reload();
-  await expect(page.getByText(/posts staged/)).toBeVisible();
+
+  /**
+   * Reload until the batch appears, rather than reloading once and hoping.
+   *
+   * Staging a fortnight is a server action that keeps working after the network
+   * goes quiet, and this page is server-rendered — so `toBeVisible` retries the
+   * locator against a snapshot that can never change. One reload was enough on
+   * a fast machine and lost the race on a CI runner.
+   */
+  await expect
+    .poll(async () => {
+      await page.reload();
+      return page.getByText(/posts staged/).isVisible();
+    }, { timeout: 30_000 })
+    .toBe(true);
 }
 
 const CLEANUP = `delete from jobs where dedupe_key like 'launch_generate:%';
