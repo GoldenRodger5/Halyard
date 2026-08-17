@@ -181,6 +181,28 @@ create index if not exists auditor_findings_run_idx on auditor_findings (auditor
 create index if not exists auditor_findings_rule_idx on auditor_findings (rule, created_at desc);
 
 -- ── RLS, matching every other table in this database ───────────────────────
+--
+-- The established Halyard model, from 0010 and 0020, and reused rather than
+-- reinvented:
+--
+--   * RLS enabled AND forced, so the owning role is subject to policy too.
+--   * One `admin_all` policy per table, gated on `public.is_admin()`. The
+--     policy is **not** scoped `to authenticated` — it applies to every role
+--     that does not bypass RLS, which is what makes it a boundary rather than
+--     a suggestion.
+--   * `anon` and `authenticated` are revoked entirely. Halyard reaches its data
+--     over a direct server-side connection, not through PostgREST, so neither
+--     role needs any privilege on these tables.
+--
+-- The worker is unaffected: it connects as a role with `rolbypassrls`, which
+-- bypasses RLS regardless of FORCE. That is verified in `agentRls.test.ts`
+-- rather than assumed here.
+--
+-- An earlier draft of this migration used `for all to authenticated using
+-- (true) with check (true)`, which would have handed every authenticated
+-- Supabase user unrestricted read and write over the agent execution log. It
+-- was invisible in local testing because a plain Postgres has no `authenticated`
+-- role, so the guarded block that created it never ran.
 alter table agent_runs enable row level security;
 alter table agent_runs force row level security;
 alter table capability_audit_state enable row level security;
@@ -190,22 +212,38 @@ alter table auditor_runs force row level security;
 alter table auditor_findings enable row level security;
 alter table auditor_findings force row level security;
 
+-- Policies are created unconditionally. A policy does not depend on a role
+-- existing, and guarding it on one is how a table ends up RLS-enabled with no
+-- policy at all — which denies everyone, including the paths that should work,
+-- and looks like a permissions bug rather than a missing migration.
 do $$
 declare
   t text;
 begin
   foreach t in array array['agent_runs', 'capability_audit_state', 'auditor_runs', 'auditor_findings'] loop
-    if exists (select 1 from pg_roles where rolname = 'authenticated') then
+    if not exists (
+      select 1 from pg_policies
+       where schemaname = 'public' and tablename = t and policyname = 'admin_all'
+    ) then
       execute format(
-        'create policy %I on %I for all to authenticated using (true) with check (true)',
-        t || '_admin', t
-      );
-      execute format('grant select, insert, update, delete on %I to authenticated', t);
+        'create policy admin_all on public.%I for all
+           using (public.is_admin()) with check (public.is_admin())', t);
     end if;
-    -- The anon role reaches nothing, as migration 0020 established for every
-    -- other table here.
-    if exists (select 1 from pg_roles where rolname = 'anon') then
-      execute format('revoke all on %I from anon', t);
-    end if;
+  end loop;
+end $$;
+
+-- Grants are role-specific, so these are guarded: the roles exist on Supabase
+-- and not on a plain Postgres.
+do $$
+declare
+  t text;
+  r text;
+begin
+  foreach t in array array['agent_runs', 'capability_audit_state', 'auditor_runs', 'auditor_findings'] loop
+    foreach r in array array['anon', 'authenticated'] loop
+      if exists (select 1 from pg_roles where rolname = r) then
+        execute format('revoke all on public.%I from %I', t, r);
+      end if;
+    end loop;
   end loop;
 end $$;

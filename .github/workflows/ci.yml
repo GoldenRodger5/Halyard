@@ -71,7 +71,7 @@ jobs:
 
       - name: Typecheck
         run: |
-          for dir in packages/core packages/db packages/render packages/ui apps/worker apps/web; do
+          for dir in packages/core packages/db packages/render packages/ui packages/audit apps/worker apps/web; do
             echo "── $dir"
             (cd "$dir" && pnpm exec tsc --noEmit)
           done
