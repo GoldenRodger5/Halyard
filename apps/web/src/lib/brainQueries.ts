@@ -193,9 +193,22 @@ export async function getEvidence(productId: string): Promise<EvidenceRow[]> {
   }));
 }
 
-/** The evidence behind one fact, so a claim can be followed to its source. */
-export async function getEvidenceForFact(factId: string): Promise<EvidenceRow[]> {
+/**
+ * The evidence behind a set of facts, in one query.
+ *
+ * Deliberately plural. The first version took a single fact id and the category
+ * screen called it once per fact — an N+1 that issued eighteen round trips to
+ * render eighteen rows, against a web pool capped at five connections. One
+ * query and a group-by in JavaScript is the same result without the fan-out.
+ */
+export async function getEvidenceForFacts(
+  factIds: string[],
+): Promise<Map<string, EvidenceRow[]>> {
+  const byFact = new Map<string, EvidenceRow[]>();
+  if (factIds.length === 0) return byFact;
+
   const rows = await query<{
+    fact_id: string;
     id: string;
     kind: string;
     source_url: string | null;
@@ -206,26 +219,31 @@ export async function getEvidenceForFact(factId: string): Promise<EvidenceRow[]>
     superseded_by: string | null;
     body_chars: string;
   }>(
-    `select e.id, e.kind, e.source_url, e.title, e.content_hash, e.collected_at,
-            e.collector, e.superseded_by, length(e.body) as body_chars
-       from product_evidence e
-       join product_facts f on e.id = any(f.evidence_ids)
-      where f.id = $1
+    `select f.id as fact_id, e.id, e.kind, e.source_url, e.title, e.content_hash,
+            e.collected_at, e.collector, e.superseded_by, length(e.body) as body_chars
+       from product_facts f
+       join product_evidence e on e.id = any(f.evidence_ids)
+      where f.id = any($1::uuid[])
       order by e.collected_at desc`,
-    [factId],
+    [factIds],
   );
-  return rows.map((r) => ({
-    id: r.id,
-    kind: r.kind,
-    sourceUrl: r.source_url,
-    title: r.title,
-    contentHash: r.content_hash,
-    collectedAt: new Date(r.collected_at),
-    collector: r.collector,
-    superseded: r.superseded_by !== null,
-    bodyChars: Number(r.body_chars),
-    citedBy: 1,
-  }));
+
+  for (const r of rows) {
+    const entry: EvidenceRow = {
+      id: r.id,
+      kind: r.kind,
+      sourceUrl: r.source_url,
+      title: r.title,
+      contentHash: r.content_hash,
+      collectedAt: new Date(r.collected_at),
+      collector: r.collector,
+      superseded: r.superseded_by !== null,
+      bodyChars: Number(r.body_chars),
+      citedBy: 1,
+    };
+    byFact.set(r.fact_id, [...(byFact.get(r.fact_id) ?? []), entry]);
+  }
+  return byFact;
 }
 
 export interface FeatureRow {

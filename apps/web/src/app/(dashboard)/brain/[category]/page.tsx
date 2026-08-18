@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { CATEGORY_LABELS, FACT_CATEGORIES, REACHABLE_CATEGORIES, type FactCategory } from '@halyard/core';
 import { Card, EmptyState, PageHeader, SectionTitle } from '@halyard/ui';
-import { getEvidenceForFact, getFacts } from '@/lib/brainQueries';
+import { getEvidenceForFacts, getFacts } from '@/lib/brainQueries';
 import { getCurrentProduct } from '@/lib/queries';
 import { formatInOperatorTz } from '@/lib/format';
 import { BrainNav, FactConfidence } from '../BrainNav';
@@ -39,8 +39,9 @@ export default async function CategoryPage({
   const reachable = REACHABLE_CATEGORIES.has(factCategory);
 
   // The evidence behind each fact, so a claim can be followed to a source URL
-  // and a collection time without leaving the page.
-  const evidence = await Promise.all(facts.map((fact) => getEvidenceForFact(fact.id)));
+  // and a collection time without leaving the page. One query for all of them,
+  // rather than one per fact against a five-connection pool.
+  const evidence = await getEvidenceForFacts(facts.map((f) => f.id));
 
   return (
     <>
@@ -75,7 +76,7 @@ export default async function CategoryPage({
         />
       ) : (
         <div className="space-y-4">
-          {facts.map((fact, i) => (
+          {facts.map((fact) => (
             <Card key={fact.id} className="p-5">
               <div className="flex items-baseline justify-between gap-4">
                 <SectionTitle hint={fact.key}>{fact.value}</SectionTitle>
@@ -116,7 +117,7 @@ export default async function CategoryPage({
                   · updated {formatInOperatorTz(fact.updatedAt.toISOString(), tz)}
                 </p>
                 <ul className="mt-2 space-y-1">
-                  {evidence[i]!.map((source) => (
+                  {(evidence.get(fact.id) ?? []).map((source) => (
                     <li key={source.id} className="text-xs text-muted">
                       <span className="text-ink">{source.kind}</span>
                       {source.sourceUrl ? (
