@@ -177,6 +177,23 @@ insert into templates (id, product_id, renderer, format, aspect_ratio, descripti
   ('FeatureDemo',              'recipefix', 'playwright','video',    '9:16', 'Playwright capture, long wait cut, captioned with the measured time')
 on conflict (id) do nothing;
 
+/*
+ * FeatureDemo is disabled, because nothing can produce it.
+ *
+ * The Auditor reports `feature.enabled_unreachable` on it, and the finding is
+ * correct: the only non-test code that inserts into `renders` is
+ * `generate.ts`, which writes `satori` and `remotion` renders and never a
+ * `playwright` one. An enabled template no code path can reach is a capability
+ * that exists on a screen and nowhere else — the exact phantom the Auditor was
+ * built to catch.
+ *
+ * It is disabled rather than deleted: the template and its capture flow are
+ * real work, and the day a caller inserts a playwright render this becomes a
+ * one-line change. Deleting it would lose that; leaving it enabled would keep
+ * claiming a capability the system does not have.
+ */
+update templates set enabled = false where id = 'FeatureDemo';
+
 -- ── Series (v2 I.3) — franchises build habit ───────────────────────────────
 insert into series (product_id, name, description, template_id, cadence) values
   ('recipefix', 'Fix This Recipe',      'A reader-submitted recipe, adapted on camera', 'TransformationDiff', 'weekly'),

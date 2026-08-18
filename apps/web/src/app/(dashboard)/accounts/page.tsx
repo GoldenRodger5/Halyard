@@ -22,6 +22,13 @@ import {
   type ProviderCapabilities,
 } from '@halyard/core';
 import { getAllAccounts, type AccountRow } from '@/lib/queries';
+import {
+  getRecentProbes,
+  resolveForAccount,
+  strategyView,
+  type StrategyView,
+} from '@/lib/capabilityQueries';
+import { CapabilityPanel } from './CapabilityPanel';
 import { query } from '@/lib/db';
 import { formatInOperatorTz } from '@/lib/format';
 import { connectBluesky, runSelfTest, setCapabilityState, setTransport } from './actions';
@@ -69,6 +76,33 @@ export default async function AccountsPage({
   const adapters = allAdapters();
   const personalProduct = products.find((p) => p.kind === 'personal');
   const capabilities = provider[0]?.capabilities ?? null;
+
+  /**
+   * Capability, resolved per connected platform rather than stored.
+   *
+   * Computed at read time so it cannot drift from the account state, the probe
+   * and the policy it derives from — the same reasoning P1 applied to fact
+   * status. Every account for a platform shares the platform's transport
+   * observation, so one account per platform is enough to show the picture.
+   */
+  const probes = await getRecentProbes();
+  const seenPlatforms = new Map<string, AccountRow>();
+  for (const account of accounts) {
+    if (!seenPlatforms.has(account.platform)) seenPlatforms.set(account.platform, account);
+  }
+  const capabilityViews = [...seenPlatforms.entries()].map(([platform, account]) =>
+    resolveForAccount({
+      platform: platform as Parameters<typeof strategyView>[0],
+      accountId: account.id,
+      accountState: account.capability_state as never,
+      transport: capabilities?.platforms?.[platform as never] ?? null,
+      provider: capabilities ? 'blotato' : null,
+      transportVerifiedAt: capabilities?.verifiedAt ? new Date(capabilities.verifiedAt) : null,
+    }),
+  );
+  const strategies: StrategyView[] = [...seenPlatforms.keys()].map((platform) =>
+    strategyView(platform as Parameters<typeof strategyView>[0]),
+  );
 
   return (
     <>
@@ -206,6 +240,8 @@ export default async function AccountsPage({
           </tbody>
         </table>
       </Card>
+
+      <CapabilityPanel views={capabilityViews} probes={probes} strategies={strategies} />
 
       <p className="max-w-3xl text-sm text-muted">{BROWSER_PROFILE_RULE}</p>
     </>

@@ -523,6 +523,54 @@ export interface CapabilityAuditStateUpdate {
   changed_at?: string | null;
 }
 
+export interface CapabilityProbesRow {
+  id: string;
+  provider: string;
+  platform: string | null;
+  action: string | null;
+  method: 'live_api' | 'dry_run' | 'manual';
+  outcome: 'confirmed' | 'refuted' | 'unavailable' | 'error';
+  detail: string;
+  observed: Json;
+  started_at: string;
+  completed_at: string | null;
+  duration_ms: number | null;
+  triggered_by: string;
+  job_id: string | null;
+}
+
+export interface CapabilityProbesInsert {
+  id?: string;
+  provider: string;
+  platform?: string | null;
+  action?: string | null;
+  method: 'live_api' | 'dry_run' | 'manual';
+  outcome: 'confirmed' | 'refuted' | 'unavailable' | 'error';
+  detail: string;
+  observed?: Json;
+  started_at?: string;
+  completed_at?: string | null;
+  duration_ms?: number | null;
+  triggered_by?: string;
+  job_id?: string | null;
+}
+
+export interface CapabilityProbesUpdate {
+  id?: string;
+  provider?: string;
+  platform?: string | null;
+  action?: string | null;
+  method?: 'live_api' | 'dry_run' | 'manual';
+  outcome?: 'confirmed' | 'refuted' | 'unavailable' | 'error';
+  detail?: string;
+  observed?: Json;
+  started_at?: string;
+  completed_at?: string | null;
+  duration_ms?: number | null;
+  triggered_by?: string;
+  job_id?: string | null;
+}
+
 export interface CaptureRunsRow {
   id: string;
   product_id: string;
@@ -1253,7 +1301,7 @@ export interface IdeasUpdate {
 
 export interface JobsRow {
   id: string;
-  kind: 'generate' | 'render' | 'tts' | 'capture' | 'publish' | 'collect_metrics' | 'collect_signals' | 'collect_comments' | 'collect_attribution' | 'refresh_tokens' | 'score_performance' | 'digest_email' | 'reconcile_schedule' | 'mark_stale_assets' | 'collect_app_store' | 'detect_release' | 'collect_watch_terms' | 'draft_newsletter' | 'send_newsletter' | 'collect_reviews' | 'review_media' | 'verify_feature' | 'explore_product' | 'collect_product_evidence' | 'build_product_brain';
+  kind: 'generate' | 'render' | 'tts' | 'capture' | 'publish' | 'collect_metrics' | 'collect_signals' | 'collect_comments' | 'collect_attribution' | 'refresh_tokens' | 'score_performance' | 'digest_email' | 'reconcile_schedule' | 'mark_stale_assets' | 'collect_app_store' | 'detect_release' | 'collect_watch_terms' | 'draft_newsletter' | 'send_newsletter' | 'collect_reviews' | 'review_media' | 'verify_feature' | 'explore_product' | 'collect_product_evidence' | 'build_product_brain' | 'verify_provider_capability';
   payload: Json;
   status: 'queued' | 'running' | 'done' | 'failed' | 'dead';
   priority: number;
@@ -1270,7 +1318,7 @@ export interface JobsRow {
 
 export interface JobsInsert {
   id?: string;
-  kind: 'generate' | 'render' | 'tts' | 'capture' | 'publish' | 'collect_metrics' | 'collect_signals' | 'collect_comments' | 'collect_attribution' | 'refresh_tokens' | 'score_performance' | 'digest_email' | 'reconcile_schedule' | 'mark_stale_assets' | 'collect_app_store' | 'detect_release' | 'collect_watch_terms' | 'draft_newsletter' | 'send_newsletter' | 'collect_reviews' | 'review_media' | 'verify_feature' | 'explore_product' | 'collect_product_evidence' | 'build_product_brain';
+  kind: 'generate' | 'render' | 'tts' | 'capture' | 'publish' | 'collect_metrics' | 'collect_signals' | 'collect_comments' | 'collect_attribution' | 'refresh_tokens' | 'score_performance' | 'digest_email' | 'reconcile_schedule' | 'mark_stale_assets' | 'collect_app_store' | 'detect_release' | 'collect_watch_terms' | 'draft_newsletter' | 'send_newsletter' | 'collect_reviews' | 'review_media' | 'verify_feature' | 'explore_product' | 'collect_product_evidence' | 'build_product_brain' | 'verify_provider_capability';
   payload?: Json;
   status?: 'queued' | 'running' | 'done' | 'failed' | 'dead';
   priority?: number;
@@ -1287,7 +1335,7 @@ export interface JobsInsert {
 
 export interface JobsUpdate {
   id?: string;
-  kind?: 'generate' | 'render' | 'tts' | 'capture' | 'publish' | 'collect_metrics' | 'collect_signals' | 'collect_comments' | 'collect_attribution' | 'refresh_tokens' | 'score_performance' | 'digest_email' | 'reconcile_schedule' | 'mark_stale_assets' | 'collect_app_store' | 'detect_release' | 'collect_watch_terms' | 'draft_newsletter' | 'send_newsletter' | 'collect_reviews' | 'review_media' | 'verify_feature' | 'explore_product' | 'collect_product_evidence' | 'build_product_brain';
+  kind?: 'generate' | 'render' | 'tts' | 'capture' | 'publish' | 'collect_metrics' | 'collect_signals' | 'collect_comments' | 'collect_attribution' | 'refresh_tokens' | 'score_performance' | 'digest_email' | 'reconcile_schedule' | 'mark_stale_assets' | 'collect_app_store' | 'detect_release' | 'collect_watch_terms' | 'draft_newsletter' | 'send_newsletter' | 'collect_reviews' | 'review_media' | 'verify_feature' | 'explore_product' | 'collect_product_evidence' | 'build_product_brain' | 'verify_provider_capability';
   payload?: Json;
   status?: 'queued' | 'running' | 'done' | 'failed' | 'dead';
   priority?: number;
@@ -1966,18 +2014,24 @@ export interface ProviderCapabilitiesRow {
   provider: string;
   capabilities: Json;
   verified_at: string;
+  probe_id: string | null;
+  method: 'live_api' | 'dry_run' | 'manual' | null;
 }
 
 export interface ProviderCapabilitiesInsert {
   provider: string;
   capabilities: Json;
   verified_at?: string;
+  probe_id?: string | null;
+  method?: 'live_api' | 'dry_run' | 'manual' | null;
 }
 
 export interface ProviderCapabilitiesUpdate {
   provider?: string;
   capabilities?: Json;
   verified_at?: string;
+  probe_id?: string | null;
+  method?: 'live_api' | 'dry_run' | 'manual' | null;
 }
 
 export interface PublicationsRow {
@@ -3050,6 +3104,7 @@ export interface Database {
     calibration_reviews: { Row: CalibrationReviewsRow; Insert: CalibrationReviewsInsert; Update: CalibrationReviewsUpdate; Relationships: [] };
     campaigns: { Row: CampaignsRow; Insert: CampaignsInsert; Update: CampaignsUpdate; Relationships: [] };
     capability_audit_state: { Row: CapabilityAuditStateRow; Insert: CapabilityAuditStateInsert; Update: CapabilityAuditStateUpdate; Relationships: [] };
+    capability_probes: { Row: CapabilityProbesRow; Insert: CapabilityProbesInsert; Update: CapabilityProbesUpdate; Relationships: [] };
     capture_runs: { Row: CaptureRunsRow; Insert: CaptureRunsInsert; Update: CaptureRunsUpdate; Relationships: [] };
     comment_replies: { Row: CommentRepliesRow; Insert: CommentRepliesInsert; Update: CommentRepliesUpdate; Relationships: [] };
     comments: { Row: CommentsRow; Insert: CommentsInsert; Update: CommentsUpdate; Relationships: [] };

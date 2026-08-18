@@ -30,6 +30,7 @@ import { ttsHandler } from './tts.js';
 import { exploreHandler } from './explore.js';
 import { collectEvidenceHandler } from './collectEvidence.js';
 import { buildBrainHandler } from './buildBrain.js';
+import { verifyCapabilityHandler } from './verifyCapability.js';
 import { verifyFeatureHandler } from './verifyFeature.js';
 
 async function loadAccount(ctx: HandlerContext, accountId: string): Promise<PublishAccount> {
@@ -353,6 +354,7 @@ export const HANDLERS: Partial<Record<JobKind, JobHandler>> = {
   explore_product: exploreHandler,
   collect_product_evidence: collectEvidenceHandler,
   build_product_brain: buildBrainHandler,
+  verify_provider_capability: verifyCapabilityHandler,
   collect_signals: collectSignalsHandler,
   capture: captureHandler,
   mark_stale_assets: markStaleAssetsHandler,

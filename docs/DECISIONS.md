@@ -1115,3 +1115,74 @@ and disagreement is representable.
 Found by a test asserting two rows and getting one. It would not have been found
 by reading the code, and it would never have been found in production — an
 absence of contradictions looks exactly like a consistent product.
+
+## 60. A verdict, not a third capability word
+
+Two capability vocabularies already existed and both were correct.
+`CapabilityState` (`pending_auth`/`draft_only`/`live`/`error`/`disabled`) is
+where one account sits in authentication and review. `Capability`
+(`yes`/`no`/`unknown`) is what a probe watched a transport do. Neither answers
+the question a caller actually has, which is whether *this account* can do
+*this thing* right now.
+
+P2 added `resolveCapability` rather than a third word. It is a pure function
+over five dimensions kept deliberately separate — platform, transport, account,
+policy, verification — and it owns no state. A resolver with a store would
+become a fourth opinion able to drift from the three it exists to reconcile,
+which is exactly what happened to capability in the first place.
+
+The verdict separates **`declared`** from **`verified`**, and only `verified` is
+actionable. An adapter declaring it supports carousels is a statement by whoever
+wrote the adapter; a probe is an observation. A system that renders those the
+same way will eventually publish on the strength of a sentence in a vendor's
+documentation.
+
+## 61. A probe that could not run is a result
+
+`capability_probes.outcome` has four values, and the important pair is
+`unavailable` versus `refuted`. A probe that ran and found the capability
+missing is a finding. A probe that could not run — no API key, provider
+unreachable — proves nothing at all.
+
+Collapsing them is how an absent credential hardens into a permanent "not
+supported", which downstream is indistinguishable from a platform that genuinely
+cannot do the thing. So the handler records `unavailable` and writes **no**
+capability row, and a failed probe never downgrades a belief an earlier
+successful probe established.
+
+This also gave `verify-provider` the ignition it never had. The script has
+existed since milestone 49 and `provider_capabilities` had never held a row,
+because running it was something an operator had to remember — the same shape
+`explore_product` had before P1.
+
+## 62. A skipped gate is not a passed gate
+
+`runAllGates` computed `passed: gates.every(g => g.status !== 'failed')`, and
+`skipped` is not `failed`. So an item whose gates never ran reported `passed:
+true` — the "never verified ≠ passed" violation this codebase is built around,
+arriving through the one function meant to enforce it.
+
+Callers can now declare `requires`, and a required gate that did not run fails
+honestly with a summary saying so. Declaring nothing keeps the old behaviour,
+which is correct for the six copy-time callers: `runAllGates` runs before any
+media exists, so it could never have supplied `visual` or `audio`. Those are
+measured by `runVisualQC` in `review_media` and `runAudioQC` in `tts`, each at
+the only moment its input exists.
+
+The Auditor's `gate.input_never_supplied` therefore remains, and remains
+accurate: no production caller supplies those inputs. Fixing it properly means
+unifying the two stages, which is a change to the quality system rather than to
+P2, and P0 explicitly declined to make it. What P2 changed is that an unmeasured
+dimension can no longer contribute to a pass.
+
+## 63. FeatureDemo is disabled, not deleted
+
+The Auditor reported `feature.enabled_unreachable` on it and was right: the only
+non-test code that inserts into `renders` is `generate.ts`, which writes
+`satori` and `remotion` and never a `playwright` render. An enabled template no
+code path can reach is a capability that exists on a screen and nowhere else.
+
+Disabled rather than deleted, because the template and its capture flow are real
+work and the day something inserts a playwright render this is a one-line
+change. Leaving it enabled would have kept claiming a capability the system does
+not have.

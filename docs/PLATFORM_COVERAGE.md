@@ -16,10 +16,10 @@ brain wearing seven hats.
 | Constraints per platform | **Built.** Formats, hashtag ceilings, aspect ratios, link strategy, transport |
 | Format choice per platform | **Built** (this week). Reads each adapter's declared capability |
 | Manual handover where no API exists | **Built** (this week) |
-| Research agents per platform | **None.** Nothing studies what works on TikTok as distinct from Pinterest |
+| Research agents per platform | **None**, and deliberately — see §7. P2 added a per-platform *strategy* model instead, because Halyard has published nothing for a research agent to study |
 | Reach/distribution agents | **None** |
-| Product understanding | **A brief you wrote by hand.** No crawling, no code reading |
-| Intelligent layer choosing what to show off | **Partial.** Mix debt and novelty, over a hand-written brief |
+| Product understanding | **Built (P1).** The Product Brain crawls the public site, reads the App Store listing and the connector's own tool surface, and stores facts that cite the evidence behind them. The hand-written brief is now one evidence source among several rather than the only one |
+| Intelligent layer choosing what to show off | **Partial.** Mix debt and novelty, now over a Product Brain rather than a hand-written brief |
 | Outreach | **None** — and deliberately, see §5 |
 
 ### What "one brain in seven hats" means concretely
@@ -190,3 +190,56 @@ Two rules hold in that design, and both are load-bearing:
 
 The thing to resist is building 3 before 1. It would produce a system that
 sounds authoritative about what works on TikTok, having never posted to TikTok.
+
+
+---
+
+## 7. What P2 changed, and the specialist question
+
+P2 added the strategic layer this document called for in §1 — the answer to
+*"one brain wearing seven hats"* — and deliberately did **not** add the eight
+platform specialist agents the implementation plan names.
+
+### The capability model
+
+Two capability words already existed and both were right about different things:
+`CapabilityState` is account lifecycle, `Capability` is a transport observation.
+P2 added no third vocabulary. It added `resolveCapability`, a pure function that
+reads both — plus platform constraints and product policy — and returns one
+verdict with the reason that produced it. It has no store of its own, on the
+same reasoning as P1's `deriveFactStatus`: a resolver with state becomes a
+fourth opinion that can drift from the three it reconciles.
+
+The verdict distinguishes `declared` from `verified`, and only `verified` is
+actionable. An adapter's claim about itself is the weakest evidence in the
+system and must not read like a probe.
+
+### Why no specialists were built
+
+Every proposed specialist had to answer: *what does a model perceive here that
+deterministic code cannot?* None could.
+
+A platform specialist would be asked what it believes about TikTok's algorithm.
+It has no evidence to perceive — Halyard has published nothing, so there is no
+performance data — and the answer would come from the model's training rather
+than from an observation. That is fabrication with an agent contract attached,
+and the Auditor would correctly report it as an agent whose output nothing
+verified.
+
+The honest alternative is what P2 built: platform strategy as **declared
+knowledge with a stated basis**. Every claim is a `platform_fact` (checkable
+against documentation) or an `industry_heuristic` (widely believed, unmeasured
+here). The third basis, `halyard_empirical`, exists in the type and is
+deliberately empty — a test asserts it stays that way until a scorer produces
+one from real published results.
+
+When Halyard has its own performance data, a specialist that reads *that* would
+pass the test. Today one would not.
+
+### Engagement
+
+`PlatformEngagementCapability` is modelled read-only, and the two write-shaped
+actions are listed in `platform/policy.ts` as permanently refused so the refusal
+is a value in the model rather than an absence somebody later reads as an
+oversight. §5 above remains the open product question, unchanged and still
+yours.
