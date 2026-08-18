@@ -243,3 +243,32 @@ export async function setTransport(formData: FormData): Promise<void> {
 
   revalidatePath('/accounts');
 }
+
+/**
+ * Run the provider capability probe.
+ *
+ * **This is the ignition `verify-provider` never had.** The script has existed
+ * since milestone 49 and `provider_capabilities` has never held a row, because
+ * running it was something an operator had to remember — the same shape
+ * `explore_product` had before P1.
+ *
+ * Deliberately a button rather than a schedule: a live probe spends real API
+ * calls against a third party, so it stays a deliberate act. The handler
+ * records an observation either way, including when the credential is absent —
+ * an unavailable probe is a result, not a failure to hide.
+ */
+export async function probeProviderCapability(formData: FormData): Promise<void> {
+  await requireOperator();
+  const provider = String(formData.get('provider') ?? 'blotato');
+
+  // Bare `on conflict do nothing`: the dedupe index is partial
+  // (`dedupe_key is not null and status in ('queued','running')`), so naming the
+  // column without repeating that predicate matches no index.
+  await query(
+    `insert into jobs (kind, payload, priority, dedupe_key)
+     values ('verify_provider_capability', $1, 35, $2)
+     on conflict do nothing`,
+    [JSON.stringify({ provider }), `verify_provider_capability:${provider}:${new Date().toISOString().slice(0, 16)}`],
+  );
+  revalidatePath('/accounts');
+}

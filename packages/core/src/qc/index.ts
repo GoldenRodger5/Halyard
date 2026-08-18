@@ -80,6 +80,20 @@ export interface QCResults {
 export interface RunAllGatesInput {
   copy: SlopFilterInput;
   claims?: { claims: Claim[]; artifact: unknown };
+  /**
+   * Gates this item's format genuinely demands.
+   *
+   * Without this, `passed` was `gates.every(g => g.status !== 'failed')` — and a
+   * *skipped* gate is not a failed one, so an item whose gates never ran read as
+   * passed. That is the "never verified ≠ passed" violation this codebase is
+   * built around, arriving through the one function meant to enforce it.
+   *
+   * Declaring a requirement makes a gate that did not run fail honestly.
+   * Declaring nothing preserves the previous behaviour, which is correct for
+   * copy-time callers: at that point the media does not exist yet.
+   */
+  requires?: GateName[];
+  /** Frame observations, when media exists. Supplied after render, not at copy time. */
   visual?: { probe: MediaProbe; target: VisualTarget; visionScore?: VisionScore };
   /**
    * Frame and audio observations against the post's own intent.
@@ -176,6 +190,20 @@ export function runAllGates(input: RunAllGatesInput): QCResults {
     });
   }
 
+  /**
+   * Visual and audio are supplied by tests and by nothing in production, and
+   * that is a fact about *timing* rather than a bug in this function.
+   *
+   * `runAllGates` runs at **copy time**, when no media exists yet — so no
+   * production caller could supply them. The real measurements happen at the
+   * only moment their inputs exist: `runVisualQC` in the `review_media` handler
+   * after the render, `runAudioQC` in the `tts` handler after the voiceover.
+   *
+   * The inputs are kept rather than deleted because the aggregate legitimately
+   * can express a media verdict, and a future unification of the two stages
+   * would use exactly this path. What changed is that an unmeasured dimension
+   * can no longer contribute to a pass — see `requires` below.
+   */
   if (input.visual) {
     const visual: VisualQCResult = runVisualQC(
       input.visual.probe,
@@ -190,7 +218,12 @@ export function runAllGates(input: RunAllGatesInput): QCResults {
       detail: visual,
     });
   } else {
-    gates.push({ gate: 'visual', status: 'skipped', summary: 'no media', detail: null });
+    gates.push({
+      gate: 'visual',
+      status: 'skipped',
+      summary: 'no media here — measured after render, by review_media',
+      detail: null,
+    });
   }
 
   if (input.audio) {
@@ -204,7 +237,12 @@ export function runAllGates(input: RunAllGatesInput): QCResults {
       detail: audio,
     });
   } else {
-    gates.push({ gate: 'audio', status: 'skipped', summary: 'no voiceover', detail: null });
+    gates.push({
+      gate: 'audio',
+      status: 'skipped',
+      summary: 'no voiceover here — measured after synthesis, by tts',
+      detail: null,
+    });
   }
 
   if (input.coherence) {
@@ -279,6 +317,20 @@ export function runAllGates(input: RunAllGatesInput): QCResults {
       detail: null,
       examined: 0,
     });
+  }
+
+  /**
+   * A required gate that did not run is a failure, not a pass.
+   *
+   * `every(status !== 'failed')` treated `skipped` as acceptable, which is right
+   * for a gate the item does not need and wrong for one it does. The caller
+   * says which is which; nothing here guesses.
+   */
+  const required = new Set(input.requires ?? []);
+  const unrun = gates.filter((g) => required.has(g.gate) && g.status === 'skipped');
+  for (const gate of unrun) {
+    gate.status = 'failed';
+    gate.summary = `${gate.summary} — required for this item and never ran, so it cannot be called passed.`;
   }
 
   return {

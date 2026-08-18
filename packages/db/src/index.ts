@@ -75,6 +75,8 @@ export const JOB_KINDS = [
   'collect_product_evidence',
   /** P1: run the product intelligence agents over collected evidence. */
   'build_product_brain',
+  /** P2: probe what a transport can actually do, and record the observation. */
+  'verify_provider_capability',
 ] as const;
 export type JobKind = (typeof JOB_KINDS)[number];
 
@@ -122,6 +124,12 @@ export const JOB_POLICY: Record<
    * reach the same conclusion.
    */
   build_product_brain: { timeoutMs: 10 * 60_000, maxAttempts: 2, backoffSeconds: 600 },
+  /**
+   * A probe against a live provider API. Two attempts, not more: a probe that
+   * fails is a *result* — it records `unavailable` or `error` and that is
+   * information — so hammering it would turn one honest unknown into five.
+   */
+  verify_provider_capability: { timeoutMs: 10 * 60_000, maxAttempts: 2, backoffSeconds: 900 },
   score_performance: { timeoutMs: 5 * 60_000, maxAttempts: 2, backoffSeconds: 300 },
   digest_email: { timeoutMs: 2 * 60_000, maxAttempts: 2, backoffSeconds: 300 },
   reconcile_schedule: { timeoutMs: 2 * 60_000, maxAttempts: 2, backoffSeconds: 120 },

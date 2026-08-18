@@ -38,7 +38,16 @@ const P0_TABLES = ['agent_runs', 'capability_audit_state', 'auditor_runs', 'audi
  */
 const P1_TABLES = ['product_evidence', 'product_facts'];
 
-const ALL_PROTECTED = [...P0_TABLES, ...P1_TABLES, 'feature_claims'];
+/**
+ * The one P2 added.
+ *
+ * A capability probe records what a third-party provider told Halyard about an
+ * operator's connected accounts, which is not something an unauthenticated
+ * reader should be able to enumerate.
+ */
+const P2_TABLES = ['capability_probes'];
+
+const ALL_PROTECTED = [...P0_TABLES, ...P1_TABLES, ...P2_TABLES, 'feature_claims'];
 
 const ADMIN_ID = '11111111-1111-1111-1111-111111111111';
 const OUTSIDER_ID = '22222222-2222-2222-2222-222222222222';
@@ -123,6 +132,10 @@ beforeAll(async () => {
      values ('recipefix','identity','seeded','Seeded for the RLS test', array[$1::uuid],
              'product-discovery','1.0')`,
     [seededEvidence.rows[0]!.id],
+  );
+  await pool.query(
+    `insert into capability_probes (provider, method, outcome, detail)
+     values ('blotato','live_api','confirmed','seeded for the RLS test')`,
   );
 }, 180_000);
 
@@ -227,7 +240,7 @@ d('anon is denied', () => {
     }
   });
 
-  it.each([...P0_TABLES, ...P1_TABLES])('cannot write to %s', async (table) => {
+  it.each([...P0_TABLES, ...P1_TABLES, ...P2_TABLES])('cannot write to %s', async (table) => {
     const result = await asRole('anon', null, `delete from ${table}`);
     if (result.ok) {
       const { rows } = await pool.query<{ n: string }>(`select count(*) as n from ${table}`);
@@ -253,11 +266,13 @@ d('a non-admin authenticated user is denied', () => {
     }
   });
 
-  it.each([...P0_TABLES, ...P1_TABLES])('cannot insert into %s', async (table) => {
+  it.each([...P0_TABLES, ...P1_TABLES, ...P2_TABLES])('cannot insert into %s', async (table) => {
     const sql: Record<string, string> = {
       product_evidence: `insert into product_evidence
                            (product_id, kind, content_hash, body, collector)
                          values ('recipefix','web_page','injected','injected','injected')`,
+      capability_probes: `insert into capability_probes (provider, method, outcome, detail)
+                          values ('injected','live_api','confirmed','injected')`,
       product_facts: `insert into product_facts
                         (product_id, category, key, value, evidence_ids, agent_id, agent_version)
                       values ('recipefix','identity','injected','injected',
@@ -289,9 +304,10 @@ d('a non-admin authenticated user is denied', () => {
     auditor_findings: 'detail',
     product_evidence: 'collector',
     product_facts: 'value',
+    capability_probes: 'detail',
   };
 
-  it.each([...P0_TABLES, ...P1_TABLES])('cannot update or delete %s', async (table) => {
+  it.each([...P0_TABLES, ...P1_TABLES, ...P2_TABLES])('cannot update or delete %s', async (table) => {
     const column = HACK_COLUMN[table]!;
     const update = await asRole(
       'authenticated',
