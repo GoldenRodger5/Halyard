@@ -6,6 +6,7 @@ import { allAdapters, getAdapter } from '../adapters/index.js';
 import type { PlatformId, PublishAccount } from '../adapters/types.js';
 import { checkIdentity, normaliseHandle } from './identity.js';
 import { PREFLIGHT, tokenExpiryState } from './preflight.js';
+import { accountStatus } from './status.js';
 
 const IDENTITY = {
   platformUserId: 'u-1',
@@ -297,5 +298,128 @@ describe('fetchIdentity', () => {
 
   it('refuses rather than guessing when the platform returns no user', async () => {
     await expect(getAdapter('x').fetchIdentity(withFetch('x', {}))).rejects.toThrow(/no user/i);
+  });
+});
+
+/**
+ * The operator-facing account status.
+ *
+ * These assert the *precedence*, because that is where a status summary
+ * silently lies: showing "ready" while a global pause is on, or "waiting on
+ * approval" while the credential is dead, both read as reassurance.
+ */
+describe('what an operator is told about an account', () => {
+  const base = {
+    requiresPlatformReview: false,
+    publishingEnabled: true,
+  };
+  const connected = {
+    capabilityState: 'live' as const,
+    hasToken: true,
+    identityConfirmedAt: new Date(),
+    handle: '@recipefix',
+  };
+
+  it('says not connected when there is no account', () => {
+    const v = accountStatus({ ...base, account: null });
+    expect(v.status).toBe('not_connected');
+    expect(v.nextAction).toBe('connect');
+    expect(v.canPublish).toBe(false);
+  });
+
+  it('does not call an account ready just because it is marked live', () => {
+    /**
+     * The exact confusion this replaces. `live` is a capability_state meaning
+     * "past platform review" — the seeded X accounts carry it with no token at
+     * all, and the old UI rendered that as a green LIVE badge.
+     */
+    const v = accountStatus({ ...base, account: { ...connected, hasToken: false } });
+    expect(v.status).not.toBe('ready');
+    expect(v.canPublish).toBe(false);
+    expect(v.nextAction).toBe('connect');
+  });
+
+  it('blocks publishing until the identity is confirmed', () => {
+    const v = accountStatus({ ...base, account: { ...connected, identityConfirmedAt: null } });
+    expect(v.status).toBe('identity_required');
+    expect(v.canPublish).toBe(false);
+    // Reading is fine — the restriction is about sending, not about looking.
+    expect(v.canRead).toBe(true);
+    expect(v.nextAction).toBe('confirm_identity');
+  });
+
+  it('distinguishes waiting on the platform from anything the operator can fix', () => {
+    const v = accountStatus({
+      ...base,
+      requiresPlatformReview: true,
+      account: { ...connected, capabilityState: 'draft_only' },
+    });
+    expect(v.status).toBe('awaiting_platform_approval');
+    expect(v.approval).toBe('required');
+    expect(v.canPublish).toBe(false);
+  });
+
+  it('reports the global pause even on an otherwise ready account', () => {
+    const v = accountStatus({ ...base, publishingEnabled: false, account: connected });
+    expect(v.status).toBe('publishing_paused');
+    expect(v.canPublish).toBe(false);
+    expect(v.explanation).toContain('across all of Halyard');
+  });
+
+  it('only says ready when everything actually allows publishing', () => {
+    const v = accountStatus({ ...base, account: connected });
+    expect(v.status).toBe('ready');
+    expect(v.canPublish).toBe(true);
+    expect(v.tone).toBe('good');
+  });
+
+  it('puts a dead credential ahead of a pending review', () => {
+    // Otherwise an errored account reads as "just waiting on the platform".
+    const v = accountStatus({
+      ...base,
+      requiresPlatformReview: true,
+      account: { ...connected, capabilityState: 'error' },
+    });
+    expect(v.status).toBe('reconnect_required');
+    expect(v.tone).toBe('bad');
+  });
+
+  it('treats an expired token as needing reconnection', () => {
+    const v = accountStatus({ ...base, tokenExpired: true, account: connected });
+    expect(v.canPublish).toBe(false);
+    expect(v.nextAction).toBe('reconnect');
+  });
+
+  it('never claims publishing is possible while any blocker holds', () => {
+    /**
+     * The property that matters most: no combination of inputs may produce
+     * `canPublish` while a gate is closed. A status summary that overstates is
+     * worse than the four badges it replaced.
+     */
+    for (const account of [
+      null,
+      { ...connected, hasToken: false },
+      { ...connected, identityConfirmedAt: null },
+      { ...connected, capabilityState: 'draft_only' as const },
+      { ...connected, capabilityState: 'error' as const },
+      { ...connected, capabilityState: 'disabled' as const },
+    ]) {
+      expect(accountStatus({ ...base, account }).canPublish, JSON.stringify(account)).toBe(false);
+    }
+    expect(accountStatus({ ...base, publishingEnabled: false, account: connected }).canPublish).toBe(
+      false,
+    );
+  });
+
+  it('always offers an action that can actually be taken', () => {
+    const views = [
+      accountStatus({ ...base, account: null }),
+      accountStatus({ ...base, account: { ...connected, identityConfirmedAt: null } }),
+      accountStatus({ ...base, account: connected }),
+    ];
+    for (const v of views) {
+      expect(v.actionLabel, v.status).toBeTruthy();
+      expect(v.explanation.length, v.status).toBeGreaterThan(20);
+    }
   });
 });

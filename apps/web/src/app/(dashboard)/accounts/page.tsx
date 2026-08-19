@@ -1,8 +1,6 @@
 import Link from 'next/link';
 import {
   Badge,
-  CAPABILITY_LABEL,
-  CAPABILITY_TONE,
   Card,
   PLATFORM_LABELS,
   PageHeader,
@@ -14,6 +12,7 @@ import {
   PREFLIGHT,
   REVIEW_GATES,
   allAdapters,
+  getAdapter,
   describeGap,
   describePersona,
   tokenExpiryState,
@@ -22,6 +21,7 @@ import {
   type ProviderCapabilities,
 } from '@halyard/core';
 import { getAllAccounts, type AccountRow } from '@/lib/queries';
+import { accountStatus, APPROVAL_LABEL } from '@halyard/core';
 import {
   getRecentProbes,
   resolveForAccount,
@@ -57,7 +57,7 @@ export default async function AccountsPage({
   searchParams: Promise<{ error?: string; connected?: string; discarded?: string }>;
 }) {
   const sp = await searchParams;
-  const [products, accounts, pending, provider] = await Promise.all([
+  const [products, accounts, pending, provider, settings] = await Promise.all([
     query<ProductRow>(
       `select id, name, kind, operator_timezone from products
         where status <> 'archived'
@@ -71,11 +71,17 @@ export default async function AccountsPage({
     query<{ capabilities: ProviderCapabilities }>(
       `select capabilities from provider_capabilities where provider = 'blotato'`,
     ),
+    // The global kill switch. Read here so a card cannot say "ready to publish"
+    // while publishing is paused everywhere.
+    query<{ publishing_enabled: boolean }>(
+      'select publishing_enabled from settings where id = true',
+    ),
   ]);
 
   const adapters = allAdapters();
   const personalProduct = products.find((p) => p.kind === 'personal');
   const capabilities = provider[0]?.capabilities ?? null;
+  const publishingEnabled = settings[0]?.publishing_enabled ?? false;
 
   /**
    * Capability, resolved per connected platform rather than stored.
@@ -131,7 +137,7 @@ export default async function AccountsPage({
 
       {pending.length > 0 ? (
         <Card className="mb-6 border-warn/40 bg-warn/5 p-4">
-          <h2 className="text-sm font-medium text-ink">Waiting for you to confirm an identity</h2>
+          <h2 className="text-sm font-medium text-ink">Waiting for you to confirm the right account</h2>
           <ul className="mt-2 space-y-1 text-sm">
             {pending.map((p) => (
               <li key={p.id}>
@@ -172,6 +178,7 @@ export default async function AccountsPage({
                       a.persona === 'brand',
                   )}
                   unified={capabilities?.platforms?.[adapter.platform] ?? null}
+                  publishingEnabled={publishingEnabled}
                 />
               ))}
             </div>
@@ -194,6 +201,7 @@ export default async function AccountsPage({
                 (a) => a.persona === 'founder' && a.platform === adapter.platform,
               )}
               unified={capabilities?.platforms?.[adapter.platform] ?? null}
+              publishingEnabled={publishingEnabled}
             />
           ))}
         </div>
@@ -255,6 +263,7 @@ function AccountCard({
   timeZone,
   account,
   unified,
+  publishingEnabled,
 }: {
   platform: PlatformId;
   persona: 'brand' | 'founder';
@@ -262,12 +271,44 @@ function AccountCard({
   timeZone: string;
   account?: AccountRow;
   unified: PlatformCapability | null;
+  publishingEnabled: boolean;
 }) {
   const preflight = PREFLIGHT[platform];
   const connectHref = `/api/oauth/${platform}/start?persona=${persona}&product=${productId}`;
   const expiry = tokenExpiryState(
     account?.token_expires_at ? new Date(account.token_expires_at) : null,
   );
+
+  /**
+   * One human-readable summary, derived from the state that already exists.
+   *
+   * The page previously showed four independent badges and left the operator to
+   * combine them. `accountStatus` does that combining in one tested place, in
+   * the same precedence the backend enforces — it reports the rules rather than
+   * relaxing any of them.
+   */
+  const status = accountStatus({
+    account: account
+      ? {
+          capabilityState: account.capability_state,
+          hasToken: account.has_token,
+          identityConfirmedAt: account.identity_confirmed_at,
+          handle: account.handle,
+        }
+      : null,
+    requiresPlatformReview: getAdapter(platform).constraints.requiresReviewForPublicPosting,
+    publishingEnabled,
+    tokenExpired: expiry.level === 'expired',
+  });
+
+  /** Whether connecting is the action this card is actually asking for. */
+  const isPrimary = status.nextAction === 'connect' || status.nextAction === 'reconnect';
+
+  /** Stored platform detail, minus the one sentence written in Halyard's own terms. */
+  const detail =
+    account?.capability_detail && !/marked live by the operator/i.test(account.capability_detail)
+      ? account.capability_detail
+      : null;
 
   return (
     <Card className="p-4">
@@ -276,21 +317,55 @@ function AccountCard({
           <div className="flex flex-wrap items-center gap-2">
             <PlatformDot platform={platform} />
             <span className="font-medium text-ink">{PLATFORM_LABELS[platform]}</span>
-            <span className="text-sm text-muted">{account?.handle ?? 'not connected'}</span>
-            <Badge tone={CAPABILITY_TONE[account?.capability_state ?? 'pending_auth']!}>
-              {CAPABILITY_LABEL[account?.capability_state ?? 'pending_auth']}
-            </Badge>
-            {account && !account.identity_confirmed_at ? (
-              <Badge tone="warn">identity unconfirmed</Badge>
-            ) : null}
+            <span className="text-sm text-muted">{account?.handle ?? 'no account yet'}</span>
           </div>
 
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">
-            {account?.capability_detail ??
-              (preflight.credentials.length > 0
-                ? `Not connected. Needs ${preflight.credentials.join(' and ')} in the environment, then an OAuth round trip.`
-                : 'Not connected. No developer app and no review — create an app password and paste it.')}
-          </p>
+          {/* ── Status: one summary, then what it means ──────────────────── */}
+          <div className="mt-3">
+            <Badge tone={status.tone}>{status.label}</Badge>
+            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink">{status.explanation}</p>
+          </div>
+
+          {/* ── Capabilities: the three questions, answered separately ────
+              Publishing and reading are different permissions, and platform
+              approval is a different thing again — an account can be approved
+              and still unable to publish. Collapsing them is what made the old
+              badges unreadable. */}
+          <dl className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-xs">
+            <div className="flex gap-1.5">
+              <dt className="text-muted">Publishing:</dt>
+              <dd className={status.canPublish ? 'text-good' : 'text-muted'}>
+                {status.canPublish ? 'Ready' : 'Blocked'}
+              </dd>
+            </div>
+            <div className="flex gap-1.5">
+              <dt className="text-muted">Reading:</dt>
+              <dd className={status.canRead ? 'text-good' : 'text-muted'}>
+                {status.canRead ? 'Available' : 'Unavailable'}
+              </dd>
+            </div>
+            <div className="flex gap-1.5">
+              <dt className="text-muted">Platform approval:</dt>
+              <dd className="text-ink">{APPROVAL_LABEL[status.approval]}</dd>
+            </div>
+          </dl>
+
+          {/*
+            * The platform-specific detail, which is where the genuinely useful
+            * per-platform facts live — TikTok's inability to attach trending
+            * audio, Pinterest's sandbox pins, YouTube's private uploads.
+            *
+            * One stored value is not like the others: an X row reads "Marked
+            * live by the operator after platform review", which describes
+            * Halyard's own bookkeeping rather than anything the operator can
+            * act on, and `status.explanation` already says it properly. That
+            * one sentence is suppressed here rather than edited in the
+            * database, because the column is backend state this pass must not
+            * touch.
+            */}
+          {detail ? (
+            <p className="mt-2 max-w-2xl text-xs leading-relaxed text-muted">{detail}</p>
+          ) : null}
 
           {account?.transport === 'unified' ? (
             <p className="mt-2 max-w-2xl rounded-lg bg-sunk px-3 py-2 text-xs leading-relaxed text-muted">
@@ -347,7 +422,7 @@ function AccountCard({
 
           <details className="group mt-3">
             <summary className="cursor-pointer text-xs text-muted hover:text-ink">
-              Before you connect — {preflight.items.length} things that must already be true
+              What this account needs before connecting ({preflight.items.length})
             </summary>
             <p className="mt-2 max-w-2xl text-xs leading-relaxed text-muted">
               {preflight.browserProfile}
@@ -362,8 +437,9 @@ function AccountCard({
               ))}
             </ol>
             {preflight.credentials.length > 0 ? (
-              <p className="mt-2 font-mono text-[11px] text-muted">
-                Environment: {preflight.credentials.join(', ')}
+              <p className="mt-2 text-[11px] text-muted">
+                Needs these set up before connecting:{' '}
+                <span className="font-mono">{preflight.credentials.join(', ')}</span>
               </p>
             ) : null}
           </details>
@@ -397,11 +473,49 @@ function AccountCard({
           ) : (
             <a
               href={connectHref}
-              className="rounded-lg border border-line px-3 py-1.5 text-center text-sm text-muted hover:bg-sunk hover:text-ink"
+              className={
+                isPrimary
+                  ? 'rounded-lg bg-primary px-3 py-1.5 text-center text-sm font-medium text-white hover:bg-primary-dark'
+                  : 'rounded-lg border border-line px-3 py-1.5 text-center text-sm text-muted hover:bg-sunk hover:text-ink'
+              }
             >
               {account?.has_token ? 'Reconnect' : 'Connect'}
             </a>
           )}
+
+          {/* The one thing worth doing when a connection is waiting on a person
+              rather than on a platform. Links to the existing confirmation
+              screen; no new behaviour. */}
+          {status.nextAction === 'confirm_identity' && account ? (
+            <a
+              href={`/accounts/confirm/${account.id}`}
+              className="rounded-lg bg-primary px-3 py-1.5 text-center text-sm font-medium text-white hover:bg-primary-dark"
+            >
+              Confirm identity
+            </a>
+          ) : null}
+
+          {/* Publishing is paused globally, so say where that is changed rather
+              than leaving the operator to hunt for it. */}
+          {status.nextAction === 'enable_publishing' ? (
+            <a
+              href="/settings"
+              className="rounded-lg border border-line px-3 py-1.5 text-center text-sm text-muted hover:bg-sunk hover:text-ink"
+            >
+              Publishing settings
+            </a>
+          ) : null}
+
+          {/* Nothing to do here but wait for the platform. The link goes to the
+              screen that tracks those reviews with dates. */}
+          {status.nextAction === 'complete_platform_approval' ? (
+            <a
+              href="/submissions"
+              className="rounded-lg border border-line px-3 py-1.5 text-center text-sm text-muted hover:bg-sunk hover:text-ink"
+            >
+              Approval status
+            </a>
+          ) : null}
 
           {account?.has_token ? (
             <form action={runSelfTest}>
@@ -418,9 +532,9 @@ function AccountCard({
               <input type="hidden" name="state" value="live" />
               <button
                 className="w-full rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-white hover:bg-primary-dark"
-                title="Flip to live once the platform review has landed."
+                title="Use this once the platform has approved public posting for this account."
               >
-                Approval landed
+                Platform approved it
               </button>
             </form>
           ) : null}

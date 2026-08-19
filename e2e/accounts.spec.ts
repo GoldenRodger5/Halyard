@@ -35,7 +35,10 @@ test.describe('identity confirmation', () => {
 
     // The accounts screen surfaces it rather than leaving it stranded.
     await page.goto('/accounts');
-    await expect(page.getByText('Waiting for you to confirm an identity')).toBeVisible();
+    // Wording changed in the Accounts clarity pass; the behaviour it guards —
+    // a staged connection is not an account until a person confirms it — is
+    // unchanged, and the assertion below still proves it.
+    await expect(page.getByText('Waiting for you to confirm the right account')).toBeVisible();
 
     await page.goto(`/accounts/confirm/${pendingId}`);
     await expect(page.getByRole('heading', { name: 'Is this the right account?' })).toBeVisible();
@@ -109,7 +112,7 @@ test.describe('the accounts screen', () => {
     ).toBeVisible();
 
     // Every platform states its pre-flight requirements before the round trip.
-    const checklists = page.locator('summary', { hasText: 'Before you connect' });
+    const checklists = page.locator('summary', { hasText: 'What this account needs before connecting' });
     expect(await checklists.count()).toBeGreaterThanOrEqual(14);
 
     await checklists.first().click();
