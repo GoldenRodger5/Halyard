@@ -1150,6 +1150,12 @@ cannot do the thing. So the handler records `unavailable` and writes **no**
 capability row, and a failed probe never downgrades a belief an earlier
 successful probe established.
 
+Verified against the live provider during P2's acceptance review: the probe ran,
+Blotato returned `401 Unauthorized`, and the handler recorded `unavailable`,
+wrote **no** capability row and did not throw. A rejected credential is exactly
+the case where a lesser implementation would have written an all-`no` capability
+that read like a thorough probe finding a limited provider.
+
 This also gave `verify-provider` the ignition it never had. The script has
 existed since milestone 49 and `provider_capabilities` had never held a row,
 because running it was something an operator had to remember — the same shape
@@ -1165,7 +1171,15 @@ arriving through the one function meant to enforce it.
 Callers can now declare `requires`, and a required gate that did not run fails
 honestly with a summary saying so. Declaring nothing keeps the old behaviour,
 which is correct for the six copy-time callers: `runAllGates` runs before any
-media exists, so it could never have supplied `visual` or `audio`. Those are
+media exists, so it could never have supplied `visual` or `audio`.
+
+**No production caller declares a requirement yet, and that is stated rather
+than glossed.** The mechanism is tested and changes no current behaviour. It
+shipped untested in P2's first commit and the gap was found in acceptance
+review — which is late, but is what the review is for. Wiring a real caller
+means deciding *which* items must have media QC before approval, and that is a
+change to the quality system rather than to the capability model P2 exists to
+build. Those are
 measured by `runVisualQC` in `review_media` and `runAudioQC` in `tts`, each at
 the only moment its input exists.
 
