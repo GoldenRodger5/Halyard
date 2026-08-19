@@ -554,3 +554,46 @@ describe('looksUnextracted — the extractor-failure signature', () => {
     expect(looksUnextracted('Use the "1:1" blend.', 0)).toBeNull();
   });
 });
+
+
+/**
+ * The `requires` mechanism, which P2 added to stop a skipped gate counting as a
+ * pass.
+ *
+ * These exist because the mechanism shipped untested in the first P2 commit —
+ * found in acceptance review, which is late but is what the review is for. An
+ * untested governance mechanism is indistinguishable from a comment.
+ */
+describe('a required gate that never ran cannot be called passed', () => {
+  const body = 'Your gluten-free loaf is gummy. Vinegar fixes the structure.';
+
+  it('passes a skipped gate when nothing required it', () => {
+    // The copy-time default, and correct: at that point no media exists.
+    const results = runAllGates({ copy: { body, platform: 'x' } });
+    expect(results.gates.find((g) => g.gate === 'visual')!.status).toBe('skipped');
+    expect(results.passed).toBe(true);
+  });
+
+  it('fails the same gate once the caller declares it required', () => {
+    const results = runAllGates({ copy: { body, platform: 'x' }, requires: ['visual'] });
+    const visual = results.gates.find((g) => g.gate === 'visual')!;
+    expect(visual.status).toBe('failed');
+    expect(visual.summary).toContain('never ran');
+    // The whole point: an unmeasured dimension can no longer produce a pass.
+    expect(results.passed).toBe(false);
+  });
+
+  it('leaves a required gate that did run alone', () => {
+    const results = runAllGates({ copy: { body, platform: 'x' }, requires: ['copy'] });
+    expect(results.gates.find((g) => g.gate === 'copy')!.status).not.toBe('failed');
+  });
+
+  it('fails every declared gate that did not run, not just the first', () => {
+    const results = runAllGates({
+      copy: { body, platform: 'x' },
+      requires: ['visual', 'audio'],
+    });
+    const failed = results.gates.filter((g) => g.status === 'failed').map((g) => g.gate);
+    expect(failed.sort()).toEqual(['audio', 'visual']);
+  });
+});
