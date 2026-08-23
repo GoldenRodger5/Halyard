@@ -793,3 +793,97 @@ Official documentation, read 2026-08-22:
 - Instagram — [Content Publishing](https://developers.facebook.com/docs/instagram-platform/content-publishing)
 - Threads — [Threads Posts](https://developers.facebook.com/docs/threads/posts)
 - Pinterest — [Create boards and Pins](https://developers.pinterest.com/docs/work-with-organic-content-and-users/create-boards-and-pins/)
+
+
+## 17. Connecting production accounts — the operator runbook (2026-08-23)
+
+Production has **zero connected accounts**. Every row is `pending_auth` with no
+credential, so the deployed worker cannot publish anything. Every working
+credential is local. This section is the exact set of external actions that
+changes that.
+
+**Connection cannot be automated.** OAuth requires a human to authorise on the
+provider's own site, and Bluesky requires an app password only the operator
+holds. There is no CLI or script path, by design — a token that arrives any
+other way is a token nobody consented to.
+
+### The callback URL question, settled
+
+`OAUTH_REDIRECT_BASE_URL` is unset in both tiers. `resolveRedirectBase` then
+falls back to the **request origin**, which is self-consistent: whichever stable
+URL the operator browses from becomes the `redirect_uri`. Two stable URLs serve
+the app today:
+
+- `https://halyard-ten.vercel.app`
+- `https://halyard-isaac-mineos-projects.vercel.app`
+
+**The variable was deliberately left unset.** Setting it to a guess would
+override a fallback that currently works and break OAuth if the other URL is the
+one registered. Set it only after confirming which base is registered in the
+provider dashboards, then set it to exactly that.
+
+The callback path is always `/api/oauth/{platform}/callback`. So the URL to
+register is:
+
+    {base}/api/oauth/x/callback
+    {base}/api/oauth/instagram/callback
+    {base}/api/oauth/threads/callback
+    {base}/api/oauth/tiktok/callback
+    {base}/api/oauth/pinterest/callback
+    {base}/api/oauth/youtube/callback
+
+Bluesky has no callback — it uses an app password.
+
+### Connectable today
+
+| Platform | Client credentials | Operator action |
+|---|---|---|
+| **X** @Recipe_Fix | ✅ both tiers | Register the production callback in the X app, then /accounts → Connect |
+| **Instagram** @recipe.fix | ✅ both tiers | Same, in the Meta app. Publishing needs App Review; dev mode works against your own account |
+| **Threads** @recipe.fix | ✅ both tiers | Same Meta app |
+| **Bluesky** | n/a | Create an app password at bsky.app/settings/app-passwords, paste it on /accounts |
+
+Scopes requested are already declared in `PLATFORM_SCOPES` and need no change.
+
+### Blocked on developer-app registration
+
+No client credentials exist in either tier, so the OAuth start route returns 428
+before any redirect. This is external setup, not engineering.
+
+**TikTok** — `TIKTOK_CLIENT_KEY`, `TIKTOK_CLIENT_SECRET`. Scopes
+`user.info.basic`, `video.upload`, `video.list`. Halyard uses **inbox upload**
+(`video.upload`), not direct posting, so the creator finishes the post inside
+TikTok — that is why `nativeDraft` is true and `requiresCreatorCompletion` is
+true. Requires a developer account and app review for production scopes.
+
+**Pinterest** — `PINTEREST_APP_ID`, `PINTEREST_APP_SECRET`. Scopes
+`boards:read`, `pins:read`, `pins:write`, `user_accounts:read`. Requires a
+business account and app review; trial apps are limited.
+
+**YouTube** — `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` via Google Cloud
+Console. Scopes `youtube.upload`, `youtube.readonly`,
+`yt-analytics.readonly`. Uploads land **private** (`privateUpload`, and the only
+platform with `apiScheduling`). Sensitive scopes require Google verification;
+unverified apps are capped at test users.
+
+The code side for all three is complete: adapter, OAuth start/callback, token
+persistence, refresh, `verifyCapabilities`, `collectMetrics`. Only credentials
+are missing.
+
+### Verified this pass
+
+- **Operator UX is honest.** `accountStatus()` was run against every real
+  production row: all seven render *"Not connected"*, neutral tone, next action
+  `connect`. Nothing falsely reads as usable.
+- **Routing safety is already pinned** by `approvalBoundary.test.ts`, including
+  *"ignores an account id supplied by the job payload"* and *"refuses to write a
+  brand item against the founder account at all"*.
+- An unauthenticated hit on `/api/oauth/{platform}/start` returns **500**, not
+  401, because `requireOperator()` throws. It fails closed, which is what
+  matters; the opaque status is a small operator-facing wart, not a blocker.
+
+### Handle discrepancies worth knowing
+
+Production Threads is **@recipe.fix**, not `@recipefix`. The founder X account
+is **@IsaacMBuilds** in production and `@isaacmineo` locally. Connect against
+the production rows, not the local ones.

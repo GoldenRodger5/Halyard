@@ -372,6 +372,8 @@ export interface CapturedStep {
   startMs?: number;
   endMs?: number;
   elide?: boolean;
+  /** The flow ran this to produce the artifact, and it is not part of the story. §166. */
+  setup?: boolean;
 }
 
 /**
@@ -427,6 +429,14 @@ export function footageSpansFor(
     s.startMs !== undefined &&
     s.endMs !== undefined &&
     !s.elide &&
+    /*
+     * §166. Setup is excluded here and nowhere else. It ran, it is recorded in
+     * the step results with its measured offsets, and the artifact depends on
+     * it — this withholds screen time and nothing else. Note it is checked
+     * *before* `isPayoff`, so a setup step can never be promoted back in by
+     * happening to follow an elision.
+     */
+    !s.setup &&
     (isPayoff(index) || !SILENT_ACTIONS.has(s.action ?? '')) &&
     s.endMs - s.startMs >= 30;
 

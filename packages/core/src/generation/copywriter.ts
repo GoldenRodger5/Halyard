@@ -311,7 +311,14 @@ Reply with the script text only.`,
         {
           role: 'user',
           content: `Post copy this narrates:\n${input.body}\n\n${
-            input.artifact
+            /*
+             * `highlights` is checked, not assumed. §165: a caller handed this
+             * the *stored* artifact — the provider's raw JSON, which has no
+             * `highlights` — and the job died on `.slice` of undefined rather
+             * than writing a script without the extra grounding. An artifact
+             * that cannot supply highlights is a weaker prompt, not a crash.
+             */
+            input.artifact?.highlights?.length
               ? `Source artifact highlights:\n${input.artifact.highlights
                   .slice(0, 6)
                   .map((h) => `- ${h.reason ?? h.note ?? h.text}`)

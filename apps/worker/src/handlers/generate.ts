@@ -37,6 +37,7 @@ import { carouselProps, transformationDiffProps } from '@halyard/render';
 import {
   NoUsableFormatError,
   beatsToScenes,
+  type CreativePlan,
   chooseFormat,
   needsVideo,
   planBeforeAfter,
@@ -61,6 +62,34 @@ import { routeToBoard } from './boards.js';
 import { notify } from './publish.js';
 import { fillCampaignSlot } from './campaignSlot.js';
 import { recordingClient } from '../agentRuns.js';
+
+
+/**
+ * The plan's beats, as the render row stores them.
+ *
+ * Extracted so the boundary is testable. It was an object literal inside this
+ * handler, and it silently dropped `sourcePath` — the planner had set it on
+ * every artifact-derived beat since §160, the plan-level test asserted it, and
+ * nothing checked that it survived into the thing that actually ships. §169.
+ */
+export function beatsForRender(plan: CreativePlan): Array<Record<string, unknown>> {
+  return beatsToScenes(plan).map((scene, i) => {
+    const beat = plan.beats[i]!;
+    return {
+      ...scene,
+      role: beat.role,
+      // §162. Emphasis reaches the render so the treatment can scale it.
+      // Carried, not recomputed: duration and size must come from one value or
+      // they drift apart.
+      emphasis: beat.emphasis,
+      content: beat.content,
+      // §169. Provenance, so a stored render is traceable to its evidence.
+      ...(beat.sourcePath ? { sourcePath: beat.sourcePath } : {}),
+      // §163. Only a beat the planner gave footage carries it.
+      ...(beat.media ? { media: beat.media } : {}),
+    };
+  });
+}
 
 export async function generateHandler(job: Job, ctx: HandlerContext): Promise<void> {
   const productId = String(job.payload.productId ?? 'recipefix');
@@ -715,17 +744,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                 alt_text: draft.altText,
                 ...(plan
                   ? {
-                      beats: beatsToScenes(plan).map((scene, i) => ({
-                        ...scene,
-                        role: plan.beats[i]!.role,
-                        // §162. Emphasis reaches the render so the treatment can
-                        // scale it. Carried, not recomputed: duration and size
-                        // must come from one value or they drift apart.
-                        emphasis: plan.beats[i]!.emphasis,
-                        content: plan.beats[i]!.content,
-                        // §163. Only a beat the planner gave footage carries it.
-                        ...(plan.beats[i]!.media ? { media: plan.beats[i]!.media } : {}),
-                      })),
+                      beats: beatsForRender(plan),
                       captionBackdrop: plan.captionBackdrop,
                     }
                   : {}),

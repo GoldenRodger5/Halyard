@@ -37,6 +37,13 @@ export interface StepResult {
   endMs?: number;
   /** The flow marked this step as a wait the edit should cut. §159/§163. */
   elide?: boolean;
+  /**
+   * The flow marked this step as setup: run it, do not show it. §166.
+   *
+   * Carried on the result rather than looked up from the flow later, so the
+   * record of what was captured explains its own cut.
+   */
+  setup?: boolean;
   ok: boolean;
   optional: boolean;
   ms: number;
@@ -225,6 +232,7 @@ export async function runFlow(
       ms: 0,
       startMs: stepStart - started,
       ...(step.elide ? { elide: true } : {}),
+      ...(step.setup ? { setup: true } : {}),
     };
 
     try {

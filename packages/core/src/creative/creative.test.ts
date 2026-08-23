@@ -365,6 +365,86 @@ describe('footageSpansFor', () => {
     expect(spans[0]!.endMs).toBe(2572);
   });
 
+  it('excludes a step the flow marked as setup', () => {
+    /*
+     * §166. The first capture-backed render spent about two of its 3.8 hero
+     * seconds on a blank page, a promo bar being dismissed and a spinner. All
+     * three ran, all three were necessary to produce the artifact, and none of
+     * them is worth a viewer's attention.
+     */
+    const withSetup = [
+      { step: 'open the page', action: 'goto', ok: true, startMs: 0, endMs: 1500, setup: true },
+      { step: 'dismiss a banner', action: 'click', ok: true, startMs: 1500, endMs: 1700, setup: true },
+      { step: 'choose the option', action: 'click', ok: true, startMs: 1700, endMs: 1900 },
+      { step: 'submit', action: 'click', ok: true, startMs: 1900, endMs: 2100 },
+    ];
+    const kept = footageSpansFor(withSetup).flatMap((s) => s.steps);
+    expect(kept).not.toContain('open the page');
+    expect(kept).not.toContain('dismiss a banner');
+    expect(kept).toContain('choose the option');
+    expect(kept).toContain('submit');
+  });
+
+  it('starts the footage at the first thing worth watching', () => {
+    // Not merely "setup is absent" — the span must actually begin later.
+    const spans = footageSpansFor(
+      [
+        { step: 'open the page', action: 'goto', ok: true, startMs: 0, endMs: 2000, setup: true },
+        { step: 'choose the option', action: 'click', ok: true, startMs: 2000, endMs: 2600 },
+      ],
+      { padMs: 0 },
+    );
+    expect(spans[0]!.startMs).toBe(2000);
+  });
+
+  it('keeps a step that was not marked setup, so the flag is opt-in', () => {
+    const kept = footageSpansFor([
+      { step: 'open the page', action: 'goto', ok: true, startMs: 0, endMs: 1500 },
+    ]).flatMap((s) => s.steps);
+    expect(kept).toContain('open the page');
+  });
+
+  it('never promotes a setup step back in by following an elision', () => {
+    /*
+     * The payoff rule holds a `wait` that follows a cut step, because that is
+     * where the result appears. A *setup* step in that position is still setup —
+     * the two rules must not fight, and `setup` is checked first.
+     */
+    const kept = footageSpansFor([
+      { step: 'the long wait', action: 'waitFor', ok: true, startMs: 0, endMs: 4000, elide: true },
+      { step: 'clear the placeholder', action: 'wait', ok: true, startMs: 4000, endMs: 5000, setup: true },
+    ]).flatMap((s) => s.steps);
+    expect(kept).not.toContain('clear the placeholder');
+  });
+
+  it('leaves elision behaving exactly as it did', () => {
+    /*
+     * `elide` is a claim about the product — real work happened, and this long
+     * it took. `setup` withholds screen time from footage that says nothing.
+     * Adding the second must not have changed the first.
+     */
+    const steps = [
+      { step: 'submit', action: 'click', ok: true, startMs: 0, endMs: 500 },
+      { step: 'the long wait', action: 'waitFor', ok: true, startMs: 500, endMs: 9000, elide: true },
+      { step: 'the result lands', action: 'wait', ok: true, startMs: 9000, endMs: 10_500 },
+    ];
+    const kept = footageSpansFor(steps).flatMap((s) => s.steps);
+    expect(kept).not.toContain('the long wait');
+    // …and the payoff after it is still held.
+    expect(kept).toContain('the result lands');
+    expect(footageSpansFor(steps).length).toBe(2);
+  });
+
+  it('keeps every surviving span traceable to the steps that produced it', () => {
+    // Provenance: a cut has to be explicable, setup or not.
+    const spans = footageSpansFor([
+      { step: 'open the page', action: 'goto', ok: true, startMs: 0, endMs: 1500, setup: true },
+      { step: 'choose the option', action: 'click', ok: true, startMs: 1500, endMs: 2200 },
+    ]);
+    expect(spans).toHaveLength(1);
+    expect(spans[0]!.steps).toEqual(['choose the option']);
+  });
+
   it('returns nothing when nothing worth showing was captured', () => {
     // Honest failure rather than a cut of dead air.
     expect(footageSpansFor([])).toEqual([]);

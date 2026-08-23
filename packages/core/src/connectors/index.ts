@@ -1,7 +1,11 @@
 import { GitHubConnector } from './github.js';
 import { McpProductConnector, mcpEnvNames } from './mcp.js';
-import { RecipeFixConnector } from './recipefix.js';
-import { ConnectorUnavailableError, type ProductConnector } from './types.js';
+import { RecipeFixConnector, toArtifact as recipefixToArtifact } from './recipefix.js';
+import {
+  ConnectorUnavailableError,
+  type ProductArtifact,
+  type ProductConnector,
+} from './types.js';
 
 export * from './types.js';
 export * from './mcpClient.js';
@@ -31,6 +35,49 @@ export interface ConnectorConfigRow {
  * but. See `McpProductConnector`.
  */
 type McpAdapter = (options: { url: string; token?: string }) => ProductConnector;
+
+/**
+ * Rehydrating a **stored** artifact.
+ *
+ * §165. `content_items.product_artifact` holds `artifact.raw` — the provider's
+ * own JSON — because that is the thing claims are verified against and the
+ * thing that must survive verbatim. The wrapper around it, with the generic
+ * `highlights` every downstream component reads, is derived and was never
+ * stored.
+ *
+ * That was fine while only generation used it, because generation had just
+ * built it. The correction loop is the first thing to pick an item back up
+ * later, and it found there was no way to get the highlights back — the only
+ * converter was reachable through a live MCP connection, which is a network
+ * call to recompute something already on disk.
+ *
+ * Keyed the same way connectors are, by `connector_config.adapter` falling back
+ * to the product id, so a second product adds one line here and nothing else.
+ * An unknown adapter returns null rather than guessing at a shape.
+ */
+const ARTIFACT_REHYDRATORS: Record<string, (raw: unknown) => ProductArtifact> = {
+  recipefix: (raw) => recipefixToArtifact(raw as never),
+};
+
+export function rehydrateArtifact(
+  product: { id: string; connector_config?: Record<string, unknown> | null },
+  raw: unknown,
+): ProductArtifact | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const key = String(product.connector_config?.adapter ?? product.id);
+  const rehydrate = ARTIFACT_REHYDRATORS[key];
+  if (!rehydrate) return null;
+  try {
+    return rehydrate(raw);
+  } catch {
+    /*
+     * A stored artifact from an older shape should not take down a correction.
+     * The caller treats null as "no artifact", which is exactly what an
+     * unreadable one is.
+     */
+    return null;
+  }
+}
 
 const MCP_ADAPTERS: Record<string, McpAdapter> = {
   recipefix: (options) => new RecipeFixConnector(options),

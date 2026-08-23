@@ -55,7 +55,8 @@ describe('the captured-footage treatment', () => {
      */
     const Demo = BEFORE_AFTER_TREATMENTS.demo!;
     const beat = { id: 'demo', role: 'demo', weight: 3, minSeconds: 3.6 };
-    expect(Demo({ beat, brand } as never)).toBeNull();
+    const band = { width: 936, height: 1152 };
+    expect(Demo({ beat, brand, band } as never)).toBeNull();
   });
 
   it('centres footage, because a frame is not a block of copy', () => {

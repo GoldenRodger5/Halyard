@@ -74,6 +74,34 @@ export interface FlowStep {
    * caption. The compression is an ordinary edit and the number is a fact.
    */
   elide?: boolean;
+  /**
+   * Executed, but not shown.
+   *
+   * §166. A flow has to do things that produce the artifact and are worth
+   * nothing to a viewer: load a page, dismiss a promo bar, wait for a
+   * placeholder to disappear. The first capture-backed render spent about two
+   * of its 3.8 hero seconds on exactly that — a blank page, a banner being
+   * closed, and a spinner — before the product did anything.
+   *
+   * This is deliberately **not** `elide`. The two mean different things and
+   * conflating them would lose one of them:
+   *
+   *   · `elide` is a *long wait the edit cuts and captions with its measured
+   *     duration* — the viewer is told real work happened and how long it took.
+   *     It is a claim about the product's behaviour.
+   *   · `setup` is footage that simply is not part of the story. There is
+   *     nothing to tell the viewer, because nothing happened worth telling.
+   *
+   * The step still runs. Nothing about verification, selector health, stills,
+   * timing or provenance changes — a setup step that fails still fails the
+   * flow, because the artifact depends on it. The only thing this withholds is
+   * screen time.
+   *
+   * Which steps are setup is knowledge about *this product's* flow, so it lives
+   * here in the configuration, next to that flow's selectors and focus region,
+   * rather than as a rule the generic footage engine guesses (§146, §163).
+   */
+  setup?: boolean;
   /** What the viewer should understand is happening here. */
   narration?: string;
 }
@@ -132,17 +160,29 @@ export const FLOWS: Record<FlowId, CaptureFlow> = {
     why:
       'The whole product in one shot: an arbitrary recipe URL goes in, a diet constraint is picked, and what comes back has substitutions with reasons attached.',
     path: '/adapt',
-    viewport: { width: 1280, height: 900 },
     /*
-     * The result panel, measured off a real capture: the converter's inputs run
-     * down the left ~22% and the adapted recipe fills the rest. Framing the
-     * whole window puts the product at a size nobody can read on a phone.
+     * §168. Captured at the shape it is published in.
      *
-     * The top 7.5% is the site's own navigation. It is real, but it is the same
-     * chrome on every page and it competes with the result for the top of the
-     * frame, so the crop starts below it.
+     * This flow recorded a 1280×900 desktop window, and the cut that reached
+     * the demo beat was 1.20:1 against a portrait band of 0.81:1 — so fitting
+     * it by width left 28% of the band as slack no arrangement could remove.
+     * Cropping harder was the obvious answer and the wrong one: the desktop
+     * layout puts the adapted ingredients in two columns, and a portrait crop
+     * of it cuts one of them, which is transformation evidence.
+     *
+     * A phone viewport does not need cropping, because the product's own
+     * responsive layout already answers the question. At 430px the ingredients
+     * stack, the type is set for a hand, and the recording is the shape a
+     * social viewer will actually see. `cook_mode_timer` has captured this way
+     * since it was written; this flow was the outlier.
+     *
+     * The `focusRegion` that used to be here described where the result panel
+     * sat *in a desktop window*. That window no longer exists, and a region
+     * describing a layout the capture no longer produces is worse than none —
+     * so it is removed rather than re-guessed. Every selector this flow depends
+     * on was verified to resolve at this viewport before the change.
      */
-    focusRegion: { x: 0.22, y: 0.075, width: 0.78, height: 0.925 },
+    viewport: { width: 430, height: 932 },
     // Measured, not assumed. The spec said 60–75s. A cold adaptation of this
     // URL took 26s; a repeat of the same URL and diet came back in under 10,
     // because RecipeFix caches the result. Both are normal, so the range is wide
@@ -150,12 +190,15 @@ export const FLOWS: Record<FlowId, CaptureFlow> = {
     expectedSeconds: [8, 60],
     consumesCredit: true,
     steps: [
-      { name: 'open the converter', action: 'goto', value: '/adapt' },
+      // Navigation to a blank, still-loading page. Nothing to watch.
+      { name: 'open the converter', action: 'goto', value: '/adapt', setup: true },
       {
+        // Closing a promo bar says nothing about the product.
         name: 'dismiss the App Store banner',
         action: 'click',
         selector: '[aria-label="Dismiss"]',
         optional: true,
+        setup: true,
       },
       {
         name: 'switch to the Link tab',
@@ -189,6 +232,13 @@ export const FLOWS: Record<FlowId, CaptureFlow> = {
         action: 'waitForHidden',
         selector: 'button:has-text("SWAPPED")',
         timeoutMs: 30_000,
+        /*
+         * A placeholder disappearing. This is the spinner that was on screen at
+         * five seconds in the first capture-backed render — dead time between
+         * the submit and the wait that actually means something, which `elide`
+         * already handles and captions.
+         */
+        setup: true,
       },
       {
         name: 'wait for the adaptation',
@@ -219,13 +269,47 @@ export const FLOWS: Record<FlowId, CaptureFlow> = {
     title: 'One toggle rewrites the recipe',
     why:
       'The strongest ten seconds the product has: changing one ingredient updates the ingredient line, the step text, the title and the protein figure together, which is the thing a static substitution chart cannot do.',
-    path: '/adapt',
-    viewport: { width: 1280, height: 900 },
+    /*
+     * §171. The homepage, not `/adapt`.
+     *
+     * This flow was dead in production for weeks — thirteen capture jobs died
+     * on "find the swap control" — and the diagnosis was wrong twice. It looked
+     * like selector drift, so §159 built a five-candidate fallback chain; then
+     * all five failed and it looked like the product had removed the feature.
+     *
+     * Neither. The control is exactly where the flow always said it was,
+     * `[aria-label="Choose your swap"]`, and it is on **`/`**. It was never on
+     * an idle `/adapt`: the original design assumed this flow would act on the
+     * card `adapt_and_reveal` left on screen, and captures run in their own
+     * browser context, so there was never a card there to act on.
+     *
+     * Verified live before changing anything, at zero credit: the control is
+     * visible, its two options carry `aria-pressed`, and clicking the unpressed
+     * one rewrote the ingredient from "1 can (400g) jackfruit, drained" to
+     * "150g soy curls, rehydrated in warm broth". That is the product doing the
+     * thing this flow exists to film, not a marketing still.
+     *
+     * `dependsOn` is gone with the assumption that created it — the homepage
+     * card is always present, so this flow no longer needs a prior adaptation
+     * and cannot be taken down by one drifting.
+     */
+    path: '/',
+    viewport: { width: 430, height: 932 },
     expectedSeconds: [8, 20],
-    // Acts on the card adapt_and_reveal left on screen, so no second credit.
+    // The homepage card is already adapted; toggling it spends nothing.
     consumesCredit: false,
-    dependsOn: 'adapt_and_reveal',
     steps: [
+      /*
+       * §171. Its own navigation, now that it is independent.
+       *
+       * `flow.path` is metadata for `sourceUrl` — it does not navigate. This
+       * flow had no `goto` because it was designed to inherit the page
+       * `adapt_and_reveal` left behind, and `runFlowChain` opens a fresh blank
+       * page, so run as a root flow it was looking for the swap control on
+       * `about:blank`. The failure screenshot was a blank white frame, which is
+       * what sent the earlier diagnosis chasing selectors.
+       */
+      { name: 'open the homepage', action: 'goto', value: '/', setup: true },
       {
         name: 'find the swap control',
         /*
@@ -235,9 +319,11 @@ export const FLOWS: Record<FlowId, CaptureFlow> = {
          * degrades the run instead of ending it.
          */
         action: 'waitFor',
-        selector: '[data-testid="swap-control"]',
+        // §171. Verified live on `/`. The testid leads the fallbacks so the
+        // flow moves back to it automatically if the product ever ships one.
+        selector: '[aria-label="Choose your swap"]',
         fallbackSelectors: [
-          '[aria-label="Choose your swap"]',
+          '[data-testid="swap-control"]',
           'role=group[name=/swap/i]',
           'role=radiogroup[name=/swap|substitut/i]',
           'text=Choose your swap',
@@ -247,9 +333,9 @@ export const FLOWS: Record<FlowId, CaptureFlow> = {
       {
         name: 'scroll the ingredient into view',
         action: 'scrollTo',
-        selector: '[data-testid="swap-control"]',
+        selector: '[aria-label="Choose your swap"]',
         fallbackSelectors: [
-          '[aria-label="Choose your swap"]',
+          '[data-testid="swap-control"]',
           'role=group[name=/swap/i]',
           'text=Choose your swap',
         ],
@@ -260,7 +346,8 @@ export const FLOWS: Record<FlowId, CaptureFlow> = {
         // works on any recipe rather than only on the one it was written against.
         name: 'pick the other option',
         action: 'click',
-        selector: '[data-testid="swap-control"] button[aria-pressed="false"]',
+        // `aria-pressed` is real and exactly one option carries `false`.
+        selector: '[aria-label="Choose your swap"] button[aria-pressed="false"]',
         fallbackSelectors: [
           '[aria-label="Choose your swap"] button[aria-pressed="false"]',
           'role=radio[name=/.+/]',

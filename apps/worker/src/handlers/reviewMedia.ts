@@ -469,6 +469,35 @@ export async function reviewMediaHandler(
       retentionUnmeasured: retention.unmeasured,
       passed,
     });
+
+    /**
+     * §165. A failing verdict is no longer the end of the item's life.
+     *
+     * This used to be it: `status = 'failed'` above, and a person dealt with
+     * it. The controller now gets a chance first — it diagnoses what failed,
+     * applies the smallest correction that addresses it, and re-enters this
+     * same pipeline. It cannot approve or publish anything, and a corrected
+     * item lands back in `pending_approval` exactly where it would have.
+     *
+     * Enqueued for a *passing* item too, and deliberately: the controller is
+     * what writes the iteration history, so an item that passed first time
+     * still gets its iteration 0 recorded. Without that the history exists only
+     * for content that failed, and "this passed immediately" becomes
+     * indistinguishable from "this was never looked at".
+     */
+    await ctx.enqueue(
+      'correct_content',
+      { contentItemId },
+      /*
+       * A *stable* dedupe key. `jobs_dedupe_idx` is unique on `dedupe_key`
+       * while a job is `queued` or `running`, so this is what stops two
+       * controllers working the same item at once — and the `Date.now()` that
+       * used to be here made every key unique, defeating precisely the
+       * protection the index exists to give. Once the job is `done` the partial
+       * index no longer covers it, so a later review enqueues a fresh one.
+       */
+      { dedupeKey: `correct:${contentItemId}`, priority: 40 },
+    );
   } finally {
     await unlink(localPath).catch(() => undefined);
   }
