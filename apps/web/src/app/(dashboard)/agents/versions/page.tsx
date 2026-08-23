@@ -17,7 +17,7 @@ export default async function AgentVersionsPage() {
       <AgentsNav current="/agents/versions" />
 
       {stale.length > 0 ? (
-        <Card className="mb-6 border-l-2 border-l-bad p-4">
+        <Card className="mb-6 border-l-2 border-l-danger p-4">
           <p className="text-sm text-ink">
             {stale.length} agent{stale.length === 1 ? '' : 's'} declare a version that has never
             run.

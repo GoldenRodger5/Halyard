@@ -297,37 +297,40 @@ describe('the gate registry', () => {
     hashtags: [],
   };
 
-  it('reports skipped, not passed, when nothing was rendered', () => {
+  /**
+   * These used to run through `runAllGates`, which accepted a `coherence`
+   * input that no production caller could supply — the aggregate runs at copy
+   * time, before anything is rendered. §119 removed the input; the measurement
+   * is unchanged and is asserted here, against the function `review_media`
+   * actually calls.
+   */
+  it('reports nothing examined when frames could not be sampled, rather than passing', () => {
+    const result = runCoherenceQC(input({ frames: [] }));
+    expect(result.examined).toBe(0);
+  });
+
+  it('fails when the footage contradicts the post', () => {
+    const result = runCoherenceQC(
+      input({ frames: [frame({ describes: 'A city skyline at dusk.', visibleText: [] })] }),
+    );
+    expect(result.passed).toBe(false);
+  });
+
+  it('passes a coherent render', () => {
+    const result = runCoherenceQC(input());
+    expect(result.passed).toBe(true);
+    expect(result.examined).toBeGreaterThan(0);
+  });
+
+  it('the aggregate leaves the slot unexamined for review_media to fill', () => {
+    // Copy time cannot see media, so this is the only honest answer here — and
+    // `skipped` never contributes to a pass unless a caller says it may.
     const result = runAllGates({ copy });
     const gate = result.gates.find((g) => g.gate === 'coherence')!;
     expect(gate.status).toBe('skipped');
     expect(gate.examined).toBe(0);
   });
-
-  it('reports skipped when frames could not be sampled, rather than passing', () => {
-    const result = runAllGates({ copy, coherence: input({ frames: [] }) });
-    const gate = result.gates.find((g) => g.gate === 'coherence')!;
-    expect(gate.status).toBe('skipped');
-    expect(gate.examined).toBe(0);
-  });
-
-  it('fails the whole run when the footage contradicts the post', () => {
-    const result = runAllGates({
-      copy,
-      coherence: input({
-        frames: [frame({ describes: 'A city skyline at dusk.', visibleText: [] })],
-      }),
-    });
-    expect(result.passed).toBe(false);
-    expect(result.gates.find((g) => g.gate === 'coherence')!.status).toBe('failed');
-  });
-
-  it('passes a coherent render', () => {
-    const result = runAllGates({ copy, coherence: input() });
-    expect(result.gates.find((g) => g.gate === 'coherence')!.status).toBe('passed');
-  });
 });
-
 
 describe('visual slop', () => {
   /**

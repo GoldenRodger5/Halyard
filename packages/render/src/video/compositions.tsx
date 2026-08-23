@@ -18,6 +18,12 @@ import {
 import { DEFAULT_BRAND, type BrandTokens } from '../brand.js';
 import { Fonts } from './fonts.js';
 import { layoutScenes, type CaptionCue } from './timing.js';
+import { captionStyle, type CaptionBackdrop } from './captionStyle.js';
+import {
+  BEFORE_AFTER_TREATMENTS,
+  PlannedBeats,
+  type RenderableBeat,
+} from './treatments.js';
 
 export interface VideoBaseProps {
   brand?: BrandTokens;
@@ -29,6 +35,17 @@ export interface VideoBaseProps {
 export interface TransformationDiffVideoProps extends VideoBaseProps {
   headline: string;
   swaps: Array<{ before: string; after: string; reason: string }>;
+  /**
+   * The creative plan's beats. §160.
+   *
+   * When present these decide the scene list — which beat is held, which is
+   * quick, and in what order — instead of the flat "headline plus one scene per
+   * swap" this composition used to assume. Absent, the old layout stands, so a
+   * render enqueued before the plan existed still works.
+   */
+  beats?: RenderableBeat[];
+  /** Which caption treatment the plan called for. Resolved through §158. */
+  captionBackdrop?: 'surface' | 'media';
 }
 
 export interface SubstitutionExplainerProps extends VideoBaseProps {
@@ -114,10 +131,24 @@ const Stage: React.FC<{ brand: BrandTokens; children: React.ReactNode; wordmark?
  * Burned-in captions. Positioned above the bottom safe area rather than inside
  * it, so the platform's own UI does not sit on top of the words.
  */
-export const Captions: React.FC<{ cues: CaptionCue[]; brand: BrandTokens }> = ({ cues, brand }) => {
+export const Captions: React.FC<{
+  cues: CaptionCue[];
+  brand: BrandTokens;
+  /**
+   * What this composition puts behind the caption. §158.
+   *
+   * Every composition here draws on a flat brand surface, so that is the
+   * default. A composition backed by footage passes `{ kind: 'media' }` and
+   * gets a plate instead of an outline, because no single ink is readable
+   * across a frame that changes thirty times a second.
+   */
+  backdrop?: CaptionBackdrop;
+}> = ({ cues, brand, backdrop }) => {
   const frame = useCurrentFrame();
   const active = cues.find((cue) => frame >= cue.startFrame && frame <= cue.endFrame);
   if (!active) return null;
+
+  const style = captionStyle(brand, backdrop ?? { kind: 'surface', color: brand.background });
 
   return (
     <div
@@ -127,14 +158,32 @@ export const Captions: React.FC<{ cues: CaptionCue[]; brand: BrandTokens }> = ({
         right: 72,
         bottom: '16%',
         textAlign: 'center',
-        fontSize: 52,
-        lineHeight: 1.25,
-        fontWeight: 600,
-        color: brand.ink,
-        textShadow: `0 2px 0 ${brand.background}, 0 -2px 0 ${brand.background}, 2px 0 0 ${brand.background}, -2px 0 0 ${brand.background}`,
+        // The words are centred, but the plate is only as wide as the words —
+        // a full-width band reads as a letterbox and buries the frame.
+        display: 'flex',
+        justifyContent: 'center',
       }}
     >
-      {active.text}
+      <span
+        style={{
+          fontSize: 52,
+          lineHeight: 1.25,
+          fontWeight: style.fontWeight,
+          color: style.color,
+          ...(style.scrim
+            ? {
+                backgroundColor: style.scrim,
+                padding: '10px 26px',
+                borderRadius: 14,
+                boxDecorationBreak: 'clone',
+                WebkitBoxDecorationBreak: 'clone',
+              }
+            : {}),
+          ...(style.textShadow ? { textShadow: style.textShadow } : {}),
+        }}
+      >
+        {active.text}
+      </span>
     </div>
   );
 };
@@ -163,39 +212,72 @@ export const TransformationDiffVideo: React.FC<TransformationDiffVideoProps> = (
   const brand = useBrand(props.brand);
   const { durationInFrames, fps } = useVideoConfig();
 
-  const scenes = layoutScenes(
-    [
-      { id: 'headline', weight: 1, minSeconds: 2 },
-      ...props.swaps.map((_, i) => ({ id: `swap-${i}`, weight: 2, minSeconds: 3 })),
-    ],
-    durationInFrames,
-    fps,
-  );
+  /*
+   * §162. With a plan, the beats are laid out and drawn through the treatment
+   * set — the sequencing and timing live in `PlannedBeats`, so a future
+   * creative type supplies a different map and never touches this file.
+   *
+   * Without one, the original flat layout stands, so a render queued before
+   * plans existed lays out exactly as it did.
+   */
+  const planned = props.beats && props.beats.length > 0 ? props.beats : null;
+  const hasCaptions = Boolean(props.captions && props.captions.length > 0);
+
+  const legacyScenes = planned
+    ? []
+    : layoutScenes(
+        [
+          { id: 'headline', weight: 1, minSeconds: 2 },
+          ...props.swaps.map((_, i) => ({ id: `swap-${i}`, weight: 2, minSeconds: 3 })),
+        ],
+        durationInFrames,
+        fps,
+      );
 
   return (
     <Stage brand={brand} wordmark={props.wordmark}>
       {props.audioSrc ? <Audio src={props.audioSrc} /> : null}
 
-      {scenes.map((scene, index) => (
-        <Sequence key={scene.id} from={scene.startFrame} durationInFrames={scene.durationFrames}>
-          <Scene>
-            {index === 0 ? (
-              <Rise>
-              <div style={{ fontSize: 30, letterSpacing: 3, textTransform: 'uppercase', color: brand.primary }}>
-                One adaptation
-              </div>
-              <div style={{ fontFamily: brand.headingFont, fontSize: 86, lineHeight: 1.05, marginTop: 20 }}>
-                  {props.headline}
-                </div>
-              </Rise>
-            ) : (
-              <SwapScene swap={props.swaps[index - 1]!} brand={brand} />
-            )}
-          </Scene>
-        </Sequence>
-      ))}
+      {planned ? (
+        <PlannedBeats
+          beats={planned}
+          treatments={BEFORE_AFTER_TREATMENTS}
+          brand={brand}
+          headline={props.headline}
+          hasCaptions={hasCaptions}
+        />
+      ) : (
+        legacyScenes.map((scene, index) => (
+          <Sequence key={scene.id} from={scene.startFrame} durationInFrames={scene.durationFrames}>
+            <Scene>
+              {index === 0 ? (
+                <Rise>
+                  <div style={{ fontSize: 30, letterSpacing: 3, textTransform: 'uppercase', color: brand.primary }}>
+                    One adaptation
+                  </div>
+                  <div style={{ fontFamily: brand.headingFont, fontSize: 86, lineHeight: 1.05, marginTop: 20 }}>
+                    {props.headline}
+                  </div>
+                </Rise>
+              ) : (
+                <SwapScene swap={props.swaps[index - 1]!} brand={brand} />
+              )}
+            </Scene>
+          </Sequence>
+        ))
+      )}
 
-      {props.captions ? <Captions cues={props.captions} brand={brand} /> : null}
+      {props.captions ? (
+        <Captions
+          cues={props.captions}
+          brand={brand}
+          backdrop={
+            props.captionBackdrop === 'media'
+              ? { kind: 'media' }
+              : { kind: 'surface', color: brand.background }
+          }
+        />
+      ) : null}
     </Stage>
   );
 };

@@ -55,9 +55,9 @@ export function FactConfidence({
 }) {
   const tone =
     status === 'refuted'
-      ? 'text-bad'
+      ? 'text-danger'
       : stale
-        ? 'text-warn'
+        ? 'text-warn-ink'
         : status === 'verified'
           ? 'text-good'
           : 'text-muted';

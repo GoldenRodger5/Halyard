@@ -23,6 +23,7 @@ export async function createProduct(formData: FormData): Promise<void> {
   const name = String(formData.get('name') ?? '').trim();
   const tagline = String(formData.get('tagline') ?? '').trim();
   const websiteUrl = String(formData.get('website_url') ?? '').trim();
+  const appStoreUrl = String(formData.get('app_store_url') ?? '').trim();
   const audienceTimezone = String(formData.get('audience_timezone') ?? 'America/New_York');
   const operatorTimezone = String(formData.get('operator_timezone') ?? 'America/New_York');
 
@@ -40,17 +41,23 @@ export async function createProduct(formData: FormData): Promise<void> {
   if (existing) fail(`A product called "${id}" already exists.`);
 
   await query(
-    `insert into products (id, name, tagline, website_url, audience_timezone, operator_timezone,
-                           connector_type, destinations)
-     values ($1,$2,$3,$4,$5,$6,'none',$7)`,
+    `insert into products (id, name, tagline, website_url, app_store_url, audience_timezone,
+                           operator_timezone, connector_type, destinations)
+     values ($1,$2,$3,$4,$5,$6,$7,'none',$8)`,
     [
       id,
       name,
       tagline || null,
       websiteUrl || null,
+      appStoreUrl || null,
       audienceTimezone,
       operatorTimezone,
-      websiteUrl ? { web: websiteUrl } : {},
+      // Both are link destinations *and* evidence sources; `destinations` is
+      // what `discoverEvidenceSources` reads first.
+      {
+        ...(websiteUrl ? { web: websiteUrl } : {}),
+        ...(appStoreUrl ? { app_store: appStoreUrl } : {}),
+      },
     ],
   );
 

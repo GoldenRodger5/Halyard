@@ -8,6 +8,7 @@
  *   · edit is inline, regenerate asks for a note
  */
 import Link from 'next/link';
+import { DeliveryBadge } from './DeliveryState';
 import {
   Badge,
   Card,
@@ -66,6 +67,8 @@ export function QueueCard({ item, timeZone }: { item: QueueItem; timeZone: strin
           {item.scheduled_at ? formatInOperatorTz(item.scheduled_at, timeZone) : 'unscheduled'}
         </span>
         <Badge tone={STATUS_TONE[item.status] ?? 'neutral'}>{item.status.replace(/_/g, ' ')}</Badge>
+        {/* §156. What the platform holds, which the status alone does not say. */}
+        <DeliveryBadge item={item} />
       </header>
 
       <div className="space-y-4 p-4">

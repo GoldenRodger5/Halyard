@@ -1,0 +1,80 @@
+{
+  "id": "323c9bab-cca3-4d77-8891-cf43236e69e4",
+  "platform": "youtube",
+  "format": "video",
+  "status": "pending_approval",
+  "category": "founder_insight",
+  "recipe": "Chewy Fudgy Frosted Brownies (Gluten-Free)",
+  "title": "Why I stopped rewriting the whole recipe",
+  "createdAt": "2026-08-22T16:43:24.612968-04:00",
+  "linkUrl": "http://localhost:3200/r/323c9bab-cca3-4d77-8891-cf43236e69e4",
+  "qcPassed": true,
+  "gates": [
+    {
+      "gate": "copy",
+      "status": "passed",
+      "summary": "passed (0 flags)"
+    },
+    {
+      "gate": "claims",
+      "status": "passed",
+      "summary": "4/4 verified against artifact"
+    },
+    {
+      "gate": "destination",
+      "status": "skipped",
+      "summary": "no link"
+    },
+    {
+      "gate": "proof",
+      "status": "skipped",
+      "summary": "no quoted testimonial"
+    },
+    {
+      "gate": "audio",
+      "status": "passed",
+      "summary": "WER 0.0%, 156 wpm, -14.3 LUFS"
+    },
+    {
+      "gate": "visual",
+      "status": "passed",
+      "summary": "passed (0 warnings)"
+    },
+    {
+      "gate": "retention",
+      "status": "warning",
+      "summary": "opening not resolvable at 6.7s per sample, longest static 13.5s — 3 checks not measured (no_content_in_opening, first_frame_words, first_frame_contrast)"
+    },
+    {
+      "gate": "coherence",
+      "status": "warning",
+      "summary": "coherent, 3 notes across 6 frames"
+    }
+  ],
+  "claims": [
+    {
+      "text": "Eggs scaled from three to one for the 4-serving batch",
+      "source": "ingredients[4].changeReason"
+    },
+    {
+      "text": "Pan size changed from a 9-inch square to a 6-inch square or 8x4 loaf pan at this scale",
+      "source": "steps[0].updated_note"
+    },
+    {
+      "text": "Start checking for doneness at 18 minutes using the toothpick test rather than color",
+      "source": "steps[5].updated_note"
+    },
+    {
+      "text": "Gluten-free flour blend may need up to 1 teaspoon extra water if the batter looks very stiff",
+      "source": "steps[4].updated_note"
+    }
+  ],
+  "generation": {
+    "model": "claude-sonnet-5",
+    "costUsd": 0.110604,
+    "attempts": 2,
+    "inputTokens": 9733,
+    "outputTokens": 5427,
+    "promptVersion": "copywriter.v1"
+  }
+}

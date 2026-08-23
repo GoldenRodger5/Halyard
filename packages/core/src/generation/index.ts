@@ -3,6 +3,7 @@ export * from './prompts.js';
 export * from './formatPrompts.js';
 export * from './copywriter.js';
 export * from './ideaEngine.js';
+export * from './ideaGenerator.js';
 export * from './hooks.js';
 export * from './rejectionClusters.js';
 export * from './autoClip.js';

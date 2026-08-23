@@ -60,6 +60,20 @@ export interface RetentionQCResult {
   timeToContentSeconds: number;
   /** Longest static stretch, in seconds. */
   longestStaticStretchSeconds: number;
+  /**
+   * Rules whose inputs were absent, so they never ran.
+   *
+   * `passed` means "nothing that ran found an error" — it has never meant "every
+   * rule passed", and this is what keeps the two apart. `review_media` measures
+   * luminance and duration from the rendered file, which is enough for the
+   * opening and pattern-interrupt rules; it has no OCR of frame 1 and no
+   * first-to-last similarity, so the thumbnail and loop rules are named here
+   * instead of quietly contributing a pass.
+   *
+   * The same rule `runAllGates` learned the hard way: a skipped check is not a
+   * passed check.
+   */
+  unmeasured: string[];
 }
 
 /** Roughly 3 seconds at 30fps. Nothing may precede content inside this window. */
@@ -93,7 +107,30 @@ export function runRetentionQC(
   const timeToContent = firstSubstantiveSecond(probe, sampleSeconds);
   const openingSeconds = OPENING_FRAMES / (probe.fps || 30);
 
-  if (timeToContent > openingSeconds) {
+  /**
+   * Whether the sampling can resolve the window this rule is about.
+   *
+   * `review_media` samples twelve frames per sixty seconds, so a 32-second
+   * render yields one sample every 6.4s. A rule about the first *three* seconds
+   * cannot be answered from that: the earliest it can distinguish is one whole
+   * sample interval, and every video longer than about fifteen seconds would be
+   * reported as opening late on the sampling artefact alone.
+   *
+   * Reported as unmeasured rather than answered badly. A gate that fails
+   * everything is as useless as one that passes everything, and it is worse,
+   * because the first gets switched off.
+   *
+   * **Do not close this by sampling harder.** It was measured (`DECISIONS.md`
+   * §73): all four of Halyard's fixture renders are flat in mean luminance
+   * across their opening, largest delta 0.0039 against a threshold of 0.01. The
+   * rule uses mean-frame luminance as its motion proxy, and Halyard's style is a
+   * light card with a small region of changing text — swapping every word barely
+   * moves the frame mean. Denser sampling would fail every render on a signal
+   * that cannot see this content. The deficiency is the signal, not the rate.
+   */
+  const canResolveOpening = sampleSeconds <= openingSeconds;
+
+  if (canResolveOpening && timeToContent > openingSeconds) {
     findings.push({
       rule: 'retention.no_content_in_opening',
       severity: 'error',
@@ -132,7 +169,7 @@ export function runRetentionQC(
   }
 
   // A merely slow open is worth saying, but only after the specific findings.
-  if (timeToContent > 0.5 && timeToContent <= openingSeconds) {
+  if (canResolveOpening && timeToContent > 0.5 && timeToContent <= openingSeconds) {
     findings.push({
       rule: 'retention.slow_open',
       severity: 'warning',
@@ -167,17 +204,48 @@ export function runRetentionQC(
     }
   }
 
+  /**
+   * What could not be looked at, named rather than omitted.
+   *
+   * Each entry is the rule that would have run had its input been present, so a
+   * caller can say *which* checks are missing rather than only that some are.
+   */
+  const unmeasured: string[] = [];
+  if (!canResolveOpening) unmeasured.push('retention.no_content_in_opening');
+  if (probe.firstFrameWordCount === undefined) unmeasured.push('retention.first_frame_words');
+  if (probe.firstFrameContrast === undefined) unmeasured.push('retention.first_frame_contrast');
+  if (target.loopReady && probe.loopSimilarity === undefined) {
+    unmeasured.push('retention.not_loop_ready');
+  }
+
   const errors = findings.filter((f) => f.severity === 'error');
 
   return {
     passed: errors.length === 0,
     findings,
+    unmeasured,
     timeToContentSeconds: Number(timeToContent.toFixed(2)),
     longestStaticStretchSeconds: Number(longestStatic.toFixed(2)),
+    /**
+     * The summary never reports a clean pass while a rule went unrun.
+     *
+     * "opens at 0.0s, longest static 2.1s" beside two checks that never
+     * happened reads as a full sweep, and an operator has no way to tell. The
+     * count is small and it is the difference between measured and assumed.
+     */
     summary:
       errors.length > 0
         ? `failed — ${errors[0]!.message}`
-        : `opens at ${timeToContent.toFixed(1)}s, longest static ${longestStatic.toFixed(1)}s`,
+        : `${
+            canResolveOpening
+              ? `opens at ${timeToContent.toFixed(1)}s`
+              : `opening not resolvable at ${sampleSeconds.toFixed(1)}s per sample`
+          }, longest static ${longestStatic.toFixed(1)}s` +
+          (unmeasured.length > 0
+            ? ` — ${unmeasured.length} check${unmeasured.length === 1 ? '' : 's'} not measured (${unmeasured
+                .map((r) => r.replace('retention.', ''))
+                .join(', ')})`
+            : ''),
   };
 }
 

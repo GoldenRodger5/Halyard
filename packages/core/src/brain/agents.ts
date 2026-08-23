@@ -15,7 +15,7 @@
  * are reachable, and report a Brain screen promising knowledge no agent can
  * supply.
  */
-import { extractJson } from '../generation/llm.js';
+import { extractJson, STRATEGY_MODEL } from '../generation/llm.js';
 import type { LlmClient } from '../generation/llm.js';
 import { FACT_CATEGORIES, type FactCategory, type ProposedFact } from './model.js';
 
@@ -176,12 +176,24 @@ async function propose(
     promptVersion: string;
     categories: readonly FactCategory[];
     maxTokens?: number;
+    /**
+     * Which tier proposes these facts.
+     *
+     * All four discoverers used to share the client's default, which is the
+     * draft model. Three of them propose facts that are published as true —
+     * what the product is, what its listing claims, what the code implements —
+     * and a wrong premise there is laundered through every later post. Those
+     * name the strategy model explicitly. The visual one describes a design
+     * language and stays on draft.
+     */
+    model?: string;
   },
 ): Promise<ProposalResult> {
   const response = await llm.complete({
     system: args.system,
     messages: [{ role: 'user', content: args.prompt }],
     maxTokens: args.maxTokens ?? 2000,
+    ...(args.model ? { model: args.model } : {}),
     promptVersion: args.promptVersion,
   });
 
@@ -230,6 +242,7 @@ export async function discoverProductFacts(
   return propose(llm, {
     system:
       'You identify what a product is and who it is for, strictly from supplied evidence. Reply with JSON only.',
+    model: STRATEGY_MODEL,
     prompt: buildProposalPrompt({
       productName: input.productName,
       role: 'reading the public website of a product to work out what it is and who it serves',
@@ -268,6 +281,7 @@ export async function discoverListingFacts(
   return propose(llm, {
     system:
       'You read app store listings and report how a product positions itself. Reply with JSON only.',
+    model: STRATEGY_MODEL,
     prompt: buildProposalPrompt({
       productName: input.productName,
       role: 'reading an App Store listing to work out how the product is positioned',
@@ -310,6 +324,7 @@ export async function discoverImplementationFacts(
   return propose(llm, {
     system:
       'You read a product API surface and report what the product actually supports. Reply with JSON only.',
+    model: STRATEGY_MODEL,
     prompt: buildProposalPrompt({
       productName: input.productName,
       role: "reading a product's own API surface to work out what it genuinely supports",
@@ -407,6 +422,12 @@ Do not state which one is correct. Reply with plain prose, no JSON.`,
       },
     ],
     maxTokens: 300,
+    /*
+     * The reconciler adjudicates a conflict between two facts that both cite
+     * real evidence. It is the last word on which one the Brain keeps, so it
+     * runs on the strategy tier even though its answer is three hundred tokens.
+     */
+    model: STRATEGY_MODEL,
     promptVersion: PRODUCT_RECONCILER_PROMPT_VERSION,
   });
 

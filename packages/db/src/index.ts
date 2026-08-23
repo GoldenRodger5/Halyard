@@ -1,8 +1,23 @@
 export * from './types.gen.js';
 export * from './client.js';
 
-export const PLATFORMS = ['x', 'instagram', 'tiktok', 'pinterest', 'youtube', 'threads'] as const;
-export type Platform = (typeof PLATFORMS)[number];
+/*
+ * `PLATFORMS` and `Platform` used to live here, listing six platforms.
+ *
+ * They were a third copy of a list that already exists twice — `PlatformId` in
+ * `@halyard/core/adapters/types.ts` and `social_accounts_platform_check` in the
+ * database — and they had already drifted: both of the others include
+ * `bluesky`, which has an adapter, a constraint entry and metric mappings. Any
+ * caller reaching for "the platforms" from `@halyard/db` would have been handed
+ * a list that silently omitted a connected platform.
+ *
+ * Nothing imported them, which is the only reason the drift cost nothing. They
+ * are deleted rather than corrected: gotcha 1 in `CLAUDE.md` is about exactly
+ * this shape, and the fix for a list written twice is not to write it a third
+ * time. `PlatformId` is canonical, and `packages/db` cannot import it without
+ * inverting the dependency — so `adapters.test.ts` now asserts that `PlatformId`
+ * and the database constraint agree, which is the check that was missing.
+ */
 
 export const PERSONAS = ['founder', 'brand'] as const;
 export type Persona = (typeof PERSONAS)[number];
@@ -71,6 +86,16 @@ export const JOB_KINDS = [
   'verify_feature',
   /** Phase 3: walk the product and propose claims for verification. */
   'explore_product',
+  /**
+   * Turn repeated rejections into a pattern the copywriter can be told about.
+   * Deterministic: the model half is optional and only names an unknown group.
+   */
+  'cluster_rejections',
+  /**
+   * Applies `settings.log_retention_days` via `purge_operational_logs`. Does
+   * nothing at all while that setting is null, which is the default.
+   */
+  'purge_logs',
   /** P1: fetch the product's public surfaces into product_evidence. No model. */
   'collect_product_evidence',
   /** P1: run the product intelligence agents over collected evidence. */
@@ -131,6 +156,8 @@ export const JOB_POLICY: Record<
    */
   verify_provider_capability: { timeoutMs: 10 * 60_000, maxAttempts: 2, backoffSeconds: 900 },
   score_performance: { timeoutMs: 5 * 60_000, maxAttempts: 2, backoffSeconds: 300 },
+  cluster_rejections: { timeoutMs: 5 * 60_000, maxAttempts: 2, backoffSeconds: 600 },
+  purge_logs: { timeoutMs: 10 * 60_000, maxAttempts: 2, backoffSeconds: 600 },
   digest_email: { timeoutMs: 2 * 60_000, maxAttempts: 2, backoffSeconds: 300 },
   reconcile_schedule: { timeoutMs: 2 * 60_000, maxAttempts: 2, backoffSeconds: 120 },
   mark_stale_assets: { timeoutMs: 2 * 60_000, maxAttempts: 2, backoffSeconds: 300 },

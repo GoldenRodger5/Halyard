@@ -74,3 +74,37 @@ test.describe('platform capability', () => {
     await expect(page.getByText(/proves nothing, so no capability was downgraded/)).toBeVisible();
   });
 });
+
+/**
+ * Two kinds of row now live in `capability_probes`: what a transport was
+ * observed doing, and what one connected account was observed doing. The panel
+ * headed "Probe the provider" must only ever speak for the first.
+ */
+test.describe('probe scope', () => {
+  const HANDLE = '@e2e-probe-scope';
+
+  test.afterEach(async () => {
+    await db().query('delete from social_accounts where handle = $1', [HANDLE]);
+  });
+
+  test('an account observation is not reported as the provider’s last probe', async ({
+    page,
+  }) => {
+    const { rows } = await db().query<{ id: string }>(
+      `insert into social_accounts (product_id, platform, persona, handle, capability_state)
+       values ('founder','threads','founder',$1,'draft_only') returning id`,
+      [HANDLE],
+    );
+    await db().query(
+      `insert into capability_probes
+         (provider, platform, action, account_id, method, outcome, detail)
+       values ('direct','threads','read_comments',$1,'live_api','confirmed',
+               'E2E ACCOUNT SCOPED OBSERVATION')`,
+      [rows[0]!.id],
+    );
+
+    await page.goto('/accounts');
+    // The account-scoped detail must not appear as the provider's headline.
+    await expect(page.getByText('E2E ACCOUNT SCOPED OBSERVATION')).toHaveCount(0);
+  });
+});

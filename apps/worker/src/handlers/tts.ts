@@ -33,11 +33,13 @@ import {
   clampMusicLength,
   ElevenLabsSpeechClient,
   normaliseForSpeech,
+  lexiconTermsUsed,
   runAudioQC,
   runDeliveryQC,
   slopFilter,
   type SlopPlatform,
   SpeechUnavailableError,
+  type GateResult,
   type LexiconEntry,
   type MusicClient,
   type SpeechClient,
@@ -46,6 +48,7 @@ import {
 // arithmetic, while the root pulls in the Remotion compositions and React with
 // them. The worker has no use for a component tree.
 import { buildCaptionCues, durationInFrames } from '@halyard/render/timing';
+import { alignToScript } from '../captions.js';
 import { audioDuration, measureEdgeSilence, mixAudio } from '../audio.js';
 import type { HandlerContext, Job } from '../poller.js';
 import { LibraryBedClient } from '../bed.js';
@@ -59,6 +62,8 @@ interface ItemRow {
   vo_script: string | null;
   audio_mode: string;
   format: string;
+  /** Read so the audio verdict can be merged into the existing gate list. */
+  qc_results: { gates?: GateResult[] } | null;
 }
 
 /**
@@ -81,7 +86,7 @@ export async function ttsHandler(job: Job, ctx: HandlerContext, deps: TtsDeps = 
   if (!contentItemId) throw new Error('tts job has no contentItemId');
 
   const { rows } = await ctx.pool.query<ItemRow>(
-    `select id, product_id, platform, vo_script, audio_mode, format
+    `select id, product_id, platform, vo_script, audio_mode, format, qc_results
        from content_items where id = $1`,
     [contentItemId],
   );
@@ -111,6 +116,29 @@ export async function ttsHandler(job: Job, ctx: HandlerContext, deps: TtsDeps = 
   // Longest-first ordering is the lexicon's contract, so '450°F' wins over
   // '450'. Done in SQL above rather than trusted to insertion order.
   const script = normaliseForSpeech(item.vo_script, lexicon);
+
+  /**
+   * Record which lexicon terms this script actually used.
+   *
+   * `hit_count` has been on the table since 0007 and the pronunciation screen
+   * shows it, and nothing ever incremented it — so the column read zero for
+   * every term forever. It is the only signal for whether a pronunciation is
+   * earning its place or was added once for a word that never recurs.
+   *
+   * After the substitution, not before: what is counted is what was replaced.
+   * Failing to count is never allowed to fail the synthesis — the audio is the
+   * job, the tally is bookkeeping.
+   */
+  const used = lexiconTermsUsed(item.vo_script, lexicon);
+  if (used.length > 0) {
+    await ctx.pool
+      .query(
+        `update voice_lexicon set hit_count = hit_count + 1
+          where term = any($1::text[]) and (product_id = $2 or product_id is null)`,
+        [used, item.product_id],
+      )
+      .catch(() => undefined);
+  }
 
   const speech = deps.speech ?? new ElevenLabsSpeechClient();
 
@@ -186,7 +214,22 @@ export async function ttsHandler(job: Job, ctx: HandlerContext, deps: TtsDeps = 
      * whole clauses rather than the two-word karaoke style that reads as a
      * template — it has existed, unused, for as long as the timing module has.
      */
-    const cues = buildCaptionCues(words);
+    /**
+     * §145. The captions say what the script says, at the times whisper heard.
+     *
+     * `words` is the right clock and the wrong spelling. A real render put
+     * "Keep the rice short, 60 to 90 minutes" on screen where the script reads
+     * "Keep the rise short, sixty to ninety minutes" — whisper's mishearing and
+     * whisper's numerals, burned into the picture. The transcript above still
+     * feeds the gates, because measuring what was *heard* is the whole point of
+     * those; only the words the viewer reads are anchored to the script.
+     *
+     * `item.vo_script` and not `script`: the latter is the version prepared for
+     * the *synthesiser*, with lexicon terms swapped for their phonetic
+     * respellings. "ZAN-thun" is the correct thing to say and the wrong thing
+     * to print.
+     */
+    const cues = buildCaptionCues(alignToScript(words, item.vo_script));
     const silence = await measureEdgeSilence(mixPath);
 
     /**
@@ -254,7 +297,35 @@ export async function ttsHandler(job: Job, ctx: HandlerContext, deps: TtsDeps = 
      * The word timings are what the Remotion `Captions` component burns in, and
      * they come free with the transcription that the gate needed anyway — so
      * the captions are a by-product of measuring, rather than a second pass.
+     *
+     * ## The verdict also goes into `gates`, not only into `audio`
+     *
+     * This wrote `qc_results.audio` and nothing else, and two things followed.
+     *
+     * The queue renders `qc_results.gates`, so an item whose voiceover had just
+     * failed its gate displayed `audio: skipped — no voiceover here`. The
+     * comment below says the queue is where the opinion gets acted on; the
+     * queue was never shown it.
+     *
+     * And `review_media` finishes with `set qc_results = $2`, replacing the
+     * whole object with `{passed, gates, ranAt}` — so for any item with both a
+     * voiceover and a render, which is every video, the top-level `audio` key
+     * was **destroyed** a few minutes later. It read the key first, for the
+     * coherence gate, and then overwrote it.
+     *
+     * Merging into `gates` fixes both: the entry is what the queue displays,
+     * `review_media` preserves entries it does not own, and `passed` is
+     * recomputed over the whole list so a failed voiceover counts.
      */
+    const previousGates = (item.qc_results?.gates ?? []) as GateResult[];
+    const audioGate: GateResult = {
+      gate: 'audio',
+      status: qc.passed ? (qc.findings.length > 0 ? 'warning' : 'passed') : 'failed',
+      summary: `${qc.summary}, ${mix.lufs.toFixed(1)} LUFS`,
+      detail: { findings: qc.findings, wordErrorRate: qc.wordErrorRate, lufs: mix.lufs },
+    };
+    const mergedGates = [...previousGates.filter((g) => g.gate !== 'audio'), audioGate];
+
     await ctx.pool.query(
       `update content_items
           set qc_results = coalesce(qc_results, '{}'::jsonb) || $2::jsonb
@@ -293,6 +364,8 @@ export async function ttsHandler(job: Job, ctx: HandlerContext, deps: TtsDeps = 
             captions: cues,
             durationInFrames: durationInFrames(mix.durationSeconds),
           },
+          gates: mergedGates,
+          passed: mergedGates.every((g) => g.status !== 'failed'),
         }),
       ],
     );

@@ -1,0 +1,80 @@
+{
+  "id": "3071892b-1a77-4eab-8842-30394b558129",
+  "platform": "tiktok",
+  "format": "video",
+  "status": "failed",
+  "category": "founder_insight",
+  "recipe": "Gluten-Free Apple Pie",
+  "title": null,
+  "createdAt": "2026-08-22T16:48:17.543687-04:00",
+  "linkUrl": "http://localhost:3200/r/3071892b-1a77-4eab-8842-30394b558129",
+  "qcPassed": true,
+  "gates": [
+    {
+      "gate": "copy",
+      "status": "warning",
+      "summary": "passed (1 warning)"
+    },
+    {
+      "gate": "claims",
+      "status": "passed",
+      "summary": "4/4 verified against artifact"
+    },
+    {
+      "gate": "destination",
+      "status": "skipped",
+      "summary": "no link"
+    },
+    {
+      "gate": "proof",
+      "status": "skipped",
+      "summary": "no quoted testimonial"
+    },
+    {
+      "gate": "visual",
+      "status": "passed",
+      "summary": "passed (0 warnings)"
+    },
+    {
+      "gate": "retention",
+      "status": "warning",
+      "summary": "opening not resolvable at 5.9s per sample, longest static 11.7s — 4 checks not measured (no_content_in_opening, first_frame_words, first_frame_contrast, not_loop_ready)"
+    },
+    {
+      "gate": "coherence",
+      "status": "warning",
+      "summary": "coherent, 3 notes across 6 frames"
+    },
+    {
+      "gate": "audio",
+      "status": "passed",
+      "summary": "WER 0.0%, 164 wpm, -14.4 LUFS"
+    }
+  ],
+  "claims": [
+    {
+      "text": "Cornstarch activates when it hits oven heat, not before, so the filling looks loose beforehand",
+      "source": "steps[1].updated_note"
+    },
+    {
+      "text": "Cornstarch is used at half the volume of the flour it replaces because it thickens twice as effectively",
+      "source": "ingredients[3].changeReason"
+    },
+    {
+      "text": "Gluten-free flour blends brown faster, so start checking crust color at thirty-five minutes instead of a full hour",
+      "source": "steps[6].updated_note"
+    },
+    {
+      "text": "The filling should be visibly bubbling before the pie comes out, signaling the cornstarch has fully activated",
+      "source": "steps[6].updated_note"
+    }
+  ],
+  "generation": {
+    "model": "claude-sonnet-5",
+    "costUsd": 0.093786,
+    "attempts": 2,
+    "inputTokens": 10192,
+    "outputTokens": 4214,
+    "promptVersion": "copywriter.v1"
+  }
+}

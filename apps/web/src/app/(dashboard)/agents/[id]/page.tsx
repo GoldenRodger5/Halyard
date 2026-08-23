@@ -85,7 +85,7 @@ export default async function AgentDetailPage({
                       <span className="text-muted">{formatInOperatorTz(run.started_at, tz)}</span>
                       <Badge tone={run.status === 'succeeded' ? 'good' : 'bad'}>{run.status}</Badge>
                     </div>
-                    {run.error ? <p className="mt-1 text-xs text-bad">{run.error}</p> : null}
+                    {run.error ? <p className="mt-1 text-xs break-words text-danger">{run.error}</p> : null}
                   </div>
                 ))}
               </div>

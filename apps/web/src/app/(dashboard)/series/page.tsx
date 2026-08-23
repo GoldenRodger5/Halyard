@@ -74,6 +74,32 @@ export default async function SeriesPage() {
         subtitle="A numbered series is a promise. The number tells a reader there is a next one, so an abandoned series costs more than never starting it."
       />
 
+      {/*
+        Honest about what this screen can and cannot do.
+
+        `series` has a detailed schema — cadence, next_sequence, template — a
+        page that reads it, and a `utm_term` in attribution built from the
+        series name. It has no producer: nothing creates a series and nothing
+        sets `content_items.series_id`, so every row visible here came from
+        `supabase/seed.sql`.
+
+        Campaigns are the built version of the same idea and are not going to be
+        duplicated here — see `DECISIONS.md` §128.
+      */}
+      <Card className="mb-6 border-l-2 border-l-warn p-4">
+        <p className="text-sm leading-relaxed text-ink">
+          Series cannot be created yet. Anything listed below came with the
+          starter data, and nothing assigns a post to a series.
+        </p>
+        <p className="mt-2 text-sm leading-relaxed text-muted">
+          A <a className="text-primary underline" href="/campaigns">campaign</a> does
+          the same job today: a named run over a window, with slots that generate
+          and publish on a schedule. Series would add open-ended numbering on top
+          of that, and whether it is worth having is an open decision rather than
+          missing work.
+        </p>
+      </Card>
+
       {series.length === 0 ? (
         <EmptyState
           title="No series yet"

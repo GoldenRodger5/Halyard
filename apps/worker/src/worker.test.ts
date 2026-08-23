@@ -4,6 +4,9 @@
  * Build pack §6: "Publish idempotency — Integration. The one bug that must never
  * ship. Test concurrent publish of the same item."
  */
+import { readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { randomBytes } from 'node:crypto';
 import type pg from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -12,8 +15,14 @@ import {
   createIsolatedPool,
   databaseAvailable,
 } from '../../../packages/db/src/__tests__/testDb.js';
-import { Poller, withTimeout, type HandlerContext, type Job } from './poller.js';
-import { DuplicatePublishAbort, PublishingDisabled, publishHandler } from './handlers/publish.js';
+import {
+  PermanentJobFailure,
+  Poller,
+  withTimeout,
+  type HandlerContext,
+  type Job,
+} from './poller.js';
+import { DuplicatePublishAbort, PublishingDisabled, notify, publishHandler } from './handlers/publish.js';
 
 const available = await databaseAvailable();
 const d = available ? describe : describe.skip;
@@ -161,8 +170,55 @@ d('accounts with no API path', () => {
     );
     expect(audit).toHaveLength(1);
 
+    // The item still points at this account, and `content_items_account_routing_fk`
+    // is NO ACTION, so the account cannot go first. This cleanup dropped the
+    // suite with a foreign-key violation once during the activation pass.
+    await pool.query('delete from content_items where id = $1', [itemId]);
     await pool.query('delete from social_accounts where id = $1', [account.rows[0]!.id]);
   }, 60_000);
+});
+
+/**
+ * §153. The last gate before the outside world.
+ *
+ * §111 made generation refuse to build a link from an unset
+ * `HALYARD_PUBLIC_URL`. An item drafted before that, or on a developer's
+ * machine, still carries `http://localhost:3200/r/…` — and nothing between the
+ * row and the platform looked at it again. On X the link also buys a second
+ * billed post to carry it.
+ */
+d('a link nobody can open', () => {
+  it('refuses to publish an item carrying a local link', async () => {
+    const itemId = await makeItem();
+    await pool.query(
+      `update content_items set status = 'approved', link_url = $2 where id = $1`,
+      [itemId, 'http://localhost:3200/r/abc'],
+    );
+
+    currentFetch = (() => {
+      throw new Error('the adapter must not be reached with an unpublishable link');
+    }) as unknown as typeof fetch;
+
+    await expect(publishHandler(job(itemId), context())).rejects.toThrow(/not publicly reachable/);
+
+    const { rows } = await pool.query('select 1 from publications where content_item_id = $1', [
+      itemId,
+    ]);
+    expect(rows).toHaveLength(0);
+  });
+
+  it('publishes the same item once the link is cleared', async () => {
+    // Dropping the link changes what goes out, so it is the operator's call —
+    // the handler refuses, it does not decide.
+    const itemId = await makeItem();
+    await pool.query(
+      `update content_items set status = 'approved', link_url = null where id = $1`,
+      [itemId],
+    );
+    currentFetch = okFetch();
+
+    await expect(publishHandler(job(itemId), context())).resolves.toBeUndefined();
+  });
 });
 
 d('publish idempotency — the bug that must never ship', () => {
@@ -479,6 +535,36 @@ d('Poller', () => {
     expect(rows).toHaveLength(1);
   });
 
+  /**
+   * The container healthcheck reads this file's mtime. It used to run
+   * `node -e "process.exit(0)"` and report healthy on a wedged worker.
+   */
+  it('leaves a liveness file the container healthcheck can read', async () => {
+    const path = join(tmpdir(), `halyard-liveness-${process.pid}`);
+    const previous = process.env.HALYARD_LIVENESS_FILE;
+    process.env.HALYARD_LIVENESS_FILE = path;
+    try {
+      const poller = new Poller({ pool, workerId: 'live-worker', handlers: {}, log: () => undefined });
+      await poller.heartbeat();
+      expect(readFileSync(path, 'utf8')).toContain('live-worker');
+    } finally {
+      process.env.HALYARD_LIVENESS_FILE = previous;
+      rmSync(path, { force: true });
+    }
+  });
+
+  it('touches no disk when the healthcheck path is not configured', async () => {
+    // Local runs and tests must not litter; the Dockerfile sets the variable.
+    const previous = process.env.HALYARD_LIVENESS_FILE;
+    delete process.env.HALYARD_LIVENESS_FILE;
+    try {
+      const poller = new Poller({ pool, workerId: 'nofile-worker', handlers: {}, log: () => undefined });
+      await expect(poller.heartbeat()).resolves.toBeUndefined();
+    } finally {
+      if (previous !== undefined) process.env.HALYARD_LIVENESS_FILE = previous;
+    }
+  });
+
   it('reaps a stale lock', async () => {
     await pool.query(
       `insert into jobs (kind, status, locked_at, locked_by) values ('render','running', now() - interval '1 hour','dead')`,
@@ -491,5 +577,227 @@ d('Poller', () => {
     await expect(
       withTimeout(new Promise(() => undefined), 30, 'too slow'),
     ).rejects.toThrow('too slow');
+  });
+});
+
+/**
+ * A failure that retrying cannot fix.
+ *
+ * `publishFailurePolicy` has always decided this — `retry: false` for an auth
+ * failure, a duplicate abort, and a malformed response whose own note reads
+ * "never retried — that double-posts". `publish.ts` read the policy, acted on it
+ * for the item and the account, then threw a plain `Error`, and the poller
+ * retried the job anyway because `fail()` had no way to hear it. The idempotency
+ * index was the only thing standing between a malformed response and the second
+ * write its policy warns about.
+ */
+d('a permanent failure is not retried', () => {
+  it('dead-letters on the first attempt instead of burning the allowance', async () => {
+    const handler = vi
+      .fn()
+      .mockRejectedValue(new PermanentJobFailure('no credential', 'nothing to retry with'));
+    const poller = new Poller({
+      pool,
+      workerId: 'w1',
+      handlers: { render: handler },
+      log: () => undefined,
+    });
+
+    await poller.enqueue('render', {}, { maxAttempts: 3 });
+    await poller.tick();
+
+    const { rows } = await pool.query<{ status: string; last_error: string; finished_at: string }>(
+      'select status, last_error, finished_at from jobs',
+    );
+    expect(rows[0]!.status).toBe('dead');
+    expect(rows[0]!.last_error).toBe('no credential');
+    // Terminal, so it carries a finish time like any other completed job.
+    expect(rows[0]!.finished_at).not.toBeNull();
+    expect(handler).toHaveBeenCalledTimes(1);
+  });
+
+  it('still retries an ordinary failure, which is the point of the distinction', async () => {
+    // The guard against over-applying this: a flaky provider must keep its
+    // retries. Only a handler that knows repetition cannot help may opt out.
+    const handler = vi.fn().mockRejectedValue(new Error('transient'));
+    const poller = new Poller({
+      pool,
+      workerId: 'w1',
+      handlers: { render: handler },
+      log: () => undefined,
+    });
+
+    await poller.enqueue('render', {}, { maxAttempts: 3 });
+    await poller.tick();
+
+    const { rows } = await pool.query<{ status: string }>('select status from jobs');
+    expect(rows[0]!.status).toBe('queued');
+  });
+
+  it('treats a duplicate publish abort as permanent', async () => {
+    // It is permanent by construction: a second attempt re-reads the same
+    // publication row and aborts identically.
+    const abort = new DuplicatePublishAbort('item-1', 'account-1');
+    expect(abort).toBeInstanceOf(PermanentJobFailure);
+    // And still its own type, so existing catches keep working.
+    expect(abort).toBeInstanceOf(DuplicatePublishAbort);
+  });
+});
+
+/**
+ * Error text reaching the database.
+ *
+ * `scrubEvent` has always guarded the path to Sentry, and nothing guarded the
+ * path to Postgres. An error message is arbitrary text from whatever threw, and
+ * the Instagram adapter carries its access token in the URL query string — so a
+ * stack or cause quoting a URL puts a live credential into a row that the
+ * operator UI renders and that is kept indefinitely.
+ */
+d('a credential cannot reach jobs.last_error', () => {
+  const TOKEN = 'EAAGm0PX4ZCpsBO1234567890abcdefghijklmnopqrstuv';
+
+  it('scrubs a token out of the stored failure message', async () => {
+    const handler = vi
+      .fn()
+      .mockRejectedValue(
+        new Error(
+          `Instagram GET failed https://graph.facebook.com/v21.0/me/permissions?access_token=${TOKEN}`,
+        ),
+      );
+    const poller = new Poller({
+      pool,
+      workerId: 'w1',
+      handlers: { render: handler },
+      log: () => undefined,
+    });
+
+    await poller.enqueue('render', {}, { maxAttempts: 1 });
+    await poller.tick();
+
+    const { rows } = await pool.query<{ last_error: string }>('select last_error from jobs');
+    expect(rows[0]!.last_error).not.toContain(TOKEN);
+    // The shape of the failure survives, so the row is still diagnostic.
+    expect(rows[0]!.last_error).toContain('access_token=[redacted]');
+    expect(rows[0]!.last_error).toContain('Instagram GET failed');
+  });
+
+  it('leaves an ordinary failure message intact', async () => {
+    // Redaction that ate normal errors would cost more than it saved.
+    const handler = vi.fn().mockRejectedValue(new Error('ffmpeg exited with code 1'));
+    const poller = new Poller({
+      pool,
+      workerId: 'w1',
+      handlers: { render: handler },
+      log: () => undefined,
+    });
+
+    await poller.enqueue('render', {}, { maxAttempts: 1 });
+    await poller.tick();
+
+    const { rows } = await pool.query<{ last_error: string }>('select last_error from jobs');
+    expect(rows[0]!.last_error).toBe('ffmpeg exited with code 1');
+  });
+});
+
+/**
+ * §122. Notifications were the fourth path to an error-text column and the only
+ * one that was not scrubbed.
+ */
+d('notifications cannot carry a credential', () => {
+  function ctx() {
+    return { pool, log: () => undefined, enqueue: async () => undefined } as unknown as HandlerContext;
+  }
+
+  beforeEach(async () => {
+    await pool.query('delete from notifications');
+  });
+
+  it('redacts a token that arrived in a query string', async () => {
+    // Meta's Graph API takes the access token as a query parameter, so a failed
+    // Instagram call produces exactly this shape of message.
+    await notify(
+      ctx(),
+      'connector_down',
+      'critical',
+      'Instagram unreachable',
+      'GET https://graph.facebook.com/v21.0/me?access_token=EAAGm0PXsecretvalue failed with 400',
+    );
+
+    const { rows } = await pool.query<{ body: string }>('select body from notifications');
+    expect(rows[0]!.body).not.toContain('EAAGm0PXsecretvalue');
+    // The parameter name survives, so a reader can still tell what was removed.
+    expect(rows[0]!.body).toContain('access_token=[redacted]');
+  });
+
+  it('redacts the title as well, which is equally caller-supplied', async () => {
+    await notify(ctx(), 'connector_down', 'warning', 'failed: ?client_secret=abc123def456', 'body');
+    const { rows } = await pool.query<{ title: string }>('select title from notifications');
+    expect(rows[0]!.title).not.toContain('abc123def456');
+  });
+
+  it('leaves an ordinary message untouched', async () => {
+    // Over-redaction costs a debugging detail, so the scrub must be narrow.
+    const body = 'Generation is paused for this product; the queue is unaffected.';
+    await notify(ctx(), 'connector_down', 'info', 'Connector down', body);
+    const { rows } = await pool.query<{ body: string }>('select body from notifications');
+    expect(rows[0]!.body).toBe(body);
+  });
+});
+
+/**
+ * §155. A malformed payload is a permanent failure, not a database error.
+ *
+ * `String(undefined)` is `'undefined'`, which reached Postgres as a uuid and
+ * came back as `invalid input syntax for type uuid: "undefined"` — and was then
+ * retried, spending the whole budget rediscovering the same unfixable row.
+ * Every sibling handler already guarded this.
+ */
+d('collect_metrics with nothing to collect from', () => {
+  it('refuses a job with no publicationId, permanently', async () => {
+    const { HANDLERS } = await import('./handlers/index.js');
+    const { PermanentJobFailure } = await import('./poller.js');
+
+    await expect(
+      HANDLERS.collect_metrics!(
+        { id: 'j', kind: 'collect_metrics', payload: {}, attempts: 1, max_attempts: 3 } as never,
+        context(),
+      ),
+    ).rejects.toBeInstanceOf(PermanentJobFailure);
+  });
+});
+
+/**
+ * §156. Delivering to a platform is not publishing.
+ *
+ * A native draft is sitting in someone's TikTok inbox and a private upload is
+ * on YouTube and not public. Recording either as a publication starts the
+ * 90-day repost clock, stamps `published_at`, and points metrics collection at
+ * something nobody can see.
+ */
+describe('what a delivery outcome means for Halyard', () => {
+  it('publishes only on a direct post', async () => {
+    const { statusAfterDelivery } = await import('./handlers/publish.js');
+    expect(statusAfterDelivery('direct')).toEqual({ status: 'published', published: true });
+  });
+
+  it('does not publish a native draft', async () => {
+    const { statusAfterDelivery } = await import('./handlers/publish.js');
+    const out = statusAfterDelivery('draft');
+    expect(out.published).toBe(false);
+    expect(out.status).toBe('awaiting_manual_publish');
+  });
+
+  it('does not publish a private upload', async () => {
+    const { statusAfterDelivery } = await import('./handlers/publish.js');
+    const out = statusAfterDelivery('private');
+    expect(out.published).toBe(false);
+    expect(out.status).toBe('awaiting_manual_publish');
+  });
+
+  it('fails closed on a delivery mode it has not been taught', async () => {
+    // The polarity that matters: a capability added later must not arrive as a
+    // publication by default.
+    const { statusAfterDelivery } = await import('./handlers/publish.js');
+    expect(statusAfterDelivery('something_new' as never).published).toBe(false);
   });
 });

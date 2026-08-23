@@ -1,8 +1,275 @@
 # Where Halyard is right now
 
+**2026-08-23 — Real product footage is in the frame.** The `before_after`
+composition now opens on a `demo` beat playing an actual recording of RecipeFix
+adapting a recipe: captured live, cut to the 3.8 seconds worth watching out of
+a fifty-second session, cropped to the result panel, and rendered through the
+existing plan → treatment → timing → caption path. No new timing engine, no new
+caption system, no creative-type conditionals in the composition. Every frame in
+the band is a frame that was recorded — a beat whose footage is missing renders
+nothing rather than a placeholder. Three defects came out of the real render and
+were fixed in the same pass: Remotion serving a stale `public/` copy from its
+code-keyed bundle cache, `minSeconds` being a floor so a held demo beat froze
+its last frame for four and a half seconds, and the resulting `maxSeconds` cap
+being silently dropped at the beat→scene mapping. `DECISIONS.md` §163.
+
+**2026-08-23 — The creative layer is reusable, and before_after looks
+deliberate.** A creative type is now a map from beat role to visual treatment,
+so a second type is a mapping rather than an edit to the transformation
+composition. Emphasis became visible as type scale, not only duration. Two
+layout defects found by inspecting real frames — percentage padding resolving
+against width (the caption ran through the reason text) and a bottom-anchored
+hook leaving half the canvas empty. `DECISIONS.md` §162.
+
+**2026-08-23 — The creative layer exists, and it reaches a real render.**
+`planBeforeAfter` decides the beats of a story — hook, held change,
+corroboration, evidence — from the generic `Highlight` contract, and those beats
+drive `layoutScenes` and the composition. Proven live on a real MCP adaptation:
+five beats, the best-explained change held at 3× the hook's weight, and a
+`proof` scene that did not exist before. `DECISIONS.md` §160–§161.
+
+**2026-08-23 — Two production defects fixed at the layer above the media
+pipeline.** Caption legibility is now *measured* — `captionStyle` guarantees
+WCAG AA against whatever is behind the words, proven by a test that sweeps the
+colour cube, and verified on a real render. And the capture selector that was
+killing three production jobs a day now degrades through a candidate chain that
+reports which selector answered. `DECISIONS.md` §158–§159.
+
+**The creative/media intelligence layer was scoped but not built** — see
+*Creative engine: what exists already* below.
+
+**2026-08-22 — Halyard is online and current.** Production was four to eight
+days behind and its database predated P0 and P1 — no `agent_runs`, no
+`product_facts`, no `product_evidence`, no storage bucket, and a worker with no
+`ANTHROPIC_API_KEY`, which meant it could not generate anything at all. Schema
+forward-filled, both environments configured, both services redeployed. The
+production worker then ran evidence collection and a Product Brain build against
+real providers with no local machine involved: 11 evidence rows including 13
+tools from the live RecipeFix MCP, 36 facts, $0.29 of Anthropic. `docs/DEPLOY.md`
+carries the procedure and the reasons.
+
+**2026-08-22 — The queue became the operator surface, and "draft" stopped
+meaning three things.** A private YouTube upload was reporting itself as a
+native draft, sending operators to finish something that needed no finishing —
+and one line in `publish` would have recorded the next delivery capability as a
+**publication**. Both fixed, with the platform capability matrix verified
+against current official documentation. `DECISIONS.md` §156–§157,
+`PLATFORM_COVERAGE.md` §13. Details below under *Draft and delivery*.
+
+**2026-08-22 — Production validation loop, up to the approval boundary.** Six
+real items generated from two real MCP adaptations, all six passing QC; a real
+1080×1920 video at −14.3 LUFS; the audio gate recalibrated from five real
+voiceovers rather than loosened. Five more defects found and fixed, all
+tamper-verified — `DECISIONS.md` §151–§155. **Nothing has been published**: the
+candidate sits at `pending_approval`, which is the boundary working. Details
+below under *Production validation*.
+
+**2026-08-21 — Product Understanding generalised, and MCP activated.** Halyard
+no longer has RecipeFix in its control flow. Evidence collection reads whatever
+a product exposes, MCP is one optional source among six, and a product with
+nothing but a website was run end to end to prove it. Five more defects found by
+real execution, all fixed and tamper-verified — `DECISIONS.md` §146–§150.
+Details below under *Product Understanding*.
+
+**2026-08-21 — Provider Activation Pass 1 complete.** The system has now been
+run against real providers rather than reasoned about. Anthropic, ElevenLabs,
+OpenAI vision, whisper.cpp, ffmpeg and Remotion all executed end to end; the X
+credential was verified by a live read. Five defects surfaced that only real
+execution could surface, all fixed and tamper-verified — `DECISIONS.md`
+§142–§145 and §141. Details below under *Activation Pass 1*.
+
 **2026-08-19.** Replaces the 2026-08-10 build-status document, which predated P0, P1 and P2. That version is superseded, not merely dated — its counts and its picture of the agent layer are both wrong now.
 
-`main` is at `6ca8d99`, CI green.
+`main` is at `36dbf53`, CI green. A substantial amount of verified work sits **uncommitted** on top of it — see the last section.
+
+---
+
+## Creative engine: what exists already (2026-08-23)
+
+Before building a creative planner, this is what the machine already does, so
+the layer above it is designed against reality rather than a blank page:
+
+| Capability | Where it lives | State |
+|---|---|---|
+| format choice per account | `chooseFormat`, `supported_formats` | real |
+| video composition choice | `chooseVideoComposition` | real, artifact-driven |
+| platform strategy + link strategy | `PlatformConstraints` | real |
+| capture step elision | `FlowStep.elide`, `shouldElide`, `elisionCaption` | **real** — measured elapsed time, cut with a caption |
+| selector resilience | `fallbackSelectors`, `selectorHealth` | new, §159 |
+| caption treatment | `captionStyle` | new, §158 |
+| visual/coherence/retention critique | `review_media` on `gpt-5.5` | real, independent provider |
+
+Capture compression is therefore **not** missing: `elide` already cuts the long
+adaptation wait and captions it with the *measured* elapsed time rather than a
+synthetic progress bar. What does not exist is a plan that chooses the creative
+*type* — before/after versus explainer versus demo — and drives scene emphasis,
+caption backdrop and timing from it. `captionStyle`'s `CaptionBackdrop` is the
+first parameter such a plan would set.
+
+Nothing here fabricates performance data: there are still no publications, so
+the learning loop has nothing to learn from.
+
+---
+
+## Draft and delivery — one queue, three platform outcomes (2026-08-22)
+
+**Halyard's draft is authoritative. A platform's is a delivery outcome.** The
+two were being mixed, and the mixing was live: YouTube reported a private upload
+as `mode: 'draft'`, so the queue told an operator to open Studio and finish a
+video that needed no finishing — while hiding that Halyard could publish it over
+the API. Three states now, each with its own sentence in the UI:
+
+| what happened | who finishes it | Halyard status |
+|---|---|---|
+| **native draft** (TikTok inbox) | the creator, inside TikTok | `awaiting_manual_publish` |
+| **private upload** (YouTube private) | nobody — Halyard can publish it | `awaiting_manual_publish` |
+| **direct post** | already public | `published` |
+
+**The dangerous half was one line.** `publish` read
+`mode === 'draft' ? awaiting_manual_publish : published`, so the moment a third
+outcome existed it would have been recorded as published — `published_at`
+stamped, the repost clock started, metrics collected against a private video.
+`statusAfterDelivery` now publishes only on `direct`, so a capability added
+later fails closed.
+
+**The capability matrix is verified, not assumed.** `PlatformConstraints.delivery`
+declares `nativeDraft`, `privateUpload`, `apiScheduling` and
+`requiresCreatorCompletion` per platform, each carrying the documentation that
+justifies it. TikTok is the only native draft; YouTube is the only private
+upload and the only API scheduling. Instagram and Threads media containers are
+recorded as **neither** — they are a transient publishing step that expires in
+24 hours and the creator never sees. Sources in `PLATFORM_COVERAGE.md` §13.
+
+**An edit no longer leaves stale verdicts** (§157). The copy gate is re-run
+because the slop filter is deterministic; the claims gate is marked
+*not re-verified* because only a re-check can settle it; every other gate is
+left alone, because editing a caption does not un-measure a render.
+
+**The queue shows the whole lifecycle.** `published` and `rejected` had no tab
+and were missing from "Everything", so the only way to see what Halyard had
+actually done was the database. Both are tabs now, with a platform filter and a
+delivery badge on every card.
+
+---
+
+## Production validation — the loop up to approval (2026-08-22)
+
+**The generation half is real and repeatable.** One scheduled `generate` run
+produced six items from two real MCP adaptations — *Chewy Fudgy Frosted Brownies
+(Gluten-Free)* and *Gluten-Free Apple Pie* — each with a real artifact. All six
+carry `passed: true`. The X candidate's claims gate reads **2/2 verified against
+artifact**, with `sourcePath`s (`steps[1].updated_note`, `steps[6].updated_note`)
+that resolve into the adaptation, and the artifact genuinely contains the
+cornstarch and bubbling details the copy talks about.
+
+**ElevenLabs is on Starter and the media chain is clean.** Five voiceovers
+synthesised with the premade voice: 23–36s, all at −14.3 LUFS, spoken slop
+clean, captions aligned. Instant voice cloning is now permitted by the plan and
+was deliberately **not** used. Music stays absent — the bed is gated on a
+licensed `music_bed` asset for the product, and there is none.
+
+**The audio gate was calibrated from evidence, not loosened** (§152). The 2%
+ceiling is unchanged; it was counting whisper's tokeniser rather than the
+speaker. The video that failed at 2.94% re-ran through the production path and
+now reads **WER 0.0%**.
+
+**The publication candidate is verified and unpublished.** `first-contact
+--dry-run` against the named item: `@Recipe_Fix`, 244 of 280 characters, no
+link, **one** write, ~$0.015. Its link was `http://localhost:3200/r/…` — §153
+now refuses that at publish time, and clearing it was recorded as an operator
+decision in `audit_log`.
+
+**The loop below publication is genuinely empty, and says so.** 0 publications,
+0 `post_metrics`, 0 `performance_scores`, 0 `halyard_empirical`. `score_performance`
+ran and reported `posts: 0` — an honest zero rather than fabricated scores. The
+learning edge cannot be exercised until one real post exists.
+
+---
+
+## Product Understanding — source-agnostic, MCP optional (2026-08-21)
+
+**RecipeFix is the activation subject, not a dependency.** `createConnector`
+branched on `product.id === 'recipefix'`; any other product with a valid MCP
+configuration silently got no connector. MCP is now generic, and
+product-specific artifact adapters resolve from `connector_config.adapter`.
+See `DECISIONS.md` §146 for the evidence/artifact split that makes that work.
+
+**Six evidence sources, all optional.** `discoverEvidenceSources` is one pure
+function over the product row and the environment — website, App Store, MCP,
+repository, screenshots, operator brief. It is what drives collection *and* what
+the Brain page and onboarding show, so the operator is told what actually ran.
+It reports **configured**, never reachable; the UI pairs that with what was last
+**observed**, because a configured source that has produced nothing is what a
+wrong URL looks like.
+
+**Proven live, all four MCP states:**
+
+| State | Result |
+|---|---|
+| configured and answering | 13 tools read from the real server → 12 implementation facts |
+| configured, unreachable | `unavailable — fetch failed`; website collection unaffected |
+| not configured | `not configured`; three agents skipped by name |
+| no MCP at all | a website-only product collected, reasoned and built a Brain for $0.0066 |
+
+**The video path works for the first time.** A real MCP adaptation now produces
+a real artifact (§149), so `chooseVideoComposition` finds its swaps: two video
+items reached `pending_approval` with a 1080×1920 H.264 + AAC render at
+−14.3 LUFS, and the claims gate reported **5 of 6 verified against artifact**.
+Both are held back by a failing audio gate (WER 2.3% against a 2% ceiling),
+which is the gate doing its job.
+
+**Model calls are streamed** (§147). One hung for eighteen minutes holding a
+worker slot; the same Brain build now finishes in 120 seconds.
+
+**Still externally blocked:** ElevenLabs remains on the free tier, so the
+founder voice clone is unavailable and testing uses a premade voice; music is
+unlicensed and the bed is skipped; some Discover recipes cannot be scraped and
+the server refuses them, which the retry now routes around.
+
+---
+
+## Activation Pass 1 — what real execution proved (2026-08-21)
+
+Everything here is a live provider result, not a fixture.
+
+**The generation path runs.** Opus 5 proposed 8 ideas, Sonnet 5 wrote the copy,
+Haiku 4.5 verified the payoff, `runAllGates` passed it, and the draft is sitting
+in `pending_approval` where it belongs. 14 `agent_runs` rows, $0.36 recorded.
+
+**The media chain runs.** ElevenLabs synthesised, ffmpeg mixed and measured
+−14.6 LUFS, whisper.cpp timed the words, Remotion rendered 1080×1920, ffmpeg
+muxed H.264 + AAC, and OpenAI `gpt-5.5` described six frames. The coherence gate
+moved from `skipped` to measured. Frames were inspected by eye, not inferred.
+
+**Five defects only live execution could find.**
+- Opus 5's adaptive thinking consumed the whole `max_tokens` ceiling before the
+  answer, truncating every idea batch (§141).
+- One account with unknown capabilities failed the entire generate job before
+  reaching the account that could publish (§142).
+- The hook stage replaced the whole post on any single-paragraph platform, and
+  stored a green QC describing text that no longer existed (§143).
+- Whisper was returning sub-word tokens, so the audio gate scored 29.4% word
+  error against word-perfect speech, and captions would have rendered "g" and
+  "ummy" as separate cards (§144). Live result after the fix: **1.18%**.
+- Caption text came verbatim from the transcript, so a frame read "Keep the rice
+  short, 60 to 90 minutes" where the script said "rise… sixty to ninety" (§145).
+
+**Three things are blocked outside the code**, and none of them are defects:
+ElevenLabs is on the free tier and refuses the cloned founder voice
+(`ivc_not_permitted`); the RecipeFix MCP connector has no URL or token, so no
+product artifact exists and every video refuses honestly; music is unlicensed
+and the bed is correctly skipped rather than faked.
+
+**X is ready except for one unverifiable thing.** `@Recipe_Fix` passed a live
+read — token valid, `tweet.write` granted, identity confirmed, "posting is live
+and billed per call". Whether the developer account holds credits cannot be
+established without a billed write (gotcha 11), and nothing is approved, so
+nothing would publish.
+
+**Fact-checking on the Daily Take is model-knowledge-only.** The `WebSearch`
+seam exists in `factCheckTake` and `runTakeLoop`; no implementation exists in the
+repo and the only caller passes nothing. Verified live — every claim came back
+with `sources: []` and the model wrote "I cannot verify from memory".
 
 ---
 
@@ -20,6 +287,44 @@
 
 **Accounts UI** rewritten around what an operator can do rather than what the state machine calls it.
 
+**Disconnect erases a credential, and now actually exists.** The strongest "off" Halyard had was `setCapabilityState(… 'disabled')`, which writes one text column — a "switched off" account still held a live, decryptable token, and the legal pages had to be written to say so. `packages/core/src/accounts/disconnect.ts` erases the tokens, the scopes, the identity confirmation and every observation made through the credential, deletes any sealed copy staged in `pending_connections`, reads the erasure back and throws if anything survived, and keeps the account row so published history stays explicable. It does **not** revoke at the platform, and says so everywhere. `DECISIONS.md` §64.
+
+**Engagement reads can reach `verified`.** `read_comments` had no field in `TRANSPORT_FIELD` and could never rise above `declared` whatever was observed — the architectural hole P2 recorded and left. The missing piece was a *scope*, not a vocabulary: `capability_probes` gained `account_id` (migration 0032) and `resolveCapability` gained an `observation` input. `collect_comments` is the writer — a successful read *is* the observation, at no extra API cost. No failure is ever recorded as a refutation. `DECISIONS.md` §65.
+
+**Gate 3 has never seen a frame.** `sampleLuminance` read ffmpeg's *stderr* while `metadata=print:file=-` writes to *stdout*, so `frameLuminance` has always been `[]` and every luminance rule in `runVisualQC` — including the black-gap check the function exists for — has never run on any render. The visual gate stored `passed` with `examined: 0` beside it. Fixed, and the gate now stores `skipped` when nothing was sampled. `DECISIONS.md` §71.
+
+**A Meta access token could have reached Sentry and the database in the clear.** The redactor matches credentials by *shape*, and Meta's Graph API carries the token as a URL query parameter — a long opaque string nothing matched. Now redacted by parameter name, and applied at the database boundary as well as the reporter. Nothing had leaked. `DECISIONS.md` §96.
+
+**Attached images were published with no gate having looked at them**, on both the image-only and the video path — the second found while reviewing the first fix. `DECISIONS.md` §93–§94. `review_media` walked `renders` only and returned early for image-only items, behind a comment claiming stills were covered by a gate that has never received its input. `publish` sends attached assets too. Now examined from stored dimensions, with unrecorded dimensions reported as unexamined rather than passed — and the verdict is recomputed when the attachments change. `DECISIONS.md` §93.
+
+**Two holes in the approval boundary, found by attacking it as a whole.** Editing an approved item left `status` untouched, so the queued job published text nobody approved (§90). And `pending_auth` published if it happened to hold a token — a real window, because `confirmConnection` writes the account with its sealed token *before* verifying it, and every other component already treated that state as unable to act (§91). Both fixed and tamper-verified. The new adversarial suite is `apps/worker/src/approvalBoundary.test.ts`. `DECISIONS.md` §90–§92.
+
+**The double-spend window in idea generation is closed.** Signals are consumed the moment the model call returns, before anything is persisted — so a failed insert loses the proposals rather than paying for them twice on retry. Fault-injected at the real boundary. `DECISIONS.md` §87.
+
+**The first X publication has an executable specification.** Rehearsal 6 pins everything one controlled post must leave behind, including the two collection jobs without which the learning half stays empty while looking successful. A fixture, not provider evidence. `DECISIONS.md` §89.
+
+**An operator's find is now evidence.** `signals` had one writer; a pasted find could become one post and never become evidence. `promoteFindToSignal` closes that, gated on the operator's reason — a bare URL creates nothing. Two dead things went with it: an enqueued job carrying a payload nothing reads, and an `on conflict do nothing` that silently discarded a reason added after the paste. `DECISIONS.md` §85.
+
+**The learning edge is connected.** `IdeaCandidate.historicalConversion` existed since the scorer was written and nothing ever supplied it. It changes nothing today — no rows, neutral still applied — and it will carry data the moment a post is scored, rather than being remembered then. `DECISIONS.md` §86.
+
+**Nothing produced ideas at all.** `ideas` is the entry point of the generation pipeline and its only writer in the repository was `supabase/seed-demo.sql` — a demo seed. `generate` found nothing proposed and returned on every scheduled run; `signals` was read by nothing. Both closed: `proposeIdeas` reads unconsumed signals and writes proposals carrying `source_signals`, and it spends nothing when there is no signal. **Not exercised** — no live model call has been made, because there are no credits. `DECISIONS.md` §84.
+
+**The observation layer observes almost nothing — and could not be switched on.** No adapter reads third-party content on any social platform; every read is `listComments` on Halyard's own publications. The one automated third-party path, `collect_watch_terms`, has been scheduled daily since milestone 41 and read an **empty table** every day, because `watch_terms` had no UI, no server action and no API route. That ignition now exists on `/finds`. `DECISIONS.md` §83.
+
+**The queue can hear "do not retry".** `publishFailurePolicy` has returned `retry: false` for auth failures, duplicate aborts and malformed responses since milestone 40 — including one whose note reads "never retried — that double-posts" — and `Poller.fail()` had no way to receive it, so every one burned its full retry allowance. For a malformed response the idempotency index was the only thing preventing the second write. `DECISIONS.md` §79.
+
+**Meta webhooks are implemented.** `/api/webhooks/meta`: handshake, `X-Hub-Signature-256` over the raw body, payload parsing, and enqueue of the existing `collect_comments` job — a trigger, never a source of truth, so nothing is written from a payload. The recorded "web tier vs worker" decision was not one: the worker has no HTTP surface. Registration remains external. `DECISIONS.md` §80.
+
+**The retention gate had no caller** — and wiring it up introduced a regression I then had to fix, because I had measured the wrong thing. `probeVideo` samples one frame per ~5s; my "measurement" had used the first six seconds at 2fps and I read it as the whole-video series. Re-measured through `probeVideo` itself: one of four renders is affected, not all four. `DECISIONS.md` §74. The gate now records findings at `warning` and never fails an item, and reads its motion from the frame's **tonal range** rather than its mean — free, from the same `signalstats` output, and clearing the threshold by 0.28 where the mean clears it by 0.01.
+
+**The retention gate, in full.** 310 lines and 171 lines of tests, reachable only from its own test file. Now wired into `review_media`, with two constraints that had to hold first: the rules it cannot run (frame-1 OCR, loop similarity) are **named** and drop the gate to `warning` rather than passing quietly, and it reports the 3-second opening rule as *unmeasured* when the sampling interval is too coarse to resolve it rather than failing every video on an artefact. `DECISIONS.md` §72.
+
+**Halyard's only feedback loop had never run.** `loadHookHistory` supplies the one input by which an observed outcome changes a future generation decision. Its query selected `post_metrics.stop_rate` and joined on `post_metrics.content_item_id` — **neither column has ever existed** — and a `.catch()` turned the failure into an empty array, which the comment above it explained as "nothing has published yet". The test asserted the empty array and passed. It now measures a **view-through rate** (`video_views / impressions`), named as itself rather than as the 3-second retention nothing collects, scoped per platform, one sample per publication, and logs failures so a broken query is distinguishable from a cold start. `DECISIONS.md` §70.
+
+**A score is a claim, and an unmeasured post no longer gets one.** `scorePerformance` read `Number(row.impressions ?? 0)` over a `left join lateral`, so a published post that had never been collected was scored as a *measured zero*. Percentiles are computed over the cohort, so each fabricated zero also moved the score of every genuinely measured post beside it. Unmeasured posts are now excluded from the population and from the output, the count is logged, and a measured zero is still scored. `DECISIONS.md` §68.
+
+**An erased credential no longer reaches the network.** `loadAccount` and `publishHandler` both read `access_token_enc ? openToken(…) : ''`, and an empty string is a value: the request was built, sent, and refused with an empty bearer — a real API call, plus retries, to learn what the row already said. Reachable three ordinary ways, including every seeded account (`live` has never meant "connected"). All three call sites now fail closed before any network call. `PLATFORM_COVERAGE.md` §11.
+
 ---
 
 ## Blocked
@@ -36,16 +341,322 @@ Every one of these is an external credential or billing problem. None is a code 
 
 ---
 
+## Meta / Instagram (2026-08-19)
+
+Instagram OAuth is live. `@recipe.fix` is connected, identity confirmed, token
+sealed (~60 days), granted permissions discovered via `/me/permissions` and
+persisted, self-test passing, account `draft_only`.
+
+**No Instagram capability is verified**, and `read_comments` still reads
+`declared` — correctly, because @recipe.fix has zero media, so there is no
+publication whose comments could be read. The *second* reason has gone: the
+model can now hold an account-scoped observation, so a single real read would
+move it to `verified`. Before, no number of successful reads could have.
+
+Legal pages `/privacy`, `/terms`, `/data-deletion` are implemented and tested,
+**not deployed**. They now describe a real Disconnect rather than its absence,
+and a test pins that they still do not claim it revokes access at the platform.
+`business_management` is granted, exercised by nothing, and recommended for
+removal pending approval — see `PLATFORM_COVERAGE.md` §9.
+
+**Two concurrent generate runs could pay for the same evidence** (§108). §87 closed the retry window; concurrency was still open, because `generate` runs from cron *and* `regenerateItem`. Signals are now claimed in the select and released only when the model call never completed. Fixing it also exposed a false positive in the §77 SQL validator — a doc comment quoting SQL in backticks was read as a statement.
+
+**The approval gate was a public endpoint** (§107). Ten server actions — including `approveItem` and `publishNow` — had no `requireOperator()`. The dashboard layout guards *rendering* and never runs for an action invocation; middleware does no auth. The boundary §90/§92 hold in logic was bypassable at the transport layer, which is why the adversarial suite could not see it. Fixed, and `serverActionAuth.test.ts` now asserts every action authenticates *before* touching state.
+
+**Learning fed on a percentile computed over nothing** (§106). With no attribution, `percentileRank(0,[0,0,0])` is 0.5, and that synthetic middle was stored in `conversion_score` — which §86 averages into idea scoring. Harmless while attribution is uniformly absent; a meaningless average the moment it is partial. Now null. The provenance links themselves hold: published content traces back to its idea, and comments back to the post that caused them.
+
+**A newsletter would ship a broken unsubscribe link** (§105). `/u/{id}` is embedded in every rendered email and the route does not exist — and the URL carries the *newsletter* id, not the subscriber's, so it could not work even with one. Unreachable today because the feature is dormant, and now a hard prerequisite on the newsletter decision rather than a nice-to-have.
+
+**The founder take dead-ended at its last step** (§104). `approveTake` and `discardTake` were complete server actions referenced from nowhere — an operator could speak a reaction, watch it fact-checked, read the draft, and then had nothing to click. Wired to the existing actions; approving sends it to the queue as `pending_approval`, never publishes.
+
+**All 13 scheduled jobs audited as execution paths: no defects** (§103). No expensive no-op — both browser jobs guard before launching. No LLM spend on empty input — the Product Brain chain only fires when evidence was actually collected. "Enqueue work nobody handles" is already structurally impossible via `handlerCoverage.test.ts`.
+
+**Compose implied it could save conversations.** `compose_sessions` has a reader and no writer, so "Nothing saved yet" told the operator they had not saved one when nothing could. Corrected at the surface. `voice_lexicon` turned out to be seeded (the §100 scan walked only TypeScript), and the newsletter feature is dormant but correctly guarded — a send with no subscribers fails rather than reporting success. `DECISIONS.md` §102.
+
+**The reply drafter's own scorecard recorded the opposite of what happened** (§101). `was_edited` was `suggested_reply !== body`, and `suggested_reply` is null for any comment the drafter never ran on — so every hand-written reply was stored as an edit of a draft that never existed. Fixed, and `comment_replies` now has the read path it never had: the inbox shows replies sent, how many had a draft, how many of those were changed, and the median latency.
+
+**Agent registry audited: accurate, no drift** (§99). Two apparent orphans are internal callers reached through `runTakeLoop`, and one "caller" is an Auditor fixture — the third time a symbol scan of this shape has produced a confident wrong answer. A table-level producer/consumer map is in §100: `rejection_clusters` has a consumer and no producer, `comment_replies` a producer and no consumer, and six tables have no code at all.
+
+## Activation
+
+The exact external steps, in order, with the evidence each should produce:  §16.
+
+## Needs a human
+
+Recorded rather than decided, because each has consequences repository evidence cannot settle:
+
+0. **How long should operational logs be kept?** The mechanism is built and the control is on `/settings`; `log_retention_days` defaults to null, which means keep everything. Setting a number is the decision. `audit_log` retention is separate and deliberately untouched. §131.
+0. **Does Halyard run a newsletter?** Everything works except signup: `subscribers` has no capture surface, and adding one means email capture plus double opt-in, which needs Resend. Nothing promises a newsletter today, so the feature is dormant and honest. Recommendation: leave dormant until there is a reason. §133.
+0. **Five dead tables, classified rather than dropped.** `submissions` and `format_cadence` are superseded and safe to drop; `product_artifacts` and `hook_experiments` are unfinished features and should stay; `connector_calls` needs a yes/no on whether a per-connector call log is wanted (recommendation: drop). Ready SQL in `docs/DEAD_TABLES.md`, deliberately not in `migrations/`.
+0. **Three visual baselines need one look.** `/privacy`, `/terms`, `/data-deletion`, captured from a production build. Approving each page approves both widths, after which the suite is fully automated. `docs/VISUAL_BASELINES.md`.
+
+0. **Five tables are dead and none has been dropped** — `submissions` (superseded by `review_submissions`), `product_artifacts`, `connector_calls`, `hook_experiments`, `format_cadence`. Dropping a table is irreversible against production data, so "no reference in this repository" is the start of that argument, not the end. `DECISIONS.md` §127.
+0. ~~**Two read-only features.**~~ **Resolved** — pronunciation is fully built (§130); series is superseded by campaigns and the screen now says so (§132).
+
+0. **How long should operational logs be kept?** `purge_operational_logs(interval)` exists, is tested and is called by nothing — it takes the window as an argument precisely so the schema does not answer this. Applies to `jobs`, `notifications`, `agent_runs` and `capability_probes`. `audit_log` is never purged by it and its retention is a separate, compliance-shaped question. `DECISIONS.md` §123.
+
+0. ~~**Three jobs on no schedule.**~~ **Resolved** — `collect_attribution` and `digest_email` are scheduled (the digest was also *built*); `verify_flows` was already covered by the worker's weekly capture, and §121 was wrong about it. §129.
+0. ~~**Is generation meant to be daily?**~~ **Resolved** — yes, and it is now scheduled. Safe because `generation_enabled` is honoured by the handler. §129.
+
+0. ~~**The brand orange fails WCAG AA.**~~ **Resolved** — darkened to `#8c5035` after measurement; zero violations product-wide. §128.
+
+0. **What may be written to a platform request log.** `platform_requests` exists, is indexed, is RLS'd and is purged on a schedule — and nothing has ever written to it. Its `request_body`/`response_body` columns would capture OAuth token exchanges, so the open question is what may be recorded, not whether to record. `DECISIONS.md` §81.
+0. **Does Halyard run a newsletter?** The engineering blocker is gone: subscriber-scoped unsubscribe is built, tested and tamper-verified (§117), so this is now purely a product decision plus a Resend account and verified sending domain. If no, unschedule the drafter. Recommendation: leave dormant. Sending is dormant by construction — no schedule, no enqueuer.
+0. ~~**The adaptation cache and its spend ceiling.**~~ **Answered, not deferred** — §120. The sharp edge (a retried generate job re-spending a credit for the same idea) was an ordering bug and is fixed: the idea is now claimed before anything is spent. The cache itself is proven unnecessary for correctness, and the hourly ceiling cannot bind because `generate` is operator-driven. `artifactCache.ts` stays unwired deliberately.
+0. **Should a static render block publication?** `retention.no_pattern_interrupt` fires on `ScalingMath.mp4`, which genuinely holds one card for twenty-four seconds. The finding is real and is recorded; the gate does **not** fail the item, because this gate had no caller at all until today and `DECISIONS.md` §62 already declined to decide which media gates block. Either raise it to blocking, or fix the template. `DECISIONS.md` §74.
+1. **`business_management` *and* `pages_read_engagement`** — both granted, both reaching no code at all. The second had never been flagged; the live connection succeeded with all seven scopes granted, which isolates nothing about which were necessary. One OAuth round trip with a scope withheld would settle it. Recommendation: remove both. `DECISIONS.md` §98, `PLATFORM_COVERAGE.md` §9.
+2. ~~**Webhook ownership**~~ — resolved by reading the code: the worker has no HTTP surface, so the web tier is the only candidate. `/api/webhooks/meta` is implemented and tested. What remains is external: set `META_WEBHOOK_VERIFY_TOKEN`, register the callback URL, subscribe to fields. `DECISIONS.md` §80.
+3. **Which items must pass media QC before approval** — the Auditor's one remaining error (`gate.input_never_supplied`) is a policy question about the quality system, not a bug in the capability model. `DECISIONS.md` §62.
+4. **Deploying the legal pages** and pasting the three URLs into the Meta App Dashboard. External portal action.
+5. **X API credits.** External and financial.
+
 ## Next 1–3 steps
 
-1. **Add X API credits**, then re-run the single-post test. Everything on Halyard's side is proven to the provider boundary; one real observation unblocks the entire learning loop.
-2. Once a post exists, let the existing `collect_metrics` decay schedule run and confirm real observations land with provenance.
-3. Only then consider P3 (Social Discovery / Opportunity Intelligence). It is architecturally premature until first-party data exists — see `docs/PLATFORM_COVERAGE.md` §7.
+1. **Add X API credits**, then re-run the single-post test. Everything on Halyard's side is proven to the provider boundary; one real observation unblocks the entire chain below.
+2. Once a post exists, let the `collect_metrics` decay schedule run and confirm real observations land with provenance — and that `scorePerformance` now scores it *because it was measured* rather than in spite of not being.
+3. If the post is Instagram or Threads video, `collect_comments` will write the first account-scoped observation and `loadHookHistory` the first real view-through figure. Both paths are now exercised by tests and neither has ever seen real data.
+4. Only then consider P3 (Social Discovery / Opportunity Intelligence). It is architecturally premature until first-party data exists — `PLATFORM_COVERAGE.md` §7 and §12.
 
 ---
 
 ## Uncommitted work
 
-Several passes are complete, verified and **not committed**: the OAuth redirect fix (`apps/web/src/lib/oauthRedirect.ts` + tests), token refresh (`packages/core/src/accounts/refresh.ts` + tests), the Accounts UI pass, and `collectionLifecycle.test.ts`. The `media.write` scope removal in `packages/core/src/adapters/oauth.ts` is a deliberate diagnostic — keep it removed until media publishing is actually needed.
+Several passes are complete, verified and **not committed** — 33 modified files and 19 new ones:
 
-Current suite: **1247 unit**, **81 E2E**, 47 RLS. Auditor: 22 agents, 1 error, 5 warnings, 0 falsely exercised.
+- the OAuth redirect fix (`apps/web/src/lib/oauthRedirect.ts` + tests)
+- token refresh (`packages/core/src/accounts/refresh.ts` + tests)
+- the Accounts UI pass
+- the legal pages (`/privacy`, `/terms`, `/data-deletion`) + `e2e/legal.spec.ts`
+- **Disconnect** (`packages/core/src/accounts/disconnect.ts`, its server action and UI, 8 real-database tests, 2 E2E)
+- **account-scoped observations** (migration 0032, `apps/worker/src/observations.ts`, the `observation` input to `resolveCapability`, 17 tests)
+- the missing-credential guards in `publish` and both collectors
+- the scoring null/zero fix and the hook-history query repair
+
+The `media.write` scope removal in `packages/core/src/adapters/oauth.ts` is a deliberate diagnostic — keep it removed until media publishing is actually needed.
+
+Nothing here is half-applied: every slice typechecks, lints, builds and has passing tests, and each has a `DECISIONS.md` entry (§64–§70).
+
+### Model lock (2026-08-21)
+
+`DECISIONS.md` §141. Models chosen and the compatibility blocker cleared.
+
+| Tier | Model | Workloads |
+|---|---|---|
+| Strategy | `claude-opus-5` | idea-generator, take-fact-checker, take-drafter, take-strengthener, product-discovery, store-listing, code-intelligence, product-reconciler |
+| Draft | `claude-sonnet-5` | copywriter, vo-scriptwriter, hook-generator, copilot, find-drafter, reply-drafter, setup-kit-writer, explorer-discovery, visual-brand, shipped-feature-summariser, auto-clip |
+| Classify | `claude-haiku-4-5` | payoff-verifier |
+
+Unchanged: `gpt-5.5` vision, `whisper-1` voice memos, local `whisper.cpp`
+captions, `eleven_multilingual_v2` TTS, `music_v1`, provider fallback, and every
+approval and publishing boundary.
+
+**The blocker was `temperature`.** The client sent it on every call — including
+the API's own default, which no caller asked for — and Opus 5 and Sonnet 5
+reject sampling parameters with a 400. It is now sent only when a caller asks
+*and* the model accepts it. Four agents were also on the wrong tier, routed by
+an omitted `model` argument rather than by decision.
+
+Suite: **1590 unit passing, 0 failing**; **118 E2E passing, 8 skipped**;
+typecheck, lint, build, SQL clean.
+
+---
+
+### Overnight hardening pass (2026-08-20, fifth)
+
+`DECISIONS.md` §134–§138. The brief was to challenge the internal finish line
+rather than confirm it. Five defects, three of them in work from earlier passes.
+
+**The one public route could be made to throw.** `/r/[id]` says it never fails
+closed; a preview crawler following a link for a product with no web destination
+hit `new URL('')` and got a 500. Checked while there and clean: no open
+redirect — destinations come from the database and incoming parameters are only
+ever added.
+
+**My own notification retention could never delete anything.** §123 purged only
+*read* notifications and nothing has ever set `read_at`. Migration 0038 purges
+by age; the operator's window is the real protection.
+
+**Forty-eight tests passed while a live refresh token stayed in the database.**
+`disconnect.test.ts` stubs the query function, so it never ran the UPDATE that
+erases. `/data-deletion` makes that promise to platform reviewers in public.
+`disconnectDb.test.ts` now proves each clause against a real Postgres.
+
+**A column the screen displayed and nothing wrote.** `voice_lexicon.hit_count`
+read zero forever; `tts` now counts the terms a script actually used. Found by
+looking at a screenshot of a page built the same night.
+
+**Twenty undocumented environment variables**, including
+`META_WEBHOOK_VERIFY_TOKEN` — an activation step the webhook refuses without.
+`envDocumented.test.ts` now asserts both directions.
+
+Verified and needing no work: 82/82 server actions guarded, three public routes
+correctly public, routing safety (14 real-database tests over cross-product and
+cross-persona attacks), publish idempotency, token sealing, permanent-failure
+semantics, no orphan rows, no dead UI controls, all 46 routes rendering under a
+production build.
+
+Suite: **1575 unit passing, 0 failing**; **118 E2E passing, 8 skipped**; zero
+accessibility violations; typecheck, lint, build, SQL clean. Migration 0038
+added; 0001–0038 apply fresh.
+
+---
+
+### Pre-activation completeness pass (2026-08-19, fourth)
+
+`DECISIONS.md` §128–§133. The objective was to stop treating "deferred" as an
+answer and build everything that does not genuinely need a provider, a deploy,
+or a business decision.
+
+**Zero accessibility violations, across all 45 routes at both widths.** The
+brand colour was darkened to `#8c5035` after two proposed values were measured
+and rejected — the exemption in `e2e/accessibility.spec.ts` is gone entirely.
+Two further defects surfaced only because the sweep ran wider than the spec:
+`text-warn` used as body text at 2.49:1, and another redundant `opacity-60`.
+
+**Generation is daily.** The promise every screen made is now kept, and it is
+safe because `settings.generation_enabled` was already honoured by the handler.
+`collect_attribution` is scheduled too — it no-ops without credentials.
+
+**The daily digest exists.** It was a declared job kind, a cron task and two
+settings columns with no handler. It reports what an operator would act on,
+stays silent on a quiet day, and records itself as a notification when no email
+provider is configured.
+
+**Custom pronunciation works end to end.** `/settings/pronunciation` is the
+surface `voice_lexicon` never had — and building it exposed a unique constraint
+that did not constrain: `unique (product_id, term)` cannot prevent duplicate
+*global* terms, because Postgres treats NULLs as distinct. Migration 0036.
+
+**Retention has a mechanism and still no number.** `settings.log_retention_days`
+defaults to null, which means keep everything; a `purge_logs` job applies
+whatever is chosen. `audit_log` is never purged by it. Sentry is external.
+
+**Series and the newsletter were decided, not deferred.** Series is superseded
+by campaigns and the screen now says so. The newsletter is coherently dormant,
+and the drafter no longer produces issues for zero subscribers.
+
+Visual baselines were recaptured from a **production build**; regenerating from
+a dev server is now refused outright.
+
+Suite: **1556 unit passing, 0 failing**; **118 E2E passing, 8 skipped**;
+typecheck, lint, build, SQL clean. Migrations 0036 and 0037 added.
+
+---
+
+### Internal completion pass (2026-08-19, third)
+
+Seven slices, `DECISIONS.md` §119–§127.
+
+**§95 resolved, and a real hole under it.** `runAllGates` accepted `visual`,
+`audio` and `coherence` inputs no caller could ever supply — it runs at copy
+time, before media exists. The inputs are gone; the gate *entries* stay, because
+`review_media` and `tts` merge their verdicts into that same array. Chasing that
+merge found the hole: `tts` wrote its verdict to `qc_results.audio`, which the
+queue does not render and which `review_media` later overwrote wholesale, so **a
+failed voiceover blocked nothing and was shown to nobody**. It now merges into
+`gates` and counts.
+
+**§78 answered rather than deferred.** The retry double-spend was an ordering
+bug, not a missing cache: `generateSample` spent a RecipeFix credit before the
+idea was marked `selected`, so a second attempt bought the same adaptation
+again. The idea is now claimed first, and the claim is never released — a
+timed-out adapt does not prove nothing was spent. The artifact cache is proven
+unnecessary for correctness and stays unwired.
+
+**Notifications were the one error column nobody scrubbed**, while Meta puts
+access tokens in query strings. Scrubbed at the `notify()` boundary.
+
+**A purge capability without a policy.** `purge_operational_logs(interval)` takes
+its window as an argument, is called by nothing, never touches `audit_log`, and
+refuses to delete live jobs or unread notifications.
+
+**The scope audit covered one Meta product out of two** — Threads' four scopes
+had no coverage at all. All four have call sites; now pinned.
+
+**RECOMMEND: no gap.** The layer P3 describes already exists as
+`proposeFromSignals → scoreIdeas → selectIdeas`. Nothing built.
+
+**Visual baselines exist and are not approved.** Six images, three static pages,
+opt-in, and the suite *throws* on a missing baseline rather than writing one and
+reporting a pass. `docs/VISUAL_BASELINES.md` lists three reasons they are not yet
+trustworthy.
+
+Suite: **1539 unit passing, 0 failing**; **114 E2E passing, 8 skipped** (2
+pre-existing, 6 opt-in visual); typecheck, lint, build clean. Migrations 0035
+added.
+
+---
+
+### Internal finish pass (2026-08-19, later)
+
+Continuing past the readiness pass, on everything buildable without a provider.
+`DECISIONS.md` §112–§118.
+
+**Accessibility and visual QA, measured rather than assumed.** 45 routes
+rendered at 1440px and 390px with axe. Found and fixed: three colour tokens that
+were never declared (`text-bad`, `bg-accent`, `bg-paper` — the second on the
+"Post it now" publish button, where an undefined background under `text-white`
+is an invisible label); wide tables that scrolled with a mouse and were
+unreachable by keyboard; `/submissions` selects with no accessible name;
+`/signin` with no `main` landmark; `/agents/runs` scrolling sideways on a phone.
+Contrast violations went 846 → 231 (desktop) and 614 → 119 (phone) by darkening
+three tokens to the smallest value that clears AA.
+
+**Every remaining contrast failure is one decision** — see "Needs a human".
+
+**The rejection loop now closes.** `rejection_clusters` had a complete consumer
+and no producer, and `content_rules.operator_rules` had a producer and no
+consumer. Both ends built: a daily `cluster_rejections` job, and accepted rules
+merged into the copywriter's DO NOT list. Deterministic — no model, no credits.
+
+**The newsletter opt-out works.** It was a 404 carrying the newsletter id rather
+than a subscriber token. Per-subscriber tokens, a `/u/[token]` route answering
+both GET and RFC 8058 one-click POST, and per-recipient sending. **Sending
+remains dormant** — no schedule, nothing enqueues it, refuses without
+credentials.
+
+**Auto Clip stays blocked** (nothing ingests long-form footage — a product
+decision) but is no longer untested: 16 fixture tests over the deterministic
+half.
+
+New guards: `designTokens.test.ts` (undefined colour tokens),
+`e2e/accessibility.spec.ts` (13 routes × 2 widths), `e2e/unsubscribe.spec.ts`.
+All tamper-verified. §118 records a scanner that silently stopped working when
+narrowed, and was caught only by repeating the tamper.
+
+Suite: **1516 unit passing, 0 failing**; **114 E2E passing, 2 skipped**;
+typecheck, lint, build clean. Migrations 0033 and 0034 added.
+
+---
+
+### Product / UI / deployment readiness pass (2026-08-19)
+
+A pass over the product as an operator meets it, rather than over the code. Three
+findings, all of the kind whose symptom is a green result — `DECISIONS.md`
+§109–§111:
+
+- **The Daily Take showed a link block as a story summary.** Found in a
+  screenshot; every layer was behaving correctly. Discarded in the RSS parser.
+- **Every published link pointed at localhost.** `HALYARD_PUBLIC_URL` was read
+  once and defined nowhere, and no QC gate reads `link_url`. Generation now
+  fails in production rather than attaching a dead link; the variable is defined
+  in `.env.example`.
+- **The container healthcheck could not fail.** `node -e "process.exit(0)"`
+  under a comment claiming it reflected the heartbeat. It now reads a liveness
+  file the poller touches after its database write.
+
+Also checked and clean: no TODO/FIXME anywhere in shipped source, no placeholder
+copy, `console.log` only in the worker's structured JSON logger, and no other
+localhost reference on a production path (`publicOrigin` already returns null by
+design). The floating circle overlapping the last sidebar item in screenshots is
+the **Next.js dev indicator**, which does not render in a production build.
+
+Current suite: **1458 unit passing, 24 skipped, 0 failing**; typecheck, lint and
+build all clean. `renderVideo.test.ts` performs a **real Remotion render** (17.8s)
+and `verifyFeature.test.ts` drives a **real browser**, so the media and replay
+paths are exercised rather than asserted.
+
+The suite is green locally. Two things worth knowing:
+
+- The `SET ROLE` RLS probe **skips** against Supabase local, whose `postgres` role has `CREATEROLE` but may not `SET ROLE` into a role it creates. It fails rather than skips wherever it can run, and the same invariant is asserted from the catalog by a test that runs everywhere — which itself could not fail for the right reason until today. `DECISIONS.md` §76.
+- `renderVideo.test.ts` does a real Remotion render taking 15–20s against a 30s timeout, so it fails under heavy CPU contention (two suites at once) and passes on an idle machine.

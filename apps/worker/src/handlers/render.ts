@@ -150,8 +150,30 @@ async function loadVoiceover(
   const row = rows[0];
   if (!row) return null;
 
+  /**
+   * §161. An item that *has* a voiceover and cannot read it is broken, and says so.
+   *
+   * The coupling looked like a defect — captions vanished with the audio,
+   * because this returned `null` and the caller reads `audio?.captions`. But
+   * `readAssetBytes` already states the rule for the Supabase path: it throws,
+   * because "rendering would otherwise produce a silent video from an item that
+   * has audio". The local fallback returned `null` instead, so the same broken
+   * state failed loudly in production and degraded quietly on a laptop.
+   *
+   * The fix is the consistency, not the coupling. A silent caption-led cut is
+   * legitimate for an item with **no** voiceover — `row` is absent and this
+   * returns `null` above. It is not legitimate for an item whose narration
+   * exists and could not be fetched: that ships a video missing the half the
+   * script was written for.
+   */
   const bytes = await readAssetBytes(row.storage_path, row.public_url);
-  if (!bytes) return null;
+  if (!bytes) {
+    throw new Error(
+      `Voiceover asset ${row.storage_path ?? row.public_url ?? '(no path)'} could not be read. ` +
+        'This item has audio, so rendering it now would ship a silent video of a narrated script. ' +
+        'Re-run tts, or check HALYARD_LOCAL_ASSET_DIR / storage configuration.',
+    );
+  }
 
   return {
     bytes,

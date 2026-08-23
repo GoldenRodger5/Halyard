@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Badge, Button, Card, EmptyState, PageHeader, SectionTitle } from '@halyard/ui';
-import { getBrainJobs, getCategorySummary, getFacts } from '@/lib/brainQueries';
+import { getBrainJobs, getCategorySummary, getEvidenceSources, getFacts } from '@/lib/brainQueries';
 import { getCurrentProduct } from '@/lib/queries';
 import { formatInOperatorTz } from '@/lib/format';
 import { BrainNav, FactConfidence } from './BrainNav';
@@ -33,10 +33,11 @@ export default async function BrainPage({
     );
   }
 
-  const [summary, facts, jobs] = await Promise.all([
+  const [summary, facts, jobs, sources] = await Promise.all([
     getCategorySummary(product.id),
     getFacts(product.id),
     getBrainJobs(product.id),
+    getEvidenceSources(product),
   ]);
 
   const tz = product.operator_timezone ?? 'UTC';
@@ -86,8 +87,54 @@ export default async function BrainPage({
         </Card>
       </div>
 
+      {/*
+        * What this product can be read from.
+        *
+        * `configured` and `observed` are two different claims and are shown as
+        * two different things: the first is what the settings say, the second
+        * is what actually arrived. A source that is configured and has observed
+        * nothing is how a wrong URL looks, and it is invisible if you show only
+        * one of them.
+        */}
+      <Card className="mb-6 p-5">
+        <SectionTitle hint="every one of these is optional">Evidence sources</SectionTitle>
+        <p className="mt-1 text-sm text-muted">
+          Halyard reads whatever a product exposes. A product with nothing but a website is fully
+          supported; each further source is corroboration, and corroboration is what moves a fact
+          from believed to verified.
+        </p>
+        <ul className="mt-4 space-y-2">
+          {sources.map((source) => (
+            <li
+              key={source.id}
+              className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-line pb-2 last:border-0"
+            >
+              <div className="min-w-0">
+                <span className="text-sm font-medium text-ink">{source.label}</span>{' '}
+                <Badge tone={source.configured ? 'good' : 'neutral'}>
+                  {source.configured ? 'connected' : 'not connected'}
+                </Badge>
+                <p className="mt-0.5 text-sm text-muted">{source.detail}</p>
+              </div>
+              <div className="shrink-0 text-right">
+                <p className="text-sm text-ink">
+                  {source.observed > 0 ? `${source.observed} observed` : 'nothing observed'}
+                </p>
+                <p className="text-xs text-muted">
+                  {source.lastObservedAt
+                    ? formatInOperatorTz(source.lastObservedAt, tz)
+                    : source.configured
+                      ? 'configured, never read — collect evidence to test it'
+                      : `→ ${source.agent}`}
+                </p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </Card>
+
       {running.length > 0 ? (
-        <Card className="mb-6 border-l-2 border-l-info p-4">
+        <Card className="mb-6 border-l-2 border-l-primary p-4">
           <p className="text-sm text-ink">
             {running.length} Brain job{running.length === 1 ? '' : 's'} in flight.
           </p>
@@ -99,7 +146,7 @@ export default async function BrainPage({
       ) : null}
 
       {failed.length > 0 ? (
-        <Card className="mb-6 border-l-2 border-l-bad p-4">
+        <Card className="mb-6 border-l-2 border-l-danger p-4">
           <SectionTitle>A Brain job failed</SectionTitle>
           <p className="mt-1 text-sm text-muted">
             Shown because an empty Brain and a failed collection look identical otherwise, and only

@@ -24,6 +24,19 @@ export interface StepResult {
   step: string;
   action: FlowStep['action'];
   selector?: string;
+  /** Which candidate answered: 0 is the preferred one. §159. */
+  fallbackDepth?: number;
+  /**
+   * Offsets into the recording, in milliseconds from the start of the context.
+   *
+   * §163. `ms` says how long a step took but not *where* it is, so nothing
+   * downstream could cut the footage to the part worth watching. A capture-
+   * backed creative beat needs a span, and a span needs a start.
+   */
+  startMs?: number;
+  endMs?: number;
+  /** The flow marked this step as a wait the edit should cut. §159/§163. */
+  elide?: boolean;
   ok: boolean;
   optional: boolean;
   ms: number;
@@ -97,6 +110,75 @@ export function locatorFor(page: Page, selector: string): Locator {
   return page.locator(selector);
 }
 
+/**
+ * The first candidate selector that actually finds something.
+ *
+ * §159. A step used to carry one selector, so a markup change turned it into
+ * `did not resolve` and the job died three attempts later. Candidates are tried
+ * in order and the winner is reported, which turns a brittle break into a
+ * degradation somebody can see coming: a step falling through to its last
+ * candidate still works *and* says the preferred hook has gone.
+ *
+ * Each candidate gets a short probe rather than the step's full timeout —
+ * trying four selectors at thirty seconds each is how a capture job hits the
+ * five-minute ceiling and dies for a reason that has nothing to do with the
+ * page.
+ */
+export const CANDIDATE_PROBE_MS = 2_500;
+
+export interface SelectorResolution {
+  locator: Locator;
+  /** Which candidate answered. */
+  selector: string;
+  /** 0 when the preferred selector worked; higher means it has drifted. */
+  fallbackDepth: number;
+}
+
+export async function resolveSelector(
+  page: Page,
+  step: Pick<FlowStep, 'selector' | 'fallbackSelectors' | 'timeoutMs'>,
+  probeMs = CANDIDATE_PROBE_MS,
+): Promise<SelectorResolution | null> {
+  const candidates = [step.selector, ...(step.fallbackSelectors ?? [])].filter(
+    (c): c is string => typeof c === 'string' && c.length > 0,
+  );
+  if (candidates.length === 0) return null;
+
+  for (let depth = 0; depth < candidates.length; depth++) {
+    const selector = candidates[depth]!;
+    const locator = locatorFor(page, selector);
+    // The last candidate is given the step's real timeout: if everything else
+    // has drifted, this one is the step, and it deserves the full wait before
+    // the step is called broken.
+    const isLast = depth === candidates.length - 1;
+    const timeout = isLast ? (step.timeoutMs ?? 30_000) : probeMs;
+    try {
+      await locator.first().waitFor({ state: 'attached', timeout });
+      return { locator: locator.first(), selector, fallbackDepth: depth };
+    } catch {
+      continue;
+    }
+  }
+  return null;
+}
+
+/**
+ * What the selectors did across a run.
+ *
+ * Reported rather than thrown: a flow whose every step fell through to its last
+ * candidate is still producing footage, and the operator should learn that
+ * before the day it stops.
+ */
+export function selectorHealth(
+  steps: Array<{ step: string; selector?: string; fallbackDepth?: number; ok: boolean }>,
+): { drifted: Array<{ step: string; selector: string; depth: number }>; broken: string[] } {
+  const drifted = steps
+    .filter((s) => (s.fallbackDepth ?? 0) > 0 && s.selector)
+    .map((s) => ({ step: s.step, selector: s.selector!, depth: s.fallbackDepth! }));
+  const broken = steps.filter((s) => !s.ok).map((s) => s.step);
+  return { drifted, broken };
+}
+
 export async function runFlow(
   flow: CaptureFlow,
   options: RunFlowOptions,
@@ -141,10 +223,13 @@ export async function runFlow(
       ok: true,
       optional: step.optional === true,
       ms: 0,
+      startMs: stepStart - started,
+      ...(step.elide ? { elide: true } : {}),
     };
 
     try {
-      await executeStep(page, step, options.baseUrl, outDir, stills);
+      const outcome = await executeStep(page, step, options.baseUrl, outDir, stills);
+      if (outcome.fallbackDepth !== undefined) result.fallbackDepth = outcome.fallbackDepth;
     } catch (err) {
       result.ok = false;
       result.error = (err as Error).message.split('\n')[0];
@@ -157,6 +242,7 @@ export async function runFlow(
     }
 
     result.ms = Date.now() - stepStart;
+    result.endMs = Date.now() - started;
     if (step.elide) {
       const measuredMs = Date.now() - stepStart;
       elisions.push({
@@ -217,8 +303,23 @@ async function executeStep(
   baseUrl: string,
   outDir: string,
   stills: Record<string, string>,
-): Promise<void> {
+): Promise<{ fallbackDepth?: number }> {
   const timeout = step.timeoutMs ?? 15_000;
+
+  /**
+   * §159. Every selector-driven action resolves through the candidate chain,
+   * so a moved attribute degrades instead of killing the job.
+   */
+  const resolve = async (): Promise<SelectorResolution> => {
+    const found = await resolveSelector(page, step);
+    if (!found) {
+      const tried = [step.selector, ...(step.fallbackSelectors ?? [])].filter(Boolean);
+      throw new Error(
+        `none of ${tried.length} selector(s) resolved: ${tried.join(' | ')}`,
+      );
+    }
+    return found;
+  };
 
   switch (step.action) {
     case 'goto': {
@@ -230,57 +331,58 @@ async function executeStep(
         throw new Error(`HTTP ${response?.status() ?? 'no response'}`);
       }
       await page.waitForLoadState('networkidle').catch(() => undefined);
-      return;
+      return {};
     }
 
     case 'click': {
-      const locator = locatorFor(page, step.selector!).first();
+      const { locator, fallbackDepth } = await resolve();
       await locator.waitFor({ state: 'visible', timeout });
       await locator.scrollIntoViewIfNeeded({ timeout });
       await locator.click({ timeout });
-      return;
+      return { fallbackDepth };
     }
 
     case 'fill': {
-      const locator = locatorFor(page, step.selector!).first();
+      const { locator, fallbackDepth } = await resolve();
       await locator.waitFor({ state: 'visible', timeout });
       await locator.fill(step.value ?? '', { timeout });
-      return;
+      return { fallbackDepth };
     }
 
     case 'press':
       await page.keyboard.press(step.value ?? 'Enter');
-      return;
+      return {};
 
-    case 'waitFor':
-      await locatorFor(page, step.selector!)
-        .first()
-        .waitFor({ state: 'visible', timeout });
-      return;
+    case 'waitFor': {
+      const { locator, fallbackDepth } = await resolve();
+      await locator.waitFor({ state: 'visible', timeout });
+      return { fallbackDepth };
+    }
 
     case 'waitForHidden':
-      await locatorFor(page, step.selector!)
-        .first()
-        .waitFor({ state: 'hidden', timeout });
-      return;
+      // Hidden means gone; the chain does not apply, and a missing element
+      // already satisfies the intent.
+      await locatorFor(page, step.selector!).first().waitFor({ state: 'hidden', timeout });
+      return {};
 
     case 'wait':
       await page.waitForTimeout(Number(step.value ?? 1000));
-      return;
+      return {};
 
     case 'scrollTo': {
-      const locator = locatorFor(page, step.selector!).first();
+      const { locator, fallbackDepth } = await resolve();
       await locator.scrollIntoViewIfNeeded({ timeout });
-      return;
+      return { fallbackDepth };
     }
 
     case 'still': {
       const file = path.join(outDir, `${slug(step.value ?? step.name)}.png`);
       await page.screenshot({ path: file, fullPage: false });
       stills[step.value ?? step.name] = file;
-      return;
+      return {};
     }
   }
+  return {};
 }
 
 function slug(value: string): string {

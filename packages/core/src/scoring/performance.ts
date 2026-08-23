@@ -11,7 +11,21 @@
 
 export interface ScoreInput {
   contentItemId: string;
-  impressions: number;
+  /**
+   * **Null means unmeasured.** Zero means measured, and zero.
+   *
+   * The handler feeding this used `Number(row.impressions ?? 0)`, so a
+   * published post whose metrics had never been collected — no `post_metrics`
+   * row at all — arrived here indistinguishable from one the platform had
+   * genuinely reported zero impressions for. It got a real score, a real
+   * percentile, and a row in `performance_scores`.
+   *
+   * That is worse than one wrong score. `percentileRank` is computed over the
+   * cohort, so every fabricated zero moves the score of every *measured* post
+   * in the same run. Unmeasured posts are now excluded from both the population
+   * and the output.
+   */
+  impressions: number | null;
   likes?: number;
   comments?: number;
   shares?: number;
@@ -26,7 +40,24 @@ export interface PerformanceScore {
   score: number;
   reachScore: number;
   engagementScore: number;
-  conversionScore: number;
+  /**
+   * Null when no attribution exists at all.
+   *
+   * `percentileRank(0, [0,0,0])` is **0.5** — ranking zeros against zeros
+   * produces a confident-looking middle. That number is not a measurement, and
+   * storing it made `conversion_score` indistinguishable from a post that
+   * genuinely converted at the cohort median.
+   *
+   * Harmless while *nothing* has attribution, because the weight is zero and
+   * every value is the same. It stops being harmless the moment attribution is
+   * partial: §86's `historicalConversion` averages `conversion_score` per
+   * category, and an average mixing real percentiles with synthetic 0.5s is a
+   * number with no meaning that the idea scorer would treat as evidence.
+   *
+   * Null is what §68 established for exactly this: unmeasured is not zero, and
+   * it is not the middle either.
+   */
+  conversionScore: number | null;
   lowConfidence: boolean;
   notes: string;
 }
@@ -65,7 +96,7 @@ export const ENGAGEMENT_WEIGHTS = {
 } as const;
 
 export function engagementRate(input: ScoreInput): number {
-  if (input.impressions <= 0) return 0;
+  if (input.impressions === null || input.impressions <= 0) return 0;
   const weighted =
     (input.likes ?? 0) * ENGAGEMENT_WEIGHTS.like +
     (input.comments ?? 0) * ENGAGEMENT_WEIGHTS.comment +
@@ -77,24 +108,39 @@ export function engagementRate(input: ScoreInput): number {
 
 /** Unweighted, for display next to the weighted number. */
 export function rawEngagementRate(input: ScoreInput): number {
-  if (input.impressions <= 0) return 0;
+  if (input.impressions === null || input.impressions <= 0) return 0;
   const engagements =
     (input.likes ?? 0) + (input.comments ?? 0) + (input.shares ?? 0) + (input.saves ?? 0);
   return engagements / input.impressions;
 }
 
 export function activatedPerThousand(input: ScoreInput): number {
-  if (input.impressions <= 0) return 0;
+  if (input.impressions === null || input.impressions <= 0) return 0;
   return ((input.activatedUsers ?? 0) / input.impressions) * 1000;
 }
 
+/**
+ * Score every post that has actually been measured.
+ *
+ * Posts with `impressions: null` are **excluded entirely** — not scored zero,
+ * not scored 0.5, not included in the cohort. Nothing is known about them, and
+ * a score is a claim. `scorePosts` returning fewer rows than it was given is the
+ * correct shape of that: the caller writes no `performance_scores` row, and the
+ * post has no score rather than a wrong one.
+ *
+ * Use `unmeasured()` to find out how many were dropped, so a silently empty
+ * scoring run is distinguishable from one with nothing to do.
+ */
 export function scorePosts(inputs: ScoreInput[]): PerformanceScore[] {
-  const impressions = inputs.map((i) => i.impressions);
-  const engagement = inputs.map(engagementRate);
-  const conversion = inputs.map(activatedPerThousand);
-  const anyAttribution = inputs.some((i) => (i.activatedUsers ?? 0) > 0);
+  const measured = inputs.filter(
+    (i): i is ScoreInput & { impressions: number } => i.impressions !== null,
+  );
+  const impressions = measured.map((i) => i.impressions);
+  const engagement = measured.map(engagementRate);
+  const conversion = measured.map(activatedPerThousand);
+  const anyAttribution = measured.some((i) => (i.activatedUsers ?? 0) > 0);
 
-  return inputs.map((input) => {
+  return measured.map((input) => {
     const reachScore = percentileRank(input.impressions, impressions);
     const engagementScore = percentileRank(engagementRate(input), engagement);
     const conversionScore = percentileRank(activatedPerThousand(input), conversion);
@@ -124,11 +170,22 @@ export function scorePosts(inputs: ScoreInput[]): PerformanceScore[] {
       score: Number(score.toFixed(4)),
       reachScore: Number(reachScore.toFixed(4)),
       engagementScore: Number(engagementScore.toFixed(4)),
-      conversionScore: Number(conversionScore.toFixed(4)),
+      conversionScore: anyAttribution ? Number(conversionScore.toFixed(4)) : null,
       lowConfidence,
       notes,
     };
   });
+}
+
+/**
+ * The posts `scorePosts` refused to score, and why the count matters.
+ *
+ * "Nothing was scored because nothing is published" and "nothing was scored
+ * because collection has never run" are different problems with different
+ * fixes, and a scoring pass that reports neither looks identical in both cases.
+ */
+export function unmeasured(inputs: ScoreInput[]): string[] {
+  return inputs.filter((i) => i.impressions === null).map((i) => i.contentItemId);
 }
 
 /**

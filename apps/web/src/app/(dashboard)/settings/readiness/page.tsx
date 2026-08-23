@@ -206,7 +206,7 @@ export default async function ReadinessPage() {
                         check.state === 'pass'
                           ? 'text-good'
                           : check.state === 'warn'
-                            ? 'text-warn'
+                            ? 'text-warn-ink'
                             : 'text-danger'
                       }`}
                     >

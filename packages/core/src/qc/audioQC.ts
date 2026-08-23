@@ -59,6 +59,36 @@ export interface LexiconEntry {
  * v2 D.2: "Pre-normalise numerals in the script before synthesis rather than
  * hoping."
  */
+/**
+ * Which lexicon terms actually appear in a script.
+ *
+ * `voice_lexicon.hit_count` exists and the pronunciation screen shows a "used"
+ * column, and nothing incremented it — so every term read zero forever, which
+ * is the shape of a measurement that looks collected and is not.
+ *
+ * Separate from `normaliseForSpeech` rather than folded into it: that function
+ * has a settled signature and its own tests, and the substitution is applied in
+ * places where counting a hit would be wrong. Matching is done the same way the
+ * substitution does it — same escaping, same case-insensitivity — so the count
+ * cannot disagree with what was actually replaced.
+ */
+export function lexiconTermsUsed(script: string, lexicon: LexiconEntry[] = []): string[] {
+  const used: string[] = [];
+  let remaining = script;
+
+  // Longest first, exactly as the substitution runs: '450°F' consumes the text
+  // that '450' would otherwise also match, and counting both would overstate.
+  for (const entry of [...lexicon].sort((a, b) => b.term.length - a.term.length)) {
+    const escaped = entry.term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const pattern = new RegExp(escaped, 'gi');
+    if (pattern.test(remaining)) {
+      used.push(entry.term);
+      remaining = remaining.replace(new RegExp(escaped, 'gi'), ' ');
+    }
+  }
+  return used;
+}
+
 export function normaliseForSpeech(script: string, lexicon: LexiconEntry[] = []): string {
   let out = script;
 
@@ -148,8 +178,7 @@ function fractionToWords(num: number, den: number): string {
 
 /** Levenshtein distance over word arrays — the standard WER numerator. */
 export function wordErrorRate(reference: string, hypothesis: string): number {
-  const ref = tokenise(reference);
-  const hyp = tokenise(hypothesis);
+  const [ref, hyp] = reconcileWordBoundaries(tokenise(reference), tokenise(hypothesis));
   if (ref.length === 0) return hyp.length === 0 ? 0 : 1;
 
   let previous = Array.from({ length: hyp.length + 1 }, (_, i) => i);
@@ -164,8 +193,113 @@ export function wordErrorRate(reference: string, hypothesis: string): number {
   return previous[hyp.length]! / ref.length;
 }
 
+/**
+ * Longest run of tokens this aligner will fuse when looking for a match.
+ *
+ * Three covers every real case seen — "trade off", "gluten free", "one hundred"
+ * — and bounds the damage if two genuinely different sequences happen to
+ * concatenate alike.
+ */
+const MAX_FUSED_TOKENS = 3;
+
+/**
+ * Reconcile word boundaries that disagree without changing what was said.
+ *
+ * §152. The audio gate exists to catch a **mispronunciation**, and at the
+ * levels that actually occur it was catching whisper's tokeniser instead. One
+ * real video failed at 2.94% on a single finding: the script said `tradeoff`,
+ * the narration said "tradeoff", and whisper wrote `trade off`. Two errors
+ * against sixty-eight words, for a word that was pronounced correctly.
+ *
+ * Nothing downstream is harmed by that disagreement. It is inaudible, it cannot
+ * reach the captions — those are anchored to the script since §145 — and it
+ * touches no product claim. It is an artefact of how the transcript is written,
+ * exactly like the numerals §144 already reconciles.
+ *
+ * So the threshold is not the thing that was wrong, and it is unchanged at 2%.
+ * The fix is to compare what was *said*: where a token on one side equals a run
+ * of tokens on the other, the two are the same utterance and are fused.
+ *
+ * A genuine mispronunciation still scores, because concatenation has to match
+ * exactly — "zanthem" is not "xanthan" joined to anything.
+ */
+export function reconcileWordBoundaries(ref: string[], hyp: string[]): [string[], string[]] {
+  const outRef: string[] = [];
+  const outHyp: string[] = [];
+  let i = 0;
+  let j = 0;
+
+  /** The run of `from` starting at `at` that concatenates to `target`, if any. */
+  const fusedRun = (from: string[], at: number, target: string): number => {
+    let joined = '';
+    for (let k = at; k < from.length && k < at + MAX_FUSED_TOKENS; k++) {
+      joined += from[k];
+      if (joined === target) return k - at + 1;
+      if (joined.length >= target.length) break;
+    }
+    return 0;
+  };
+
+  while (i < ref.length && j < hyp.length) {
+    if (ref[i] === hyp[j]) {
+      outRef.push(ref[i]!);
+      outHyp.push(hyp[j]!);
+      i++;
+      j++;
+      continue;
+    }
+
+    // One script word heard as several — "tradeoff" transcribed "trade off".
+    const heardAsMany = fusedRun(hyp, j, ref[i]!);
+    if (heardAsMany > 1) {
+      outRef.push(ref[i]!);
+      outHyp.push(ref[i]!);
+      i++;
+      j += heardAsMany;
+      continue;
+    }
+
+    // Several script words heard as one — the same disagreement, mirrored.
+    const writtenAsMany = fusedRun(ref, i, hyp[j]!);
+    if (writtenAsMany > 1) {
+      outRef.push(hyp[j]!);
+      outHyp.push(hyp[j]!);
+      i += writtenAsMany;
+      j++;
+      continue;
+    }
+
+    outRef.push(ref[i]!);
+    outHyp.push(hyp[j]!);
+    i++;
+    j++;
+  }
+
+  // Whatever is left is a real length difference and must still be scored.
+  return [
+    [...outRef, ...ref.slice(i)],
+    [...outHyp, ...hyp.slice(j)],
+  ];
+}
+
+/**
+ * Words, with numerals spelled out so both sides land in the same space.
+ *
+ * §144. `normaliseForSpeech` converts the script's numerals to words before
+ * synthesis, and whisper converts them straight back — "four hundred fifty
+ * degrees" is transcribed "450 degrees". Comparing the two orthographies
+ * scored three substitutions against speech that was word-perfect, and a
+ * product about temperatures and timings puts a number in nearly every
+ * script, so the audio gate failed almost everything it measured.
+ *
+ * WER is meant to compare what was *said*. "450" and "four hundred fifty" are
+ * the same utterance, so they are the same tokens here. A real mispronunciation
+ * still scores, because the words themselves still have to match.
+ */
 function tokenise(text: string): string[] {
-  return (text.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? []);
+  return (text.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? []).flatMap((token) =>
+    /^\d+$/.test(token) ? numberToWords(Number(token)).split(' ') : [token],
+  );
 }
 
 export function runAudioQC(probe: AudioProbe): AudioQCResult {

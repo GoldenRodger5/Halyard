@@ -12,6 +12,32 @@ import { requireOperator } from '@/lib/auth';
  * picture — but the choice is recorded on the item's QC results so the queue
  * card can say so before approval rather than after publication.
  */
+
+/**
+ * Changing the attached media invalidates the media verdict.
+ *
+ * `qc_results.visual` describes the assets that were examined. Attaching or
+ * detaching one changes what will actually be published — `publish` sends
+ * `render_ids` **and** `attached_asset_ids` — so the stored verdict is now
+ * about a different set of files. This is the media analogue of §90: the gate
+ * was never bypassed, it was answered about something else.
+ *
+ * Re-running `review_media` is the right repair rather than a demotion. The
+ * gate is cheap for stills — it reads dimensions off the `assets` rows and
+ * downloads nothing — and re-examining is strictly better than marking the
+ * verdict stale and leaving it there.
+ *
+ * The dedupe key is only unique while a job is `queued` or `running`, so a
+ * second attachment after the first review completes enqueues a fresh one.
+ */
+async function reexamineMedia(contentItemId: string): Promise<void> {
+  await query(
+    `insert into jobs (kind, payload, priority, dedupe_key)
+     values ('review_media', $1, 40, $2) on conflict do nothing`,
+    [JSON.stringify({ contentItemId }), `review_media:${contentItemId}`],
+  );
+}
+
 export async function attachAsset(formData: FormData): Promise<void> {
   await requireOperator();
   const contentItemId = String(formData.get('contentItemId'));
@@ -62,6 +88,8 @@ export async function attachAsset(formData: FormData): Promise<void> {
     ],
   );
 
+  await reexamineMedia(contentItemId);
+
   revalidatePath(`/queue/${contentItemId}`);
   revalidatePath('/queue');
 }
@@ -89,6 +117,8 @@ export async function detachAsset(formData: FormData): Promise<void> {
       where id = $1`,
     [contentItemId, assetId],
   );
+
+  await reexamineMedia(contentItemId);
 
   revalidatePath(`/queue/${contentItemId}`);
   revalidatePath('/queue');

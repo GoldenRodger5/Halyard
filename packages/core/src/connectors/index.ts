@@ -1,9 +1,11 @@
 import { GitHubConnector } from './github.js';
+import { McpProductConnector, mcpEnvNames } from './mcp.js';
 import { RecipeFixConnector } from './recipefix.js';
 import { ConnectorUnavailableError, type ProductConnector } from './types.js';
 
 export * from './types.js';
 export * from './mcpClient.js';
+export * from './mcp.js';
 export * from './recipefix.js';
 export * from './artifactCache.js';
 export * from './github.js';
@@ -13,6 +15,26 @@ export interface ConnectorConfigRow {
   connector_type: 'mcp' | 'rest' | 'github' | 'none';
   connector_config: Record<string, unknown>;
 }
+
+/**
+ * Product-specific artifact adapters, by name.
+ *
+ * §146. This was `if (product.id === 'recipefix')` inside `createConnector`,
+ * which meant exactly one product could ever have a working MCP connector —
+ * every other `connector_type: 'mcp'` row fell out of the bottom as `null`.
+ * Halyard's first test product was load-bearing on the control flow.
+ *
+ * Resolution is by `connector_config.adapter`, falling back to the product id
+ * so rows written before this keep working without a migration. A product with
+ * no registered adapter still gets a real connector: reading an MCP tool list
+ * needs no product knowledge, and producing a product *artifact* needs nothing
+ * but. See `McpProductConnector`.
+ */
+type McpAdapter = (options: { url: string; token?: string }) => ProductConnector;
+
+const MCP_ADAPTERS: Record<string, McpAdapter> = {
+  recipefix: (options) => new RecipeFixConnector(options),
+};
 
 /**
  * Resolve a product row to a live connector.
@@ -28,12 +50,18 @@ export function createConnector(
 ): ProductConnector | null {
   if (product.connector_type === 'none') return null;
 
-  if (product.id === 'recipefix') {
-    const urlEnv = String(product.connector_config.url_env ?? 'RECIPEFIX_MCP_URL');
-    const tokenEnv = String(product.connector_config.token_env ?? 'RECIPEFIX_MCP_TOKEN');
+  if (product.connector_type === 'mcp') {
+    const { urlEnv, tokenEnv } = mcpEnvNames(product);
     const url = env[urlEnv];
+    // A named-but-unset variable is the ordinary "MCP is configured in the
+    // database, not in this environment" case. `discoverEvidenceSources` is
+    // what explains that to an operator; here the source is simply absent.
     if (!url) return null;
-    return new RecipeFixConnector({ url, token: env[tokenEnv] });
+
+    const adapter = MCP_ADAPTERS[String(product.connector_config.adapter ?? product.id)];
+    return adapter
+      ? adapter({ url, token: env[tokenEnv] })
+      : new McpProductConnector(product.id, { url, token: env[tokenEnv] });
   }
 
   if (product.connector_type === 'github') {

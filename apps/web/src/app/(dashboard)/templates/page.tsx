@@ -24,8 +24,15 @@ export default async function TemplatesPage() {
           <section key={renderer}>
             <SectionTitle hint={`${group.length} templates`}>{renderer}</SectionTitle>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {/*
+                A disabled template already says so twice — a `disabled` badge
+                and, usually, the reason it was turned off. Dimming the whole
+                card on top of that dropped that reason to 2.2:1, so the one
+                thing an operator needs to read was what the styling hid. The
+                badge carries the state on its own.
+              */}
               {group.map((template) => (
-                <Card key={template.id} className={`p-4 ${template.enabled ? '' : 'opacity-60'}`}>
+                <Card key={template.id} className="p-4">
                   <div className="mb-2 flex flex-wrap items-center gap-2">
                     <Badge tone="neutral">{template.aspect_ratio}</Badge>
                     <Badge tone="neutral">{template.format}</Badge>

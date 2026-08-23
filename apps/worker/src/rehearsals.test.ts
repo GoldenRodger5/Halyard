@@ -133,6 +133,7 @@ d('rehearsal 1 — the platform returns success with no post id', () => {
     expect(writes, 'a retry here double-posts to a real account').toBe(1);
 
     const { rows } = await pool.query<{
+      id: string;
       platform_post_id: string | null;
       needs_reconciliation: boolean;
     }>(
@@ -470,5 +471,195 @@ d('rehearsal 5 — two workers reach the same item at once', () => {
 
     expect(writes, 'exactly one network write for one item').toBe(1);
     expect((await pool.query('select * from publications')).rows).toHaveLength(1);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 8. The account has no stored credential
+// ═══════════════════════════════════════════════════════════════════════════
+
+d('rehearsal 8 — publishing to an account whose credential is gone', () => {
+  /**
+   * The handler read `access_token_enc ? openToken(…) : ''` and an empty string
+   * is a value: the post was composed, the request built, and sent to X with an
+   * empty bearer. A real call, refused, three times under the retry policy,
+   * against an API billed per call.
+   *
+   * `capability_state` does not catch it. `live` has never meant "connected" —
+   * the seeded accounts are `live` with no token at all — and Disconnect now
+   * erases a credential while leaving the row exactly in whatever state it was.
+   */
+  it('sends nothing, and says which account to reconnect', async () => {
+    let requests = 0;
+    const fetchImpl = (async () => {
+      requests++;
+      return new Response('{}', { status: 200 });
+    }) as unknown as typeof fetch;
+
+    await pool.query('update social_accounts set access_token_enc = null where id = $1', [
+      accountId,
+    ]);
+    const itemId = await makeItem();
+
+    await expect(publishHandler(job(itemId, fetchImpl), context())).rejects.toThrow(
+      /no stored credential/i,
+    );
+    expect(requests).toBe(0);
+
+    // And nothing was claimed, so a reconnect-and-retry is clean.
+    const { rows } = await pool.query('select id from publications');
+    expect(rows).toHaveLength(0);
+
+    await pool.query('update social_accounts set access_token_enc = $2 where id = $1', [
+      accountId,
+      sealToken('access-token', Buffer.from(KEY, 'base64')),
+    ]);
+  });
+
+  it('still hands a draft_only account to the operator rather than failing it', async () => {
+    /**
+     * Ordering, asserted. A post being handed to a person to publish by hand
+     * does not need a credential, so the guard sits *after* the handover. Put
+     * it before and a working handover becomes a broken integration — which is
+     * the same defect the handover branch was built to fix.
+     */
+    let requests = 0;
+    const fetchImpl = (async () => {
+      requests++;
+      return new Response('{}', { status: 200 });
+    }) as unknown as typeof fetch;
+
+    await pool.query(
+      `update social_accounts set access_token_enc = null, capability_state = 'draft_only'
+        where id = $1`,
+      [accountId],
+    );
+    const itemId = await makeItem();
+
+    await expect(publishHandler(job(itemId, fetchImpl), context())).resolves.toBeUndefined();
+    expect(requests).toBe(0);
+
+    const { rows } = await pool.query<{ status: string }>(
+      'select status from content_items where id = $1',
+      [itemId],
+    );
+    expect(rows[0]!.status).toBe('awaiting_manual_publish');
+
+    await pool.query('update social_accounts set access_token_enc = $2 where id = $1', [
+      accountId,
+      sealToken('access-token', Buffer.from(KEY, 'base64')),
+    ]);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 6. The successful publication, and everything it must leave behind
+// ═══════════════════════════════════════════════════════════════════════════
+
+d('rehearsal 6 — what one real publication has to produce', () => {
+  /**
+   * The execution-proof specification, in executable form.
+   *
+   * X credits are unavailable, so the first genuine publication has not
+   * happened. When it does it will be **one controlled post**, and it has to
+   * yield the whole evidence chain in that single run — there is no second
+   * cheap attempt. This asserts, against the real handler and a real database,
+   * exactly what an operator should expect to see afterwards.
+   *
+   * The fetch is a fixture. That makes this a specification of the contract,
+   * **not** provider evidence: nothing here promotes X publishing beyond
+   * `implemented`. The value is that every link is pinned now, so a live run
+   * that deviates is immediately legible instead of being interpreted.
+   */
+  it('records the post id, the provider reply, and the collection that follows', async () => {
+    const fetchImpl = (async (url: string | URL | Request, init?: RequestInit) => {
+      if (init?.method === 'POST') {
+        return new Response(
+          JSON.stringify({ data: { id: '1799999999999999999', text: 'posted' } }),
+          { status: 200, headers: { 'content-type': 'application/json' } },
+        );
+      }
+      return new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } });
+    }) as unknown as typeof fetch;
+
+    const itemId = await makeItem();
+    await publishHandler(job(itemId, fetchImpl), context());
+
+    const { rows } = await pool.query<{
+      id: string;
+      platform_post_id: string | null;
+      published_at: string | null;
+      raw_response: unknown;
+      needs_reconciliation: boolean;
+      publish_mode: string;
+      account_id: string;
+    }>(
+      `select id, platform_post_id, published_at, raw_response, needs_reconciliation,
+              publish_mode, account_id
+         from publications where content_item_id = $1`,
+      [itemId],
+    );
+
+    expect(rows).toHaveLength(1);
+    const publication = rows[0]!;
+
+    // 1. The provider's own identifier, which everything downstream keys on.
+    expect(publication.platform_post_id).toBe('1799999999999999999');
+    // 2. When, so decay-scheduled collection has an origin.
+    expect(publication.published_at).not.toBeNull();
+    // 3. The provider's reply, kept verbatim. A conclusion you cannot re-check
+    //    is an assertion with a timestamp.
+    expect(publication.raw_response).not.toBeNull();
+    // 4. Not ambiguous: a real id means the post is not awaiting reconciliation.
+    expect(publication.needs_reconciliation).toBe(false);
+    // 5. Direct, not a draft handover.
+    expect(publication.publish_mode).toBe('direct');
+    // 6. Routed to the account it was written for.
+    expect(publication.account_id).toBe(accountId);
+
+    // 7. The item's own state agrees with the publication.
+    const item = await pool.query<{ status: string; published_at: string | null }>(
+      'select status, published_at from content_items where id = $1',
+      [itemId],
+    );
+    expect(item.rows[0]!.status).toBe('published');
+    expect(item.rows[0]!.published_at).not.toBeNull();
+
+    /**
+     * 8. The observation link. Without these two jobs the first real post
+     *    produces no metrics and no comments — and the entire learning half of
+     *    the system stays empty while looking like it published successfully.
+     */
+    const { rows: queued } = await pool.query<{ kind: string; dedupe_key: string }>(
+      `select kind, dedupe_key from jobs
+        where kind in ('collect_metrics','collect_comments') order by kind`,
+    );
+    expect(queued.map((q) => q.kind)).toEqual(['collect_comments', 'collect_metrics']);
+    // Deduped per publication, so a second publish attempt cannot double them.
+    // Asserted against the real id — `includes('')` would pass for anything.
+    expect(publication.id).toMatch(/[0-9a-f-]{36}/);
+    expect(queued.every((q) => q.dedupe_key.includes(publication.id))).toBe(true);
+  });
+
+  it('leaves nothing collectable when the provider refuses', async () => {
+    /**
+     * The 402 that actually happened on 2026-08-19. The distinction this pins:
+     * a refused publication must not enqueue collection, or the system would be
+     * polling for metrics on a post that does not exist — and an empty result
+     * there is indistinguishable from a post nobody engaged with.
+     */
+    const fetchImpl = (async () =>
+      new Response(JSON.stringify({ title: 'credits depleted' }), {
+        status: 402,
+        headers: { 'content-type': 'application/json' },
+      })) as unknown as typeof fetch;
+
+    const itemId = await makeItem();
+    await expect(publishHandler(job(itemId, fetchImpl), context())).rejects.toThrow();
+
+    const { rows: queued } = await pool.query(
+      `select id from jobs where kind in ('collect_metrics','collect_comments')`,
+    );
+    expect(queued).toHaveLength(0);
   });
 });

@@ -22,20 +22,11 @@ export * from './coherence.js';
 import { slopFilter, slopSummary, type SlopFilterInput, type SlopFilterResult } from './slopFilter.js';
 import { verifyClaims, type Claim, type ClaimVerificationResult } from './claimVerifier.js';
 import {
-  runVisualQC,
-  type MediaProbe,
-  type VisionScore,
-  type VisualQCResult,
-  type VisualTarget,
-} from './visualQC.js';
-import { runAudioQC, type AudioProbe, type AudioQCResult } from './audioQC.js';
-import {
   runDestinationQC,
   type DestinationQCInput,
   type DestinationQCResult,
 } from './destinationQC.js';
 import { runProofQC, type ProofQCInput, type ProofQCResult } from '../proof/testimonials.js';
-import { runCoherenceQC, type CoherenceInput, type CoherenceResult } from './coherence.js';
 
 export type GateName =
   | 'copy'
@@ -48,7 +39,12 @@ export type GateName =
    * Does the artifact show what the post claims? Every other gate passes on a
    * video whose voiceover describes a feature the footage never shows.
    */
-  | 'coherence';
+  | 'coherence'
+  /**
+   * Does the opening earn the next three seconds? Measured from the rendered
+   * file, so it runs in `review_media` beside `visual` rather than at copy time.
+   */
+  | 'retention';
 export type GateStatus = 'passed' | 'warning' | 'failed' | 'skipped';
 
 export interface GateResult {
@@ -93,18 +89,23 @@ export interface RunAllGatesInput {
    * copy-time callers: at that point the media does not exist yet.
    */
   requires?: GateName[];
-  /** Frame observations, when media exists. Supplied after render, not at copy time. */
-  visual?: { probe: MediaProbe; target: VisualTarget; visionScore?: VisionScore };
-  /**
-   * Frame and audio observations against the post's own intent.
+  /*
+   * There is deliberately no `visual`, `audio` or `coherence` input here.
    *
-   * Omitted where nothing was rendered, or where frames could not be sampled —
-   * the gate then reports `skipped`, never `passed`.
+   * `runAllGates` runs at copy time, before any media exists, so no caller
+   * could supply them — and none of the six production callers ever did. They
+   * were accepted for two years, exercised only by tests, and the Auditor
+   * reported `gate.input_never_supplied` against them the whole time.
+   *
+   * The measurements are real and they happen where their inputs exist:
+   * `runVisualQC` and `runCoherenceQC` in the `review_media` handler after the
+   * render, `runAudioQC` in `tts` after the voiceover. Both stages merge their
+   * verdict into this function's own `gates` array, so the aggregate still
+   * carries a media verdict — written by the stage that can actually measure
+   * it, rather than by a parameter nothing can fill.
+   *
+   * The gate *entries* remain below, as slots those stages replace. See §119.
    */
-  coherence?: CoherenceInput;
-  audio?: AudioProbe;
-  /** Loudness measured on the finished cut, surfaced in the audio line. */
-  loudnessLufs?: number;
   /** Milestone 42 — where the post sends people, checked before approval. */
   destination?: DestinationQCInput;
   /**
@@ -204,76 +205,36 @@ export function runAllGates(input: RunAllGatesInput): QCResults {
    * would use exactly this path. What changed is that an unmeasured dimension
    * can no longer contribute to a pass — see `requires` below.
    */
-  if (input.visual) {
-    const visual: VisualQCResult = runVisualQC(
-      input.visual.probe,
-      input.visual.target,
-      input.visual.visionScore,
-    );
-    const warnings = visual.findings.filter((f) => f.severity === 'warning');
-    gates.push({
-      gate: 'visual',
-      status: !visual.passed ? 'failed' : warnings.length > 0 ? 'warning' : 'passed',
-      summary: visual.summary,
-      detail: visual,
-    });
-  } else {
-    gates.push({
-      gate: 'visual',
-      status: 'skipped',
-      summary: 'no media here — measured after render, by review_media',
-      detail: null,
-    });
-  }
+  /*
+   * Media slots.
+   *
+   * Always `skipped` here, because this stage cannot see media. `review_media`
+   * replaces `visual` and `coherence` after the render and `tts` replaces
+   * `audio` after the voiceover, each recomputing `passed` over the merged
+   * list. A caller that names one in `requires` gets an honest failure, which
+   * is the correct answer for "this item may not be approved on copy alone".
+   */
+  gates.push({
+    gate: 'visual',
+    status: 'skipped',
+    summary: 'no media here — measured after render, by review_media',
+    detail: null,
+  });
 
-  if (input.audio) {
-    const audio: AudioQCResult = runAudioQC(input.audio);
-    const suffix =
-      input.loudnessLufs !== undefined ? `, ${input.loudnessLufs.toFixed(1)} LUFS` : '';
-    gates.push({
-      gate: 'audio',
-      status: audio.passed ? 'passed' : 'failed',
-      summary: audio.summary + suffix,
-      detail: audio,
-    });
-  } else {
-    gates.push({
-      gate: 'audio',
-      status: 'skipped',
-      summary: 'no voiceover here — measured after synthesis, by tts',
-      detail: null,
-    });
-  }
+  gates.push({
+    gate: 'audio',
+    status: 'skipped',
+    summary: 'no voiceover here — measured after synthesis, by tts',
+    detail: null,
+  });
 
-  if (input.coherence) {
-    const coherence: CoherenceResult = runCoherenceQC(input.coherence);
-    const warnings = coherence.findings.filter((f) => f.severity === 'warning');
-    gates.push({
-      gate: 'coherence',
-      // `examined: 0` means no frame was ever looked at, and runCoherenceQC
-      // reports that as a failure rather than a pass — so the status follows it
-      // rather than the finding count.
-      status:
-        coherence.examined === 0
-          ? 'skipped'
-          : !coherence.passed
-            ? 'failed'
-            : warnings.length > 0
-              ? 'warning'
-              : 'passed',
-      summary: coherence.summary,
-      detail: coherence,
-      examined: coherence.examined,
-    });
-  } else {
-    gates.push({
-      gate: 'coherence',
-      status: 'skipped',
-      summary: 'nothing rendered to compare against the post',
-      detail: null,
-      examined: 0,
-    });
-  }
+  gates.push({
+    gate: 'coherence',
+    status: 'skipped',
+    summary: 'nothing rendered to compare against the post',
+    detail: null,
+    examined: 0,
+  });
 
   if (input.destination) {
     const destination: DestinationQCResult = runDestinationQC(input.destination);
@@ -397,4 +358,53 @@ export function disclosureSatisfied(input: {
     };
   }
   return { ok: true };
+}
+
+/**
+ * The gate list after a human rewrites the body.
+ *
+ * §157. `qc_results.gates` is what the queue renders, and an edit used to leave
+ * every entry untouched — so an operator could rewrite a post and the screen
+ * would go on showing `copy: passed (0 flags)` and `claims: 2/2 verified
+ * against artifact` for words nothing had examined. That is §143 again, with
+ * the operator doing the rewriting instead of the hook generator.
+ *
+ * The two gates are treated differently because only one can be settled here.
+ * The copy gate **is** the slop filter, which is deterministic and has already
+ * run on the new text — so it is re-run, not invalidated. The claims gate
+ * cannot be: the claims were extracted from the old wording and checked against
+ * the artifact, and whether they survive an edit is a question only a
+ * re-verification answers. It is marked unverified rather than left green.
+ *
+ * Every other gate is returned untouched. Editing a caption does not un-measure
+ * a render, and blanking the visual verdict would mean re-rendering to get it
+ * back.
+ */
+export function gatesAfterEdit(
+  gates: GateResult[],
+  lint: { passed: boolean; violations: Array<{ rule: string; message: string }> },
+): { gates: GateResult[]; passed: boolean } {
+  const flags = lint.violations.length;
+
+  const next = gates.map((gate): GateResult => {
+    if (gate.gate === 'copy') {
+      return {
+        gate: 'copy',
+        status: !lint.passed ? 'failed' : flags > 0 ? 'warning' : 'passed',
+        summary: `re-run after a human edit — ${flags} flag${flags === 1 ? '' : 's'}`,
+        detail: { violations: lint.violations },
+      };
+    }
+    if (gate.gate === 'claims') {
+      return {
+        gate: 'claims',
+        status: 'warning',
+        summary: 'not re-verified since a human edit',
+        detail: null,
+      };
+    }
+    return gate;
+  });
+
+  return { gates: next, passed: next.every((g) => g.status !== 'failed') };
 }

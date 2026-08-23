@@ -40,6 +40,13 @@ export const BLUESKY_CONSTRAINTS: PlatformConstraints = {
   linkNote: 'Links are clickable inline, as long as the facet byte offsets are right.',
   requiresReviewForPublicPosting: false,
   supportsTrendingAudioViaApi: false,
+  delivery: {
+    nativeDraft: false,
+    privateUpload: false,
+    apiScheduling: false,
+    requiresCreatorCompletion: false,
+    note: 'createRecord writes a public record. Not re-verified against AT Protocol documentation in this pass — treated as no-draft, which is what the adapter already does.',
+  },
 };
 
 /**

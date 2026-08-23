@@ -21,7 +21,7 @@ export default async function LibraryPage() {
           body="Published posts land here with their metric time series. X is the platform with no review gate, so it is where the first real post usually happens."
         />
       ) : (
-        <Card className="overflow-x-auto">
+        <Card className="overflow-x-auto" scrollLabel="Library items">
           <table className="w-full min-w-[52rem] text-sm">
             <thead>
               <tr className="border-b border-line text-left text-xs uppercase tracking-[0.08em] text-muted">

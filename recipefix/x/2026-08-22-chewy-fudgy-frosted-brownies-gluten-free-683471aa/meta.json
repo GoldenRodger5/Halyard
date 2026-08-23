@@ -1,0 +1,67 @@
+{
+  "id": "683471aa-37f7-4a8b-b05a-dfa79022a26c",
+  "platform": "x",
+  "format": "text",
+  "status": "pending_approval",
+  "category": "founder_insight",
+  "recipe": "Chewy Fudgy Frosted Brownies (Gluten-Free)",
+  "title": null,
+  "createdAt": "2026-08-22T16:45:38.877238-04:00",
+  "linkUrl": "http://localhost:3200/r/683471aa-37f7-4a8b-b05a-dfa79022a26c",
+  "qcPassed": true,
+  "gates": [
+    {
+      "gate": "copy",
+      "status": "passed",
+      "summary": "passed (0 flags)"
+    },
+    {
+      "gate": "claims",
+      "status": "passed",
+      "summary": "2/2 verified against artifact"
+    },
+    {
+      "gate": "visual",
+      "status": "skipped",
+      "summary": "no media here — measured after render, by review_media"
+    },
+    {
+      "gate": "audio",
+      "status": "skipped",
+      "summary": "no voiceover here — measured after synthesis, by tts"
+    },
+    {
+      "gate": "coherence",
+      "status": "skipped",
+      "summary": "nothing rendered to compare against the post"
+    },
+    {
+      "gate": "destination",
+      "status": "skipped",
+      "summary": "no link"
+    },
+    {
+      "gate": "proof",
+      "status": "skipped",
+      "summary": "no quoted testimonial"
+    }
+  ],
+  "claims": [
+    {
+      "text": "Eggs were reduced from 3 to 1 for the smaller batch",
+      "source": "ingredients[4].changeReason"
+    },
+    {
+      "text": "Pan size was changed from a 9-inch pan to a 6-inch pan or loaf pan",
+      "source": "steps[0].updated_note"
+    }
+  ],
+  "generation": {
+    "model": "claude-sonnet-5",
+    "costUsd": 0.031977,
+    "attempts": 1,
+    "inputTokens": 4844,
+    "outputTokens": 1163,
+    "promptVersion": "copywriter.v1"
+  }
+}

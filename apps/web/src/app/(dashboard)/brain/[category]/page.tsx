@@ -103,7 +103,7 @@ export default async function CategoryPage({
 
               {fact.reconciliation ? (
                 <div className="mt-3 border-l-2 border-l-warn pl-3">
-                  <p className="text-xs font-medium text-warn">Another source disagrees</p>
+                  <p className="text-xs font-medium text-warn-ink">Another source disagrees</p>
                   <p className="mt-1 text-sm text-muted">{fact.reconciliation}</p>
                 </div>
               ) : null}

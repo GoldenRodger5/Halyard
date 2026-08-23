@@ -195,3 +195,203 @@ describe('McpClient', () => {
     expect(parseSseEnvelope(body)).toEqual({ jsonrpc: '2.0', id: 1, result: { ok: true } });
   });
 });
+
+/**
+ * §148. Found the first time generation ran against the live MCP server.
+ *
+ * `generate` passes `params: sampleParams ?? {}` and nothing supplies
+ * `sampleParams`, so every real call sent `dietary: undefined` — and the tool
+ * requires an array of at least one. The server refused it, generation paused,
+ * and the video path had therefore never once run against the real connector.
+ */
+describe('choosing what to adapt', () => {
+  const DISCOVER = {
+    recipes: [
+      { title: 'Black Bean Tacos', source_url: 'https://example.test/tacos', suggested_diet: 'Vegan' },
+      { title: 'Shrimp and Grits', source_url: 'https://example.test/grits', suggested_diet: 'Vegetarian' },
+    ],
+  };
+
+  function connectorWith(calls: Array<[string, Record<string, unknown>]>, discover = DISCOVER) {
+    return new RecipeFixConnector({
+      url: 'https://example.test/mcp',
+      client: {
+        listTools: async () => [],
+        callToolJson: (async (name: string, args: Record<string, unknown>) => {
+          calls.push([name, args]);
+          if (name === 'get_discover_recipes') return discover;
+          if (name === 'adapt_recipe') return adaptation;
+          return {};
+        }) as never,
+      },
+      adaptRetries: 0,
+      sleep: async () => undefined,
+    });
+  }
+
+  it('sends a dietary array taken from the product’s own catalogue', async () => {
+    const calls: Array<[string, Record<string, unknown>]> = [];
+    await connectorWith(calls).generateSample({ intent: 'Gummy bread', params: {} });
+
+    const adapt = calls.find(([n]) => n === 'adapt_recipe')![1];
+    expect(Array.isArray(adapt.dietary)).toBe(true);
+    expect((adapt.dietary as string[]).length).toBeGreaterThan(0);
+    // The URL and the diet come from the same catalogue entry — the pairing is
+    // the product's, not ours.
+    const chosen = DISCOVER.recipes.find((r) => r.source_url === adapt.url)!;
+    expect(adapt.dietary).toEqual([chosen.suggested_diet]);
+  });
+
+  it('never sends url and text together, because the tool refuses both', async () => {
+    const calls: Array<[string, Record<string, unknown>]> = [];
+    await connectorWith(calls).generateSample({
+      intent: 'From text',
+      params: { text: 'A long enough recipe body to be accepted.', dietary: ['gluten-free'] },
+    });
+
+    const adapt = calls.find(([n]) => n === 'adapt_recipe')![1];
+    expect(adapt.text).toBeDefined();
+    expect(adapt.url).toBeUndefined();
+  });
+
+  it('prefers an explicit url and diet over the catalogue, and does not fetch it', async () => {
+    const calls: Array<[string, Record<string, unknown>]> = [];
+    await connectorWith(calls).generateSample({
+      intent: 'Explicit',
+      params: { url: 'https://example.test/mine', dietary: ['dairy-free'] },
+    });
+
+    expect(calls.some(([n]) => n === 'get_discover_recipes')).toBe(false);
+    const adapt = calls.find(([n]) => n === 'adapt_recipe')![1];
+    expect(adapt.url).toBe('https://example.test/mine');
+    expect(adapt.dietary).toEqual(['dairy-free']);
+  });
+
+  it('wraps a bare dietary string rather than refusing an unambiguous request', async () => {
+    const calls: Array<[string, Record<string, unknown>]> = [];
+    await connectorWith(calls).generateSample({
+      intent: 'Bare string',
+      params: { url: 'https://example.test/mine', dietary: 'vegan' },
+    });
+    expect(calls.find(([n]) => n === 'adapt_recipe')![1].dietary).toEqual(['vegan']);
+  });
+
+  it('gives the same intent the same recipe, and different intents different ones', async () => {
+    // Deterministic, so a retry re-adapts the same thing and does not spend a
+    // second credit on a different recipe.
+    const a: Array<[string, Record<string, unknown>]> = [];
+    const b: Array<[string, Record<string, unknown>]> = [];
+    const c: Array<[string, Record<string, unknown>]> = [];
+    await connectorWith(a).generateSample({ intent: 'one', params: {} });
+    await connectorWith(b).generateSample({ intent: 'one', params: {} });
+    await connectorWith(c).generateSample({ intent: 'a completely different idea', params: {} });
+
+    const urlOf = (calls: typeof a) => calls.find(([n]) => n === 'adapt_recipe')![1].url;
+    expect(urlOf(a)).toBe(urlOf(b));
+    expect([urlOf(a), urlOf(c)].filter(Boolean)).toHaveLength(2);
+  });
+
+  it('pauses generation rather than adapting something invented', async () => {
+    const calls: Array<[string, Record<string, unknown>]> = [];
+    await expect(
+      connectorWith(calls, { recipes: [] }).generateSample({ intent: 'nothing', params: {} }),
+    ).rejects.toBeInstanceOf(ConnectorUnavailableError);
+    expect(calls.some(([n]) => n === 'adapt_recipe')).toBe(false);
+  });
+});
+
+/**
+ * §149. The defect that produced empty artifacts while everything looked green.
+ *
+ * The live server wraps the adaptation in `{ persisted, adaptation }`. The
+ * fixture is the bare body. `toArtifact` read the envelope, found no
+ * `ingredients`, and built an artifact with no highlights — so no video
+ * composition could be chosen and the claim verifier had nothing to resolve
+ * against. The job still succeeded.
+ */
+describe('the adaptation envelope', () => {
+  function connectorReturning(payload: unknown) {
+    return new RecipeFixConnector({
+      url: 'https://example.test/mcp',
+      client: {
+        listTools: async () => [],
+        callToolJson: (async (name: string) =>
+          name === 'adapt_recipe' ? payload : { recipes: [] }) as never,
+      },
+      adaptRetries: 0,
+      sleep: async () => undefined,
+    });
+  }
+
+  it('reads the adaptation out of the envelope the live server sends', async () => {
+    const artifact = await connectorReturning({
+      persisted: { id: 'abc' },
+      adaptation,
+    }).generateSample({
+      intent: 'enveloped',
+      params: { url: 'https://example.test/r', dietary: ['gluten-free'] },
+    });
+
+    expect(artifact.headline).toBe(adaptation.recipeName);
+    // The half that was silently empty: without unwrapping there are none.
+    expect(artifact.highlights.length).toBeGreaterThan(0);
+    expect(artifact.highlights.some((h) => h.type === 'swap')).toBe(true);
+  });
+
+  it('still accepts a bare adaptation body', async () => {
+    const artifact = await connectorReturning(adaptation).generateSample({
+      intent: 'bare',
+      params: { url: 'https://example.test/r', dietary: ['gluten-free'] },
+    });
+    expect(artifact.headline).toBe(adaptation.recipeName);
+    expect(artifact.highlights.length).toBeGreaterThan(0);
+  });
+
+  it('stores the adaptation as raw, so a claim sourcePath resolves', async () => {
+    // `raw` is what lands in `content_items.product_artifact` and what the
+    // claim verifier walks. The envelope would put every path one level too deep.
+    const artifact = await connectorReturning({ adaptation }).generateSample({
+      intent: 'raw',
+      params: { url: 'https://example.test/r', dietary: ['gluten-free'] },
+    });
+    expect((artifact.raw as { ingredients?: unknown[] }).ingredients).toBeDefined();
+  });
+});
+
+describe('retrying a recipe the server cannot handle', () => {
+  it('adapts a different recipe on the retry, not the one that just failed', async () => {
+    /*
+     * §148. Some Discover entries cannot be scraped and the server answers
+     * non-2xx for them every time. Re-adapting the same URL spends a second
+     * credit to learn what the first attempt already proved.
+     */
+    const attempted: string[] = [];
+    const connector = new RecipeFixConnector({
+      url: 'https://example.test/mcp',
+      client: {
+        listTools: async () => [],
+        callToolJson: (async (name: string, args: Record<string, unknown>) => {
+          if (name === 'get_discover_recipes') {
+            return {
+              recipes: [
+                { source_url: 'https://example.test/a', suggested_diet: 'Vegan' },
+                { source_url: 'https://example.test/b', suggested_diet: 'Vegetarian' },
+              ],
+            };
+          }
+          attempted.push(String(args.url));
+          if (attempted.length === 1) throw new Error('Edge Function returned a non-2xx status code');
+          return adaptation;
+        }) as never,
+      },
+      adaptRetries: 1,
+      sleep: async () => undefined,
+    });
+
+    const artifact = await connector.generateSample({ intent: 'unscrapeable', params: {} });
+
+    expect(attempted).toHaveLength(2);
+    expect(attempted[0]).not.toBe(attempted[1]);
+    expect(artifact.highlights.length).toBeGreaterThan(0);
+  });
+});

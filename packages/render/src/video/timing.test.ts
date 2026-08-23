@@ -162,3 +162,110 @@ describe('audio post-processing — v2 D.3 and F.4', () => {
     expect(args).toContain('stop_silence=0.25');
   });
 });
+
+/**
+ * §163. A scene whose length is a fact, not a choice.
+ */
+describe('layoutScenes with a capped scene', () => {
+  const fps = 30;
+  const total = 30 * fps;
+
+  it('never stretches a capped scene past its cap', () => {
+    /*
+     * The defect this exists for: a demo beat holding 3.8s of footage was given
+     * 8.7s of the piece, and Remotion froze the last frame for the difference.
+     */
+    const laid = layoutScenes(
+      [
+        { id: 'hook', weight: 1, minSeconds: 1.2 },
+        { id: 'demo', weight: 3, minSeconds: 3.8, maxSeconds: 3.8 },
+        { id: 'card', weight: 2, minSeconds: 2.4 },
+      ],
+      total,
+      fps,
+    );
+    expect(laid[1]!.durationFrames).toBe(Math.ceil(3.8 * fps));
+  });
+
+  it('stretches a capped scene up to its ceiling but no further', () => {
+    /*
+     * The floor and the ceiling are not the same number in general. A scene
+     * that may grow a little — footage that can hold a beat on its final frame
+     * briefly, but not for four seconds — must take the slack up to the cap and
+     * then stop. Asserting only the floor==ceiling case would leave the cap
+     * itself untested, since a scene pinned at its floor never stretches.
+     */
+    const laid = layoutScenes(
+      [
+        { id: 'demo', weight: 5, minSeconds: 2, maxSeconds: 4 },
+        { id: 'card', weight: 1, minSeconds: 2.4 },
+      ],
+      total,
+      fps,
+    );
+    // Weight 5 of 6 over ~25s of slack would be far past 4s without the cap.
+    expect(laid[0]!.durationFrames).toBe(Math.ceil(4 * fps));
+    expect(laid[0]!.durationFrames).toBeGreaterThan(Math.ceil(2 * fps));
+  });
+
+  it('gives the time back to the scenes that can use it', () => {
+    // Capping one beat must lengthen the others, not shorten the piece.
+    const scenes = [
+      { id: 'hook', weight: 1, minSeconds: 1.2 },
+      { id: 'demo', weight: 3, minSeconds: 3.8 },
+      { id: 'card', weight: 2, minSeconds: 2.4 },
+    ];
+    const uncapped = layoutScenes(scenes, total, fps);
+    const capped = layoutScenes(
+      scenes.map((s) => (s.id === 'demo' ? { ...s, maxSeconds: 3.8 } : s)),
+      total,
+      fps,
+    );
+    expect(capped[2]!.durationFrames).toBeGreaterThan(uncapped[2]!.durationFrames);
+  });
+
+  it('still fills the runtime exactly, with no gap and no overrun', () => {
+    const laid = layoutScenes(
+      [
+        { id: 'hook', weight: 1, minSeconds: 1.2 },
+        { id: 'demo', weight: 3, minSeconds: 3.8, maxSeconds: 3.8 },
+        { id: 'card', weight: 2, minSeconds: 2.4 },
+      ],
+      total,
+      fps,
+    );
+    const last = laid[laid.length - 1]!;
+    expect(last.startFrame + last.durationFrames).toBe(total);
+    for (let i = 1; i < laid.length; i += 1) {
+      expect(laid[i]!.startFrame).toBe(laid[i - 1]!.startFrame + laid[i - 1]!.durationFrames);
+    }
+  });
+
+  it('leaves an uncapped layout exactly as it was', () => {
+    // The cap is opt-in; every composition that never sets one is untouched.
+    const scenes = [
+      { id: 'a', weight: 1, minSeconds: 1.2 },
+      { id: 'b', weight: 2, minSeconds: 2.4 },
+      { id: 'c', weight: 3, minSeconds: 3.6 },
+    ];
+    const laid = layoutScenes(scenes, total, fps);
+    expect(laid.map((s) => s.durationFrames).reduce((a, b) => a + b, 0)).toBe(total);
+    expect(laid[0]!.durationFrames).toBeGreaterThan(Math.ceil(1.2 * fps));
+  });
+
+  it('does not hand the rounding remainder to a capped final scene', () => {
+    /*
+     * The last scene normally absorbs the remainder so the beats add up. Doing
+     * that to a capped scene would put the freeze back at the end of the piece.
+     */
+    const laid = layoutScenes(
+      [
+        { id: 'card', weight: 2, minSeconds: 2.4 },
+        { id: 'demo', weight: 3, minSeconds: 3.8, maxSeconds: 3.8 },
+      ],
+      total,
+      fps,
+    );
+    expect(laid[1]!.durationFrames).toBe(Math.ceil(3.8 * fps));
+  });
+});

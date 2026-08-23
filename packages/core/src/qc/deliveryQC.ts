@@ -196,7 +196,7 @@ export function runDeliveryQC(probe: DeliveryProbe): DeliveryResult {
         .slice(0, 3)
         .map((w) => `"${w.text}"`)
         .join(', ')}.`,
-      fix: 'Usually a mispronunciation. Add the term to voice_lexicon with a phonetic spelling and the next synthesis gets it right.',
+      fix: 'Usually a mispronunciation. Add the term on Settings → Pronunciation with a phonetic spelling, and the next synthesis gets it right.',
     });
   }
 

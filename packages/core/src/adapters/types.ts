@@ -58,6 +58,48 @@ export interface PlatformConstraints {
   supportsTrendingAudioViaApi: boolean;
   /** Rough cost per publish, USD. Only X charges today. */
   costPerPostUsd?: { withoutLink: number; withLink: number };
+  /** What the platform's API can actually receive short of a public post. §156. */
+  delivery: DeliveryCapability;
+}
+
+/**
+ * What a platform's API can receive that is not a public post.
+ *
+ * §156. Three things get called "draft" and they are not the same, so they are
+ * three fields rather than one enum:
+ *
+ * - **`nativeDraft`** — the platform holds an object the *creator* sees in
+ *   their own app and finishes there. TikTok's inbox upload is the only one
+ *   among the platforms here. Halyard cannot publish it afterwards; the person
+ *   does, inside TikTok.
+ * - **`privateUpload`** — the content really exists on the platform, private,
+ *   and **Halyard can still publish it** over the API. YouTube's
+ *   `privacyStatus: private` is this. Calling it a draft would promise the
+ *   creator a draft in their app, which is not what it is.
+ * - **`apiScheduling`** — the platform itself holds a publish time. YouTube's
+ *   `publishAt` is the only one here, and it requires the video to be private
+ *   and never previously published.
+ *
+ * A two-step media container — Instagram, Threads — is **none of these**. It is
+ * a transient step inside publishing: the creator never sees it, it expires
+ * (24 hours on Instagram), and it exists only to be published seconds later.
+ * Recording it as an unpublished upload would invent a capability.
+ *
+ * Every value here is a statement about the **API**, taken from the platform's
+ * current official documentation and cited in `docs/PLATFORM_COVERAGE.md`. A
+ * platform whose web UI offers drafts but whose API does not is `false`.
+ */
+export interface DeliveryCapability {
+  nativeDraft: boolean;
+  privateUpload: boolean;
+  apiScheduling: boolean;
+  /**
+   * The creator must open the platform and finish the post themselves.
+   * Only meaningful with `nativeDraft`; Halyard has no way to complete it.
+   */
+  requiresCreatorCompletion: boolean;
+  /** One line an operator can act on, and the reason the flags above are what they are. */
+  note: string;
 }
 
 export interface PublishAsset {
@@ -100,7 +142,16 @@ export interface PublishAccount {
 }
 
 export interface PublishResult {
-  mode: 'direct' | 'draft';
+  /**
+   * What actually happened at the platform. §156.
+   *
+   * `draft` is a *native draft* the creator finishes in their own app.
+   * `private` is real content the platform holds unpublished, which Halyard
+   * can still publish. YouTube reported its private uploads as `draft`, which
+   * told the operator to go and finish something that needed no finishing.
+   * Neither is `published`, and neither moves Halyard's own approval state.
+   */
+  mode: 'direct' | 'draft' | 'private';
   platformPostId?: string;
   permalink?: string;
   /** Deep link shown in the queue for draft mode: "finish in TikTok". */

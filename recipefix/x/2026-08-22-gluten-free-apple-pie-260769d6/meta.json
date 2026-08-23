@@ -1,0 +1,67 @@
+{
+  "id": "260769d6-d48f-4f60-9609-19e3f2c0a6ba",
+  "platform": "x",
+  "format": "text",
+  "status": "pending_approval",
+  "category": "founder_insight",
+  "recipe": "Gluten-Free Apple Pie",
+  "title": null,
+  "createdAt": "2026-08-22T16:49:06.365343-04:00",
+  "linkUrl": null,
+  "qcPassed": true,
+  "gates": [
+    {
+      "gate": "copy",
+      "status": "passed",
+      "summary": "passed (0 flags)"
+    },
+    {
+      "gate": "claims",
+      "status": "passed",
+      "summary": "2/2 verified against artifact"
+    },
+    {
+      "gate": "visual",
+      "status": "skipped",
+      "summary": "no media here — measured after render, by review_media"
+    },
+    {
+      "gate": "audio",
+      "status": "skipped",
+      "summary": "no voiceover here — measured after synthesis, by tts"
+    },
+    {
+      "gate": "coherence",
+      "status": "skipped",
+      "summary": "nothing rendered to compare against the post"
+    },
+    {
+      "gate": "destination",
+      "status": "skipped",
+      "summary": "no link"
+    },
+    {
+      "gate": "proof",
+      "status": "skipped",
+      "summary": "no quoted testimonial"
+    }
+  ],
+  "claims": [
+    {
+      "text": "Cornstarch activates when it hits heat, not before, so filling looks loose until baked",
+      "source": "steps[1].updated_note"
+    },
+    {
+      "text": "The filling should be visibly bubbling by the 35-minute mark as the sign cornstarch has activated",
+      "source": "steps[6].updated_note"
+    }
+  ],
+  "generation": {
+    "model": "claude-sonnet-5",
+    "costUsd": 0.027876,
+    "attempts": 1,
+    "inputTokens": 4977,
+    "outputTokens": 863,
+    "promptVersion": "copywriter.v1"
+  }
+}

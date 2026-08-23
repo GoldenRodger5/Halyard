@@ -200,6 +200,17 @@ below. A claim you cannot source is a claim you must not make.`,
 
 export const IDEA_GENERATOR_PROMPT_VERSION = 'idea_generator.v1';
 
+/**
+ * How much of one signal reaches the prompt.
+ *
+ * Signal summaries are assembled from text Halyard did not write — a Reddit
+ * title, or an operator's own sentence — so neither is length-bounded at the
+ * source.
+ */
+export const SIGNAL_SUMMARY_CHARS = 300;
+/** Enough to recognise a past post without repeating its whole headline. */
+export const TITLE_CHARS = 160;
+
 export function buildIdeaGeneratorPrompt(input: {
   productBrief: string;
   voiceSummary: string;
@@ -241,11 +252,27 @@ Reply with JSON only:
           ).toFixed(0)}%`,
       )
       .join('\n')}`,
+    /**
+     * Bounded per line, because two of these fields are not ours.
+     *
+     * A signal summary is built from a Reddit post title, or from the sentence
+     * an operator typed into `/finds` — neither has a length limit, and both
+     * land verbatim in a prompt that is paid for by the token. Twenty signals
+     * of unbounded length is an input-cost explosion driven by whatever someone
+     * else wrote. The same reasoning already caps `productBrief` at 2,500.
+     *
+     * Truncated rather than dropped: a long signal is still a real signal, and
+     * the first 300 characters of a question carry the question.
+     */
     input.signals.length > 0
-      ? `\n## Unconsumed signals\n${input.signals.map((s) => `- [${s.source}] ${s.summary}`).join('\n')}`
+      ? `\n## Unconsumed signals\n${input.signals
+          .map((s) => `- [${s.source}] ${s.summary.slice(0, SIGNAL_SUMMARY_CHARS)}`)
+          .join('\n')}`
       : '',
     input.recentTitles.length > 0
-      ? `\n## Posted in the last 60 days — do not repeat these\n${input.recentTitles.map((t) => `- ${t}`).join('\n')}`
+      ? `\n## Posted in the last 60 days — do not repeat these\n${input.recentTitles
+          .map((t) => `- ${t.slice(0, TITLE_CHARS)}`)
+          .join('\n')}`
       : '',
     input.topPerformers.length > 0
       ? `\n## Top performers\n${input.topPerformers

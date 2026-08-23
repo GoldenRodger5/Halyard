@@ -154,6 +154,43 @@ d('AI disclosure (v2 C.3)', () => {
 
 d('row level security', () => {
   it('denies a role that is not in admin_users', async () => {
+    /**
+     * Skipped only where the database genuinely forbids the probe — Supabase's
+     * `postgres` has CREATEROLE but cannot `SET ROLE` into what it creates.
+     * The reason is checked rather than assumed, so a real permission
+     * regression still fails instead of quietly skipping.
+     *
+     * Skipping is tolerable here *only* because the invariant is also asserted
+     * from the catalog by "has RLS enabled and forced on every table" further
+     * down, which runs everywhere. This probe is the stronger of the two — it
+     * proves what an unprivileged caller actually sees — and it fails rather
+     * than skips wherever it can run at all.
+     */
+    const canSetRole = await (async () => {
+      const probe = await pool.connect();
+      try {
+        await probe.query('drop role if exists halyard_setrole_probe');
+        await probe.query('create role halyard_setrole_probe');
+        await probe.query('set role halyard_setrole_probe');
+        await probe.query('reset role');
+        return true;
+      } catch {
+        return false;
+      } finally {
+        await probe.query('drop role if exists halyard_setrole_probe').catch(() => undefined);
+        probe.release();
+      }
+    })();
+
+    if (!canSetRole) {
+      // Stated out loud. The catalog assertion above still covers the invariant
+      // everywhere; this is the stronger check that this database cannot host.
+      console.warn(
+        'skipping the SET ROLE probe: this database does not permit it (Supabase local). RLS is still asserted from the catalog.',
+      );
+      return;
+    }
+
     await pool.query(`drop role if exists halyard_rls_probe`);
     await pool.query(`create role halyard_rls_probe login password 'probe'`);
     await pool.query(`grant usage on schema public to halyard_rls_probe`);
@@ -204,6 +241,19 @@ d('row level security', () => {
   });
 
   it('has RLS enabled and forced on every table', async () => {
+    /**
+     * Counted first, because this query selects only *violating* tables — so a
+     * join that matched nothing, a renamed schema, or a database that never got
+     * migrated all return `[]` and pass. Examining nothing is not a pass; the
+     * count is what makes the empty result mean something.
+     */
+    const { rows: all } = await pool.query<{ n: string }>(
+      `select count(*) as n from pg_class c
+         join pg_namespace n on n.oid = c.relnamespace
+        where n.nspname = 'public' and c.relkind = 'r'`,
+    );
+    expect(Number(all[0]!.n)).toBeGreaterThan(50);
+
     const { rows } = await pool.query<{ relname: string }>(
       `select relname from pg_class c
          join pg_namespace n on n.oid = c.relnamespace

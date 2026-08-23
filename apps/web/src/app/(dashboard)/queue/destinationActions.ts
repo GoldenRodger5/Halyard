@@ -2,7 +2,6 @@
 
 import { revalidatePath } from 'next/cache';
 import {
-  extractShareToken,
   resolveDestination,
   type DestinationType,
   type ProductDestinations,
@@ -102,7 +101,13 @@ export async function resetDestination(formData: FormData): Promise<void> {
   revalidatePath(`/queue/${id}`);
 }
 
-/** Exported so the detail screen can say whether a share link is even possible. */
-export async function shareTokenFor(artifact: unknown): Promise<string | null> {
-  return extractShareToken(artifact);
-}
+/*
+ * `shareTokenFor` was removed on 2026-08-20.
+ *
+ * It existed "so the detail screen can say whether a share link is even
+ * possible", and the detail screen calls `extractShareToken` directly instead —
+ * it is a server component and needs no round trip for a pure function.
+ *
+ * Every export from a `'use server'` file is a callable POST endpoint. This one
+ * was an unused one, so removing it removes a surface rather than a capability.
+ */

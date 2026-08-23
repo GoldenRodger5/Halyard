@@ -32,6 +32,10 @@ export async function buildLaunchPlan(
   productId: string,
   days: number,
 ): Promise<{ plan: LaunchBatchPlan; accounts: AccountRow[] }> {
+  // A server action is a public POST endpoint, whatever its signature. The
+  // `(dashboard)` layout guards rendering and never runs for an invocation.
+  await requireOperator();
+
   const product = await one<{ audience_timezone: string }>(
     'select audience_timezone from products where id = $1',
     [productId],

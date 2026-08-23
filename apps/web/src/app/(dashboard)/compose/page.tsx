@@ -90,7 +90,18 @@ export default async function ComposePage() {
           <Card className="p-4">
             <SectionTitle hint="the reasoning is often reusable">Saved conversations</SectionTitle>
             {sessions.length === 0 ? (
-              <p className="text-sm text-muted">Nothing saved yet.</p>
+              /*
+               * "Nothing saved yet" implied the operator had not saved one.
+               * Nothing *can* save one: `compose_sessions` has a reader here
+               * and no writer anywhere, so this list is empty by construction
+               * rather than by circumstance. Saying so is the same rule the
+               * legal pages follow — a surface must not imply a control the
+               * product does not have.
+               */
+              <p className="text-sm text-muted">
+                Conversations are not saved yet. Drafts you queue from here appear under recent
+                drafts; the conversation that produced them is not kept.
+              </p>
             ) : (
               <ul className="space-y-1.5">
                 {sessions.map((session) => (

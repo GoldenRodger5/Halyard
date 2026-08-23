@@ -38,6 +38,7 @@
 import type { PlatformId } from '../adapters/types.js';
 import type { CapabilityState, PlatformConstraints } from '../adapters/types.js';
 import type { Capability, PlatformCapability } from '../adapters/unified/capabilities.js';
+import { adapterDeclares } from './declared.js';
 
 /**
  * The actions capability is resolved for.
@@ -142,9 +143,111 @@ export interface CapabilityInputs {
   /** C — the connected account's lifecycle state. */
   accountState?: CapabilityState | null;
   accountId?: string | null;
+  /**
+   * B/E — the latest observation scoped to *this account*, if any.
+   *
+   * Stronger evidence than the transport observation for this account, and the
+   * only route by which an engagement read can reach `verified`. Discarded
+   * unless it matches platform, action and account exactly.
+   */
+  observation?: CapabilityObservation | null;
   /** D — a product-policy refusal, when one applies. */
   policyRefusal?: { reason: string } | null;
   now?: Date;
+}
+
+/**
+ * One observation, scoped to the account it was made on.
+ *
+ * ## Why this is separate from `transport`
+ *
+ * `PlatformCapability` describes what a **transport** can do — a fact about a
+ * provider, equally true for everyone using it. Engagement reads are not that
+ * shape. Whether Halyard can read the comments on a post depends on which
+ * permissions *that account* granted, whether its token still carries them, and
+ * whether the platform approved this app for it. @recipe.fix succeeding proves
+ * nothing about any other account.
+ *
+ * Before this existed, `read_comments` and `read_mentions` had no field in
+ * `TRANSPORT_FIELD` at all, so they could never rise above `declared` no matter
+ * what was observed. The gap was recorded rather than hidden; this is the
+ * smallest extension that closes it, and it adds no new vocabulary — `outcome`
+ * is the same four words `capability_probes.outcome` already stores.
+ */
+export interface CapabilityObservation {
+  platform: PlatformId;
+  action: CapabilityAction;
+  /** Null for a transport-wide observation. Never treated as a wildcard. */
+  accountId: string | null;
+  /** What happened to the probe, not what the capability is. */
+  outcome: 'confirmed' | 'refuted' | 'unavailable' | 'error';
+  observedAt: Date | null;
+  detail?: string;
+}
+
+/**
+ * Whether an observation is evidence about *this* question.
+ *
+ * Strict on every axis, including the account. An observation carrying a
+ * different account id, or none when one was asked about, is discarded rather
+ * than generalised — the widening it would otherwise perform ("one account
+ * could, so the platform can") is the exact failure this model exists to
+ * prevent, and it fails silently in the direction of permission.
+ */
+export function observationApplies(
+  observation: CapabilityObservation,
+  input: { platform: PlatformId; action: CapabilityAction; accountId?: string | null },
+): boolean {
+  if (observation.platform !== input.platform) return false;
+  if (observation.action !== input.action) return false;
+  return (observation.accountId ?? null) === (input.accountId ?? null);
+}
+
+/**
+ * Outcomes that carry information about the capability.
+ *
+ * `unavailable` and `error` are deliberately absent. A probe that could not run
+ * proves nothing, and letting either one participate is how a missing
+ * credential hardens into "not supported" — or, worse in the other direction,
+ * how a failed probe gets counted as an attempt that must have worked.
+ */
+const INFORMATIVE_OUTCOMES: ReadonlySet<CapabilityObservation['outcome']> = new Set([
+  'confirmed',
+  'refuted',
+]);
+
+export function observationIsInformative(observation: CapabilityObservation): boolean {
+  return INFORMATIVE_OUTCOMES.has(observation.outcome);
+}
+
+/**
+ * How long between recording the same steady-state observation again.
+ *
+ * `collect_comments` polls a fresh publication fifteen times in its first day.
+ * Recording an observation on every poll would bury a genuine change in
+ * hundreds of identical rows, and append-only evidence is only useful if you
+ * can still read it. Six hours keeps roughly four rows a day per account.
+ *
+ * A *changed* outcome is always recorded immediately, whatever the interval —
+ * the transition is the alert, and delaying it to keep the table tidy would
+ * trade the only thing worth having for the thing that does not matter.
+ */
+export const OBSERVATION_INTERVAL_HOURS = 6;
+
+/**
+ * Whether a new observation is worth storing.
+ *
+ * Returns true when nothing has been observed before, when the outcome differs
+ * from the last one, or when the last one is old enough to be worth refreshing.
+ */
+export function shouldRecordObservation(
+  last: { outcome: CapabilityObservation['outcome']; observedAt: Date } | null,
+  next: Pick<CapabilityObservation, 'outcome'>,
+  now: Date = new Date(),
+): boolean {
+  if (!last) return true;
+  if (last.outcome !== next.outcome) return true;
+  return (now.getTime() - last.observedAt.getTime()) / 3_600_000 >= OBSERVATION_INTERVAL_HOURS;
 }
 
 /**
@@ -174,7 +277,12 @@ const TRANSPORT_FIELD: Partial<Record<CapabilityAction, keyof PlatformCapability
   scheduling: 'scheduling',
 };
 
-/** Whether the platform itself supports the action, from its declared constraints. */
+/**
+ * Whether the action is supported, from the platform's constraints.
+ *
+ * `null` means the constraints say nothing — which is not a no, and is why the
+ * caller falls through to the adapter declaration rather than to `unsupported`.
+ */
 function platformSupports(
   action: CapabilityAction,
   constraints: PlatformConstraints,
@@ -183,7 +291,6 @@ function platformSupports(
     case 'carousel':
       return constraints.carousel !== undefined;
     case 'video':
-    case 'short_video':
       return constraints.video !== undefined;
     case 'publish':
     case 'publish_public':
@@ -192,6 +299,26 @@ function platformSupports(
       // The constraints file says nothing about this action. That is not a no.
       return null;
   }
+}
+
+/**
+ * Whether anything in Halyard claims this action for this platform.
+ *
+ * Constraints answer for content shape; `ADAPTER_DECLARED` answers for the
+ * operations an adapter actually implements — reading comments, carrying alt
+ * text. Neither is verification, and both only ever produce `declared`.
+ *
+ * `short_video` deliberately no longer follows `video`: a platform accepting
+ * video says nothing about whether Halyard can publish a Reel or a Short, which
+ * are separate container types nothing here builds.
+ */
+function halyardDeclares(
+  platform: PlatformId,
+  action: CapabilityAction,
+  constraints: PlatformConstraints | null | undefined,
+): boolean {
+  if (constraints && platformSupports(action, constraints) === true) return true;
+  return adapterDeclares(platform, action);
 }
 
 /**
@@ -266,7 +393,30 @@ export function resolveCapability(input: CapabilityInputs): CapabilityResolution
     }
   }
 
-  // ── B/E. Transport observation ───────────────────────────────────────────
+  // ── B/E. Observations ────────────────────────────────────────────────────
+  /**
+   * The account-scoped observation, kept only if it is about this exact
+   * question. A mismatch is not weaker evidence, it is evidence about something
+   * else, and treating it as a fallback is how one account's success becomes
+   * every account's permission.
+   */
+  const accountObservation =
+    input.observation &&
+    observationApplies(input.observation, input) &&
+    observationIsInformative(input.observation)
+      ? input.observation
+      : null;
+
+  if (accountObservation?.outcome === 'refuted') {
+    return make(
+      'unsupported',
+      accountObservation.detail ??
+        `Observed failing on this account: ${input.platform} refused ${input.action}.`,
+      { decidedBy: 'account', method: 'probe' },
+      accountObservation.observedAt,
+    );
+  }
+
   const field = TRANSPORT_FIELD[input.action];
   const observed: Capability | undefined =
     field && input.transport ? (input.transport[field] as Capability) : undefined;
@@ -307,6 +457,24 @@ export function resolveCapability(input: CapabilityInputs): CapabilityResolution
     );
   }
 
+  /**
+   * A confirmed observation on this account.
+   *
+   * Placed after the review gate on purpose: a probe that watched a *draft* be
+   * created must not promote `publish_public` past a review that has not
+   * landed. Placed before the transport's `yes` because an observation made on
+   * this account is more specific evidence than one made on the provider.
+   */
+  if (accountObservation?.outcome === 'confirmed') {
+    return make(
+      'verified',
+      accountObservation.detail ??
+        `Observed working on this account against ${input.platform}.`,
+      { decidedBy: 'account', method: 'probe' },
+      accountObservation.observedAt,
+    );
+  }
+
   if (observed === 'yes') {
     return make(
       'verified',
@@ -323,10 +491,10 @@ export function resolveCapability(input: CapabilityInputs): CapabilityResolution
    * it. A direct adapter declaring a format is a statement of intent by the
    * person who wrote the adapter, not an observation of a platform.
    */
-  if (input.constraints && platformSupports(input.action, input.constraints) === true) {
+  if (halyardDeclares(input.platform, input.action, input.constraints)) {
     return make(
       'declared',
-      `The ${input.platform} adapter declares this, and nothing has verified it against a real account.`,
+      `The ${input.platform} adapter implements this, and nothing has verified it against a real account.`,
       { decidedBy: 'platform', method: 'adapter_declaration' },
     );
   }

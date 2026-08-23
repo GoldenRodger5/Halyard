@@ -1200,3 +1200,3213 @@ Disabled rather than deleted, because the template and its capture flow are real
 work and the day something inserts a playwright render this is a one-line
 change. Leaving it enabled would have kept claiming a capability the system does
 not have.
+
+## 64. Disconnect erases the credential; disable does not, and never did
+
+Halyard's strongest "off" was `setCapabilityState(… 'disabled')`, which writes
+one text column. A "switched off" account still held a live, decryptable
+platform token, and `/privacy` and `/data-deletion` had to be written to say
+Halyard could not erase a credential on request — the honest sentence at the
+time, and a poor answer for a system asking Meta for permissions.
+
+`packages/core/src/accounts/disconnect.ts` erases it: access and refresh tokens,
+expiry, scopes, supported formats, identity confirmation, last verification and
+the self-test result — everything that is a credential or was observed by
+holding one. It also deletes any sealed copy staged in `pending_connections`,
+which an erasure that only touched `social_accounts` would have missed.
+
+**It reads the erasure back and throws if anything survived.** This is the one
+operation whose entire purpose is to destroy data, so reporting an unobserved
+success is itself the harm.
+
+**It does not delete the account row.** Publications reference it, and a
+publication that cannot say which account it went out from is worse than a
+retained handle. Identity fields stay for the same reason.
+
+**It does not revoke at the platform, and says so** — in the outcome, in the UI
+message, and on both legal pages. Erasing Halyard's copy does not invalidate the
+token. Provider-side revocation (X `/2/oauth2/revoke`, Meta
+`DELETE /me/permissions`) is a real follow-on: it needs a method on all seven
+adapters, must run *before* erasure or the token needed to revoke is already
+gone, and cannot be verified without spending a live credential. Rejected for
+this slice rather than half-built.
+
+Guarded by typing the handle rather than a confirm dialog, because the cards sit
+in a grid and "Disable" and "Disconnect" are one word apart.
+
+## 65. Capability observations are scoped to an account, not just a transport
+
+`read_comments` and `read_mentions` were in `CAPABILITY_ACTIONS` and had no
+entry in `TRANSPORT_FIELD`, so they could never rise above `declared` however
+much evidence existed. P2 recorded this as a real architectural hole and
+deliberately did not fix it, because fixing it looked like it needed new
+vocabulary.
+
+It did not. What it needed was a **scope**. `PlatformCapability` describes a
+transport — a fact about a provider, equally true for everyone using it. Whether
+Halyard can read the comments on a post is a fact about one connected account:
+it depends on which permissions that account granted, whether its token still
+carries them, and whether the platform approved this app for it. @recipe.fix
+succeeding proves nothing about @isaacmineo.
+
+So `capability_probes` gained `account_id` (0032) and `CapabilityInputs` gained
+`observation`. No new words: `outcome` is the same four the table already stored,
+and the verdict is still computed rather than stored.
+
+**Matching is strict on platform, action and account.** An observation carrying a
+different account id, or none when one was asked about, is discarded rather than
+generalised. The widening it would otherwise perform — "one account could, so the
+platform can" — fails silently in the direction of permission, which is the one
+direction that matters.
+
+**`on delete cascade`, not `set null`.** A null `account_id` means "about the
+transport", so letting an orphaned row fall back to null would promote an
+account-scoped confirmation into a platform-wide one. Nothing in Halyard deletes
+an account row — disconnect keeps it (§64) — so this guards a future path.
+
+**The collector is the probe.** An engagement read cannot be verified by a
+background job: it needs a real account, a real publication and a real call,
+which is exactly what `collect_comments` already does fifteen times in a
+publication's first day. A separate probe job would spend API calls to learn
+what this one learns for free.
+
+**No failure is ever recorded as `refuted`.** A deleted post, an expired token
+and a rate limit all surface as a thrown error, and none proves the account
+cannot read comments. Failures record `unavailable` or `error`, which the
+resolver ignores in *both* directions — a failed probe can neither promote a
+capability nor harden into "not supported". The reader also selects only
+informative outcomes, so this morning's rate limit does not erase last week's
+confirmation; it simply adds nothing, and staleness handles the ageing.
+
+**Recording is rate-limited to one unchanged observation every six hours, and a
+changed outcome is always recorded immediately.** Append-only evidence is only
+useful while it can still be read.
+
+## 66. An empty string is a credential the platform has to refuse
+
+`loadAccount` and `publishHandler` both read the stored token as
+`access_token_enc ? openToken(…) : ''`. An empty string is a *value*: with
+nothing stored, the request was still composed, still sent, and refused by the
+platform with an empty bearer — a real API call, plus its retries, to learn what
+the row already said. On X that is a billed call.
+
+It was never an exotic state. Every seeded account is `capability_state = 'live'`
+with no token, because `live` has never meant "connected" (`accounts/status.ts`
+exists because of that confusion), and §64's Disconnect now erases a credential
+while leaving whatever state the account was in. `publish` refused `disabled` and
+`error` and diverted `draft_only`, and `pending_auth` fell straight through.
+
+All three call sites fail closed before any network call. `loadAccount` returns
+`null` rather than a fabricated token, so the type forces each caller to decide;
+the collectors log and return **without rescheduling**, because a missing
+credential is not transient and the decay schedule would otherwise re-enqueue
+forever.
+
+The publish guard sits **after** the `draft_only` handover, not before. A post
+being handed to a person to publish by hand does not need a credential, and
+checking first would turn a working handover into a broken integration — the
+same defect the handover branch was built to fix. Both orderings are asserted.
+
+## 67. The declaration table is now checked against the adapters
+
+`ADAPTER_DECLARED` opens by warning that "`unknown` for something we built is as
+wrong as `declared` for something we did not", and then did exactly that: it was
+hand-written against Instagram and Threads, while X, YouTube and Bluesky all
+implement `listComments` and were missing entirely. `read_comments` resolved to
+`unknown` on three platforms that plainly have the code.
+
+A test in `platform.test.ts` had `expect(adapterDeclares('x','read_comments')).toBe(false)`
+— a snapshot of the omission, not an invariant, and the reason nobody noticed.
+The test was wrong and the production code was right; it now asserts `true` and
+says why it changed.
+
+The structural fix is a test that derives the truth from the adapter objects:
+`read_comments` is declared exactly when `listComments` is a function, for every
+platform. Only actions that map to a method can be checked this way — `carousel`
+and `alt_text` live inside `publish` and are invisible from outside — but
+`read_comments` is the one the whole observation model (§65) rests on.
+
+Redundant entries were dropped rather than added. `publish`, `carousel` and
+`video` are already answered by `PlatformConstraints`, and repeating them here
+would create a second place for them to disagree.
+
+## 68. A score is a claim, so an unmeasured post gets none
+
+`scorePerformance` joins `content_items` to `post_metrics` with a `left join
+lateral` and read the result as `Number(row.impressions ?? 0)`. A published post
+whose metrics had never been collected therefore arrived at the scorer as a
+*measured zero*: it got a real score, a real percentile, and a row in
+`performance_scores` indistinguishable from a post the platform had genuinely
+reported nothing for. This is gotcha 9 — "a collection job running ≠ metrics
+collected" — reached from the far end.
+
+The damage is not one wrong score. `percentileRank` is computed over the cohort,
+so **every fabricated zero moved the score of every measured post beside it**. One
+uncollected post silently inflated every genuine score in the same run.
+
+`ScoreInput.impressions` is now `number | null`, where null means unmeasured, and
+`scorePosts` **excludes** those posts from the population and from its output.
+Returning fewer rows than it was given is the correct shape of "nothing is
+known": the caller writes no row, and the post has no score rather than a wrong
+one. `performance_scores.score` is `not null`, so this needed no migration.
+
+`unmeasured()` names what was dropped and the handler logs the count, because
+"nothing published" and "published but never collected" produce an identical
+empty table and only one of them is a broken collector.
+
+A measured zero is still scored. `0` is an observation; `null` is not.
+
+The engagement counts keep `?? 0`. They are only ever a numerator over measured
+impressions, and a transport that reports impressions but not saves is a gap
+`missingMetrics()` already names rather than a null/zero confusion.
+
+## 69. A test that waits for a condition instead of creating it
+
+`e2e/agents.spec.ts` asserted that *some* check on `/system` read `unknown`, to
+hold the rule that an unmeasurable dimension is never reported as ok. It passed
+on a fresh database and started failing the moment anything real had happened:
+running the worker once left two heartbeat rows and thirteen finished jobs
+behind, and from then on every check had a measurement.
+
+The rule was intact; the test was red anyway — the least useful way for a test to
+fail, and it had been red since the previous session's worker run rather than
+because of any change.
+
+It now creates the condition it asserts: it removes `worker_heartbeats` (a
+last-seen cache the worker rewrites on its next tick), asserts the Worker check
+reports `unknown` with the detail line that only the unknown branch emits, and
+restores the rows in a `finally`. It also anchors on that detail rather than on a
+DOM shape, so it names *which* check is unmeasured instead of hoping one is.
+
+## 70. The only feedback loop in Halyard had never run
+
+`loadHookHistory` supplies the one input by which an *observed outcome* changes a
+*future generation decision*: measured performance per hook type, which
+`scoreVariant` and `predictStopRate` read. Its query selected
+`post_metrics.stop_rate` and joined on `post_metrics.content_item_id`.
+
+**Neither column has ever existed.** `post_metrics` is keyed by `publication_id`
+and has no stop-rate column. The query could not plan, let alone run — and
+`.catch(() => ({ rows: [] }))` turned that into an empty array. The comment
+directly above it explained the emptiness as "almost always empty today, because
+nothing has published", which is exactly what a *working* query would also have
+produced. The test covering it asserted `performance` was `[]` and passed.
+
+Three separate things made a dead code path look healthy: a silent catch, a
+plausible explanation for the symptom, and a test that asserted the symptom.
+
+**What it measures now.** `video_views / impressions` — a **view-through rate**,
+named as itself. Halyard collects no three-second retention because no platform
+reports one to it, and `predictionBasis` used to tell the operator "average 3s
+retention", which was a measurement claim nothing supported.
+
+**Scoped by platform**, because platforms do not agree on what a view is:
+Instagram counts at roughly three seconds, TikTok at almost none, YouTube at
+thirty. One average across them is true nowhere. The scorer now refuses to use
+any measurement when the platform is unknown, rather than taking the first row it
+finds.
+
+**One sample per publication**, taken from the latest metric row, because
+`collect_metrics` polls a fresh publication five times on its decay schedule and
+counting rows would have made one post look like five.
+
+**Failures are logged.** A query that cannot run and an account with no history
+produce the same empty array, and the test now asserts the *absence of a logged
+failure* alongside the empty result. That distinction is the whole fix; without
+it the same bug returns invisibly.
+
+## 71. Gate 3 has never seen a frame
+
+`sampleLuminance` runs `ffmpeg -vf "…,signalstats,metadata=print:file=-"` and read
+the result from **stderr**. `file=-` means **stdout**. The regex ran over
+ffmpeg's banner and matched nothing, on every platform, for the life of this
+codebase — so `VideoProbe.frameLuminance` has always been `[]`.
+
+The function's own comment says it is "how a composition that renders a black
+gap gets caught". Every luminance rule in `runVisualQC` has therefore never run
+on any render Halyard has produced, and `review_media` stored the visual gate as
+`passed` with `examined: 0` beside it. A check that never happened, shown as one
+that succeeded.
+
+The mistake is understandable and worth naming: `measureLoudness`, twenty lines
+below, genuinely does read stderr, because `loudnorm`'s JSON goes there. The
+pattern was copied; the filter's output destination was not.
+
+Both streams are searched now rather than swapping one guess for another — the
+payload (`lavfi.signalstats.YAVG=`) is unambiguous and has nothing to collide
+with. Separately, `review_media` now stores the visual gate as **`skipped`** when
+no frames were sampled, which is the guard that would have made this visible
+instead of green.
+
+## 72. The retention gate had no caller, and could not answer its own question
+
+`runRetentionQC` — 310 lines, 171 lines of tests — was reachable only from its
+own test file. The same shape as `canStatePublicly` and `markOutputConsumed`
+before it. Every video Halyard has rendered skipped it.
+
+`review_media` is the right home and always was: retention is measured from the
+finished file, and the inputs its opening and pattern-interrupt rules need are
+already probed there for `visual`.
+
+Two things had to be true before wiring it was worth anything.
+
+**The rules it cannot run must be visible.** `review_media` has no OCR of frame 1
+and no first-to-last similarity, so the thumbnail and loop rules cannot run.
+`RetentionQCResult.unmeasured` names them, the summary says how many, and the
+gate is stored as `warning` rather than `passed` while any are outstanding — the
+rule `runAllGates` already learned: a skipped check is not a passed check.
+
+**It must not answer a question its sampling cannot resolve.** `review_media`
+samples twelve frames per sixty seconds; on a 32-second render that is one every
+6.4 seconds, and a rule about the first *three* seconds cannot be answered from
+it. Wired naively, the gate failed the real fixture render on a sampling
+artefact. It now reports `retention.no_content_in_opening` as **unmeasured** when
+the sample interval is coarser than the window, and answers it when it is not.
+
+A gate that fails everything is worse than one that passes everything, because
+the first is the one that gets switched off.
+
+`probeVideo` also reports `fps` now, read from ffprobe's `r_frame_rate` rather
+than defaulted to 30 — the opening window is defined in frames, so a 24fps render
+was being judged against 3.75 seconds while the comment said three.
+
+## 73. The retention opening rule cannot see Halyard's own content
+
+§72 wired the retention gate up and reported `retention.no_content_in_opening` as
+unmeasured, because `review_media` samples one frame every ~6 seconds and the
+rule is about the first three. The obvious follow-up — sample the opening densely
+and switch the rule on — was measured before being recommended, and it is wrong.
+
+> **Corrected by §74.** The measurements in this entry were taken with
+> `ffmpeg -t 6 -vf fps=2` and presented as the whole-video series `probeVideo`
+> actually produces. They are not comparable, and the "every render would be
+> rejected" conclusion below is false — one of four is affected. The
+> *direction* of the finding survives (the mean is a poor signal for this
+> content, and the range is better); the magnitude does not. Read §74 with it.
+
+All four fixture renders are flat in mean luminance across their first six
+seconds. The largest consecutive delta anywhere is **0.0039** normalised against a
+`STATIC_DELTA_THRESHOLD` of `0.01`; most are exactly zero. Densely sampled, every
+render Halyard produces would raise the rule, which is an **error**, and
+`review_media` fails a content item on an errored gate. The pipeline would begin
+rejecting its own output.
+
+And the verdict would be false. `firstSubstantiveSecond` uses mean-frame
+luminance as its proxy for motion, and Halyard's visual style is a light card
+with a small region of changing text — swapping every word barely moves the frame
+mean. The videos may open on content and change throughout; the metric cannot
+tell.
+
+**So the deficiency is the signal, not the sample rate.** Reporting the rule as
+unmeasured is correct for a second and stronger reason than the one §72 recorded,
+and it is recorded here so the "cheap win" is not attempted again.
+
+What would actually work: regional frame differencing, or the per-frame
+`visibleText` the vision describer already returns into `media_observations` —
+which answers "did the words change" directly, and costs nothing extra because
+the frames are already described.
+
+Measuring the consequence of a change before recommending it took one ffmpeg pass
+over four files. It reversed the recommendation.
+
+## 74. Measuring the wrong thing, and what it cost
+
+§73 concluded that mean-frame luminance cannot see Halyard's content and used a
+table of measurements to prove it. **The table was measured wrong.** It came from
+`ffmpeg -t 6 -vf fps=2` — the first six seconds at two frames a second — and was
+presented as the whole-video series that `probeVideo` actually produces
+(`fps=12/60`, roughly one sample every five seconds). Re-measured through
+`probeVideo` itself, the real series is different, and the conclusion drawn from
+the bad one — "every render over twenty seconds was about to be rejected" — is
+false.
+
+The real verdicts, all four fixture renders, through the production path:
+
+| Render | mean signal | tonal-range signal |
+|---|---|---|
+| ChefNoteCard (16s) | clean | clean |
+| ScalingMath (24s) | `no_pattern_interrupt` | `no_pattern_interrupt` |
+| SubstitutionExplainer (32s) | clean | clean |
+| TransformationDiff (28s) | clean | clean |
+
+Three corrections follow.
+
+**The range signal is still the right one, for a smaller reason than claimed.**
+It does not change any verdict here. What it changes is the margin: on
+SubstitutionExplainer the mean clears the 0.01 threshold by 0.0108 and 0.0051,
+while the range clears it by 0.284 and 0.355. The mean is passing by luck on a
+card design one shade away from tipping it. `frameContentRange` is parsed from
+YMIN/YMAX in the *same* `signalstats` output already being read for YAVG, so the
+better signal costs nothing.
+
+**`ScalingMath` genuinely is static for twenty-four seconds.** Range deltas
+`[0.0000 0.0039 0.0000 0.0000]`. The rule is right; the template is the problem.
+
+**§72 did introduce a regression, narrower than the bad measurement suggested and
+real all the same.** `retention.no_pattern_interrupt` is an error,
+`review_media` fails a content item on an errored gate, and this gate had no
+caller at all before §72 — so one real template began failing QC on a rule
+nothing had ever run. The gate now records its findings at `warning` and never
+`failed`. That is not a softened rule: the finding, its severity and its detail
+are all stored. What is deferred is whether it *blocks*, which `DECISIONS.md` §62
+already declined to decide for exactly these media gates.
+
+The lesson is narrower than "measure first", which §73 already said and which I
+did. It is: **measure through the path the code actually takes.** An ad-hoc
+command that looks like the production one is a different experiment, and it will
+answer confidently.
+
+## 75. Parseable is not well-formed
+
+`extractJson<T>` is an unchecked cast. It proves a model's reply is JSON; it
+proves nothing about the shape. Every caller then reads it as though the type
+were real, and the pattern `(parsed.things ?? []).map(...)` throws
+`map is not a function` the moment a model answers with a bare string where a
+list was asked for.
+
+In `copywriter.writeDraft` that was live: `{"hashtags": "glutenfree"}` parses
+cleanly, then throws **outside** the `try` that wraps the parse — so the one
+malformed answer the retry loop could not see took the whole generate job down
+instead of converging. A tamper test reproduces it exactly.
+
+Two answers, because the right one depends on the caller:
+
+- **Where a retry loop exists, converge.** `describeShapeProblem` names the
+  offending field and the loop asks again with that as feedback — the same path
+  invalid JSON already took. A model that returned the wrong shape probably got
+  other things wrong too, so retrying beats coercing.
+- **Where there is none, degrade.** `asArray` / `asString` in `generation/llm.ts`,
+  for auxiliary fields where losing the caveats beats losing the response.
+
+`asString` also fixed a guard that was wrong in a quieter way: `if (!parsed.body)
+throw` is false for every non-zero number, so `{"body": 42}` cleared it and threw
+on `.trim()` one line later.
+
+**Deliberately not zod**, which is a dependency of `packages/core` and is used by
+nothing. Introducing it here would add a second validation idiom for a one-line
+problem, and the callers that need real validation — `parseProposals` in the
+Product Brain, the QC gates after the copywriter — already do it
+deterministically at the point of use, which is stronger than a schema because it
+encodes what the value is *for*.
+
+Provider responses were checked too and left alone: the adapters cast
+`response.data ?? []` the same way, but they sit behind `platformFetch` and, for
+comments, inside the observation-recording try that already normalises a failure.
+The distinction is that a provider has a contract and a model does not.
+
+## 76. An RLS test that could not run, and one that could not fail
+
+The only RLS assertion exercised through a real unprivileged connection —
+`set role halyard_rls_probe` — has been failing on every local run against
+Supabase, whose `postgres` role has `CREATEROLE` but may not `SET ROLE` into a
+role it just created. Reproducible with plain `psql`; no Halyard code involved.
+CI uses a stock Postgres image where it passes.
+
+A suite that is permanently red is a suite nobody reads, and that is its own
+hazard. The probe now checks whether the database permits `SET ROLE` at all and
+says so out loud when it does not — but it **fails rather than skips** wherever
+it can run, so a genuine permission regression is still caught.
+
+Skipping is only tolerable because the same invariant is asserted from the
+catalog by a second test that runs everywhere. Which raised the more interesting
+problem: **that test could not fail for the right reason.** It selected only
+violating tables and asserted the result was empty, so a broken join, a renamed
+schema or an unmigrated database all returned `[]` and passed. Examining nothing
+is not a pass — the same rule the QC gates follow — so it now counts the tables
+first and requires more than fifty before the emptiness means anything.
+
+Worth recording that the first attempt at this added a *third* RLS test that
+duplicated the catalog one outright. The tamper check caught it: disabling
+`force row level security` on `jobs` failed two tests with identical messages.
+Duplicated coverage reads as thoroughness and is the opposite — two places to
+update, and neither one obviously canonical.
+
+## 77. Ask Postgres whether the query is real
+
+`loadHookHistory` (§70) selected two columns that have never existed. It could
+not plan, let alone run. A `.catch()` made the failure look like an empty
+result, a plausible comment explained the emptiness, and a test asserted it. The
+query was wrong from the day it was written and nothing in the repository could
+see it.
+
+Nothing in the repository *could*: a unit test never exercises the path without a
+database, and a schema test passes because the schema is fine. The only thing
+that can tell you is Postgres.
+
+`sqlValid.test.ts` extracts every SQL string literal in `apps/`, `packages/core`
+and `scripts` and runs `PREPARE` on each against a freshly migrated database.
+`PREPARE` parses, resolves every identifier and plans the statement **without
+executing it** — so a missing column is a hard error and a `delete from` is
+still harmless. 394 statements, planned in under a second.
+
+Verified two ways rather than asserted. The suite contains the historical query
+verbatim and requires it to fail with `42703 undefined_column`; and
+reintroducing the bug into `apps/worker/src/hooks.ts` makes the check report
+`apps/worker/src/hooks.ts:105 [42703] column m.stop_rate does not exist`.
+
+**What it does not cover, stated rather than implied.** Ten statements are built
+with `${}` interpolation and cannot be planned without inventing the missing
+text — inventing it would validate a statement nothing runs. They are in
+`queries.ts`, `brainQueries.ts`, two server actions, `attribution.ts` and
+`verify-hosted.ts`. It also proves only that a statement *can* run, never that it
+returns the right thing, which is the same distinction the capability model draws
+between declared and verified.
+
+The count is asserted before anything else — an extractor whose regex stopped
+matching would otherwise report a clean sweep of zero statements, which is the
+trap §76 was about.
+
+## 78. The adaptation cache and its spend ceiling were never built
+
+`connectors/artifactCache.ts` is a complete, carefully-reasoned module: a request
+cache keyed by a canonicalised spec, a 14-day TTL, a `RateLimitExceeded` error,
+and a documented ceiling of "twenty adaptations an hour, hard. This is the
+operator's money."
+
+None of it is in force. `withArtifactCache` has **no caller** — the only
+reference in the repository is the barrel export. `ArtifactStore` has **no
+implementation**. There is **no `artifact_cache` table** in any migration. And
+both real call sites, `generate.ts:309` and `campaignSlot.ts:145`, call
+`connector.generateSample()` directly.
+
+So a RecipeFix adaptation — 26 seconds and one real credit — is uncached and
+unbounded by anything in this file.
+
+**The exposure, measured rather than alarmed about.** One credit per selected
+idea per generate attempt. Normal operation is bounded by the cadence ceilings
+(`DEFAULT_CADENCE`: 5 video, 5 carousel, 7 image a week), so the steady-state
+cost is tens of credits a week, not the hundreds an unbounded loop implies. The
+sharp edge is narrower and real: `JOB_POLICY.generate` allows **two attempts**,
+nothing dedupes between them, so a generate job that fails after adapting
+re-spends the credit for the same idea on retry.
+
+**Not wired tonight, and that is a decision rather than an omission.** Finishing
+it needs three things that are not engineering judgement: a table (schema), an
+`ArtifactStore` implementation, and switching on a hard limit that would begin
+*blocking* generation at a ceiling. The last is the same class of question as
+§74's retention severity — a live behavioural change with product consequences.
+Recorded under "Needs a human" instead.
+
+Worth noting how it was found. The Auditor tracks orphaned **agents** and would
+never have seen this, because a cache is not an agent. A scan of every exported
+function in `packages/core` against its non-test callers surfaced it, alongside
+26 others — most of them legitimate internal helpers exported for testability.
+The signal is not "no caller" on its own; it is "no caller" on something
+capability-sized. `runRetentionQC` (§72) was the same shape.
+
+## 79. The queue could not hear "do not retry"
+
+`publishFailurePolicy` has decided this since milestone 40. It returns
+`retry: false` for an auth failure ("do not retry blindly against a dead
+token"), for a duplicate abort, and for a malformed response whose own note
+reads **"never retried — that double-posts"**.
+
+`publish.ts` read that policy, acted on it for the content item and the account,
+and then threw a plain `Error`. `Poller.fail()` had no way to hear it, so it
+retried the job on backoff regardless. For `malformed_response` — where the post
+may already be live — the only thing preventing the second write its policy
+warns about was the idempotency index.
+
+`PermanentJobFailure` is the channel that was missing. The decision stays where
+it already lived; this is how it reaches the queue. Deliberately a marker on the
+error rather than a return value: a handler signals permanence by *how* it
+fails, which is how it signals everything else, and every existing handler keeps
+working untouched.
+
+Applied only where the policy already said so — the three `retry: false` cases
+and the missing-credential guard from §66, where no number of retries stores a
+credential. `DuplicatePublishAbort` now extends it and is still its own type, so
+existing catches are unaffected. An ordinary error still takes its full
+allowance, and a test pins that: the guard against this becoming a shortcut for
+a flaky provider is that opting out requires knowing repetition cannot help.
+
+## 80. Webhook ownership was never a decision to make
+
+`PLATFORM_COVERAGE.md` §9 recorded "choosing between web-tier and worker
+ingestion is a real architectural decision rather than an implementation
+detail". It is not. **The worker has no HTTP surface at all** — no `listen`, no
+`createServer`, no framework; it is a poller and a scheduler process. Only the
+web tier is reachable over HTTPS, so only the web tier can receive a callback.
+Reading the code answered a question that had been recorded as needing a person.
+
+`/api/webhooks/meta` follows the pattern `/api/cron/[task]` already established:
+authenticate, enqueue, return quickly.
+
+**The webhook is a trigger, not a source of truth.** It writes no comments,
+metrics or anything else from the payload. It resolves which publication a
+notification concerns and enqueues `collect_comments`, which reads through the
+adapter — the path that already records an account-scoped observation (§65) and
+dedupes on `(publication_id, platform_comment_id)`. A payload asserts that
+something happened; Halyard's evidence model requires that it went and looked.
+Trusting the payload would put provider-shaped rows into `comments` with no
+verified read behind them.
+
+**No new job kind, so no migration.** `collect_comments` already exists, is
+already scheduled on a decay curve, and already does exactly this work.
+
+**Fail closed on both verbs.** No `META_WEBHOOK_VERIFY_TOKEN` and the handshake
+is refused — completing it would attach a subscription to an endpoint that can
+verify nothing afterwards. No `META_APP_SECRET` and POST is refused; an
+unverified POST is an unauthenticated write path into the job queue. Only
+publications this install actually made are matched, so a notification about
+foreign media cannot drive an unbounded read.
+
+**What is verified and what is not.** The handshake, the HMAC over the raw bytes
+(read with `request.text()`, because parsing and re-serialising changes them),
+the payload parsing against thirteen malformed shapes, and the refusal paths
+through the real HTTP route — all tested. That Meta actually calls it is a portal
+action and remains **externally blocked**; nothing here claims otherwise.
+
+## 81. A table nothing writes, and a cron that purges nothing
+
+`platform_requests` has one reference in the entire codebase:
+
+    apps/web/src/app/api/cron/[task]/route.ts:98
+    delete from platform_requests where purge_after < now() returning id
+
+Nothing writes it. Nothing else reads it. It has two indexes, an RLS policy, a
+seven-day `purge_after` default, and a scheduled cron that has been deleting
+from an always-empty table and reporting `{ purged: 0 }` — an
+empty-state-as-success at the infrastructure layer. `REQUEST_LOG_RETENTION_DAYS`
+in `adapters/dryRun.ts` encodes the same seven days and is likewise unused.
+
+**Not implemented, and the reason is not effort.** `request_body` and
+`response_body` are `jsonb` columns on a table designed to record every platform
+call — which includes OAuth token exchanges. What may be written there is a
+secret-handling decision, not an engineering one, and the module that would do
+the redacting (`redactHeaders`) currently only ever sees dry-run traffic. Wiring
+a live request log without settling redaction first would be the worst possible
+order.
+
+Recorded under "Needs a human" with that framing: the question is *what may be
+logged*, not whether to log.
+
+**A correction to how this was found.** The scan that surfaced §78 also flagged
+`createDryRunFetch` and `redactHeaders` as callerless. They are not — both are
+used inside `dryRun.ts` by `dryRunPublish`, which `scripts/first-contact.ts`
+calls. The scan excluded same-file references, so every internal helper looked
+like an orphan. Of 27 flagged, most were that. The signal was never "no caller";
+it was "no caller **and** capability-sized", and only a human read separates
+them. Worth knowing before the list is trusted again.
+
+## 82. A third platform list, already wrong
+
+`packages/db` exported `PLATFORMS` and `Platform`, listing six platforms. Both
+`PlatformId` in `@halyard/core` and `social_accounts_platform_check` in the
+database list **seven** — `bluesky` has an adapter, a constraint entry, metric
+mappings and a connect flow. Anything reaching for "the platforms" from
+`@halyard/db` would have been handed a list that silently omitted a connected
+platform.
+
+Nothing imported them, which is the only reason the drift cost nothing yet.
+
+Deleted rather than corrected. Gotcha 1 in `CLAUDE.md` is about exactly this
+shape — `JOB_KINDS` and `jobs_kind_check` are one list written twice, and it cost
+three migrations — and the fix for a list written twice is not to write it a
+third time. `PlatformId` is canonical; `packages/db` cannot import it without
+inverting the dependency.
+
+`apps/worker/src/platformParity.test.ts` is what was missing: it asserts the
+adapters and the constraint hold the same set, in both directions, and does it by
+**inserting** rather than by comparing constraint text — a constraint that parses
+correctly and is not enforced would satisfy a text comparison and nothing else.
+It lives beside `handlerCoverage.test.ts` for the same reason, and needs both
+`packages/core` and the schema, which is why it cannot live in `packages/db`.
+
+## 83. The observation layer observes almost nothing, and could not be switched on
+
+The Social Intelligence architecture's OBSERVE layer calls for posts, replies,
+mentions, profiles, relationships, engagement, topics, search, trends and
+competitor activity. Traced through the code, here is what exists:
+
+| Source | Reads | Rows |
+|---|---|---|
+| `watch_hits` | reddit, rss, pinterest | 0 |
+| `comments` | own publications only — keyed by `publication_id` | 0 |
+| `signals` | derived from `watch_hits` recurrence | 0 |
+| `finds` | **human paste**, not discovery | 0 |
+
+**No adapter reads third-party content on any social platform.** Every adapter's
+only read is `listComments`, scoped to Halyard's own publications, and `comments`
+is keyed by `publication_id` — it structurally cannot hold a comment on someone
+else's post. There is no mention, search, profile, relationship or trend read
+anywhere. Bluesky's "mentions" is a comment about rich-text facets.
+
+**The binding constraint is not the sources.** `watch_terms` had **no UI, no
+server action and no API route** — nothing in the product could create one. The
+`collect_watch_terms` job has been scheduled daily per product since milestone
+41, reading an empty table every day. The same missing-ignition shape as
+`explore_product` before P1 and `verify-provider` before P2.
+
+That is now fixed on the Finds page: create a term, choose its sources, set the
+recurrence threshold, disable it, or collect on demand. Disabling rather than
+deleting, because `watch_hits` references the term and thirty days of recurrence
+is the only thing that makes a signal mean anything.
+
+**`watch_hits` already is the normalized observation model** the architecture
+asks for — source, url, author, engagement, `posted_at`, dedupe, product scope,
+promotion to `signals`. It does not need a new table; it needs social sources,
+and those are blocked per platform rather than uniformly:
+
+| Platform | Third-party read | Status |
+|---|---|---|
+| Reddit / RSS / Pinterest | implemented | reachable now |
+| X | search needs a paid tier | **blocked_external** — credits |
+| Instagram / Threads | hashtag search needs App Review | **blocked_external** |
+| Bluesky | free public search API | **actionable, not built** |
+
+Bluesky is the only social platform where observation is achievable today. It is
+recorded rather than built: RecipeFix has no Bluesky account, so a source feeding
+a pipeline for an unconnected platform would be built on speculation.
+
+## 84. RECOMMEND was not the missing link — nothing produced ideas at all
+
+The previous checkpoint concluded that RECOMMEND/opportunity modelling was "the
+first genuinely unbuilt link". Tracing execution paths rather than trusting that,
+the break is two steps earlier and much larger.
+
+| Table | Written by | Read by | Rows |
+|---|---|---|---|
+| `signals` | `collect_watch_terms` | **nothing** | 0 |
+| `ideas` | **`supabase/seed-demo.sql`** | `generate` | 0 |
+
+`ideas` is the entry point of the entire generation pipeline. Its only writer in
+the repository was a **demo seed file** — not a handler, not a route, not a
+server action. So `generate` ran on its schedule, found nothing proposed, logged
+"no proposed ideas to draft" and returned. Every day. The agent registry had said
+so all along: *"Ideas are currently scored but never generated by a model."*
+
+Building opportunity modelling on top of that would have been roofing a house
+with no walls. Answering the audit questions directly: there is no opportunity
+model, no opportunity scoring, no recommendation model, and no agent for either —
+they are documentation only. `scoreIdeas` scores *ideas*, not opportunities.
+
+**What was built instead.** `proposeIdeas` in `generation/ideaGenerator.ts` — the
+caller `buildIdeaGeneratorPrompt` never had. It reads unconsumed `signals`, the
+product brief, the voice, the real `brand_voices.mix_targets` and recent titles;
+it proposes; and `proposeFromSignals` in `generate.ts` writes them as
+`status = 'proposed'` with `ideas.source_signals` carrying the signal ids. That
+column already existed, designed for exactly this.
+
+**A model here, deliberately.** Turning "asked nine times" into "here is an angle
+worth writing" is *writing*. The deciding stays deterministic: `scoreIdeas`
+weighs mix debt and novelty, `selectIdeas` applies hard caps, the QC gates judge
+the draft. A template that manufactured angles would be a second, worse idea
+pipeline.
+
+**Provenance is what was in the prompt, not what the model claims.** Asking a
+model which of its inputs it used yields a confident answer and no evidence, so
+the recorded ids are the ones that were actually in front of it — asserted by a
+test that feeds a model claiming a different signal.
+
+**No proposal without a signal, and therefore no spend.** The first version
+called the model whenever no ideas were proposed, which is the *normal* state of
+an idle product — a strategy-model call every day forever, reasoning about a
+content mix with no new observation behind it. An existing calibration test
+caught it by failing with a live `OpenAI 429`. It now returns having spent
+nothing when there is no unconsumed signal. Signals are marked `consumed_at`
+either way, so one unusable signal cannot re-spend on every future run.
+
+**`topPerformers` is empty and says so.** `performance_scores` has no rows
+because nothing has published. Supplying a fabricated top performer would put an
+invented claim into the prompt that writes the next sixty days of content.
+
+**Status: `implemented_partial`, not exercised.** No live model call has ever
+been made — there are no credits. The registry entry was updated, and the Auditor
+caught the divergence before anyone did: it reported `idea-generator` had left
+the orphan list while the declaration still said `implemented_no_caller`. That is
+the Auditor doing the job it exists for.
+
+## 85. Operator evidence is `editorial` with a marked collector, not a new source
+
+`signals` had one writer. An operator's find could become a single post through
+`draftFind` and could never become *evidence*, so the idea generator (§84) only
+ever saw recurring questions from watch terms.
+
+`promoteFindToSignal` closes that. A find with the operator's reason becomes a
+signal; a bare URL does not — the same gate `draftFind` already applies, because
+without the reason there is nothing to say and a bare link would reach the idea
+generator as though somebody had vouched for it.
+
+**Two dead things were removed on the way.** `addFind` enqueued
+`collect_signals` carrying `{ summariseFindUrl }`, and **nothing has ever read
+that payload** — `collect_signals` fetches RSS feeds, which is why `finds.title`
+and `finds.summary` are null on every row. The job did unrelated work on a
+schedule that already runs every six hours. Separately, the insert used
+`on conflict do nothing`, so pasting a URL and adding the reason afterwards —
+the normal way this gets used — silently discarded the reason, leaving a find
+that could never be drafted from.
+
+**The source vocabulary is closed, and a real-database test is what found that.**
+`signals_source_check` allows exactly `product_activity`, `changelog`,
+`editorial`, `seasonal`, `trend`, `performance`, `submission`. The first draft
+wrote `source = 'operator_find'` and was rejected on insert. A mocked test would
+have accepted it and shipped.
+
+So the source is `editorial` and the distinction lives in `raw.collectedBy =
+'operator'`, where it is explicit and queryable. `watch.ts` writes no
+`collectedBy`, so its absence reads as "not operator-supplied" rather than as a
+missing field.
+
+**Alternative considered:** extend `signals_source_check` with a new value. That
+is a migration plus a vocabulary written in TypeScript and SQL at once — gotcha
+1's exact shape — for a distinction `raw` already expresses. Rejected. If a
+consumer ever needs to filter by collection method at the *source* level rather
+than inside the payload, that is when the migration earns itself.
+
+**Relevance is null, not a number.** `watch.ts` derives relevance from how often
+a question recurred. A find has recurred once by definition, and inventing a
+score would be a measurement claim with nothing behind it.
+
+**Deduplication reuses the existing semantic**: a `not exists` guard on
+`raw ->> 'findId'` over thirty days, exactly as `watch.ts` guards on
+`raw ->> 'questionKey'`.
+
+**The query is injected**, like `refreshDueTokens` and `disconnectAccount`, so
+the test drives the real statement against a real Postgres. An earlier draft
+re-typed the SQL into the test, which proves the copy works and nothing about
+what runs.
+
+## 86. The learning edge existed as a type and was never connected
+
+`IdeaCandidate.historicalConversion` — "mean conversion of similar past
+content" — has been part of the scorer since it was written, and `generate`
+built its candidates without it. Every idea therefore scored on
+`historicalConversion ?? 0.5`, whose comment reads "at cold start there is no
+learning; 0.5 is the honest neutral".
+
+It is the honest neutral, and it was going to stay 0.5 forever. Nothing would
+have supplied it after the first publication either — the difference between a
+cold start and an edge that never connects is invisible from inside the scorer,
+because both look like 0.5.
+
+`generate` now reads mean `conversion_score` per category from
+`performance_scores` joined to `content_items`, and supplies it. **This changes
+nothing today**: no rows, empty map, `undefined` on every candidate, neutral
+still applied. That is the point — the edge is connected before the data
+arrives, rather than being remembered afterwards.
+
+Per category, not per idea, because that is the grain the field asks for and a
+single post's score is noise at these volumes. `undefined` rather than `0` for
+an unmeasured category: a zero is a *measured* failure and would bury every
+category that has not published yet.
+
+## 87. Paying twice for the same evidence, and the order that prevents it
+
+`proposeFromSignals` ran: call the model → insert the ideas → mark the signals
+consumed. If the insert threw — a constraint, a dropped connection — the signals
+stayed unconsumed, `JOB_POLICY.generate` retried the job, and **the same signals
+went to the model again and were paid for twice.**
+
+That is exactly the duplicate-spend case an artifact cache was proposed for
+(§78), and it needs no cache and no schema. It needs the right order: signals are
+consumed the moment the money is spent, before anything is persisted.
+
+**The trade is deliberate and asymmetric.** If persistence now fails, the
+proposals are lost and the signals are still consumed. Losing an idea is
+recoverable — a question that genuinely matters recurs, and
+`collect_watch_terms` raises it again, which is what measuring recurrence over
+thirty days is *for*. A spent credit does not come back.
+
+Verified by fault injection at the real boundary: `proposeFromSignals` is given a
+pool whose `insert into ideas` fails, and the test asserts the signals are
+consumed, the model was called once, and a retry calls it zero more times.
+Restoring the old ordering fails that test.
+
+**This does not close §78.** The RecipeFix adaptation cache and its hourly spend
+ceiling are still unbuilt, and still need a table and a policy decision. What is
+closed is the one duplicate-spend path that existed in the new code, using
+ordering rather than infrastructure.
+
+## 88. Prompt input Halyard did not write
+
+`buildIdeaGeneratorPrompt` interpolated signal summaries and past titles at full
+length. A signal summary is assembled from a Reddit post title, or from the
+sentence an operator typed into `/finds` — **neither is length-bounded at the
+source**, and both land verbatim in a prompt paid for by the token. Twenty
+signals of unbounded length is an input-cost explosion driven by whatever
+somebody else wrote.
+
+Capped at 300 characters per signal and 160 per title, the same reasoning that
+already capped `productBrief` at 2,500. Truncated rather than dropped: a long
+signal is still a real signal, and the first 300 characters of a question carry
+the question. A test drives the builder with 20 signals of 2,000 characters each
+and asserts the result stays under 30,000.
+
+## 89. The execution proof, written before the run that proves it
+
+X credits are unavailable, so the first genuine publication has not happened.
+When it does it will be **one controlled post**, and it has to yield the whole
+evidence chain in that single run — there is no second cheap attempt.
+
+Rehearsal 6 is that chain, as an executable specification against the real
+handler and a real database. One publication must leave behind: the provider's
+post id, a `published_at`, the provider's reply kept verbatim in `raw_response`,
+`needs_reconciliation` false, `publish_mode = 'direct'`, the account it was
+routed to, a `content_items` row that agrees, and — the link that matters most —
+a queued `collect_metrics` and `collect_comments` keyed on the publication id.
+
+Without those last two the first real post produces no metrics and no comments,
+and the entire learning half of the system stays empty **while looking like it
+published successfully**. Disabling the enqueue fails the rehearsal.
+
+The paired case is the 402 that actually happened on 2026-08-19: a refused
+publication must enqueue nothing. Otherwise Halyard polls for metrics on a post
+that does not exist, and an empty result there is indistinguishable from a post
+nobody engaged with.
+
+**This is a fixture, and it is not provider evidence.** Nothing here promotes X
+publishing past `implemented`. What it buys is that every link is pinned now, so
+a live run that deviates is immediately legible instead of being interpreted
+after the fact.
+
+An earlier draft of this rehearsal asserted the dedupe keys against a helper that
+returned `''`, and `includes('')` is true of every string. It now asserts the
+real publication id and that the id looks like one.
+
+## 90. Approval did not survive an edit — it just didn't know that
+
+`editItem` updated the body and **never touched `status`**. So an operator could
+approve an item, edit the words, and the publish job already sitting in the queue
+would send text **nobody approved**. The approval gate was never bypassed; it was
+simply answered about a different post.
+
+An edit now withdraws the approval: `approved` and `scheduled` demote to
+`pending_approval` and `approved_at` is cleared. That also neutralises the queued
+job without hunting for it — `publishHandler` returns at
+`if (!['approved','scheduled','publishing'].includes(item.status))` before any
+account lookup or network call — so re-approval is what re-arms it, which is the
+correct sequence.
+
+Editing a `publishing` or `published` item is refused outright. `publishing`
+means a worker holds the claim and already read the body it is sending;
+`published` means the platform has it. An edit in either case desynchronises
+Halyard's record from what exists, which is worse than refusing.
+
+**No versioning mechanism.** The existing status machine already expresses "a
+human has not signed off on this", and a generalised approval-version system
+would be a second way to say the same thing.
+
+## 91. `pending_auth` published if it happened to hold a token
+
+`publishHandler` refused `disabled` and `error`, diverted `draft_only`, and
+checked for a missing credential. **`pending_auth` with a token fell straight
+through and published.**
+
+That is not hypothetical. `confirmConnection` writes the account as
+`pending_auth` **with the sealed token** and only then runs `verifyCapabilities`
+to move it on — so there is a real window in which an account holds a working
+credential and has been verified for nothing.
+
+Every other part of the system already said so: `resolveCapability` returns
+`auth_required` for this state, and `accountStatus` reports it as not connected.
+The publisher was the only component that disagreed, and it is the only one whose
+disagreement reaches a platform. It now refuses, permanently — no retry resolves
+an unauthenticated account.
+
+Found by the adversarial suite, not by the individual gate tests, which is the
+argument for having one: each gate was correct in isolation and the boundary had
+a hole between them.
+
+## 92. The adversarial approval-boundary suite
+
+`apps/worker/src/approvalBoundary.test.ts` — nineteen tests that drive the real
+`publishHandler` against a real Postgres and count outbound requests. A publish
+that happens is the failure.
+
+It attacks: five unapproved statuses; withdrawn approval; `pending_auth`,
+`error`, `disabled`; `draft_only` escalation; an account degrading between
+approval and execution; the kill switch before and during; routing redirection
+via the job payload; cross-persona routing at the database constraint; permanent
+failure on a missing credential; duplicate protection under manual re-enqueue and
+under concurrency.
+
+Two of those found real defects (§90, §91). The rest passed, which is worth
+recording: the individual gates were right, and the value of the suite is that it
+asks whether any *combination* of a valid token, a granted scope, a working
+adapter and a QC-passed item can reach a provider without a human. It cannot.
+
+## 93. Stills reached a platform with no gate having looked at them
+
+Slice 5 asked whether the media path had §90's stale-verdict shape. It does not,
+and what it has instead is worse.
+
+`review_media` selected assets **through `renders` only**, examined the video,
+and returned early when it found none — behind this comment:
+
+> Images are covered by the existing visual gate at draft time.
+
+**They are not.** No caller supplies `visual` to `runAllGates` — all four pass
+`copy` and sometimes `claims` — which is precisely what the Auditor's
+`gate.input_never_supplied` has been reporting all along. The comment pointed at
+a gate that has never run.
+
+Meanwhile `publish` sends `render_ids` **and** `attached_asset_ids`. So an image
+the operator attached from the library reached a platform with **no gate of any
+kind having examined it**, and an image-only item got no `visual` row at all —
+which reads as "nothing wrong" rather than "nothing looked at".
+
+`reviewStills` closes it. It builds a `MediaProbe` from `assets.width`/`height`
+— already stored, no file downloaded — and runs the existing `runVisualQC`
+against the platform's aspect ratio, passing the other stills as
+`carouselSiblings` so the consistency rule can compare. An asset with no
+recorded dimensions is reported as **unexamined**, never as passed, and drops
+the gate to `warning`; the same rule §72 applied to retention.
+
+**And the verdict is now recomputed when the media changes.** `attachAsset` and
+`detachAsset` re-enqueue `review_media`. This *is* the §90 shape — the gate was
+never bypassed, it was answered about a different set of files — but the repair
+is re-examination rather than demotion, because the stills gate is cheap: it
+reads two integers off a row. The dedupe key is only unique while a job is
+queued or running, so a second attachment after the first review completes
+enqueues a fresh one.
+
+**Severity is unchanged and remains an operator decision** (§62, §74). A failing
+still fails the item exactly as a failing render already did; nothing new blocks,
+and nothing previously blocking was loosened.
+
+## 94. The same gap, one branch over
+
+§93 examined attached stills only in the **no-video** branch. `attached` was
+loaded and then ignored when a render existed — so an item with a rendered video
+*and* an operator-attached image examined the video and published the image with
+no gate having looked at it. Exactly the defect §93 closed, reintroduced by the
+shape of the fix.
+
+`examineStills` is now shared by both paths, and the video branch folds the
+result into the same `visual` gate: `examined` counts frames **plus** measured
+stills, an unexamined still downgrades the gate to `warning` even when the video
+passes cleanly, and a still with an error fails it.
+
+Worth recording as a pattern rather than an incident. Both §93 and this were the
+same mistake — a check placed on one side of a branch that both sides need — and
+the second was made while fixing the first. The tell is a value loaded before a
+branch and used inside only one of them.
+
+## 95. PENDING OPERATOR DECISION — `visual`/`audio` on `runAllGates`
+
+The Auditor's one remaining error, `gate.input_never_supplied`, is unchanged and
+is **not** being resolved unilaterally. §62 decided to keep these inputs; that
+decision stands until the operator revisits it.
+
+**What has changed since §62.** §93/§94 established that the media measurements
+genuinely happen where their inputs exist — `review_media` for renders and
+attached stills, `tts` for audio — and that the comment claiming stills were
+"covered by the existing visual gate at draft time" was false. So the inputs on
+`runAllGates` are not a placeholder for an unbuilt measurement; the measurement
+exists elsewhere.
+
+**Option A — remove `visual`/`audio` from `runAllGates`.** `runAllGates` runs at
+copy time, when no media exists, so no caller *can* supply them. Removing them
+stops the aggregate from implying media coverage it cannot have. Reverses §62.
+
+**Option B — retain them and require callers to declare `requires`.** The
+mechanism already exists and is tested; an undeclared, unprovided input then
+produces an honest non-pass instead of a silent pass. Preserves §62's future
+unification. Costs a decision about *which* items must carry media QC before
+approval, which is the quality-system policy question §62 declined.
+
+**Recommendation: A**, because the second stage now demonstrably measures these
+dimensions and a second place to express the same verdict is what allows them to
+disagree. **Not taken.** Either option is safe today: media QC failures already
+fail the item in `review_media`, so nothing currently publishes on the strength
+of this gap.
+
+## 96. A credential the redactor could not see
+
+Auditing the logging paths before proposing any policy, as instructed. The
+finding is not about `platform_requests` — that table still has no writer (§81).
+
+**What actually persists text that could carry a credential:** `jobs.last_error`
+(2,000 chars), `social_accounts.last_error` (500, rendered on `/accounts`),
+`publications.error`, `notifications.body`, and every Sentry event. `agent_runs`
+stores `input_ref`/`output_ref` — references, not payloads — which is a
+deliberately narrow design and holds up.
+
+**The gap.** `scrubEvent`/`scrubString` is a real primitive and is live in
+Sentry's `beforeSend`. But `SENSITIVE_KEY` inspects **object keys**, and the
+value patterns match credentials with a recognisable shape — `Bearer …`, a JWT,
+`sk-…`, a Postgres URL. **None of them sees `?access_token=EAAGm0PX…`**, and the
+Instagram adapter puts exactly that in the URL of every GET it makes, because
+Meta's Graph API takes the token as a query parameter rather than a header. A
+Meta token is a long opaque string with no prefix, so nothing matched it.
+
+Reachable via any error whose message or cause quotes the URL — undici does this
+— which then goes to Sentry in the clear and, before this change, into
+`jobs.last_error` too.
+
+**Two fixes, both reusing the existing primitive rather than adding another.**
+`scrubString` now redacts credential-bearing **query parameters by name**
+(`access_token`, `client_secret`, `code`, `code_verifier`, `signature`, …),
+because the value is by definition unrecognisable. And `scrubString` is now
+applied at the **database** boundary — `Poller.fail`, the account error write,
+the publication error write — not only on the way to Sentry.
+
+The parameter name is kept (`access_token=[redacted]`) so the row stays
+diagnostic, and `state=` is deliberately left alone: over-redacting a log costs
+debuggability, under-redacting it costs a credential.
+
+**Nothing had leaked.** Nine stored job errors, zero matching a credential shape.
+This closes the boundary before it mattered rather than after.
+
+**No policy invented.** Retention (7 days for `platform_requests`, indefinite for
+`jobs.last_error`) and whether request/response bodies may ever be persisted
+remain open and are recorded as operator decisions — this slice changed what may
+appear in a log, not how long logs are kept.
+
+## 97. A flake that was gotcha 7, again
+
+`daily-path.spec.ts` — "rejecting with a reason stores it as a negative
+example" — failed once in a full run and passed in isolation. Not caused by the
+redaction work; a pre-existing race.
+
+`rejectItem` writes `status = 'rejected'` first and appends to
+`brand_voices.anti_examples` in a **later statement of the same server action**.
+The test polled until the status changed, then read `anti_examples` immediately —
+so it read while the append was still in flight. It passed on an idle machine and
+failed under load.
+
+This is gotcha 7 in `CLAUDE.md` verbatim: poll for the value the assertion
+actually needs, not for an earlier one that happens to arrive first. The poll now
+targets the anti-example.
+
+Recorded because the gotcha has now cost time three times, and each instance
+looked like a different problem — a flaky test, a slow machine, an unrelated
+change. The tell is a poll on one value followed by a bare read of another
+written by the same action.
+
+## 98. PENDING OPERATOR DECISION — two Meta scopes reach no code, not one
+
+The permission-to-code-path audit mapped every Graph endpoint
+`instagram.ts` calls to the scope it exercises. Ten endpoints, five scopes
+covered. Full table in `PLATFORM_COVERAGE.md` §9.
+
+**`pages_read_engagement` has exactly the same status as `business_management`**
+— requested at `oauth.ts:129`, granted on 2026-08-19, and referenced by nothing
+else in the repository. It had never been flagged; the previous version of §9
+named only `business_management`. Two scopes, one noticed.
+
+**What the successful live connection proves, and does not.** Connection,
+identity resolution and the self-test succeeded with **all seven scopes
+granted**. That demonstrates the flow works and isolates nothing about which
+scopes were necessary, because none was withheld. This is `granted` being
+mistaken for `exercised` — the distinction the whole capability model exists to
+hold — and the earlier §9 wording ("succeeded without any code path exercising
+it") was right about `business_management` and silently incomplete.
+
+**What this repository cannot establish.** Whether Meta's `/me/accounts` requires
+`pages_read_engagement` in practice is a provider fact. Meta has moved Page-read
+requirements between API versions, and no amount of reading this codebase settles
+it.
+
+**The experiment that would.** Reconnect `@recipe.fix` with the scope withheld
+and observe whether `/me/accounts` still returns the `instagram_business_account`
+edge. That is one OAuth round trip, costs nothing, and needs no App Review — but
+it is an operator action against a live account, and a failed reconnect leaves
+the account needing another.
+
+**Recommendation: remove both**, on the evidence that no code path reaches
+either. **Neither removed.** Changing a requested scope has App Review
+consequences and is not a decision to infer.
+
+**Made durable rather than only written down.** `metaScopes.test.ts` asserts every
+requested scope either maps to a call site that still exists in `instagram.ts`,
+or is named in `KNOWN_UNEXERCISED` with a reason. Adding an eighth scope fails the
+suite; deleting a call site while keeping its scope fails it too. Both directions
+are tamper-verified. The next scope cannot arrive unnoticed the way this one did.
+
+## 99. The agent registry is accurate — and both orphan scans are not
+
+All 22 agents traced against actual callers. **No drift found.** The registry's
+declared statuses match the code, including the two that look wrong from a naive
+scan.
+
+**Two false positives, both §81's lesson again.**
+
+`take-drafter` and `take-strengthener` have no caller outside their own file and
+are declared `implemented_partial`. That looks like drift and is not:
+`runTakeLoop` calls both from inside `dailyTake.ts`, and `runTakeLoop` is called
+by `take/actions.ts`. An internal caller with a reachable outer function is a
+real caller.
+
+`rejection-clusterer` is declared `implemented_no_caller`, and a symbol scan
+finds a hit — in `packages/audit/src/fixtures/phantom.ts`, which is a fixture the
+Auditor uses to test itself. A fixture is not a caller.
+
+So a symbol scan must exclude the defining file's own module graph, test files,
+**and** fixtures, and must still be read by a person. Recorded because this is
+the third time a scan of this shape has produced a confident wrong answer (§78's
+27 flagged, §81's correction, and now this). The Auditor's own
+`audit.test.ts` already pins the orphan list; that remains the durable check, not
+an ad-hoc scan.
+
+## 100. Producer/consumer map, table by table
+
+A systematic pass over all 65 tables, separating `insert` from `update` — because
+a table that is only ever updated has no producer, which a combined "writes"
+count hides. Findings verified individually, not taken from the scan.
+
+**Consumer and mutators, no producer.** `rejection_clusters` is `SELECT`ed by the
+dashboard and `UPDATE`d by accept/dismiss actions, and **never inserted** — its
+only writer would be `clusterRejections`, the declared orphan. The dashboard
+renders the section behind `clusters.length > 0`, so an operator sees nothing
+rather than an empty promise. Correct as it stands; the prerequisite (a body of
+rejections) genuinely does not exist yet.
+
+**Producer, no consumer.** `comment_replies` is inserted by `inbox/actions.ts`
+and read by nothing. Its columns — `was_ai_drafted`, `was_edited`,
+`latency_seconds` — are learning substrate: did the operator use the draft or
+rewrite it, and how fast did they answer. It is being collected correctly and
+consumed by nothing, which is consistent with LEARN being unexercised rather than
+a defect.
+
+**Read paths for data that cannot exist.** `compose_sessions`, `subscribers`,
+`voice_lexicon` are each `SELECT`ed in exactly one place and never written.
+
+**No code at all.** `product_artifacts`, `shipped_features`, `submissions`,
+`connector_calls`, `format_cadence`, `hook_experiments`. Note that `submissions`
+is *not* the table behind `/submissions` — that page uses `review_submissions`,
+which is live. The bare `submissions` table is unreferenced.
+
+None of these is fixed here. Each is either a genuine prerequisite gap (a
+producer whose inputs do not exist), or dead schema whose removal is a migration
+and a decision. Recorded as a map so the next slice can pick from evidence rather
+than from a table listing.
+
+## 101. A learning signal that recorded the opposite of what happened
+
+`comment_replies` is written on every reply and, per §100, read by nothing. Its
+columns are the only record of whether the reply drafter earns its place:
+`was_ai_drafted`, `was_edited`, `latency_seconds`.
+
+`was_edited` was `comment?.suggested_reply !== body`. For any comment the drafter
+has never run on, `suggested_reply` is **null** — so `null !== body` is true, and
+**every hand-written reply was stored as an edit of a draft that never
+existed.** Editing is only meaningful relative to something; no draft, no edit.
+
+Fixed to `suggestion !== null && suggestion !== body`.
+
+**The read path is the other half.** `getReplyHistory` aggregates the three
+columns and the inbox renders them — replies sent, how many had a draft, how many
+of *those* were changed, and the median latency. The ratio is measured against
+drafts rather than against all replies, because mixing those denominators is how
+"the drafter is useless" gets concluded from two replies typed from scratch.
+Median rather than mean, so one reply sent a week late cannot move it. Null
+rather than zero when nothing carries a latency.
+
+**Worth recording how nearly this was mis-tested.** The first tamper — reverting
+`was_edited` to the buggy expression — **passed**. The aggregate counts
+`was_ai_drafted and was_edited`, so a hand-written reply flagged as edited never
+reached the ratio anyway. The read side was already immune; the *stored column*
+was still wrong, and any consumer reading `was_edited` on its own — the obvious
+thing to do with a column called that — would conclude the operator rewrites
+everything.
+
+So the tests now assert the stored column directly as well as the aggregate, and
+the tamper fails. A test that only exercises the reading of a value cannot prove
+the writing of it.
+
+## 102. The three read-only tables, classified
+
+§100 flagged `voice_lexicon`, `compose_sessions` and `subscribers` as read in
+one place and written nowhere. Traced individually, they are three different
+things, and only one needed a change.
+
+**`voice_lexicon` — working as designed.** It has 8 rows: `supabase/seed.sql` is
+the producer, which the scan missed because it only walked TypeScript. `tts.ts`
+reads it to normalise a script before synthesis, and an empty lexicon means "no
+custom pronunciations", not a broken assumption — the normaliser simply
+substitutes nothing. What *is* deferred is the feedback half its own comment
+describes: "a mispronunciation caught by the gate can be corrected on the next
+synthesis". Nothing writes an entry from the audio gate, and `hit_count` is
+never incremented. Category **C**, deferred, not a defect.
+
+**`subscribers` — an entire deferred feature, correctly guarded.** There is no
+signup path anywhere, so it can never be non-empty. The important question was
+whether `send_newsletter` degrades safely, and it does: `sendNewsletter` throws
+`No confirmed subscribers to send to.` before any provider call, so the
+newsletter is recorded `failed` rather than `sent`. A newsletter delivered to
+nobody is **not** marked sent — the empty-state-as-success trap this codebase
+keeps finding is already closed here.
+
+Worth stating plainly: `draft_newsletter` is scheduled weekly, `newsletters` has
+no UI at all, nothing references `send_newsletter` from the web tier, and there
+is no audience-acquisition path. The whole newsletter capability is server-side
+and unreachable by an operator. It spends **no** model credits — the drafter uses
+no LLM — so it is dormant rather than costly. Category **C**. Not built out here:
+that is a product decision about whether Halyard runs a newsletter at all.
+
+**`compose_sessions` — a UI implying a control that does not exist.** The compose
+page renders "Saved conversations" and, when empty, said *"Nothing saved yet."*
+That tells the operator they have not saved one. Nothing *can* save one: the page
+is the only reader and there is no writer anywhere. The list is empty by
+construction, not by circumstance.
+
+Fixed at the surface rather than by inventing a writer: it now says conversations
+are not saved yet and that queued drafts survive while the conversation does not.
+The same rule the legal pages follow (§64, §93) — a surface must not imply a
+control the product does not have — and `e2e/compose.spec.ts` pins it, including
+that the old wording is gone.
+
+**Method note.** The §100 scan walked only TypeScript, so a table whose producer
+is `seed.sql` looked producerless. Any future producer/consumer scan has to
+include SQL seeds and migrations before a table is called orphaned.
+
+## 103. The scheduled-job audit — no new defects
+
+All 13 scheduled kinds traced as execution paths: `refresh_tokens`,
+`detect_release`, `capture`, `mark_stale_assets`, `collect_app_store`,
+`collect_watch_terms`, `collect_signals`, `collect_reviews`, `draft_newsletter`,
+`reconcile_schedule`, `verify_feature`, `score_performance`,
+`collect_product_evidence`.
+
+**The expensive-no-op case does not exist.** The two jobs that can open a browser
+both guard first. `verify_feature` selects the due claim and returns —
+`feature_claims` is empty, so every six-hourly run is one query — before any
+`chromium.launch()`. `capture` resolves the flow and the product first, and its
+weekly `verifyOnly` run launching a browser *is* the work: proving the selectors
+still resolve is the point, not a side effect.
+
+**The LLM-spend case does not exist either.** `collect_product_evidence` is plain
+HTTP and chains `build_product_brain` — five model calls — **only when something
+was actually collected**, which migration 0028 already established and the
+handler honours. `draft_newsletter` uses no model at all (§102).
+
+**"Enqueue work nobody handles" is already structurally impossible.**
+`handlerCoverage.test.ts` asserts all four directions: every scheduled kind has a
+handler, every handler has a policy, every handler is in `JOB_KINDS`, and every
+declared kind is either handled or on an **exact** knowingly-unhandled list
+(`digest_email` alone). It exists because `collect_signals` sat on the schedule
+with no handler for the life of the system, accumulating thirteen jobs over
+seventy-five hours without erroring. Nothing further is needed here.
+
+**Currently-empty inputs, each with a legitimate producer.** `feature_claims`
+(produced by `explore_product`), `watch_terms` (by the `/finds` UI since §83),
+`assets` (by `render`), `content_items` (by `generate`). A job waking against an
+empty source is the correct behaviour when the source can legitimately fill.
+
+**Result: no defects found, and nothing changed.** Recorded because an audit that
+finds nothing is a result, and because the next person to ask "are the scheduled
+jobs safe?" should not have to re-derive it. The two known dormant cases
+(`draft_newsletter` §102, `purge_request_logs` §81) remain documented and
+harmless — neither spends anything.
+
+**What is not covered by any test**, and is the honest limit here: nothing
+asserts that a scheduled job's input *can* become non-empty. That is a semantic
+question about product intent, not a structural one, and §83/§100/§102 show it
+takes a human read — twice producing a confidently wrong answer from a scan.
+
+## 104. A workflow that dead-ended at its last step
+
+A reachability scan of all 77 server actions against every `.tsx`, `.ts` and
+E2E file found three with **zero references anywhere**. Two of them are the end
+of the founder-take workflow.
+
+`approveTake` and `discardTake` are complete, correct server actions —
+`approveTake` inserts a `content_items` row with the founder persona, the `take`
+subtype and `pending_approval` status, routed to the founder account. Neither was
+referenced by a page, a component or a test.
+
+So an operator could speak a reaction, watch it fact-checked, read the draft
+Halyard wrote from it — and then had nothing to click. The draft rendered with no
+controls beneath it. The whole `/take` feature produced output that could not
+leave the screen.
+
+Wired to the existing actions; no new behaviour invented, because both actions
+already defined it. `e2e/take.spec.ts` covers both ends, and the assertion that
+matters most is that **approving a take does not publish it**: it arrives in the
+queue as `pending_approval` and every gate from §90/§92 still applies. "Send to
+queue" is exactly the phrase an operator would read as "post it", so the copy
+says otherwise directly.
+
+Tamper-verified: removing the controls fails all three tests.
+
+**The third orphan is not a dead feature.** `shareTokenFor` is a two-line server
+action wrapping `extractShareToken`, which is called directly in
+`queue/[id]/page.tsx` and `destinations/router.ts`. The wrapper is redundant, not
+the capability. Left in place — deleting it is a trivial cleanup with no
+evidence-backed benefit, and category D deletions need better reasons than tidiness.
+
+**Method note.** The scan checked `.tsx` first and found three candidates; two of
+them survived a wider check across `.ts` and the E2E suite. §99 and §102 each
+produced a wrong answer from a scan that was too narrow, so the wider pass ran
+before anything was touched — and this time it changed nothing, which is how a
+methodology fix is supposed to look.
+
+## 105. Every newsletter would carry an unsubscribe link that cannot work
+
+The reverse reachability audit traced all 14 API routes and both public page
+groups. Every internal route has a real caller; the external-entry routes —
+`/api/oauth/[platform]/callback`, `/api/auth/callback`, `/api/webhooks/meta`,
+`/api/cron/[task]`, `/r/[id]`, `/l/[slug]` — are called by providers, the
+scheduler or a browser, and correctly have no repository caller.
+
+**One referenced route does not exist.** `send_newsletter` builds
+`${newsletter.web}/u/${newsletterId}` and `renderNewsletter` embeds it in every
+email, HTML and plain text: `Unsubscribe: …`. There is no `/u/` route in
+`apps/web/src/app`. Every newsletter Halyard sent would carry a dead unsubscribe
+link.
+
+**And the URL could not work even with a route.** It is built from the
+**newsletter** id, not the subscriber's. The link identifies which issue was
+sent, not who to unsubscribe — so the endpoint would have no way to know whose
+`subscribers.unsubscribed_at` to set. This is not a missing file; it is a link
+that cannot do its job by construction.
+
+**Currently unreachable, and that matters.** Per §102 the newsletter is dormant:
+no signup path, so `subscribers` is always empty; `sendNewsletter` throws before
+any provider call; nothing in the web tier triggers `send_newsletter`; there is
+no newsletter UI. No email can be sent, so no broken link can reach anyone. **No
+legal page claims an unsubscribe capability**, so nothing published is untrue.
+
+**Not built.** Making the link work needs a subscriber-scoped token — a design
+decision — and building it would be activating a dormant feature, which the
+operating rules forbid.
+
+**What this changes is the newsletter decision.** §102 recommended leaving it
+dormant on the grounds that it is harmless. That recommendation now has teeth:
+activating it without first building subscriber-scoped unsubscribe would ship
+bulk email with a non-functional opt-out, which is a legal exposure rather than a
+bug. Recorded against the pending newsletter decision as a hard prerequisite.
+
+**Clean on the other axes.** No always-disabled controls (the one conditional
+`disabled` is `placed.length === 0`, which is correct), no `href="#"` dead links,
+no UI invoking a stale action name — §104's scan already covered the reverse
+direction.
+
+## 106. A percentile computed over nothing, fed into learning
+
+The learning loop traced as one graph: `post_metrics` → `scorePosts` →
+`performance_scores` → `historicalConversion` → `scoreIdeas`, alongside
+`hook_variants` → `loadHookHistory` → `scoreVariant`, and
+`comments` → `comment_replies`.
+
+**The provenance links hold.** `content_items.idea_id` is populated by
+`generate`, so published content traces back to the idea that caused it.
+`comments.publication_id` traces a comment to its post and onward to the item and
+the idea. The hook a post used is derivable through
+`hook_variants.content_item_id` where `selected = true`, which is exactly the
+join `loadHookHistory` makes.
+
+`content_items.hook_variant_id` is written and read by nothing — but it is a
+redundant denormalisation of that same link, not a broken path. Left alone;
+category D deletions need better reasons than tidiness (§104).
+
+**The defect is in what `conversion_score` stores.** With no attribution
+anywhere, `activatedPerThousand` is 0 for every post and
+`percentileRank(0, [0,0,0])` is **0.5** — ranking zeros against zeros produces a
+confident-looking middle. That was written to `performance_scores.conversion_score`.
+
+It is harmless *today*: the weight redistributes to zero, every value is
+identical, and §86's average of 0.5s equals the `?? 0.5` neutral. It stops being
+harmless the moment attribution is **partial** — §86 averages `conversion_score`
+per category into the idea scorer, and an average mixing real percentiles with
+synthetic 0.5s is a number with no meaning being treated as evidence. That is the
+failure this codebase keeps finding, one step before it happens.
+
+Now null, which §68 established for exactly this: unmeasured is not zero, and it
+is not the median either. The read side already filtered
+`where conversion_score is not null`, so it was waiting for this.
+
+An existing test asserted `conversionScore === 0.5` — documenting the synthetic
+value rather than an invariant, the same shape as §84's stale assertion. It now
+asserts null and says why it changed.
+
+Tamper-verified at both levels: the in-memory score and the persisted column,
+with the marker checked before and after restoration (§104's process lesson).
+
+## 107. The approval gate was a public endpoint
+
+**Ten server actions had no `requireOperator()`**, among them `approveItem` and
+`publishNow` — the approval gate and the direct publish trigger. Also
+`markManuallyPublished`, `rejectItem`, `editItem`, `regenerateItem`,
+`rescheduleItem`, `retryRender`, `buildLaunchPlan`, `shareTokenFor`.
+
+**Why the existing guards did not cover it.** A server action is a public POST
+endpoint. `(dashboard)/layout.tsx` calls `getOperator()` and redirects to
+`/signin`, but a layout guards **rendering** — it does not run for an action
+invocation. `middleware.ts` sets a pathname header and does no auth. So the
+protection an operator would reasonably assume from "it is behind the dashboard"
+did not exist for the actions themselves.
+
+This is the boundary §90 and §92 exist to hold, bypassed **at the transport layer
+rather than the logic layer** — which is precisely why the adversarial suite could
+not see it. Every test there attacks `publishHandler` and the state machine, and
+all of them were right. The hole was one layer up, in who is allowed to ask.
+
+Exploitation needs the action's build-time id, which is not published — but that
+is obscurity, and the ids are present in the served client bundle and flight
+payloads. Halyard's own claim is that nothing publishes without an explicit human
+action, "enforced in code rather than policy". This was policy.
+
+Fixed by adding `await requireOperator()` as the first statement of each, the
+pattern the other 67 actions already followed.
+
+**Made durable.** `serverActionAuth.test.ts` reads every file marked
+`'use server'` and asserts three things: that it finds more than sixty actions
+(non-vacuity — a regex that stopped matching would report a clean sweep of zero,
+the §76 trap), that every action contains `requireOperator`, and that the check
+appears **before** the first statement touching state. Position matters: a check
+after the write has happened is not a check.
+
+Tamper-verified by removing the guard from `approveItem` — the marker was
+confirmed present before the run and absent after restoration, per §104's
+process lesson.
+
+## 108. Two runs, one set of signals — and a safety net that cried wolf
+
+§87 closed the double-spend window for **retries** by consuming signals before
+persistence. **Concurrency was still open.** `generate` is not worker-scheduled —
+it runs from the web cron and from `regenerateItem` — so two runs for one product
+can overlap, and a plain `select … where consumed_at is null` lets both read the
+same rows and both send them to the model.
+
+The claim is now the read: an `update … where id in (select … for update skip
+locked) returning`. Postgres evaluates the predicate and writes atomically, so a
+second run in flight sees them consumed and takes none — the same
+claim-by-writing the job poller already uses for jobs.
+
+**Released when the model call never completes.** Claiming without releasing
+would drain every signal on the first run while there are no LLM credits, and
+they would be gone by the time credits arrived — which is exactly the state
+Halyard is in. So the `catch` restores `consumed_at = null`, and only that case.
+
+The two failures want opposite orderings — a retry must not resend, a concurrent
+run must not read — and claiming in the select satisfies both. Tamper-verified:
+reverting to a plain select fails four tests, including one that runs two
+proposals simultaneously and asserts the model was called once.
+
+### The SQL validator produced a false positive
+
+Adding this surfaced a flaw in §77's net. The extractor matches backtick
+template literals, and a **doc comment** quoting SQL in backticks looks
+identical — it reported `apps/worker/src/handlers/generate.ts:718 [42703] column
+"…" does not exist` for a sentence of prose.
+
+Fixed in the extractor rather than the comment: comments are blanked before
+scanning, preserving line numbers so `file:line` still points at the real line.
+A false positive in a safety net is worse than a gap — it trains the next person
+to disbelieve the net, and this one would have recurred on any comment that
+quotes a query.
+
+## 109. A feed's description element is not always a description
+
+The Daily Take rendered a paragraph under every Hacker News headline reading
+`Article URL: https://… Comments URL: https://… Points: 180 # Comments: 82`.
+Found by looking at a screenshot, not by reading code — every layer was behaving
+correctly and the result was still wrong.
+
+HN has no summary to give. Its `<description>` is a block of link markup, and
+`stripHtml` faithfully turned that into text. Nothing was broken; the field was
+simply being presented as something it is not.
+
+**Discarded in the parser, not hidden in the page.** `summary` is nullable, the
+Daily Take already renders nothing for null, and the idea generator prompt and
+signal clustering read the same column — a page-level fix would have left the
+noise in the two places nobody would look at.
+
+**Two conditions, both required.** URLs must exceed half the text *and* what
+remains must contain no run of four consecutive words. Either alone is wrong:
+the clause test by itself discards `Tooling for evaluation`, and the URL test by
+itself discards a real one-line summary that cites a long link. Together they
+match a metadata block and nothing else — the three existing fixtures, including
+two summaries of three words, were left untouched deliberately as the proof.
+
+Rows already ingested keep their old summary (`on conflict … do nothing`, which
+is right — re-polling must not overwrite `relevance` or `status`). No migration:
+`rss_items` carry `expires_at` and the page already filters on it, so they age
+out. Tamper-verified: relaxing the gate fails exactly the new assertion.
+
+## 110. Every published link pointed at localhost
+
+`HALYARD_PUBLIC_URL` appeared **once in the entire repository** — as the
+left-hand side of `process.env.HALYARD_PUBLIC_URL ?? 'http://localhost:3200'`.
+It was in no `.env.example`, no deployment config, and no document, so in
+production it is unset by construction.
+
+That value is not a preview. `generate` writes it to `content_items.link_url`,
+which is the link that goes out in a real post. No QC gate reads `link_url`, so
+it would have passed all four. On X it is also the expensive shape: a post
+carrying a link bills ~$0.20 against ~$0.015, so a misconfigured deploy pays
+thirteen times over to publish a link no reader can open.
+
+**Generation fails rather than attaches a dead link.** The alternative — drop
+the link and publish anyway — changes what goes out, and that is Isaac's call,
+not a handler's. A `PermanentJobFailure` names the variable, stops before
+anything is drafted, and costs nothing. In development the localhost default
+stands, gated on `NODE_ENV !== 'production'`, matching `devBypassAllowed`.
+
+Empty is treated as unset, not as a value: `.env.example` ships `KEY=` with a
+trailing comment, dotenv parses that to `""`, and `??` does not fall back on an
+empty string — gotcha 3, which broke OAuth on every fresh clone, applies here
+verbatim. The variable is now defined in `.env.example` as well.
+
+`publicOrigin` in the web tier had this right all along and said so in a
+comment. The worker did the opposite. Two answers to one question, and the
+wrong one was on the path that publishes.
+
+## 111. The container healthcheck could not fail
+
+    HEALTHCHECK … CMD node -e "process.exit(0)"
+
+with a comment above it reading "this healthcheck is the container's own view of
+the same fact" — the fact being the sixty-second heartbeat. It read no heartbeat.
+It exits zero for as long as the image can start node, which a worker whose loop
+wedged an hour ago does perfectly well.
+
+Railway honours neither Docker `HEALTHCHECK` nor any `healthcheckPath` we set,
+so nothing was relying on it. That makes it worse, not better: an inert check
+that claims to detect a dead worker is a false assurance sitting in the file
+where someone would go to add a real one.
+
+**Made true rather than deleted.** The poller now touches
+`HALYARD_LIVENESS_FILE` on the same beat, and the check reads its mtime with a
+three-missed-beat threshold matching `--retries=3`. Written *after* the database
+insert, so a worker that has lost the database goes unhealthy too — liveness
+that ignores the dependency the worker exists to use is the same lie in a
+smaller font.
+
+Opt-in by environment variable, set only in the Dockerfile, so tests and local
+runs touch no disk. The command itself was exercised in all three states before
+being committed to the file — fresh exits 0, stale exits 1, missing exits 1 —
+because the thing being replaced was never run even once.
+
+## 112. Three colour tokens that did not exist
+
+`text-bad` was used for agent-run error text in two places and a Brain nav
+state in a third. There is no `--color-bad`, so Tailwind emitted no rule and the
+error rendered in body ink — proven in the browser, not inferred: the computed
+colour of `p.text-bad` was `rgb(42,35,32)`, identical to `body`.
+
+`bg-accent` was worse. It sat on two buttons that also carry `text-white`, one
+of them **"Post it now"** — the publish trigger. No background plus white text
+is an invisible label on the most consequential control in the product.
+
+`bg-paper` was used 45 times, on inputs and selects, and rendered transparent
+everywhere.
+
+None of this could fail: an undefined utility typechecks (it is a string),
+lints, builds, and leaves the element in the DOM, so every selector-based test
+passes. Only a screenshot or a computed-style read can see it.
+
+**Fixed by naming the intent, not by deleting the classes.** `bad` → `danger`
+and `info` → `primary` (the failed/running cards on `/brain` had left borders
+that drew nothing, so a failed card looked exactly like a healthy one);
+`accent` → `primary`, matching the `bg-primary … hover:bg-primary-dark`
+convention used by every other primary button; `paper` declared as `#fdfbf7`,
+which is what those controls already looked like on a card, so declaring it
+changes nothing there and gives controls on `canvas` and `sunk` the lift the
+class was asking for.
+
+**The guard matters more than the fix.** `apps/web/src/lib/designTokens.test.ts`
+scans source for colour utilities and asserts the colour half names a declared
+token. It found `accent` and `paper` on its first run — after `bad` had already
+been fixed by hand, which is exactly the argument for having it. Tamper-verified
+with a `text-nonexistent`.
+
+## 113. The palette missed AA almost everywhere, by a little
+
+An axe pass over 45 routes at two widths reported 846 contrast violations on
+desktop and 614 on phone. The instinct is to reach for an exemption; the numbers
+say otherwise. Measured through axe rather than assumed, every token was a *near*
+miss: muted 4.09–4.45 against 4.5, good 4.23, warn-ink 4.36.
+
+Darkened by the smallest amount that clears 4.5 against the worst background
+each one appears on — muted `#7a6e66`→`#736760`, good `#4f7a52`→`#4c754f`,
+warn-ink `#8a6512`→`#876312`. All three are invisible side by side and carry no
+design tradeoff. `danger` already passed at 5.37 and was left alone.
+
+Two usages were fixed rather than tokens. `text-muted/70` on the nav group
+labels measured 2.73 — opacity applied to a colour that was already at the
+limit. And `/templates` dimmed the whole card of a disabled template to
+`opacity-60`, which dropped its `disabled_reason` to 2.23: the one thing an
+operator needs to read was what the styling hid. The card already carries a
+`disabled` badge, so the dimming was a redundant second cue that cost the first.
+
+Result: 846 → 231 and 614 → 119.
+
+**What is left is one decision, not a hundred defects.** Every remaining
+violation involves `--color-primary` `#c4714a` — 3.13:1 as text on its own tint,
+3.49 on surface, 3.61 behind white on a button. Fixing it means darkening the
+brand orange to roughly `#9e5b3c`, which is a visible change to how Halyard
+looks, so it is Isaac's call and not one to make quietly at 3am. The one-line
+change is `--color-primary` in `globals.css`; nothing else needs to move,
+because a single darker value satisfies both the text and the button case.
+
+`e2e/accessibility.spec.ts` allows contrast violations **only** where the
+measured colour is that exact hex. Any other pair that starts failing is a new
+defect and fails the suite. That is a bounded exception, not a suppressed rule.
+
+## 114. A table you can only scroll with a mouse
+
+Four wide tables — accounts, analytics, brain evidence, hooks — sat in
+`overflow-x-auto` containers that were not focusable. A mouse drags them
+sideways; a keyboard has nothing to put the caret on, so every column past the
+fold simply does not exist. It only appears at narrow widths, which is why a
+desktop pass never saw it.
+
+Encoded once in `Card` as a `scrollLabel` prop rather than sprinkled across nine
+call sites, so the next wide table gets it by asking for it. The label is
+required rather than optional: `role="region"` without an accessible name is
+announced as an unnamed landmark, which is worse than no landmark.
+
+Also on this pass: `/signin` had no `main` landmark, `/submissions` had five
+`<select>`s and two inputs labelled only by placeholder, and `/agents/runs`
+scrolled horizontally on a phone because a long run error had nothing to break
+on. `e2e/accessibility.spec.ts` asserts all of it across 13 routes at two
+widths; tamper-verified by removing one `aria-label`.
+
+## 115. The rejection loop had a consumer and no producer
+
+The dashboard reads the top three surfaced rows of `rejection_clusters`.
+`acceptCluster` promotes one into `products.content_rules.operator_rules` and
+writes an audit entry. `dismissCluster` suppresses it for thirty days. All of
+that works.
+
+**Nothing had ever inserted a row.** An operator could reject the same thing
+thirty times and Halyard would keep writing it, and the screen would keep saying
+there was nothing to learn.
+
+And the far end was broken too: `operator_rules` was written by exactly one
+statement and read by *nothing*. Generation reads `content_rules` for
+`forbidden_claims` and `banned_phrases` and never for the rules the operator
+accepted. So even a hand-inserted cluster would have changed no output —
+accepting a pattern moved a row's status and nothing else.
+
+**Both ends built.** A `cluster_rejections` job kind (added to `JOB_KINDS` and
+`jobs_kind_check` together, per gotcha 1), a handler, and a daily per-product
+schedule. `copywriterDontRules` merges accepted operator rules into the
+copywriter's DO NOT list, de-duplicated, voice rules first.
+
+**Deterministic, and deliberately not a model call.** `clusterRejections`
+matches rejection reasons against known complaint vocabulary; that is the whole
+judgement and it belongs in code. `inferRejectionPattern` exists for groups
+matching no known pattern and is *not* called — wiring it in would make the one
+loop that closes depend on credits Halyard does not have, and a named pattern
+with no rule attached still tells the operator what they keep rejecting.
+
+**Re-running must not undo a decision.** Clusters are a view over current
+rejections, so a run replaces the surfaced set — but the rejections behind a
+decided cluster are still in the table, so a naive recompute would re-ask
+tomorrow, forever. A pattern is skipped while a decision stands: `accepted`
+permanently, `dismissed` until `dismissed_until`, which honours `dismissCluster`'s
+own stated intent that a pattern dismissed once may be worth acting on after
+another ten rejections. Done as `insert … select … where not exists` so the
+check and the write are one statement.
+
+Nine database tests, tamper-verified. The Auditor independently agreed: the
+orphan list, which read `['rejection-clusterer']`, is now empty.
+
+## 116. "Blocked" was doing the work of "untested"
+
+`auto-clip` is registered `blocked` because Halyard ingests no long-form
+footage, so nothing can call it. That is a real prerequisite and ingestion is a
+product decision, not missing plumbing — it stays blocked.
+
+But it had `acceptanceTests: []`, and the status note was quietly covering for
+that. Almost none of the agent is the model: the duration bounds, the strength
+floor, the overlap resolution and the ffmpeg arguments are all deterministic
+code, and all of it was unasserted. Sixteen tests now cover it with fixtures and
+a stub model — including that a clip running past the end of the recording is
+clamped rather than discarded as too long, which would have silently lost usable
+clips the first time anyone did feed it footage.
+
+No live model call has been made and none is claimed. The registry says so.
+
+## 117. The newsletter's opt-out was a 404 that identified nobody
+
+Two independent failures in one link. The send handler built
+`${web}/u/${newsletterId}` — the *newsletter* id, identical for every recipient,
+so a click could not have said who to unsubscribe even if it had resolved. And
+there was no `/u/` route at all, so it resolved to nothing.
+
+The design had been right once. `draft_newsletter` renders the footer as
+`/u/{{unsubscribe}}`, a placeholder plainly waiting for per-recipient
+substitution. The send path ignored it and re-rendered with an id instead.
+
+**Sending stays dormant**, as instructed: `send_newsletter` is on no schedule,
+nothing enqueues it, and it refuses without an approved newsletter and both
+`RESEND_API_KEY` and `NEWSLETTER_FROM`. This is the subsystem being finished,
+not switched on.
+
+### What the token had to be
+
+Per-subscriber, unguessable, and **not derivable from the email address** — a
+derived token would let anyone unsubscribe anyone. 32 random bytes, hex,
+generated in the column default so a subscriber cannot exist without one, and
+uniquely indexed because the whole scheme rests on no two sharing one.
+
+### The batching had to go
+
+The transport BCC'd a hundred addresses per call. That is efficient, and it
+cannot carry a working opt-out: one body cannot hold a different link per
+recipient. The batching is what gives way, because the link is what makes bulk
+mail lawful rather than merely possible.
+
+BCC also existed to stop the subscriber list becoming visible to every
+subscriber. Sending individually keeps that property for a better reason — each
+message has exactly one recipient and no `bcc` at all.
+
+`List-Unsubscribe` and `List-Unsubscribe-Post` are now set per message
+(RFC 8058), which is what puts the native one-click control in Gmail and Apple
+Mail. A recipient with a blank unsubscribe URL is **refused rather than sent to**:
+a message with no way out is the one failure that cannot be corrected after the
+fact. One bad address no longer aborts the run, but `recipientCount` counts what
+the provider accepted and `failures` carries the rest, so a mostly-failed send
+cannot read as a clean one.
+
+### GET does not unsubscribe
+
+Mail clients, security scanners and link previewers fetch every URL in a
+message. An unsubscribe that happens on fetch removes people for opening their
+mail. So GET asks and the button posts — except for a provider's one-click POST,
+which is already a person acting on their client's own control.
+
+Both verbs answer at one URI because RFC 8058 requires it, which is why this is
+a route handler rather than a page. Tamper-verified: making GET perform the
+unsubscribe fails exactly the test that says it must not.
+
+### Still required before a single mail goes out
+
+A Resend account and verified sending domain, `NEWSLETTER_FROM`, and Isaac's
+decision that the newsletter should exist at all. None of that is engineering.
+
+## 118. A scanner that stopped seeing the file it was written for
+
+While narrowing §112's token scan to avoid a false positive on CSS, the scan
+quietly stopped matching anything in the file that motivated it. Caught only
+because the tamper was repeated after the change — reintroducing `text-bad` into
+`BrainNav.tsx` produced a **pass**.
+
+Two causes, both worth recording. Restricting the scan to `className=`
+attributes missed the original defect outright: `text-bad` was in a ternary,
+`? 'text-bad'`. And scanning every string literal instead broke on prose — an
+apostrophe in a comment ("doesn't") opens a string match that runs to the next
+apostrophe and swallows every real literal between them. §108 is the same trap
+in the SQL validator, three weeks earlier, and it was not remembered.
+
+Now: comments are blanked first, then every literal is read, and CSS is told
+apart from a class list by punctuation a class list never contains — `;`, a
+brace, or a tag — checked after `${...}` interpolations are removed.
+
+The lesson is about method rather than regexes. **A tamper test proves a
+scanner only at the moment it is run.** Any change to what a scanner looks at
+invalidates the last tamper, and re-running it is not optional — a narrowed
+scanner that passes is indistinguishable from a clean codebase.
+
+## 119. §95 resolved — the inputs go, the slots stay, and the audio verdict finally counts
+
+§95 left this to the operator with two options. Both turn out to be wrong, and
+the evidence that settles it also uncovered a hole neither option addressed.
+
+### The measurements
+
+`runAllGates` has six production callers. Not one supplies `visual` or `audio`,
+and none *can*: the aggregate runs at copy time, before any media exists. The
+Auditor's `gate.input_never_supplied` has been correct about this the whole
+time — re-confirmed by running the real scan rather than trusting §95's summary.
+
+`coherence` was dead for the same reason and was not being audited at all,
+because the Auditor's `GATE_SPECS` never listed it.
+
+### Why both §95 options were wrong
+
+**Option B — require callers to declare `requires`** — is incoherent. No caller
+could satisfy a `visual` requirement at copy time, so `requires: ['visual']`
+does not mean "fail honestly", it means "fail always".
+
+**Option A — remove `visual`/`audio` from `runAllGates`** — over-reaches, and
+§95 could not see why because it never looked at the merge. `review_media`
+finishes with `previous.filter(g => g.gate !== 'coherence' && ...)` and pushes
+its own entries into **this function's own `gates` array**. The gate *entries*
+are not decoration; they are slots a later stage fills.
+
+**So: the inputs go, the entries stay.** `visual`, `audio` and `coherence` are
+now always emitted as `skipped`, naming the stage that measures them. This is
+narrower than either option, resolves the Auditor error honestly, and preserves
+§62's substance — the aggregate still carries a media verdict, written by the
+stage that can actually measure it rather than by a parameter nothing can fill.
+
+Coverage did not move: `runVisualQC` and `runAudioQC` already had 13 and 9
+direct tests, and exactly one `runAllGates` call supplied `visual` — to colour a
+status in a test whose real subject was gate *order*. The four coherence tests
+that ran through the aggregate now call `runCoherenceQC`, which is what
+`review_media` calls.
+
+### The hole underneath
+
+Chasing the merge turned up something worse than a dead parameter. `tts` wrote
+its verdict to `qc_results.audio` — a **top-level key, not into `gates`** — and
+then took no action on failure, by an explicit and reasonable decision: the
+audio exists, retrying synthesis would reach the same verdict, and "the queue is
+where opinions get acted on".
+
+Except the queue renders `qc_results.gates`. So an item whose voiceover had just
+failed its gate displayed `audio: skipped — no voiceover here`, and `passed` was
+computed over a list the verdict was not in. **A failed voiceover blocked
+nothing and was shown to nobody.**
+
+And it did not even survive. `review_media` ends with `set qc_results = $2`,
+replacing the whole object with `{passed, gates, ranAt}` — so for any item with
+both a voiceover and a render, which is every video, the top-level `audio` key
+was **destroyed** minutes later. It read the key first, for coherence, and then
+overwrote it.
+
+`tts` now merges an `audio` entry into `gates` and recomputes `passed`. The
+documented intent is preserved exactly — the job still does not throw, synthesis
+is not retried — but the verdict now reaches the list the queue displays and the
+aggregate counts. A consequence worth stating plainly rather than burying: since
+`review_media` fails an item on any failed gate, a genuinely failed voiceover
+will now fail the item. That is the correct completion. A recorded failure that
+blocks nothing is not a lenient policy, it is a broken one.
+
+Tamper-verified in both directions: dropping the merge fails the two new tests,
+and after the `GATE_SPECS` change the audit rule was re-tampered — removing
+`proof` from its one caller — to prove it can still fire. §118's lesson applied
+rather than merely written down.
+
+Media mutation invalidation was checked and needed nothing: `attachAsset` and
+`detachAsset` both re-enqueue `review_media`, which is the right repair.
+
+## 120. §78 answered — the cache is not needed, the ordering was
+
+§78 recorded the artifact cache as unbuilt and left it under "Needs a human",
+because finishing it needs a table, a store, and a decision to start *blocking*
+generation at a hard ceiling. Re-examined now, on the question asked: is the
+exposure it was meant to cover still real?
+
+**The exposure §78 named is real, and it was an ordering bug rather than a
+missing cache.** `generateSample` is one RecipeFix credit. The idea was marked
+`selected` twenty lines *after* that call, so a generate attempt that died in
+between left the idea `proposed` — and `JOB_POLICY.generate` allows a second
+attempt, which re-selected it (`where status = 'proposed'`) and bought the same
+adaptation again.
+
+Fixed by claiming first: an atomic, status-conditional
+`update ideas set status = 'selected' where id = $1 and status = 'proposed'`
+before anything is spent, skipping the idea if the claim takes no row. The same
+claim-by-writing the poller uses for jobs and `proposeFromSignals` uses for
+signals.
+
+**The claim is deliberately never released.** `ConnectorUnavailableError` is
+raised only after the adapt call has been attempted and timed out, and a timeout
+does not prove nothing was spent — the request may have reached RecipeFix and
+consumed a credit while the response never came back. Releasing would let the
+retry buy it again, which is precisely what this is for. One idea is consumed
+per outage and the handler returns rather than continuing, so the loss is one
+idea, not the batch. Ideas are regenerated; credits are the operator's money.
+
+**And the cache itself is not needed for correctness.** Three measurements, not
+assertions:
+
+- *Retry double-spend* — the only sharp edge §78 identified — is now closed by
+  ordering, with no table and no TTL.
+- *Cross-run duplicate specs*, which a cache would deduplicate, cannot arise for
+  the same idea: an idea is claimed on selection and set `used` after drafting,
+  so it is never adapted twice. Two distinct ideas yielding an identical intent
+  string is what `scoreIdeas`' embedding novelty check exists to prevent.
+- *The hourly ceiling* ("twenty adaptations an hour, hard") could not bind.
+  `generate` is enqueued only by three operator actions — the launch batch, a
+  queue action, and campaigns — at `limit` ideas each, default 3. There is no
+  loop that could approach twenty in an hour.
+
+So `artifactCache.ts` stays unwired, and this is now a proven answer rather than
+a deferral. If a future caller ever adapts on a timer, the ceiling becomes a
+real question again and this entry is the thing to re-read.
+
+Tamper-verified: neutering the claim to a no-op update fails both new tests.
+The tests use a GitHub-backed product, whose `generateSample` throws
+immediately and without a network call, so they exercise the real failure path
+for free and never touch a provider — an earlier draft reached the copywriter
+and hit OpenAI, which would have spent money the moment credits existed.
+
+## 121. Three scheduled jobs that are on no schedule
+
+Found while bounding §78's exposure, by asking what actually triggers
+`generate`. The answer needed three sources cross-referenced, and cross-
+referencing them showed more than was being looked for.
+
+- `apps/worker/src/scheduler.ts` runs **14** job kinds.
+- `apps/web/vercel.json` schedules **3** cron paths.
+- `apps/web/src/app/api/cron/[task]/route.ts` accepts **12** task names.
+
+Most of the cron route's tasks are also driven by the worker scheduler, so the
+route is a manual entry point for them rather than dead. Three are not driven by
+anything at all — no cron entry, no scheduler entry, and no code anywhere that
+enqueues them:
+
+| Task | Consequence of it never running |
+|---|---|
+| `collect_attribution` | Install attribution is never collected, so no post can ever be tied to a download. |
+| `digest_email` | The daily operator digest is never sent. |
+| `verify_flows` | The weekly proof that capture selectors still resolve never runs, so selector rot is silent. |
+
+**Not switched on, and that is the decision.** Each is blocked on something that
+is not engineering: `collect_attribution` needs App Store credentials and would
+otherwise enqueue failing jobs; `digest_email` sends real mail; `verify_flows`
+starts real browser work. Turning any of them on is a live behavioural change of
+the kind §78's ceiling and §74's severity both are. Recorded under "Needs a
+human" with the exact one-line schedule each would take.
+
+**`generate` is reachable, and the queue's copy about it is wrong.** It is
+enqueued by the launch batch, a queue action and campaigns — operator-driven,
+which is coherent. But `queue/page.tsx` tells an operator staring at an empty
+screen that "the daily generation job produces drafts and holds them here."
+There is no daily generation job. Whether the fix is a schedule (which starts
+automatic spend) or honest copy (which concedes the loop is operator-driven) is
+a product decision, not a typo, so both options are recorded rather than one
+being chosen.
+
+## 122. Notifications were the one error column nobody scrubbed
+
+`jobs.last_error`, `publications.error` and `social_accounts.last_error` are all
+scrubbed at the moment they are written. `notifications.body` was not, and
+callers put raw error text into it — `generate` sends
+`${err.message} Generation is paused…`, `appStore` sends `err.message` straight
+through.
+
+An error message is whatever threw, and for an HTTP client that routinely
+includes the request URL. **Meta's Graph API takes the access token as a query
+parameter**, so a failed Instagram call produces a message with a live
+credential in it. That message would land in `notifications.body`, render on the
+dashboard, and stay there for ever — notifications have no purge.
+
+Scrubbed inside `notify()` rather than at each call site, for §96's reason: a
+boundary every caller must pass is the only place a rule like this holds. Nine
+call sites exist today and the tenth would not have known. `title` is scrubbed
+too, being equally caller-supplied.
+
+Tamper-verified, including the negative: an ordinary message must come back
+untouched, because over-redaction costs a debugging detail and a scrub that
+mangles everything is one people route around.
+
+## 123. A purge capability, deliberately without a policy
+
+Five tables grow without limit: `jobs`, `notifications`, `agent_runs`,
+`capability_probes` and `audit_log`. Only `platform_requests` (seven days, with
+a cron) and `post_metrics` (`purge_after`) were bounded at all.
+
+**The window is an argument, not a constant.** `purge_operational_logs(interval)`
+takes the retention period from its caller and no schedule invokes it. How long
+Halyard keeps an operator's data is a product and legal question, and inventing
+a number here would have answered it in the schema where nobody would look for
+it. The capability exists; the policy is Isaac's.
+
+**Only finished rows are eligible.** A `queued` or `running` job is live state
+rather than history, and deleting one loses work instead of a record. An unread
+notification has not done its job yet, so it survives regardless of age. Both
+are asserted with tests that fail if the predicate widens — tamper-verified by
+relaxing it to every status, which fails exactly those two.
+
+**`audit_log` is never deleted.** It records what a *human* decided — approvals,
+disconnections, accepted rules — which is the one table whose retention is a
+compliance question rather than housekeeping. The function counts its old rows
+and reports them under a name that says so, so growth stays visible without the
+schema quietly assuming an answer. Tamper-verified by making it delete, which
+fails.
+
+Partial indexes match each purge predicate; without them the function
+table-scans on exactly the tables that are big enough to need purging.
+
+What this does **not** do: pick a number, add a schedule, or touch
+`platform_requests`, which already had both halves.
+
+## 124. The RECOMMEND gap is not real yet, and building it now would duplicate the scorer
+
+Asked to reassess whether an opportunity/recommendation layer should sit between
+signals and ideas now that `OBSERVE → signals → ideas → drafts` exists. The
+instruction was to prove the gap before building anything, and the proof runs
+the other way.
+
+**The stage the spec describes already exists, under another name.** The P3 test
+criterion in `HALYARD_IMPLEMENTATION_PLAN.md` is "synthetic signals → agent
+analysis → deterministic ranking → opportunity UI", with the rule that "no
+opportunity is allowed to enter an action queue merely because an LLM
+recommended it." That is a description of the path Halyard already runs:
+
+| Spec calls it | Halyard has it as |
+|---|---|
+| agent analysis of signals | `proposeFromSignals` → `ideas` |
+| evidence behind the recommendation | `ideas.source_signals` |
+| why it matters | `ideas.rationale` |
+| deterministic ranking | `scoreIdeas` — mix debt, novelty, seasonal, historical conversion |
+| approval before action | `selectIdeas` hard caps, then the queue |
+
+The governing rule is already enforced at exactly the point the spec cares
+about: the model proposes, `scoreIdeas` and `selectIdeas` decide, and nothing
+reaches the queue on a model's say-so. A second layer expressing the same
+judgement is what §119 has just finished removing from the QC gates — two places
+holding one verdict is how they come to disagree.
+
+**What P3 genuinely adds is social discovery** — other accounts, competitors,
+conversations, creators — and that is blocked on first-party data rather than on
+engineering. There are zero publications and zero metric observations, so an
+opportunity ranker would today be ranking an empty set with a conversion signal
+that has never been measured. `STATUS.md` has said this since P2 merged, and
+`PLATFORM_COVERAGE.md` §7 and §12 hold the evidence.
+
+**Nothing built.** The redundant-architecture risk is concrete here, and the
+prerequisite is the same X credit that blocks the rest of the measurement chain.
+
+One note for whoever picks this up: `docs/Halyard_Social_Intelligence_Architecture.md`
+is marked *"Status: Architecture / product direction"*. It is a statement of
+intent, not a description of what exists, and its checklists are unticked on
+purpose. It should not be read as a gap list.
+
+## 125. The scope audit covered one Meta product out of two
+
+§98 built `metaScopes.test.ts` after finding `pages_read_engagement` sitting
+beside `business_management` with identical status — requested, granted,
+reachable from no code — after months in which only one had been noticed.
+
+The same file had the same blind spot one level up. It read
+`PLATFORM_SCOPES.instagram` and stopped. **Threads is a Meta product, reviewed
+through the same App Review, and its four scopes had no audit at all.**
+
+All four turn out to have call sites — `/me?fields=id,username`,
+`/{user}/threads_publish`, `/{post}/replies`, `/{post}/insights` — so there is no
+Threads equivalent of the `business_management` question. That is the good
+outcome, and it is not the point: nothing would have noticed if one of those
+call sites disappeared, which is exactly the condition that produced §98.
+
+Now pinned the same way, tamper-verified by renaming the replies endpoint, which
+fails `threads_manage_replies has a live call site` and nothing else.
+
+**The experiment is now stated per scope rather than generically.** §98 said
+"reconnect with the scope withheld", which reads as one test. It is two:
+`pages_read_engagement` is settled by whether `/me/accounts` still returns the
+`instagram_business_account` edge, `business_management` by whether the connect
+and self-test complete at all. Both are one OAuth round trip, cost nothing, and
+need no App Review — and both remain unrun, because a failed reconnect leaves a
+live account needing another.
+
+Neither scope removed. That has not changed and is not this file's call.
+
+## 126. Visual baselines that refuse to pass without one
+
+Playwright writes a missing snapshot and reports a **pass**. That is the whole
+problem with snapshot suites in a codebase built around "never verified is not
+passed" — the first run of a new baseline is a check that did not happen,
+reported green.
+
+So `e2e/visual.spec.ts` is gated behind `HALYARD_VISUAL=1`, is not in the
+default suite, and **throws when a baseline is missing** rather than creating
+one. Writing requires a second explicit flag. Tamper-verified twice: once when
+written, and again after `testInfo.snapshotPath` replaced a hand-built path,
+because §118's lesson is that changing what a check looks at invalidates the
+last tamper — and it did, the first version reported every baseline missing.
+
+**Six images, three pages, and that is deliberate.** Only `/privacy`, `/terms`
+and `/data-deletion` qualify: static prose with no dates, counts or provider
+data, verified by reading the sources rather than assumed. Everything else needs
+seeded fixtures and a frozen clock — the Daily Take renders live Hacker News,
+the sidebar carries a badge count, sources say "polled 20h ago". A suite that
+fails for those reasons is one people learn to ignore.
+
+`/signin` was captured, reviewed, and **removed**. Looking at the image showed it
+had recorded "Supabase Auth is not configured on this deployment" — a fact about
+this laptop, not about the page, and one that would fail on any real deployment.
+It was only caught by opening the file, which is the argument for this entry.
+
+**They are candidates, not baselines, and the docs say so.** Opening one also
+showed the Next.js dev indicator sitting in the middle of the page; a `mask` on
+`nextjs-portal` did not remove it, because the control mounts late and outside
+the normal element tree. Combined with platform-specific font rendering and
+capture against `next dev` rather than a production build, that is three reasons
+these images are not yet trustworthy. `docs/VISUAL_BASELINES.md` lists all three
+and what would fix them.
+
+Claiming these as verified would have been the easiest lie available this run: a
+green suite, six committed images, and nothing behind them.
+
+## 127. The reachability sweep, with SQL included this time
+
+65 tables, cross-referenced against every writer and reader in `apps`,
+`packages` and `scripts`, and separately against `supabase/` so a seed counts as
+a producer. That last part is what previous sweeps missed, and it changes two
+answers.
+
+### Dead: created, never used
+
+| Table | Created | Status |
+|---|---|---|
+| `submissions` | 0007 | **Superseded** by `review_submissions` (0016) and never dropped. The newer table is the one every screen uses. |
+| `product_artifacts` | 0011 | No writer, no reader, referenced only by generated types. |
+| `connector_calls` | 0011 | Same. |
+| `hook_experiments` | 0012 | Same. |
+| `format_cadence` | 0012 | Seeded with three rows and read by **nothing**. The cadence that actually governs is `DEFAULT_CADENCE` in `scheduling/cadence.ts`; the table duplicates it in a place no code looks. |
+
+**None dropped.** A migration that drops a table is irreversible against
+production data, and "no reference in this repository" is the beginning of that
+argument rather than the end of it. Recorded for a deliberate decision.
+
+### Producerless consumers — read by real screens, written by nothing
+
+**`series`.** `/series` renders it and `/api/export` exports it. The only
+`insert` anywhere is `supabase/seed.sql:198`. So the Series feature shows demo
+rows and offers no way to create one — the same shape as `ideas` before
+`proposeFromSignals` was wired, and invisible to a scan that does not read SQL.
+
+**`voice_lexicon`.** `tts.ts:108` reads it before every synthesis, and the only
+writer in the repository is a *test*. That would be a quiet gap except that
+`deliveryQC.ts:199` tells the operator, in a finding they will actually see:
+*"Add the term to voice_lexicon with a phonetic spelling and the next synthesis
+gets it right."* There is no screen, action or script that lets them. The gate
+diagnoses a mispronunciation correctly and then prescribes something impossible.
+
+**Reported, not built.** Both need a product surface — where a series is created,
+where a lexicon term is added — and inventing one is the thing this run is not
+for. The minimal honest alternative for `voice_lexicon`, if the UI is not
+wanted, is to change the fix text to name the real remedy.
+
+### Known and unchanged
+
+`compose_sessions` (read by `/compose`, written by nothing) is already stated in
+that page's own comment. `platform_requests` has a reader and a purge and no
+writer — §81, unchanged and deliberate. `shipped_features` is empty because its
+agent is blocked on a repository RecipeFix does not have — §125's neighbour.
+
+## 128. The brand colour, solved twice wrong before it was solved
+
+The proposed fix for the palette was `#9e5b3c`. It is not sufficient, and the
+way that was established matters more than the value.
+
+Calculated against surface and white-on-fill it clears 4.5:1 comfortably. Run
+through axe it still failed on `sunk` (4.33) and on the product chip's own 10%
+tint (4.45) — the chip that renders in the sidebar on every screen, and the
+single largest source of violations. The second candidate, `#98583a`, cleared
+those and axe *still* found one pair at 4.37: the chip composited over `canvas`,
+a background no hand calculation had thought to list.
+
+`#8c5035` was solved against the backgrounds axe actually measured and then
+confirmed by re-running it. `--color-primary-dark` moved to `#824b31` because
+the old hover value was *lighter* than the new primary and would have inverted
+the interaction.
+
+**The exemption is gone.** `e2e/accessibility.spec.ts` allowed contrast
+violations whose measured colour was the old brand hex; there is nothing to
+allow now, so the rule is absolute. Tamper-verified by reverting the token,
+which fails with the original 3.13:1 on the chip.
+
+Two more defects surfaced when a 45-route sweep was run rather than the spec's
+13: `/brain/evidence` used `text-warn` as body text — a badge colour at 2.49:1,
+when `--color-warn-ink` exists for exactly this at 4.51 — and `/products/new`
+dimmed unreached wizard steps to 2.35:1, the same redundant-opacity mistake §113
+found on templates. Both routes joined the durable spec, and the tamper was
+re-run there too.
+
+**Zero accessibility violations across all 45 routes at both widths.**
+
+## 129. Three jobs that were never scheduled, and one that was already running
+
+§121 reported `generate`, `collect_attribution`, `digest_email` and
+`verify_flows` as driven by nothing. One of those was wrong, and the correction
+is the useful part: `verify_flows` enqueues a `capture` job in verify mode, and
+`scheduler.ts` **already runs exactly that weekly**. The capability was never
+unscheduled; only the duplicate cron name is unused. A finding that names a
+working system as broken is worse than no finding, and it came from comparing
+three lists by name instead of by what they do.
+
+The other three were real.
+
+**`generate` is now daily.** Every description of Halyard says drafts arrive
+daily and the queue's own empty state promises it, but the job was enqueued only
+by the launch batch, a queue action and campaigns. Scheduling it is safe because
+the operator already owns the switch: `generate` reads
+`settings.generation_enabled` and returns when it is off, `/settings` toggles
+it, the onboarding gate refuses to run before the wizard is finished, and §120's
+claim-before-spend means a retry cannot buy the same adaptation twice. A first
+pass through the greps suggested that setting was read by nothing but the page
+that renders it — a truncated result, corrected by looking again.
+
+**`collect_attribution` is now daily.** It no-ops cleanly without App Store
+credentials rather than failing, so scheduling it costs nothing today and starts
+working the day credentials exist.
+
+**`digest_email` was a declared kind, a cron task, and two settings columns with
+no handler at all.** `handlerCoverage.test.ts` recorded it as knowingly
+unhandled, which was honest bookkeeping for a hole that stayed open. Now built:
+counts an operator would act on, read from tables rather than narrated; skipped
+entirely on a quiet day, because a message that says "nothing needs you" every
+morning trains someone to ignore the one that matters; and recorded as a
+notification when no email provider is configured, so the absence of Resend
+costs the delivery rather than the content.
+
+The exemption list it lived in is gone, replaced by the invariant it was
+standing in for: nothing the scheduler enqueues may lack a handler, derived from
+`HANDLERS` rather than hardcoded. Tamper-verified by unregistering the digest.
+
+## 130. Pronunciation, and a unique constraint that was not unique
+
+`voice_lexicon` was read before every synthesis and written by nothing but a
+test, while the delivery gate told the operator — in a finding they see — to
+*"add the term to voice_lexicon"*. The gate diagnosed correctly and prescribed
+something impossible.
+
+Built: `/settings/pronunciation`, with add, correct, remove and the hit count,
+plus the audit entries. The gate's fix text now names the screen instead of the
+table.
+
+**And building it found a real schema defect.** The table carries
+`unique (product_id, term)` and `product_id` is nullable so a term can be
+global. Postgres treats NULLs as distinct, so `(null, 'tamari')` does not
+conflict with `(null, 'tamari')` — the constraint that looks like it prevents
+duplicates prevents them only for product-scoped rows. Two rows for one term are
+the same length, and `tts` substitutes longest-first, so which spelling won was
+whatever order the planner returned: the voiceover would say one thing today and
+another tomorrow with nothing to explain it.
+
+Found because an `on conflict (product_id, term) do update` silently inserted a
+second row instead of correcting the first. Migration 0036 adds a unique index
+on `(coalesce(product_id, ''), term)` and collapses the duplicates it found.
+
+## 131. Retention: a mechanism, still with no number
+
+0035 built `purge_operational_logs(interval)` with no schedule and no default,
+because the window is a product and legal question. That left a capability
+nobody could reach without opening psql.
+
+`settings.log_retention_days` is that window, and **null — the default — means
+keep everything**. That is the absence of a policy rather than a policy, and it
+is the correct state until someone chooses. A `purge_logs` job applies whatever
+is set, daily, and does nothing at all while it is null. `/settings` has the
+control, and setting it writes an audit entry.
+
+The three retentions stay separate, as asked:
+
+- **Operational** — jobs, notifications, agent runs, capability probes. Bounded
+  by the setting above. Live state is never eligible: a queued job and an unread
+  notification survive any window.
+- **Audit log** — never purged by this mechanism at all. What a human decided is
+  a compliance record, and the schema should not answer that question quietly.
+- **Sentry** — set in the Sentry project, not reachable from this codebase.
+  Named here so it is not assumed to be covered.
+
+## 132. Series is superseded, and the screen now says so
+
+`/series` renders rows only `supabase/seed.sql` creates. Nothing sets
+`content_items.series_id`, so the numbering, cadence and `next_sequence` in a
+carefully designed schema drive nothing.
+
+**Not built, deliberately.** Campaigns are the same idea, finished: a named run
+over a window, a creation surface, slots that enqueue `generate`, a worker
+handler, and a product-ceiling override for the window. Building series would
+duplicate that to satisfy a checklist.
+
+The screen now says it plainly — series cannot be created, what is listed came
+with the starter data, and a campaign does the job today. The open decision is
+whether open-ended numbering is worth having *on top of* campaigns, which is a
+product question rather than missing work.
+
+## 133. The newsletter drafts for an audience of nobody
+
+`draft_newsletter` runs weekly. `subscribers` has no signup surface at all — the
+only writer in the repository is the unsubscribe route — so the audience is zero
+and every run produced an issue in `pending_approval` that could not be sent to
+anyone.
+
+Guarded: no confirmed subscribers, no issue. An unconfirmed row does not count,
+because `send_newsletter` filters on `confirmed_at` and could not send to one
+either. The drafter resumes on its own the moment a subscriber exists.
+
+Cheap rather than free — `composeNewsletter` is deterministic and spends no
+model credits — so this is about not filling the operator's approval queue, not
+about money. Its first tests came with the guard; it had none before.
+
+**Whether Halyard runs a newsletter is untouched.** The schema anticipates
+signup via the link-in-bio page (`source` defaults to `link_in_bio`), and
+building that means email capture plus double opt-in, which needs Resend. No UI
+promises a newsletter today, so there is no stale claim to remove — the feature
+is coherently dormant, and the decision is a business one.
+
+## 134. The one public surface could be made to throw
+
+`/r/[id]` is the only unauthenticated route in Halyard, and its own comment says
+it "never fails closed" — a missing item, an unconfigured product or a malformed
+id all land on a homepage rather than an error.
+
+One path did fail closed. `routeClick`'s bot branch passes
+`webBase ?? destinations.web ?? ''` into `withParams`, which calls `new URL('')`
+— and that throws. A preview crawler is exactly who reaches it: every link
+shared on X or Facebook is fetched by one, and any `utm_*` parameter is enough
+to enter the branch. A product with no web destination configured would answer
+a link-preview fetch with a 500.
+
+`withParams` now returns the base unchanged when it is not a URL, which lets the
+route's existing "no destination" answer handle it — a 404 naming what to
+configure rather than a stack trace shown to whoever clicked.
+
+Also checked while there, and clean: the destination always comes from the
+database, incoming parameters are only ever *added* to it and never replace the
+host, and the id is validated before the query. There is no open redirect.
+
+## 135. My own retention purge could never delete a notification
+
+§123 made only *read* notifications eligible, on the reasoning that an operator
+who has not looked yet is owed the message. The reasoning is sound. The
+predicate was inert: **nothing in Halyard has ever set `read_at`**. There is no
+dismiss control and no code writes the column — the health screen simply renders
+the twenty most recent.
+
+So `read_at is not null` matched nothing at any window, and notification
+retention was a setting that did nothing. A protection that cannot fire is worse
+than none, because it reads as coverage — and this one was written, tested and
+documented three passes ago by me.
+
+Migration 0038 purges by age. The operator's guard against losing something they
+have not seen is the *length* of the window they chose, which is a real control
+on `/settings`, rather than a flag nothing sets. Live rows elsewhere are still
+protected and `audit_log` is still never purged.
+
+The alternative — marking notifications read when displayed — was rejected: it
+would make "read" mean "was briefly in a list of twenty" and invent an inbox
+this product does not have.
+
+## 136. Forty-eight tests passed while a live refresh token stayed in the database
+
+`disconnect.test.ts` drives `disconnectAccount` with a **stubbed** query
+function. Its `ERASED` constant is what the stub returns, so the suite proves
+the read-back logic reacts correctly to a row that is already erased — and never
+runs the UPDATE that does the erasing.
+
+Deleting `refresh_token_enc = null` from that statement left all 48 tests green.
+
+This is the most consequential vacuous test found so far, because `/data-deletion`
+is a **public page** that tells a platform reviewer Disconnect "removes the
+encrypted access and refresh tokens, the recorded permissions, the identity
+confirmation, and discards any credential staged mid-reconnect". Nothing
+verified the sentence.
+
+`disconnectDb.test.ts` now runs the real statement against a real Postgres and
+asserts each clause of that promise, including that no ciphertext survives
+anywhere in the row and that the staged copy in `pending_connections` is gone.
+The read-back guard is exercised with a trigger that quietly restores the token,
+which is the failure it exists for — a policy or rule leaving the credential in
+place while the call returns cleanly.
+
+Re-running the original tamper now fails four tests instead of none.
+
+The lesson generalises: a stub proves the caller's logic, never the SQL. Only
+two test files in the repository stub a query function, and the other one stubs
+a *model*, which is correct.
+
+## 137. A column the screen displayed and nothing ever wrote
+
+Building the pronunciation surface (§130) added a "used" column from
+`voice_lexicon.hit_count`. Looking at the rendered page showed every row at
+zero — and nothing in the repository had ever incremented it, since 0007.
+
+It is the only signal for whether a pronunciation earns its place or was added
+once for a word that never recurs, so `tts` now counts the terms a script
+actually used. `lexiconTermsUsed` is a separate pure function rather than a
+change to `normaliseForSpeech`, which has a settled signature and its own tests,
+and it matches exactly the way the substitution matches — same escaping, same
+case-insensitivity, longest-first — so the count cannot claim a hit the
+substitution did not make.
+
+Counting never fails the synthesis: the audio is the job, the tally is
+bookkeeping.
+
+Found by opening the screenshot of a page I had built the same night. Neither
+typecheck, lint, nor any test would ever have reported it.
+
+## 138. Twenty environment variables the code read and nothing documented
+
+A two-way diff of `process.env.X` against `.env.example` found twenty variables
+read by shipped code and listed nowhere — including
+**`META_WEBHOOK_VERIFY_TOKEN`**, which is a step in the activation runbook and
+which the webhook route refuses the handshake without. A fresh clone or a new
+deployment had no way to learn it existed except by reading the route.
+
+Also missing: `NEWSLETTER_FROM` (digest and newsletter both refuse to send
+without it), the Explorer's sign-in credentials, the App Store attribution set,
+and `HALYARD_DEV_UNAUTHENTICATED` itself.
+
+The reverse direction was mostly false positives — OAuth client ids and secrets
+are read as `process.env[env.id]`, dynamically, and are documented. One was
+genuinely stale: `ALERT_EMAIL`, superseded by `settings.alert_email`, which is
+what the digest reads.
+
+`envDocumented.test.ts` now asserts both directions and is tamper-verified.
+Commented entries count as documented — `# FOO=` is a deliberate statement that
+FOO exists and is optional.
+
+## 139. A server action that existed for a caller that never needed it
+
+`shareTokenFor` was exported from a `'use server'` file "so the detail screen
+can say whether a share link is even possible". The detail screen calls
+`extractShareToken` directly — it is a server component, and a pure function
+needs no round trip.
+
+So the export was an unused **POST endpoint**. Every export from a `'use server'`
+file is callable by anyone who can reach the app, which is why the 82-action
+auth audit exists at all. Removing it removes a surface rather than a
+capability, and the file records why so it is not re-added for the same reason.
+
+The only orphan among 82 server actions, found by checking each export for a
+caller outside its own file.
+
+## 140. Novelty was claimed for ideas nobody measured
+
+`noveltyScore` collapsed two different situations into one answer:
+
+```ts
+if (!candidate || recent.length === 0) return 1;
+```
+
+Only one of them deserves a 1. **Nothing to compare against** is a real
+measurement with a real answer — the first idea in a corpus is genuinely novel.
+**No embedding** is not a measurement at all, and returning 1 claimed maximum
+novelty for something nobody looked at.
+
+Three lines below, `historicalConversion` states the rule the same file was
+breaking: `?? 0.5`, *"the honest neutral"*.
+
+### Why it mattered twice
+
+**Ranking.** Nothing writes `ideas.embedding` — the column exists, `scoreIdeas`
+reads it, and no producer was ever built. So every idea took the unmeasured
+branch and the constant cancelled out. It stops cancelling the moment one idea
+has an embedding: an unmeasured idea would score a perfect 1 against a measured
+one scoring 0.7, and **unmeasured would outrank measured** — the failure this
+codebase is built around, latent and waiting for the day someone adds
+embeddings.
+
+**Explanation, and this one was live.** `explanation` is rendered on `/ideas` as
+the reason an idea was chosen. At cold-start weights novelty contributed a flat
+`1.0 × 0.20 = 0.20` — frequently the single largest term — so the screen told
+the operator **"novelty 20%"** about an idea whose novelty nothing had compared.
+A neutral is an honest number to score with and a dishonest one to cite as a
+reason.
+
+Fixed on both counts: the unmeasured branch returns `NOVELTY_UNMEASURED` (0.5,
+matching the neighbouring convention), and `scoreIdeas` excludes unmeasured
+factors from the explanation.
+
+### The test asserted the defect
+
+`expect(noveltyScore(undefined, [[1, 0, 0]])).toBe(1)` pinned the wrong answer
+in place. Corrected rather than deleted, with the reasoning recorded next to it,
+and joined by the case it was missing — an empty corpus, which really is a 1.
+
+### The first tamper passed, and that was the point
+
+Neutering the explanation filter left all 48 tests green. The fixture used the
+default candidate, where lowering novelty from 1.0 to 0.5 had *already* pushed
+it out of the top two — so the test was measuring the score change, not the
+filter. Rebuilt against an over-served category with no renderable template,
+where the 0.10 novelty term is the largest one left and the filter is the only
+thing keeping it out of the explanation. The tamper then failed correctly.
+
+§118 says to re-run a tamper after changing what a check looks at. This is the
+same lesson arriving from the other direction: a tamper that passes is
+information, not a clean bill.
+
+### What was deliberately not built
+
+An embedding producer. `ideas.embedding` has no writer, which makes the cross-run
+semantic novelty check inert — but three other defences do work: exact-title
+dedup within a response, `recentTitles` passed into the generator prompt, and
+category cooldowns in `selectIdeas`. Adding embeddings means adding a provider
+capability and a recurring per-idea cost for a 0.2-weight ranking factor, which
+is an operator decision rather than a missing piece. Recorded as such.
+
+## 141. Model lock, and the parameter that would have 400'd every request
+
+The models are chosen. `claude-opus-5` for the eight workloads that either
+propose facts which get published or gate a public claim; `claude-sonnet-5` for
+the eleven drafting workloads; `claude-haiku-4-5` for the one that is
+classification rather than writing.
+
+### The blocker was a parameter nobody asked for
+
+`AnthropicLlmClient` sent `temperature: request.temperature ?? 1` on every call.
+Two things were wrong with that, and the second is why nothing would have run:
+
+- The `?? 1` supplies the API's own default, so twenty of the twenty-one agents
+  were sending a parameter that changed nothing.
+- **Claude Opus 5 and Sonnet 5 removed sampling parameters.** Sending one is a
+  hard 400. Every request to the models above would have failed, on a value no
+  caller had asked for.
+
+`temperature` is now sent only when a caller asked for one *and* the model takes
+it. `supportsSampling` is a list of models that **do** accept sampling rather
+than models that reject it, so the fail-safe direction is "omit": a model
+released after this line was written loses a non-default temperature instead of
+failing every request.
+
+One caller does ask — `generateProfileCopy` wants 0.8, and it now runs on Sonnet
+5, which cannot honour it. The parameter is dropped rather than sent, so the
+request succeeds at the model's default. The call site keeps expressing the
+intent, so it applies again if that work ever moves to a sampling-capable model.
+
+### Four agents were on the wrong tier and nothing said so
+
+Routing is by call site: a caller that omits `model` silently inherits the draft
+tier. That is how these ended up there.
+
+- **`take-drafter`** wrote the founder's opinion, published under their name, on
+  the volume model — while the fact-check gating it and the strengthener
+  following it both ran on strategy.
+- **`product-discovery`, `store-listing`, `code-intelligence`** propose facts the
+  Brain publishes as true. All three shared `propose()`'s default, which is
+  draft. `propose()` now takes a model and they name strategy; `visual-brand`
+  stays on draft, because a design language is description rather than a claim.
+- **`product-reconciler`** adjudicates which of two conflicting facts survives.
+  Three hundred tokens, and the last word — strategy.
+
+`payoff-verifier` moved the other way, to Haiku: "does this hook pay off in the
+body" is a verdict behind a gate, with no prose to get worse. Generation stays on
+Sonnet, because `openai.ts`'s benchmark shows a weaker model there fails QC and
+costs *more* after the retry.
+
+### The first tamper passed, again
+
+Neutering the sampling guard left all 11 tests green: they asserted
+`supportsSampling()` returned the right answers, not that the client consulted
+it. The predicate was tested; the behaviour was not.
+
+`buildMessageParams` is now a pure exported function returning the exact body
+sent to `messages.create`, so the question that matters — *is `temperature` in
+the outgoing request* — is assertable without a network call or an injected SDK.
+Re-tampered afterwards, per §118, and it fails correctly.
+
+### Untouched on purpose
+
+Vision stays on `gpt-5.5`: `vision.ts` describes only what is in the frame, and
+the coherence gate depends on the describer *disagreeing* with the script.
+Putting both on one provider would correlate them. TTS, music, Whisper,
+whisper.cpp, provider fallback, prompts, agent architecture, media architecture,
+and every approval and publishing boundary are unchanged.
+
+Pricing metadata covers all three models so `agent_runs.cost_usd` stays honest.
+Sonnet 5's introductory $2/$10 runs to 2026-08-31; the standard $3/$15 is used
+deliberately, because an over-estimate is the safer error in a spend report.
+
+## 142. One unconfigured account must not stop the others
+
+The first live generation run failed the whole job. The log said `instagram
+reports no supported formats`, and the `x` account — the only one that could
+have produced a publishable draft — was never reached, because Instagram sorts
+first and `NoUsableFormatError` was rethrown out of the per-account loop.
+
+With `JOB_POLICY.generate.maxAttempts = 2` that is not a bad day, it is a dead
+letter: daily generation stops for the product until somebody reconnects an
+account the error does not name.
+
+An account whose capabilities are unknown is a fact about **that account**. It
+is now logged and skipped. The guard itself is unchanged — that account still
+gets nothing generated for it, which is the point of it.
+
+Rejected: defaulting the format. A guess about what a platform accepts is what
+the guard exists to prevent, and a draft in a format the account cannot publish
+fails later, further from the cause.
+
+## 143. A hook that changes the post must be gated against the post it changed
+
+Two defects, both visible only once a real draft existed.
+
+`applyHookToBody` replaced the body's first *line*. X copy is one paragraph, so
+a 267-character post is a single line, and "replace the first line" replaced the
+entire post with its 35-character hook. The payoff — the half that carries the
+value and the half the gates measured — was deleted between QC and the queue.
+The opening of a single-paragraph post is its first *sentence*; a post that is
+one sentence has no payoff to keep, so the hook is refused rather than swapped.
+
+Then: the hook stage rewrites the body **after** `writeDraft` gates it, and
+generation stored the new text over the old one while leaving `qc_results`
+untouched. The approval screen showed a green QC computed on copy that no longer
+existed — gotcha 6 in a different hat. The live draft made the exposure concrete:
+the copy gate had already warned at 267 of 280 characters, so any hook longer
+than the sentence it replaced took the post past X's ceiling with the stored
+verdict still reading "passed".
+
+`regateHookedBody` now runs the gates on the hooked post and returns `null` when
+it fails, and the caller keeps the copywriter's opening. A better opening that
+cannot be published is not better.
+
+## 144. Whisper was returning tokens, and the audio gate was measuring them
+
+The first real voiceover scored a 29.4% word error rate against speech that was,
+on listening, word-perfect. Two causes, neither in the audio.
+
+`--max-len 1` bounds a segment to one *token*, and whisper's tokens are sub-word
+pieces: the transcript read `Your g ummy bread isn 't under cooked` and
+`sh ag gy`. `--split-on-word` is the documented flag for what both callers
+already assumed. The audio gate was one reader; the caption cues were the other,
+and they would have put "g" and "ummy" on screen as separate cards.
+
+The rest was orthography. `normaliseForSpeech` spells the script's numerals out
+before synthesis and whisper writes them straight back as digits, so "four
+hundred fifty degrees" was scored against "450 degrees" as three substitutions.
+WER compares what was *said*; `tokenise` now spells numerals out on both sides.
+A mispronunciation still scores, because the words still have to match.
+
+Live result on the same audio: **29.41% → 1.18%**, under the 2% limit. What
+remained was a genuine finding the gate should make — 178 words per minute,
+outside the 140–175 band — which is the gate doing its job.
+
+`whisperArgs` is exported so the flag is assertable: `transcribeWords` is mocked
+everywhere it is used, so nothing in 1,600 tests could have caught this.
+
+## 145. Captions say what the script says, at the times whisper heard
+
+A frame at 9.56 seconds read **"Keep the rice short, 60 to 90 minutes."** The
+script says "Keep the rise short, sixty to ninety minutes." Caption text was
+taken verbatim from the transcript, so a mishearing was burned into the picture,
+and whisper's digits with it — and digits are not even an error, they are just
+how it writes.
+
+The script is ground truth; the transcript is not. Whisper is here for *timing*,
+which is the one thing the script cannot supply. `alignToScript` aligns the two
+and keeps each side's contribution: the script's spelling, whisper's clock.
+Words whisper never heard inherit the neighbouring span rather than vanishing.
+
+It anchors to `vo_script` and not to the normalised script: the latter carries
+lexicon terms swapped for phonetic respellings. "ZAN-thun" is the correct thing
+to say and the wrong thing to print. The gates still read the transcript,
+because measuring what was heard is the entire point of them.
+
+Placed in `apps/worker/src/captions.ts` rather than in `@halyard/render`.
+Remotion webpacks `timing.ts` for the browser, and the numeral speller comes
+from `@halyard/core`, whose barrel reaches `node:crypto`. That import builds,
+typechecks, and passes every test — then fails at render time with
+`UnhandledSchemeError`. See gotcha 11.
+
+## 146. Product Understanding is source-agnostic; MCP is one optional source
+
+Halyard has one customer so far, and it had leaked into the architecture.
+`createConnector` branched on `product.id === 'recipefix'`, so a product with
+`connector_type: 'mcp'` and a perfectly good configuration fell out of the
+bottom of the function as `null` — and `null` is also what "no connector
+configured" returns, so the failure was indistinguishable from a choice.
+
+**MCP is now generic.** An MCP server is the one product surface that describes
+*itself*: a tool list, written by the people who built the product, is
+implementation truth in a way a landing page is not. Reading it requires no
+knowledge of the product, so `McpProductConnector` works for any of them.
+Product-specific artifact adapters are resolved by `connector_config.adapter`,
+falling back to the product id so existing rows keep working without a
+migration. RecipeFix is one entry in that registry rather than a branch.
+
+The split that makes this work: **evidence is generic, artifacts are
+product-specific.** `generateSample` on the generic connector throws, because
+knowing which tool produces the product's characteristic output and how to read
+it is exactly the knowledge a tool list does not contain. A product with an MCP
+server and no adapter still gets Halyard's richest evidence source; it just
+cannot yet build posts around its own output.
+
+**Source discovery** (`packages/core/src/brain/sources.ts`) replaces a chain of
+`if`s that told nobody what it concluded. Six sources — website, App Store,
+MCP, repository, screenshots, operator brief — each reporting whether it is
+configured and why. Every one is optional and none is privileged: a product with
+only a website is fully supported, and a second source is corroboration, which
+is what moves a fact from believed to verified.
+
+It answers *configured*, never *reachable*. That is gotcha 5 in a different
+table, so the UI pairs each source with what was last **observed** from it — the
+interesting case being a source that is configured and has produced nothing,
+which is what a wrong URL looks like and is invisible if you show only one of
+the two.
+
+Rejected: a `product_sources` table. Availability is a pure function of the
+product row and the environment, and storing a derived value creates a record
+that can disagree with the configuration it describes. Rejected too: a new
+onboarding step column — the evidence-sources step derives its state, so there
+is nothing to mark done and nothing to get out of sync.
+
+The agent team is unchanged. `code-intelligence` already read
+`connector_surface`; it simply never had any to read.
+
+## 147. Model calls are streamed, because one hung for eighteen minutes
+
+`store-listing` sat in `agent_runs` as `running` for eighteen minutes on a
+single call during the MCP activation run, holding a worker slot, until the
+process was killed. Nothing was wrong with the prompt or the model.
+
+A non-streamed request holds one HTTP response open for the entire generation,
+and §141 raised `max_tokens` to at least 16,000 on the thinking models — long
+enough that the connection is what fails. Anthropic's guidance is explicit:
+stream anything with long input, long output, or a high `max_tokens`.
+`finalMessage()` returns exactly the `Message` that `create` would have, so
+nothing downstream changed.
+
+Live result: the Product Brain build that hung now completes in **120 seconds**,
+ten agent runs, $0.29. An explicit five-minute client timeout was added with it,
+so a stall fails instead of occupying a slot indefinitely.
+
+## 148. A malformed call the tests could not see
+
+The first live generation against the real MCP server refused: `adapt_recipe`
+requires `dietary` to be an array of at least one string, and `generate` passes
+`params: sampleParams ?? {}` while nothing anywhere supplies `sampleParams`.
+Every real call had been sending `dietary: undefined`. The stubbed tests passed
+because a stub accepts whatever it is given.
+
+Inventing a recipe and a diet would be fabrication. RecipeFix already publishes
+the pairing: the Discover catalogue is a curated pool where each entry carries a
+real `source_url` **and** the `suggested_diet` the product itself pairs with it.
+The sample is chosen from that, and an explicit `url`/`text` plus `dietary`
+still wins. Selection is a stable hash of the intent, not a random pick, so two
+ideas get two recipes and a retry re-adapts the same one.
+
+The retry advances to the *next* candidate. Some catalogue entries cannot be
+scraped and the server answers non-2xx for them every time, so a second attempt
+at the same URL spends a second credit to learn what the first already proved.
+
+This is product-specific knowledge and it lives in the product-specific adapter,
+which is the boundary §146 exists to draw.
+
+## 149. Every real adaptation produced an empty artifact
+
+The live server returns `{ persisted, adaptation: {…} }`. The fixture every test
+was written against is the bare adaptation. `toArtifact` read `recipeName` and
+`ingredients` off the envelope, found neither, and built an artifact with **no
+highlights at all**.
+
+Nothing failed. The job succeeded, the item was queued, and the artifact behind
+it was empty — so no video composition could ever be chosen, and the claim
+verifier had no `sourcePath` to resolve against. Both the empty video path and
+the unverifiable claims had been read as separate problems for weeks.
+
+`unwrapAdaptation` accepts both shapes. Live result on the next run: the first
+video items Halyard has ever put in `pending_approval` — a real 1080×1920 render
+at −14.3 LUFS built from a real adaptation — and a claims gate reporting
+**5 of 6 verified against artifact** with paths like `steps[1].updated_note`.
+
+## 150. An unreachable source must not report itself as reachable
+
+Introduced and caught in the same session. `collectConnectorSurface` swallows a
+failed tool list and returns `[]`, which is correct for the collector — an
+unreachable server is not evidence about the product — but it left the handler
+unable to tell "answered with nothing" from "did not answer", and it logged a
+closed port as `reachable, advertised no tools`.
+
+The tool list is now fetched by the handler, so a failure reaches the `catch`
+and is reported as `unavailable — <reason>`. Verified against a closed port:
+the MCP source reports unavailable while website collection is unaffected, which
+is the requirement — a source that failed is not a product that lacks the
+capability.
+
+## 151. The media review stopped destroying what the voiceover measured
+
+`review_media` finished with `set qc_results = $2`, replacing the whole object
+with `{passed, gates, ranAt}`. `tts` stores the transcript, the delivery
+measurements and **the caption cues** under a sibling `audio` key, and every one
+of them was destroyed a few minutes after being measured.
+
+§119 fixed the *gate list* this way and left the object around it still being
+overwritten. The sharp end is captions: `loadVoiceover` reads
+`qc_results.audio.captions`, so any render after this point — a retry, a
+regenerate, a second platform — would burn a video with no captions onto an
+asset nothing else flags. It also cost this pass its evidence: the transcript
+behind a failing WER score was gone by the time anyone looked.
+
+Both write sites now merge. The first tamper of the guard *passed*, because the
+test reached a path that returns before writing; the test was rewritten to
+attach a still so a write actually happens, and the re-tamper fails correctly.
+
+## 152. The audio gate was measuring the transcriber, not the speaker
+
+A real video failed at **WER 2.3%** against a 2% ceiling, and the brief was to
+decide whether the ceiling was right rather than to move it.
+
+Five real voiceovers were measured. Four scored 0–1.08%; one failed at 2.94%.
+The diff, word by word, showed what the failures were made of: the script said
+`tradeoff`, the narration said "tradeoff", and whisper wrote `trade off`. Two
+errors against sixty-eight words, for a word that was pronounced correctly. The
+other run's only finding was a spurious `the`. Numerals were already reconciled
+by §144. And the same script that scored 2.3% scored **0%** on re-synthesis, so
+the number was never stable enough to move a threshold from.
+
+None of it is meaningful to a viewer. It is inaudible, it cannot reach the
+captions — those are anchored to the script since §145 — and it touches no
+product claim.
+
+So **the 2% ceiling is unchanged**, and what it measures is what changed.
+`reconcileWordBoundaries` fuses a token on one side that equals a run of tokens
+on the other, because that is the same utterance written two ways. A genuine
+mispronunciation still scores 40%, a wrong number still scores 25%, and a real
+inserted word still scores — measured, not forgiven. The failing video re-ran
+through the production path and its audio gate now reads **WER 0.0%**.
+
+Rejected: raising the ceiling. The evidence said the measurement was wrong, not
+the standard. Rejected too: replacing WER with a bag of separate rules — the
+aggregate is fine once it stops counting orthography.
+
+## 153. A link is not attached until it is known to be reachable
+
+§111 made *generation* refuse to build a link from an unset
+`HALYARD_PUBLIC_URL` and stopped there. An item drafted on a developer's machine
+carries `http://localhost:3200/r/…`, and nothing between that row and the
+platform looked at it again: no QC gate reads `link_url`, and the adapters treat
+it as opaque. The first real publication candidate carried exactly that.
+
+On X it is not only a dead link. The adapter's `linkStrategy` is `first_reply`,
+so the link buys a **second billed post** to carry it — the run would have been
+two posts, one of them a URL no reader can open.
+
+`publish` now refuses. Refused rather than silently dropped, for the reason §111
+gives: publishing the same post without its link changes what goes out, and that
+is the operator's call. Clearing `link_url` is how an operator makes it, and
+that is what was done for this pass, recorded in `audit_log`.
+
+## 154. The only destructive command could publish something nobody chose
+
+`first-contact --publish` is documented as refusing "to run without an explicit
+item id". It did not. `--platform=x` parsed with `=` while `--item` expected a
+following token, so `--item=<uuid>` — the spelling the sibling flag teaches —
+matched nothing and was dropped. `pickItem` then fell back to whatever sorted
+first.
+
+Observed, not theorised: a dry run naming one item printed a different one, an
+old 35-character post from the §143 hook defect. Neither confirmation would have
+caught it — one asks for the account handle, the other for the word PUBLISH.
+
+Both spellings are now accepted, and `--publish` refuses without an explicit id,
+which is what the header always claimed. The parsing moved to `scripts/args.ts`
+so it can be tested without the script's `pg` import, and `vitest.config.ts` now
+includes `scripts/**` — these are shipped code, and one of them spends money.
+
+## 155. A malformed job payload is a permanent failure, not a database error
+
+`collect_metrics` read `String(job.payload.publicationId)`, and `String(undefined)`
+is `'undefined'`, which reaches Postgres as a uuid and returns
+`invalid input syntax for type uuid: "undefined"` — a message about the database
+rather than about the job. It was then **retried**, spending the budget
+rediscovering a row that cannot become valid.
+
+Every sibling handler already had this guard. Now this one does too.
+
+## 156. Halyard's draft is authoritative; a platform's is a delivery outcome
+
+Three things get called "draft" and they ask an operator for three different
+things, so they are now three different states rather than one word.
+
+- A **native draft** is an object the *creator* sees in their own app and
+  finishes there. TikTok's inbox upload is the only one among these seven
+  platforms, and Halyard cannot publish it afterwards.
+- A **private upload** is real content on the platform, unpublished, which
+  **Halyard can still publish** over the API. YouTube's `privacyStatus: private`
+  is this, and `status.publishAt` even schedules it.
+- A **media container** — Instagram, Threads — is neither. The creator never
+  sees it, it expires after 24 hours, and it exists to be published seconds
+  later. Recording it as an unpublished upload would invent a capability.
+
+**The conflation was live.** YouTube returned `mode: 'draft'` for a private
+upload, so the queue told an operator to open Studio and finish a video that
+needed no finishing — while hiding that Halyard could have published it. It is
+`mode: 'private'` now, `publications.publish_mode` gained the value (migration
+0039), and `readDelivery` gives each outcome its own sentence.
+
+The dangerous half was one line in `publish`:
+`mode === 'draft' ? awaiting_manual_publish : published`. The moment a third
+outcome existed it would have been recorded as **published** — `published_at`
+stamped, the 90-day repost clock started, metrics collected against a private
+video. `statusAfterDelivery` inverts the polarity: only `direct` publishes, so a
+delivery capability added later fails closed instead of claiming a post that
+does not exist.
+
+`PlatformConstraints.delivery` is the registry, deterministic and per-adapter,
+with each flag carrying the documentation that justifies it. Every value is a
+claim about the **API**: a platform whose web UI offers drafts by hand is
+`false`. The matrix and its sources are in `PLATFORM_COVERAGE.md` §13.
+
+Rejected: a `native_deliveries` table. `publications` already stores
+`publish_mode`, `platform_post_id`, `permalink` and `manual_publish_url`, and a
+second home for the same facts is how two records of one delivery start
+disagreeing. Rejected too: a `native_draft` item status. Halyard's lifecycle
+answers "has a human approved this"; the platform's answers "what is over
+there". Collapsing them would let a native draft look like progress toward
+publication, which is exactly backwards — nothing publishes because a draft
+exists.
+
+## 157. An edit re-runs what can be re-run and un-verifies what cannot
+
+`qc_results.gates` is what the queue renders, and `editItem` left every entry
+untouched. So an operator could rewrite a post and the screen went on showing
+`copy: passed (0 flags)` and `claims: 2/2 verified against artifact` for words
+nothing had examined — §143 again, with the operator doing the rewriting.
+
+The two gates get different treatment because only one can be settled at edit
+time. The copy gate *is* the slop filter, which is deterministic and already
+runs on the new text, so it is **re-run**. The claims gate cannot be: the claims
+were extracted from the old wording and checked against the artifact, and
+whether they survive an edit is a question only a re-verification answers. It is
+marked `not re-verified since a human edit` rather than left green.
+
+Every other gate is returned untouched. Editing a caption does not un-measure a
+render, and blanking the visual verdict would mean re-rendering to get it back.
+
+`gatesAfterEdit` is pure and lives beside `runAllGates`, so the rule is
+assertable without a server action, a database or a session.
+
+## 158. Caption legibility is measured, not chosen
+
+Captions were `color: brand.ink` with a `brand.background` outline, fixed,
+whatever the composition put behind them. On a cream card that is legible — the
+frames prove it. Over a screen recording of a product, which is exactly what the
+capture path produces, it is black text with a pale halo on arbitrary pixels,
+and there is no value of "brand ink" that is readable on all of them.
+
+`captionStyle` decides from what is actually behind the words, and the rule is
+not a taste: **the result is guaranteed to clear WCAG AA at 4.5:1**. A test
+sweeps the colour cube and asserts it. Which brand colour is used, whether a
+plate appears and how heavy the type is all follow from that measurement.
+
+Two backdrops, because they are genuinely different problems. A **surface** has
+one known colour, so the brand's own ink and paper are measured against it and
+the better one wins; a plate appears only when neither clears the bar, which
+happens on mid-tones where an outline cannot rescue legibility either. **Media**
+has no single colour — it changes thirty times a second — so a plate is not
+optional there, and it inverts on dark footage so a caption over a dark UI does
+not become a bright slab.
+
+The palette is never left. A caption may change treatment; it may not become a
+colour the product does not own. An unparseable token resolves to mid-grey,
+which contrasts with nothing and therefore forces a plate — guessing white would
+produce a style that looks fine in the object and is invisible on the frame.
+
+Deterministic on purpose. The visual gate already has an independent critic, and
+a generator that graded its own contrast would be marking its own homework.
+
+Rejected: picking a new font and a brighter colour. The complaint was that
+captions looked poor, and the fix for that is not a nicer hardcoded style — it
+is a style that is correct for each backdrop, which is the thing the old one
+could not be.
+
+## 159. A moved attribute degrades a capture rather than ending it
+
+`aria-label="Choose your swap"` was, per the file's own header, "the one
+genuinely good hook" RecipeFix offered. It moved. Production then lost three
+capture jobs a day to `Selector [aria-label="Choose your swap"] did not
+resolve` — three attempts each, then dead, on a page that was working fine for
+humans.
+
+The answer is not a better guess at the markup, because markup moves. A step now
+carries `fallbackSelectors`: the same intent said several ways, ordered most
+durable first — a test id, then role and accessible name, then visible text,
+then structural CSS — and `resolveSelector` reports **which one answered**.
+
+That last part is the point. A flow running entirely on its last candidates is
+still producing footage *and* is a warning, and `selectorHealth` separates
+`drifted` from `broken` so the operator learns before the day it stops.
+
+Non-final candidates get a 2.5s probe rather than the step's full timeout.
+Trying four selectors at thirty seconds each is how a capture job hits the
+five-minute ceiling and dies for a reason that has nothing to do with the page.
+The final candidate keeps the real timeout: if everything else has drifted, that
+one *is* the step and deserves the full wait before it is called broken.
+
+The `data-testid` candidates lead the chains deliberately. They cost nothing
+while absent and become the durable hook the day RecipeFix adds them — which
+remains the right fix on that side, and is now an improvement rather than a
+prerequisite.
+
+## 160. The creative plan: how a story is told, decided before anything renders
+
+Halyard could already choose *what* to make — a format from `chooseFormat`, a
+composition from `chooseVideoComposition`. It could not decide *how the story
+should be shown*: which moment is the before, which is the change, what deserves
+to be held on.
+
+**Above `chooseVideoComposition`, not instead of it.** Composition selection asks
+which template can carry an artifact; the plan asks what the beats are and how
+long each one is. The plan's beats become `Scene[]` — the shape `layoutScenes`
+has always taken — so it drives the existing timing engine rather than a second
+one. A second timing system would be a second set of rounding bugs.
+
+**No agent, and that is the decision, not an omission.** Every judgement here is
+a fact about the artifact or arithmetic over it: a `swap` highlight carrying both
+a `before` and an `after` **is** a transformation. Beat order, weights and
+durations are structure. A model that chose its own emphasis and then rendered it
+would be grading its own work, which is precisely what `review_media` stays on a
+different provider to prevent.
+
+**Product-agnostic by construction.** The planner reads `Highlight` and nothing
+else — no product vocabulary, and a test asserts a non-RecipeFix artifact plans
+identically. Anything that needs to know what a swap *means* stays behind the
+adapter, per §146.
+
+`planBeforeAfter` returns `null` when the artifact contains no transformation.
+That refusal is the important part: an artifact with nothing that changed cannot
+be told as a before/after, and the composition falls back to its old flat layout
+rather than rendering an empty stage.
+
+Live result on a real MCP adaptation: five beats — a quick hook, the
+best-explained change **held** at three times the hook's weight, two more changes
+as corroboration, then a `proof` beat carrying the change's own reason. Evidence
+resolves to real artifact paths (`ingredients[3].changeReason`). The `proof`
+scene did not exist before; it is the plan visibly changing the render.
+
+Extension is a planner function and a `CreativeType` case, not a new
+architecture. Platform differences already work through the same seam — the
+number of changes shown is capped per platform, because a 9:16 frame fits about
+three pairs before the bottom lands under the platform's own UI.
+
+## 161. An item that has a voiceover and cannot read it fails loudly
+
+This looked like a defect worth fixing: captions vanished whenever the audio
+bytes could not be fetched, because `loadVoiceover` returned `null` and the
+caller reads `audio?.captions`. A silent caption-led cut is something this
+file's own header calls "a legitimate state", so the coupling appeared to make a
+legitimate outcome unreachable.
+
+It is the wrong reading, and the code already said so. `readAssetBytes` throws on
+the Supabase path for exactly this case, with its reason written down:
+*rendering would otherwise produce a silent video from an item that has audio*.
+The local fallback returned `null` instead — so the same broken state failed
+loudly in production and degraded quietly on a laptop.
+
+The defect was the **inconsistency**, not the coupling. `loadVoiceover` now
+throws when a voiceover asset exists and cannot be read, naming the asset. The
+legitimate silent cut is unaffected: an item with no `vo_asset_id` returns `null`
+before any of this and renders silently, as designed.
+
+Not changed: `readAssetBytes` itself, which the music-bed path also uses and
+where `null` correctly means "no bed available".
+
+## 162. A creative type is a map from role to treatment, not a branch
+
+`TransformationDiffVideo` drew beats through `if (beat.role === …)` inside
+itself, so a second creative type meant either editing that file or copying its
+sequencing, timing and caption wiring into a new one. The first makes one
+composition the home of every creative type; the second forks the timing engine.
+
+The seam is a **treatment set** — `Record<role, React.FC>`. Sequencing, the
+`Scene[]` layout and the captions live once in `PlannedBeats`; a composition
+supplies only the mapping. A future `tutorial` maps `step` to a numbered
+instruction and `result` to the existing transformation card, and the
+transformation file is never opened. A test asserts exactly that, by building a
+tutorial-shaped set without importing anything from `compositions.tsx`.
+
+A role with no treatment renders **nothing**. A beat drawn by a component that
+was not written for it is worse than a beat omitted.
+
+What deliberately stays out: which beats exist, in what order, and for how long.
+That is `CreativePlan` (§160), decided from artifact facts before anything
+renders. This file only knows how to draw a beat it is handed.
+
+### Emphasis became visible
+
+`hold` and `quick` were spent entirely on duration, and on a muted phone a
+merely-longer scene is close to imperceptible — so the hero transformation was
+not perceptibly the hero. `scaleFor` derives a type scale from the same value,
+so size and duration cannot drift apart. Bounded to 0.92–1.18: a hierarchy cue,
+not a licence to overflow the safe area.
+
+### Two layout defects, both found by looking at frames
+
+**Percentage padding resolves against width.** `paddingBottom: '28%'` on a
+1080×1920 frame reserves 302px, not the 538px it reads as — so the first render
+through this seam put the caption straight through the reason text. The band is
+now computed from `useVideoConfig().height`. This is the kind of defect no test
+asserting "the composition rendered" can catch.
+
+**The opening was bottom-anchored like everything else**, leaving more than half
+the canvas empty above the only line a scrolling viewer reads. `anchorFor`
+centres the hook and bottom-anchors the rest, so ordinary beats sit directly
+above the captions and the eye travels down one block. Role-driven, so a future
+type inherits it.
+
+### Remaining, and not hidden
+
+The composition is still type on a flat brand ground, and a short beat leaves
+real empty space above it. The honest fix is product media in that band — a
+capture-backed treatment setting `captionBackdrop: 'media'`, which §158 already
+supports — not decoration. Inventing UI to fill the frame is the thing the slop
+filter exists to prevent, applied to pixels.
+
+## §163 — Real product footage in the frame
+
+§162 ended with the honest note that the composition was still type on a flat
+ground, and that the fix was product media rather than decoration. This is that
+media: a `demo` beat playing a real recording of RecipeFix adapting a recipe,
+cut from a live capture, wired through the existing plan → treatment → timing →
+caption path. Nothing about the visual story is drawn; every frame in the band
+is a frame that was recorded.
+
+### A recording is not footage
+
+The first capture ran fifty seconds, of which roughly ten were the product doing
+anything — the rest was a sibling flow stalled on a selector that no longer
+exists. `footageSpansFor` decides deterministically which parts are worth
+watching, from measured step offsets rather than step names, and `cutFootage`
+trims and joins them. Cutting rather than speeding up is deliberate: a speed
+ramp over a spinner is still a spinner, and §159 rejected a synthetic progress
+overlay for the same reason.
+
+Three rules came out of cutting real footage rather than reasoning about it:
+
+**Spans are plural.** The result card appears *during* the adaptation wait, so a
+single span either shows three seconds of spinner or cuts away before the result
+exists. An elision is two spans joined.
+
+**Filter by action, not by name.** `let the result settle` reads nothing like a
+wait; its action is exactly that. Names are prose an author chose; actions are
+the flow contract.
+
+**The wait after an elision is the payoff.** Dropping every wait meant the
+adapted result was never on screen — the piece showed the setup and then a
+400ms flash of an ingredient expanding. A wait following an elided step is held.
+
+### The refusals
+
+- No capture produced footage → no `demo` beat. The planner never goes looking
+  for a file, never falls back to a previous capture, and never names one.
+- A `demo` beat whose `media` is missing renders **nothing**. Not a placeholder,
+  not a mock interface, not a drawn approximation of a state nobody recorded.
+- A `footage:` tag that does not parse is not footage. Nothing fills in a
+  default length or points at the bundle root.
+- Footage older than 30 days is not evidence. A capture is a claim about what
+  the product looks like, and the failure mode is silent — stale footage renders
+  perfectly.
+
+### Product knowledge stayed in configuration
+
+The whole product interface scaled to 1080 wide is unreadable on a phone, so the
+cut crops to a `focusRegion` before scaling — crop-then-scale, because scaling
+first leaves the interface at desktop size shrunk onto a phone. The *mechanism*
+is generic and lives on `CaptureFlow`; RecipeFix's numbers live in that flow's
+configuration, alongside its selectors. The label is `In the product`, which is
+true of every product; anything more specific would be product vocabulary inside
+the generic creative layer.
+
+### Three defects the tests could not have found
+
+**Remotion caches bundles by code and copies `publicDir` into them.** Footage
+written after a bundle exists is therefore never served: the code has not
+changed, the cache hits, and the render is handed the previous copy. The first
+footage render 404'd on a file that had been sitting on disk for ten minutes.
+The bundle now re-copies `public/` over the cached result, and `publicFingerprint`
+covers size and mtime — a recapture writes the same filename, so a names-only
+check would silently serve last week's product.
+
+**`minSeconds` is a floor, not a ceiling.** A held demo beat took 8.7s of a
+27.9s piece over 3.8s of footage, and Remotion froze the last frame for the
+difference — four and a half seconds of stillness presented as a demo. Scenes
+now accept `maxSeconds`, and the time a capped scene gives up is redistributed
+to the scenes that can use it. Emphasis says how *important* a beat is, which is
+right for a card, whose length is a choice, and wrong for footage, whose length
+is a fact.
+
+**The cap reached the render row and stopped there.** `PlannedBeats` mapped
+beats to scenes field by field and dropped `maxSeconds` silently. The re-render
+came back byte-identical — nothing threw, nothing logged. The mapping is now
+`beatScenes`, a function with tests, rather than an object literal inside a
+component.
+
+### Captions are decided once for the piece
+
+Only one beat is footage, so a per-beat caption backdrop would switch styles
+mid-video, which reads as two videos spliced together. A plan carrying footage
+uses §158's media plate throughout. Over a flat surface that is merely a
+stronger caption, and stronger is the safe direction to be wrong in.
+
+### What the render actually measured
+
+`visual` passed. `retention` warns at a 16.7s static stretch — which *begins
+where the footage ends*, so the capture beat is registering as the pattern
+interrupt it was meant to be, and the transformation cards that follow are not.
+`audio` fails on this item for reasons that predate footage: 5.5% WER and 195
+wpm. Those are properties of the voiceover, not of the creative.

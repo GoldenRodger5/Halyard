@@ -88,7 +88,13 @@ export async function confirmConnection(formData: FormData): Promise<void> {
            access_token_enc = excluded.access_token_enc,
            refresh_token_enc = excluded.refresh_token_enc,
            token_expires_at = excluded.token_expires_at,
-           scopes = excluded.scopes,
+           -- Never overwrite known permissions with an empty list. A reconnect
+           -- whose permission check failed carries no evidence, and replacing
+           -- real grants with nothing would report a working account as having
+           -- refused the publish permission.
+           scopes = case
+             when array_length(excluded.scopes, 1) is null then social_accounts.scopes
+             else excluded.scopes end,
            identity_confirmed_at = now(),
            identity_warning = excluded.identity_warning,
            duplicate_identity_ack = excluded.duplicate_identity_ack,

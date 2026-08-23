@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Badge, Card, PageHeader } from '@halyard/ui';
 import { getOnboarding, getProducts } from '@/lib/queries';
+import { getEvidenceSources } from '@/lib/brainQueries';
 import { query } from '@/lib/db';
 import { startCalibrationBatch, reviewCalibrationDraft, completeStep } from './actions';
 
@@ -21,7 +22,12 @@ export default async function OnboardingPage() {
       <main className="mx-auto max-w-3xl px-6 py-16">
         <Card className="p-8">
           <h1 className="font-serif text-3xl">No product yet</h1>
-          <p className="mt-2 text-sm text-muted">Apply the seed to configure RecipeFix.</p>
+          <p className="mt-2 text-sm text-muted">
+            Add a product first — everything here is scoped to one.
+          </p>
+          <Link href="/products/new" className="mt-3 inline-block text-sm text-primary underline">
+            Add a product
+          </Link>
         </Card>
       </main>
     );
@@ -44,10 +50,47 @@ export default async function OnboardingPage() {
     [product.id],
   );
 
+  const sources = await getEvidenceSources(product);
+  const connected = sources.filter((s) => s.configured);
+
   const reviewed = drafts.filter((d) => d.verdict).length;
   const target = onboarding?.calibration_target ?? 20;
 
   const steps = [
+    /**
+     * Evidence sources, shown first because everything downstream is built on
+     * whatever this finds.
+     *
+     * §146. Deliberately **not** gating, and deliberately not a
+     * `step_*_done` column. Its state is derived — a source is connected or it
+     * is not — so there is nothing for an operator to mark complete and no way
+     * for the record to disagree with the configuration. Every source is
+     * optional, and a product with only a website passes this step.
+     */
+    {
+      key: 'sources',
+      title: `Evidence sources — ${connected.length} connected`,
+      done: connected.length > 0,
+      derived: true,
+      body:
+        'What Halyard can read about the product. A website is enough to start. An MCP server, ' +
+        'a repository or a store listing are each optional, and each one that agrees with ' +
+        'another is what turns a belief into a verified fact.',
+      action: (
+        <div className="space-y-1">
+          {sources.map((source) => (
+            <p key={source.id} className="text-sm">
+              <span className={source.configured ? 'text-ink' : 'text-muted'}>
+                {source.configured ? '· connected' : '· optional'} — {source.label}
+              </span>
+            </p>
+          ))}
+          <Link href="/brain" className="inline-block text-sm text-primary underline">
+            Review what was found
+          </Link>
+        </div>
+      ),
+    },
     {
       key: 'ingest',
       title: 'Ingest the brief',
@@ -135,7 +178,7 @@ export default async function OnboardingPage() {
                 <p className="mt-1 text-sm leading-relaxed text-muted">{step.body}</p>
                 <div className="mt-3 flex flex-wrap items-center gap-3">
                   {step.action}
-                  {!step.done && step.key !== 'calibration' ? (
+                  {!step.done && !step.derived && step.key !== 'calibration' ? (
                     <form action={completeStep}>
                       <input type="hidden" name="productId" value={product.id} />
                       <input type="hidden" name="step" value={step.key} />

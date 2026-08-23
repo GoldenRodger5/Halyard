@@ -93,7 +93,7 @@ export default async function CalendarPage() {
                     </li>
                   ))}
                   {dayItems.length === 0 ? (
-                    <li className="text-xs text-muted/60">nothing</li>
+                    <li className="text-xs text-muted">nothing</li>
                   ) : null}
                 </ul>
               </Card>

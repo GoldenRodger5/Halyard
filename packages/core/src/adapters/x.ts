@@ -57,6 +57,13 @@ export const X_CONSTRAINTS: PlatformConstraints = {
   requiresReviewForPublicPosting: false,
   supportsTrendingAudioViaApi: false,
   costPerPostUsd: { withoutLink: 0.015, withLink: 0.2 },
+  delivery: {
+    nativeDraft: false,
+    privateUpload: false,
+    apiScheduling: false,
+    requiresCreatorCompletion: false,
+    note: 'POST /2/tweets publishes immediately: no draft, unpublished or scheduled parameter exists. (Articles have a separate draft endpoint; it does not apply to posts.)',
+  },
 };
 
 export class XAdapter implements PlatformAdapter {

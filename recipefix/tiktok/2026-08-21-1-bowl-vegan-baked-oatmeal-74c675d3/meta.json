@@ -1,0 +1,88 @@
+{
+  "id": "74c675d3-dc94-41be-a5cd-56c2147aa619",
+  "platform": "tiktok",
+  "format": "video",
+  "status": "pending_approval",
+  "category": "education",
+  "recipe": "1 Bowl Vegan Baked Oatmeal",
+  "title": null,
+  "createdAt": "2026-08-21T17:43:42.203763-04:00",
+  "linkUrl": "http://localhost:3200/r/74c675d3-dc94-41be-a5cd-56c2147aa619",
+  "qcPassed": true,
+  "gates": [
+    {
+      "gate": "copy",
+      "status": "warning",
+      "summary": "passed (1 warning)"
+    },
+    {
+      "gate": "claims",
+      "status": "warning",
+      "summary": "5/6 verified against artifact"
+    },
+    {
+      "gate": "destination",
+      "status": "skipped",
+      "summary": "no link"
+    },
+    {
+      "gate": "proof",
+      "status": "skipped",
+      "summary": "no quoted testimonial"
+    },
+    {
+      "gate": "visual",
+      "status": "passed",
+      "summary": "passed (0 warnings)"
+    },
+    {
+      "gate": "retention",
+      "status": "warning",
+      "summary": "failed — 18.6s with no visual state change. The ceiling is 15s."
+    },
+    {
+      "gate": "coherence",
+      "status": "warning",
+      "summary": "coherent, 3 notes across 6 frames"
+    },
+    {
+      "gate": "audio",
+      "status": "passed",
+      "summary": "WER 0.0%, 170 wpm, -14.3 LUFS"
+    }
+  ],
+  "claims": [
+    {
+      "text": "The flax egg needs the full five minutes to gel before it can bind the oatmeal.",
+      "source": "steps[1].updated_note"
+    },
+    {
+      "text": "This batch is scaled to four servings, about forty four percent of the original batch.",
+      "source": "explanations[2]"
+    },
+    {
+      "text": "The smaller batch and pan bake noticeably faster than the original recipe.",
+      "source": "steps[3].updated_note"
+    },
+    {
+      "text": "Start checking at twenty two minutes instead of thirty five to avoid overbaking.",
+      "source": "explanations[2]"
+    },
+    {
+      "text": "The center should look barely set when pulled and will firm up as it cools.",
+      "source": "steps[3].updated_note"
+    },
+    {
+      "text": "A runny, underrested flax egg won't hold the casserole together as well.",
+      "source": "steps[1].updated_note"
+    }
+  ],
+  "generation": {
+    "model": "claude-sonnet-5",
+    "costUsd": 0.223425,
+    "attempts": 3,
+    "inputTokens": 14850,
+    "outputTokens": 11925,
+    "promptVersion": "copywriter.v1"
+  }
+}

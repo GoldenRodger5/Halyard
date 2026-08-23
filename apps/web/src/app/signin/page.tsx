@@ -24,7 +24,7 @@ export default async function SignInPage({
   const sp = await searchParams;
 
   return (
-    <div className="mx-auto max-w-lg px-6 py-24">
+    <main className="mx-auto max-w-lg px-6 py-24">
       <Card className="p-8">
         <h1 className="font-serif text-3xl text-ink">Halyard</h1>
 
@@ -57,6 +57,6 @@ export default async function SignInPage({
           </>
         )}
       </Card>
-    </div>
+    </main>
   );
 }

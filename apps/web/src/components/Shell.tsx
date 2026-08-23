@@ -43,6 +43,7 @@ const NAV: Array<{ href: string; label: string; group: 'work' | 'plan' | 'config
   { href: '/templates', label: 'Templates', group: 'config' },
   { href: '/submissions', label: 'Submissions', group: 'config' },
   { href: '/settings/readiness', label: 'Readiness', group: 'config' },
+  { href: '/settings/pronunciation', label: 'Pronunciation', group: 'config' },
   { href: '/first-30-days', label: 'First 30 days', group: 'config' },
   { href: '/settings', label: 'Settings', group: 'config' },
   { href: '/agents', label: 'Agents', group: 'config' },
@@ -121,7 +122,7 @@ export function Shell({
           <nav className="flex-1 space-y-6 overflow-y-auto px-3 pb-6">
             {(['work', 'plan', 'config'] as const).map((group) => (
               <div key={group}>
-                <p className="px-2 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted/70">
+                <p className="px-2 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
                   {group === 'work' ? 'Today' : group === 'plan' ? 'Plan' : 'Configure'}
                 </p>
                 {NAV.filter((item) => item.group === group).map((item) => {

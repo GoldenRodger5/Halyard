@@ -84,6 +84,55 @@ export const RECIPEFIX_TOOLS: Array<{ name: string; required: boolean; gates: st
   { name: 'search_recipes', required: false, gates: 'idea seeding from real recipes' },
 ];
 
+/**
+ * The adaptation itself, whichever shape the server sent it in.
+ *
+ * §149. The live server returns `{ persisted, adaptation: {…} }`; the fixture
+ * these tests were written against is the bare adaptation. `toArtifact` read
+ * `recipeName` and `ingredients` off the envelope, found neither, and built an
+ * artifact with **no highlights at all** — so every real adaptation produced an
+ * empty artifact, no video composition could be chosen, and the claim verifier
+ * had nothing to resolve a `sourcePath` against.
+ *
+ * Nothing failed. The fixture-shaped tests passed, the job succeeded, and the
+ * queue filled with items built around a product artifact that was empty.
+ *
+ * Both shapes are accepted rather than picking one: the envelope is what the
+ * server sends today, and an unwrapped body is what it sent when the fixture
+ * was captured. Neither is worth a breaking change to detect.
+ */
+export function unwrapAdaptation(response: unknown): RecipeFixAdaptation {
+  const body = response as { adaptation?: unknown };
+  if (body && typeof body === 'object' && body.adaptation && typeof body.adaptation === 'object') {
+    return body.adaptation as RecipeFixAdaptation;
+  }
+  return response as RecipeFixAdaptation;
+}
+
+/**
+ * `dietary` must be an array of at least one string, per the tool's schema.
+ *
+ * A bare string is accepted and wrapped rather than rejected: it is the
+ * obvious thing for a caller to pass, and refusing it would fail a request
+ * that is unambiguous.
+ */
+function normaliseDietary(value: unknown): string[] {
+  if (typeof value === 'string') return value.trim() ? [value.trim()] : [];
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((v): v is string => typeof v === 'string')
+    .map((v) => v.trim())
+    .filter((v) => v.length > 0)
+    .slice(0, 10);
+}
+
+/** A deterministic index from a string, so the same intent samples the same recipe. */
+function stableIndex(seed: string, length: number): number {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
+  return hash % length;
+}
+
 export class RecipeFixConnector implements ProductConnector {
   readonly id = 'recipefix';
   private readonly client: Pick<McpClient, 'callToolJson' | 'listTools'>;
@@ -128,17 +177,98 @@ export class RecipeFixConnector implements ProductConnector {
    * One retry, then give up. A 75-second call that fails twice is a real
    * outage, and burning three attempts on it delays every other draft.
    */
+  /**
+   * The recipe and the diet to demonstrate, taken from the product's own data.
+   *
+   * §148. `generate` calls `generateSample({ intent, params: sampleParams ?? {} })`
+   * and nothing supplies `sampleParams`, so every live call sent
+   * `dietary: undefined` — and `adapt_recipe` requires an array of at least one.
+   * The live server refused it with a validation error, generation paused, and
+   * the product's whole video path had therefore never run against the real
+   * connector.
+   *
+   * Inventing a recipe URL and a diet would be fabrication. RecipeFix already
+   * publishes the pairing: the Discover catalogue is a curated pool where each
+   * entry carries a real `source_url` **and** the `suggested_diet` the product
+   * itself pairs with it. So the sample is chosen from real product data, and
+   * an explicit `params.url` or `params.text` still wins.
+   *
+   * Selection is a stable hash of the intent rather than a random pick: two
+   * different ideas get two different recipes, the same idea gets the same one
+   * on a retry, and nothing here depends on a clock. The pool rotates weekly on
+   * RecipeFix's side, which is where that decision belongs.
+   */
+  private async chooseSample(
+    spec: SampleSpec,
+    attempt = 0,
+  ): Promise<{ url?: string; text?: string; dietary: string[] }> {
+    const dietary = normaliseDietary(spec.params.dietary);
+    const url = typeof spec.params.url === 'string' ? spec.params.url : undefined;
+    const text = typeof spec.params.text === 'string' ? spec.params.text : undefined;
+
+    if ((url || text) && dietary.length > 0) return { url, text, dietary };
+
+    const discover = await this.client.callToolJson<{
+      recipes?: Array<{ source_url?: string; suggested_diet?: string; title?: string }>;
+    }>('get_discover_recipes', { scope: 'current_week' });
+
+    const pool = (discover.recipes ?? []).filter((r) => r.source_url && r.suggested_diet);
+    if (pool.length === 0) {
+      throw new ConnectorUnavailableError(
+        this.id,
+        'no recipe and diet were supplied, and the Discover catalogue returned nothing to ' +
+          'sample from. Nothing was adapted rather than adapting something invented.',
+      );
+    }
+
+    /*
+     * §148. The retry moves to the next candidate rather than re-adapting the
+     * one that just failed. Some catalogue entries cannot be scraped and the
+     * server answers non-2xx for them every time, so a second attempt at the
+     * same URL spends a second credit to learn what the first already proved.
+     * Same number of calls, and this one can actually succeed.
+     */
+    const chosen = pool[(stableIndex(spec.intent, pool.length) + attempt) % pool.length]!;
+    return {
+      url: url ?? chosen.source_url!,
+      ...(text ? { text } : {}),
+      dietary: dietary.length > 0 ? dietary : [chosen.suggested_diet!],
+    };
+  }
+
   private async adaptWithRetry(spec: SampleSpec): Promise<RecipeFixAdaptation> {
     let lastError: Error | null = null;
 
+    /*
+     * Choosing what to adapt is part of adapting, so it answers to the same
+     * contract: any failure here pauses generation rather than surfacing as a
+     * raw transport error that nothing upstream knows how to treat.
+     */
     for (let attempt = 0; attempt <= this.adaptRetries; attempt++) {
+      let sample: { url?: string; text?: string; dietary: string[] };
       try {
-        return await this.client.callToolJson<RecipeFixAdaptation>('adapt_recipe', {
-          url: spec.params.url,
-          dietary: spec.params.dietary,
-          servings: spec.params.servings,
-          notes: spec.intent,
-        });
+        sample = await this.chooseSample(spec, attempt);
+      } catch (err) {
+        if (err instanceof ConnectorUnavailableError) throw err;
+        throw new ConnectorUnavailableError(
+          this.id,
+          `could not choose a recipe to adapt: ${(err as Error).message}`,
+        );
+      }
+
+      try {
+        return unwrapAdaptation(
+          await this.client.callToolJson<unknown>('adapt_recipe', {
+            // `url` and `text` are mutually exclusive on the server, so only
+            // the one that was resolved is sent.
+            ...(sample.text ? { text: sample.text } : { url: sample.url }),
+            dietary: sample.dietary,
+            ...(typeof spec.params.servings === 'number'
+              ? { servings: spec.params.servings }
+              : {}),
+            notes: spec.intent,
+          }),
+        );
       } catch (err) {
         lastError = err as Error;
         if (attempt < this.adaptRetries) await this.sleep(5_000);

@@ -169,6 +169,90 @@ d('ttsHandler', () => {
     expect(Number(asset[0]!.duration_seconds)).toBeGreaterThan(3);
   }, 180_000);
 
+  /**
+   * §119. The verdict used to live only at `qc_results.audio`, which the queue
+   * does not render and which `review_media` later overwrote wholesale.
+   */
+  it('puts the audio verdict in the gate list the queue actually renders', async () => {
+    const id = await seedItem();
+    // The copy-time aggregate leaves an `audio: skipped` slot behind.
+    await pool.query(
+      `update content_items set qc_results = $2 where id = $1`,
+      [
+        id,
+        JSON.stringify({
+          passed: true,
+          gates: [
+            { gate: 'copy', status: 'passed', summary: 'fine', detail: null },
+            { gate: 'audio', status: 'skipped', summary: 'no voiceover here', detail: null },
+          ],
+        }),
+      ],
+    );
+
+    await ttsHandler(job(id), context(), { speech: speechStub(), music: null });
+
+    const { rows } = await pool.query<{
+      qc: { gates: Array<{ gate: string; status: string; summary: string }> };
+    }>('select qc_results as qc from content_items where id = $1', [id]);
+    const gates = rows[0]!.qc.gates;
+
+    const audio = gates.find((g) => g.gate === 'audio')!;
+    expect(audio.status).not.toBe('skipped');
+    expect(audio.summary).toMatch(/LUFS/);
+    // Exactly one audio entry — the placeholder is replaced, not duplicated.
+    expect(gates.filter((g) => g.gate === 'audio')).toHaveLength(1);
+    // Gates this stage does not own are left alone.
+    expect(gates.find((g) => g.gate === 'copy')!.status).toBe('passed');
+  }, 180_000);
+
+  it('survives an item whose gate list does not exist yet', async () => {
+    const id = await seedItem();
+    await ttsHandler(job(id), context(), { speech: speechStub(), music: null });
+    const { rows } = await pool.query<{ qc: { gates: Array<{ gate: string }> } }>(
+      'select qc_results as qc from content_items where id = $1',
+      [id],
+    );
+    expect(rows[0]!.qc.gates.map((g) => g.gate)).toEqual(['audio']);
+  }, 180_000);
+
+  /**
+   * §137. The pronunciation screen shows a "used" column and nothing ever
+   * wrote it, so every term read zero regardless of how often it fired.
+   */
+  it('counts a lexicon term that the script actually used', async () => {
+    await pool.query(`delete from voice_lexicon`);
+    await pool.query(
+      `insert into voice_lexicon (product_id, term, phonetic, hit_count)
+       values ('recipefix','Vinegar','VIN-uh-gar', 0)`,
+    );
+
+    const id = await seedItem({ script: 'Vinegar firms the crumb.' });
+    await ttsHandler(job(id), context(), { speech: speechStub(), music: null });
+
+    const { rows } = await pool.query<{ hit_count: number }>(
+      `select hit_count from voice_lexicon where term = 'Vinegar'`,
+    );
+    expect(rows[0]!.hit_count).toBe(1);
+  }, 180_000);
+
+  it('does not count a term the script never mentions', async () => {
+    await pool.query(`delete from voice_lexicon`);
+    await pool.query(
+      `insert into voice_lexicon (product_id, term, phonetic, hit_count)
+       values ('recipefix','quinoa','KEEN-wah', 0)`,
+    );
+
+    const id = await seedItem({ script: 'Vinegar firms the crumb.' });
+    await ttsHandler(job(id), context(), { speech: speechStub(), music: null });
+
+    const { rows } = await pool.query<{ hit_count: number }>(
+      `select hit_count from voice_lexicon where term = 'quinoa'`,
+    );
+    // A count that goes up regardless would be worse than no count.
+    expect(rows[0]!.hit_count).toBe(0);
+  }, 180_000);
+
   it('records the gate verdict, which has never had an input before now', async () => {
     const id = await seedItem();
     await ttsHandler(job(id), context(), { speech: speechStub(), music: null });

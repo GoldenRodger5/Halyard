@@ -58,7 +58,7 @@ export default async function AgentRunsPage() {
                 {run.duration_ms !== null ? ` · ${run.duration_ms} ms` : ''}
                 {run.cost_usd ? ` · $${Number(run.cost_usd).toFixed(4)}` : ''}
               </p>
-              {run.error ? <p className="mt-1 text-sm text-bad">{run.error}</p> : null}
+              {run.error ? <p className="mt-1 text-sm break-words text-danger">{run.error}</p> : null}
               <p className="mt-1 text-xs text-muted">
                 {run.downstream_consumed_at
                   ? `output used by ${run.downstream_consumer}`

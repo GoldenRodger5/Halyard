@@ -33,7 +33,9 @@
     "audit-halyard": "tsx scripts/audit.ts"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@eslint/js": "^10.0.1",
+    "@halyard/audit": "workspace:*",
     "@playwright/test": "^1.62.1",
     "@types/node": "^22.10.5",
     "eslint": "^9.18.0",
@@ -43,7 +45,6 @@
     "turbo": "^2.3.3",
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.66.0",
-    "vitest": "^2.1.8",
-    "@halyard/audit": "workspace:*"
+    "vitest": "^2.1.8"
   }
 }

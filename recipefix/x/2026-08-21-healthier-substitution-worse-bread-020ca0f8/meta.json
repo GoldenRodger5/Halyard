@@ -1,0 +1,58 @@
+{
+  "id": "020ca0f8-4a71-465b-9c7a-49914e1597d5",
+  "platform": "x",
+  "format": "text",
+  "status": "pending_approval",
+  "category": "founder_insight",
+  "recipe": null,
+  "title": null,
+  "createdAt": "2026-08-21T14:24:45.946087-04:00",
+  "linkUrl": "http://localhost:3200/r/020ca0f8-4a71-465b-9c7a-49914e1597d5",
+  "qcPassed": true,
+  "gates": [
+    {
+      "gate": "copy",
+      "status": "warning",
+      "summary": "passed (1 warning)"
+    },
+    {
+      "gate": "claims",
+      "status": "skipped",
+      "summary": "no claims to verify"
+    },
+    {
+      "gate": "visual",
+      "status": "skipped",
+      "summary": "no media here — measured after render, by review_media"
+    },
+    {
+      "gate": "audio",
+      "status": "skipped",
+      "summary": "no voiceover here — measured after synthesis, by tts"
+    },
+    {
+      "gate": "coherence",
+      "status": "skipped",
+      "summary": "nothing rendered to compare against the post"
+    },
+    {
+      "gate": "destination",
+      "status": "skipped",
+      "summary": "no link"
+    },
+    {
+      "gate": "proof",
+      "status": "skipped",
+      "summary": "no quoted testimonial"
+    }
+  ],
+  "claims": [],
+  "generation": {
+    "model": "claude-sonnet-5",
+    "costUsd": 0.010818,
+    "attempts": 1,
+    "inputTokens": 1651,
+    "outputTokens": 391,
+    "promptVersion": "copywriter.v1"
+  }
+}

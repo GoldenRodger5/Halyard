@@ -2,6 +2,7 @@ import { Badge, Card, EmptyState, PageHeader, SectionTitle } from '@halyard/ui';
 import { query } from '@/lib/db';
 import { formatRelative } from '@/lib/format';
 import { TakeComposer } from './TakeComposer';
+import { approveTake, discardTake } from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -239,6 +240,34 @@ export default async function TakePage() {
                         <li key={i}>{push}</li>
                       ))}
                     </ol>
+                  </div>
+                ) : null}
+
+                {/* ── The end of the workflow, which had no controls ─────────
+                    `approveTake` and `discardTake` were complete server
+                    actions referenced from nowhere — not a page, not a
+                    component, not a test. A take could be spoken, fact-checked
+                    and drafted, and then the operator had no way to act on it.
+                    Approving is what puts it in the queue as
+                    `pending_approval`, where every normal gate applies. */}
+                {take.draft ? (
+                  <div className="mt-4 flex flex-wrap gap-2 border-t border-line pt-3">
+                    <form action={approveTake}>
+                      <input type="hidden" name="takeId" value={take.id} />
+                      <button className="rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-white hover:bg-primary-dark">
+                        Send to queue
+                      </button>
+                    </form>
+                    <form action={discardTake}>
+                      <input type="hidden" name="takeId" value={take.id} />
+                      <button className="rounded-lg border border-line px-3 py-1.5 text-sm text-muted hover:bg-sunk hover:text-ink">
+                        Discard
+                      </button>
+                    </form>
+                    <p className="w-full text-xs text-muted">
+                      Sending it to the queue does not publish it. It arrives as a draft awaiting
+                      approval, like anything else Halyard writes.
+                    </p>
                   </div>
                 ) : null}
               </Card>

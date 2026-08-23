@@ -166,28 +166,65 @@ describe('fatigue and rotation — I.6', () => {
 });
 
 describe('predicted stop rate — I.8', () => {
+  const measured = (over: Record<string, unknown> = {}) => ({
+    hookType: 'problem_state' as const,
+    format: 'reel_script',
+    platform: 'instagram',
+    viewThroughRate: 0.71,
+    samples: 9,
+    ...over,
+  });
+
   it('returns null rather than a fabricated number at cold start', () => {
-    const prediction = predictStopRate(variant(), emptyHistory, 'reel_script');
+    const prediction = predictStopRate(variant(), emptyHistory, 'reel_script', 'instagram');
     expect(prediction.predictedStopRate).toBeNull();
     expect(prediction.predictionBasis).toMatch(/needs at least 3/);
   });
 
   it('never predicts over n=2', () => {
-    const history: HookHistory = {
-      ...emptyHistory,
-      performance: [{ hookType: 'problem_state', format: 'reel_script', stopRate: 0.71, samples: 2 }],
-    };
-    expect(predictStopRate(variant(), history, 'reel_script').predictedStopRate).toBeNull();
+    const history: HookHistory = { ...emptyHistory, performance: [measured({ samples: 2 })] };
+    expect(
+      predictStopRate(variant(), history, 'reel_script', 'instagram').predictedStopRate,
+    ).toBeNull();
   });
 
   it('predicts once there is enough data, and says what it is based on', () => {
-    const history: HookHistory = {
-      ...emptyHistory,
-      performance: [{ hookType: 'problem_state', format: 'reel_script', stopRate: 0.71, samples: 9 }],
-    };
-    const prediction = predictStopRate(variant(), history, 'reel_script');
+    const history: HookHistory = { ...emptyHistory, performance: [measured()] };
+    const prediction = predictStopRate(variant(), history, 'reel_script', 'instagram');
     expect(prediction.predictedStopRate).toBeCloseTo(0.71);
-    expect(prediction.predictionBasis).toContain('9 problem_state reel_script posts');
+    expect(prediction.predictionBasis).toContain('9 problem_state reel_script posts on instagram');
+  });
+
+  it('names the measure it actually has rather than the one it resembles', () => {
+    /**
+     * Halyard collects no three-second retention figure; no platform reports
+     * one to it. The basis sentence used to say "average 3s retention", which
+     * is a measurement claim nothing in the system supports.
+     */
+    const history: HookHistory = { ...emptyHistory, performance: [measured()] };
+    const basis = predictStopRate(variant(), history, 'reel_script', 'instagram').predictionBasis;
+    expect(basis).toContain('view-through');
+    expect(basis).not.toMatch(/3s retention/);
+  });
+
+  it('will not let one platform’s numbers predict another’s', () => {
+    /**
+     * Platforms do not agree on what a view is — Instagram counts at about
+     * three seconds, TikTok at almost none, YouTube at thirty. Borrowing across
+     * them produces a confident number that means nothing anywhere.
+     */
+    const history: HookHistory = { ...emptyHistory, performance: [measured()] };
+    expect(
+      predictStopRate(variant(), history, 'reel_script', 'tiktok').predictedStopRate,
+    ).toBeNull();
+  });
+
+  it('predicts nothing at all when the platform is unknown', () => {
+    // Fails closed: no platform, no borrowed evidence, neutral prior.
+    const history: HookHistory = { ...emptyHistory, performance: [measured()] };
+    const prediction = predictStopRate(variant(), history, 'reel_script');
+    expect(prediction.predictedStopRate).toBeNull();
+    expect(prediction.predictionBasis).toMatch(/not comparable across them/);
   });
 });
 

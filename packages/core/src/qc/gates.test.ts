@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import fixture from '../connectors/__fixtures__/recipeAdaptation.json' with { type: 'json' };
 import {
   disclosureSatisfied,
+  gatesAfterEdit,
   isBareHomepage,
   looksUnextracted,
   requiresAiLabel,
@@ -11,6 +12,7 @@ import {
   suggestedDisclosure,
 } from './index.js';
 import { runVisualQC, VISION_RUBRIC, type MediaProbe } from './visualQC.js';
+import type { GateResult } from './index.js';
 import {
   normaliseForSpeech,
   numberToWords,
@@ -329,17 +331,6 @@ describe('runAllGates — the queue contract, v2 F.5', () => {
         ],
         artifact,
       },
-      visual: {
-        probe: { kind: 'image', width: 1080, height: 1080 },
-        target: { aspectRatio: '1:1', platform: 'x', format: 'image' },
-        visionScore: {
-          textLegibility: 4.6,
-          composition: 4.4,
-          brandColors: 4.8,
-          feedFit: 4.2,
-          machineArtefacts: 4.5,
-        },
-      },
     });
 
     expect(results.gates.map((g) => g.gate)).toEqual([
@@ -355,7 +346,15 @@ describe('runAllGates — the queue contract, v2 F.5', () => {
     ]);
     expect(results.passed).toBe(true);
     expect(results.gates[1]?.summary).toBe('1/1 verified against artifact');
-    expect(results.gates[3]?.status).toBe('skipped');
+    /*
+     * The three media slots are always skipped at copy time — §119. They are
+     * filled by `review_media` and `tts`, which merge into this same array.
+     * The order is the contract; the statuses here say only that this stage
+     * did not pretend to measure media.
+     */
+    expect(results.gates.filter((g) => g.status === 'skipped').map((g) => g.gate)).toEqual(
+      expect.arrayContaining(['visual', 'audio', 'coherence']),
+    );
   });
 
   it('fails the whole run when any gate fails', () => {
@@ -595,5 +594,60 @@ describe('a required gate that never ran cannot be called passed', () => {
     });
     const failed = results.gates.filter((g) => g.status === 'failed').map((g) => g.gate);
     expect(failed.sort()).toEqual(['audio', 'visual']);
+  });
+});
+
+/**
+ * §157. An edit must not leave gates claiming to be about the old text.
+ *
+ * The queue renders `qc_results.gates`. Before this, an operator could rewrite
+ * a post and the screen went on showing `copy: passed (0 flags)` and
+ * `claims: 2/2 verified against artifact` for words nothing had examined.
+ */
+describe('gatesAfterEdit', () => {
+  const gates: GateResult[] = [
+    { gate: 'copy', status: 'passed', summary: 'passed (0 flags)', detail: null },
+    { gate: 'claims', status: 'passed', summary: '2/2 verified against artifact', detail: null },
+    { gate: 'visual', status: 'passed', summary: 'passed (0 warnings)', detail: null },
+    { gate: 'audio', status: 'warning', summary: 'WER 1.1%', detail: null },
+  ];
+  const clean = { passed: true, violations: [] };
+
+  it('re-runs the copy gate rather than invalidating it', () => {
+    // The slop filter is deterministic and has already run on the new text.
+    const out = gatesAfterEdit(gates, clean);
+    const copy = out.gates.find((g) => g.gate === 'copy')!;
+    expect(copy.status).toBe('passed');
+    expect(copy.summary).toMatch(/re-run after a human edit/);
+  });
+
+  it('marks the claims gate unverified, because only a re-check can settle it', () => {
+    const out = gatesAfterEdit(gates, clean);
+    const claims = out.gates.find((g) => g.gate === 'claims')!;
+    expect(claims.status).toBe('warning');
+    expect(claims.summary).toMatch(/not re-verified/);
+    // The old verdict must not survive in any form.
+    expect(claims.summary).not.toMatch(/verified against artifact/);
+  });
+
+  it('leaves gates the edit could not affect exactly as they were', () => {
+    // Editing a caption does not un-measure a render.
+    const out = gatesAfterEdit(gates, clean);
+    expect(out.gates.find((g) => g.gate === 'visual')).toEqual(gates[2]);
+    expect(out.gates.find((g) => g.gate === 'audio')).toEqual(gates[3]);
+  });
+
+  it('fails the copy gate when the edit itself is unpublishable', () => {
+    const out = gatesAfterEdit(gates, {
+      passed: false,
+      violations: [{ rule: 'length.over_limit', message: 'too long' }],
+    });
+    expect(out.gates.find((g) => g.gate === 'copy')!.status).toBe('failed');
+    expect(out.passed).toBe(false);
+  });
+
+  it('recomputes passed over the whole list', () => {
+    const out = gatesAfterEdit(gates, clean);
+    expect(out.passed).toBe(true);
   });
 });

@@ -38,17 +38,35 @@ export function Card({
   children,
   className,
   as: Tag = 'div',
+  scrollLabel,
 }: {
   children: ReactNode;
   className?: string;
   as?: 'div' | 'section' | 'article' | 'li';
+  /**
+   * Set on a card that scrolls its own content (`overflow-x-auto`), naming what
+   * is inside it.
+   *
+   * A container that scrolls but cannot be focused is unreachable by keyboard:
+   * a mouse can drag a wide table sideways and a keyboard has nothing to put
+   * the caret on, so the columns past the fold simply do not exist. Every wide
+   * table in Halyard sat behind that, and it only shows at narrow widths, which
+   * is why it survived every desktop pass.
+   *
+   * The label is required rather than optional because `role="region"` with no
+   * accessible name is announced as an unnamed landmark, which is worse than
+   * no landmark at all.
+   */
+  scrollLabel?: string;
 }) {
+  const scrolls = scrollLabel !== undefined;
   return (
     <Tag
       className={cx(
         'rounded-xl border border-line bg-surface shadow-[0_1px_2px_rgba(42,35,32,0.04)]',
         className,
       )}
+      {...(scrolls ? { tabIndex: 0, role: 'region', 'aria-label': scrollLabel } : {})}
     >
       {children}
     </Tag>

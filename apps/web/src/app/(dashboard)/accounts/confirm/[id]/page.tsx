@@ -50,7 +50,14 @@ export default async function ConfirmConnectionPage({
 
   if (!pending) notFound();
 
-  const severe = pending.warnings.filter((w) => w.severe);
+  /**
+   * The handle mismatch, read from the warning `checkIdentity` already
+   * produces. Nothing new is computed here — this screen only presents it
+   * where an operator will see it rather than at the bottom of a list.
+   */
+  const mismatch = pending.warnings.find((w) => w.kind === 'handle_mismatch');
+  const handleMismatch = mismatch !== undefined;
+  const expectedHandle = /expected @([^\s]+)/.exec(mismatch?.message ?? '')?.[1] ?? '';
   const duplicate = pending.warnings.find((w) => w.kind === 'duplicate_identity');
   const preflight = PREFLIGHT[pending.platform];
   const minutesLeft = Math.max(
@@ -61,9 +68,25 @@ export default async function ConfirmConnectionPage({
   return (
     <>
       <PageHeader
-        title="Is this the right account?"
-        subtitle={`${PLATFORM_LABELS[pending.platform]} authorised the connection. Nothing has been saved yet — the token is held for ${minutesLeft} more minute${minutesLeft === 1 ? '' : 's'} and then discarded.`}
+        title={`Confirm your ${PLATFORM_LABELS[pending.platform]} account`}
+        subtitle={`${PLATFORM_LABELS[pending.platform]} connected successfully. Make sure this is the account you want Halyard to use.`}
       />
+
+      {/*
+        * Said once, plainly, before anything else.
+        *
+        * The whole reason this screen exists is that a consent screen authorises
+        * whoever the browser happened to be signed in as, without asking. An
+        * operator who does not realise nothing is committed yet will either
+        * hesitate over a safe action or click through a wrong one.
+        */}
+      <Card className="mb-6 border-l-2 border-l-primary p-4">
+        <p className="text-sm text-ink">Nothing is saved until you confirm.</p>
+        <p className="mt-1 text-sm text-muted">
+          This connection is held for {minutesLeft} more minute{minutesLeft === 1 ? '' : 's'} and
+          then discarded automatically.
+        </p>
+      </Card>
 
       <Card className="mb-6 p-6">
         <div className="flex flex-wrap items-center gap-4">
@@ -86,7 +109,7 @@ export default async function ConfirmConnectionPage({
             <div className="flex flex-wrap items-center gap-2">
               <PlatformDot platform={pending.platform} />
               <span className="text-lg font-medium text-ink">@{pending.handle}</span>
-              <Badge tone="neutral">{pending.persona}</Badge>
+              <Badge tone="neutral">{PLATFORM_LABELS[pending.platform]} account</Badge>
             </div>
             <p className="mt-1 text-sm text-muted">
               {pending.display_name ? `${pending.display_name} · ` : ''}
@@ -102,28 +125,57 @@ export default async function ConfirmConnectionPage({
           </div>
         </div>
 
-        <dl className="mt-6 grid gap-4 border-t border-line pt-4 text-sm sm:grid-cols-3">
-          <div>
-            <dt className="text-xs uppercase tracking-[0.08em] text-muted">Scopes granted</dt>
-            <dd className="mt-1 break-words font-mono text-xs text-ink">
-              {pending.scopes.length > 0 ? pending.scopes.join(' ') : 'none reported'}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs uppercase tracking-[0.08em] text-muted">Token expires</dt>
-            <dd className="mt-1 text-ink">
-              {pending.token_expires_at
-                ? new Date(pending.token_expires_at).toLocaleString()
-                : 'no expiry reported'}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs uppercase tracking-[0.08em] text-muted">Platform user id</dt>
-            <dd className="mt-1 break-all font-mono text-xs text-ink">
-              {pending.platform_user_id ?? 'not reported'}
-            </dd>
-          </div>
-        </dl>
+        {/*
+          * The match verdict, stated prominently rather than left to be
+          * inferred from a warnings list further down. A mismatch is a normal
+          * thing to do deliberately — the wording says so instead of implying
+          * something is broken.
+          */}
+        <div className="mt-5 border-t border-line pt-4">
+          {handleMismatch ? (
+            <>
+              <p className="text-sm font-medium text-warn-ink">
+                ⚠ This is not the account Halyard expected
+              </p>
+              <p className="mt-1 text-sm text-muted">
+                You connected <strong className="text-ink">@{pending.handle}</strong>, but Halyard
+                expected <strong className="text-ink">@{expectedHandle}</strong>. If that is
+                intentional, you can continue.
+              </p>
+            </>
+          ) : (
+            <p className="text-sm font-medium text-good">✓ This is the expected account</p>
+          )}
+        </div>
+
+        {/* Technical detail, available and out of the way. */}
+        <details className="mt-4 border-t border-line pt-3">
+          <summary className="cursor-pointer text-xs text-muted hover:text-ink">
+            Connection details
+          </summary>
+          <dl className="mt-3 grid gap-4 text-sm sm:grid-cols-3">
+            <div>
+              <dt className="text-xs uppercase tracking-[0.08em] text-muted">Access granted</dt>
+              <dd className="mt-1 break-words font-mono text-xs text-ink">
+                {pending.scopes.length > 0 ? pending.scopes.join(' ') : 'none reported'}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs uppercase tracking-[0.08em] text-muted">Token expires</dt>
+              <dd className="mt-1 text-ink">
+                {pending.token_expires_at
+                  ? new Date(pending.token_expires_at).toLocaleString()
+                  : 'no expiry reported'}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs uppercase tracking-[0.08em] text-muted">Platform user id</dt>
+              <dd className="mt-1 break-all font-mono text-xs text-ink">
+                {pending.platform_user_id ?? 'not reported'}
+              </dd>
+            </div>
+          </dl>
+        </details>
       </Card>
 
       {pending.warnings.length > 0 ? (
@@ -195,14 +247,14 @@ export default async function ConfirmConnectionPage({
             </label>
           ) : null}
           <button className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-dark">
-            {severe.length > 0 ? 'Save anyway' : `Save @${pending.handle}`}
+            Confirm and connect
           </button>
         </form>
 
         <form action={discardConnection}>
           <input type="hidden" name="pendingId" value={pending.id} />
           <button className="rounded-lg border border-line px-4 py-2 text-sm text-muted hover:bg-sunk hover:text-ink">
-            Discard this token
+            Cancel connection
           </button>
         </form>
 
@@ -210,7 +262,7 @@ export default async function ConfirmConnectionPage({
           href={`/api/oauth/${pending.platform}/start?persona=${pending.persona}&product=${pending.product_id}`}
           className="text-sm text-primary hover:underline"
         >
-          Try again as a different account
+          Connect a different {PLATFORM_LABELS[pending.platform]} account
         </Link>
       </div>
 

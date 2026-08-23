@@ -1,0 +1,80 @@
+{
+  "id": "8218af3a-4b28-40ce-a72b-32e3cd994bad",
+  "platform": "tiktok",
+  "format": "video",
+  "status": "pending_approval",
+  "category": "founder_insight",
+  "recipe": "Chewy Fudgy Frosted Brownies (Gluten-Free)",
+  "title": null,
+  "createdAt": "2026-08-22T16:44:55.938335-04:00",
+  "linkUrl": "http://localhost:3200/r/8218af3a-4b28-40ce-a72b-32e3cd994bad",
+  "qcPassed": true,
+  "gates": [
+    {
+      "gate": "copy",
+      "status": "passed",
+      "summary": "passed (0 flags)"
+    },
+    {
+      "gate": "claims",
+      "status": "passed",
+      "summary": "4/4 verified against artifact"
+    },
+    {
+      "gate": "destination",
+      "status": "skipped",
+      "summary": "no link"
+    },
+    {
+      "gate": "proof",
+      "status": "skipped",
+      "summary": "no quoted testimonial"
+    },
+    {
+      "gate": "audio",
+      "status": "passed",
+      "summary": "WER 1.1%, 153 wpm, -14.3 LUFS"
+    },
+    {
+      "gate": "visual",
+      "status": "passed",
+      "summary": "passed (0 warnings)"
+    },
+    {
+      "gate": "retention",
+      "status": "warning",
+      "summary": "failed — 18.2s with no visual state change. The ceiling is 15s."
+    },
+    {
+      "gate": "coherence",
+      "status": "warning",
+      "summary": "coherent, 3 notes across 6 frames"
+    }
+  ],
+  "claims": [
+    {
+      "text": "The flour swaps to a gluten-free all-purpose blend to keep the recipe gluten-free while maintaining structure",
+      "source": "ingredients[5].changeReason"
+    },
+    {
+      "text": "Eggs scale down from three to one for four servings, since one egg is enough at this batch size",
+      "source": "ingredients[4].changeReason"
+    },
+    {
+      "text": "A nine-inch pan is too large at this scale and produces a paper-thin brownie; a six-inch square pan or loaf pan gives the right depth",
+      "source": "steps[0].updated_note"
+    },
+    {
+      "text": "A nine-inch pan would spread the batter too thin, yielding a crispy wafer instead of a fudgy brownie",
+      "source": "explanations[2]"
+    }
+  ],
+  "generation": {
+    "model": "claude-sonnet-5",
+    "costUsd": 0.122967,
+    "attempts": 2,
+    "inputTokens": 9924,
+    "outputTokens": 6213,
+    "promptVersion": "copywriter.v1"
+  }
+}

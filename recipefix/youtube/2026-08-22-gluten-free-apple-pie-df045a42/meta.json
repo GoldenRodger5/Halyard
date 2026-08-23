@@ -1,0 +1,92 @@
+{
+  "id": "df045a42-ef57-4461-926c-322570f9e6ed",
+  "platform": "youtube",
+  "format": "video",
+  "status": "pending_approval",
+  "category": "founder_insight",
+  "recipe": "Gluten-Free Apple Pie",
+  "title": "The hardest part of a recipe fix isn't the recipe",
+  "createdAt": "2026-08-22T16:47:05.002307-04:00",
+  "linkUrl": "http://localhost:3200/r/df045a42-ef57-4461-926c-322570f9e6ed",
+  "qcPassed": true,
+  "gates": [
+    {
+      "gate": "copy",
+      "status": "passed",
+      "summary": "passed (0 flags)"
+    },
+    {
+      "gate": "claims",
+      "status": "passed",
+      "summary": "7/7 verified against artifact"
+    },
+    {
+      "gate": "destination",
+      "status": "skipped",
+      "summary": "no link"
+    },
+    {
+      "gate": "proof",
+      "status": "skipped",
+      "summary": "no quoted testimonial"
+    },
+    {
+      "gate": "audio",
+      "status": "passed",
+      "summary": "WER 0.0%, 164 wpm, -14.3 LUFS"
+    },
+    {
+      "gate": "visual",
+      "status": "passed",
+      "summary": "passed (0 warnings)"
+    },
+    {
+      "gate": "retention",
+      "status": "warning",
+      "summary": "opening not resolvable at 6.0s per sample, longest static 6.0s — 3 checks not measured (no_content_in_opening, first_frame_words, first_frame_contrast)"
+    },
+    {
+      "gate": "coherence",
+      "status": "warning",
+      "summary": "coherent, 2 notes across 6 frames"
+    }
+  ],
+  "claims": [
+    {
+      "text": "A 1:1 gluten-free flour blend can swap in for wheat flour in pie crust",
+      "source": "ingredients[0].changeReason"
+    },
+    {
+      "text": "Gluten-free dough lacks gluten's elasticity so it tears more easily when handled",
+      "source": "steps[0].updated_note"
+    },
+    {
+      "text": "Chilling the dough before rolling helps it hold its shape",
+      "source": "steps[0].updated_note"
+    },
+    {
+      "text": "Cracks in the gluten-free dough can be pressed back together",
+      "source": "steps[0].updated_note"
+    },
+    {
+      "text": "Cornstarch replaces flour as a thickener at half the volume because it's twice as effective",
+      "source": "ingredients[3].changeReason"
+    },
+    {
+      "text": "Cornstarch activates with oven heat, not before, so the filling looks loose in the bowl",
+      "source": "steps[1].updated_note"
+    },
+    {
+      "text": "The filling should be visibly bubbling before the pie is pulled from the oven to confirm the starch activated",
+      "source": "steps[6].updated_note"
+    }
+  ],
+  "generation": {
+    "model": "claude-sonnet-5",
+    "costUsd": 0.056841,
+    "attempts": 1,
+    "inputTokens": 4947,
+    "outputTokens": 2800,
+    "promptVersion": "copywriter.v1"
+  }
+}

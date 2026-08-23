@@ -129,12 +129,49 @@ describe('the shipped registry', () => {
      * tracked defect with a name and a reason. Omitting them would make the
      * registry look healthier and the system less honest.
      */
-    for (const id of ['rejection-clusterer', 'idea-generator', 'auto-clip']) {
+    for (const id of ['auto-clip']) {
       const agent = agentById(id);
       expect(agent, `${id} should be registered`).not.toBeNull();
       expect(agent!.expectedCallers).toEqual([]);
       expect(agent!.statusNote).toBeTruthy();
     }
+  });
+
+  it('records a caller for an agent that has stopped being an orphan', () => {
+    /**
+     * `idea-generator` was on the list above until `proposeFromSignals` gave it
+     * one. Leaving it there would have been the same defect in the other
+     * direction — a registry claiming a capability is unreachable when it is
+     * the entry point of the generation pipeline.
+     *
+     * It is `implemented_partial`, not exercised: no live model call has ever
+     * been made, because there are no credits. The Auditor decides that from
+     * `agent_runs`, and this only asserts the contract is no longer empty.
+     */
+    const agent = agentById('idea-generator');
+    expect(agent).not.toBeNull();
+    expect(agent!.expectedCallers.length).toBeGreaterThan(0);
+    expect(agent!.acceptanceTests.length).toBeGreaterThan(0);
+    expect(agent!.declaredStatus).not.toBe('implemented_no_caller');
+  });
+
+  it('records a caller for the rejection clusterer', () => {
+    /**
+     * The second agent to leave that list, on the same day. It had a complete
+     * consumer and no producer: the dashboard read `rejection_clusters`,
+     * `acceptCluster` promoted one, and nothing ever inserted a row.
+     *
+     * Unlike `idea-generator` this one needs no credits to be real — the
+     * clustering is deterministic — so `implemented_exercised` is a claim about
+     * code that runs, not a claim about a model that has never been called.
+     */
+    const agent = agentById('rejection-clusterer');
+    expect(agent).not.toBeNull();
+    expect(agent!.expectedCallers).toContain(
+      'apps/worker/src/handlers/clusterRejections.ts#clusterRejectionsHandler',
+    );
+    expect(agent!.acceptanceTests.length).toBeGreaterThan(0);
+    expect(agent!.declaredStatus).not.toBe('implemented_no_caller');
   });
 
   it('maps every prompt version to exactly one agent', () => {

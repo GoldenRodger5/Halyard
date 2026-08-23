@@ -134,6 +134,16 @@ export interface Scene {
   id: string;
   weight: number;
   minSeconds?: number;
+  /**
+   * A ceiling, for a scene whose length is a fact rather than a choice.
+   *
+   * §163. Almost every scene should stretch to fill the piece — a card given
+   * more room is a card read more comfortably. Footage is the exception: a beat
+   * stretched past its recording holds a frozen last frame, which on a real
+   * render was four and a half seconds of stillness presented as a demo. The
+   * time a capped scene gives up goes to the scenes that can use it.
+   */
+  maxSeconds?: number;
 }
 
 export interface TimedScene extends Scene {
@@ -151,13 +161,34 @@ export function layoutScenes(
   const minFrames = scenes.map((s) => Math.ceil((s.minSeconds ?? 1.2) * fps));
   const reserved = minFrames.reduce((a, b) => a + b, 0);
   const flexible = Math.max(0, totalFrames - reserved);
-  const weightTotal = scenes.reduce((sum, s) => sum + s.weight, 0) || 1;
+
+  /*
+   * Only scenes that can stretch share the slack. A capped scene sits at its
+   * floor and the time it would have taken is redistributed, so capping one
+   * beat lengthens the others instead of shortening the piece.
+   */
+  const stretches = scenes.map(
+    (s, i) => s.maxSeconds === undefined || Math.ceil(s.maxSeconds * fps) > minFrames[i]!,
+  );
+  const weightTotal = scenes.reduce((sum, s, i) => sum + (stretches[i] ? s.weight : 0), 0) || 1;
+  const lastStretching = stretches.lastIndexOf(true);
 
   let cursor = 0;
   return scenes.map((scene, i) => {
-    const extra = Math.floor((flexible * scene.weight) / weightTotal);
-    const durationFrames =
-      i === scenes.length - 1 ? Math.max(minFrames[i]!, totalFrames - cursor) : minFrames[i]! + extra;
+    const maxFrames =
+      scene.maxSeconds === undefined ? Number.POSITIVE_INFINITY : Math.ceil(scene.maxSeconds * fps);
+    const extra = stretches[i] ? Math.floor((flexible * scene.weight) / weightTotal) : 0;
+
+    /*
+     * The last scene that can stretch absorbs the rounding, so the beats still
+     * add up to exactly the runtime. It is deliberately not simply the last
+     * scene: handing the remainder to a capped one would reintroduce the freeze.
+     */
+    const isLastStretching = i === lastStretching && i === scenes.length - 1;
+    const durationFrames = isLastStretching
+      ? Math.max(minFrames[i]!, totalFrames - cursor)
+      : Math.min(minFrames[i]! + extra, maxFrames);
+
     const timed: TimedScene = { ...scene, startFrame: cursor, durationFrames };
     cursor += durationFrames;
     return timed;

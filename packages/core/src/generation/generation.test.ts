@@ -1,8 +1,21 @@
 import { describe, expect, it, vi } from 'vitest';
 import fixture from '../connectors/__fixtures__/recipeAdaptation.json' with { type: 'json' };
 import { toArtifact, type RecipeFixAdaptation } from '../connectors/recipefix.js';
-import { DraftRejectedError, buildFeedback, writeDraft, writeVoScript } from './copywriter.js';
-import { AnthropicLlmClient, extractJson, type LlmClient, type LlmResponse } from './llm.js';
+import {
+  DraftRejectedError,
+  buildFeedback,
+  describeShapeProblem,
+  writeDraft,
+  writeVoScript,
+} from './copywriter.js';
+import {
+  AnthropicLlmClient,
+  asArray,
+  asString,
+  extractJson,
+  type LlmClient,
+  type LlmResponse,
+} from './llm.js';
 import {
   COLD_START_WEIGHTS,
   LEARNING_MIN_POSTS_PER_CATEGORY,
@@ -10,6 +23,7 @@ import {
   cosineDistance,
   learningStatus,
   mixDebtScore,
+  NOVELTY_UNMEASURED,
   noveltyScore,
   scoreIdeas,
   selectIdeas,
@@ -341,6 +355,68 @@ describe('idea engine — v2 Part G', () => {
     ).toBeCloseTo(1);
   });
 
+  /**
+   * §140. Two defects in one factor: unmeasured novelty scored as a maximum,
+   * and it was then cited to the operator as a reason.
+   */
+  describe('novelty is never claimed without being measured', () => {
+    const recent = [[1, 0, 0]];
+
+    it('does not let an unmeasured idea outrank a measured one', () => {
+      // The measured idea is genuinely similar to recent work (distance ~0.3).
+      // Before the fix the unmeasured one scored a perfect 1 and won on the
+      // strength of a number nobody computed.
+      const measured = scoreIdeas([candidate({ embedding: [0.9, 0.44, 0] })], mix, {
+        recentEmbeddings: recent,
+      })[0]!;
+      const unmeasured = scoreIdeas([candidate({})], mix, {
+        recentEmbeddings: recent,
+      })[0]!;
+
+      expect(measured.breakdown.novelty).toBeLessThan(1);
+      expect(unmeasured.breakdown.novelty).toBe(NOVELTY_UNMEASURED);
+      expect(unmeasured.breakdown.novelty).toBeLessThan(1);
+    });
+
+    it('never cites novelty as a reason when it was not measured', () => {
+      /*
+       * `explanation` is the score-breakdown shown on /ideas.
+       *
+       * The fixture is deliberately one where unmeasured novelty *would*
+       * otherwise be cited: an over-served category (mix debt 0), no
+       * renderable template, no seasonal window and no product signal, so the
+       * neutral 0.10 novelty term is the largest one left. An earlier version
+       * of this test used the default candidate and passed whether or not the
+       * filter existed — it was measuring the score change, not the filter.
+       */
+      const unmeasured = scoreIdeas(
+        [candidate({ category: 'transformation', availableTemplates: [] })],
+        mix,
+        { recentEmbeddings: recent },
+      )[0]!;
+
+      expect(unmeasured.breakdown.mixDebt).toBe(0);
+      expect(unmeasured.explanation).not.toContain('novelty');
+    });
+
+    it('still cites novelty when it genuinely was measured', () => {
+      // The guard must not have removed the factor from the explanation
+      // altogether — a wholly novel idea has earned the credit.
+      const measured = scoreIdeas([candidate({ embedding: [0, 1, 0] })], mix, {
+        recentEmbeddings: recent,
+      })[0]!;
+      expect(measured.breakdown.novelty).toBeCloseTo(1);
+      expect(measured.explanation).toContain('novelty');
+    });
+
+    it('treats an empty corpus as measured, because nothing is similar', () => {
+      const first = scoreIdeas([candidate({ embedding: [1, 0, 0] })], mix, {
+        recentEmbeddings: [],
+      })[0]!;
+      expect(first.breakdown.novelty).toBe(1);
+    });
+  });
+
   it('scores an under-served pillar above an over-served one', () => {
     expect(mixDebtScore('education', mix)).toBeGreaterThan(0.5);
     expect(mixDebtScore('transformation', mix)).toBe(0);
@@ -363,7 +439,22 @@ describe('idea engine — v2 Part G', () => {
     expect(cosineDistance([1, 0, 0], [0, 1, 0])).toBeCloseTo(1);
     expect(noveltyScore([1, 0, 0], [[1, 0, 0]])).toBeCloseTo(0);
     expect(noveltyScore([1, 0, 0], [[0, 1, 0]])).toBeCloseTo(1);
-    expect(noveltyScore(undefined, [[1, 0, 0]])).toBe(1);
+    /*
+     * Corrected in §140. This asserted that an idea with **no embedding**
+     * scores maximum novelty against a real corpus — the assertion encoded the
+     * defect rather than catching it.
+     *
+     * An idea nobody measured is not maximally novel; it is unmeasured, and
+     * takes the same honest neutral `historicalConversion` uses. The
+     * distinction only starts to matter when some ideas have embeddings and
+     * some do not, at which point the old answer let unmeasured outrank
+     * measured.
+     */
+    expect(noveltyScore(undefined, [[1, 0, 0]])).toBe(NOVELTY_UNMEASURED);
+
+    // Nothing to be similar to is a real measurement with a real answer.
+    expect(noveltyScore(undefined, [])).toBe(1);
+    expect(noveltyScore([1, 0, 0], [])).toBe(1);
   });
 
   it('blocks an idea too close to something posted recently', () => {
@@ -441,5 +532,137 @@ describe('idea engine — v2 Part G', () => {
     const status = learningStatus({ ...mix, postsPerCategory: { transformation: 34, education: 4 } });
     expect(status.active).toBe(true);
     expect(status.categoriesReady).toEqual(['transformation']);
+  });
+});
+
+/**
+ * A parseable reply with the wrong shape.
+ *
+ * `extractJson<RawDraft>` is an unchecked cast: it proves the response is JSON,
+ * not that it is *this* JSON. A model answering `{"hashtags": "glutenfree"}`
+ * parsed cleanly and then threw `raw.hashtags.map is not a function` outside the
+ * try that wraps the parse — so the one malformed answer the retry loop could
+ * not see took the whole generate job down instead of converging.
+ */
+describe('a reply that is JSON but the wrong shape', () => {
+  it('names the offending field rather than guessing', () => {
+    expect(describeShapeProblem({ hashtags: 'glutenfree' })).toMatch(/hashtags/);
+    expect(describeShapeProblem({ body: 42 })).toMatch(/body/);
+    expect(describeShapeProblem({ claims: 'none' })).toMatch(/claims/);
+    expect(describeShapeProblem(['a'])).toMatch(/top level/);
+    expect(describeShapeProblem('hello')).toMatch(/top level/);
+  });
+
+  it('accepts a sparse draft, which is not the same as a malformed one', () => {
+    // Every field is optional and read with a default. A stricter schema here
+    // would reject drafts that are merely thin, which QC already judges.
+    expect(describeShapeProblem({})).toBeNull();
+    expect(describeShapeProblem({ body: 'a line', hashtags: [] })).toBeNull();
+  });
+
+  it('retries with feedback instead of throwing', async () => {
+    const llm = stubLlm([JSON.stringify({ body: 'A line.', hashtags: 'glutenfree' }), goodReply]);
+    const draft = await writeDraft({ ...baseRequest, maxAttempts: 3 }, llm);
+
+    // It converged rather than crashing, and it took the second reply.
+    expect(llm.calls).toBe(2);
+    expect(draft.attempts).toBe(2);
+  });
+
+  it('gives up honestly when the shape never becomes right', async () => {
+    // Still fails — but as a rejected draft with its QC record, which is the
+    // path the caller already handles, not an unhandled TypeError.
+    const llm = stubLlm([JSON.stringify({ body: 'A line.', claims: 'nope' })]);
+    await expect(writeDraft({ ...baseRequest, maxAttempts: 2 }, llm)).rejects.toThrow(
+      DraftRejectedError,
+    );
+  });
+});
+
+/**
+ * The two ways a model's shape can be wrong, and the two right answers.
+ */
+describe('reading a model field that may not be what it says', () => {
+  it('degrades a non-array to empty rather than throwing', () => {
+    // `(parsed.things ?? []).map(...)` throws on a bare string. This is the
+    // answer where there is no retry loop to converge with.
+    expect(asArray('glutenfree')).toEqual([]);
+    expect(asArray(null)).toEqual([]);
+    expect(asArray(undefined)).toEqual([]);
+    expect(asArray({ 0: 'a', length: 1 })).toEqual([]);
+    expect(asArray(['a', 'b'])).toEqual(['a', 'b']);
+  });
+
+  it('treats a number as absent text, which `!value` did not', () => {
+    /**
+     * `if (!parsed.body) throw` passes for every non-zero number, so
+     * `{"body": 42}` cleared the guard and threw on `.trim()` one line later.
+     */
+    expect(asString(42)).toBeNull();
+    expect(asString('')).toBeNull();
+    expect(asString('   ')).toBeNull();
+    expect(asString(null)).toBeNull();
+    expect(asString('  a take  ')).toBe('a take');
+  });
+});
+
+/**
+ * The scorer's learning input, which nothing ever supplied.
+ *
+ * `IdeaCandidate.historicalConversion` — "mean conversion of similar past
+ * content" — has existed since the scorer was written, and `generate` built its
+ * candidates without it. Every idea therefore scored on the `?? 0.5` neutral.
+ *
+ * That is correct at cold start and would have stayed correct forever, which is
+ * the whole problem: the difference between "no data yet" and "an edge that
+ * never connects" is invisible from inside the scorer.
+ */
+describe('past conversion feeding idea scoring', () => {
+  const candidate = (over: Partial<IdeaCandidate> = {}): IdeaCandidate => ({
+    id: 'a',
+    title: 'A title',
+    angle: 'An angle',
+    category: 'education',
+    availableTemplates: ['transformation_diff_1x1'],
+    ...over,
+  });
+
+  const mix = {
+    targets: { education: 0.5, product: 0.5 },
+    actual: { education: 0.5, product: 0.5 },
+    productShare14d: 0,
+    postsPerCategory: { education: 30, product: 30 },
+  };
+
+  it('scores an unmeasured category on the neutral, not on zero', () => {
+    // Undefined means unmeasured. A zero would be a measured failure, and would
+    // bury every category that has never published.
+    const [scored] = scoreIdeas([candidate()], mix);
+    expect(scored!.breakdown.historical).toBe(0.5);
+  });
+
+  it('lets a measured category actually move the score', () => {
+    /**
+     * The assertion that proves the edge is live rather than merely typed. Two
+     * identical ideas, differing only in what their category has historically
+     * converted at, must not score the same.
+     */
+    const [low, high] = scoreIdeas(
+      [
+        candidate({ id: 'low', historicalConversion: 0.1 }),
+        candidate({ id: 'high', historicalConversion: 0.9 }),
+      ],
+      mix,
+    );
+    expect(high!.breakdown.historical).toBe(0.9);
+    expect(low!.breakdown.historical).toBe(0.1);
+    expect(high!.score).toBeGreaterThan(low!.score);
+  });
+
+  it('treats a measured zero as measured, not as missing', () => {
+    // `0 ?? 0.5` is `0`. A category that genuinely converted nothing must be
+    // allowed to say so — that is the point of measuring.
+    const [scored] = scoreIdeas([candidate({ historicalConversion: 0 })], mix);
+    expect(scored!.breakdown.historical).toBe(0);
   });
 });

@@ -1,0 +1,39 @@
+{
+  "id": "ef3e1775-001d-4392-9ed1-471ddfd47039",
+  "platform": "tiktok",
+  "format": "video",
+  "status": "failed",
+  "category": "education",
+  "recipe": "Sally's Artisan Bread, gluten-free",
+  "title": "Sally's Artisan Bread, gluten-free",
+  "createdAt": "2026-08-21T14:45:11.162526-04:00",
+  "linkUrl": null,
+  "qcPassed": false,
+  "gates": [
+    {
+      "gate": "audio",
+      "status": "failed",
+      "summary": "WER 1.2%, 179 wpm, -14.6 LUFS"
+    },
+    {
+      "gate": "visual",
+      "status": "passed",
+      "summary": "passed (0 warnings)"
+    },
+    {
+      "gate": "retention",
+      "status": "warning",
+      "summary": "failed — 17.1s with no visual state change. The ceiling is 15s."
+    },
+    {
+      "gate": "coherence",
+      "status": "warning",
+      "summary": "coherent, 2 notes across 6 frames"
+    }
+  ],
+  "claims": [],
+  "generation": {
+    "seeded": "activation pass 1 phase 3",
+    "voCostUsd": 0.051573
+  }
+}

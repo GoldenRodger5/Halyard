@@ -146,13 +146,25 @@ test.describe('the daily path', () => {
     );
     expect(rows[0]?.reject_reason).toContain('reads like an ad');
 
-    // The reason becomes a do-not-do example in the copywriter prompt.
-    const voice = await db().query<{ anti_examples: Array<{ why_bad: string }> }>(
-      `select anti_examples from brand_voices where product_id = 'recipefix' and persona = 'brand'`,
-    );
-    expect(
-      voice.rows[0]?.anti_examples.some((e) => e.why_bad?.includes('reads like an ad')),
-    ).toBe(true);
+    /**
+     * Polled on the anti-example, not on the status.
+     *
+     * `rejectItem` writes the status first and appends to `anti_examples` in a
+     * later statement of the same action, so the poll above returns while that
+     * append is still in flight. This assertion passed on an idle machine and
+     * failed under load — gotcha 7 in `CLAUDE.md`: poll for the value the
+     * assertion actually needs, not for an earlier one that happens to arrive
+     * first.
+     */
+    await expect
+      .poll(async () => {
+        const voice = await db().query<{ anti_examples: Array<{ why_bad: string }> }>(
+          `select anti_examples from brand_voices
+            where product_id = 'recipefix' and persona = 'brand'`,
+        );
+        return voice.rows[0]?.anti_examples.some((e) => e.why_bad?.includes('reads like an ad'));
+      })
+      .toBe(true);
 
     await db().query(
       `update brand_voices set anti_examples = '[]'::jsonb

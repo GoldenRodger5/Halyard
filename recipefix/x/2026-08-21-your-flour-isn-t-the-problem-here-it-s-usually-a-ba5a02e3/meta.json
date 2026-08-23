@@ -1,0 +1,58 @@
+{
+  "id": "ba5a02e3-413b-4288-b3c1-eb29e2daa822",
+  "platform": "x",
+  "format": "text",
+  "status": "pending_approval",
+  "category": "education",
+  "recipe": null,
+  "title": null,
+  "createdAt": "2026-08-21T14:33:41.549736-04:00",
+  "linkUrl": "http://localhost:3200/r/ba5a02e3-413b-4288-b3c1-eb29e2daa822",
+  "qcPassed": true,
+  "gates": [
+    {
+      "gate": "copy",
+      "status": "warning",
+      "summary": "passed (1 warning)"
+    },
+    {
+      "gate": "claims",
+      "status": "skipped",
+      "summary": "no claims to verify"
+    },
+    {
+      "gate": "visual",
+      "status": "skipped",
+      "summary": "no media here — measured after render, by review_media"
+    },
+    {
+      "gate": "audio",
+      "status": "skipped",
+      "summary": "no voiceover here — measured after synthesis, by tts"
+    },
+    {
+      "gate": "coherence",
+      "status": "skipped",
+      "summary": "nothing rendered to compare against the post"
+    },
+    {
+      "gate": "destination",
+      "status": "skipped",
+      "summary": "no link"
+    },
+    {
+      "gate": "proof",
+      "status": "skipped",
+      "summary": "no quoted testimonial"
+    }
+  ],
+  "claims": [],
+  "generation": {
+    "model": "claude-sonnet-5",
+    "costUsd": 0.013899,
+    "attempts": 1,
+    "inputTokens": 1678,
+    "outputTokens": 591,
+    "promptVersion": "copywriter.v1"
+  }
+}

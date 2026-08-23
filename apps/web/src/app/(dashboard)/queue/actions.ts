@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { query, one } from '@/lib/db';
 import { fromDatetimeLocalValue } from '@/lib/format';
 import { requireOperator } from '@/lib/auth';
-import { slopFilter, type SlopPlatform } from '@halyard/core';
+import { gatesAfterEdit, slopFilter, type GateResult, type SlopPlatform } from '@halyard/core';
 
 async function audit(action: string, entityId: string, detail: Record<string, unknown>) {
   const operator = await requireOperator();
@@ -21,6 +21,17 @@ async function audit(action: string, entityId: string, detail: Record<string, un
  * belongs to the worker and its idempotency guard.
  */
 export async function approveItem(formData: FormData): Promise<void> {
+  /**
+   * A server action is a public POST endpoint.
+   *
+   * The `(dashboard)` layout calls `getOperator()` and redirects — but a layout
+   * guards *rendering*, and it never runs for an action invocation. Middleware
+   * does no auth either. So every action in this file was reachable without an
+   * authenticated operator, including the approval gate and the direct publish
+   * trigger — the exact boundary §90 and §92 exist to hold, bypassed at the
+   * transport layer rather than the logic layer.
+   */
+  await requireOperator();
   const id = String(formData.get('id'));
   const item = await one<{ status: string; scheduled_at: string | null }>(
     'select status, scheduled_at from content_items where id = $1',
@@ -51,6 +62,7 @@ export async function approveItem(formData: FormData): Promise<void> {
 
 /** Reject. The reason is the point — it feeds the copywriter's anti-examples. */
 export async function rejectItem(formData: FormData): Promise<void> {
+  await requireOperator();
   const id = String(formData.get('id'));
   const reason = String(formData.get('reason') ?? '').trim();
 
@@ -85,6 +97,7 @@ export async function rejectItem(formData: FormData): Promise<void> {
  * wrote and what the operator sent is available for learning (v1 §8).
  */
 export async function editItem(formData: FormData): Promise<void> {
+  await requireOperator();
   const id = String(formData.get('id'));
   const body = String(formData.get('body') ?? '');
 
@@ -93,8 +106,21 @@ export async function editItem(formData: FormData): Promise<void> {
     original_body: string | null;
     platform: string;
     hashtags: string[];
-  }>('select body, original_body, platform, hashtags from content_items where id = $1', [id]);
+    status: string;
+  }>('select body, original_body, platform, hashtags, status from content_items where id = $1', [
+    id,
+  ]);
   if (!item) return;
+
+  /**
+   * Editing what is already out, or on its way out, changes nothing real.
+   *
+   * `publishing` means a worker holds the claim; the body it is sending was
+   * read before this ran. `published` means the platform has it. In both cases
+   * an edit would silently desynchronise Halyard's record from what actually
+   * exists, which is worse than refusing.
+   */
+  if (item.status === 'publishing' || item.status === 'published') return;
 
   // The slop filter runs on operator edits too. It never blocks a human, but a
   // flagged edit is worth knowing about.
@@ -104,16 +130,93 @@ export async function editItem(formData: FormData): Promise<void> {
     hashtags: item.hashtags ?? [],
   });
 
+  /**
+   * An edit after approval withdraws the approval.
+   *
+   * This used to leave `status` alone. So: approve an item, edit the body, and
+   * the publish job already sitting in the queue sends text **nobody
+   * approved** — the one thing the approval gate exists to prevent, reached
+   * without touching the gate.
+   *
+   * Demoting to `pending_approval` also neutralises the queued job without
+   * hunting for it: `publishHandler` returns at
+   * `if (!['approved','scheduled','publishing'].includes(item.status))` before
+   * any account lookup or network call. So a re-approval is what re-arms it,
+   * which is the correct sequence.
+   *
+   * `scheduled` demotes for the same reason. No new state and no versioning
+   * mechanism — the existing status machine already expresses "a human has not
+   * signed off on this".
+   */
+  const withdrawsApproval = item.status === 'approved' || item.status === 'scheduled';
+
+  /**
+   * §157. The gates that were about the old text stop claiming to be about
+   * this one.
+   *
+   * `qc_results.gates` is what the queue renders, and an edit left every entry
+   * in it untouched — so a human could rewrite the body and the screen would go
+   * on showing `copy: passed (0 flags)` and `claims: 2/2 verified against
+   * artifact` for words that had never been examined. That is §143 again, with
+   * the operator rather than the hook generator doing the rewriting.
+   *
+   * The two gates are treated differently because only one of them can be
+   * settled here. The copy gate is the slop filter, which is deterministic and
+   * has already run on the new text a few lines above — so it is *re-run*, not
+   * invalidated. The claims gate cannot be: the claims were extracted from the
+   * old wording and verified against the artifact, and whether they survive an
+   * edit is a question only a re-verification answers. So it is marked
+   * unverified, in the operator's own words, rather than left reading green.
+   *
+   * Gates this action did not touch — visual, audio, coherence, retention —
+   * are left exactly as they were. Editing a caption does not un-measure a
+   * render.
+   */
+  const bodyChanged = body.trim() !== item.body.trim();
+
   await query(
     `update content_items
         set body = $2,
             original_body = coalesce(original_body, $3),
             edited_by_human = true,
+            status = case when $5 then 'pending_approval' else status end,
+            approved_at = case when $5 then null else approved_at end,
             qc_results = jsonb_set(coalesce(qc_results, '{}'::jsonb), '{human_edit_lint}', $4::jsonb)
       where id = $1`,
-    [id, body, item.original_body ?? item.body, JSON.stringify({ passed: lint.passed, violations: lint.violations })],
+    [
+      id,
+      body,
+      item.original_body ?? item.body,
+      JSON.stringify({ passed: lint.passed, violations: lint.violations }),
+      withdrawsApproval,
+    ],
   );
-  await audit('edit', id, { flags: lint.violations.length });
+
+  if (bodyChanged) {
+    /*
+     * Read, recompute, write. The gate list is small and this action is the
+     * only writer of a human edit, so a transaction would be ceremony.
+     */
+    const current = await one<{ gates: GateResult[] | null }>(
+      `select coalesce(qc_results->'gates', '[]'::jsonb) as gates from content_items where id = $1`,
+      [id],
+    );
+    const recomputed = gatesAfterEdit(current?.gates ?? [], lint);
+
+    await query(
+      `update content_items
+          set qc_results = coalesce(qc_results, '{}'::jsonb)
+                           || jsonb_build_object('gates', $2::jsonb, 'passed', $3::boolean)
+        where id = $1`,
+      [id, JSON.stringify(recomputed.gates), recomputed.passed],
+    );
+  }
+
+  await audit('edit', id, {
+    flags: lint.violations.length,
+    // Recorded, because "why did this stop being approved" needs an answer.
+    ...(withdrawsApproval ? { withdrewApproval: true, previousStatus: item.status } : {}),
+  });
 
   revalidatePath('/queue');
   revalidatePath(`/queue/${id}`);
@@ -121,6 +224,7 @@ export async function editItem(formData: FormData): Promise<void> {
 
 /** Regenerate with a note. Blind retry is a wasted call (v1 §8). */
 export async function regenerateItem(formData: FormData): Promise<void> {
+  await requireOperator();
   const id = String(formData.get('id'));
   const note = String(formData.get('note') ?? '').trim();
 
@@ -142,6 +246,7 @@ export async function regenerateItem(formData: FormData): Promise<void> {
 
 /** Reschedule from the queue card dropdown. */
 export async function rescheduleItem(formData: FormData): Promise<void> {
+  await requireOperator();
   const id = String(formData.get('id'));
   const when = String(formData.get('when'));
 
@@ -188,6 +293,7 @@ export async function rescheduleItem(formData: FormData): Promise<void> {
 
 /** Retry a failed render (build pack §3). */
 export async function retryRender(formData: FormData): Promise<void> {
+  await requireOperator();
   const id = String(formData.get('id'));
   const renders = await query<{ id: string }>(
     `update renders set status = 'queued', error = null
@@ -223,6 +329,7 @@ export async function retryRender(formData: FormData): Promise<void> {
  * path around all three.
  */
 export async function publishNow(formData: FormData): Promise<void> {
+  await requireOperator();
   const id = String(formData.get('id'));
   const item = await one<{ status: string }>('select status from content_items where id = $1', [id]);
   if (!item) return;
@@ -259,6 +366,7 @@ export async function publishNow(formData: FormData): Promise<void> {
  * shape as every "it looked done" bug in this codebase, so it is refused.
  */
 export async function markManuallyPublished(formData: FormData): Promise<void> {
+  await requireOperator();
   const id = String(formData.get('id'));
   const url = String(formData.get('url') ?? '').trim();
 

@@ -570,7 +570,14 @@ describe('YouTubeAdapter — v2 A.6', () => {
     const body = initiate.body as { status: { privacyStatus: string }; snippet: { title: string } };
     expect(body.status.privacyStatus).toBe('private');
     expect(body.snippet.title).toContain('#Shorts');
-    expect(result.mode).toBe('draft');
+    /*
+     * §156. `private`, not `draft`. This assertion used to read `draft`, which
+     * is what the adapter returned and what made the queue tell an operator to
+     * go and finish a video that needed no finishing. A private YouTube upload
+     * is real content Halyard can still publish over the API; a draft is
+     * something only a person can complete inside the platform's own app.
+     */
+    expect(result.mode).toBe('private');
     expect(result.manualPublishUrl).toContain('studio.youtube.com');
   });
 
@@ -756,5 +763,126 @@ describe('OAuth state and PKCE', () => {
     expect(needsRefresh(new Date(Date.now() + 30 * 60_000))).toBe(true);
     expect(needsRefresh(new Date(Date.now() + 5 * 3_600_000))).toBe(false);
     expect(needsRefresh(null)).toBe(false);
+  });
+});
+
+
+/**
+ * Instagram capability verification, against the shape Meta actually accepts.
+ *
+ * Found live on 2026-08-19: `verifyCapabilities` requested `account_type`, which
+ * is not a field on the Instagram *Business* node reached through Facebook
+ * Login. Meta rejected the entire call with `(#100) Tried accessing nonexisting
+ * field`, so a correctly connected account reported `pending_auth`. The value
+ * was never read — it was dead in the request and fatal to it.
+ */
+describe('instagram verifyCapabilities requests only valid fields', () => {
+  function account(scopes: string[], capture: { url?: string }) {
+    return {
+      id: 'a', platform: 'instagram' as const, handle: '@recipe.fix',
+      platformUserId: '178414', capabilityState: 'live' as const,
+      tokens: { accessToken: 't', refreshToken: null, scopes },
+      meta: {
+        igUserId: '178414',
+        fetchImpl: async (url: string) => {
+          capture.url = String(url);
+          return {
+            ok: true, status: 200,
+            json: async () => ({ username: 'recipe.fix', media_count: 3 }),
+            text: async () => '{}',
+          } as never;
+        },
+      },
+    } as never;
+  }
+
+  it('never asks Meta for account_type', async () => {
+    const capture: { url?: string } = {};
+    const adapter = getAdapter('instagram');
+    await adapter.verifyCapabilities(account(['instagram_content_publish'], capture));
+
+    expect(capture.url).toBeDefined();
+    // The exact field that made Meta reject the whole request.
+    expect(capture.url!).not.toContain('account_type');
+    expect(capture.url!).toContain('username');
+  });
+
+  it('still refuses to claim publishing when the publish scope is absent', async () => {
+    // The safety gate stays: no scope, no claim. Unchanged by the field fix.
+    const capture: { url?: string } = {};
+    const adapter = getAdapter('instagram');
+    const report = await adapter.verifyCapabilities(account([], capture));
+    expect(report.state).toBe('pending_auth');
+    expect(report.supportedFormats).toEqual([]);
+  });
+});
+
+
+/**
+ * Meta grants: requested is not granted.
+ *
+ * Meta's token response carries no `scope` field, so before this the account
+ * persisted an empty list and the publish gate reported a granted permission as
+ * refused. `/me/permissions` is the evidence, and only `granted` counts.
+ */
+describe('instagram granted permissions', () => {
+  const adapter = getAdapter('instagram') as never as {
+    grantedPermissions: (t: string, f?: typeof fetch) => Promise<string[]>;
+  };
+
+  function permissionsFetch(data: Array<{ permission: string; status: string }>) {
+    return (async (_url: string) => ({
+      ok: true,
+      status: 200,
+      json: async () => ({ data }),
+      text: async () => JSON.stringify({ data }),
+    })) as unknown as typeof fetch;
+  }
+
+  it('persists a permission Meta reports as granted', async () => {
+    const granted = await adapter.grantedPermissions(
+      't',
+      permissionsFetch([
+        { permission: 'instagram_content_publish', status: 'granted' },
+        { permission: 'instagram_basic', status: 'granted' },
+      ]),
+    );
+    expect(granted).toContain('instagram_content_publish');
+    expect(granted).toContain('instagram_basic');
+  });
+
+  it('omits a permission the user declined, however it was requested', async () => {
+    // The whole point: Halyard asked for it, Meta says no, so it is not evidence.
+    const granted = await adapter.grantedPermissions(
+      't',
+      permissionsFetch([
+        { permission: 'instagram_basic', status: 'granted' },
+        { permission: 'instagram_content_publish', status: 'declined' },
+      ]),
+    );
+    expect(granted).toContain('instagram_basic');
+    expect(granted).not.toContain('instagram_content_publish');
+  });
+
+  it('records nothing when the permission check fails', async () => {
+    // Unknown, not "all granted". An empty list keeps the gate closed.
+    const granted = await adapter.grantedPermissions('t', (async () => {
+      throw new Error('network');
+    }) as never);
+    expect(granted).toEqual([]);
+  });
+
+  it('keeps refusing publishing when the evidence lacks the publish grant', async () => {
+    const report = await getAdapter('instagram').verifyCapabilities({
+      id: 'a', platform: 'instagram', handle: '@recipe.fix', platformUserId: '1',
+      capabilityState: 'live',
+      tokens: { accessToken: 't', refreshToken: null, scopes: ['instagram_basic'] },
+      meta: {
+        igUserId: '1',
+        fetchImpl: (async () =>
+          ({ ok: true, status: 200, json: async () => ({ username: 'recipe.fix' }), text: async () => '{}' }) as never) as never,
+      },
+    } as never);
+    expect(report.state).toBe('pending_auth');
   });
 });

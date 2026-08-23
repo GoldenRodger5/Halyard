@@ -8,12 +8,15 @@
  * selector.
  *
  * RecipeFix ships no `data-testid` anywhere, so these are aria-label,
- * role-plus-name and placeholder selectors. It does have one genuinely good
- * hook — `aria-label="Choose your swap"` on the substitution control — and the
- * flows lean on it. The rest are as stable as role and copy, which is fragile in
- * one specific way: a wording change breaks them. `verify-flows` exists for
- * exactly that, and the fix on the RecipeFix side is four `data-testid`
- * attributes on the elements these flows touch.
+ * role-plus-name and placeholder selectors — as stable as role and copy, which
+ * is fragile in one specific way: a wording change breaks them.
+ *
+ * §159. `aria-label="Choose your swap"` was the one genuinely good hook and it
+ * moved, killing three capture jobs a day. Steps now carry
+ * `fallbackSelectors`: the same intent said several ways, most durable first,
+ * with the winner recorded so drift is visible before it is fatal. The
+ * `data-testid` candidates lead the chains deliberately — they cost nothing
+ * while absent and become the durable hook the day RecipeFix adds them.
  */
 
 export type FlowId = 'adapt_and_reveal' | 'swap_toggle' | 'cook_mode_timer';
@@ -33,6 +36,21 @@ export interface FlowStep {
     | 'scrollTo';
   /** Discovered selector. Omitted for goto/wait/still. */
   selector?: string;
+  /**
+   * Other ways to find the same element, tried in order after `selector`.
+   *
+   * §159. `aria-label="Choose your swap"` was the one genuinely good hook
+   * RecipeFix offered, and it moved — three capture jobs a day now die on
+   * `Selector [aria-label="Choose your swap"] did not resolve`. The fix is not
+   * a better guess at the markup; markup moves. It is to say the same intent
+   * several ways and record which one answered.
+   *
+   * Ordered most durable first, which is roughly: a test id, then an
+   * accessible role and name, then visible text, then structural CSS. A step
+   * that falls through to its last candidate is still working and is *also*
+   * a warning, which `selectorHealth` reports.
+   */
+  fallbackSelectors?: string[];
   value?: string;
   timeoutMs?: number;
   /**
@@ -60,6 +78,25 @@ export interface FlowStep {
   narration?: string;
 }
 
+/**
+ * The part of the viewport worth framing, as fractions of width and height.
+ *
+ * §163. A browser recording is a whole window, and a 9:16 frame of the whole
+ * window renders the product at a size nobody can read on a phone. The region
+ * that matters — a result panel, a canvas, an editor pane — is knowledge about
+ * *this product's layout*, so it lives here in the flow configuration rather
+ * than in the renderer, which must stay product-agnostic (§146).
+ *
+ * Omitted means the whole viewport, which is the honest default for a flow
+ * nobody has framed yet.
+ */
+export interface FocusRegion {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 export interface CaptureFlow {
   id: FlowId;
   title: string;
@@ -67,6 +104,8 @@ export interface CaptureFlow {
   why: string;
   path: string;
   viewport: { width: number; height: number };
+  /** Where the product's output lives in this flow's viewport. §163. */
+  focusRegion?: FocusRegion;
   /** Wall-clock range, measured. Outside it, something has changed. */
   expectedSeconds: [number, number];
   /** True when running it performs a real adaptation and spends a credit. */
@@ -94,6 +133,16 @@ export const FLOWS: Record<FlowId, CaptureFlow> = {
       'The whole product in one shot: an arbitrary recipe URL goes in, a diet constraint is picked, and what comes back has substitutions with reasons attached.',
     path: '/adapt',
     viewport: { width: 1280, height: 900 },
+    /*
+     * The result panel, measured off a real capture: the converter's inputs run
+     * down the left ~22% and the adapted recipe fills the rest. Framing the
+     * whole window puts the product at a size nobody can read on a phone.
+     *
+     * The top 7.5% is the site's own navigation. It is real, but it is the same
+     * chrome on every page and it competes with the result for the top of the
+     * frame, so the crop starts below it.
+     */
+    focusRegion: { x: 0.22, y: 0.075, width: 0.78, height: 0.925 },
     // Measured, not assumed. The spec said 60–75s. A cold adaptation of this
     // URL took 26s; a repeat of the same URL and diet came back in under 10,
     // because RecipeFix caches the result. Both are normal, so the range is wide
@@ -179,19 +228,44 @@ export const FLOWS: Record<FlowId, CaptureFlow> = {
     steps: [
       {
         name: 'find the swap control',
-        // The one genuinely stable hook on the page.
+        /*
+         * §159. This was the one genuinely stable hook on the page, and it
+         * moved — three capture jobs a day died on it. The candidates below say
+         * the same intent four ways, most durable first, so a further change
+         * degrades the run instead of ending it.
+         */
         action: 'waitFor',
-        selector: '[aria-label="Choose your swap"]',
+        selector: '[data-testid="swap-control"]',
+        fallbackSelectors: [
+          '[aria-label="Choose your swap"]',
+          'role=group[name=/swap/i]',
+          'role=radiogroup[name=/swap|substitut/i]',
+          'text=Choose your swap',
+        ],
         timeoutMs: 30_000,
       },
-      { name: 'scroll the ingredient into view', action: 'scrollTo', selector: '[aria-label="Choose your swap"]' },
+      {
+        name: 'scroll the ingredient into view',
+        action: 'scrollTo',
+        selector: '[data-testid="swap-control"]',
+        fallbackSelectors: [
+          '[aria-label="Choose your swap"]',
+          'role=group[name=/swap/i]',
+          'text=Choose your swap',
+        ],
+      },
       { name: 'still before the swap', action: 'still', value: 'before' },
       {
         // The alternative is whichever option is not currently pressed, so this
         // works on any recipe rather than only on the one it was written against.
         name: 'pick the other option',
         action: 'click',
-        selector: '[aria-label="Choose your swap"] button[aria-pressed="false"]',
+        selector: '[data-testid="swap-control"] button[aria-pressed="false"]',
+        fallbackSelectors: [
+          '[aria-label="Choose your swap"] button[aria-pressed="false"]',
+          'role=radio[name=/.+/]',
+          'button[aria-pressed="false"]',
+        ],
         narration: 'One tap.',
       },
       {

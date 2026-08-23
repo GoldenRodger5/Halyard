@@ -12,7 +12,9 @@ import {
   FACT_CATEGORIES,
   REACHABLE_CATEGORIES,
   canStatePublicly,
+  discoverEvidenceSources,
   isStale,
+  type EvidenceSourceStatus,
   type FactCategory,
   type FactStatus,
 } from '@halyard/core';
@@ -338,4 +340,58 @@ export async function getBrainJobs(productId: string): Promise<BrainJobState[]> 
     claimedAt: r.locked_at ? new Date(r.locked_at) : null,
     lastError: r.last_error,
   }));
+}
+
+export interface EvidenceSourceView extends EvidenceSourceStatus {
+  /** How many current rows this source has contributed. 0 is a real answer. */
+  observed: number;
+  /** When it last produced anything. Null means never, whatever the config says. */
+  lastObservedAt: string | null;
+}
+
+/**
+ * What Halyard can read this product from, and what it has actually read.
+ *
+ * §146. Two different claims, deliberately shown side by side. `configured`
+ * comes from `discoverEvidenceSources` and is a statement about configuration;
+ * `observed` comes from `product_evidence` and is a statement about the world.
+ * A source that is configured and has observed nothing is the interesting case
+ * — it is how a misconfigured URL looks, and it is invisible if you only show
+ * one of the two.
+ */
+export async function getEvidenceSources(product: {
+  id: string;
+  brief_markdown?: string | null;
+  connector_type?: string | null;
+  connector_config?: Record<string, unknown> | null;
+  destinations?: { web?: string; app_store?: string } | null;
+  website_url?: string | null;
+  app_store_url?: string | null;
+}): Promise<EvidenceSourceView[]> {
+  const rows = await query<{ kind: string; observed: string; last_observed: Date | null }>(
+    `select kind, count(*) as observed, max(collected_at) as last_observed
+       from product_evidence
+      where product_id = $1 and superseded_by is null
+      group by kind`,
+    [product.id],
+  );
+
+  const shots = rows.find((r) => r.kind === 'screenshot');
+  const sources = discoverEvidenceSources({
+    ...product,
+    // `products.connector_type` is a text column with a check constraint; the
+    // generated row type is `string`. Narrowed here rather than widening the
+    // core signature, which is what keeps the constraint meaningful.
+    connector_type: (product.connector_type ?? 'none') as 'mcp' | 'rest' | 'github' | 'none',
+    describedScreenshots: Number(shots?.observed ?? 0),
+  });
+
+  return sources.map((source) => {
+    const row = rows.find((r) => r.kind === source.evidenceKind);
+    return {
+      ...source,
+      observed: Number(row?.observed ?? 0),
+      lastObservedAt: row?.last_observed ? new Date(row.last_observed).toISOString() : null,
+    };
+  });
 }

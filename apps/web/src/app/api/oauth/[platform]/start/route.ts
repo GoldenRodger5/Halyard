@@ -9,6 +9,7 @@ import {
 } from '@halyard/core';
 import { requireOperator } from '@/lib/auth';
 import { query } from '@/lib/db';
+import { callbackUrl } from '@/lib/oauthRedirect';
 
 async function personalProductId(): Promise<string | null> {
   const rows = await query<{ id: string }>(
@@ -54,8 +55,7 @@ export async function GET(
     );
   }
 
-  const base = process.env.OAUTH_REDIRECT_BASE_URL ?? request.nextUrl.origin;
-  const redirectUri = `${base.replace(/\/$/, '')}/api/oauth/${platform}/callback`;
+  const redirectUri = callbackUrl(process.env.OAUTH_REDIRECT_BASE_URL, request.nextUrl.origin, platform);
 
   const persona = (request.nextUrl.searchParams.get('persona') ?? 'brand') as 'brand' | 'founder';
 

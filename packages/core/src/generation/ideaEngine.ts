@@ -6,12 +6,26 @@
  * drifting into whatever is easiest to generate — usually product promotion.
  */
 
-export type IdeaCategory =
-  | 'transformation'
-  | 'education'
-  | 'community'
-  | 'product'
-  | 'founder_insight';
+/**
+ * The five content pillars, as a value rather than only a type.
+ *
+ * The type existed alone, so anything needing to *check* a category at runtime
+ * had to write the list again — and this list already exists twice more, as
+ * `CONTENT_CATEGORIES` in `@halyard/db` and as the `ideas_category_check`
+ * constraint. `packages/core` cannot import from `@halyard/db` without breaking
+ * `packages/audit`, which typechecks these files without that path mapping, so
+ * the agreement is pinned by a test instead of by an import — the same answer
+ * §82 reached for the platform list.
+ */
+export const IDEA_CATEGORIES = [
+  'transformation',
+  'education',
+  'community',
+  'product',
+  'founder_insight',
+] as const;
+
+export type IdeaCategory = (typeof IDEA_CATEGORIES)[number];
 
 export interface ScoringWeights {
   mixDebt: number;
@@ -114,9 +128,36 @@ export function cosineDistance(a: number[], b: number[]): number {
   return 1 - dot / (Math.sqrt(normA) * Math.sqrt(normB));
 }
 
-/** Distance from the nearest of the last 60 days of ideas. 1 = wholly novel. */
+/**
+ * The honest answer when novelty cannot be measured at all.
+ *
+ * The same neutral `historicalConversion` uses, and for the same reason: an
+ * unmeasured factor must not read as a measured maximum. See §140.
+ */
+export const NOVELTY_UNMEASURED = 0.5;
+
+/**
+ * Distance from the nearest of the last 60 days of ideas. 1 = wholly novel.
+ *
+ * Two situations used to share one answer, and only one of them deserved it:
+ *
+ *  · `recent.length === 0` — nothing to be similar *to*. Genuinely novel, 1.
+ *  · `!candidate` — this idea has no embedding, so novelty was **not
+ *    measured**. Returning 1 claimed maximum novelty for something nobody
+ *    looked at.
+ *
+ * Nothing writes `ideas.embedding` today, so every idea takes the second branch
+ * and the old constant 1 was harmless to ranking. It stops being harmless the
+ * moment one idea has an embedding: an unmeasured idea would score a perfect 1
+ * and outrank a measured one that scored 0.7. Unmeasured beating measured is
+ * the failure this codebase is built around, and `historicalConversion` three
+ * lines below already states the rule — `?? 0.5`, "the honest neutral".
+ */
 export function noveltyScore(candidate: number[] | undefined, recent: number[][]): number {
-  if (!candidate || recent.length === 0) return 1;
+  // Nothing to compare against is a real measurement with a real answer.
+  if (recent.length === 0) return 1;
+  // No embedding is not a measurement at all.
+  if (!candidate) return NOVELTY_UNMEASURED;
   let nearest = 1;
   for (const other of recent) {
     nearest = Math.min(nearest, cosineDistance(candidate, other));
@@ -202,7 +243,22 @@ export function scoreIdeas(
       0,
     );
 
+    /*
+     * Factors that were never measured are excluded from the explanation.
+     *
+     * `explanation` is rendered on /ideas as the reason an idea was chosen. At
+     * cold start novelty contributed a flat 0.20 — frequently the single
+     * largest term — so the screen told the operator "novelty 20%" about an
+     * idea whose novelty nothing had looked at. A neutral is an honest number
+     * to score with and a dishonest one to cite as a reason.
+     *
+     * Only novelty can be unmeasured this way: every other factor is computed
+     * from data that always exists, and `historical` states its own neutral.
+     */
+    const noveltyMeasured = Boolean(candidate.embedding) && recent.length > 0;
+
     const top = (Object.entries(breakdown) as Array<[keyof ScoringWeights, number]>)
+      .filter(([key]) => key !== 'novelty' || noveltyMeasured)
       .map(([key, value]) => ({ key, contribution: value * weights[key] }))
       .sort((a, b) => b.contribution - a.contribution)
       .slice(0, 2);

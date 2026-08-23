@@ -16,7 +16,7 @@
  *   4. A hook that promises something the body does not deliver is clickbait,
  *      and it trains an audience to distrust the account (I.5).
  */
-import { extractJson, type LlmClient, DRAFT_MODEL } from './llm.js';
+import { extractJson, type LlmClient, CLASSIFY_MODEL, DRAFT_MODEL } from './llm.js';
 
 // ── I.2 — the taxonomy ─────────────────────────────────────────────────────
 
@@ -152,6 +152,13 @@ export interface HookFilterContext {
   title?: string;
   brandNames?: string[];
   isVideo?: boolean;
+  /**
+   * Which platform this is destined for. Required before any measured
+   * performance is used: view-through is not comparable across platforms, so
+   * without it the scorer falls back to the neutral prior rather than borrowing
+   * another platform's numbers.
+   */
+  platform?: string;
 }
 
 /**
@@ -232,8 +239,32 @@ export interface HookHistory {
   recentTypes: HookType[];
   /** Patterns used in the last 30 days, which are on cooldown. */
   cooledPatterns: string[];
-  /** Recency-weighted stop rate by type and format, where there is data. */
-  performance: Array<{ hookType: HookType; format: string; stopRate: number; samples: number }>;
+  /**
+   * What was actually measured for each hook type, by format **and platform**.
+   *
+   * This was `stopRate`, and the query behind it referenced
+   * `post_metrics.content_item_id` and `post_metrics.stop_rate` — neither
+   * column has ever existed. The query failed on every call, a `.catch()`
+   * turned that into an empty array, and the comment above it explained the
+   * emptiness as "nothing has published yet". Both are silent, and both look
+   * identical from here.
+   *
+   * Halyard collects no three-second retention figure, because no platform
+   * reports one to it. What it does collect is `video_views` and `impressions`,
+   * whose ratio is a **view-through rate** — a different measure, named as
+   * itself rather than as the thing it resembles.
+   *
+   * Scoped by platform because platforms do not agree on what a view is:
+   * Instagram counts at about three seconds, TikTok at almost none, YouTube at
+   * thirty. Averaging across them produces a number that means nothing anywhere.
+   */
+  performance: Array<{
+    hookType: HookType;
+    format: string;
+    platform: string;
+    viewThroughRate: number;
+    samples: number;
+  }>;
 }
 
 export interface SurfaceResult {
@@ -257,7 +288,7 @@ export function surfaceBestVariants(
   const scored = variants
     .map((variant) => ({
       variant,
-      score: scoreVariant(variant, history, context.format ?? 'unknown'),
+      score: scoreVariant(variant, history, context.format ?? 'unknown', context.platform),
     }))
     .sort((a, b) => b.score - a.score);
 
@@ -297,20 +328,46 @@ export function surfaceBestVariants(
       continue;
     }
 
-    surfaced.push({ ...variant, ...predictStopRate(variant, history, context.format ?? 'unknown') });
+    surfaced.push({
+      ...variant,
+      ...predictStopRate(variant, history, context.format ?? 'unknown', context.platform),
+    });
     if (surfaced.length >= limit) break;
   }
 
   return { surfaced, rejected };
 }
 
-function scoreVariant(variant: HookVariant, history: HookHistory, format: string): number {
-  const match = history.performance.find(
-    (p) => p.hookType === variant.hookType && p.format === format,
-  );
+function scoreVariant(
+  variant: HookVariant,
+  history: HookHistory,
+  format: string,
+  platform?: string,
+): number {
+  const match = matchPerformance(history, variant.hookType, format, platform);
   // With no data every type is equal, which is the honest position.
   if (!match || match.samples < 3) return 0.5;
-  return match.stopRate;
+  return match.viewThroughRate;
+}
+
+/**
+ * The measurement for this hook type on this format *and platform*.
+ *
+ * When the caller does not know the platform, nothing matches rather than the
+ * first row winning: a hook's view-through on TikTok is not evidence about the
+ * same hook on Instagram, and silently borrowing it is how one platform's
+ * numbers end up steering another's content.
+ */
+function matchPerformance(
+  history: HookHistory,
+  hookType: HookType,
+  format: string,
+  platform?: string,
+): HookHistory['performance'][number] | undefined {
+  if (!platform) return undefined;
+  return history.performance.find(
+    (p) => p.hookType === hookType && p.format === format && p.platform === platform,
+  );
 }
 
 /**
@@ -323,21 +380,28 @@ export function predictStopRate(
   variant: HookVariant,
   history: HookHistory,
   format: string,
+  platform?: string,
 ): { predictedStopRate: number | null; predictionBasis: string } {
-  const match = history.performance.find(
-    (p) => p.hookType === variant.hookType && p.format === format,
-  );
+  const match = matchPerformance(history, variant.hookType, format, platform);
 
   if (!match || match.samples < 3) {
     return {
       predictedStopRate: null,
-      predictionBasis: `No data. ${match?.samples ?? 0} ${variant.hookType} ${format} posts so far; a prediction needs at least 3.`,
+      predictionBasis: platform
+        ? `No data. ${match?.samples ?? 0} ${variant.hookType} ${format} posts on ${platform} so far; a prediction needs at least 3.`
+        : `No data. Nothing is predicted without a platform, because view-through is not comparable across them.`,
     };
   }
 
+  /**
+   * Named as what it is. Halyard has never collected a three-second retention
+   * figure — no platform reports one to it — so calling this "3s retention"
+   * would be a measurement claim nothing supports. The column it is stored in
+   * keeps its name; the sentence an operator reads does not.
+   */
   return {
-    predictedStopRate: Number(match.stopRate.toFixed(3)),
-    predictionBasis: `${(match.stopRate * 100).toFixed(0)}% average 3s retention across ${match.samples} ${variant.hookType} ${format} posts.`,
+    predictedStopRate: Number(match.viewThroughRate.toFixed(3)),
+    predictionBasis: `${(match.viewThroughRate * 100).toFixed(0)}% average view-through (video views over impressions) across ${match.samples} ${variant.hookType} ${format} posts on ${platform}. Platforms define a view differently, so this is not comparable to another platform's figure.`,
   };
 }
 
@@ -530,7 +594,12 @@ why.
 Reply with JSON only:
 {"delivered":true,"where":"the sentence that pays it off","reason":"one sentence"}`,
       messages: [{ role: 'user', content: `HOOK\n${input.hook}\n\nBODY\n${input.body}` }],
-      model: DRAFT_MODEL,
+      /*
+       * Classification, not generation. "Does this hook pay off in the body" is
+       * a verdict behind a gate — there is no prose to get worse. Generation
+       * stays on the draft model, where a weaker answer costs a QC retry.
+       */
+      model: CLASSIFY_MODEL,
       maxTokens: 400,
       promptVersion: PAYOFF_PROMPT_VERSION,
     });

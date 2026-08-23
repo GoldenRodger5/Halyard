@@ -9,6 +9,7 @@ import {
 import { query } from '@/lib/db';
 import { stagePendingConnection } from '@/lib/connections';
 import { requireOperator } from '@/lib/auth';
+import { callbackUrl } from '@/lib/oauthRedirect';
 
 export const dynamic = 'force-dynamic';
 
@@ -63,8 +64,7 @@ export async function GET(
     );
   }
 
-  const base = process.env.OAUTH_REDIRECT_BASE_URL ?? url.origin;
-  const redirectUri = `${base.replace(/\/$/, '')}/api/oauth/${platform}/callback`;
+  const redirectUri = callbackUrl(process.env.OAUTH_REDIRECT_BASE_URL, url.origin, platform);
   const codeVerifier = request.cookies.get(`halyard_pkce_${platform}`)?.value;
 
   let tokens;

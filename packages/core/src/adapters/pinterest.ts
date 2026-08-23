@@ -49,6 +49,13 @@ export const PINTEREST_CONSTRAINTS: PlatformConstraints = {
   linkNote: 'The destination URL is a field on the pin. This is Pinterest\'s whole strength.',
   requiresReviewForPublicPosting: true,
   supportsTrendingAudioViaApi: false,
+  delivery: {
+    nativeDraft: false,
+    privateUpload: false,
+    apiScheduling: false,
+    requiresCreatorCompletion: false,
+    note: 'v5 pins/create adds the Pin to a board immediately. The API offers no draft, unpublished or scheduled state, whatever the Pinterest web UI allows by hand.',
+  },
 };
 
 export class PinterestAdapter implements PlatformAdapter {

@@ -222,8 +222,15 @@ export function accountStatus(input: AccountStatusInput): AccountStatusView {
 
   return {
     status: 'ready',
-    label: 'Ready to publish',
-    explanation: `Halyard can publish to ${account.handle} and collect results from it.`,
+    /**
+     * The badge names the *connection*, not the publish verdict.
+     *
+     * "Ready to publish" as a headline invites the reading that a post is going
+     * out now, which is not the badge's job — publishing readiness has its own
+     * row, and it is the row that changes when the global switch flips.
+     */
+    label: 'Connected',
+    explanation: `Halyard is connected to ${account.handle} and can publish to it.`,
     nextAction: 'manage',
     actionLabel: 'Manage',
     canPublish: true,

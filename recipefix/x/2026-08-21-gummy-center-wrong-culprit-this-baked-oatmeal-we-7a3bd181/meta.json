@@ -1,0 +1,67 @@
+{
+  "id": "7a3bd181-8e4a-4cd5-99cb-1672806b6d2a",
+  "platform": "x",
+  "format": "text",
+  "status": "pending_approval",
+  "category": "education",
+  "recipe": null,
+  "title": null,
+  "createdAt": "2026-08-21T17:28:12.720461-04:00",
+  "linkUrl": "http://localhost:3200/r/7a3bd181-8e4a-4cd5-99cb-1672806b6d2a",
+  "qcPassed": true,
+  "gates": [
+    {
+      "gate": "copy",
+      "status": "warning",
+      "summary": "passed (2 warnings)"
+    },
+    {
+      "gate": "claims",
+      "status": "passed",
+      "summary": "2/2 verified against artifact"
+    },
+    {
+      "gate": "visual",
+      "status": "skipped",
+      "summary": "no media here — measured after render, by review_media"
+    },
+    {
+      "gate": "audio",
+      "status": "skipped",
+      "summary": "no voiceover here — measured after synthesis, by tts"
+    },
+    {
+      "gate": "coherence",
+      "status": "skipped",
+      "summary": "nothing rendered to compare against the post"
+    },
+    {
+      "gate": "destination",
+      "status": "skipped",
+      "summary": "no link"
+    },
+    {
+      "gate": "proof",
+      "status": "skipped",
+      "summary": "no quoted testimonial"
+    }
+  ],
+  "claims": [
+    {
+      "text": "The pan size changed from the original 9x9 or 11x7 to an 8x8 for the smaller batch",
+      "source": "adaptation.steps[0].instruction"
+    },
+    {
+      "text": "The smaller, shallower pan bakes faster, so checking should start at 22 minutes with full bake time 25 to 28 minutes",
+      "source": "adaptation.steps[3].instruction"
+    }
+  ],
+  "generation": {
+    "model": "claude-sonnet-5",
+    "costUsd": 0.066489,
+    "attempts": 2,
+    "inputTokens": 8368,
+    "outputTokens": 2759,
+    "promptVersion": "copywriter.v1"
+  }
+}

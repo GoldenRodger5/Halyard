@@ -91,7 +91,20 @@ export function collectJobFacts(repoRoot: string): JobFacts {
  * judgement, and so is computed, is whether a caller passes it.
  */
 const GATE_SPECS: Array<{ name: string; fn: string; optionalInputs: string[] }> = [
-  { name: 'runAllGates', fn: 'runAllGates', optionalInputs: ['visual', 'audio', 'claims'] },
+  /*
+   * `visual` and `audio` left this list in §119, when they stopped being inputs
+   * at all — `runAllGates` runs at copy time and no caller could ever supply
+   * them. Keeping them here after the removal would report a permanent
+   * false positive, which is the failure mode §108 and §118 are both about.
+   *
+   * `destination` and `proof` are listed because they *are* supplied, so the
+   * rule stays capable of firing if a refactor ever drops one.
+   */
+  {
+    name: 'runAllGates',
+    fn: 'runAllGates',
+    optionalInputs: ['claims', 'destination', 'proof'],
+  },
   { name: 'coherence', fn: 'runCoherenceQC', optionalInputs: ['audio'] },
 ];
 

@@ -1,13 +1,8 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import {
-  needsRefresh,
-  openToken,
+  refreshDueTokens,
   safeEqual,
-  sealToken,
-  getAdapter,
   tokenExpiryState,
-  PLATFORM_CLIENT_ENV,
-  type PlatformId,
 } from '@halyard/core';
 import { query } from '@/lib/db';
 
@@ -140,70 +135,20 @@ export async function POST(request: NextRequest, context: { params: Promise<{ ta
  * blindly against a dead token.
  */
 async function refreshTokens(): Promise<{ refreshed: number; failed: number }> {
-  const accounts = await query<{
-    id: string;
-    platform: PlatformId;
-    access_token_enc: Buffer | null;
-    refresh_token_enc: Buffer | null;
-    token_expires_at: string | null;
-  }>(
-    `select id, platform, access_token_enc, refresh_token_enc, token_expires_at
-       from social_accounts
-      where capability_state in ('live','draft_only') and token_expires_at is not null`,
-  );
-
-  let refreshed = 0;
-  let failed = 0;
-
-  for (const account of accounts) {
-    if (!needsRefresh(account.token_expires_at ? new Date(account.token_expires_at) : null)) continue;
-
-    const env = PLATFORM_CLIENT_ENV[account.platform];
-    const clientId = process.env[env.id];
-    const clientSecret = process.env[env.secret];
-    if (!clientId || !clientSecret || !account.access_token_enc) continue;
-
-    try {
-      const adapter = getAdapter(account.platform);
-      const next = await adapter.refresh(
-        {
-          accessToken: openToken(account.access_token_enc),
-          refreshToken: account.refresh_token_enc ? openToken(account.refresh_token_enc) : null,
-        },
-        { clientId, clientSecret },
-      );
-
-      await query(
-        `update social_accounts
-            set access_token_enc = $2, refresh_token_enc = $3, token_expires_at = $4, last_error = null
-          where id = $1`,
-        [
-          account.id,
-          sealToken(next.accessToken),
-          next.refreshToken ? sealToken(next.refreshToken) : account.refresh_token_enc,
-          next.expiresAt ?? null,
-        ],
-      );
-      refreshed++;
-    } catch (err) {
-      failed++;
-      await query(
-        `update social_accounts set capability_state = 'error', last_error = $2 where id = $1`,
-        [account.id, `Token refresh failed: ${(err as Error).message.slice(0, 400)}`],
-      );
-      await query(
-        `insert into notifications (kind, severity, title, body, entity_type, entity_id)
-         values ('auth_failure', 'critical', $1, $2, 'social_account', $3)`,
-        [
-          `${account.platform} token refresh failed`,
-          'The account is marked in error and its queued items are paused. Reconnect on the Accounts screen.',
-          account.id,
-        ],
-      );
-    }
-  }
-
-  return { refreshed, failed };
+  /**
+   * Delegates to the shared implementation in core.
+   *
+   * This route kept the only copy of the refresh, and `vercel.json` schedules
+   * it `0 4 * * *` — once a day, the Hobby limit — against X tokens that live
+   * two hours. The worker now runs the same function hourly; this stays as the
+   * documented backstop for the case where the worker is down, which is the one
+   * failure the worker cannot cover for itself.
+   */
+  const result = await refreshDueTokens({
+    query: async <T>(sql: string, params?: unknown[]): Promise<T[]> =>
+      (await query(sql, params)) as T[],
+  });
+  return { refreshed: result.refreshed, failed: result.failed };
 }
 
 /**

@@ -1,0 +1,9 @@
+Our fix flopped once.
+
+We swapped egg for banana in a bread recipe. The tool read egg as moisture and picked the fruit closest in water content. It skipped what egg also does: hold the crumb together while heat sets it. Banana brought moisture but no structure, so the middle stayed wet after the edges browned.
+
+What we changed: egg substitutions now get flagged separately from other liquid swaps, because binding and moisture aren't the same job even when an ingredient does both.
+
+Worth knowing before you trust any swap blind. Some ingredients are doing two things at once, and losing one of them won't show up until the loaf is already in the oven.
+
+#bakingfails #recipedevelopment #foodtech #bakingscience #kitchenexperiments

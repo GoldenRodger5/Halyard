@@ -23,6 +23,7 @@ import path from 'node:path';
 import {
   OpenAiVisionClient,
   runCoherenceQC,
+  runRetentionQC,
   runVisualQC,
   type CoherenceIntent,
   type FrameObservation,
@@ -102,6 +103,13 @@ export function keyTermsFor(item: {
  * The gate compares against a fixed set — a raw "1080:1920" would match none of
  * them and the aspect-ratio rule would fire on every correct render.
  */
+/** Absolute change between consecutive samples. Empty in, empty out. */
+export function consecutiveDeltas(series: number[]): number[] {
+  const out: number[] = [];
+  for (let i = 1; i < series.length; i += 1) out.push(Math.abs(series[i]! - series[i - 1]!));
+  return out;
+}
+
 export function aspectRatioOf(width: number, height: number): string {
   const ratio = width / height;
   const known: Array<[string, number]> = [
@@ -149,11 +157,47 @@ export async function reviewMediaHandler(
     [contentItemId],
   );
 
+  /**
+   * Everything that will actually be published, not only what was rendered.
+   *
+   * `publish` sends `render_ids` **and** `attached_asset_ids`. This query only
+   * ever walked `renders`, so an asset the operator attached from the library
+   * was examined by nothing — and the comment that used to sit here said
+   * "images are covered by the existing visual gate at draft time", which is
+   * false: no caller supplies `visual` to `runAllGates`, which is exactly what
+   * the Auditor's `gate.input_never_supplied` has been reporting.
+   *
+   * Dimensions come from the `assets` row rather than from downloading the
+   * file. That is enough for the rules that matter on a still — aspect ratio
+   * against the platform, and carousel consistency — and an asset with no
+   * recorded dimensions is reported as unexamined rather than passed.
+   */
+  const { rows: attached } = await ctx.pool.query<{
+    id: string;
+    width: number | null;
+    height: number | null;
+    mime_type: string;
+  }>(
+    `select a.id, a.width, a.height, a.mime_type
+       from content_items ci
+       join assets a on a.id = any(ci.attached_asset_ids)
+      where ci.id = $1 and a.archived_at is null`,
+    [contentItemId],
+  );
+
   const video = assets.find((a) => a.mime_type.startsWith('video/'));
   if (!video) {
-    // Images are covered by the existing visual gate at draft time; the
-    // coherence gate is about motion, narration and the hook window.
-    ctx.log('no video to review', { contentItemId, assets: assets.length });
+    /**
+     * No video, but there may well be stills — and returning here left the item
+     * with no media gate at all, which reads as "nothing wrong" rather than
+     * "nothing looked at".
+     */
+    await reviewStills(ctx, contentItemId, item, attached);
+    ctx.log('no video to review; stills examined', {
+      contentItemId,
+      renders: assets.length,
+      attached: attached.length,
+    });
     return;
   }
 
@@ -231,17 +275,144 @@ export async function reviewMediaHandler(
     };
     const visual = runVisualQC(mediaProbe, target);
 
+    // The attached stills, which `publish` will send alongside this render.
+    const stills = examineStills(attached, item);
+
+    /**
+     * Retention, which had no caller at all.
+     *
+     * 310 lines and 171 lines of tests, reachable only from its own test file —
+     * the same shape `canStatePublicly` and `markOutputConsumed` had. Every
+     * video Halyard has ever rendered skipped it.
+     *
+     * This job is the right home and always was: retention is measured from the
+     * finished file, so it cannot run at copy time, and the two inputs its
+     * opening and pattern-interrupt rules need — per-frame luminance and
+     * duration — are already probed here for `visual`.
+     *
+     * The two rules it cannot run are the frame-1 thumbnail checks (no OCR) and
+     * the loop check (no first-to-last similarity). Those are **named** in
+     * `unmeasured` and drop the gate to `warning` rather than passing quietly,
+     * because a skipped check is not a passed check.
+     */
+    const retention = runRetentionQC(
+      {
+        fps: probe.fps ?? 30,
+        durationSeconds: probe.durationSeconds,
+        frameLuminance: probe.frameLuminance,
+        /**
+         * The motion signal, supplied explicitly rather than derived from the
+         * mean.
+         *
+         * `RetentionProbe.frameDelta` has always been an optional input that
+         * `firstSubstantiveSecond` and `longestStaticStretch` prefer over
+         * deltas derived from `frameLuminance`. Nothing supplied it, so both
+         * rules ran on mean-luminance change — which cannot see a light card
+         * whose dark text is being swapped. On the four fixture renders the
+         * mean moves 0.004 across a full scene change, under the 0.01 that
+         * counts as "the same picture", while the tonal range moves 0.294.
+         *
+         * The consequence was not academic: the pattern-interrupt rule is an
+         * **error**, and `review_media` fails a content item on an errored
+         * gate, so every render over twenty seconds was about to be rejected by
+         * its own pipeline. See `DECISIONS.md` §74.
+         */
+        frameDelta: consecutiveDeltas(probe.frameContentRange),
+      },
+      {
+        platform: item.platform,
+        // TikTok and Reels reward replays. Declared so the loop rule reports as
+        // unmeasured where it matters rather than being silently irrelevant.
+        loopReady: item.platform === 'tiktok' || item.platform === 'instagram',
+      },
+    );
+
     // Merge into the stored verdict rather than replacing it: the copy, claims
     // and destination gates ran at draft time against inputs this job does not
     // have, and re-running them here would report `skipped` and lose them.
     const previous = item.qc_results?.gates ?? [];
     const merged: GateResult[] = [
-      ...previous.filter((g) => g.gate !== 'coherence' && g.gate !== 'visual'),
+      ...previous.filter(
+        (g) => g.gate !== 'coherence' && g.gate !== 'visual' && g.gate !== 'retention',
+      ),
       {
         gate: 'visual',
-        status: visual.passed ? 'passed' : 'failed',
-        summary: visual.summary,
-        detail: visual,
+        /**
+         * Examining nothing is not a pass.
+         *
+         * `frameLuminance` was empty on every render for the life of this
+         * codebase — `sampleLuminance` read ffmpeg's stderr while
+         * `metadata=print:file=-` writes to stdout — so the luminance rules
+         * never ran and this gate reported `passed` with `examined: 0` anyway.
+         * The sampling is fixed; this is the guard that would have made the
+         * failure visible instead of green, and it stays.
+         */
+        /**
+         * The video *and* any attached stills.
+         *
+         * `publish` sends both. Examining only the render meant an item with a
+         * video and an attached image published the image with no gate having
+         * looked at it — §93 one branch over.
+         */
+        status:
+          probe.frameLuminance.length === 0
+            ? 'skipped'
+            : visual.passed && !stills.findings.some((f) => f.severity === 'error')
+              ? stills.unexamined.length > 0 || stills.findings.length > 0
+                ? 'warning'
+                : 'passed'
+              : 'failed',
+        summary:
+          probe.frameLuminance.length === 0
+            ? 'No frames could be sampled from the render, so nothing was measured.'
+            : stills.total > 0
+              ? `${visual.summary} ${stills.measurable} attached still(s) checked${
+                  stills.unexamined.length > 0
+                    ? `, ${stills.unexamined.length} with no recorded dimensions and not examined`
+                    : ''
+                }.`
+              : visual.summary,
+        detail: { ...visual, stills },
+        // Frames of the render plus the stills that were actually measured.
+        examined: probe.frameLuminance.length + stills.measurable,
+      },
+      {
+        gate: 'retention',
+        /**
+         * `warning`, not `passed`, while anything went unmeasured.
+         *
+         * A green retention tick over a video whose thumbnail was never looked
+         * at is exactly the class of claim this codebase spends its comments
+         * preventing, and `runAllGates` already learned it once: a skipped
+         * check is not a passed check.
+         */
+        /**
+         * Never `failed`, and that is a deliberate limit rather than a
+         * softened rule.
+         *
+         * `review_media` sets `content_items.status = 'failed'` on any errored
+         * gate. This gate had **no caller at all** until now, so switching it
+         * on at error severity would silently begin rejecting content on a
+         * rule nothing has ever run — and it does: `ScalingMath.mp4` is
+         * genuinely static for twenty-four seconds and raises
+         * `retention.no_pattern_interrupt` under either signal.
+         *
+         * That finding is real and is recorded in full below. Whether a static
+         * template should *block* publication is a quality-system policy
+         * question, and `DECISIONS.md` §62 already declined to make exactly
+         * that call for the media gates — "wiring a real caller means deciding
+         * which items must have media QC before approval, and that is a change
+         * to the quality system". The same reasoning applies here.
+         *
+         * So: measured, stored, visible, and not blocking until a person says
+         * it should. Recorded under "Needs a human" in `STATUS.md`.
+         */
+        status:
+          !retention.passed || retention.findings.length > 0 || retention.unmeasured.length > 0
+            ? 'warning'
+            : 'passed',
+        summary: retention.summary,
+        detail: retention,
         examined: probe.frameLuminance.length,
       },
       {
@@ -262,9 +433,23 @@ export async function reviewMediaHandler(
 
     const passed = merged.every((g) => g.status !== 'failed');
 
+    /**
+     * §151. Merged into `qc_results`, not written over it.
+     *
+     * This was `set qc_results = $2`, which replaces the whole object with
+     * `{passed, gates, ranAt}` — and `tts` stores the transcript, the delivery
+     * measurements and **the caption cues** under a sibling `audio` key. Every
+     * one of those was destroyed a few minutes after being measured.
+     *
+     * The captions are the sharp end: `loadVoiceover` reads
+     * `qc_results.audio.captions`, so any render after this point — a retry, a
+     * regenerate, a second platform — burns a video with no captions onto an
+     * asset nothing else would flag. §119 fixed the gate list this way and left
+     * the object around it still being overwritten.
+     */
     await ctx.pool.query(
       `update content_items
-          set qc_results = $2,
+          set qc_results = coalesce(qc_results, '{}'::jsonb) || $2::jsonb,
               media_observations = $3,
               status = case when $4 then status else 'failed' end
         where id = $1`,
@@ -280,6 +465,8 @@ export async function reviewMediaHandler(
       contentItemId,
       frames: frames.length,
       coherence: coherence.summary,
+      retention: retention.summary,
+      retentionUnmeasured: retention.unmeasured,
       passed,
     });
   } finally {
@@ -318,4 +505,130 @@ async function materialise(
   } catch {
     return null;
   }
+}
+
+/**
+ * The visual gate over stills, from the dimensions already on the asset rows.
+ *
+ * This is the half of media QC that never existed. `review_media` walked
+ * `renders` only and returned early when it found no video, behind a comment
+ * claiming stills were "covered by the existing visual gate at draft time" —
+ * they were not, and are not: no caller supplies `visual` to `runAllGates`,
+ * which is what the Auditor's `gate.input_never_supplied` reports.
+ *
+ * Meanwhile `publish` sends `render_ids` **and** `attached_asset_ids`, so an
+ * operator-attached image reached a platform without any gate having looked at
+ * it.
+ *
+ * No file is downloaded. `assets.width`/`height` are enough for the rules that
+ * apply to a still — aspect ratio against the platform, and consistency across
+ * a carousel — and an asset with no recorded dimensions is reported as
+ * **unexamined**, never as passed. Examining nothing is not a pass.
+ */
+
+export interface StillOutcome {
+  /** Stills attached at all, video excluded. */
+  total: number;
+  /** How many had usable dimensions and were actually checked. */
+  measurable: number;
+  /** Ids of stills with no recorded dimensions. Never counted as passed. */
+  unexamined: string[];
+  findings: ReturnType<typeof runVisualQC>['findings'];
+}
+
+/**
+ * Examine attached stills from the dimensions already on their `assets` rows.
+ *
+ * Shared by both paths deliberately. The first version of this ran only when
+ * there was **no video**, so an item with a rendered video *and* an attached
+ * image examined the video and silently ignored the image — the same gap §93
+ * closed, reintroduced one branch over. `publish` sends both regardless of
+ * which one is present.
+ *
+ * No file is downloaded. `assets.width`/`height` cover the rules that apply to
+ * a still — aspect ratio against the platform, and consistency across a
+ * carousel — and an asset with no recorded dimensions is returned as
+ * unexamined rather than examined-and-fine.
+ */
+export function examineStills(
+  attached: Array<{ id: string; width: number | null; height: number | null; mime_type: string }>,
+  item: { platform: string; format: string },
+): StillOutcome {
+  const stills = attached.filter((a) => !a.mime_type.startsWith('video/'));
+  const measurable = stills.filter((a) => (a.width ?? 0) > 0 && (a.height ?? 0) > 0);
+  const unexamined = stills
+    .filter((a) => !((a.width ?? 0) > 0 && (a.height ?? 0) > 0))
+    .map((a) => a.id);
+
+  const probes: MediaProbe[] = measurable.map((a) => ({
+    kind: 'image',
+    width: a.width!,
+    height: a.height!,
+  }));
+
+  const findings = probes.flatMap((probe, index) =>
+    runVisualQC(probe, {
+      aspectRatio: aspectRatioOf(probe.width, probe.height),
+      platform: item.platform,
+      format: item.format,
+      // Siblings, so the carousel-consistency rule can actually compare.
+      carouselSiblings: probes.filter((_, i) => i !== index),
+    }).findings,
+  );
+
+  return { total: stills.length, measurable: measurable.length, unexamined, findings };
+}
+
+export async function reviewStills(
+  ctx: HandlerContext,
+  contentItemId: string,
+  item: { platform: string; format: string; qc_results: { gates?: GateResult[] } | null },
+  attached: Array<{ id: string; width: number | null; height: number | null; mime_type: string }>,
+): Promise<void> {
+  const outcome = examineStills(attached, item);
+  if (outcome.total === 0) return;
+  const { findings, unexamined, measurable } = outcome;
+
+  const failed = findings.some((f) => f.severity === 'error');
+  const previous = item.qc_results?.gates ?? [];
+  const merged: GateResult[] = [
+    ...previous.filter((g) => g.gate !== 'visual'),
+    {
+      gate: 'visual',
+      /**
+       * Never a clean pass while something went unmeasured, for the same reason
+       * the retention gate never claims one: an asset with no recorded
+       * dimensions was not checked, and a green tick beside it would say it was.
+       */
+      status: failed
+        ? 'failed'
+        : findings.length > 0 || unexamined.length > 0
+          ? 'warning'
+          : 'passed',
+      summary:
+        unexamined.length > 0
+          ? `${measurable} still(s) checked; ${unexamined.length} had no recorded dimensions and were not examined.`
+          : `${measurable} still(s) checked.`,
+      detail: { findings, unexamined },
+      examined: measurable,
+    },
+  ];
+
+  // §151, as above: merged, so the transcript and caption cues `tts` stored
+  // beside the gate list survive this write.
+  await ctx.pool.query(
+    `update content_items
+        set qc_results = coalesce(qc_results, '{}'::jsonb) || $2::jsonb,
+            status = case when $3 then status else 'failed' end
+      where id = $1`,
+    [
+      contentItemId,
+      JSON.stringify({
+        passed: merged.every((g) => g.status !== 'failed'),
+        gates: merged,
+        ranAt: new Date().toISOString(),
+      }),
+      !failed,
+    ],
+  );
 }

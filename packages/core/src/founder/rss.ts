@@ -36,9 +36,11 @@ export function parseFeed(xml: string): RssItem[] {
         guid: tag(entry, 'guid') ?? tag(entry, 'id') ?? url,
         url: url.trim(),
         title,
-        summary: stripHtml(
-          decode(tag(entry, 'description') ?? tag(entry, 'summary') ?? tag(entry, 'content') ?? ''),
-        ).slice(0, 600) || null,
+        summary: prose(
+          stripHtml(
+            decode(tag(entry, 'description') ?? tag(entry, 'summary') ?? tag(entry, 'content') ?? ''),
+          ),
+        ),
         author:
           decode(tag(entry, 'dc:creator') ?? tag(entry, 'author') ?? '')
             .replace(/<[^>]+>/g, '')
@@ -59,6 +61,45 @@ function tag(xml: string, name: string): string | null {
 function attr(xml: string, name: string, attribute: string): string | null {
   const pattern = new RegExp(`<${name}[^>]*\\s${attribute}=["']([^"']+)["']`, 'i');
   return pattern.exec(xml)?.[1] ?? null;
+}
+
+/**
+ * A feed's description element is not always a description.
+ *
+ * Hacker News has no summary to give, so its `<description>` is a block of
+ * markup — the article link, the comments link, the point count, the comment
+ * count. Stripping the tags leaves "Article URL: … Comments URL: … Points: 180
+ * # Comments: 82", which is not a summary of anything. It was rendering on the
+ * Daily Take under each headline as though it were one, and it carries nothing
+ * the card does not already show.
+ *
+ * Two conditions must both hold before anything is discarded, because feeds in
+ * the wild do give genuinely terse summaries and dropping those would be worse
+ * than the noise:
+ *
+ *  1. URLs make up more than half of it — a link block rather than writing.
+ *  2. What remains has no run of four consecutive words. Label pairs break into
+ *     runs of one or two on their punctuation; a sentence does not.
+ *
+ * Condition 2 alone would discard "Tooling for evaluation"; condition 1 alone
+ * would discard a one-line summary that happened to quote a long URL. Together
+ * they catch a metadata block and nothing else.
+ *
+ * Returns null rather than the empty string, because `summary` is nullable and
+ * null is what "this feed gave us no summary" already means downstream — the
+ * Daily Take, the idea generator prompt, and signal clustering all read it.
+ */
+function prose(value: string): string | null {
+  const text = value.replace(/\s+/g, ' ').trim();
+  if (!text) return null;
+
+  const withoutUrls = text.replace(/\bhttps?:\/\/\S+/gi, ' ');
+  const urlDominated = withoutUrls.replace(/\s+/g, '').length * 2 < text.replace(/\s+/g, '').length;
+  if (!urlDominated) return text.slice(0, 600);
+
+  const hasClause = /(?:[A-Za-z][\w'\u2019-]*[ \t]+){3,}[A-Za-z][\w'\u2019-]*/.test(withoutUrls);
+  if (!hasClause) return null;
+  return withoutUrls.replace(/\s+/g, ' ').trim().slice(0, 600) || null;
 }
 
 function stripHtml(value: string): string {

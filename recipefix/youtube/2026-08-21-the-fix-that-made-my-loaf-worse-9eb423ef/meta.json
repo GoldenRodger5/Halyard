@@ -1,0 +1,59 @@
+{
+  "id": "9eb423ef-a73d-462c-b57d-beb7057bf27c",
+  "platform": "youtube",
+  "format": "video",
+  "status": "failed",
+  "category": "founder_insight",
+  "recipe": null,
+  "title": "The Fix That Made My Loaf Worse",
+  "createdAt": "2026-08-21T14:24:19.464131-04:00",
+  "linkUrl": "http://localhost:3200/r/9eb423ef-a73d-462c-b57d-beb7057bf27c",
+  "qcPassed": true,
+  "gates": [
+    {
+      "gate": "copy",
+      "status": "passed",
+      "summary": "passed (0 flags)"
+    },
+    {
+      "gate": "claims",
+      "status": "skipped",
+      "summary": "no claims to verify"
+    },
+    {
+      "gate": "visual",
+      "status": "skipped",
+      "summary": "no media here — measured after render, by review_media"
+    },
+    {
+      "gate": "audio",
+      "status": "skipped",
+      "summary": "no voiceover here — measured after synthesis, by tts"
+    },
+    {
+      "gate": "coherence",
+      "status": "skipped",
+      "summary": "nothing rendered to compare against the post"
+    },
+    {
+      "gate": "destination",
+      "status": "skipped",
+      "summary": "no link"
+    },
+    {
+      "gate": "proof",
+      "status": "skipped",
+      "summary": "no quoted testimonial"
+    }
+  ],
+  "claims": [],
+  "generation": {
+    "model": "claude-sonnet-5",
+    "costUsd": 0.033783,
+    "attempts": 1,
+    "inputTokens": 1621,
+    "outputTokens": 1928,
+    "promptVersion": "copywriter.v1",
+    "failed_because": "No enabled Remotion template could render this item."
+  }
+}

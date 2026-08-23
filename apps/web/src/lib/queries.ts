@@ -23,19 +23,22 @@ export interface Settings {
   publishing_disabled_reason: string | null;
   generation_enabled: boolean;
   learning_min_posts_per_category: number;
+  /** null means keep everything — the absence of a policy, not a policy. */
+  log_retention_days: number | null;
 }
 
 export async function getSettings(): Promise<Settings> {
   return (
     (await one<Settings>(
       `select publishing_enabled, publishing_disabled_reason, generation_enabled,
-              learning_min_posts_per_category
+              learning_min_posts_per_category, log_retention_days
          from settings where id = true`,
     )) ?? {
       publishing_enabled: false,
       publishing_disabled_reason: null,
       generation_enabled: true,
       learning_min_posts_per_category: 20,
+      log_retention_days: null,
     }
   );
 }
@@ -205,6 +208,13 @@ export async function getAllAccounts(): Promise<AccountRow[]> {
 export interface QueueItem {
   id: string;
   platform: string;
+  account_handle: string | null;
+  /** §156. What the platform holds, if anything. Null until something was delivered. */
+  delivery_mode: 'direct' | 'draft' | 'private' | null;
+  delivery_external_id: string | null;
+  delivery_permalink: string | null;
+  delivery_manual_url: string | null;
+  delivery_at: string | null;
   persona: string;
   format: string;
   category: string;
@@ -262,6 +272,15 @@ const QUEUE_SELECT = `
          ci.destination_type, ci.destination_url, ci.destination_reason, ci.product_artifact,
          ci.board_id, ci.board_reason, ci.media_observations,
          sa.transport,
+         sa.handle as account_handle,
+         -- §156. What the platform is holding, if anything. A native draft and a
+         -- private upload are both unpublished and need different words, so the
+         -- mode travels with the row rather than being guessed from the status.
+         pub.publish_mode      as delivery_mode,
+         pub.platform_post_id  as delivery_external_id,
+         pub.permalink         as delivery_permalink,
+         pub.manual_publish_url as delivery_manual_url,
+         pub.published_at      as delivery_at,
          -- Milestone 49. Whether the transport this item will actually go out
          -- on can carry alt text. A post whose alt text is generated, checked
          -- by the visual gate and then dropped in transit is worse than one
@@ -284,6 +303,13 @@ const QUEUE_SELECT = `
     left join provider_capabilities pc on pc.provider = 'blotato'
     left join ideas i on i.id = ci.idea_id
     left join series s on s.id = ci.series_id
+    left join lateral (
+      select p2.publish_mode, p2.platform_post_id, p2.permalink,
+             p2.manual_publish_url, p2.published_at
+        from publications p2
+       where p2.content_item_id = ci.id
+       order by p2.created_at desc limit 1
+    ) pub on true
     left join lateral (
       select count(*)::int as total,
              count(*) filter (where rr.status = 'done')::int as done,
@@ -824,5 +850,59 @@ export async function getAnalytics(): Promise<AnalyticsSnapshot> {
       redownloads: Number(appStore?.redownloads ?? 0),
       lastCollectedAt: appStore?.last_collected_at ?? null,
     },
+  };
+}
+
+export interface ReplyHistory {
+  /** Replies sent, which is the denominator for everything else here. */
+  sent: number;
+  /** How many had a draft to work from. */
+  aiDrafted: number;
+  /** How many of *those* the operator changed before sending. */
+  edited: number;
+  /** Median seconds from the comment being posted to the reply being sent. */
+  medianLatencySeconds: number | null;
+}
+
+/**
+ * What the reply history actually shows, from `comment_replies`.
+ *
+ * That table has been written on every reply and **read by nothing** — its
+ * columns are `was_ai_drafted`, `was_edited` and `latency_seconds`, which is the
+ * only record of whether the drafter is worth running. Collected correctly and
+ * invisible (`DECISIONS.md` §100).
+ *
+ * `edited` counts only replies that *had* a draft. A reply typed from scratch
+ * is not an edit of anything, and counting it as one is what §101 fixed at the
+ * write side; the read has to agree or the ratio means nothing.
+ *
+ * Latency is a median rather than a mean because one reply sent a week late
+ * would move a mean past the point of being worth reading.
+ */
+export async function getReplyHistory(): Promise<ReplyHistory> {
+  const rows = await query<{
+    sent: string;
+    ai_drafted: string;
+    edited: string;
+    median_latency: string | null;
+  }>(
+    `select count(*) as sent,
+            count(*) filter (where was_ai_drafted) as ai_drafted,
+            count(*) filter (where was_ai_drafted and was_edited) as edited,
+            percentile_cont(0.5) within group (order by latency_seconds)
+              filter (where latency_seconds is not null) as median_latency
+       from comment_replies`,
+  );
+
+  const row = rows[0];
+  return {
+    sent: Number(row?.sent ?? 0),
+    aiDrafted: Number(row?.ai_drafted ?? 0),
+    edited: Number(row?.edited ?? 0),
+    // Null, not zero: no reply carrying a latency is not a latency of zero.
+    medianLatencySeconds:
+      row?.median_latency === null || row?.median_latency === undefined
+        ? null
+        : Math.round(Number(row.median_latency)),
   };
 }

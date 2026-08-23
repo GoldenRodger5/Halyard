@@ -7,11 +7,33 @@ import { formatInOperatorTz } from '@/lib/format';
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * §156. Every lifecycle state is reachable from here.
+ *
+ * `published` and `rejected` had no tab and were absent from "Everything", so
+ * the only way to see what Halyard had actually done with a post was the
+ * database. A queue that cannot show you what it published is a review screen
+ * with the review missing.
+ */
+const ALL_STATUSES = [
+  'pending_approval',
+  'approved',
+  'scheduled',
+  'publishing',
+  'published',
+  'awaiting_manual_publish',
+  'failed',
+  'rejected',
+];
+
 const STATUS_FILTERS = [
   { key: 'open', label: 'Needs you', statuses: ['pending_approval', 'failed'] },
   { key: 'scheduled', label: 'Scheduled', statuses: ['approved', 'scheduled'] },
+  { key: 'delivered', label: 'At the platform', statuses: ['awaiting_manual_publish'] },
+  { key: 'published', label: 'Published', statuses: ['published'] },
+  { key: 'rejected', label: 'Rejected', statuses: ['rejected'] },
   { key: 'failed', label: 'Failed', statuses: ['failed'] },
-  { key: 'all', label: 'Everything', statuses: ['pending_approval', 'approved', 'scheduled', 'failed', 'awaiting_manual_publish'] },
+  { key: 'all', label: 'Everything', statuses: ALL_STATUSES },
 ];
 
 export default async function QueuePage({
@@ -26,6 +48,16 @@ export default async function QueuePage({
   const products = await getProducts();
   const timeZone = products[0]?.operator_timezone ?? 'UTC';
   const items = await getQueue({ status: filter.statuses, platform: params.platform });
+
+  /*
+   * The platform list is drawn from what is actually in this view rather than
+   * from the seven adapters, so the filter never offers a platform with nothing
+   * behind it.
+   */
+  const platformsHere = [...new Set(items.map((i) => i.platform))].sort();
+  const allInView = await getQueue({ status: filter.statuses });
+  const platformOptions = [...new Set(allInView.map((i) => i.platform))].sort();
+  void platformsHere;
 
   // Grouped by scheduled day, then platform (v1 §8).
   const groups = new Map<string, typeof items>();
@@ -60,6 +92,37 @@ export default async function QueuePage({
           </Link>
         ))}
       </div>
+
+      {platformOptions.length > 1 ? (
+        <div className="mb-6 flex flex-wrap items-center gap-2">
+          <span className="text-sm text-muted">Platform</span>
+          <Link
+            href={`/queue?status=${filterKey}`}
+            className={cx(
+              'rounded-lg border px-2.5 py-1 text-sm transition-colors',
+              !params.platform
+                ? 'border-primary bg-primary/10 font-medium text-primary'
+                : 'border-line text-muted hover:bg-sunk hover:text-ink',
+            )}
+          >
+            All
+          </Link>
+          {platformOptions.map((platform) => (
+            <Link
+              key={platform}
+              href={`/queue?status=${filterKey}&platform=${platform}`}
+              className={cx(
+                'rounded-lg border px-2.5 py-1 text-sm transition-colors',
+                params.platform === platform
+                  ? 'border-primary bg-primary/10 font-medium text-primary'
+                  : 'border-line text-muted hover:bg-sunk hover:text-ink',
+              )}
+            >
+              {platform}
+            </Link>
+          ))}
+        </div>
+      ) : null}
 
       {items.length === 0 ? (
         <EmptyState

@@ -301,7 +301,21 @@ describe('against the real repository', () => {
       .map((a) => a.agentId)
       .sort();
 
-    expect(orphans).toEqual(['idea-generator', 'rejection-clusterer']);
+    /**
+     * `idea-generator` left this list on 2026-08-19 when `proposeFromSignals`
+     * gave it a caller. That the Auditor noticed before anyone updated the
+     * registry is the point of it existing: the declaration said
+     * `implemented_no_caller` and the call graph disagreed.
+     *
+     * `rejection-clusterer` left it the same day, when the `cluster_rejections`
+     * job gave `rejection_clusters` the producer it never had.
+     *
+     * The list being empty is not the same as every agent being reachable:
+     * `auto-clip` is `blocked`, which this filter deliberately does not count.
+     * An orphan is code with no caller; a blocked agent is code whose input
+     * does not exist yet, and conflating them would hide one behind the other.
+     */
+    expect(orphans).toEqual([]);
   }, 120_000);
 
   it('agrees with the job graph the worker actually registers', () => {

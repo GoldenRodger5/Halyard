@@ -51,6 +51,13 @@ export const TIKTOK_CONSTRAINTS: PlatformConstraints = {
   linkNote: 'Bio only, until the account is eligible for in-video links.',
   requiresReviewForPublicPosting: true,
   supportsTrendingAudioViaApi: false,
+  delivery: {
+    nativeDraft: true,
+    privateUpload: false,
+    apiScheduling: false,
+    requiresCreatorCompletion: true,
+    note: 'The inbox upload (/v2/post/publish/inbox/video/init/, scope video.upload) puts a real draft in the creator\'s TikTok inbox. They finish and post it inside TikTok; Halyard cannot publish it afterwards.',
+  },
 };
 
 export class TikTokAdapter implements PlatformAdapter {

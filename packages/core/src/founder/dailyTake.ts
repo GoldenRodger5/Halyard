@@ -21,7 +21,13 @@
  * Step 1 is the single most valuable step in the loop: it stops something false
  * going out at speed, which is the characteristic failure of fast commentary.
  */
-import { DRAFT_MODEL, STRATEGY_MODEL, extractJson, type LlmClient } from '../generation/llm.js';
+import {
+  STRATEGY_MODEL,
+  asArray,
+  asString,
+  extractJson,
+  type LlmClient,
+} from '../generation/llm.js';
 
 export class TakeRequiresInput extends Error {
   constructor() {
@@ -116,18 +122,18 @@ ${evidence.length > 0 ? `SEARCH RESULTS\n${evidence.map((e) => `- ${e.title} (${
   });
 
   const parsed = extractJson<{
-    claims?: Array<{
-      claim?: string;
-      verdict?: string;
-      note?: string;
-      sources?: string[];
-      correction?: string;
-    }>;
+    claims?: unknown;
     story_verified?: boolean;
     story_note?: string;
   }>(response.text);
 
-  const claims: FactCheckClaim[] = (parsed.claims ?? [])
+  const claims: FactCheckClaim[] = asArray<{
+    claim?: string;
+    verdict?: string;
+    note?: string;
+    sources?: string[];
+    correction?: string;
+  }>(parsed.claims)
     .filter((c) => c.claim)
     .map((c) => ({
       claim: c.claim!,
@@ -137,7 +143,7 @@ ${evidence.length > 0 ? `SEARCH RESULTS\n${evidence.map((e) => `- ${e.title} (${
         ? (c.verdict as FactCheckClaim['verdict'])
         : 'unverifiable',
       note: c.note ?? '',
-      sources: c.sources ?? [],
+      sources: asArray<string>(c.sources),
       ...(c.correction ? { correction: c.correction } : {}),
     }));
 
@@ -314,17 +320,31 @@ Reply with JSON only:
         content: `STORY\n${input.storyTitle}\n${input.storyUrl}\n\nTHEIR REACTION, VERBATIM\n${input.rawInput}`,
       },
     ],
-    model: DRAFT_MODEL,
+    /*
+     * Strategy, not draft. This writes the founder's opinion in their own voice
+     * and it publishes under their name — the same tier as the fact-check that
+     * gates it and the strengthener that follows it.
+     */
+    model: STRATEGY_MODEL,
     maxTokens: 700,
     promptVersion: TAKE_DRAFT_PROMPT_VERSION,
   });
 
-  const parsed = extractJson<{ body?: string; likely_pushback?: string[] }>(response.text);
-  if (!parsed.body) throw new Error('The take draft came back empty.');
+  const parsed = extractJson<{ body?: unknown; likely_pushback?: unknown }>(response.text);
+  /**
+   * Checked, not cast. `!parsed.body` is false for the number `0`… and for
+   * every other number, so a model answering `{"body": 42}` passed this guard
+   * and then threw on `.trim()`. `asString` answers the question actually being
+   * asked: is there usable text here.
+   */
+  const body = asString(parsed.body);
+  if (!body) throw new Error('The take draft came back empty.');
 
   return {
-    body: parsed.body.trim(),
-    likelyPushback: (parsed.likely_pushback ?? []).filter(Boolean).slice(0, 3),
+    body,
+    // Auxiliary, and there is no retry loop here — a wrong shape loses the
+    // caveats rather than the take. See `asArray` in `generation/llm.ts`.
+    likelyPushback: asArray<string>(parsed.likely_pushback).filter(Boolean).slice(0, 3),
   };
 }
 

@@ -1,0 +1,1 @@
+Stopped rewriting the whole recipe. Now we show it as a diff: 3 eggs to 1, 9-inch pan to 6-inch. Same underlying suggestion as before. But people trust a marked-up change more than a recipe that looks like a stranger wrote it.

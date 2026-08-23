@@ -1,0 +1,59 @@
+{
+  "id": "ee160a8f-d48f-4a72-a7e1-013449cf4148",
+  "platform": "tiktok",
+  "format": "video",
+  "status": "failed",
+  "category": "education",
+  "recipe": null,
+  "title": null,
+  "createdAt": "2026-08-21T14:36:26.122164-04:00",
+  "linkUrl": "http://localhost:3200/r/ee160a8f-d48f-4a72-a7e1-013449cf4148",
+  "qcPassed": true,
+  "gates": [
+    {
+      "gate": "copy",
+      "status": "passed",
+      "summary": "passed (0 flags)"
+    },
+    {
+      "gate": "claims",
+      "status": "skipped",
+      "summary": "no claims to verify"
+    },
+    {
+      "gate": "visual",
+      "status": "skipped",
+      "summary": "no media here — measured after render, by review_media"
+    },
+    {
+      "gate": "audio",
+      "status": "skipped",
+      "summary": "no voiceover here — measured after synthesis, by tts"
+    },
+    {
+      "gate": "coherence",
+      "status": "skipped",
+      "summary": "nothing rendered to compare against the post"
+    },
+    {
+      "gate": "destination",
+      "status": "skipped",
+      "summary": "no link"
+    },
+    {
+      "gate": "proof",
+      "status": "skipped",
+      "summary": "no quoted testimonial"
+    }
+  ],
+  "claims": [],
+  "generation": {
+    "model": "claude-sonnet-5",
+    "costUsd": 0.048702,
+    "attempts": 1,
+    "inputTokens": 1704,
+    "outputTokens": 2906,
+    "promptVersion": "copywriter.v1",
+    "failed_because": "No enabled Remotion template could render this item."
+  }
+}

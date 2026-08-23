@@ -537,6 +537,7 @@ export interface CapabilityProbesRow {
   duration_ms: number | null;
   triggered_by: string;
   job_id: string | null;
+  account_id: string | null;
 }
 
 export interface CapabilityProbesInsert {
@@ -553,6 +554,7 @@ export interface CapabilityProbesInsert {
   duration_ms?: number | null;
   triggered_by?: string;
   job_id?: string | null;
+  account_id?: string | null;
 }
 
 export interface CapabilityProbesUpdate {
@@ -569,6 +571,7 @@ export interface CapabilityProbesUpdate {
   duration_ms?: number | null;
   triggered_by?: string;
   job_id?: string | null;
+  account_id?: string | null;
 }
 
 export interface CaptureRunsRow {
@@ -1301,7 +1304,7 @@ export interface IdeasUpdate {
 
 export interface JobsRow {
   id: string;
-  kind: 'generate' | 'render' | 'tts' | 'capture' | 'publish' | 'collect_metrics' | 'collect_signals' | 'collect_comments' | 'collect_attribution' | 'refresh_tokens' | 'score_performance' | 'digest_email' | 'reconcile_schedule' | 'mark_stale_assets' | 'collect_app_store' | 'detect_release' | 'collect_watch_terms' | 'draft_newsletter' | 'send_newsletter' | 'collect_reviews' | 'review_media' | 'verify_feature' | 'explore_product' | 'collect_product_evidence' | 'build_product_brain' | 'verify_provider_capability';
+  kind: 'generate' | 'render' | 'tts' | 'capture' | 'publish' | 'collect_metrics' | 'collect_signals' | 'collect_comments' | 'collect_attribution' | 'refresh_tokens' | 'score_performance' | 'digest_email' | 'reconcile_schedule' | 'mark_stale_assets' | 'collect_app_store' | 'detect_release' | 'collect_watch_terms' | 'draft_newsletter' | 'send_newsletter' | 'collect_reviews' | 'review_media' | 'verify_feature' | 'explore_product' | 'collect_product_evidence' | 'build_product_brain' | 'verify_provider_capability' | 'cluster_rejections';
   payload: Json;
   status: 'queued' | 'running' | 'done' | 'failed' | 'dead';
   priority: number;
@@ -1318,7 +1321,7 @@ export interface JobsRow {
 
 export interface JobsInsert {
   id?: string;
-  kind: 'generate' | 'render' | 'tts' | 'capture' | 'publish' | 'collect_metrics' | 'collect_signals' | 'collect_comments' | 'collect_attribution' | 'refresh_tokens' | 'score_performance' | 'digest_email' | 'reconcile_schedule' | 'mark_stale_assets' | 'collect_app_store' | 'detect_release' | 'collect_watch_terms' | 'draft_newsletter' | 'send_newsletter' | 'collect_reviews' | 'review_media' | 'verify_feature' | 'explore_product' | 'collect_product_evidence' | 'build_product_brain' | 'verify_provider_capability';
+  kind: 'generate' | 'render' | 'tts' | 'capture' | 'publish' | 'collect_metrics' | 'collect_signals' | 'collect_comments' | 'collect_attribution' | 'refresh_tokens' | 'score_performance' | 'digest_email' | 'reconcile_schedule' | 'mark_stale_assets' | 'collect_app_store' | 'detect_release' | 'collect_watch_terms' | 'draft_newsletter' | 'send_newsletter' | 'collect_reviews' | 'review_media' | 'verify_feature' | 'explore_product' | 'collect_product_evidence' | 'build_product_brain' | 'verify_provider_capability' | 'cluster_rejections';
   payload?: Json;
   status?: 'queued' | 'running' | 'done' | 'failed' | 'dead';
   priority?: number;
@@ -1335,7 +1338,7 @@ export interface JobsInsert {
 
 export interface JobsUpdate {
   id?: string;
-  kind?: 'generate' | 'render' | 'tts' | 'capture' | 'publish' | 'collect_metrics' | 'collect_signals' | 'collect_comments' | 'collect_attribution' | 'refresh_tokens' | 'score_performance' | 'digest_email' | 'reconcile_schedule' | 'mark_stale_assets' | 'collect_app_store' | 'detect_release' | 'collect_watch_terms' | 'draft_newsletter' | 'send_newsletter' | 'collect_reviews' | 'review_media' | 'verify_feature' | 'explore_product' | 'collect_product_evidence' | 'build_product_brain' | 'verify_provider_capability';
+  kind?: 'generate' | 'render' | 'tts' | 'capture' | 'publish' | 'collect_metrics' | 'collect_signals' | 'collect_comments' | 'collect_attribution' | 'refresh_tokens' | 'score_performance' | 'digest_email' | 'reconcile_schedule' | 'mark_stale_assets' | 'collect_app_store' | 'detect_release' | 'collect_watch_terms' | 'draft_newsletter' | 'send_newsletter' | 'collect_reviews' | 'review_media' | 'verify_feature' | 'explore_product' | 'collect_product_evidence' | 'build_product_brain' | 'verify_provider_capability' | 'cluster_rejections';
   payload?: Json;
   status?: 'queued' | 'running' | 'done' | 'failed' | 'dead';
   priority?: number;
@@ -2810,6 +2813,7 @@ export interface SubscribersRow {
   confirmed_at: string | null;
   unsubscribed_at: string | null;
   created_at: string;
+  unsubscribe_token: string;
 }
 
 export interface SubscribersInsert {
@@ -2821,6 +2825,7 @@ export interface SubscribersInsert {
   confirmed_at?: string | null;
   unsubscribed_at?: string | null;
   created_at?: string;
+  unsubscribe_token?: string;
 }
 
 export interface SubscribersUpdate {
@@ -2832,6 +2837,7 @@ export interface SubscribersUpdate {
   confirmed_at?: string | null;
   unsubscribed_at?: string | null;
   created_at?: string;
+  unsubscribe_token?: string;
 }
 
 export interface TakesRow {

@@ -78,7 +78,7 @@ export default async function EvidencePage({
             </Card>
           ) : null}
 
-          <Card className="overflow-x-auto p-0">
+          <Card className="overflow-x-auto p-0" scrollLabel="Evidence">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-line text-left text-xs text-muted">
@@ -104,7 +104,7 @@ export default async function EvidencePage({
                     <td className="whitespace-nowrap px-4 py-3 text-muted">
                       {formatInOperatorTz(row.collectedAt.toISOString(), tz)}
                       {row.superseded ? (
-                        <span className="block text-xs text-warn">superseded</span>
+                        <span className="block text-xs text-warn-ink">superseded</span>
                       ) : null}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-muted">
@@ -112,7 +112,7 @@ export default async function EvidencePage({
                     </td>
                     <td className="px-4 py-3 text-muted">
                       {row.citedBy === 0 ? (
-                        <span className="text-warn">nothing</span>
+                        <span className="text-warn-ink">nothing</span>
                       ) : (
                         `${row.citedBy} fact${row.citedBy === 1 ? '' : 's'}`
                       )}

@@ -1,7 +1,8 @@
 # Deploying Halyard
 
 **Live:** https://halyard-ten.vercel.app — Supabase `halyard` (us-east-1),
-Vercel `halyard`, Railway `halyard/worker`. Deployed 11 August 2026.
+Vercel `halyard`, Railway `halyard/worker`. Deployed 11 August 2026,
+**brought current 22 August 2026** (see *Bringing production current* below).
 
 ## What the first deploy found
 
@@ -271,3 +272,84 @@ DATABASE_URL='<hosted>' pnpm exec tsx scripts/verify-hosted.ts --cron https://<y
 
 Then open `/settings/readiness` and read it. It is the difference between "it
 built" and "it works".
+
+## Bringing production current (22 August 2026)
+
+Production had drifted a long way behind the repository: the web build was four
+days old, the worker eight, and the database predated **P0 and P1 entirely** —
+no `agent_runs`, no `product_facts`, no `product_evidence`.
+
+### The migration set is not replayable in order
+
+Production was not built by running `supabase/migrations/*.sql` start to finish,
+and running them that way now fails. Migration 0021 rewrites `jobs_kind_check`
+with the list of job kinds that existed *then*, and production's `jobs` table
+already holds newer kinds (`verify_feature`, `collect_watch_terms`,
+`draft_newsletter`), so the constraint is "violated by some row". Production was
+**ahead** of that migration, not behind it.
+
+65 of the `create table` statements and 73 of the `add column` statements carry
+no `if not exists`, so the set is not idempotent either.
+
+What works is a **forward fill**: apply each file from 0025 onward inside its own
+transaction, treat `already exists` as "this one is present", and stop on
+anything else. DDL is transactional in Postgres, so a file either lands whole or
+not at all.
+
+```bash
+DB='<production pooler URL>'
+for f in supabase/migrations/*.sql; do
+  psql "$DB" -v ON_ERROR_STOP=1 --single-transaction -q -f "$f"
+done
+```
+
+Take a dump first — `pg_dump "$DB" --no-owner --no-privileges -f backup.sql`.
+Production is ~21 MB and holds the OAuth tokens for six brand accounts; losing
+it means reconnecting every platform by hand.
+
+**Never `pnpm db:reset -- --fresh` against production.** The script refuses a
+non-local URL for `--fresh`, and that refusal is the only thing between a typo
+and the token store.
+
+### Storage had no bucket
+
+`ASSET_BUCKET` is `halyard-assets` and the project had no buckets at all, so
+every render would have fallen back to "storage not configured, recording asset
+without upload". Created public, because Meta cURLs the asset at publish time
+and a signed short-lived URL fails.
+
+### Environment drift was the bigger problem
+
+The deployed worker had 8 variables and the current code needs far more. It was
+missing `ANTHROPIC_API_KEY` — every agent moved to Anthropic in §141, so the
+worker could not generate anything at all — plus ElevenLabs, the RecipeFix MCP
+pair, `HALYARD_PUBLIC_URL` (§111 turns its absence into a permanent job failure
+in production) and `X_CLIENT_ID`/`X_CLIENT_SECRET`, without which X token refresh
+dies silently after two hours (gotcha 4).
+
+The web was missing `ANTHROPIC_API_KEY`, both public-origin variables and every
+OAuth client credential. It had `PUBLIC_APP_URL`, which no code reads.
+
+### Which secrets belong where
+
+| | Web (Vercel) | Worker (Railway) |
+|---|---|---|
+| Supabase URL / anon / service role | ✓ | ✓ (service role only) |
+| `DATABASE_URL`, `TOKEN_ENCRYPTION_KEY` | ✓ | ✓ |
+| `CRON_SECRET` | ✓ | — |
+| `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` | ✓ | ✓ |
+| ElevenLabs, RecipeFix MCP, whisper model | — | ✓ |
+| OAuth client id/secret per platform | ✓ (authorise + callback) | ✓ (token refresh only) |
+| `HALYARD_PUBLIC_URL`, `OAUTH_REDIRECT_BASE_URL` | ✓ | `HALYARD_PUBLIC_URL` only |
+
+### Verified live afterwards
+
+Worker claimed jobs as `worker-1` and ran `collect_product_evidence` →
+`build_product_brain` end to end against real providers: 11 evidence rows across
+four sources including **13 tools read from the live RecipeFix MCP**, 36 facts,
+three `agent_runs` totalling $0.29. All three Vercel crons answered 200. The
+legal pages went from 404 to 200, which is the simplest proof the new build is
+actually serving.
+
+Production remains safe by default: `publishing_enabled` is **false** and the
+onboarding wizard is incomplete, so nothing generates or publishes on its own.

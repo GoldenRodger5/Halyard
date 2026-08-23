@@ -1,0 +1,59 @@
+{
+  "id": "214e58b2-848c-4a09-b03d-1fd9173b50c2",
+  "platform": "youtube",
+  "format": "video",
+  "status": "failed",
+  "category": "education",
+  "recipe": null,
+  "title": "Gummy Gluten-Free Bread Might Be Underbaked, Not Wrong",
+  "createdAt": "2026-08-21T14:15:55.90258-04:00",
+  "linkUrl": "http://localhost:3200/r/214e58b2-848c-4a09-b03d-1fd9173b50c2",
+  "qcPassed": true,
+  "gates": [
+    {
+      "gate": "copy",
+      "status": "passed",
+      "summary": "passed (0 flags)"
+    },
+    {
+      "gate": "claims",
+      "status": "skipped",
+      "summary": "no claims to verify"
+    },
+    {
+      "gate": "visual",
+      "status": "skipped",
+      "summary": "no media here — measured after render, by review_media"
+    },
+    {
+      "gate": "audio",
+      "status": "skipped",
+      "summary": "no voiceover here — measured after synthesis, by tts"
+    },
+    {
+      "gate": "coherence",
+      "status": "skipped",
+      "summary": "nothing rendered to compare against the post"
+    },
+    {
+      "gate": "destination",
+      "status": "skipped",
+      "summary": "no link"
+    },
+    {
+      "gate": "proof",
+      "status": "skipped",
+      "summary": "no quoted testimonial"
+    }
+  ],
+  "claims": [],
+  "generation": {
+    "model": "claude-sonnet-5",
+    "costUsd": 0.036849,
+    "attempts": 1,
+    "inputTokens": 1648,
+    "outputTokens": 2127,
+    "promptVersion": "copywriter.v1",
+    "failed_because": "No enabled Remotion template could render this item."
+  }
+}

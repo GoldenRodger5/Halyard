@@ -1,0 +1,59 @@
+{
+  "id": "6f196d4c-4628-49cf-a4d4-06ad4f3a8b3c",
+  "platform": "tiktok",
+  "format": "video",
+  "status": "failed",
+  "category": "founder_insight",
+  "recipe": null,
+  "title": null,
+  "createdAt": "2026-08-21T14:21:34.763804-04:00",
+  "linkUrl": "http://localhost:3200/r/6f196d4c-4628-49cf-a4d4-06ad4f3a8b3c",
+  "qcPassed": true,
+  "gates": [
+    {
+      "gate": "copy",
+      "status": "warning",
+      "summary": "passed (1 warning)"
+    },
+    {
+      "gate": "claims",
+      "status": "skipped",
+      "summary": "no claims to verify"
+    },
+    {
+      "gate": "visual",
+      "status": "skipped",
+      "summary": "no media here — measured after render, by review_media"
+    },
+    {
+      "gate": "audio",
+      "status": "skipped",
+      "summary": "no voiceover here — measured after synthesis, by tts"
+    },
+    {
+      "gate": "coherence",
+      "status": "skipped",
+      "summary": "nothing rendered to compare against the post"
+    },
+    {
+      "gate": "destination",
+      "status": "skipped",
+      "summary": "no link"
+    },
+    {
+      "gate": "proof",
+      "status": "skipped",
+      "summary": "no quoted testimonial"
+    }
+  ],
+  "claims": [],
+  "generation": {
+    "model": "claude-sonnet-5",
+    "costUsd": 0.071133,
+    "attempts": 2,
+    "inputTokens": 3596,
+    "outputTokens": 4023,
+    "promptVersion": "copywriter.v1",
+    "failed_because": "No enabled Remotion template could render this item."
+  }
+}

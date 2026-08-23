@@ -58,6 +58,13 @@ export const INSTAGRAM_CONSTRAINTS: PlatformConstraints = {
   linkNote: 'Captions are not clickable. Link lives in bio and rotates per campaign.',
   requiresReviewForPublicPosting: true,
   supportsTrendingAudioViaApi: false,
+  delivery: {
+    nativeDraft: false,
+    privateUpload: false,
+    apiScheduling: false,
+    requiresCreatorCompletion: false,
+    note: 'Publishing is /media then /media_publish. The container is a transient step, invisible to the creator, and expires after 24 hours — not a draft and not a usable unpublished upload.',
+  },
 };
 
 /** v2 A.3: 100 API-published posts per rolling 24 hours; a carousel counts as one. */
@@ -106,7 +113,51 @@ export class InstagramAdapter implements PlatformAdapter {
       'Instagram long-lived token exchange',
     )) as TokenResponse;
 
-    return toTokenSet(long);
+    /**
+     * Ask Meta which permissions were actually granted.
+     *
+     * Meta's token response carries no `scope` field — unlike X's — so without
+     * this the account persists an empty scope list, and the publish gate
+     * (`scopes.includes('instagram_content_publish')`) reports the permission
+     * refused when it was granted. Requested is not granted, and Halyard had no
+     * evidence of the second.
+     *
+     * `/me/permissions` is the endpoint Meta provides for exactly this, and it
+     * distinguishes `granted` from `declined` — so a permission the user
+     * refused is recorded as absent rather than assumed present.
+     *
+     * A failure here is not fatal to the connection: the token is real and the
+     * account should still be saved. It leaves scopes empty, which the gate
+     * correctly reads as "no evidence", not as "granted".
+     */
+    const scopes = await this.grantedPermissions(String(long.access_token), options.fetchImpl);
+    return { ...toTokenSet(long), scopes };
+  }
+
+  /**
+   * The permissions Meta reports as granted for this token.
+   *
+   * Only `status === 'granted'` is kept. Anything declined or expired is
+   * omitted, so the persisted list is evidence of what is actually available
+   * rather than a copy of what was asked for.
+   */
+  async grantedPermissions(accessToken: string, fetchImpl?: typeof fetch): Promise<string[]> {
+    try {
+      const response = (await platformFetch(
+        fetchImpl ?? fetch,
+        `${GRAPH}/me/permissions?access_token=${encodeURIComponent(accessToken)}`,
+        { method: 'GET' },
+        'Instagram permission check',
+      )) as { data?: Array<{ permission?: string; status?: string }> };
+
+      return (response.data ?? [])
+        .filter((entry) => entry.status === 'granted' && typeof entry.permission === 'string')
+        .map((entry) => entry.permission as string);
+    } catch {
+      // Unreachable or refused. Returning nothing keeps the state honestly
+      // unknown; inventing the requested list here would defeat the gate.
+      return [];
+    }
   }
 
   async refresh(tokens: TokenSet, options: OAuthClientOptions): Promise<TokenSet> {
@@ -181,10 +232,23 @@ export class InstagramAdapter implements PlatformAdapter {
   async verifyCapabilities(account: PublishAccount): Promise<CapabilityReport> {
     try {
       const igUserId = requireIgUserId(account);
+      /**
+       * `account_type` is deliberately not requested.
+       *
+       * It is not a field on the Instagram *Business* node reached through
+       * Facebook Login — it belongs to the Instagram Login / Basic Display
+       * APIs — so asking for it made Meta reject the whole call with
+       * `(#100) Tried accessing nonexisting field (account_type)`. Nothing here
+       * ever read the value; it was dead in the request and fatal to it, which
+       * is why a correctly connected account sat at `pending_auth`.
+       *
+       * Found by running the existing connection test against the live
+       * @recipe.fix account on 2026-08-19.
+       */
       const profile = (await this.get(
-        `/${igUserId}?fields=username,account_type,media_count`,
+        `/${igUserId}?fields=username,media_count`,
         account,
-      )) as { username?: string; account_type?: string };
+      )) as { username?: string };
 
       const scopes = account.tokens.scopes ?? [];
       const canPublish = scopes.includes('instagram_content_publish');

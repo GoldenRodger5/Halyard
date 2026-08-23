@@ -54,7 +54,7 @@ Landmines learned the hard way. Each one cost real time.
 
 1. **`JOB_KINDS` (TypeScript) and `jobs_kind_check` (Postgres) are the same list written twice.** Adding to one typechecks cleanly and fails at the first insert. `handlerCoverage.test.ts` is the only thing that catches it. Migrations 0024, 0028, 0031 all exist because of this.
 
-2. **Next reads `apps/web/.env.local`, not the repo-root `.env.local`.** The dev script only seeds it from `.env.example` when missing; it never syncs. Credentials in the root file are invisible to the app.
+2. **Next reads `apps/web/.env.local`, not the repo-root `.env`.** The worker reads `apps/worker/.env` via `docker run --env-file`. Neither can see a file at the repo root, so credentials put there are invisible until you run **`./scripts/env-sync`**, which generates both from the master `.env` (and rewrites `DATABASE_URL` to `host.docker.internal` for the container). Edit the master, then sync.
 
 3. **`.env.example` ships `KEY=` with an inline comment**, which dotenv parses to `""` — and `??` does not fall back on an empty string. This broke OAuth on every fresh clone. Use `||` or a trim-check. See `apps/web/src/lib/oauthRedirect.ts`.
 
@@ -70,7 +70,13 @@ Landmines learned the hard way. Each one cost real time.
 
 9. **Never fabricate empirical evidence.** A publication existing ≠ it performed. A collection job running ≠ metrics collected. `null` means unmeasured; `0` means measured zero. `halyard_empirical` claims require real observations and are currently zero everywhere by design.
 
-10. **X publishing is billed per post** (~$0.015 without a link, ~$0.20 with). X v2 write endpoints return **402 credits-depleted** when the developer account has no credits.
+10. **`@halyard/render` is webpacked for the browser by Remotion.** A Node-only
+    import anywhere `timing.ts` can reach — including via the `@halyard/core`
+    barrel, which pulls `node:crypto` — builds, typechecks and passes every
+    test, then fails at render time with `UnhandledSchemeError`. Worker-side
+    preparation belongs in `apps/worker`, not in the render package. §145.
+
+11. **X publishing is billed per post** (~$0.015 without a link, ~$0.20 with). X v2 write endpoints return **402 credits-depleted** when the developer account has no credits.
 
 ---
 

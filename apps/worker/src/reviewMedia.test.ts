@@ -350,3 +350,387 @@ describe.skipIf(!hasVideo)('frame sampling, against the real file', () => {
     expect(frames.length).toBe(1);
   }, 30_000);
 });
+
+/**
+ * Retention, which had no caller at all until this job got one.
+ *
+ * `runRetentionQC` was 310 lines and 171 lines of tests reachable only from its
+ * own test file — the same shape as `canStatePublicly` and `markOutputConsumed`
+ * before it. Every video Halyard has ever rendered skipped it.
+ *
+ * These assert the two things that make wiring it worth anything: that it runs
+ * against a real file, and that the rules it *cannot* run are visible rather
+ * than folded into a pass.
+ */
+/**
+ * §151. What `tts` measured must survive what `review_media` writes.
+ *
+ * `review_media` replaced `qc_results` wholesale with `{passed, gates, ranAt}`,
+ * and `tts` stores the transcript, the delivery measurements and the caption
+ * cues under a sibling `audio` key. `loadVoiceover` reads
+ * `qc_results.audio.captions`, so a render after this point — a retry, a
+ * regenerate, a second platform — would burn a video with no captions.
+ */
+d('the media review preserves what the voiceover measured', () => {
+  async function seedWithAudio(): Promise<string> {
+    const id = await seedItem({
+      qc_results: {
+        passed: true,
+        gates: [{ gate: 'copy', status: 'passed', summary: 'clean', detail: null }],
+        ranAt: new Date().toISOString(),
+        audio: {
+          transcript: 'Let it rest a full five minutes.',
+          captions: [{ text: 'Let it rest', startFrame: 0, endFrame: 30 }],
+          durationInFrames: 900,
+        },
+      },
+    });
+    // A still, so the handler reaches a write rather than returning early —
+    // an unfetchable video writes nothing and would pass this test vacuously.
+    const { rows } = await pool.query<{ id: string }>(
+      `insert into assets (product_id, kind, storage_path, mime_type, width, height)
+       values ('recipefix','photo','local/still.png','image/png',1080,1350) returning id`,
+    );
+    await pool.query(`update content_items set attached_asset_ids = array[$2::uuid] where id = $1`, [
+      id,
+      rows[0]!.id,
+    ]);
+    return id;
+  }
+
+  it('keeps the caption cues and transcript a later render depends on', async () => {
+    const id = await seedWithAudio();
+
+    await reviewMediaHandler(job(id), context(), scriptedVision([]));
+
+    // The write really happened, so the assertion below means something.
+    const { rows: gateRows } = await pool.query<{ qc: { gates: GateResult[] } }>(
+      'select qc_results as qc from content_items where id = $1',
+      [id],
+    );
+    expect(gateRows[0]!.qc.gates.some((g) => g.gate === 'visual')).toBe(true);
+
+    const { rows } = await pool.query<{
+      qc: { audio?: { captions?: unknown[]; transcript?: string } };
+    }>('select qc_results as qc from content_items where id = $1', [id]);
+
+    expect(rows[0]!.qc.audio?.captions).toHaveLength(1);
+    expect(rows[0]!.qc.audio?.transcript).toBe('Let it rest a full five minutes.');
+  });
+});
+
+d('the retention gate', () => {
+  it.skipIf(!hasVideo)('runs against a real render and is stored', async () => {
+    const id = await seedItem();
+    await attachVideo(id, VIDEO);
+
+    await reviewMediaHandler(
+      job(id),
+      context(),
+      scriptedVision([{ atSeconds: 0, describes: 'A card.', visibleText: ['bread flour'] }]),
+    );
+
+    const { rows } = await pool.query<{ qc_results: { gates: GateResult[] } }>(
+      'select qc_results from content_items where id = $1',
+      [id],
+    );
+    const retention = rows[0]!.qc_results.gates.find((g) => g.gate === 'retention');
+    expect(retention).toBeTruthy();
+    // It looked at something. A gate that examined nothing is not a pass.
+    expect(retention!.examined).toBeGreaterThan(0);
+  }, 60_000);
+
+  it.skipIf(!hasVideo)('never reads as a clean pass while a rule went unmeasured', async () => {
+    /**
+     * `review_media` has no OCR of frame 1 and no first-to-last similarity, so
+     * the thumbnail and loop rules cannot run. A green tick beside them would
+     * tell an operator the opening was fully checked when half of it was not —
+     * the same "a skipped check is not a passed check" rule `runAllGates`
+     * learned the hard way.
+     */
+    const id = await seedItem();
+    await attachVideo(id, VIDEO);
+
+    await reviewMediaHandler(
+      job(id),
+      context(),
+      scriptedVision([{ atSeconds: 0, describes: 'A card.', visibleText: ['bread flour'] }]),
+    );
+
+    const { rows } = await pool.query<{ qc_results: { gates: GateResult[] } }>(
+      'select qc_results from content_items where id = $1',
+      [id],
+    );
+    const retention = rows[0]!.qc_results.gates.find((g) => g.gate === 'retention')!;
+    const detail = retention.detail as { unmeasured: string[] };
+
+    // The two rules `review_media` cannot run are named...
+    expect(detail.unmeasured).toContain('retention.first_frame_words');
+    expect(detail.unmeasured).toContain('retention.first_frame_contrast');
+    // ...and the gate never reads as a clean pass while they are outstanding.
+    // It may legitimately be `failed` instead, if a rule that *did* run found
+    // something — which is why this asserts the absence of `passed` rather than
+    // the presence of `warning`.
+    expect(retention.status).not.toBe('passed');
+  }, 60_000);
+});
+
+
+/**
+ * The gate against Halyard's own output, which is the only test that could have
+ * caught the regression it exists for.
+ *
+ * Wiring the retention gate up (§72) left its motion rules reading mean-frame
+ * luminance, which cannot see a light card whose dark text is being swapped.
+ * `retention.no_pattern_interrupt` is an **error**, and an errored gate fails
+ * the content item — so every render longer than twenty seconds was about to be
+ * rejected by its own pipeline. A fixture cannot show that; a real render can.
+ */
+d('the retention gate does not reject Halyard’s own renders', () => {
+  it.skipIf(!hasVideo)('passes the fixture render it previously failed', async () => {
+    const id = await seedItem();
+    await attachVideo(id, VIDEO);
+
+    await reviewMediaHandler(
+      job(id),
+      context(),
+      scriptedVision([{ atSeconds: 0, describes: 'A card.', visibleText: ['bread flour'] }]),
+    );
+
+    const { rows } = await pool.query<{ status: string; qc_results: { gates: GateResult[] } }>(
+      'select status, qc_results from content_items where id = $1',
+      [id],
+    );
+    const retention = rows[0]!.qc_results.gates.find((g) => g.gate === 'retention')!;
+
+    expect(retention.status).not.toBe('failed');
+    expect(
+      (retention.detail as { findings: Array<{ rule: string }> }).findings.map((f) => f.rule),
+    ).not.toContain('retention.no_pattern_interrupt');
+    /**
+     * Scoped to retention deliberately. This render is deliberately mismatched
+     * against a single scripted frame so that `coherence` has something to say,
+     * and asserting the item's overall status here would make this test fail
+     * for a reason that has nothing to do with the signal it is about.
+     */
+    const failed = rows[0]!.qc_results.gates.filter((g) => g.status === 'failed').map((g) => g.gate);
+    expect(failed).not.toContain('retention');
+  }, 60_000);
+
+  it.skipIf(!hasVideo)('supplies the motion signal rather than deriving it from the mean', async () => {
+    // Pinned because the fallback still exists and is correct for footage-based
+    // video. What must not happen again is production silently using it.
+    const id = await seedItem();
+    await attachVideo(id, VIDEO);
+
+    await reviewMediaHandler(
+      job(id),
+      context(),
+      scriptedVision([{ atSeconds: 0, describes: 'A card.', visibleText: ['flour'] }]),
+    );
+
+    const { rows } = await pool.query<{ qc_results: { gates: GateResult[] } }>(
+      'select qc_results from content_items where id = $1',
+      [id],
+    );
+    const detail = rows[0]!.qc_results.gates.find((g) => g.gate === 'retention')!.detail as {
+      longestStaticStretchSeconds: number;
+    };
+    // Read from the range series, the whole video is not one static stretch.
+    expect(detail.longestStaticStretchSeconds).toBeLessThan(30);
+  }, 60_000);
+});
+
+/**
+ * The gate is newly live, so it must not start rejecting content by itself.
+ */
+d('retention findings are recorded without blocking', () => {
+  it.skipIf(!hasVideo)('never fails a content item on a retention error', async () => {
+    /**
+     * `ScalingMath.mp4` really is static for twenty-four seconds and raises
+     * `retention.no_pattern_interrupt`, an **error**. `review_media` fails an
+     * item on any errored gate, so switching this gate on at error severity
+     * would have begun rejecting a real template on a rule nothing had ever
+     * run. The finding is kept; the blocking decision is a person's.
+     */
+    const STATIC_RENDER = '.render-output/video/ScalingMath.mp4';
+    const id = await seedItem();
+    await attachVideo(id, STATIC_RENDER);
+
+    await reviewMediaHandler(
+      job(id),
+      context(),
+      scriptedVision([{ atSeconds: 0, describes: 'A scaling card.', visibleText: ['servings'] }]),
+    );
+
+    const { rows } = await pool.query<{ qc_results: { gates: GateResult[] } }>(
+      'select qc_results from content_items where id = $1',
+      [id],
+    );
+    const retention = rows[0]!.qc_results.gates.find((g) => g.gate === 'retention')!;
+    const detail = retention.detail as { findings: Array<{ rule: string; severity: string }> };
+
+    // The finding is real, recorded, and carries its own severity...
+    expect(detail.findings.map((f) => f.rule)).toContain('retention.no_pattern_interrupt');
+    expect(detail.findings.some((f) => f.severity === 'error')).toBe(true);
+    // ...and the gate does not block on it.
+    expect(retention.status).toBe('warning');
+    expect(retention.status).not.toBe('failed');
+  }, 60_000);
+});
+
+/**
+ * Stills, which no gate had ever looked at.
+ *
+ * `review_media` walked `renders` only and returned early when it found no
+ * video, behind a comment claiming stills were "covered by the existing visual
+ * gate at draft time". They were not: no caller supplies `visual` to
+ * `runAllGates`, which is what the Auditor's `gate.input_never_supplied`
+ * reports. Meanwhile `publish` sends `render_ids` **and**
+ * `attached_asset_ids` — so an operator-attached image reached a platform with
+ * no gate having examined it.
+ */
+d('attached stills are examined', () => {
+  async function attach(
+    itemId: string,
+    dims: { width: number | null; height: number | null },
+  ): Promise<string> {
+    const { rows } = await pool.query<{ id: string }>(
+      `insert into assets (product_id, kind, storage_path, mime_type, width, height)
+       values ('recipefix','photo','local/still.png','image/png',$1,$2) returning id`,
+      [dims.width, dims.height],
+    );
+    await pool.query(
+      `update content_items set attached_asset_ids = array[$2::uuid] where id = $1`,
+      [itemId, rows[0]!.id],
+    );
+    return rows[0]!.id;
+  }
+
+  it('records a visual gate for an item with no video at all', async () => {
+    // Previously: an early return, no gate row, and `qc_results` silent — which
+    // reads as "nothing wrong" rather than "nothing looked at".
+    const id = await seedItem();
+    await attach(id, { width: 1080, height: 1350 });
+
+    await reviewMediaHandler(job(id), context(), scriptedVision([]));
+
+    const { rows } = await pool.query<{ qc_results: { gates: GateResult[] } }>(
+      'select qc_results from content_items where id = $1',
+      [id],
+    );
+    const visual = rows[0]!.qc_results.gates.find((g) => g.gate === 'visual');
+    expect(visual).toBeTruthy();
+    expect(visual!.examined).toBe(1);
+  });
+
+  it('never passes a still whose dimensions were never recorded', async () => {
+    /**
+     * An asset with no width or height was not checked. A green tick beside it
+     * would say it was — the same rule the retention gate follows.
+     */
+    const id = await seedItem();
+    await attach(id, { width: null, height: null });
+
+    await reviewMediaHandler(job(id), context(), scriptedVision([]));
+
+    const { rows } = await pool.query<{ qc_results: { gates: GateResult[] } }>(
+      'select qc_results from content_items where id = $1',
+      [id],
+    );
+    const visual = rows[0]!.qc_results.gates.find((g) => g.gate === 'visual')!;
+    expect(visual.status).not.toBe('passed');
+    expect(visual.examined).toBe(0);
+    expect((visual.detail as { unexamined: string[] }).unexamined).toHaveLength(1);
+    expect(visual.summary).toMatch(/not examined/i);
+  });
+
+  it('does not silently pass a still the platform will crop', async () => {
+    // A 16:9 landscape image on a vertical-first platform is the rule that
+    // actually matters for a photo, and it was unreachable.
+    const id = await seedItem();
+    await attach(id, { width: 1920, height: 1080 });
+
+    await reviewMediaHandler(job(id), context(), scriptedVision([]));
+
+    const { rows } = await pool.query<{ qc_results: { gates: GateResult[] } }>(
+      'select qc_results from content_items where id = $1',
+      [id],
+    );
+    const visual = rows[0]!.qc_results.gates.find((g) => g.gate === 'visual')!;
+    // Either a finding or a clean pass — but it was *examined*, which is the
+    // property that did not exist before.
+    expect(visual.examined).toBe(1);
+    expect(['passed', 'warning', 'failed']).toContain(visual.status);
+  });
+});
+
+/**
+ * A video item's attached stills.
+ *
+ * §93 examined stills only when there was **no video**, so an item with a
+ * rendered video *and* an attached image examined the video and silently
+ * ignored the image — the same gap, one branch over. `publish` sends both
+ * regardless of which is present.
+ */
+d('stills attached to a video item', () => {
+  it('are examined alongside the render, not ignored', async () => {
+    const id = await seedItem();
+    await attachVideo(id, VIDEO);
+    const { rows: asset } = await pool.query<{ id: string }>(
+      `insert into assets (product_id, kind, storage_path, mime_type, width, height)
+       values ('recipefix','photo','local/still.png','image/png',1080,1350) returning id`,
+    );
+    await pool.query(`update content_items set attached_asset_ids = array[$2::uuid] where id = $1`, [
+      id,
+      asset[0]!.id,
+    ]);
+
+    await reviewMediaHandler(
+      job(id),
+      context(),
+      scriptedVision([{ atSeconds: 0, describes: 'A card.', visibleText: ['flour'] }]),
+    );
+
+    const { rows } = await pool.query<{ qc_results: { gates: GateResult[] } }>(
+      'select qc_results from content_items where id = $1',
+      [id],
+    );
+    const visual = rows[0]!.qc_results.gates.find((g) => g.gate === 'visual')!;
+    const detail = visual.detail as { stills: { measurable: number; total: number } };
+
+    // The still was actually looked at, not merely loaded.
+    expect(detail.stills.total).toBe(1);
+    expect(detail.stills.measurable).toBe(1);
+    // And the count reflects frames plus stills rather than frames alone.
+    expect(visual.examined).toBeGreaterThan(1);
+  }, 60_000);
+
+  it('never reads as a clean pass when an attached still has no dimensions', async () => {
+    // An unmeasured still beside a passing video must not inherit its tick.
+    const id = await seedItem();
+    await attachVideo(id, VIDEO);
+    const { rows: asset } = await pool.query<{ id: string }>(
+      `insert into assets (product_id, kind, storage_path, mime_type)
+       values ('recipefix','photo','local/unknown.png','image/png') returning id`,
+    );
+    await pool.query(`update content_items set attached_asset_ids = array[$2::uuid] where id = $1`, [
+      id,
+      asset[0]!.id,
+    ]);
+
+    await reviewMediaHandler(
+      job(id),
+      context(),
+      scriptedVision([{ atSeconds: 0, describes: 'A card.', visibleText: ['flour'] }]),
+    );
+
+    const { rows } = await pool.query<{ qc_results: { gates: GateResult[] } }>(
+      'select qc_results from content_items where id = $1',
+      [id],
+    );
+    const visual = rows[0]!.qc_results.gates.find((g) => g.gate === 'visual')!;
+    expect(visual.status).not.toBe('passed');
+    expect((visual.detail as { stills: { unexamined: string[] } }).stills.unexamined).toHaveLength(1);
+  }, 60_000);
+});

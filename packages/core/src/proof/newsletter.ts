@@ -127,7 +127,7 @@ export interface SendNewsletterInput {
   subject: string;
   html: string;
   text: string;
-  recipients: string[];
+  recipients: NewsletterRecipient[];
   from: string;
   replyTo?: string;
   /** Set per send so opens and clicks can be attributed back. */
@@ -136,29 +136,68 @@ export interface SendNewsletterInput {
   apiKey: string;
 }
 
+/**
+ * The placeholder the draft renders into its footer, replaced per recipient at
+ * send time. Exported so the handler and the transport cannot disagree about
+ * its spelling — a silent mismatch would mail everyone a literal
+ * `{{unsubscribe}}` and no way out.
+ */
+export const UNSUBSCRIBE_PLACEHOLDER = '{{unsubscribe}}';
+
+export interface NewsletterRecipient {
+  email: string;
+  /** This subscriber's own link. Never shared, never derived from the address. */
+  unsubscribeUrl: string;
+}
+
 export interface SendResult {
   providerId: string;
+  /** Recipients the provider accepted — never the number attempted. */
   recipientCount: number;
+  /** Per-recipient failures, so a partial send cannot read as a clean one. */
+  failures: string[];
 }
 
 /**
- * Send one issue.
+ * Send one issue, one recipient at a time.
  *
- * Resend's batch endpoint caps at 100 recipients per call, so this chunks and
- * reports the first provider id. Every recipient is a `bcc` on a send addressed
- * to the from-address, which is what stops a subscriber list becoming visible to
- * every subscriber.
+ * This used to `bcc` a hundred addresses per call, which is efficient and
+ * cannot carry a working opt-out: a batched send is one body, and an unsubscribe
+ * link that is the same for everyone identifies nobody. The link is the only
+ * part that has to differ, and it is the part that makes bulk mail lawful, so
+ * the batching is what gives way.
+ *
+ * BCC also existed to stop the subscriber list becoming visible to every
+ * subscriber. Sending individually keeps that property for a better reason:
+ * each message has exactly one recipient and no `bcc` at all.
+ *
+ * `List-Unsubscribe` and `List-Unsubscribe-Post` are set on every message
+ * (RFC 8058), which is what puts the native one-click control in Gmail and
+ * Apple Mail. Both point at the same per-subscriber URL.
+ *
+ * One recipient failing does not abort the rest — a single bad address must not
+ * silently cost every other subscriber their issue — but the failures are
+ * counted and reported, so a send that mostly failed cannot read as a success.
  */
 export async function sendNewsletter(input: SendNewsletterInput): Promise<SendResult> {
   const fetchImpl = input.fetchImpl ?? fetch;
-  const chunks: string[][] = [];
-  for (let i = 0; i < input.recipients.length; i += 100) {
-    chunks.push(input.recipients.slice(i, i + 100));
-  }
-  if (chunks.length === 0) throw new Error('No confirmed subscribers to send to.');
+  if (input.recipients.length === 0) throw new Error('No confirmed subscribers to send to.');
 
   let providerId = '';
-  for (const chunk of chunks) {
+  let delivered = 0;
+  const failures: string[] = [];
+
+  for (const recipient of input.recipients) {
+    if (!recipient.unsubscribeUrl.trim()) {
+      // Refused rather than sent without one. A message with no way out is the
+      // one failure that cannot be corrected after the fact.
+      failures.push(`${recipient.email}: no unsubscribe URL`);
+      continue;
+    }
+
+    const personalise = (value: string): string =>
+      value.split(UNSUBSCRIBE_PLACEHOLDER).join(recipient.unsubscribeUrl);
+
     const response = await fetchImpl('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -167,29 +206,40 @@ export async function sendNewsletter(input: SendNewsletterInput): Promise<SendRe
       },
       body: JSON.stringify({
         from: input.from,
-        to: input.from,
-        bcc: chunk,
+        to: recipient.email,
         reply_to: input.replyTo,
         subject: input.subject,
-        html: input.html,
-        text: input.text,
+        html: personalise(input.html),
+        text: personalise(input.text),
+        headers: {
+          'List-Unsubscribe': `<${recipient.unsubscribeUrl}>`,
+          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+        },
         tags: Object.entries(input.tags ?? {}).map(([name, value]) => ({ name, value })),
       }),
     });
 
     const body = (await response.json().catch(() => ({}))) as { id?: string; message?: string };
     if (!response.ok) {
-      throw new Error(
-        `Resend returned HTTP ${response.status}: ${body.message ?? 'no message'}. ` +
+      failures.push(
+        `${recipient.email}: HTTP ${response.status} ${body.message ?? 'no message'}` +
           (response.status === 403
-            ? 'Usually an unverified sending domain — verify it in the Resend dashboard.'
+            ? ' (usually an unverified sending domain — verify it in the Resend dashboard)'
             : ''),
       );
+      continue;
     }
     providerId ||= body.id ?? '';
+    delivered += 1;
   }
 
-  return { providerId, recipientCount: input.recipients.length };
+  if (delivered === 0) {
+    throw new Error(
+      `Resend accepted none of ${input.recipients.length} recipients. ${failures[0] ?? ''}`,
+    );
+  }
+
+  return { providerId, recipientCount: delivered, failures };
 }
 
 /**

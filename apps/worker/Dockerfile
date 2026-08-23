@@ -91,12 +91,21 @@ RUN npx --yes remotion browser ensure || true
 RUN pnpm --filter @halyard/worker exec playwright install chromium
 
 ENV WHISPER_MODEL_PATH=/opt/models/ggml-base.en.bin \
-    REMOTION_LICENSE_KEY=free-license
+    REMOTION_LICENSE_KEY=free-license \
+    HALYARD_LIVENESS_FILE=/tmp/halyard-worker-alive
 
 # build pack §8: the worker writes a heartbeat every 60 seconds, and a missing
-# heartbeat is the only way to detect a dead worker. This healthcheck is the
-# container's own view of the same fact.
-HEALTHCHECK --interval=60s --timeout=10s --start-period=30s --retries=3 \
-  CMD node -e "process.exit(0)"
+# heartbeat is the only way to detect a dead worker.
+#
+# This used to run `node -e "process.exit(0)"`, which reports healthy for as
+# long as the container can start node — including on a worker whose loop has
+# been wedged for an hour. The poller now touches HALYARD_LIVENESS_FILE on the
+# same beat as the database row, and only after that row is written, so a
+# worker that has lost the database goes unhealthy too.
+#
+# Three missed beats before failing, matching --retries=3 above. A missing file
+# throws, which is the correct answer during a start that never got going.
+HEALTHCHECK --interval=60s --timeout=10s --start-period=90s --retries=3 \
+  CMD node -e "const{statSync}=require('fs');process.exit(Date.now()-statSync(process.env.HALYARD_LIVENESS_FILE).mtimeMs<180000?0:1)"
 
 CMD ["pnpm", "--filter", "@halyard/worker", "start"]

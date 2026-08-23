@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Card, PageHeader, SectionTitle } from '@halyard/ui';
 import { getSettings } from '@/lib/queries';
-import { setKillSwitch, setGeneration, exportData } from './actions';
+import { setKillSwitch, setGeneration, setLogRetention, exportData } from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,6 +47,33 @@ export default async function SettingsPage() {
               }`}
             >
               {settings.publishing_enabled ? 'Pause all publishing' : 'Resume publishing'}
+            </button>
+          </form>
+        </Card>
+
+        <Card className="p-5">
+          <SectionTitle>Log retention</SectionTitle>
+          <p className="mb-4 text-sm leading-relaxed text-muted">
+            {settings.log_retention_days === null
+              ? 'Everything is kept. Halyard ships no default here on purpose — how long your data is retained is your decision, not a number invented in a migration.'
+              : `Finished jobs, read notifications, agent runs and capability probes are deleted after ${settings.log_retention_days} days.`}{' '}
+            The audit log — what you decided, and when — is never purged.
+          </p>
+          <form action={setLogRetention} className="flex items-end gap-2">
+            <label className="flex-1 text-xs uppercase tracking-[0.08em] text-muted">
+              Days to keep
+              <input
+                name="days"
+                type="number"
+                min={1}
+                max={3650}
+                defaultValue={settings.log_retention_days ?? ''}
+                placeholder="blank = keep everything"
+                className="mt-1 w-full rounded-lg border border-line bg-paper px-3 py-1.5 text-sm text-ink placeholder:text-muted"
+              />
+            </label>
+            <button className="rounded-lg border border-line px-3 py-2 text-sm font-medium text-ink hover:bg-sunk">
+              Save
             </button>
           </form>
         </Card>

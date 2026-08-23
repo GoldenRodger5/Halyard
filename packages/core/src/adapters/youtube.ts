@@ -51,6 +51,13 @@ export const YOUTUBE_CONSTRAINTS: PlatformConstraints = {
   linkNote: 'Description, first line, above the fold.',
   requiresReviewForPublicPosting: true,
   supportsTrendingAudioViaApi: false,
+  delivery: {
+    nativeDraft: false,
+    privateUpload: true,
+    apiScheduling: true,
+    requiresCreatorCompletion: false,
+    note: 'videos.insert with status.privacyStatus=private is a real private video Halyard can later publish via videos.update. status.publishAt schedules it, and requires the video to be private and never published. There is no draft object.',
+  },
 };
 
 export class YouTubeAdapter implements PlatformAdapter {
@@ -238,7 +245,16 @@ export class YouTubeAdapter implements PlatformAdapter {
     if (!videoId) return { mode: 'direct', malformedResponse: true };
 
     return {
-      mode: privacyStatus === 'public' ? 'direct' : 'draft',
+      /**
+       * §156. `private`, not `draft`.
+       *
+       * A private YouTube video is real content the channel owns and that
+       * Halyard can still publish over the API — `videos.update` flips it, and
+       * `status.publishAt` schedules it. Reporting it as a draft told the
+       * operator to go and finish something that needs no finishing, and hid
+       * the fact that Halyard could act on it.
+       */
+      mode: privacyStatus === 'public' ? 'direct' : 'private',
       platformPostId: videoId,
       permalink: `https://www.youtube.com/watch?v=${videoId}`,
       manualPublishUrl:

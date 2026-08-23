@@ -127,6 +127,24 @@ d('renderHandler, remotion path', () => {
       'select status, output_asset_id from renders where id = $1',
       [renderId],
     );
+    /*
+     * Asserted before it is read.
+     *
+     * This test failed once during a full run with
+     * `TypeError: Cannot read properties of undefined (reading 'status')` —
+     * `rows[0]!` on an empty result. That message says nothing about what went
+     * wrong, and it hid the actual finding: the row was *missing*, not in the
+     * wrong state.
+     *
+     * Four causes were ruled out and none reproduced it: CPU contention (passes
+     * under 4x load in 13.6s), connection exhaustion (peak 23 of 100 across a
+     * full run), test concurrency (this file is sequential), and the vitest
+     * timeout (600s against a 15-20s render). Nothing in production code
+     * deletes a render row. The cause is still unknown, so the timeout has
+     * deliberately *not* been raised — this makes the next occurrence legible
+     * instead of pretending it is understood.
+     */
+    expect(rows, `render row ${renderId} vanished between seeding and assertion`).toHaveLength(1);
     expect(rows[0]!.status).toBe('done');
     expect(rows[0]!.output_asset_id).not.toBeNull();
 
@@ -231,5 +249,51 @@ d('renderHandler, remotion path', () => {
     // Four seconds of narration plus the held tail, not the sixteen-second default.
     expect(seconds).toBeGreaterThan(4);
     expect(seconds).toBeLessThan(8);
+  }, 600_000);
+});
+
+/**
+ * §161. An item that has a voiceover and cannot read it fails, rather than
+ * shipping a silent video of a narrated script.
+ *
+ * `readAssetBytes` already threw on the Supabase path for exactly this reason.
+ * The local fallback returned `null`, so the same broken state failed loudly in
+ * production and degraded quietly on a laptop — the render came out silent
+ * *and* caption-less, and nothing said why.
+ */
+d('a voiceover whose audio cannot be read', () => {
+  it('refuses, naming the asset, rather than rendering a silent narrated video', async () => {
+    const { renderId, contentItemId } = await seedRender();
+
+    const asset = await pool.query<{ id: string }>(
+      `insert into assets (product_id, kind, storage_path, public_url, mime_type, duration_seconds)
+       values ('recipefix','audio','audio/missing-on-purpose.mp3','/dev-assets/missing.mp3','audio/mpeg',6)
+       returning id`,
+    );
+    await pool.query(`update content_items set vo_asset_id = $2 where id = $1`, [
+      contentItemId,
+      asset.rows[0]!.id,
+    ]);
+
+    await expect(renderHandler(job(renderId), context())).rejects.toThrow(/could not be read/i);
+
+    const { rows } = await pool.query<{ status: string }>(
+      'select status from renders where id = $1',
+      [renderId],
+    );
+    // Recorded as failed, not left claiming success with a silent file.
+    expect(rows[0]!.status).toBe('failed');
+  }, 600_000);
+
+  it('still allows a genuinely silent cut when the item has no voiceover at all', async () => {
+    // The legitimate case this file's header describes: no vo_asset_id.
+    const { renderId } = await seedRender();
+    await renderHandler(job(renderId), context());
+
+    const { rows } = await pool.query<{ status: string }>(
+      'select status from renders where id = $1',
+      [renderId],
+    );
+    expect(rows[0]!.status).toBe('done');
   }, 600_000);
 });

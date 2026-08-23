@@ -15,6 +15,7 @@ import {
   renderNewsletter,
   runProofQC,
   sendNewsletter,
+  UNSUBSCRIBE_PLACEHOLDER,
   verifyTestimonial,
   type StoredProof,
 } from './index.js';
@@ -302,46 +303,109 @@ describe('renderNewsletter', () => {
 });
 
 describe('sendNewsletter', () => {
-  it('bccs every recipient so the list is never visible to it', async () => {
+  /**
+   * These replaced a pair of tests that asserted BCC batching. The batching was
+   * not wrong so much as incompatible with the thing it made impossible: one
+   * body cannot carry a different unsubscribe link for each recipient, and an
+   * unsubscribe link that is the same for everyone identifies nobody.
+   */
+  const recipients = [
+    { email: 'a@example.com', unsubscribeUrl: 'https://recipefix.app/u/tok-a' },
+    { email: 'b@example.com', unsubscribeUrl: 'https://recipefix.app/u/tok-b' },
+  ];
+
+  function recorder() {
     const calls: Array<Record<string, unknown>> = [];
     const fetchImpl = (async (_url: string, init?: RequestInit) => {
       calls.push(JSON.parse(String(init?.body)));
-      return new Response(JSON.stringify({ id: 'resend-1' }), { status: 200 });
+      return new Response(JSON.stringify({ id: `resend-${calls.length}` }), { status: 200 });
     }) as unknown as typeof fetch;
+    return { calls, fetchImpl };
+  }
 
+  it('sends one message per recipient, so no subscriber sees another', async () => {
+    const { calls, fetchImpl } = recorder();
     const result = await sendNewsletter({
       subject: 'Issue 1',
       html: '<p>hi</p>',
       text: 'hi',
-      recipients: ['a@example.com', 'b@example.com'],
+      recipients,
       from: 'RecipeFix <hello@recipefix.app>',
       apiKey: 're_test',
       fetchImpl,
     });
 
     expect(result.recipientCount).toBe(2);
-    expect(calls[0]!.bcc).toEqual(['a@example.com', 'b@example.com']);
-    expect(calls[0]!.to).toBe('RecipeFix <hello@recipefix.app>');
+    expect(calls).toHaveLength(2);
+    expect(calls.map((c) => c.to)).toEqual(['a@example.com', 'b@example.com']);
+    // The old design hid the list behind bcc. This one has no list to hide.
+    expect(calls.every((c) => c.bcc === undefined)).toBe(true);
   });
 
-  it('chunks past Resend’s hundred-recipient limit', async () => {
-    let calls = 0;
-    const fetchImpl = (async () => {
-      calls++;
-      return new Response(JSON.stringify({ id: `resend-${calls}` }), { status: 200 });
-    }) as unknown as typeof fetch;
-
+  it('gives each recipient their own unsubscribe link, not a shared one', async () => {
+    const { calls, fetchImpl } = recorder();
     await sendNewsletter({
       subject: 'Issue 1',
-      html: '<p>hi</p>',
-      text: 'hi',
-      recipients: Array.from({ length: 250 }, (_, i) => `user${i}@example.com`),
+      html: `<p>hi</p><a href="https://recipefix.app/u/${UNSUBSCRIBE_PLACEHOLDER}">out</a>`,
+      text: `hi\nUnsubscribe: https://recipefix.app/u/${UNSUBSCRIBE_PLACEHOLDER}`,
+      recipients,
       from: 'hello@recipefix.app',
       apiKey: 're_test',
       fetchImpl,
     });
 
-    expect(calls).toBe(3);
+    expect(calls[0]!.html).toContain('/u/tok-a');
+    expect(calls[1]!.html).toContain('/u/tok-b');
+    expect(calls[0]!.html).not.toContain('tok-b');
+    // The placeholder must never survive into a delivered message.
+    expect(calls.every((c) => !String(c.html).includes(UNSUBSCRIBE_PLACEHOLDER))).toBe(true);
+    expect(calls.every((c) => !String(c.text).includes(UNSUBSCRIBE_PLACEHOLDER))).toBe(true);
+  });
+
+  it('sets the one-click headers a mail client needs to show its own control', async () => {
+    const { calls, fetchImpl } = recorder();
+    await sendNewsletter({
+      subject: 's', html: 'h', text: 't', recipients,
+      from: 'hello@recipefix.app', apiKey: 're_test', fetchImpl,
+    });
+    const headers = calls[0]!.headers as Record<string, string>;
+    expect(headers['List-Unsubscribe']).toBe('<https://recipefix.app/u/tok-a>');
+    expect(headers['List-Unsubscribe-Post']).toBe('List-Unsubscribe=One-Click');
+  });
+
+  it('refuses to mail a recipient it has no unsubscribe link for', async () => {
+    const { calls, fetchImpl } = recorder();
+    const result = await sendNewsletter({
+      subject: 's', html: 'h', text: 't',
+      recipients: [recipients[0]!, { email: 'c@example.com', unsubscribeUrl: '  ' }],
+      from: 'hello@recipefix.app', apiKey: 're_test', fetchImpl,
+    });
+    // Not sent at all. A message with no way out is the one failure that cannot
+    // be corrected afterwards.
+    expect(calls.map((c) => c.to)).toEqual(['a@example.com']);
+    expect(result.recipientCount).toBe(1);
+    expect(result.failures).toEqual(['c@example.com: no unsubscribe URL']);
+  });
+
+  it('counts what was delivered, never what was attempted', async () => {
+    let n = 0;
+    const fetchImpl = (async () => {
+      n++;
+      return n === 1
+        ? new Response(JSON.stringify({ message: 'bounced' }), { status: 422 })
+        : new Response(JSON.stringify({ id: 'resend-2' }), { status: 200 });
+    }) as unknown as typeof fetch;
+
+    const result = await sendNewsletter({
+      subject: 's', html: 'h', text: 't', recipients,
+      from: 'hello@recipefix.app', apiKey: 're_test', fetchImpl,
+    });
+
+    // One bad address must not cost every other subscriber their issue, and a
+    // mostly-failed send must not report as a clean one.
+    expect(result.recipientCount).toBe(1);
+    expect(result.failures).toHaveLength(1);
+    expect(result.failures[0]).toContain('a@example.com');
   });
 
   it('explains an unverified sending domain rather than repeating the status code', async () => {
@@ -355,7 +419,7 @@ describe('sendNewsletter', () => {
         subject: 's',
         html: 'h',
         text: 't',
-        recipients: ['a@example.com'],
+        recipients: [{ email: 'a@example.com', unsubscribeUrl: 'https://x/u/t' }],
         from: 'hello@recipefix.app',
         apiKey: 're_test',
         fetchImpl,

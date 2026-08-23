@@ -10,17 +10,46 @@
 @theme {
   --color-canvas: #f6f3ec;
   --color-surface: #fdfbf7;
+  /**
+   * Input and control backgrounds. Referenced 45 times as `bg-paper` while
+   * never declared, so every one of those controls rendered transparent and
+   * inherited whatever sat behind it. Set to the surface value, which is what
+   * they already looked like on a card, so declaring it changes nothing there
+   * and gives controls on `canvas` and `sunk` the lift they were asking for.
+   */
+  --color-paper: #fdfbf7;
   --color-sunk: #efe9df;
   --color-line: #e2d9cb;
   --color-ink: #2a2320;
-  --color-muted: #7a6e66;
+  --color-muted: #736760;
 
-  --color-primary: #c4714a;
-  --color-primary-dark: #a85c39;
+  /**
+   * Darkened from #c4714a on 2026-08-19 so the brand can carry text.
+   *
+   * The original was 3.50:1 on surface, 3.14:1 on its own /10 tint — the
+   * product chip in the sidebar, which renders on every screen — and 3.62:1
+   * behind white on a button. Every contrast violation in the product involved
+   * this one colour and no other.
+   *
+   * #9e5b3c was proposed and is not enough: it clears surface and white-on-fill
+   * but still measures 4.33 on `sunk` and 4.45 on the chip tint. #98583a was
+   * not enough either — axe still found the chip over `canvas` at 4.37, a
+   * composite no hand calculation had listed.
+   *
+   * This value was solved against the backgrounds axe *measured*, then
+   * confirmed by re-running it: the lightest darkening of #c4714a that clears
+   * 4.5:1 as text on every surface and on its own 10% tint over each of them.
+   *
+   * primary-dark is the hover state, so it must stay visibly darker than
+   * primary — the old #a85c39 is *lighter* than this and would have inverted
+   * the interaction.
+   */
+  --color-primary: #8c5035;
+  --color-primary-dark: #824b31;
 
-  --color-good: #4f7a52;
+  --color-good: #4c754f;
   --color-warn: #c99a2e;
-  --color-warn-ink: #8a6512;
+  --color-warn-ink: #876312;
   --color-danger: #a8433a;
 
   --font-serif: 'Instrument Serif', 'Iowan Old Style', Georgia, serif;

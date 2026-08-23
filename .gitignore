@@ -37,6 +37,9 @@ coverage/
 # and scripts/capture-flows.ts, and large.
 .discovery/
 apps/web/public/uploads/
+# Cut product footage, written into the render bundle by the capture handler.
+# Regenerated on every capture and large; §163.
+packages/render/public/capture/
 .vercel
 .env*
 supabase/.temp/

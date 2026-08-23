@@ -32,6 +32,16 @@ const ADAPTERS: Record<PlatformId, PlatformAdapter> = {
   tiktok: new TikTokAdapter(),
 };
 
+/**
+ * Every registered platform, at runtime.
+ *
+ * `PlatformId` is a type and vanishes at compile time, so anything wanting to
+ * walk all platforms — the delivery-capability tests, a capability table —
+ * had to hand-write the list again. Derived from the registry, so a platform
+ * added there cannot be missed here.
+ */
+export const PLATFORM_IDS = Object.keys(ADAPTERS) as PlatformId[];
+
 export function getAdapter(platform: PlatformId): PlatformAdapter {
   const adapter = ADAPTERS[platform];
   if (!adapter) throw new Error(`No adapter registered for platform '${platform}'.`);

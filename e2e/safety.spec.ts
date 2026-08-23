@@ -85,6 +85,19 @@ test.describe('draft_only accounts', () => {
     ).toBeVisible();
 
     await page.goto('/accounts');
+    /**
+     * Provider-specific constraints moved into "Advanced connection details" in
+     * the Accounts clarity pass — they are secondary to whether the account
+     * works, but they are not deleted. This opens the disclosure and asserts
+     * the constraint is still there, which is the property that matters: an
+     * operator planning TikTok content can still find out that API-published
+     * video cannot carry trending audio.
+     */
+    // Every card has its own disclosure, so open them all rather than guessing
+    // which index belongs to TikTok.
+    const disclosures = page.getByText('Advanced connection details');
+    const count = await disclosures.count();
+    for (let i = 0; i < count; i += 1) await disclosures.nth(i).click();
     await expect(page.getByText(/cannot attach trending audio/i).first()).toBeVisible();
 
     await db().query('delete from publications where platform_post_id = $1', ['e2e-pub']);

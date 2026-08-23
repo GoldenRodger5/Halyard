@@ -63,8 +63,19 @@ test.describe('Agents', () => {
   });
 
   test('an orphan detail screen states it has no caller', async ({ page }) => {
-    await page.goto('/agents/rejection-clusterer');
+    // `auto-clip`, not `rejection-clusterer`: the latter stopped being an
+    // orphan when the `cluster_rejections` job gave it a producer. Auto Clip
+    // still has no caller because nothing ingests long-form footage.
+    await page.goto('/agents/auto-clip');
     await expect(page.getByText('none declared — this agent is a tracked orphan')).toBeVisible();
+  });
+
+  test('an agent that gained a caller shows it instead of the orphan notice', async ({ page }) => {
+    await page.goto('/agents/rejection-clusterer');
+    await expect(page.getByText('clusterRejections.ts').first()).toBeVisible();
+    await expect(
+      page.getByText('none declared — this agent is a tracked orphan'),
+    ).toHaveCount(0);
   });
 
   test('teams roll up to their worst member', async ({ page }) => {
@@ -103,9 +114,50 @@ test.describe('System', () => {
     /**
      * The same rule the quality gates follow, applied to infrastructure: never
      * call an unmeasured dimension passed.
+     *
+     * This used to assert that *some* check on the page read `unknown`, and
+     * hoped one would. It passed on a fresh database and failed the moment
+     * anything real had happened — running the worker once left two heartbeat
+     * rows and a handful of finished jobs behind, and every check on the page
+     * had a measurement from then on. The test then failed while the rule it
+     * describes was perfectly intact, which is the least useful way for a test
+     * to be red.
+     *
+     * So the condition is created rather than awaited: remove the heartbeats,
+     * which is exactly "nothing has reported in", and assert the Worker check
+     * reports unknown instead of down or ok. `worker_heartbeats` is a
+     * last-seen-at cache the worker rewrites on its next tick; the rows are
+     * saved and put back regardless.
      */
-    await page.goto('/system');
-    await expect(page.getByText('unknown').first()).toBeVisible();
+    const saved = await db().query<{ worker_id: string; last_seen_at: Date; version: string | null }>(
+      'select worker_id, last_seen_at, version from worker_heartbeats',
+    );
+    await db().query('delete from worker_heartbeats');
+
+    try {
+      await page.goto('/system');
+      /**
+       * Anchored on the Worker check's own detail line rather than on a DOM
+       * shape. `agentQueries.ts` emits this exact sentence only in the branch
+       * that sets the state to `unknown`, so it names *which* check is
+       * unmeasured — which a bare "some pill says unknown" never did.
+       */
+      await expect(page.getByText('no worker has ever sent a heartbeat')).toBeVisible();
+      await expect(page.getByText('unknown', { exact: true }).first()).toBeVisible();
+      // And it says why an unknown is not a failure, which is the point.
+      await expect(page.getByText('Why some checks say unknown')).toBeVisible();
+      await expect(
+        page.getByText(/never call an unmeasured (dimension|check) (passed|ok)/i),
+      ).toBeVisible();
+    } finally {
+      for (const row of saved.rows) {
+        await db().query(
+          `insert into worker_heartbeats (worker_id, last_seen_at, version)
+           values ($1,$2,$3) on conflict (worker_id) do update set last_seen_at = excluded.last_seen_at`,
+          [row.worker_id, row.last_seen_at, row.version],
+        );
+      }
+    }
   });
 
   test('jobs lists every declared kind, including ones never enqueued', async ({ page }) => {

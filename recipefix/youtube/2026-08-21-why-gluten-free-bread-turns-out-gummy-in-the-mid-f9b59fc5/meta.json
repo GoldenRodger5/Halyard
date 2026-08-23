@@ -1,0 +1,59 @@
+{
+  "id": "f9b59fc5-60b0-4117-a170-4357e816acde",
+  "platform": "youtube",
+  "format": "video",
+  "status": "failed",
+  "category": "education",
+  "recipe": null,
+  "title": "Why Gluten-Free Bread Turns Out Gummy in the Middle",
+  "createdAt": "2026-08-21T14:33:09.892085-04:00",
+  "linkUrl": "http://localhost:3200/r/f9b59fc5-60b0-4117-a170-4357e816acde",
+  "qcPassed": true,
+  "gates": [
+    {
+      "gate": "copy",
+      "status": "passed",
+      "summary": "passed (0 flags)"
+    },
+    {
+      "gate": "claims",
+      "status": "skipped",
+      "summary": "no claims to verify"
+    },
+    {
+      "gate": "visual",
+      "status": "skipped",
+      "summary": "no media here — measured after render, by review_media"
+    },
+    {
+      "gate": "audio",
+      "status": "skipped",
+      "summary": "no voiceover here — measured after synthesis, by tts"
+    },
+    {
+      "gate": "coherence",
+      "status": "skipped",
+      "summary": "nothing rendered to compare against the post"
+    },
+    {
+      "gate": "destination",
+      "status": "skipped",
+      "summary": "no link"
+    },
+    {
+      "gate": "proof",
+      "status": "skipped",
+      "summary": "no quoted testimonial"
+    }
+  ],
+  "claims": [],
+  "generation": {
+    "model": "claude-sonnet-5",
+    "costUsd": 0.074418,
+    "attempts": 2,
+    "inputTokens": 3396,
+    "outputTokens": 4282,
+    "promptVersion": "copywriter.v1",
+    "failed_because": "No enabled Remotion template could render this item."
+  }
+}

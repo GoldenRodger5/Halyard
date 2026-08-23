@@ -80,3 +80,19 @@ export function formatNumber(value: number | null | undefined): string {
 export function truncate(value: string, max: number): string {
   return value.length <= max ? value : `${value.slice(0, max - 1).trimEnd()}…`;
 }
+
+/**
+ * A duration in seconds, as an operator would say it.
+ *
+ * Deliberately coarse: reply latency is read to answer "fast or slow", and
+ * "1h 47m 12s" invites arithmetic nobody wanted to do. Rounds to the largest
+ * unit that still carries the answer.
+ */
+export function formatDuration(seconds: number): string {
+  if (seconds < 60) return `${Math.max(1, Math.round(seconds))}s`;
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `${minutes} min`;
+  const hours = seconds / 3600;
+  if (hours < 24) return `${hours < 10 ? hours.toFixed(1) : Math.round(hours)} hours`;
+  return `${Math.round(hours / 24)} days`;
+}

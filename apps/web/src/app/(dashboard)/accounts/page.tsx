@@ -23,6 +23,7 @@ import {
 import { getAllAccounts, type AccountRow } from '@/lib/queries';
 import { accountStatus, APPROVAL_LABEL } from '@halyard/core';
 import {
+  getAccountObservations,
   getRecentProbes,
   resolveForAccount,
   strategyView,
@@ -31,7 +32,13 @@ import {
 import { CapabilityPanel } from './CapabilityPanel';
 import { query } from '@/lib/db';
 import { formatInOperatorTz } from '@/lib/format';
-import { connectBluesky, runSelfTest, setCapabilityState, setTransport } from './actions';
+import {
+  connectBluesky,
+  disconnectAccount,
+  runSelfTest,
+  setCapabilityState,
+  setTransport,
+} from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -54,7 +61,12 @@ interface ProductRow {
 export default async function AccountsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; connected?: string; discarded?: string }>;
+  searchParams: Promise<{
+    error?: string;
+    connected?: string;
+    discarded?: string;
+    disconnected?: string;
+  }>;
 }) {
   const sp = await searchParams;
   const [products, accounts, pending, provider, settings] = await Promise.all([
@@ -96,6 +108,12 @@ export default async function AccountsPage({
   for (const account of accounts) {
     if (!seenPlatforms.has(account.platform)) seenPlatforms.set(account.platform, account);
   }
+  /**
+   * Account-scoped observations, loaded in one query for every account on the
+   * page. These are the only route by which an engagement read can show as
+   * verified rather than merely declared.
+   */
+  const observations = await getAccountObservations([...seenPlatforms.values()].map((a) => a.id));
   const capabilityViews = [...seenPlatforms.entries()].map(([platform, account]) =>
     resolveForAccount({
       platform: platform as Parameters<typeof strategyView>[0],
@@ -104,6 +122,7 @@ export default async function AccountsPage({
       transport: capabilities?.platforms?.[platform as never] ?? null,
       provider: capabilities ? 'blotato' : null,
       transportVerifiedAt: capabilities?.verifiedAt ? new Date(capabilities.verifiedAt) : null,
+      observations: observations.get(account.id) ?? [],
     }),
   );
   const strategies: StrategyView[] = [...seenPlatforms.keys()].map((platform) =>
@@ -132,6 +151,12 @@ export default async function AccountsPage({
       {sp.discarded ? (
         <Card className="mb-6 p-4">
           <p className="text-sm text-muted">Token discarded. Nothing was saved.</p>
+        </Card>
+      ) : null}
+      {/* Says what was erased and, just as importantly, what was not. */}
+      {sp.disconnected ? (
+        <Card className="mb-6 p-4">
+          <p className="text-sm text-ink">{sp.disconnected}</p>
         </Card>
       ) : null}
 
@@ -208,7 +233,7 @@ export default async function AccountsPage({
       </section>
 
       <SectionTitle hint="what unreviewed access actually gives you">Review gates</SectionTitle>
-      <Card className="mb-8 overflow-x-auto">
+      <Card className="mb-8 overflow-x-auto" scrollLabel="Connected accounts">
         <table className="w-full min-w-[48rem] text-sm">
           <thead>
             <tr className="border-b border-line text-left text-xs uppercase tracking-[0.08em] text-muted">
@@ -331,21 +356,41 @@ function AccountCard({
               approval is a different thing again — an account can be approved
               and still unable to publish. Collapsing them is what made the old
               badges unreadable. */}
-          <dl className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-xs">
-            <div className="flex gap-1.5">
-              <dt className="text-muted">Publishing:</dt>
+          {/* ── The three questions, answered separately ─────────────────
+              Account status, publishing and connection are different things,
+              and the middle one is the trap: an account can be perfectly
+              connected while the global switch means nothing will go out.
+              "Ready to publish" must never imply a post leaves right now. */}
+          <dl className="mt-3 space-y-1 text-sm">
+            <div className="flex gap-2">
+              <dt className="w-32 shrink-0 text-muted">Account status</dt>
+              {/* Whether Halyard has a working connection — deliberately not a
+                  restatement of the publish verdict, which is the row below. An
+                  account can be soundly connected and still unable to publish. */}
+              <dd className={status.canRead ? 'text-ink' : 'text-muted'}>
+                {status.canRead ? '✓ Connected' : status.label}
+              </dd>
+            </div>
+            <div className="flex gap-2">
+              <dt className="w-32 shrink-0 text-muted">Publishing</dt>
               <dd className={status.canPublish ? 'text-good' : 'text-muted'}>
-                {status.canPublish ? 'Ready' : 'Blocked'}
+                {status.canPublish
+                  ? '✓ Ready'
+                  : status.status === 'publishing_paused'
+                    ? '⏸ Paused globally'
+                    : status.status === 'awaiting_platform_approval'
+                      ? 'Waiting for platform approval'
+                      : 'Not available yet'}
               </dd>
             </div>
-            <div className="flex gap-1.5">
-              <dt className="text-muted">Reading:</dt>
-              <dd className={status.canRead ? 'text-good' : 'text-muted'}>
-                {status.canRead ? 'Available' : 'Unavailable'}
+            <div className="flex gap-2">
+              <dt className="w-32 shrink-0 text-muted">Connection</dt>
+              <dd className={status.canRead ? 'text-ink' : 'text-muted'}>
+                {status.canRead ? '✓ Working' : 'Not established'}
               </dd>
             </div>
-            <div className="flex gap-1.5">
-              <dt className="text-muted">Platform approval:</dt>
+            <div className="flex gap-2">
+              <dt className="w-32 shrink-0 text-muted">Platform approval</dt>
               <dd className="text-ink">{APPROVAL_LABEL[status.approval]}</dd>
             </div>
           </dl>
@@ -363,9 +408,7 @@ function AccountCard({
             * database, because the column is backend state this pass must not
             * touch.
             */}
-          {detail ? (
-            <p className="mt-2 max-w-2xl text-xs leading-relaxed text-muted">{detail}</p>
-          ) : null}
+
 
           {account?.transport === 'unified' ? (
             <p className="mt-2 max-w-2xl rounded-lg bg-sunk px-3 py-2 text-xs leading-relaxed text-muted">
@@ -385,17 +428,44 @@ function AccountCard({
             </p>
           ) : null}
 
+          {/* ── Credential expiry ────────────────────────────────────────
+              Prominent and actionable when it is close, and silent when it is
+              not. This deliberately stays out of Advanced: a credential about
+              to expire is the one piece of technical state an operator must
+              act on, and burying it guarantees they find out from a failed
+              post instead. */}
           {expiry.message ? (
-            <p
-              className={`mt-2 rounded-lg px-3 py-2 text-xs ${
-                expiry.level === 'expired' ? 'bg-danger/10 text-danger' : 'bg-warn/10 text-ink'
+            <div
+              className={`mt-3 rounded-lg px-3 py-2 ${
+                expiry.level === 'expired' ? 'bg-danger/10' : 'bg-warn/10'
               }`}
             >
-              {expiry.message}
-            </p>
+              <p
+                className={`text-sm font-medium ${
+                  expiry.level === 'expired' ? 'text-danger' : 'text-ink'
+                }`}
+              >
+                {expiry.level === 'expired' ? 'Connection expired' : 'Connection expires soon'}
+              </p>
+              <p className="mt-0.5 text-xs text-muted">
+                {expiry.message}
+                {account?.token_expires_at && expiry.level !== 'expired'
+                  ? ` Reconnect before ${formatInOperatorTz(account.token_expires_at, timeZone)} or scheduled posts may fail.`
+                  : ''}
+              </p>
+            </div>
           ) : null}
 
           {account ? (
+            <details className="mt-3">
+              <summary className="cursor-pointer text-xs text-muted hover:text-ink">
+                Advanced connection details
+              </summary>
+              {/* Provider-specific facts, including cost per call on X. Kept
+                  available — never deleted — but out of the primary hierarchy. */}
+              {detail ? (
+                <p className="mt-2 max-w-2xl text-xs leading-relaxed text-muted">{detail}</p>
+              ) : null}
             <p className="mt-2 text-xs text-muted">
               {account.token_expires_at
                 ? `Token expires ${formatInOperatorTz(account.token_expires_at, timeZone)}`
@@ -412,6 +482,7 @@ function AccountCard({
                 ? ` · last posted ${formatInOperatorTz(account.last_published_at, timeZone, 'd MMM')}`
                 : ' · never posted'}
             </p>
+            </details>
           ) : null}
 
           {account?.last_self_test_detail && account.last_self_test_ok === false ? (
@@ -521,7 +592,7 @@ function AccountCard({
             <form action={runSelfTest}>
               <input type="hidden" name="id" value={account.id} />
               <button className="w-full rounded-lg border border-line px-3 py-1.5 text-sm text-muted hover:bg-sunk hover:text-ink">
-                Self-test
+                Run connection test
               </button>
             </form>
           ) : null}
@@ -544,7 +615,7 @@ function AccountCard({
               <input type="hidden" name="id" value={account.id} />
               <input type="hidden" name="state" value="disabled" />
               <button className="w-full rounded-lg border border-line px-3 py-1.5 text-sm text-muted hover:bg-sunk">
-                Disable
+                Disable account
               </button>
             </form>
           ) : null}
@@ -554,7 +625,7 @@ function AccountCard({
               <input type="hidden" name="id" value={account.id} />
               <input type="hidden" name="state" value="draft_only" />
               <button className="w-full rounded-lg border border-line px-3 py-1.5 text-sm text-muted hover:bg-sunk">
-                Re-enable
+                Re-enable account
               </button>
             </form>
           ) : null}
@@ -564,7 +635,11 @@ function AccountCard({
               the platform reviews. One dropdown and no redeploy, because the
               provider recommendation was made on incomplete information. */}
           {account?.has_token || account?.transport === 'unified' ? (
-            <form action={setTransport} className="flex flex-col gap-1.5 border-t border-line pt-3">
+            <details className="border-t border-line pt-3">
+              <summary className="cursor-pointer text-[11px] uppercase tracking-[0.08em] text-muted hover:text-ink">
+                Advanced
+              </summary>
+            <form action={setTransport} className="mt-2 flex flex-col gap-1.5">
               <input type="hidden" name="id" value={account.id} />
               <span className="text-[11px] uppercase tracking-[0.08em] text-muted">Transport</span>
               <select
@@ -587,6 +662,41 @@ function AccountCard({
                 Switch transport
               </button>
             </form>
+            </details>
+          ) : null}
+
+          {/* ── Disconnect ──────────────────────────────────────────────────
+              The only irreversible button on this page, and the one the
+              privacy policy describes. "Disable account" above changes a
+              state; this destroys the credential. Kept behind a disclosure
+              and a typed handle because the cards sit in a grid and the two
+              words are easy to confuse. */}
+          {account ? (
+            <details className="border-t border-line pt-3">
+              <summary className="cursor-pointer text-[11px] uppercase tracking-[0.08em] text-muted hover:text-danger">
+                Disconnect
+              </summary>
+              <form action={disconnectAccount} className="mt-2 flex flex-col gap-2">
+                <input type="hidden" name="id" value={account.id} />
+                <p className="text-xs leading-relaxed text-muted">
+                  Erases the stored credential for {account.handle} and everything observed through
+                  it — permissions, formats, identity confirmation. Posts already published stay,
+                  and still say they came from this account. This does <strong>not</strong> revoke
+                  the permission at {PLATFORM_LABELS[platform]}; do that in its own app settings if
+                  you want the grant gone too.
+                </p>
+                <input
+                  name="confirmHandle"
+                  required
+                  autoComplete="off"
+                  placeholder={`type ${account.handle} to confirm`}
+                  className="rounded-lg border border-line bg-paper px-2 py-1.5 text-xs text-ink placeholder:text-muted"
+                />
+                <button className="rounded-lg border border-danger/40 px-2 py-1 text-xs text-danger hover:bg-danger/5">
+                  Disconnect and erase credential
+                </button>
+              </form>
+            </details>
           ) : null}
         </div>
       </div>

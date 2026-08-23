@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import {
   PLATFORM_SCOPES,
+  disconnectAccount as disconnectAccountCredential,
   getAdapter,
   openToken,
   selfTest,
@@ -271,4 +272,74 @@ export async function probeProviderCapability(formData: FormData): Promise<void>
     [JSON.stringify({ provider }), `verify_provider_capability:${provider}:${new Date().toISOString().slice(0, 16)}`],
   );
   revalidatePath('/accounts');
+}
+
+/**
+ * Erase every credential Halyard holds for an account.
+ *
+ * The action `/privacy` and `/data-deletion` describe. Until this existed the
+ * strongest thing available was "Disable account", which changes one text
+ * column and leaves a live, decryptable token in place — so those pages had to
+ * be written to say Halyard could not erase a credential on request.
+ *
+ * Guarded by typing the handle rather than a confirm dialog, for the same
+ * reason `git branch -D` wants the name: this is the only irreversible button
+ * on the page, and the accounts sit next to each other in a grid. A mistyped
+ * handle erases nothing and says so.
+ */
+export async function disconnectAccount(formData: FormData): Promise<void> {
+  const operator = await requireOperator();
+  const id = String(formData.get('id'));
+  const typed = String(formData.get('confirmHandle') ?? '').trim();
+
+  const account = await one<{ handle: string }>(
+    'select handle from social_accounts where id = $1',
+    [id],
+  );
+  if (!account) {
+    redirect('/accounts?error=' + encodeURIComponent('That account no longer exists.'));
+  }
+
+  // Compared without the leading @ and without case, because the stored handle
+  // carries one and the operator reading the card may not type it.
+  const normalise = (value: string) => value.replace(/^@/, '').toLowerCase();
+  if (normalise(typed) !== normalise(account.handle)) {
+    redirect(
+      '/accounts?error=' +
+        encodeURIComponent(
+          `Nothing was erased. To disconnect ${account.handle}, type its handle exactly.`,
+        ),
+    );
+  }
+
+  const outcome = await disconnectAccountCredential({
+    query: async <T>(sql: string, params?: unknown[]) =>
+      (await query(sql, params ?? [])) as T[],
+    accountId: id,
+    // A dev-bypass operator has no email; the id still identifies who acted.
+    actor: operator.email ?? operator.id,
+  });
+
+  revalidatePath('/accounts');
+  revalidatePath('/');
+
+  /**
+   * The message says what was erased *and* what was not. A disconnect that let
+   * an operator believe the platform-side grant went with it would be the same
+   * overclaim in the UI that the legal pages were corrected for.
+   */
+  const stillGranted =
+    ' Halyard can no longer act as this account. This does not revoke the permission at the platform — do that in the platform’s own app settings if you want the grant gone too.';
+  const providerNote = outcome.providerHoldsSeparateConnection
+    ? ' This account was routed through the unified provider, which holds its own separate connection.'
+    : '';
+
+  redirect(
+    '/accounts?disconnected=' +
+      encodeURIComponent(
+        `${outcome.handle ?? 'The account'}: stored credential erased.${
+          outcome.pendingDiscarded > 0 ? ` ${outcome.pendingDiscarded} staged token discarded.` : ''
+        }${stillGranted}${providerNote}`,
+      ),
+  );
 }

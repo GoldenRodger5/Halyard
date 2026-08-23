@@ -84,6 +84,29 @@ interface RawDraft {
   hook_pattern?: string;
 }
 
+/**
+ * What is wrong with the shape of a parsed draft, or null when nothing is.
+ *
+ * Deliberately narrow: it checks only the fields this function goes on to call
+ * methods on, because those are the ones that turn a bad answer into a crash.
+ * Everything else is already read defensively with a default, and a stricter
+ * schema here would reject drafts that are merely sparse.
+ */
+export function describeShapeProblem(raw: unknown): string | null {
+  if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) {
+    return 'the top level must be a JSON object';
+  }
+  const draft = raw as Record<string, unknown>;
+  if (draft.body !== undefined && typeof draft.body !== 'string') return '`body` must be a string';
+  if (draft.hashtags !== undefined && !Array.isArray(draft.hashtags)) {
+    return '`hashtags` must be an array of strings';
+  }
+  if (draft.claims !== undefined && !Array.isArray(draft.claims)) {
+    return '`claims` must be an array of objects';
+  }
+  return null;
+}
+
 export async function writeDraft(request: DraftRequest, llm: LlmClient): Promise<Draft> {
   const maxAttempts = request.maxAttempts ?? 3;
   const context: CopywriterContext = {
@@ -123,10 +146,30 @@ export async function writeDraft(request: DraftRequest, llm: LlmClient): Promise
       continue;
     }
 
+    /**
+     * The shape, checked rather than assumed.
+     *
+     * `extractJson<RawDraft>` is an unchecked cast — it proves the response is
+     * *JSON*, not that it is this JSON. A model that answers
+     * `{"hashtags": "glutenfree"}` parses cleanly and then throws
+     * `raw.hashtags.map is not a function`, outside the `try` above, taking the
+     * whole generate job with it.
+     *
+     * The retry loop already knows how to handle a badly-formed reply: tell the
+     * model what was wrong and ask again. A wrong *shape* is the same class of
+     * problem as invalid JSON and now takes the same path, rather than being
+     * the one malformed answer that crashes instead of converging.
+     */
+    const shapeError = describeShapeProblem(raw);
+    if (shapeError) {
+      feedback = `Your last reply was JSON but the wrong shape: ${shapeError}. Reply with the JSON object only, using exactly the fields described.`;
+      continue;
+    }
+
     const body = (raw.body ?? '').trim();
-    const hashtags = (raw.hashtags ?? []).map((h) => h.replace(/^#/, ''));
+    const hashtags = (raw.hashtags ?? []).map((h) => String(h).replace(/^#/, ''));
     const claims: Claim[] = (raw.claims ?? [])
-      .filter((c) => c.text)
+      .filter((c) => c && typeof c === 'object' && c.text)
       .map((c) => ({ text: c.text!, source: c.source ?? '' }));
 
     const qc = runAllGates({

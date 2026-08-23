@@ -162,7 +162,7 @@ export default async function HooksPage({
           <SectionTitle hint="a hook that works on video may die in a carousel">
             By format
           </SectionTitle>
-          <Card className="overflow-x-auto">
+          <Card className="overflow-x-auto" scrollLabel="Hook performance by format">
             <Breakdown rows={byFormat} labelKey="format" />
           </Card>
         </section>
@@ -171,7 +171,7 @@ export default async function HooksPage({
           <SectionTitle hint="education tolerates a different opening than product">
             By category
           </SectionTitle>
-          <Card className="overflow-x-auto">
+          <Card className="overflow-x-auto" scrollLabel="Hook performance by category">
             <Breakdown rows={byCategory} labelKey="category" />
           </Card>
         </section>
@@ -224,7 +224,7 @@ export default async function HooksPage({
           body="Hooks are seeded on install and learned from what you approve. If this is empty, the seed did not run — check that seed.sql was applied."
         />
       ) : (
-        <Card className="overflow-x-auto">
+        <Card className="overflow-x-auto" scrollLabel="Hooks">
           <table className="w-full min-w-[52rem] text-sm">
             <thead>
               <tr className="border-b border-line text-left text-xs uppercase tracking-[0.08em] text-muted">

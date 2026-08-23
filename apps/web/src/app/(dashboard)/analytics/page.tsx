@@ -144,7 +144,7 @@ export default async function AnalyticsPage() {
           {analytics.byPlatform.length === 0 ? (
             <EmptyState title="No published posts" body="Nothing to compare yet." />
           ) : (
-            <Card className="overflow-x-auto">
+            <Card className="overflow-x-auto" scrollLabel="Performance by platform">
               <table className="w-full min-w-[26rem] text-sm">
                 <thead>
                   <tr className="border-b border-line text-left text-xs uppercase tracking-[0.08em] text-muted">
@@ -186,7 +186,7 @@ export default async function AnalyticsPage() {
               body="Published links point at Halyard's router, which decides the destination by device and records the click. The first one appears here once a post goes out and someone taps it."
             />
           ) : (
-            <Card className="overflow-x-auto">
+            <Card className="overflow-x-auto" scrollLabel="Performance by format">
               <table className="w-full min-w-[24rem] text-sm">
                 <thead>
                   <tr className="border-b border-line text-left text-xs uppercase tracking-[0.08em] text-muted">

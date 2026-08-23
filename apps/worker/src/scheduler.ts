@@ -69,6 +69,71 @@ export const SCHEDULES: Schedule[] = [
     why: 'The weekly floor from milestone 41. Release detection catches deploys; this catches the case where nothing shipped but the page changed anyway.',
   },
   {
+    /**
+     * The daily generation run.
+     *
+     * Halyard is described everywhere — the queue's own empty state included —
+     * as producing drafts daily, and two earlier decisions describe `generate`
+     * as having run "every day". It was enqueued only by the launch batch, a
+     * queue action and campaigns, so the promise was never kept: an operator
+     * who finished onboarding and waited got nothing, and the screen told them
+     * to expect otherwise.
+     *
+     * Safe to schedule because the operator already owns the switch.
+     * `generate` reads `settings.generation_enabled` and returns when it is
+     * off (`generate.ts`), `/settings` has the toggle, and the onboarding gate
+     * refuses to run before the wizard is complete. Spend is bounded by
+     * `limit` ideas per run — three by default — and an idea is claimed before
+     * anything is bought, so a retry cannot buy it twice (§120).
+     */
+    kind: 'generate',
+    everyMinutes: 24 * 60,
+    perProduct: true,
+    priority: 30,
+    why: 'The daily draft run the product has always described. Bounded by the per-run idea limit, the cadence ceilings, and settings.generation_enabled, which this handler honours.',
+  },
+  {
+    /**
+     * Install attribution. Reads Apple's daily report, and no-ops cleanly when
+     * App Store credentials are absent — `appStore.ts` catches
+     * `AppStoreCredentialsMissing` and returns rather than failing the job — so
+     * scheduling it now costs nothing and starts working the day credentials
+     * exist, instead of waiting for someone to remember.
+     */
+    kind: 'collect_attribution',
+    everyMinutes: 24 * 60,
+    perProduct: true,
+    priority: 40,
+    why: 'Attribution is the only path from a post to a download. Apple publishes daily, so polling faster returns the same report.',
+  },
+  {
+    /**
+     * The daily digest. Scheduled once, not per product: it is a report to the
+     * operator, and one message a day beats one per product.
+     *
+     * Safe without an email provider — the handler records the digest as a
+     * notification instead of pretending to send it — and it skips entirely on
+     * a quiet day, because a message that says "nothing needs you" every
+     * morning trains an operator to ignore the one that says otherwise.
+     */
+    kind: 'digest_email',
+    everyMinutes: 24 * 60,
+    priority: 60,
+    why: 'The operator is the only approver, so the one thing worth a daily push is "something is waiting for you" — plus a dead worker, which nothing else would surface.',
+  },
+  {
+    /**
+     * Applies whatever retention window the operator chose. Does nothing while
+     * `settings.log_retention_days` is null, which is the default — so
+     * scheduling this decides nothing and simply means their choice takes
+     * effect without them having to run anything.
+     */
+    kind: 'purge_logs',
+    everyMinutes: 24 * 60,
+    priority: 70,
+    why: 'Retention is measured in days, so applying it more than daily removes the same rows. Inert until a window is set.',
+  },
+  {
     kind: 'mark_stale_assets',
     everyMinutes: 24 * 60,
     perProduct: true,
@@ -144,6 +209,13 @@ export const SCHEDULES: Schedule[] = [
     perProduct: true,
     priority: 30,
     why: 'Scoring reads metric time series that only move on the polling schedule.',
+  },
+  {
+    kind: 'cluster_rejections',
+    everyMinutes: 24 * 60,
+    perProduct: true,
+    priority: 30,
+    why: 'Clusters are a view over the rejections that exist now, and the input only changes when the operator works the queue. Daily is faster than an operator can plausibly change their mind about what they keep rejecting, and the job is pure SQL — no model, no provider.',
   },
   {
     /**

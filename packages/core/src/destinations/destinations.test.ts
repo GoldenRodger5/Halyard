@@ -16,6 +16,7 @@ import {
   resolveDestination,
   routeClick,
   routerUrlFor,
+  publishableBaseUrl,
   type ProductDestinations,
 } from './router.js';
 
@@ -250,6 +251,91 @@ describe('routerUrlFor', () => {
   it('builds a link that goes through the router, whatever the base', () => {
     expect(routerUrlFor('https://halyard.example', 'ci-1')).toBe('https://halyard.example/r/ci-1');
     expect(routerUrlFor('https://halyard.example/', 'ci-1')).toBe('https://halyard.example/r/ci-1');
+  });
+});
+
+describe('routeClick never fails closed', () => {
+  /**
+   * The router is the only public surface in the whole application, and its
+   * contract is that a stranger's click always lands somewhere rather than on
+   * an error. One path broke that: `new URL('')` throws, and the bot branch
+   * passes an empty base when a product has no web destination.
+   *
+   * A preview crawler is exactly who hits that — every link shared on X or
+   * Facebook is fetched by one, and any `utm_*` parameter on the link is enough
+   * to reach it.
+   */
+  const base = {
+    destinations: {},
+    destinationType: 'web' as const,
+    destinationUrl: null,
+    campaignToken: null,
+    nativeOnly: false,
+  };
+
+  it('answers a crawler with no destination instead of throwing', () => {
+    expect(() =>
+      routeClick({
+        ...base,
+        device: 'bot',
+        incomingParams: new URLSearchParams('utm_source=x'),
+      }),
+    ).not.toThrow();
+  });
+
+  it('reports no url, so the caller can explain rather than redirect', () => {
+    const decision = routeClick({
+      ...base,
+      device: 'bot',
+      incomingParams: new URLSearchParams('utm_source=x'),
+    });
+    // The route turns a falsy url into a 404 that names what to configure.
+    expect(decision.url).toBeFalsy();
+  });
+
+  it('survives a destination that is not a URL at all', () => {
+    expect(() =>
+      routeClick({
+        ...base,
+        destinationUrl: 'not a url',
+        device: 'ios',
+        incomingParams: new URLSearchParams('utm_source=x'),
+      }),
+    ).not.toThrow();
+  });
+
+  it('still forwards parameters onto a real destination', () => {
+    // The defensive path must not have disabled the feature it guards.
+    const decision = routeClick({
+      ...base,
+      destinationUrl: 'https://recipefix.app/x',
+      device: 'ios',
+      incomingParams: new URLSearchParams('utm_source=x'),
+    });
+    expect(decision.url).toContain('utm_source=x');
+  });
+});
+
+describe('publishableBaseUrl', () => {
+  it('accepts a real origin and drops a trailing slash', () => {
+    expect(publishableBaseUrl('https://halyard.example')).toBe('https://halyard.example');
+    expect(publishableBaseUrl('https://halyard.example/')).toBe('https://halyard.example');
+  });
+
+  it('refuses a local origin, which would publish a link nobody can open', () => {
+    expect(publishableBaseUrl('http://localhost:3200')).toBeNull();
+    expect(publishableBaseUrl('http://127.0.0.1:3200')).toBeNull();
+    expect(publishableBaseUrl('http://[::1]:3200')).toBeNull();
+    expect(publishableBaseUrl('http://halyard.local')).toBeNull();
+  });
+
+  it('treats an unset or empty value as absent', () => {
+    // `.env.example` ships `KEY=` with a trailing comment, which dotenv parses
+    // to '' — the exact shape `??` fails to fall back on.
+    expect(publishableBaseUrl(undefined)).toBeNull();
+    expect(publishableBaseUrl(null)).toBeNull();
+    expect(publishableBaseUrl('')).toBeNull();
+    expect(publishableBaseUrl('   ')).toBeNull();
   });
 });
 

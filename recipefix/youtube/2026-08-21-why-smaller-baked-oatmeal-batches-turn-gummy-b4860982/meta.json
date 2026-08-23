@@ -1,0 +1,76 @@
+{
+  "id": "b4860982-6901-4614-a7a8-5061c73ccb1a",
+  "platform": "youtube",
+  "format": "video",
+  "status": "failed",
+  "category": "education",
+  "recipe": null,
+  "title": "Why smaller baked oatmeal batches turn gummy",
+  "createdAt": "2026-08-21T17:30:39.818313-04:00",
+  "linkUrl": "http://localhost:3200/r/b4860982-6901-4614-a7a8-5061c73ccb1a",
+  "qcPassed": true,
+  "gates": [
+    {
+      "gate": "copy",
+      "status": "passed",
+      "summary": "passed (0 flags)"
+    },
+    {
+      "gate": "claims",
+      "status": "warning",
+      "summary": "3/4 verified against artifact"
+    },
+    {
+      "gate": "visual",
+      "status": "skipped",
+      "summary": "no media here — measured after render, by review_media"
+    },
+    {
+      "gate": "audio",
+      "status": "skipped",
+      "summary": "no voiceover here — measured after synthesis, by tts"
+    },
+    {
+      "gate": "coherence",
+      "status": "skipped",
+      "summary": "nothing rendered to compare against the post"
+    },
+    {
+      "gate": "destination",
+      "status": "skipped",
+      "summary": "no link"
+    },
+    {
+      "gate": "proof",
+      "status": "skipped",
+      "summary": "no quoted testimonial"
+    }
+  ],
+  "claims": [
+    {
+      "text": "Recipe is scaled from 9 servings down to 4",
+      "source": "adaptation.activeModifications[1]"
+    },
+    {
+      "text": "The 8x8 pan replaces the original 9x9 or 11x7 pan at this smaller scale",
+      "source": "adaptation.steps[0].instruction"
+    },
+    {
+      "text": "Written bake time is 25 to 28 minutes but checking should start at 22 due to the smaller, shallower pan",
+      "source": "adaptation.steps[3].instruction"
+    },
+    {
+      "text": "The flax egg needs its full 5 minute rest to gel and bind the oatmeal",
+      "source": "adaptation.steps[1].instruction"
+    }
+  ],
+  "generation": {
+    "model": "claude-sonnet-5",
+    "costUsd": 0.093477,
+    "attempts": 2,
+    "inputTokens": 8189,
+    "outputTokens": 4594,
+    "promptVersion": "copywriter.v1",
+    "failed_because": "No enabled Remotion template could render this item."
+  }
+}

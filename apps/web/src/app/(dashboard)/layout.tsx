@@ -14,7 +14,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const reachable = await databaseReachable();
   if (!reachable.ok) {
     return (
-      <div className="mx-auto max-w-2xl px-6 py-24">
+      <main className="mx-auto max-w-2xl px-6 py-24">
         <Card className="p-8">
           <h1 className="font-serif text-3xl">Halyard cannot reach its database</h1>
           <p className="mt-3 text-sm leading-relaxed text-muted">
@@ -26,7 +26,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             {reachable.detail}
           </pre>
         </Card>
-      </div>
+      </main>
     );
   }
 
@@ -37,7 +37,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     if (supabaseConfigured()) redirect('/signin');
 
     return (
-      <div className="mx-auto max-w-2xl px-6 py-24">
+      <main className="mx-auto max-w-2xl px-6 py-24">
         <Card className="p-8">
           <h1 className="font-serif text-3xl">Sign in</h1>
           <p className="mt-3 text-sm leading-relaxed text-muted">
@@ -45,7 +45,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             HALYARD_DEV_UNAUTHENTICATED=1 — it is refused when NODE_ENV is production.
           </p>
         </Card>
-      </div>
+      </main>
     );
   }
 

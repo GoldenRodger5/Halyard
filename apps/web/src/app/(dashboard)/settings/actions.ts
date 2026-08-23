@@ -28,6 +28,34 @@ export async function setKillSwitch(formData: FormData): Promise<void> {
   revalidatePath('/');
 }
 
+/**
+ * How long operational logs are kept.
+ *
+ * Blank means keep everything, which is the default and is the *absence* of a
+ * policy rather than one. Halyard deliberately ships no number here: how long
+ * an operator's data is retained is their decision, and a default invented in
+ * a migration would have made it silently.
+ *
+ * Never applies to `audit_log` — what a human decided is a compliance record,
+ * and `purge_operational_logs` refuses to delete from it.
+ */
+export async function setLogRetention(formData: FormData): Promise<void> {
+  const operator = await requireOperator();
+  const raw = String(formData.get('days') ?? '').trim();
+
+  const days = raw === '' ? null : Number(raw);
+  if (days !== null && (!Number.isInteger(days) || days < 1 || days > 3650)) return;
+
+  await query('update settings set log_retention_days = $1 where id = true', [days]);
+  await query(
+    `insert into audit_log (actor, action, entity_type, detail)
+     values ('human', 'log_retention_set', 'settings', $1)`,
+    [{ days, operator: operator.email }],
+  );
+
+  revalidatePath('/settings');
+}
+
 export async function setGeneration(formData: FormData): Promise<void> {
   await requireOperator();
   const enabled = String(formData.get('enabled')) === '1';

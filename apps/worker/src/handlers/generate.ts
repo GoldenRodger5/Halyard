@@ -14,6 +14,7 @@
  */
 import {
   createLlmClient,
+  proposeIdeas,
   ConnectorUnavailableError,
   DraftRejectedError,
   createConnector,
@@ -21,6 +22,7 @@ import {
   PRODUCT_CONTENT_CEILING,
   resolveDestination,
   routerUrlFor,
+  publishableBaseUrl,
   selectIdeas,
   writeDraft,
   type IdeaCandidate,
@@ -32,9 +34,16 @@ import {
   type SlopPlatform,
 } from '@halyard/core';
 import { carouselProps, transformationDiffProps } from '@halyard/render';
-import { chooseFormat, needsVideo, writeVoScript } from '@halyard/core';
+import {
+  NoUsableFormatError,
+  beatsToScenes,
+  chooseFormat,
+  needsVideo,
+  planBeforeAfter,
+  writeVoScript,
+} from '@halyard/core';
 import { chooseVideoComposition } from '@halyard/render/video-props';
-import { applyHookToBody, runHookStage } from '../hooks.js';
+import { regateHookedBody, runHookStage } from '../hooks.js';
 
 /**
  * Target length for a voiceover script, in seconds.
@@ -45,7 +54,9 @@ import { applyHookToBody, runHookStage } from '../hooks.js';
  * read that runs long produces a longer video rather than a truncated one.
  */
 const VO_TARGET_SECONDS = 22;
+import { PermanentJobFailure } from '../poller.js';
 import type { Job, HandlerContext } from '../poller.js';
+import { captureFootage } from '../capture/footage.js';
 import { routeToBoard } from './boards.js';
 import { notify } from './publish.js';
 import { fillCampaignSlot } from './campaignSlot.js';
@@ -145,7 +156,18 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
     name: string;
     brief_summary: string | null;
     brief_markdown: string | null;
-    content_rules: { forbidden_claims?: string[]; banned_phrases?: string[] };
+    content_rules: {
+      forbidden_claims?: string[];
+      banned_phrases?: string[];
+      /**
+       * Rules the operator accepted from a rejection cluster. Written by
+       * `acceptCluster`, and until now read by nothing at all — accepting a
+       * pattern moved a row's status and changed no output. They are guidance
+       * in prose, not substrings, so they join the copywriter's DO NOT list
+       * rather than the slop filter's ban lists.
+       */
+      operator_rules?: string[];
+    };
     connector_type: 'mcp' | 'rest' | 'none';
     connector_config: Record<string, unknown>;
     destinations: ProductDestinations;
@@ -168,9 +190,42 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
     [productId],
   );
 
+  /**
+   * Nothing proposed — so propose some, rather than returning.
+   *
+   * `ideas` is the entry point of this whole pipeline and its **only writer in
+   * the repository was `supabase/seed-demo.sql`**. So this branch was taken on
+   * every scheduled run: log "no proposed ideas to draft", return, and nothing
+   * was ever generated. Meanwhile `signals` — written by `collect_watch_terms`
+   * when a question recurs — was read by nothing at all. Two adjacent breaks
+   * that made observation and generation unable to meet.
+   *
+   * The proposer runs here, at the moment the shortage is discovered, because
+   * that needs no new job kind and therefore no migration. It proposes only;
+   * `scoreIdeas` and `selectIdeas` still decide, and every QC gate still runs.
+   */
   if (proposed.rows.length === 0) {
-    ctx.log('no proposed ideas to draft', { productId });
-    return;
+    const filled = await proposeFromSignals(ctx, product, llmFor());
+    if (filled === 0) {
+      ctx.log('no proposed ideas to draft, and none could be proposed', { productId });
+      return;
+    }
+
+    const refreshed = await ctx.pool.query<{
+      id: string;
+      title: string;
+      angle: string;
+      category: IdeaCandidate['category'];
+      embedding: number[] | null;
+    }>(
+      `select id, title, angle, category, embedding from ideas
+        where product_id = $1 and status = 'proposed'
+          and (snoozed_until is null or snoozed_until < now())
+          and (expires_at is null or expires_at > now())`,
+      [productId],
+    );
+    proposed.rows = refreshed.rows;
+    if (proposed.rows.length === 0) return;
   }
 
   // ── Mix state, straight from the database functions ──────────────────────
@@ -241,6 +296,36 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
       : null,
   });
 
+  /**
+   * What each category has actually converted at, so scoring can learn.
+   *
+   * `IdeaCandidate.historicalConversion` has existed since the scorer was
+   * written and **nothing has ever supplied it**, so every idea scored on the
+   * `?? 0.5` neutral. That is the right answer today — `performance_scores` is
+   * empty because nothing has published — and it would have stayed 0.5 forever
+   * afterwards, which is the difference between a cold start and a loop that
+   * never closes.
+   *
+   * Wiring it now costs nothing and changes nothing: with no rows the map is
+   * empty, the candidates carry `undefined`, and the neutral still applies. The
+   * moment a publication is scored, the edge is already connected.
+   *
+   * Averaged per category rather than per idea because that is the grain the
+   * scorer asks for — "mean conversion of similar past content" — and a single
+   * post's score is noise at the volumes this operates at.
+   */
+  const conversionByCategory = await ctx.pool.query<{ category: string; mean: string }>(
+    `select ci.category, avg(ps.conversion_score) as mean
+       from performance_scores ps
+       join content_items ci on ci.id = ps.content_item_id
+      where ci.product_id = $1 and ps.conversion_score is not null
+      group by ci.category`,
+    [productId],
+  );
+  const historical = new Map(
+    conversionByCategory.rows.map((r) => [r.category, Number(r.mean)]),
+  );
+
   const { selected, rejected } = selectIdeas(
     proposed.rows.map((row) => ({
       id: row.id,
@@ -249,6 +334,9 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
       category: row.category,
       availableTemplates: enabledTemplates,
       embedding: row.embedding ?? undefined,
+      // Undefined, not 0, when a category has never been measured. The scorer's
+      // own `?? 0.5` is the honest neutral; a zero would be a measured failure.
+      historicalConversion: historical.get(row.category),
     })),
     {
       targets: voiceRow.mix_targets as Record<IdeaCandidate['category'], number>,
@@ -302,6 +390,29 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
   const connector = createConnector(product);
 
   for (const idea of selected) {
+    /**
+     * Claim the idea *before* spending anything on it.
+     *
+     * `generateSample` is one real RecipeFix credit and 26 seconds. This used
+     * to mark the idea `selected` twenty lines further down, after the
+     * adaptation had already been paid for — so a generate job that died
+     * anywhere between the two left the idea `proposed`, and
+     * `JOB_POLICY.generate` allows a second attempt which re-selected it and
+     * bought the same adaptation again. §78 named this exposure; the ordering
+     * is what made it reachable.
+     *
+     * Conditional on the current status and atomic, so two workers cannot both
+     * claim it. A row count of zero means someone else has it.
+     */
+    const claim = await ctx.pool.query(
+      `update ideas set status = 'selected' where id = $1 and status = 'proposed' returning id`,
+      [idea.id],
+    );
+    if (claim.rowCount === 0) {
+      ctx.log('idea already claimed, not drafting twice', { ideaId: idea.id });
+      continue;
+    }
+
     let artifact: ProductArtifact | null = null;
 
     if (connector) {
@@ -312,6 +423,19 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
         });
       } catch (err) {
         if (err instanceof ConnectorUnavailableError) {
+          /*
+           * The claim is deliberately **not** released here.
+           *
+           * This error is raised after the adapt call has been attempted and
+           * timed out, and a timeout does not prove nothing was spent — the
+           * request may have reached RecipeFix and consumed a credit while the
+           * response never came back. Releasing would let the retry buy it
+           * again, which is the exact failure this ordering exists to prevent.
+           *
+           * One idea is consumed per outage, and the handler returns rather
+           * than continuing, so the loss is one idea and not the batch. Ideas
+           * are regenerated daily; credits are the operator's money.
+           */
           // Generation pauses. The existing queue is unaffected.
           await notify(
             ctx,
@@ -325,8 +449,6 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
         throw err;
       }
     }
-
-    await ctx.pool.query(`update ideas set status = 'selected' where id = $1`, [idea.id]);
 
     for (const account of accounts.rows) {
       if (account.persona !== 'brand') continue; // founder posts are composed, not generated
@@ -355,7 +477,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
               displayName: voiceRow.display_name,
               description: voiceRow.description,
               doRules: voiceRow.do_rules,
-              dontRules: voiceRow.dont_rules,
+              dontRules: copywriterDontRules(voiceRow.dont_rules, product.content_rules),
               examples: voiceRow.examples ?? [],
               antiExamples: voiceRow.anti_examples ?? [],
             },
@@ -450,10 +572,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
         // so the device decision happens at click time and the click is counted.
         await ctx.pool.query('update content_items set link_url = $2 where id = $1', [
           contentItemId,
-          routerUrlFor(
-            process.env.HALYARD_PUBLIC_URL ?? 'http://localhost:3200',
-            contentItemId,
-          ),
+          routerUrlFor(publicBaseUrl(), contentItemId),
         ]);
 
         // Enqueue renders from the artifact, if it supports the template.
@@ -541,11 +660,100 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
             [contentItemId, vo.script],
           );
 
+          /**
+           * §160. The creative plan, decided before anything renders.
+           *
+           * `chooseVideoComposition` has already said which template can carry
+           * this artifact. This says how the story inside it is paced: which
+           * change is held on, which are corroboration, and where the evidence
+           * beat goes. The beats travel in `input_props`, so the render is
+           * reproducible from the row without re-deriving anything.
+           *
+           * `null` when the artifact has no transformation, and that is not a
+           * failure — the composition falls back to its own flat layout, which
+           * is what it did before plans existed.
+           */
+          // `artifact` is non-null here: `chooseVideoComposition` returns null
+          // without one, and that path returned above.
+          /*
+           * §163. Footage, if a capture actually produced any.
+           *
+           * The tag is written by the capture handler alongside the cut it
+           * wrote into the render bundle. Queried rather than assumed: no row
+           * means no footage means no demo beat, which is the honest outcome
+           * and the one that keeps a render from pointing at a missing file.
+           *
+           * Bounded by age because a capture is evidence about a product that
+           * changes. Footage of an interface two months of releases old is a
+           * claim about a product that no longer looks like that.
+           */
+          const footage = await captureFootage(ctx, productId);
+          if (footage) {
+            ctx.log('planning on captured footage', {
+              file: footage.file,
+              ageDays: footage.ageDays,
+            });
+          }
+
+          const plan = artifact
+            ? planBeforeAfter(artifact, {
+                platform: account.platform,
+                format,
+                targetSeconds: VO_TARGET_SECONDS,
+                ...(footage ? { footage } : {}),
+              })
+            : null;
+
           await ctx.pool.query(
             `insert into renders (content_item_id, template_id, renderer, input_props, quality)
              values ($1, $2, 'remotion', $3, 'final')`,
-            [contentItemId, composition.id, { ...composition.props, alt_text: draft.altText }],
+            [
+              contentItemId,
+              composition.id,
+              {
+                ...composition.props,
+                alt_text: draft.altText,
+                ...(plan
+                  ? {
+                      beats: beatsToScenes(plan).map((scene, i) => ({
+                        ...scene,
+                        role: plan.beats[i]!.role,
+                        // §162. Emphasis reaches the render so the treatment can
+                        // scale it. Carried, not recomputed: duration and size
+                        // must come from one value or they drift apart.
+                        emphasis: plan.beats[i]!.emphasis,
+                        content: plan.beats[i]!.content,
+                        // §163. Only a beat the planner gave footage carries it.
+                        ...(plan.beats[i]!.media ? { media: plan.beats[i]!.media } : {}),
+                      })),
+                      captionBackdrop: plan.captionBackdrop,
+                    }
+                  : {}),
+              },
+            ],
           );
+
+          if (plan) {
+            // Recorded on the item, not only in the render row: the plan is a
+            // decision about the post, and `evidence` is the provenance chain
+            // behind what the frames show.
+            await ctx.pool.query(
+              `update content_items
+                  set generation_meta = generation_meta || $2::jsonb
+                where id = $1`,
+              [
+                contentItemId,
+                JSON.stringify({
+                  creative: {
+                    type: plan.creativeType,
+                    beats: plan.beats.length,
+                    evidence: plan.evidence,
+                    rationale: plan.rationale,
+                  },
+                }),
+              ],
+            );
+          }
 
           await ctx.enqueue(
             'tts',
@@ -578,10 +786,37 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
         );
 
         if (hookStage.applied) {
-          await ctx.pool.query('update content_items set body = $2 where id = $1', [
-            contentItemId,
-            applyHookToBody(draft.body, hookStage.applied.textHook),
-          ]);
+          /**
+           * §143. Re-gate the rewritten post, and store the result that
+           * describes it. The first live run made the exposure concrete: the
+           * copy gate had already warned at 267 of 280 characters, so any hook
+           * longer than the sentence it replaced took the post past X's
+           * ceiling with `qc_results` still reading "passed".
+           */
+          const hooked = regateHookedBody({
+            body: draft.body,
+            hook: hookStage.applied.textHook,
+            platform: account.platform,
+            hashtags: draft.hashtags,
+            bannedPhrases: product.content_rules?.banned_phrases,
+            forbiddenClaims: product.content_rules?.forbidden_claims,
+            claims: draft.claims,
+            artifact: artifact?.raw,
+          });
+
+          if (hooked) {
+            await ctx.pool.query(
+              'update content_items set body = $2, qc_results = $3 where id = $1',
+              [contentItemId, hooked.body, JSON.stringify(hooked.qc)],
+            );
+          } else {
+            // Never queued with an unpublishable opening. The copywriter's
+            // version is already in the row, and it passed.
+            ctx.log('hook rejected by QC, keeping the copywriter opening', {
+              contentItemId,
+              platform: account.platform,
+            });
+          }
         }
 
         if (draft.hookPattern) {
@@ -617,10 +852,274 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
           });
           continue;
         }
+        if (err instanceof NoUsableFormatError) {
+          /**
+           * One account's capabilities are unknown. That is a fact about that
+           * account, not a reason to abandon the other five.
+           *
+           * This used to rethrow, and the first live generation run showed what
+           * that costs: an Instagram account with an empty `supported_formats`
+           * failed the whole job before the loop reached `x`, which was the one
+           * account that could have produced a publishable draft. With
+           * `maxAttempts: 2` the job then dead-letters, so a single
+           * unreconnected account stops daily generation for the product
+           * entirely — and the error names Instagram, so nothing points at the
+           * drafts that never happened elsewhere.
+           *
+           * The guard itself is unchanged: nothing is generated for an account
+           * whose capabilities are unknown, because a format guess is how
+           * TikTok ended up with image drafts it could not publish.
+           */
+          ctx.log('account cannot take any format Halyard produces, skipping it', {
+            platform: account.platform,
+            idea: idea.id,
+            reason: err.message,
+          });
+          continue;
+        }
         throw err;
       }
     }
 
     await ctx.pool.query(`update ideas set status = 'used' where id = $1`, [idea.id]);
   }
+}
+
+/**
+ * Turn recent signals into proposed ideas, with provenance.
+ *
+ * Returns how many were written, so the caller can tell "the model proposed
+ * nothing usable" from "there was nothing to propose from" — those look
+ * identical in an empty table and only one of them is worth investigating.
+ *
+ * Signals are marked `consumed_at` whether or not they produced a usable idea.
+ * A signal that has been in front of the model once should not queue up behind
+ * every future run; if it deserves another look, it will recur and
+ * `collect_watch_terms` will raise it again, which is the whole point of
+ * measuring recurrence over thirty days.
+ */
+export async function proposeFromSignals(
+  ctx: HandlerContext,
+  product: { id: string; name: string; brief_summary: string | null; brief_markdown: string | null },
+  llm: LlmClient,
+): Promise<number> {
+  /**
+   * Claimed, not merely read.
+   *
+   * `generate` is not worker-scheduled — it runs from the web cron and from
+   * `regenerateItem` — so two runs for one product can overlap. A plain
+   * `select … where consumed_at is null` lets both read the same signals and
+   * both send them to the model: the same evidence paid for twice, which is the
+   * defect §87 closed for *retries* and left open for *concurrency*.
+   *
+   * The update is the select. Postgres evaluates the `where` and writes the row
+   * atomically, so a second run in flight sees them already consumed and takes
+   * none — the same claim-by-writing the job poller uses.
+   *
+   * Released again if the model call fails, below. Claiming without releasing
+   * would drain every signal on the first run while there are no LLM credits,
+   * and they would be gone when credits arrive.
+   */
+  const { rows: signals } = await ctx.pool.query<{
+    id: string;
+    source: string;
+    summary: string;
+  }>(
+    `update signals set consumed_at = now()
+      where id in (
+        select id from signals
+         where product_id = $1 and consumed_at is null
+         order by relevance desc nulls last, created_at desc
+         limit 20
+         for update skip locked
+      )
+      returning id, source, summary`,
+    [product.id],
+  );
+
+  /**
+   * No signal, no proposal — and no model call.
+   *
+   * `generate` runs daily per product, and the branch that reaches here is "no
+   * proposed ideas", which is the *normal* state of an idle product. Proposing
+   * from mix state alone would spend a strategy-model call on every empty run
+   * forever, to reason about a content mix with no new observation behind it.
+   * That is the cost shape §78 was written about.
+   *
+   * A signal is the evidence that something is worth writing about. Without
+   * one, this returns having spent nothing, and the caller logs that it could
+   * not propose — which is different from having proposed badly.
+   */
+  if (signals.length === 0) return 0;
+
+  const { rows: recent } = await ctx.pool.query<{ title: string }>(
+    `select title from ideas
+      where product_id = $1 and created_at > now() - interval '60 days'
+      order by created_at desc limit 60`,
+    [product.id],
+  );
+
+  const { rows: voiceRows } = await ctx.pool.query<{
+    description: string | null;
+    mix_targets: Record<string, number>;
+  }>(`select description, mix_targets from brand_voices where product_id = $1 limit 1`, [
+    product.id,
+  ]);
+
+  const mix = await ctx.pool.query<{ category: string; share: string }>(
+    'select * from content_mix_actual($1, $2, 21)',
+    [product.id, 'brand'],
+  );
+  const mixActual = Object.fromEntries(mix.rows.map((r) => [r.category, Number(r.share)]));
+
+  const release = async (): Promise<void> => {
+    await ctx.pool.query(`update signals set consumed_at = null where id = any($1)`, [
+      signals.map((s) => s.id),
+    ]);
+  };
+
+  let result: Awaited<ReturnType<typeof proposeIdeas>>;
+  try {
+    result = await proposeIdeas(
+    {
+      productBrief: product.brief_summary ?? product.brief_markdown ?? product.name,
+      voiceSummary: voiceRows[0]?.description ?? '',
+      signals,
+      recentTitles: recent.map((r) => r.title),
+      /**
+       * Empty until something has published and been scored. Stated rather than
+       * faked: `performance_scores` is empty by design (nothing has published),
+       * and inventing a "top performer" would put a fabricated claim into the
+       * prompt that writes the next sixty days of content.
+       */
+      topPerformers: [],
+      /**
+       * The product's own targets, from `brand_voices.mix_targets` — the same
+       * row `scoreIdeas` reads further down. A constant here would be a second
+       * opinion about the content mix, and the prompt tells the model to weight
+       * under-served pillars heavily, so a wrong one steers everything.
+       */
+      mixTargets: voiceRows[0]?.mix_targets ?? {},
+      mixActual,
+      seasonalWindow: [],
+    },
+      llm,
+    );
+  } catch (err) {
+    /**
+     * The call did not complete, so nothing was paid for and the evidence is
+     * still worth using. Released rather than consumed — otherwise the first
+     * run against a provider with no credits would silently drain every signal,
+     * and they would be gone by the time credits arrived.
+     */
+    await release();
+    throw err;
+  }
+
+  /**
+   * Nothing to consume here — the signals were claimed at read time.
+   *
+   * Two failures are being defended against, and they want opposite things.
+   * A **retry** must not resend the same evidence (§87), so consumption cannot
+   * wait until after persistence. A **concurrent run** must not read the same
+   * evidence, so it cannot wait until after the model call either. Claiming in
+   * the select satisfies both, and the catch above releases the claim when the
+   * call never completed — which is the only case where the evidence is still
+   * worth having.
+   *
+   * If persistence fails from here the proposals are lost and the signals stay
+   * consumed. That trade is deliberate: a question that genuinely matters
+   * recurs and `collect_watch_terms` raises it again, which is what measuring
+   * recurrence over thirty days is for. A spent credit does not come back.
+   */
+  for (const rejection of result.rejected) {
+    ctx.log('idea proposal rejected', { title: rejection.title, reason: rejection.reason });
+  }
+
+  let written = 0;
+  for (const proposal of result.proposals) {
+    const inserted = await ctx.pool.query<{ id: string }>(
+      `insert into ideas
+         (product_id, title, angle, category, rationale, source_signals, status)
+       values ($1, $2, $3, $4, $5, $6, 'proposed')
+       on conflict do nothing
+       returning id`,
+      [
+        product.id,
+        proposal.title,
+        proposal.angle,
+        proposal.category,
+        proposal.rationale || null,
+        proposal.sourceSignalIds,
+      ],
+    );
+    written += inserted.rows.length;
+  }
+
+  ctx.log('proposed ideas from signals', {
+    productId: product.id,
+    signals: signals.length,
+    proposed: result.proposals.length,
+    rejected: result.rejected.length,
+    written,
+    promptVersion: result.promptVersion,
+  });
+
+  return written;
+}
+
+/**
+ * The origin published links are built from.
+ *
+ * `HALYARD_PUBLIC_URL` was read in exactly one place and defined in none — not
+ * `.env.example`, not the deployment config, not the docs. So in production it
+ * is unset, and the old `?? 'http://localhost:3200'` meant every generated item
+ * carried a localhost link into a real post. Nothing downstream would have
+ * caught it: no QC gate reads `link_url`.
+ *
+ * Failing the whole generation job is deliberate. The alternative — dropping
+ * the link and publishing anyway — changes what goes out, and that is the
+ * operator's call, not this handler's. A permanent failure names the variable,
+ * stops before anything is drafted, and costs nothing.
+ */
+function publicBaseUrl(): string {
+  const configured = publishableBaseUrl(process.env.HALYARD_PUBLIC_URL);
+  if (configured) return configured;
+  if (process.env.NODE_ENV === 'production') {
+    throw new PermanentJobFailure(
+      'HALYARD_PUBLIC_URL is not set to a publicly reachable URL. Published links are built ' +
+        'from it, so generating now would attach a link no reader can open. Set it on the ' +
+        'worker to the deployed web origin (for example https://halyard.example.com).',
+      'HALYARD_PUBLIC_URL is unset or local, which no retry changes',
+    );
+  }
+  return 'http://localhost:3200';
+}
+
+/**
+ * The copywriter's DO NOT list: the brand voice's own rules, plus every rule
+ * the operator accepted from a rejection cluster.
+ *
+ * `acceptCluster` writes those into `products.content_rules.operator_rules`
+ * and, until this existed, nothing read them. Accepting a pattern moved a row's
+ * status, wrote an audit entry, and changed no output — so the loop appeared to
+ * close while the copywriter carried on making the same mistake.
+ *
+ * Merged rather than replaced, and de-duplicated because an operator can accept
+ * a rule that a brand voice already states; the prompt is worse for saying the
+ * same thing twice. Order is preserved with the voice first, which is the one
+ * the operator wrote deliberately rather than accepted in passing.
+ */
+export function copywriterDontRules(
+  voiceDontRules: string[],
+  contentRules: { operator_rules?: string[] } | null | undefined,
+): string[] {
+  const merged = [...voiceDontRules, ...(contentRules?.operator_rules ?? [])];
+  const seen = new Set<string>();
+  return merged.filter((rule) => {
+    const key = rule.trim().toLowerCase();
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }

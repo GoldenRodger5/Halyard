@@ -1,0 +1,71 @@
+{
+  "id": "bc09c358-4878-404d-80ea-943361490448",
+  "platform": "x",
+  "format": "text",
+  "status": "pending_approval",
+  "category": "education",
+  "recipe": "1 Bowl Vegan Baked Oatmeal",
+  "title": null,
+  "createdAt": "2026-08-21T17:39:29.206185-04:00",
+  "linkUrl": "http://localhost:3200/r/bc09c358-4878-404d-80ea-943361490448",
+  "qcPassed": true,
+  "gates": [
+    {
+      "gate": "copy",
+      "status": "warning",
+      "summary": "passed (1 warning)"
+    },
+    {
+      "gate": "claims",
+      "status": "passed",
+      "summary": "3/3 verified against artifact"
+    },
+    {
+      "gate": "visual",
+      "status": "skipped",
+      "summary": "no media here — measured after render, by review_media"
+    },
+    {
+      "gate": "audio",
+      "status": "skipped",
+      "summary": "no voiceover here — measured after synthesis, by tts"
+    },
+    {
+      "gate": "coherence",
+      "status": "skipped",
+      "summary": "nothing rendered to compare against the post"
+    },
+    {
+      "gate": "destination",
+      "status": "skipped",
+      "summary": "no link"
+    },
+    {
+      "gate": "proof",
+      "status": "skipped",
+      "summary": "no quoted testimonial"
+    }
+  ],
+  "claims": [
+    {
+      "text": "The 8x8 pan bakes a smaller batch faster than the original recipe",
+      "source": "steps[0].updated_note"
+    },
+    {
+      "text": "Check at 22 minutes instead of 35 to avoid overbaking",
+      "source": "explanations[2]"
+    },
+    {
+      "text": "The center should look just barely set when pulled, since it firms up as it cools",
+      "source": "steps[3].updated_note"
+    }
+  ],
+  "generation": {
+    "model": "claude-sonnet-5",
+    "costUsd": 0.060468,
+    "attempts": 2,
+    "inputTokens": 9691,
+    "outputTokens": 2093,
+    "promptVersion": "copywriter.v1"
+  }
+}

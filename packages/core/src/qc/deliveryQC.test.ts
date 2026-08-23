@@ -95,7 +95,13 @@ describe('runDeliveryQC', () => {
     expect(finding).toBeDefined();
     expect(finding!.message).toContain('xanthan');
     // The fix points at the loop that stops it recurring.
-    expect(finding!.fix).toMatch(/voice_lexicon/);
+    /*
+     * Names the screen, not the table. The fix used to say "add the term to
+     * voice_lexicon", which was a table an operator had no way to write to —
+     * the gate diagnosed correctly and prescribed something impossible. There
+     * is a surface now, and the instruction points at it.
+     */
+    expect(finding!.fix).toMatch(/Settings → Pronunciation/);
   });
 
   it('flags an opening spoken faster than the rest', () => {

@@ -128,7 +128,27 @@ export function routeClick(input: RouteInput): RouteDecision {
 
   const withParams = (url: string): string => {
     if (!input.incomingParams || [...input.incomingParams.keys()].length === 0) return url;
-    const target = new URL(url);
+    /*
+     * A base that is not a URL cannot carry parameters.
+     *
+     * `new URL('')` throws, and the bot branch below passes
+     * `webBase ?? destinations.web ?? ''` — so a preview crawler following a
+     * link for a product with no web destination, with any query parameter on
+     * it, produced an unhandled `Invalid URL` and a 500 from the one public
+     * surface Halyard has. The route's own contract is that it never fails
+     * closed; this was the one path that did.
+     *
+     * Returning the base unchanged lets the caller's existing "no destination"
+     * answer handle it, which is a 404 explaining what to configure rather than
+     * a stack trace shown to whoever clicked a link on X.
+     */
+    if (!url) return url;
+    let target: URL;
+    try {
+      target = new URL(url);
+    } catch {
+      return url;
+    }
     // Forward everything, and never overwrite a parameter the destination
     // already carries — the specific link knows better than the click.
     for (const [key, value] of input.incomingParams) {
@@ -322,4 +342,31 @@ export function extractShareToken(raw: unknown): string | null {
  */
 export function routerUrlFor(baseUrl: string, contentItemId: string): string {
   return `${baseUrl.replace(/\/$/, '')}/r/${contentItemId}`;
+}
+
+/**
+ * The base URL a published link may be built from, or null if there is none.
+ *
+ * `routerUrlFor` will happily build `http://localhost:3200/r/<id>`, and that
+ * string is not a preview — `generate` writes it to `content_items.link_url`,
+ * which is the link that goes out in a real post. No QC gate inspects it, so a
+ * local URL passes every check and reaches a platform as a dead link. On X it
+ * is also the expensive shape: a post carrying a link bills ~$0.20 rather than
+ * ~$0.015, so a misconfigured deployment pays thirteen times over to publish
+ * something no reader can open.
+ *
+ * Empty is treated as unset, not as a value. `.env.example` ships keys as
+ * `KEY=` with a trailing comment, which dotenv parses to `""`, and `??` does
+ * not fall back on an empty string — the same trap that broke OAuth on every
+ * fresh clone.
+ *
+ * Null rather than a guess, matching `publicOrigin` in the web tier: a link
+ * that cannot resolve is worse than the absence of one, and the caller is the
+ * only thing that knows whether the absence is survivable.
+ */
+export function publishableBaseUrl(raw: string | null | undefined): string | null {
+  const value = (raw ?? '').trim();
+  if (!value) return null;
+  if (/localhost|127\.0\.0\.1|\[::1\]|\.local(?::|\/|$)/i.test(value)) return null;
+  return value.replace(/\/$/, '');
 }

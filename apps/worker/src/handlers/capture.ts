@@ -10,12 +10,29 @@
  * Verification runs first, in the same process, because a capture against a page
  * whose markup has moved does not fail — it quietly records a spinner.
  */
-import { readFile } from 'node:fs/promises';
+import { mkdir, readFile } from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
-import { FLOWS, assetStaleness, looksBlank, type FlowId } from '@halyard/core';
+import {
+  FLOWS,
+  assetStaleness,
+  footageDurationMs,
+  footageSpansFor,
+  looksBlank,
+  type FlowId,
+} from '@halyard/core';
 import type { Job, HandlerContext } from '../poller.js';
 import { runFlowChain, type FlowRunResult } from '../capture/runFlow.js';
 import { uploadAsset } from '../storage.js';
+import { cutFootage } from '../capture/cutFootage.js';
+import { invalidateBundle } from '../video.js';
+
+/** Where the Remotion bundle serves static assets from. */
+const RENDER_PUBLIC = path.join(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '../../../../packages/render/public',
+);
 
 const CAPTURE_ROOT = process.env.HALYARD_CAPTURE_DIR ?? '/tmp/halyard-captures';
 
@@ -70,8 +87,27 @@ export async function captureHandler(job: Job, ctx: HandlerContext): Promise<voi
       await recordRun(ctx, productId, result, baseUrl, null, []);
     }
 
-    const failed = verification.find((r) => !r.ok);
-    if (failed) {
+    /**
+     * §163. The gate is per flow, not per chain.
+     *
+     * This refused to record anything when *any* flow in the chain failed
+     * verification. The reason it gives is sound — "recording against a page
+     * whose markup has moved produces footage of an error state" — but it
+     * applies to the flow that drifted, not to its siblings.
+     *
+     * Live consequence: `swap_toggle`'s control no longer exists on the page,
+     * and that alone blocked recording `adapt_and_reveal`, which verified
+     * perfectly and is the stronger demonstration of the product. Good footage
+     * was being discarded for an unrelated reason.
+     *
+     * The root still gates its own dependents — `runFlowChain` already refuses
+     * to run one against a page that never reached a result — so a broken root
+     * still records nothing.
+     */
+    const rootFailed = verification.find((r) => r.flow === flow.id && !r.ok);
+    const failed = rootFailed ?? verification.find((r) => !r.ok);
+    if (failed && !rootFailed) {
+      // A dependent drifted. Say so loudly, then record what does work.
       await ctx.pool.query(
         `insert into notifications (kind, severity, title, body, dedupe_key)
          values ('render_failure', 'warning', $1, $2, $3)
@@ -82,7 +118,23 @@ export async function captureHandler(job: Job, ctx: HandlerContext): Promise<voi
           `flow_broken:${failed.flow}:${new Date().toISOString().slice(0, 10)}`,
         ],
       );
-      throw new FlowVerificationFailed(failed.flow, failed.summary);
+      ctx.log('a dependent flow has drifted; recording the flows that still verify', {
+        drifted: failed.flow,
+        recording: flow.id,
+      });
+    }
+    if (rootFailed) {
+      await ctx.pool.query(
+        `insert into notifications (kind, severity, title, body, dedupe_key)
+         values ('render_failure', 'warning', $1, $2, $3)
+         on conflict (dedupe_key) do nothing`,
+        [
+          `Capture flow ${rootFailed.flow} no longer runs`,
+          rootFailed.summary,
+          `flow_broken:${rootFailed.flow}:${new Date().toISOString().slice(0, 10)}`,
+        ],
+      );
+      throw new FlowVerificationFailed(rootFailed.flow, rootFailed.summary);
     }
 
     const appVersion = await detectAppVersion(baseUrl);
@@ -113,6 +165,8 @@ export async function captureHandler(job: Job, ctx: HandlerContext): Promise<voi
     });
 
     let videoAssetId: string | null = null;
+    let footageFile: string | null = null;
+    let footageMs = 0;
     const blankStills: Array<{ name: string; reason: string }> = [];
 
     for (const result of captures) {
@@ -157,6 +211,41 @@ export async function captureHandler(job: Job, ctx: HandlerContext): Promise<voi
       }
 
       // The whole chain shares one video file; it is filed once.
+      /**
+       * §163. The cut, written where a render can reach it.
+       *
+       * The raw recording spans the whole session — fifty seconds in the first
+       * real capture, of which ten were the product doing anything. A creative
+       * beat needs footage, so the spans worth watching are cut here, once, and
+       * left in the render package's public directory under a name derived from
+       * the flow. `footageSpansFor` returning nothing means no footage, and the
+       * beat renders nothing rather than showing dead air.
+       */
+      if (result.videoPath) {
+        const spans = footageSpansFor(result.steps as never[]);
+        if (spans.length > 0) {
+          const file = `capture/${result.flow}.mp4`;
+          const target = path.join(RENDER_PUBLIC, file);
+          await mkdir(path.dirname(target), { recursive: true });
+          const cut = await cutFootage(result.videoPath, spans, target, {
+            focusRegion: FLOWS[result.flow as FlowId]?.focusRegion,
+          });
+          if (cut) {
+            invalidateBundle();
+            footageFile = file;
+            // Carried so a beat can be exactly as long as its footage rather
+            // than holding a frozen last frame to fill an emphasis.
+            footageMs = footageDurationMs(spans);
+            ctx.log('cut capture footage for creative use', {
+              flow: result.flow,
+              spans: spans.length,
+              keptMs: footageDurationMs(spans),
+              file,
+            });
+          }
+        }
+      }
+
       if (result.videoPath && !videoAssetId) {
         const bytes = await readFile(result.videoPath);
         const asset = await uploadAsset(ctx, {
@@ -174,6 +263,17 @@ export async function captureHandler(job: Job, ctx: HandlerContext): Promise<voi
             'capture',
             'video',
             flow.id,
+            /*
+             * §163. How a creative plan finds this footage.
+             *
+             * The cut itself lives in the render bundle's public directory,
+             * not in storage — Remotion serves it from there. What is recorded
+             * here is the pointer plus the timestamp, so `generate` can ask for
+             * the newest footage and know how old it is. A tag rather than a
+             * new table because assets already carry exactly this: a thing that
+             * was captured, when, from which flow.
+             */
+            ...(footageFile ? [`footage:${footageMs}:${footageFile}`] : []),
             `captured:${new Date().toISOString().slice(0, 10)}`,
             ...(appVersion ? [`app:${appVersion}`] : []),
           ],

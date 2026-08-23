@@ -170,6 +170,7 @@ export default async function SubmissionsPage() {
                     <input type="hidden" name="id" value={submission.id} />
                     <select
                       name="status"
+                      aria-label={`Review status for ${submission.review_name}`}
                       defaultValue={submission.status}
                       className="w-full rounded-lg border border-line bg-paper px-3 py-1.5 text-sm text-ink"
                     >
@@ -181,12 +182,14 @@ export default async function SubmissionsPage() {
                     </select>
                     <input
                       name="external_url"
+                      aria-label={`Link to the submission for ${submission.review_name}`}
                       defaultValue={submission.external_url ?? ''}
                       placeholder="link to the submission"
                       className="w-full rounded-lg border border-line bg-paper px-3 py-1.5 text-sm text-ink placeholder:text-muted"
                     />
                     <textarea
                       name="decision_notes"
+                      aria-label={`Decision notes for ${submission.review_name}`}
                       rows={2}
                       defaultValue={submission.decision_notes ?? ''}
                       placeholder="their words, not a paraphrase"

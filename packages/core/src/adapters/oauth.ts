@@ -117,7 +117,7 @@ export function needsRefresh(expiresAt: Date | null | undefined, leadMinutes = 6
 /** Scopes each platform needs, kept beside the adapters that use them. */
 export const PLATFORM_SCOPES: Record<string, string[]> = {
   // X: OAuth2 PKCE with refresh tokens (v1 §7).
-  x: ['tweet.read', 'tweet.write', 'users.read', 'offline.access', 'media.write'],
+  x: ['tweet.read', 'tweet.write', 'users.read', 'offline.access'],
   // v2 A.3: publishing needs instagram_business_content_publish, which needs
   // Meta App Review. Dev mode works against your own account immediately.
   instagram: [

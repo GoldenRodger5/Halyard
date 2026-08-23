@@ -1,0 +1,9 @@
+I killed my own rewrite feature
+
+People ignored big rewrites, even good ones. So now the tool marks each change against the original: 3 eggs become 1, a 9-inch pan becomes a 6-inch square, checking for doneness moves to 18 minutes instead of trusting color.
+
+Same suggestions, same brownie recipe. Shown as a diff instead of a full rewrite, people actually followed them.
+
+The gluten-free flour still needs watching. Add a teaspoon of water if the batter looks too stiff, and do not overmix once it's in.
+
+#glutenfree #brownies #bakingtips #foodhack #recipetesting

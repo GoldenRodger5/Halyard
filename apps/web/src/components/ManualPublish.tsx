@@ -114,7 +114,7 @@ export function ManualPublish(props: ManualPublishProps): React.ReactElement {
                 <a
                   href={asset.url}
                   download
-                  className="text-accent underline underline-offset-2 hover:no-underline"
+                  className="text-primary underline underline-offset-2 hover:no-underline"
                 >
                   Download {asset.kind}
                 </a>
@@ -140,7 +140,7 @@ export function ManualPublish(props: ManualPublishProps): React.ReactElement {
           placeholder="https://…"
           className="w-full rounded-lg border border-line bg-surface px-2 py-1.5 text-sm"
         />
-        <button className="w-full rounded-lg bg-accent px-2 py-1.5 text-sm font-medium text-white hover:opacity-90">
+        <button className="w-full rounded-lg bg-primary px-2 py-1.5 text-sm font-medium text-white hover:bg-primary-dark">
           I posted it
         </button>
       </form>

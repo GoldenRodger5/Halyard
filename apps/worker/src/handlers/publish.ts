@@ -14,28 +14,58 @@
  * Plus the kill switch, checked first, every time (v1 §10).
  */
 import {
-  PLATFORM_CLIENT_ENV,
   adapterForAccount,
   disclosureSatisfied,
   getAdapter,
   openToken,
+  PLATFORM_CLIENT_ENV,
+  publishableBaseUrl,
   publishFailurePolicy,
+  scrubString,
   sealToken,
   stampUtm,
   type AiComponent,
   type PlatformId,
+  type ProviderCapabilities,
   type PublishAccount,
   type PublishAsset,
-  type ProviderCapabilities,
   type PublishError,
   type PublishItem,
+  type PublishResult,
 } from '@halyard/core';
-import type { Job, HandlerContext } from '../poller.js';
+import { PermanentJobFailure, type Job, type HandlerContext } from '../poller.js';
 
-export class DuplicatePublishAbort extends Error {
+/**
+ * Permanent by construction. A second attempt re-reads the same publication row
+ * and aborts identically; the only thing retrying adds is three more rows in the
+ * log and a delay before an operator sees it.
+ */
+/**
+ * What a delivery outcome means for Halyard's own record. §156.
+ *
+ * Only a direct post is a publication. A native draft is sitting in someone's
+ * TikTok inbox; a private upload is on YouTube and not public. Neither is a
+ * post, and treating either as one starts the repost clock and sends metrics
+ * collection after something nobody can see.
+ *
+ * The polarity is deliberate: anything this function has not been taught about
+ * is **not** published. A delivery capability added later fails closed rather
+ * than silently claiming a post that does not exist.
+ */
+export function statusAfterDelivery(mode: PublishResult['mode']): {
+  status: 'published' | 'awaiting_manual_publish';
+  published: boolean;
+} {
+  return mode === 'direct'
+    ? { status: 'published', published: true }
+    : { status: 'awaiting_manual_publish', published: false };
+}
+
+export class DuplicatePublishAbort extends PermanentJobFailure {
   constructor(contentItemId: string, accountId: string) {
     super(
       `Duplicate publish aborted for content item ${contentItemId} on account ${accountId}. This must never happen.`,
+      'the publication already exists; retrying re-aborts',
     );
     this.name = 'DuplicatePublishAbort';
   }
@@ -159,6 +189,28 @@ export async function publishHandler(job: Job, ctx: HandlerContext): Promise<voi
   }
 
   /**
+   * `pending_auth` means the capability model says this account cannot act.
+   *
+   * It was not refused here, and a token is not enough to make it safe.
+   * `confirmConnection` writes the account as `pending_auth` **with the sealed
+   * token** and only then runs `verifyCapabilities` to move it on — so there is
+   * a real window in which an account holds a working credential and has not
+   * been verified for anything. A publish job landing in that window went
+   * straight through.
+   *
+   * `resolveCapability` returns `auth_required` for this state and
+   * `accountStatus` calls it not-connected. The publisher was the only place
+   * that disagreed, and it is the only one whose disagreement reaches a
+   * platform.
+   */
+  if (accountRow.capability_state === 'pending_auth') {
+    throw new PermanentJobFailure(
+      `account ${accountRow.handle} has not completed authentication; not publishing`,
+      'the account is pending_auth, which no retry resolves',
+    );
+  }
+
+  /**
    * An account that cannot post through an API is not a failure. It is a
    * handover.
    *
@@ -198,6 +250,35 @@ export async function publishHandler(job: Job, ctx: HandlerContext): Promise<voi
     return;
   }
 
+  /**
+   * No credential, found here rather than by the platform.
+   *
+   * `access_token_enc` was read as `accountRow.access_token_enc ? openToken(…) : ''`
+   * a few lines below, and an empty string is a *value*: the request was built,
+   * sent, and refused by the platform with an empty bearer. That is a real API
+   * call spent to discover something the database already knew, three times per
+   * job under the retry policy, against an API billed per call.
+   *
+   * It is reachable in three ordinary ways, not one exotic one: a seeded
+   * account marked `live` with no token ever stored, an account whose
+   * credential an operator erased with Disconnect while items were queued, and
+   * one whose token was cleared by hand. `capability_state` does not answer
+   * this — `live` has never meant "connected" (see `accounts/status.ts`), which
+   * is exactly why the state checks above do not catch it.
+   *
+   * Placed after the `draft_only` handover on purpose: a post being handed to a
+   * person to publish does not need a credential, and failing it here would
+   * turn a working handover into a broken integration.
+   */
+  if (!accountRow.access_token_enc) {
+    // Permanent: no number of retries stores a credential. Reconnecting does,
+    // and that requeues deliberately rather than on a backoff timer.
+    throw new PermanentJobFailure(
+      `account ${accountRow.handle} has no stored credential; not publishing. Reconnect it on /accounts.`,
+      'no credential is stored for this account',
+    );
+  }
+
   // ── 1b. Routing, asserted a second time ──────────────────────────────────
   // The constraint in the schema is the real defence. This is the belt to its
   // braces, and it is cheap: two strings already loaded.
@@ -232,6 +313,30 @@ export async function publishHandler(job: Job, ctx: HandlerContext): Promise<voi
     throw new Error(`Refusing to publish: ${disclosure.reason}`);
   }
 
+  /**
+   * §153. A link is not attached until it is known to be reachable.
+   *
+   * §111 made *generation* refuse to build a link from an unset
+   * `HALYARD_PUBLIC_URL`, and stopped there. An item drafted on a developer's
+   * machine carries `http://localhost:3200/r/…`, and nothing between that row
+   * and the platform looked at it again — no QC gate reads `link_url`, and the
+   * adapters treat it as opaque. Publishing such a row puts a URL no reader can
+   * open in front of an audience, and on X it also buys a second billed post to
+   * carry it.
+   *
+   * Refused rather than silently dropped, for the reason §111 gives: publishing
+   * the same post without its link changes what goes out, and that is the
+   * operator's call. Clearing `link_url` is how an operator makes it.
+   */
+  if (item.link_url && !publishableBaseUrl(item.link_url)) {
+    throw new PermanentJobFailure(
+      `Refusing to publish: ${item.platform} would carry the link ${item.link_url}, ` +
+        'which is not publicly reachable. Set HALYARD_PUBLIC_URL on the worker and regenerate, ' +
+        'or clear link_url on this item to publish it without one.',
+      'a local link is not made reachable by retrying',
+    );
+  }
+
   // ── 3. UTM stamping at schedule time (v1 §9) ─────────────────────────────
   let finalLink = item.final_link_url;
   if (!finalLink && item.link_url) {
@@ -259,7 +364,9 @@ export async function publishHandler(job: Job, ctx: HandlerContext): Promise<voi
     platformUserId: accountRow.platform_user_id,
     capabilityState: accountRow.capability_state,
     tokens: {
-      accessToken: accountRow.access_token_enc ? openToken(accountRow.access_token_enc) : '',
+      // Guaranteed present by the guard above. Never `?? ''` — an empty bearer
+      // is a request the platform has to refuse, not an absent credential.
+      accessToken: openToken(accountRow.access_token_enc),
       refreshToken: accountRow.refresh_token_enc ? openToken(accountRow.refresh_token_enc) : null,
       expiresAt: accountRow.token_expires_at ? new Date(accountRow.token_expires_at) : null,
       scopes: accountRow.scopes,
@@ -369,13 +476,28 @@ export async function publishHandler(job: Job, ctx: HandlerContext): Promise<voi
       ],
     );
 
+    /**
+     * §156. Only a direct post is published. Everything else is delivery.
+     *
+     * This read `mode === 'draft' ? awaiting_manual_publish : published`, so
+     * the moment a third outcome existed — a private YouTube upload — it would
+     * have been recorded as **published**: `published_at` set, the repost clock
+     * started, and metrics collected against a video nobody can watch.
+     *
+     * The polarity is inverted deliberately. A mode this code has not been
+     * taught about is not a publication, so a future delivery capability fails
+     * closed rather than claiming a post that does not exist.
+     */
+    const { status: nextStatus, published } = statusAfterDelivery(result.mode);
+
     await ctx.pool.query(
       `update content_items
           set status = $2,
-              published_at = now(),
-              eligible_for_repost_at = now() + interval '90 days'
+              published_at = case when $3 then now() else published_at end,
+              eligible_for_repost_at =
+                case when $3 then now() + interval '90 days' else eligible_for_repost_at end
         where id = $1`,
-      [item.id, result.mode === 'draft' ? 'awaiting_manual_publish' : 'published'],
+      [item.id, nextStatus, published],
     );
 
     // An account that has posted recently is an account whose credential is
@@ -430,13 +552,15 @@ export async function publishHandler(job: Job, ctx: HandlerContext): Promise<voi
 
     await ctx.pool.query(`update publications set error = $2 where id = $1`, [
       publicationId,
-      error.message.slice(0, 2000),
+      scrubString(error.message).slice(0, 2000),
     ]);
 
     if (policy.setAccountState === 'error') {
       await ctx.pool.query(
         `update social_accounts set capability_state = 'error', last_error = $2 where id = $1`,
-        [accountRow.id, error.message.slice(0, 500)],
+        // Scrubbed for the same reason the job error is: this row is rendered
+        // on /accounts and kept until the account is reconnected.
+        [accountRow.id, scrubString(error.message).slice(0, 500)],
       );
     }
 
@@ -468,7 +592,15 @@ export async function publishHandler(job: Job, ctx: HandlerContext): Promise<voi
         await ctx.pool.query('delete from publications where id = $1', [publicationId]);
       }
       await ctx.pool.query(`update content_items set status = 'failed' where id = $1`, [item.id]);
-      throw new Error(`${error.message} (${policy.note})`, { cause: err });
+      /**
+       * `policy.retry` is false, and now the queue hears it.
+       *
+       * This threw a plain `Error`, so the poller retried anyway — including
+       * for `malformed_response`, whose own policy note reads "never retried —
+       * that double-posts". The idempotency index was the only thing preventing
+       * the second write it warns about.
+       */
+      throw new PermanentJobFailure(`${error.message} (${policy.note})`, policy.note);
     }
 
     await ctx.pool.query('delete from publications where id = $1', [publicationId]);
@@ -638,6 +770,26 @@ async function auditDuplicate(
   );
 }
 
+/**
+ * Write a notification, scrubbed.
+ *
+ * Callers pass arbitrary error text into `body` — `generate` sends
+ * `${err.message} Generation is paused…`, `appStore` sends `err.message`
+ * directly — and an error message is whatever threw, which for an HTTP client
+ * routinely includes the request URL. Meta's Graph API takes the access token
+ * as a *query parameter*, so a failed Instagram call produces a message with a
+ * live credential in it. That message would land in `notifications.body`,
+ * render on the dashboard, and stay there forever.
+ *
+ * `jobs.last_error`, `publications.error` and `social_accounts.last_error` are
+ * all scrubbed at their own write. This was the fourth path to the same class
+ * of column and the only one that was not.
+ *
+ * Scrubbed here rather than at each call site, for the reason §96 gives: a
+ * boundary that every caller must pass is the only place a rule of this kind
+ * holds. `title` is scrubbed too — it is caller-supplied and equally capable of
+ * carrying an interpolated message.
+ */
 export async function notify(
   ctx: HandlerContext,
   kind: string,
@@ -649,6 +801,6 @@ export async function notify(
   await ctx.pool.query(
     `insert into notifications (kind, severity, title, body, entity_type, entity_id)
      values ($1, $2, $3, $4, 'content_item', $5)`,
-    [kind, severity, title, body, entityId ?? null],
+    [kind, severity, scrubString(title), scrubString(body), entityId ?? null],
   );
 }

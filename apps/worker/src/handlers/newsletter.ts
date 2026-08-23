@@ -11,6 +11,7 @@ import {
   renderNewsletter,
   sendNewsletter,
   type NewsletterSource,
+  UNSUBSCRIBE_PLACEHOLDER,
 } from '@halyard/core';
 import type { Job, HandlerContext } from '../poller.js';
 
@@ -24,6 +25,32 @@ export async function draftNewsletterHandler(job: Job, ctx: HandlerContext): Pro
   }>('select name, destinations from products where id = $1', [productId]);
   const product = products[0];
   if (!product) return;
+
+  /**
+   * No confirmed subscribers, no issue.
+   *
+   * This runs weekly whether or not anyone can receive the result, and nothing
+   * writes `subscribers` except the unsubscribe route — there is no signup
+   * surface, so the count is zero and drafting produces a row in
+   * `pending_approval` that no one could ever be sent.
+   *
+   * Cheap rather than free: `composeNewsletter` is deterministic and spends no
+   * model credits, so this is about not filling the operator's approval queue
+   * with issues for an audience of nobody. The moment a subscriber exists the
+   * drafter resumes on its own.
+   *
+   * Deliberately not a decision about whether Halyard should have a newsletter
+   * — see `DECISIONS.md` §129.
+   */
+  const { rows: audience } = await ctx.pool.query<{ n: string }>(
+    `select count(*) as n from subscribers
+      where product_id = $1 and confirmed_at is not null and unsubscribed_at is null`,
+    [productId],
+  );
+  if (Number(audience[0]?.n ?? 0) === 0) {
+    ctx.log('no confirmed subscribers, not drafting a newsletter', { productId });
+    return;
+  }
 
   const periodEnd = new Date();
   const periodStart = new Date(periodEnd.getTime() - days * 86_400_000);
@@ -61,7 +88,7 @@ export async function draftNewsletterHandler(job: Job, ctx: HandlerContext): Pro
   if (!draft) return;
 
   const { html, text } = renderNewsletter(draft.bodyMarkdown, {
-    unsubscribeUrl: `${product.destinations?.web ?? ''}/u/{{unsubscribe}}`,
+    unsubscribeUrl: `${product.destinations?.web ?? ''}/u/${UNSUBSCRIBE_PLACEHOLDER}`,
     productName: product.name,
   });
 
@@ -124,8 +151,11 @@ export async function sendNewsletterHandler(job: Job, ctx: HandlerContext): Prom
   const from = process.env.NEWSLETTER_FROM;
   if (!apiKey || !from) throw new ResendNotConfigured();
 
-  const { rows: subscribers } = await ctx.pool.query<{ email: string }>(
-    `select email from subscribers
+  const { rows: subscribers } = await ctx.pool.query<{
+    email: string;
+    unsubscribe_token: string;
+  }>(
+    `select email, unsubscribe_token from subscribers
       where product_id = $1 and confirmed_at is not null and unsubscribed_at is null`,
     [newsletter.product_id],
   );
@@ -133,16 +163,34 @@ export async function sendNewsletterHandler(job: Job, ctx: HandlerContext): Prom
   await ctx.pool.query(`update newsletters set status = 'sending' where id = $1`, [newsletterId]);
 
   try {
+    /**
+     * The unsubscribe link is the one part of the mail that differs per
+     * recipient, and it is what makes the send lawful rather than merely
+     * possible.
+     *
+     * The draft already renders its footer as `/u/{{unsubscribe}}` — a
+     * placeholder waiting for exactly this. It used to be replaced by a
+     * re-render carrying the *newsletter* id, which is identical for every
+     * recipient and identifies nobody, pointed at a route that did not exist.
+     *
+     * Substituting per recipient means the body is no longer one string for
+     * everybody, so the transport can no longer BCC a hundred people at once.
+     * That is the cost of a working opt-out, and it is not optional.
+     */
     const { html, text } = renderNewsletter(newsletter.body_markdown, {
-      unsubscribeUrl: `${newsletter.web ?? ''}/u/${newsletterId}`,
+      unsubscribeUrl: `${newsletter.web ?? ''}/u/${UNSUBSCRIBE_PLACEHOLDER}`,
       productName: newsletter.product_name,
     });
+    const baseHtml = newsletter.body_html ?? html;
 
     const result = await sendNewsletter({
       subject: newsletter.subject,
-      html: newsletter.body_html ?? html,
+      html: baseHtml,
       text,
-      recipients: subscribers.map((s) => s.email),
+      recipients: subscribers.map((s) => ({
+        email: s.email,
+        unsubscribeUrl: `${newsletter.web ?? ''}/u/${s.unsubscribe_token}`,
+      })),
       from,
       apiKey,
       tags: { newsletter_id: newsletterId, product: newsletter.product_id },

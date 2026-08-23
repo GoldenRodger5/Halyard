@@ -88,16 +88,28 @@ export async function markReplied(formData: FormData): Promise<void> {
     ? Math.round((Date.now() - new Date(comment.posted_at).getTime()) / 1000)
     : null;
 
+  /**
+   * What these two flags are for, and what they used to record.
+   *
+   * `was_ai_drafted` and `was_edited` are the learning signal on this table:
+   * did the operator use the draft, or rewrite it. `was_edited` was
+   * `comment?.suggested_reply !== body`, and for a comment the drafter has
+   * never run on `suggested_reply` is **null** — so `null !== body` is true and
+   * every hand-written reply was recorded as an *edit of an AI draft that never
+   * existed*.
+   *
+   * That is not a cosmetic mislabel. It is the exact signal a future
+   * quality loop would read to decide whether the drafter is worth running, and
+   * it was biased toward "the human always rewrites it" by the replies where
+   * there was nothing to rewrite.
+   *
+   * Editing is only meaningful relative to something: no draft, no edit.
+   */
+  const suggestion = comment?.suggested_reply ?? null;
   await query(
     `insert into comment_replies (comment_id, body, sent_by, was_ai_drafted, was_edited, latency_seconds)
      values ($1, $2, 'human', $3, $4, $5)`,
-    [
-      id,
-      body,
-      comment?.suggested_reply !== null,
-      comment?.suggested_reply !== body,
-      latencySeconds,
-    ],
+    [id, body, suggestion !== null, suggestion !== null && suggestion !== body, latencySeconds],
   );
   await query(
     `update comments set reply_status = 'replied', replied_at = now() where id = $1`,

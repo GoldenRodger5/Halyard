@@ -8,9 +8,10 @@
  * FFmpeg and whisper.cpp live. It is never reachable from a route handler.
  */
 import { execFile } from 'node:child_process';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { cp, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { readdirSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { bundle } from '@remotion/bundler';
@@ -27,10 +28,85 @@ const ENTRY = path.join(RENDER_PACKAGE, 'src/video/entry.tsx');
 const PUBLIC_DIR = path.join(RENDER_PACKAGE, 'public');
 
 let bundlePromise: Promise<string> | undefined;
+let bundledPublicFingerprint: string | undefined;
+
+/**
+ * What the public directory currently contains, as one string.
+ *
+ * §163. Remotion **copies** `publicDir` into the bundle, and caches bundles by
+ * a key derived from the code. Change only a public file and the cache hits, so
+ * the render is served the previous copy — which is how the first footage
+ * render 404'd on a file that was sitting on disk. The failure is loud here and
+ * would be silent for a file that merely changed, so the fingerprint covers
+ * size and mtime, not just names.
+ */
+export function publicFingerprint(dir: string, prefix = ''): string {
+  const entries = readdirSync(dir, { withFileTypes: true }).sort((a, b) =>
+    a.name.localeCompare(b.name),
+  );
+  const parts: string[] = [];
+  for (const entry of entries) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      parts.push(publicFingerprint(full, `${prefix}${entry.name}/`));
+    } else {
+      const stat = statSync(full);
+      parts.push(`${prefix}${entry.name}:${stat.size}:${stat.mtimeMs}`);
+    }
+  }
+  return parts.join('|');
+}
+
+/**
+ * Drop the cached bundle so the next render picks up new public assets.
+ *
+ * §163. The in-process half of the same problem: the worker is long-lived, so
+ * footage written after the first render of the process would never be served
+ * and the beat would render an empty band. Called after a capture writes a cut.
+ * `getBundle` re-checks the fingerprint anyway, so this is belt and braces —
+ * and cheap, because the fingerprint is a stat walk of a small directory.
+ */
+export function invalidateBundle(): void {
+  bundlePromise = undefined;
+  bundledPublicFingerprint = undefined;
+}
 
 /** Bundle once per process. Concurrent callers await the same promise. */
 export function getBundle(): Promise<string> {
-  bundlePromise ??= bundle(ENTRY, () => undefined, {
+  // Re-bundle when the public directory has changed under us, whichever
+  // process changed it.
+  const fingerprint = publicFingerprint(PUBLIC_DIR);
+  if (bundledPublicFingerprint !== undefined && bundledPublicFingerprint !== fingerprint) {
+    bundlePromise = undefined;
+  }
+  bundledPublicFingerprint = fingerprint;
+
+  bundlePromise ??= bundleWithFreshPublic();
+  return bundlePromise;
+}
+
+/**
+ * Bundle, then re-copy `public/` over the result.
+ *
+ * §163. Remotion caches bundles keyed on the code and copies `publicDir` in
+ * when it builds one. Those two facts together mean a file written into
+ * `public/` after a bundle exists is never served: the code has not changed, so
+ * the cache hits, so the render is handed the previous copy. That is how the
+ * first footage render 404'd on a file sitting on disk.
+ *
+ * Re-copying is the cheap half of the fix — a few megabytes against a bundle
+ * that takes tens of seconds — and it keeps Remotion's code cache, which is the
+ * expensive part. Overwriting a directory Remotion owns is deliberate: it is
+ * the same copy Remotion itself performs, just done again with current bytes.
+ */
+async function bundleWithFreshPublic(): Promise<string> {
+  const dir = await bundleOnce();
+  await cp(PUBLIC_DIR, path.join(dir, 'public'), { recursive: true, force: true });
+  return dir;
+}
+
+function bundleOnce(): Promise<string> {
+  return bundle(ENTRY, () => undefined, {
     publicDir: PUBLIC_DIR,
     // The render package is ESM TypeScript importing with explicit `.js`
     // specifiers, which is what Node wants. Remotion's webpack has to be told
@@ -47,7 +123,6 @@ export function getBundle(): Promise<string> {
       },
     }),
   });
-  return bundlePromise;
 }
 
 export interface RenderVideoInput {
@@ -138,7 +213,29 @@ export interface VideoProbe {
   loudnessLufs?: number;
   truePeakDbtp?: number;
   frameLuminance: number[];
+  /**
+   * Tonal range per sampled frame, `(YMAX - YMIN) / 255`, in the same order.
+   *
+   * The mean cannot see Halyard's own content. Its renders are a light card
+   * with a small region of dark text, so swapping every word on screen moves
+   * `YAVG` by 0.004 normalised — under the 0.01 that counts as "the same
+   * picture" — while `YMIN` drops from 85 to 10. Measured on all four fixture
+   * renders; see `DECISIONS.md` §74.
+   *
+   * Free: `signalstats` already prints YMIN and YMAX in the output this
+   * function was parsing for YAVG.
+   */
+  frameContentRange: number[];
   hasAudio: boolean;
+  /**
+   * Frames per second, from the stream rather than assumed.
+   *
+   * `runRetentionQC` measures its opening window in frames (90, "roughly three
+   * seconds at 30fps") and falls back to 30 when this is absent. A 24fps render
+   * would then be judged against 3.75 seconds while the comment said three, so
+   * the number is read rather than defaulted.
+   */
+  fps?: number;
 }
 
 /**
@@ -146,6 +243,16 @@ export interface VideoProbe {
  * composition. A render that silently produced 4 frames should fail QC, and it
  * only does if QC reads the output.
  */
+/** "30000/1001" → 29.97. Null for absent, unparseable or zero-denominator. */
+export function parseFrameRate(raw: string | undefined): number | null {
+  if (!raw) return null;
+  const [num, den] = raw.split('/');
+  const n = Number(num);
+  const d = den === undefined ? 1 : Number(den);
+  if (!Number.isFinite(n) || !Number.isFinite(d) || d === 0 || n <= 0) return null;
+  return Number((n / d).toFixed(3));
+}
+
 export async function probeVideo(filePath: string): Promise<VideoProbe> {
   const { stdout } = await execFileAsync('ffprobe', [
     '-v', 'error',
@@ -157,7 +264,12 @@ export async function probeVideo(filePath: string): Promise<VideoProbe> {
 
   const parsed = JSON.parse(stdout) as {
     format: { duration?: string };
-    streams: Array<{ codec_type: string; width?: number; height?: number }>;
+    streams: Array<{
+      codec_type: string;
+      width?: number;
+      height?: number;
+      r_frame_rate?: string;
+    }>;
   };
 
   const video = parsed.streams.find((s) => s.codec_type === 'video');
@@ -167,9 +279,20 @@ export async function probeVideo(filePath: string): Promise<VideoProbe> {
     durationSeconds: Number(parsed.format.duration ?? 0),
     width: video?.width ?? 0,
     height: video?.height ?? 0,
-    frameLuminance: await sampleLuminance(filePath),
+    frameLuminance: [],
+    frameContentRange: [],
     hasAudio,
   };
+
+  const luminance = await sampleLuminance(filePath);
+  probe.frameLuminance = luminance.mean;
+  probe.frameContentRange = luminance.range;
+
+  // ffprobe reports frame rate as a rational, "30000/1001" for 29.97. Left
+  // undefined rather than guessed when it is missing or degenerate, so the
+  // consumer's own documented fallback applies instead of a wrong number.
+  const fps = parseFrameRate(video?.r_frame_rate);
+  if (fps !== null) probe.fps = fps;
 
   if (hasAudio) {
     const loudness = await measureLoudness(filePath);
@@ -184,18 +307,58 @@ export async function probeVideo(filePath: string): Promise<VideoProbe> {
  * Mean luminance of sampled frames. Gate 3 rejects an interior frame below 5%,
  * which is how a composition that renders a black gap gets caught.
  */
-async function sampleLuminance(filePath: string, samples = 12): Promise<number[]> {
-  const { stderr } = await execFileAsync('ffmpeg', [
+async function sampleLuminance(
+  filePath: string,
+  samples = 12,
+): Promise<{ mean: number[]; range: number[] }> {
+  /**
+   * `metadata=print:file=-` writes to **stdout**. This read `stderr`.
+   *
+   * ffmpeg puts its own progress and banner on stderr, which is where the
+   * loudness filter's JSON genuinely goes — and copying that pattern here was
+   * the mistake. `file=-` means stdout, so the regex ran over the banner and
+   * matched nothing, every time, on every platform. `frameLuminance` has always
+   * been `[]`.
+   *
+   * That is not a cosmetic gap. This function's own comment says it is "how a
+   * composition that renders a black gap gets caught", and Gate 3's luminance
+   * rules have therefore never run on any render Halyard has produced. The gate
+   * reported `passed` with `examined: 0` — a check that never happened, shown
+   * as one that succeeded.
+   *
+   * Both streams are searched now rather than swapping one guess for another:
+   * the payload is unambiguous (`lavfi.signalstats.YAVG=`), an ffmpeg build that
+   * routes it elsewhere still works, and there is nothing for it to collide
+   * with.
+   */
+  const result = await execFileAsync('ffmpeg', [
     '-i', filePath,
     '-vf', `fps=${samples}/60,signalstats,metadata=print:file=-`,
     '-f', 'null',
     '-',
-  ]).catch((err: { stderr?: string; stdout?: string }) => ({ stderr: err.stderr ?? '', stdout: '' }));
+  ]).catch((err: { stderr?: string; stdout?: string }) => ({
+    stderr: err.stderr ?? '',
+    stdout: err.stdout ?? '',
+  }));
 
-  const values = [...(stderr ?? '').matchAll(/lavfi\.signalstats\.YAVG=([\d.]+)/g)].map((m) =>
-    Number(m[1]) / 255,
-  );
-  return values.length > 0 ? values : [];
+  const printed = `${result.stdout ?? ''}\n${result.stderr ?? ''}`;
+
+  /**
+   * Parsed per frame block rather than with three independent scans, so a
+   * dropped value cannot silently shift one series against another. The arrays
+   * are read positionally by everything downstream.
+   */
+  const mean: number[] = [];
+  const range: number[] = [];
+  for (const block of printed.split(/frame:\d+/).slice(1)) {
+    const avg = /lavfi\.signalstats\.YAVG=([\d.]+)/.exec(block);
+    const min = /lavfi\.signalstats\.YMIN=([\d.]+)/.exec(block);
+    const max = /lavfi\.signalstats\.YMAX=([\d.]+)/.exec(block);
+    if (!avg) continue;
+    mean.push(Number(avg[1]) / 255);
+    range.push(min && max ? (Number(max[1]) - Number(min[1])) / 255 : 0);
+  }
+  return { mean, range };
 }
 
 async function measureLoudness(
@@ -230,6 +393,29 @@ export interface WhisperWord {
   endSeconds: number;
 }
 
+/**
+ * The whisper.cpp arguments, kept where they can be asserted.
+ *
+ * §144. `--split-on-word` is not optional. `--max-len 1` bounds a segment to
+ * one *token*, and whisper's tokens are sub-word pieces — so the first live
+ * voiceover came back as "Your g ummy bread isn 't under cooked" and
+ * "sh ag gy". Two things read that output: the audio gate, which measured a
+ * 29.4% word error rate against speech that was word-perfect, and the caption
+ * cues, which would have put "g" and "ummy" on screen as separate cards.
+ * `--split-on-word` makes the segment boundary a word boundary, which is what
+ * both callers already assume.
+ */
+export function whisperArgs(model: string, wav: string, output: string): string[] {
+  return [
+    '-m', model,
+    '-f', wav,
+    '--output-json-full',
+    '--max-len', '1',
+    '--split-on-word',
+    '-of', output,
+  ];
+}
+
 export async function transcribeWords(audioPath: string): Promise<WhisperWord[]> {
   const model = process.env.WHISPER_MODEL_PATH ?? '/opt/models/ggml-base.en.bin';
   const dir = await mkdtemp(path.join(tmpdir(), 'halyard-whisper-'));
@@ -240,13 +426,7 @@ export async function transcribeWords(audioPath: string): Promise<WhisperWord[]>
     const wav = path.join(dir, 'audio.wav');
     await execFileAsync('ffmpeg', ['-y', '-i', audioPath, '-ar', '16000', '-ac', '1', wav]);
 
-    await execFileAsync('whisper-cli', [
-      '-m', model,
-      '-f', wav,
-      '--output-json-full',
-      '--max-len', '1',
-      '-of', output,
-    ]);
+    await execFileAsync('whisper-cli', whisperArgs(model, wav, output));
 
     const parsed = JSON.parse(await readFile(`${output}.json`, 'utf8')) as {
       transcription?: Array<{ text: string; offsets?: { from: number; to: number } }>;

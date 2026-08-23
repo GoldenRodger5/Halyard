@@ -1,0 +1,80 @@
+{
+  "id": "a4649cde-1bf9-43a8-9fa6-018478fd7a9c",
+  "platform": "youtube",
+  "format": "video",
+  "status": "failed",
+  "category": "education",
+  "recipe": "1 Bowl Vegan Baked Oatmeal",
+  "title": "Why Gummy Baked Oatmeal Isn't a Recipe Problem",
+  "createdAt": "2026-08-21T17:41:21.412197-04:00",
+  "linkUrl": "http://localhost:3200/r/a4649cde-1bf9-43a8-9fa6-018478fd7a9c",
+  "qcPassed": false,
+  "gates": [
+    {
+      "gate": "copy",
+      "status": "passed",
+      "summary": "passed (0 flags)"
+    },
+    {
+      "gate": "claims",
+      "status": "passed",
+      "summary": "4/4 verified against artifact"
+    },
+    {
+      "gate": "destination",
+      "status": "skipped",
+      "summary": "no link"
+    },
+    {
+      "gate": "proof",
+      "status": "skipped",
+      "summary": "no quoted testimonial"
+    },
+    {
+      "gate": "audio",
+      "status": "failed",
+      "summary": "WER 4.6%, 160 wpm, -14.3 LUFS"
+    },
+    {
+      "gate": "visual",
+      "status": "passed",
+      "summary": "passed (0 warnings)"
+    },
+    {
+      "gate": "retention",
+      "status": "warning",
+      "summary": "failed — 17.3s with no visual state change. The ceiling is 15s."
+    },
+    {
+      "gate": "coherence",
+      "status": "warning",
+      "summary": "coherent, 3 notes across 6 frames"
+    }
+  ],
+  "claims": [
+    {
+      "text": "An 8x8 inch pan gives the right depth for a soft, creamy texture; a larger pan spreads the batter too thin and it overbakes quickly.",
+      "source": "steps[0].updated_note"
+    },
+    {
+      "text": "A flax egg needs its full 5 minute rest to gel and bind the casserole; skipping it leaves it runny and less structured.",
+      "source": "steps[1].updated_note"
+    },
+    {
+      "text": "Vegan butter keeps the oatmeal from turning rubbery, the same job the original dairy butter does.",
+      "source": "ingredients[3].changeReason"
+    },
+    {
+      "text": "At roughly 44% of the original batch, this bakes in a smaller pan and finishes faster, so start checking at 22 minutes instead of 35.",
+      "source": "explanations[2]"
+    }
+  ],
+  "generation": {
+    "model": "claude-sonnet-5",
+    "costUsd": 0.111687,
+    "attempts": 2,
+    "inputTokens": 9704,
+    "outputTokens": 5505,
+    "promptVersion": "copywriter.v1"
+  }
+}

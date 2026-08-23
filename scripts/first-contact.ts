@@ -22,6 +22,7 @@
  * without an explicit item id and an explicit acknowledgement.
  */
 import { createInterface } from 'node:readline/promises';
+import { parseArgs } from './args.js';
 import pg from 'pg';
 import {
   PLATFORM_CLIENT_ENV,
@@ -537,8 +538,7 @@ async function verify(ctx: Ctx): Promise<void> {
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
-  const itemId = args.includes('--item') ? args[args.indexOf('--item') + 1] : undefined;
-  const platformArg = args.find((a) => a.startsWith('--platform='))?.split('=')[1];
+  const { itemId, platform: platformArg } = parseArgs(args);
   const platform = (platformArg ?? 'x') as PlatformId;
 
   try {
@@ -569,6 +569,21 @@ async function main(): Promise<void> {
   const ready = await checkPreconditions(ctx);
 
   if (args.includes('--publish')) {
+    /**
+     * §154. The header has always promised that `--publish` "refuses to run
+     * without an explicit item id". It did not: `pickItem` falls back to
+     * whatever sorts first, and neither confirmation names the post — one asks
+     * for the account handle, the other for the word PUBLISH. So the only
+     * destructive command here could spend real money on a post nobody chose.
+     */
+    if (!itemId) {
+      console.log(
+        `\n${RED}Refusing to publish.${RESET} Name the item explicitly: ` +
+          `--item=<uuid>.\nRun --dry-run with the same id first and read what it prints.\n`,
+      );
+      await pool.end();
+      process.exit(1);
+    }
     if (!ready) {
       console.log(`\n${RED}Not ready.${RESET} Fix the failures above first.\n`);
       await pool.end();

@@ -31,6 +31,16 @@ const ATOM = `<?xml version="1.0"?><feed xmlns="http://www.w3.org/2005/Atom">
 <summary>Tooling for evaluation</summary><updated>2026-08-10T08:00:00Z</updated><id>c-1</id></entry>
 </feed>`;
 
+/**
+ * The real Hacker News description: no prose, four fields of link markup.
+ */
+const HN = `<?xml version="1.0"?><rss version="2.0"><channel>
+<item><title>A 3D fruit fly on macOS powered by the FlyWire connectome</title>
+<link>https://news.ycombinator.com/item?id=49353221</link>
+<description>&lt;a href="https://github.com/DenisSergevitch/desktop-fly"&gt;Article URL&lt;/a&gt;: &lt;a href="https://github.com/DenisSergevitch/desktop-fly"&gt;https://github.com/DenisSergevitch/desktop-fly&lt;/a&gt; &lt;p&gt;Comments URL: &lt;a href="https://news.ycombinator.com/item?id=49353221"&gt;https://news.ycombinator.com/item?id=49353221&lt;/a&gt;&lt;/p&gt; &lt;p&gt;Points: 180&lt;/p&gt; &lt;p&gt;# Comments: 48&lt;/p&gt;</description>
+<guid>hn-49353221</guid></item>
+</channel></rss>`;
+
 describe('RSS parsing — Part A', () => {
   it('parses RSS 2.0, including CDATA and entities', () => {
     const items = parseFeed(RSS);
@@ -53,6 +63,32 @@ describe('RSS parsing — Part A', () => {
 
   it('returns nothing rather than throwing on rubbish', () => {
     expect(parseFeed('<html>not a feed</html>')).toEqual([]);
+  });
+
+  /**
+   * Hacker News is the highest-volume Daily Take source and it has no summary
+   * to give. Its description is a link block, and it was rendering under every
+   * headline as though it were prose. The fixture is the real shape.
+   */
+  it('reports no summary when the feed gave a link block instead of one', () => {
+    const items = parseFeed(HN);
+    expect(items).toHaveLength(1);
+    expect(items[0]?.title).toBe('A 3D fruit fly on macOS powered by the FlyWire connectome');
+    expect(items[0]?.summary).toBeNull();
+  });
+
+  it('keeps a terse summary that happens to be shorter than a URL', () => {
+    // Both conditions must hold. This one has no URLs at all, so the clause
+    // test never runs and three words survive.
+    expect(parseFeed(ATOM)[0]?.summary).toBe('Tooling for evaluation');
+  });
+
+  it('keeps prose that merely cites a long link', () => {
+    const feed = `<?xml version="1.0"?><rss version="2.0"><channel>
+<item><title>Paper</title><link>https://example.test/p</link>
+<description>Researchers found the effect holds across every cohort they measured, see https://example.test/a/very/long/path/that/is/longer/than/the/sentence/itself/x.pdf</description>
+</item></channel></rss>`;
+    expect(parseFeed(feed)[0]?.summary).toContain('Researchers found the effect holds');
   });
 });
 

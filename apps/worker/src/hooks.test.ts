@@ -8,7 +8,7 @@
 import type pg from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createIsolatedPool, databaseAvailable } from '../../../packages/db/src/__tests__/testDb.js';
-import { applyHookToBody, loadHookHistory, runHookStage } from './hooks.js';
+import { applyHookToBody, loadHookHistory, regateHookedBody, runHookStage } from './hooks.js';
 import type { HandlerContext } from './poller.js';
 
 const available = await databaseAvailable();
@@ -123,6 +123,83 @@ describe('applyHookToBody', () => {
   it('handles a body that is entirely blank', () => {
     expect(applyHookToBody('   ', 'New')).toBe('New');
   });
+
+  /**
+   * §143. Found in the first live generation run.
+   *
+   * X copy is one paragraph, so the whole post is a single line. Replacing
+   * "the first line" replaced the post: 267 characters of gated copy became a
+   * 35-character hook on its way to the approval queue.
+   */
+  it('replaces only the opening sentence of a single-paragraph post', () => {
+    const body =
+      'Healthier substitution, worse bread. ' +
+      'The starch holds onto water that wheat flour would have released. ' +
+      'Same moisture, no exit.';
+    const out = applyHookToBody(body, 'Applesauce is why your loaf is gummy.');
+
+    expect(out).toBe(
+      'Applesauce is why your loaf is gummy. ' +
+        'The starch holds onto water that wheat flour would have released. ' +
+        'Same moisture, no exit.',
+    );
+    // The payoff is the half that was gated. It must survive the hook.
+    expect(out).toContain('Same moisture, no exit.');
+  });
+
+  it('refuses to replace a post that is one sentence, since nothing survives it', () => {
+    const body = 'Applesauce makes gluten-free bread gummy.';
+    // Swapping the only sentence is a rewrite, not a hook, and the rewrite
+    // has not been through the gates.
+    expect(applyHookToBody(body, 'A different claim entirely.')).toBe(body);
+  });
+
+  it('does not treat a decimal as the end of the opening sentence', () => {
+    const body = 'Rest it 3.5 minutes first. Then slice.';
+    expect(applyHookToBody(body, 'Cut it too soon and it gums.')).toBe(
+      'Cut it too soon and it gums. Then slice.',
+    );
+  });
+});
+
+describe('regateHookedBody', () => {
+  const base = {
+    body:
+      'Healthier substitution, worse bread. ' +
+      'The starch holds onto water that wheat flour would have released. ' +
+      'Same moisture, no exit.',
+    platform: 'x',
+    hashtags: [] as string[],
+  };
+
+  it('returns the hooked post together with the QC that describes it', () => {
+    const out = regateHookedBody({ ...base, hook: 'Applesauce is why your loaf is gummy.' });
+
+    expect(out).not.toBeNull();
+    expect(out!.body).toContain('Applesauce is why your loaf is gummy.');
+    // The stored QC must be about the stored text, not the text before it.
+    expect(out!.qc.passed).toBe(true);
+    expect(out!.body).toContain('Same moisture, no exit.');
+  });
+
+  it('refuses a hook that pushes the post past the platform ceiling', () => {
+    /**
+     * §143. The live draft sat at 267 of X's 280 characters before the hook
+     * stage touched it. A longer opening takes it over, and the old code stored
+     * that post with the pre-hook `qc_results` still reading "passed".
+     */
+    const longHook = `${'Here is a much longer opening line about gluten free baking'.repeat(4)}.`;
+    expect(regateHookedBody({ ...base, hook: longHook })).toBeNull();
+  });
+
+  it('refuses a hook that reintroduces a banned phrase', () => {
+    const out = regateHookedBody({
+      ...base,
+      hook: 'Game changer for your baking.',
+      bannedPhrases: ['game changer'],
+    });
+    expect(out).toBeNull();
+  });
 });
 
 d('runHookStage', () => {
@@ -211,10 +288,157 @@ d('runHookStage', () => {
   }, 60_000);
 
   it('reports no measured performance rather than inventing a number', async () => {
-    // Nothing has published, so there are no stop rates. The scorer falls back
-    // to a prior and records which basis it used.
-    const history = await loadHookHistory(context(), 'recipefix', 'tiktok');
+    /**
+     * Nothing has published, so there is nothing measured. The scorer falls
+     * back to a prior and records which basis it used.
+     *
+     * The second assertion is the one that was missing. This test passed for as
+     * long as the query was broken — it selected `post_metrics.stop_rate` and
+     * joined on `post_metrics.content_item_id`, neither of which exists, and a
+     * `.catch()` returned `[]`. An empty array proves nothing on its own; an
+     * empty array *with no failure logged* is the honest cold start.
+     */
+    const ctx = context();
+    const history = await loadHookHistory(ctx, 'recipefix', 'tiktok');
     expect(history.performance).toEqual([]);
     expect(history.recentTypes).toEqual([]);
+    expect(ctx.logs.map(([m]) => m)).not.toContain('hook performance history unavailable');
+  }, 60_000);
+});
+
+/**
+ * The feedback half of the hook system: what was measured, fed back into what
+ * gets generated next.
+ *
+ * This is the only place in Halyard where an observed outcome influences a
+ * future generation decision, and it had never run.
+ */
+d('hook performance history', () => {
+  async function seedMeasured(input: {
+    platform: string;
+    hookType: string;
+    impressions: number;
+    videoViews: number;
+  }): Promise<void> {
+    const { rows: account } = await pool.query<{ id: string }>(
+      `insert into social_accounts (product_id, platform, persona, handle)
+       values ('recipefix',$1,'brand',$2)
+       on conflict (product_id, platform, persona) do update set handle = excluded.handle
+       returning id`,
+      [input.platform, `@perf-${input.platform}`],
+    );
+    const { rows: item } = await pool.query<{ id: string }>(
+      `insert into content_items
+         (product_id, account_id, platform, persona, format, category, status, body)
+       values ('recipefix',$1,$2,'brand','video','education','published','body')
+       returning id`,
+      [account[0]!.id, input.platform],
+    );
+    await pool.query(
+      `insert into hook_variants (content_item_id, hook_type, text_hook, selected)
+       values ($1,$2,'a hook', true)`,
+      [item[0]!.id, input.hookType],
+    );
+    const { rows: pub } = await pool.query<{ id: string }>(
+      `insert into publications
+         (content_item_id, account_id, platform, publish_mode, platform_post_id, published_at)
+       values ($1,$2,$3,'direct',$4, now()) returning id`,
+      [item[0]!.id, account[0]!.id, input.platform, `post-${item[0]!.id}`],
+    );
+    await pool.query(
+      `insert into post_metrics (publication_id, impressions, video_views)
+       values ($1,$2,$3)`,
+      [pub[0]!.id, input.impressions, input.videoViews],
+    );
+  }
+
+  beforeEach(async () => {
+    if (!available) return;
+    await pool.query('delete from post_metrics');
+    await pool.query('delete from publications');
+    await pool.query('delete from hook_variants');
+    await pool.query('delete from content_items');
+    await pool.query(`delete from social_accounts where handle like '@perf-%'`);
+  });
+
+  it('returns a real measurement once one exists', async () => {
+    // The query could not previously plan, let alone return this.
+    await seedMeasured({
+      platform: 'tiktok',
+      hookType: 'problem_state',
+      impressions: 1000,
+      videoViews: 700,
+    });
+
+    const ctx = context();
+    const history = await loadHookHistory(ctx, 'recipefix', 'tiktok');
+
+    expect(ctx.logs.map(([m]) => m)).not.toContain('hook performance history unavailable');
+    expect(history.performance).toHaveLength(1);
+    expect(history.performance[0]!.platform).toBe('tiktok');
+    expect(history.performance[0]!.viewThroughRate).toBeCloseTo(0.7);
+    expect(history.performance[0]!.samples).toBe(1);
+  }, 60_000);
+
+  it('keeps each platform’s numbers separate', async () => {
+    /**
+     * Platforms do not agree on what a view is, so one average across them is
+     * true nowhere. Both rows come back, each labelled, and the scorer picks by
+     * platform rather than taking whichever it finds first.
+     */
+    await seedMeasured({
+      platform: 'tiktok',
+      hookType: 'problem_state',
+      impressions: 1000,
+      videoViews: 900,
+    });
+    await seedMeasured({
+      platform: 'youtube',
+      hookType: 'problem_state',
+      impressions: 1000,
+      videoViews: 100,
+    });
+
+    const history = await loadHookHistory(context(), 'recipefix', 'tiktok');
+    const byPlatform = Object.fromEntries(
+      history.performance.map((p) => [p.platform, p.viewThroughRate]),
+    );
+    expect(byPlatform.tiktok).toBeCloseTo(0.9);
+    expect(byPlatform.youtube).toBeCloseTo(0.1);
+  }, 60_000);
+
+  it('counts one sample per publication, not one per poll', async () => {
+    // `collect_metrics` polls a fresh publication five times on its decay
+    // schedule. Counting rows would have made one post look like five.
+    await seedMeasured({
+      platform: 'tiktok',
+      hookType: 'problem_state',
+      impressions: 1000,
+      videoViews: 500,
+    });
+    const { rows } = await pool.query<{ id: string }>('select id from publications limit 1');
+    for (const views of [520, 540, 560]) {
+      await pool.query(
+        `insert into post_metrics (publication_id, impressions, video_views, collected_at)
+         values ($1, 1000, $2, now() + interval '1 minute')`,
+        [rows[0]!.id, views],
+      );
+    }
+
+    const history = await loadHookHistory(context(), 'recipefix', 'tiktok');
+    expect(history.performance[0]!.samples).toBe(1);
+    // And it is the latest reading, not the first.
+    expect(history.performance[0]!.viewThroughRate).toBeCloseTo(0.56);
+  }, 60_000);
+
+  it('ignores a post with no impressions rather than dividing by zero', async () => {
+    await seedMeasured({
+      platform: 'tiktok',
+      hookType: 'problem_state',
+      impressions: 0,
+      videoViews: 0,
+    });
+    const history = await loadHookHistory(context(), 'recipefix', 'tiktok');
+    expect(history.performance).toEqual([]);
   }, 60_000);
 });

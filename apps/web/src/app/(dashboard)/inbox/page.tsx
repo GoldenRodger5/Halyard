@@ -1,12 +1,16 @@
 import { Badge, Card, EmptyState, PLATFORM_LABELS, PageHeader, PlatformDot } from '@halyard/ui';
-import { getInbox, getProducts } from '@/lib/queries';
-import { formatRelative, truncate } from '@/lib/format';
+import { getInbox, getProducts, getReplyHistory } from '@/lib/queries';
+import { formatDuration, formatRelative, truncate } from '@/lib/format';
 import { draftReply, markReplied, ignoreComment, routeToSupport } from './actions';
 
 export const dynamic = 'force-dynamic';
 
 export default async function InboxPage() {
-  const [comments, products] = await Promise.all([getInbox(), getProducts()]);
+  const [comments, products, replies] = await Promise.all([
+    getInbox(),
+    getProducts(),
+    getReplyHistory(),
+  ]);
   const timeZone = products[0]?.operator_timezone ?? 'UTC';
 
   const pending = comments.filter((c) => c.reply_status === 'pending');
@@ -26,6 +30,34 @@ export default async function InboxPage() {
           spam operation, and it is enforced in code rather than policy.
         </p>
       </Card>
+
+      {/* ── What replying has actually looked like ────────────────────────
+          `comment_replies` has been written on every reply and read by
+          nothing. These three numbers are the only record of whether the
+          drafter earns its place, and they had no surface. */}
+      {replies.sent > 0 ? (
+        <Card className="mb-6 p-4">
+          <p className="text-sm text-ink">
+            {replies.sent} repl{replies.sent === 1 ? 'y' : 'ies'} sent.{' '}
+            {replies.aiDrafted === 0 ? (
+              <>None had a draft to work from, so nothing here says whether the drafter helps.</>
+            ) : (
+              <>
+                {replies.aiDrafted} had a draft, and you changed {replies.edited} of them
+                {replies.aiDrafted > 0 ? ` (${Math.round((replies.edited / replies.aiDrafted) * 100)}%)` : ''}
+                . A reply written from scratch is not counted as an edit — there was nothing to
+                edit.
+              </>
+            )}
+            {replies.medianLatencySeconds !== null ? (
+              <>
+                {' '}
+                Median reply time {formatDuration(replies.medianLatencySeconds)}.
+              </>
+            ) : null}
+          </p>
+        </Card>
+      ) : null}
 
       {comments.length === 0 ? (
         <EmptyState

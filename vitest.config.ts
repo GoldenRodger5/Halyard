@@ -12,6 +12,9 @@ export default defineConfig({
       'packages/**/*.test.tsx',
       'apps/**/*.test.ts',
       'apps/**/*.test.tsx',
+      // The operator scripts are shipped code too, and one of them is the only
+      // destructive command in the repository. §154.
+      'scripts/**/*.test.ts',
     ],
     exclude: ['**/node_modules/**', '**/.next/**', '**/dist/**'],
     testTimeout: 30_000,

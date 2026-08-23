@@ -47,9 +47,7 @@ describe('handler coverage', () => {
      * Each one is a decision, written down. An unlisted unhandled kind is an
      * oversight, and that distinction is the entire point of this test.
      */
-    const knowinglyUnhandled: Record<string, string> = {
-      digest_email: 'The digest is not implemented. Nothing enqueues it.',
-    };
+    const knowinglyUnhandled: Record<string, string> = {};
 
     const unaccounted = JOB_KINDS.filter(
       (kind) => !registered.has(kind) && !(kind in knowinglyUnhandled),
@@ -75,12 +73,21 @@ describe('handler coverage', () => {
     expect(documentedButActuallyHandled, 'documented as unhandled but registered').toEqual([]);
   });
 
-  it('does not enqueue a kind it knowingly cannot run', () => {
-    const knowinglyUnhandled = ['digest_email'];
-    const scheduled = SCHEDULES.map((s) => s.kind as string);
-    for (const kind of knowinglyUnhandled) {
-      expect(scheduled, `${kind} is scheduled but knowingly unhandled`).not.toContain(kind);
-    }
+  it('does not schedule a kind that has no handler', () => {
+    /**
+     * This used to name `digest_email` in a hardcoded list, because that kind
+     * was declared, listed as a cron task, and implemented by nothing — so a
+     * schedule for it would have produced rows no worker could claim. It has a
+     * handler now, and an empty hardcoded list would have made the test
+     * vacuous.
+     *
+     * Derived from `HANDLERS` instead, which is the invariant that actually
+     * matters: whatever the scheduler enqueues, something must be able to run.
+     */
+    const orphanSchedules = SCHEDULES.map((s) => s.kind as string).filter(
+      (kind) => !registered.has(kind as (typeof JOB_KINDS)[number]),
+    );
+    expect(orphanSchedules, 'scheduled with no handler to claim it').toEqual([]);
   });
 });
 

@@ -22,6 +22,7 @@ import { getItemArtifact, getProducts, getQueueItem } from '@/lib/queries';
 import { formatInOperatorTz } from '@/lib/format';
 import { editItem, markManuallyPublished, publishNow, rescheduleItem } from '../actions';
 import { resetDestination, setDestination } from '../destinationActions';
+import { readDelivery } from '@/components/DeliveryState';
 
 export const dynamic = 'force-dynamic';
 
@@ -55,6 +56,8 @@ export default async function QueueItemPage({ params }: { params: Promise<{ id: 
   // Milestone 42 — where this post sends people, shown before approval rather
   // than discovered after publication.
   const shareToken = extractShareToken(item.product_artifact);
+  const delivery = readDelivery(item);
+
   const destinationQc = runDestinationQC({
     category: item.category,
     destinationType: item.destination_type as DestinationType | null,
@@ -125,6 +128,47 @@ export default async function QueueItemPage({ params }: { params: Promise<{ id: 
                 usableFor={item.format === 'video' ? 'video' : 'image'}
               />
             </div>
+          </Card>
+
+          {/*
+            * §156. Where this actually is.
+            *
+            * The item status says what Halyard thinks; this says what the
+            * platform holds, and they are not the same question. A native draft
+            * needs a person inside the platform's own app; a private upload
+            * needs nobody. Both read `awaiting_manual_publish` here.
+            */}
+          <Card className="p-4">
+            <SectionTitle hint="Halyard's own state is the one that governs approval">
+              Delivery
+            </SectionTitle>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <Badge tone={delivery.tone}>{delivery.label}</Badge>
+              {delivery.creatorActionRequired ? (
+                <Badge tone="warn">creator action required</Badge>
+              ) : null}
+            </div>
+            <p className="mt-2 text-sm leading-relaxed text-muted">{delivery.detail}</p>
+            {delivery.externalId ? (
+              <p className="mt-2 text-sm text-muted">
+                Platform id <code className="rounded bg-sunk px-1">{delivery.externalId}</code>
+              </p>
+            ) : null}
+            {delivery.href ? (
+              <a
+                href={delivery.href}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-2 inline-block text-sm text-primary underline"
+              >
+                {delivery.hrefLabel}
+              </a>
+            ) : null}
+            <p className="mt-3 text-sm text-muted">
+              Delivering to a platform is not approval and never publishes on its own. Halyard&apos;s
+              status for this item is{' '}
+              <code className="rounded bg-sunk px-1">{item.status.replace(/_/g, ' ')}</code>.
+            </p>
           </Card>
 
           <Card className="p-4">
@@ -374,7 +418,7 @@ export default async function QueueItemPage({ params }: { params: Promise<{ id: 
               </p>
               <form action={publishNow}>
                 <input type="hidden" name="id" value={item.id} />
-                <button className="w-full rounded-lg bg-accent px-2 py-1.5 text-sm font-medium text-white hover:opacity-90">
+                <button className="w-full rounded-lg bg-primary px-2 py-1.5 text-sm font-medium text-white hover:bg-primary-dark">
                   Post it now
                 </button>
               </form>

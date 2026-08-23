@@ -40,6 +40,13 @@ export const THREADS_CONSTRAINTS: PlatformConstraints = {
   linkNote: 'Links are clickable inline on Threads, so the link goes in the post.',
   requiresReviewForPublicPosting: true,
   supportsTrendingAudioViaApi: false,
+  delivery: {
+    nativeDraft: false,
+    privateUpload: false,
+    apiScheduling: false,
+    requiresCreatorCompletion: false,
+    note: 'Same two-step container as Instagram — POST /threads then /threads_publish — with no documented draft capability. The container exists to be published seconds later.',
+  },
 };
 
 export class ThreadsAdapter implements PlatformAdapter {

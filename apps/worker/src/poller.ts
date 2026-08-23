@@ -9,8 +9,10 @@
  * backoff policy, reap stale locks, and write a heartbeat. Everything else is a
  * handler's problem.
  */
+import { writeFile } from 'node:fs/promises';
 import type pg from 'pg';
 import { JOB_POLICY, type JobKind } from '@halyard/db';
+import { scrubString } from '@halyard/core';
 import { reportJobFailure } from './observability.js';
 
 export interface Job {
@@ -20,6 +22,39 @@ export interface Job {
   attempts: number;
   max_attempts: number;
   dedupe_key: string | null;
+}
+
+/**
+ * A failure that retrying cannot fix.
+ *
+ * ## The seam this closes
+ *
+ * `publishFailurePolicy` in core already decides this. It returns
+ * `retry: false` for an auth failure ("do not retry blindly against a dead
+ * token"), for a malformed response ("never retried — that double-posts") and
+ * for a duplicate abort. `publish.ts` reads that policy and acts on it for the
+ * item and the account… and then throws, and the poller retries the job anyway,
+ * because `fail()` had no way to hear it. The only thing standing between a
+ * malformed response and a second write was the idempotency index.
+ *
+ * So the decision stays where it already lived, in `publishFailurePolicy`, and
+ * this is the channel it was missing. Deliberately a marker on the error rather
+ * than a return value: a handler signals permanence by *how it fails*, which is
+ * the same way it signals everything else, and every existing handler keeps
+ * working unchanged.
+ *
+ * Nothing about this is a shortcut for a flaky provider. A transient failure
+ * must still throw an ordinary error and take its retries.
+ */
+export class PermanentJobFailure extends Error {
+  constructor(
+    message: string,
+    /** Why retrying cannot help, for the row an operator will read. */
+    public readonly reason: string,
+  ) {
+    super(message);
+    this.name = 'PermanentJobFailure';
+  }
 }
 
 export type JobHandler = (job: Job, ctx: HandlerContext) => Promise<void>;
@@ -181,7 +216,16 @@ export class Poller {
   }
 
   private async fail(job: Job, error: Error, backoffSeconds: number): Promise<void> {
-    const exhausted = job.attempts >= job.max_attempts;
+    /**
+     * Attempts run out, or the handler says retrying cannot help.
+     *
+     * The second is not a shortcut. It is how `publishFailurePolicy`'s
+     * `retry: false` finally reaches the queue — an auth failure, a malformed
+     * response and a duplicate abort all get worse with repetition, and until
+     * now each one burned its full allowance regardless.
+     */
+    const permanent = error instanceof PermanentJobFailure;
+    const exhausted = job.attempts >= job.max_attempts || permanent;
 
     // Sentry gets the stack and the release tag; the row below gets the message.
     // Expected operating states — a paused kill switch, a duplicate abort — are
@@ -200,14 +244,35 @@ export class Poller {
               run_after = now() + make_interval(secs => $4),
               finished_at = case when $2 = 'dead' then now() else null end
         where id = $1`,
-      [job.id, exhausted ? 'dead' : 'queued', error.message.slice(0, 2000), exhausted ? 0 : delay],
+      [
+        job.id,
+        exhausted ? 'dead' : 'queued',
+        /**
+         * Scrubbed on the way into the database, not only on the way to Sentry.
+         *
+         * `scrubEvent` has always guarded the reporter, and nothing guarded
+         * this. An error message is arbitrary text from whatever threw — a
+         * library, a provider, an adapter — and the Instagram adapter carries
+         * its access token in the URL query string, so a stack or cause that
+         * quotes a URL puts a live credential in a row that is read by the
+         * operator UI and kept indefinitely.
+         *
+         * Nothing has leaked here yet (nine stored errors, none matching a
+         * credential shape). This is the boundary where it would.
+         */
+        scrubString(error.message).slice(0, 2000),
+        exhausted ? 0 : delay,
+      ],
     );
 
     this.log(exhausted ? 'job dead' : 'job failed, will retry', {
       kind: job.kind,
       id: job.id,
       attempts: job.attempts,
-      error: error.message.slice(0, 500),
+      error: scrubString(error.message).slice(0, 500),
+      // Said out loud, because "dead after one attempt" otherwise reads as a
+      // broken retry policy rather than a deliberate one.
+      ...(permanent ? { permanent: true, why: error.reason } : {}),
     });
   }
 
@@ -220,6 +285,24 @@ export class Poller {
          set last_seen_at = now(), version = excluded.version, detail = excluded.detail`,
       [this.workerId, process.env.npm_package_version ?? '0.1.0', { kinds: this.handledKinds }],
     );
+
+    /**
+     * The same fact, on local disk, for the container healthcheck.
+     *
+     * The Dockerfile's HEALTHCHECK claimed to be "the container's own view" of
+     * the heartbeat while running `node -e "process.exit(0)"`, which passes on
+     * a wedged worker as readily as a healthy one. It cannot read the table
+     * without a database round trip every sixty seconds, so the loop leaves a
+     * mtime behind instead and the check reads that.
+     *
+     * Opt-in by environment variable so tests and local runs touch no disk.
+     * Written after the insert: a worker that cannot reach the database is not
+     * healthy, and should not be able to claim it is.
+     */
+    const livenessFile = process.env.HALYARD_LIVENESS_FILE?.trim();
+    if (livenessFile) {
+      await writeFile(livenessFile, `${new Date().toISOString()} ${this.workerId}\n`).catch(noop);
+    }
   }
 
   async reap(): Promise<number> {

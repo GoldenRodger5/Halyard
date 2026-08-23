@@ -1,0 +1,472 @@
+/**
+ * The creative plan: how a story should be told, decided before anything renders.
+ *
+ * §160. Halyard could already choose *what* to make — an account's format from
+ * `chooseFormat`, a composition from `chooseVideoComposition`. What it could not
+ * do was decide *how the story should be shown*: which moment is the before,
+ * which is the change, what deserves to be held on, and what is a boring wait
+ * that an edit should cut.
+ *
+ * ## Where this sits
+ *
+ * Above `chooseVideoComposition`, not instead of it. Composition selection asks
+ * "which template can carry this artifact"; this asks "what are the beats of the
+ * story and how long is each one". The plan's beats become `Scene[]`, which is
+ * the shape `layoutScenes` has always taken — so the plan drives the existing
+ * timing engine rather than a second one.
+ *
+ * ## Why there is no agent here
+ *
+ * Every decision below is a fact about the artifact or arithmetic over it. A
+ * `swap` highlight that carries both a `before` and an `after` **is** a
+ * transformation; that is not a judgement call. Beat order, weights and
+ * durations are structure. Nothing here needs a model, and a model that chose
+ * its own emphasis and then rendered it would be grading its own work — which
+ * is exactly what `review_media` exists to prevent by staying on a different
+ * provider.
+ *
+ * ## Product-agnosticism
+ *
+ * This reads `Highlight`, which every product adapter produces, and nothing
+ * else. There is no recipe vocabulary here and there must never be: a product
+ * whose adapter emits swaps gets `before_after` for free, whatever the product
+ * is. Anything that needs to know what a swap *means* belongs behind the
+ * adapter, per §146.
+ */
+import type { Highlight, ProductArtifact } from '../connectors/types.js';
+
+/**
+ * The creative treatments Halyard can reason about.
+ *
+ * Only `before_after` is implemented. The others are named because the union is
+ * the extension point — adding one is a new planner function and a new case,
+ * not a new architecture.
+ */
+export const CREATIVE_TYPES = [
+  'before_after',
+  'tutorial',
+  'feature_demo',
+  'comparison',
+  'how_to',
+  'listicle',
+  'announcement',
+  'transformation',
+  'product_update',
+] as const;
+
+export type CreativeType = (typeof CREATIVE_TYPES)[number];
+
+/**
+ * What a beat is for, in the story rather than in the layout.
+ *
+ * The role is what a composition keys off, so a template can render a `before`
+ * differently from a `proof` without knowing which creative type produced it.
+ */
+export type BeatRole = 'hook' | 'demo' | 'before' | 'change' | 'after' | 'proof' | 'cta';
+
+/**
+ * How much room a beat gets, relative to its neighbours.
+ *
+ * `hold` is the moment the whole piece exists for; `quick` is something the
+ * viewer needs to have seen but should not wait through. These map to weights,
+ * which is what `layoutScenes` already understands.
+ */
+export type BeatEmphasis = 'quick' | 'normal' | 'hold';
+
+const EMPHASIS_WEIGHT: Record<BeatEmphasis, number> = { quick: 1, normal: 2, hold: 3 };
+const EMPHASIS_MIN_SECONDS: Record<BeatEmphasis, number> = { quick: 1.2, normal: 2.4, hold: 3.6 };
+
+export interface CreativeBeat {
+  id: string;
+  role: BeatRole;
+  emphasis: BeatEmphasis;
+  /** What this beat shows. Shape is deliberately loose; compositions read what they need. */
+  content: { before?: string; after?: string; reason?: string; text?: string };
+  /**
+   * Where in the raw artifact this beat came from.
+   *
+   * Carried so a rendered frame can be traced to the evidence behind it, the
+   * same way `claims[].source` is. A beat with no provenance is a beat nobody
+   * can check.
+   */
+  sourcePath?: string;
+  /**
+   * Real captured footage this beat plays.
+   *
+   * §163. Present only when a capture actually recorded the product doing the
+   * thing. There is no default and no placeholder: a beat with `media` and no
+   * file renders nothing, because the alternative is a synthetic screenshot of
+   * a product state that never existed.
+   */
+  media?: { file: string; label?: string };
+  /**
+   * How long this beat naturally runs, when it has a natural length.
+   *
+   * §163. Footage does. An emphasis says how *important* a beat is, and the
+   * timing engine turns that into a share of the piece — which is right for a
+   * card, whose length is a choice, and wrong for a video, whose length is a
+   * fact. A held demo beat took 8.4s of a 27.9s piece with 3.8s of footage, and
+   * Remotion froze the last frame for the difference.
+   */
+  holdSeconds?: number;
+}
+
+/**
+ * Which caption treatment the beats call for.
+ *
+ * A decision, not a style: the render resolves it through `captionStyle` (§158)
+ * with the product's own brand tokens. Two systems styling captions is how they
+ * start disagreeing.
+ */
+export type CaptionBackdropKind = 'surface' | 'media';
+
+export interface CreativePlan {
+  creativeType: CreativeType;
+  platform: string;
+  format: string;
+  targetSeconds: number;
+  beats: CreativeBeat[];
+  captionBackdrop: CaptionBackdropKind;
+  /** Every artifact path this plan rests on, for provenance. */
+  evidence: string[];
+  /** Why this plan looks like this, in one line an operator can read. */
+  rationale: string;
+}
+
+export interface PlanInput {
+  platform: string;
+  format: string;
+  /** Usually the voiceover length, so the beats fill the piece exactly. */
+  targetSeconds: number;
+  /** Caps how many transformations are shown. Platform-dependent; see below. */
+  maxChanges?: number;
+  /**
+   * Footage a capture actually produced, if any.
+   *
+   * §163. Supplied by the caller, which knows whether a recording exists;
+   * absent means the plan has no footage to show and simply does not plan a
+   * demo beat. The planner never goes looking for a file.
+   */
+  footage?: { file: string; label?: string; durationMs: number };
+}
+
+/**
+ * How many changes are worth showing, by platform.
+ *
+ * Not a style preference: a 9:16 frame fits about three before/after pairs
+ * before the bottom one lands under the platform's own UI, and a short-form
+ * viewer will not sit through more. Platforms absent here take the default.
+ */
+const MAX_CHANGES_BY_PLATFORM: Record<string, number> = {
+  tiktok: 3,
+  instagram: 3,
+  youtube: 4,
+  pinterest: 2,
+};
+
+const DEFAULT_MAX_CHANGES = 3;
+
+/**
+ * The transformations in an artifact, strongest first.
+ *
+ * "Strongest" is deterministic: a change that explains itself is worth more
+ * screen time than one that does not, and a longer explanation usually means a
+ * more substantive change. No model is asked which swap is interesting.
+ */
+export function transformationsIn(artifact: ProductArtifact): Highlight[] {
+  return (artifact.highlights ?? [])
+    .filter((h) => h.type === 'swap' && h.before && h.after)
+    .sort((a, b) => (b.reason?.length ?? 0) - (a.reason?.length ?? 0));
+}
+
+/**
+ * A before/after plan, or `null` when the artifact has no transformation.
+ *
+ * Returning `null` is the honest outcome and the important one: an artifact
+ * with nothing that changed cannot be told as a before/after, and the caller
+ * falls back rather than being handed a plan that renders an empty stage. This
+ * is the same refusal `chooseVideoComposition` makes when no template fits.
+ */
+export function planBeforeAfter(
+  artifact: ProductArtifact,
+  input: PlanInput,
+): CreativePlan | null {
+  const changes = transformationsIn(artifact);
+  if (changes.length === 0) return null;
+
+  const limit =
+    input.maxChanges ?? MAX_CHANGES_BY_PLATFORM[input.platform] ?? DEFAULT_MAX_CHANGES;
+  const shown = changes.slice(0, Math.max(1, limit));
+
+  const beats: CreativeBeat[] = [
+    {
+      id: 'hook',
+      role: 'hook',
+      // Quick on purpose. The headline is orientation, not the story, and a
+      // short-form viewer decides during it rather than after it.
+      emphasis: 'quick',
+      content: { text: artifact.headline },
+    },
+  ];
+
+  /*
+   * §163. The product doing the thing, before the cards that describe it.
+   *
+   * Placed second on purpose. The hook orients, and then the strongest evidence
+   * available is the product itself — a card claiming a swap is an assertion,
+   * footage of the swap happening is the thing itself. Held, because real
+   * footage is what a viewer stops for.
+   *
+   * It exists only when `input.footage` does. There is no fallback: no capture
+   * means no demo beat, not a drawn approximation of one.
+   */
+  if (input.footage) {
+    beats.push({
+      id: 'demo',
+      role: 'demo',
+      emphasis: 'hold',
+      content: {},
+      media: { file: input.footage.file, ...(input.footage.label ? { label: input.footage.label } : {}) },
+      // The footage's own length, not a share of the piece.
+      holdSeconds: input.footage.durationMs / 1000,
+      // Provenance points at the recording, so a frame traces to the capture
+      // that produced it the same way a card traces to an artifact path.
+      sourcePath: `capture:${input.footage.file}`,
+    });
+  }
+
+  shown.forEach((change, index) => {
+    beats.push({
+      id: `change-${index}`,
+      role: 'change',
+      /*
+       * The first change is the one the piece exists for, so it is held. The
+       * rest are corroboration and are paced normally — three equally weighted
+       * changes read as a list, which is a different creative type.
+       */
+      emphasis: index === 0 ? 'hold' : 'normal',
+      content: { before: change.before, after: change.after, reason: change.reason },
+      sourcePath: change.sourcePath,
+    });
+  });
+
+  // A reason on the leading change is evidence the viewer can check, so it
+  // earns its own beat rather than being crowded into the transformation.
+  const proof = shown[0]?.reason;
+  if (proof) {
+    beats.push({
+      id: 'proof',
+      role: 'proof',
+      emphasis: 'normal',
+      content: { text: proof },
+      sourcePath: shown[0]!.sourcePath,
+    });
+  }
+
+  return {
+    creativeType: 'before_after',
+    platform: input.platform,
+    format: input.format,
+    targetSeconds: input.targetSeconds,
+    beats,
+    /*
+     * Footage decides the caption treatment. §158 measures contrast against a
+     * known surface colour, which it cannot do over video — so a plan carrying
+     * footage asks for the media plate, and captions stay legible over frames
+     * nobody sampled in advance.
+     *
+     * Deliberately decided once for the whole plan rather than per beat. Only
+     * one beat is footage, so a per-beat decision would switch caption styles
+     * mid-piece; a viewer reads that as two different videos spliced together.
+     * The plate over a flat surface is merely a stronger caption, and stronger
+     * is the safe direction to be wrong in.
+     */
+    captionBackdrop: input.footage ? 'media' : 'surface',
+    evidence: beats.map((b) => b.sourcePath).filter((p): p is string => Boolean(p)),
+    rationale:
+      `${shown.length} of ${changes.length} transformation${changes.length === 1 ? '' : 's'} shown, ` +
+      `strongest first, held on the leading change` +
+      (input.footage ? ', opening on captured product footage.' : '.'),
+  };
+}
+
+/**
+ * The plan as scenes, for `layoutScenes`.
+ *
+ * Deliberately the existing `Scene` shape — `{ id, weight, minSeconds }` — so
+ * the plan feeds the timing engine the compositions already use. A second
+ * timing system would be a second set of rounding bugs.
+ */
+export function beatsToScenes(
+  plan: CreativePlan,
+): Array<{ id: string; weight: number; minSeconds: number; maxSeconds?: number }> {
+  return plan.beats.map((beat) => {
+    /*
+     * A beat with a natural length keeps it. Weight is derived from that length
+     * on the same scale emphasis uses — `EMPHASIS_MIN_SECONDS.normal` seconds
+     * per `EMPHASIS_WEIGHT.normal` — so one beat measured in seconds and the
+     * rest measured in importance still divide the piece coherently.
+     */
+    if (beat.holdSeconds !== undefined) {
+      const perWeight = EMPHASIS_MIN_SECONDS.normal / EMPHASIS_WEIGHT.normal;
+      return {
+        id: beat.id,
+        weight: beat.holdSeconds / perWeight,
+        minSeconds: beat.holdSeconds,
+        // Both bounds, because this length is a fact: stretching it holds a
+        // frozen frame and shrinking it cuts the recording short.
+        maxSeconds: beat.holdSeconds,
+      };
+    }
+    return {
+      id: beat.id,
+      weight: EMPHASIS_WEIGHT[beat.emphasis],
+      minSeconds: EMPHASIS_MIN_SECONDS[beat.emphasis],
+    };
+  });
+}
+
+/**
+ * Whether a captured step is worth showing, given the plan.
+ *
+ * §159's `elide` already measures a wait and cuts it with the real elapsed time
+ * as a caption. What it could not do is know whether *this* transition is the
+ * one the story is about. A plan that holds on the change says so here, and a
+ * step covering that change survives even if it was slow.
+ *
+ * Nothing is fabricated either way: an elided step is still reported with its
+ * measured duration, and a kept step is still the real footage.
+ */
+export function stepDeservesEmphasis(
+  plan: CreativePlan,
+  step: { name: string; elide?: boolean },
+): boolean {
+  const held = plan.beats.some((b) => b.emphasis === 'hold');
+  if (!held) return false;
+  // A step the flow itself marked as a wait is never emphasis, however
+  // important the surrounding story is. Holding on a spinner is still a spinner.
+  if (step.elide) return false;
+  return /swap|change|result|after|transform/i.test(step.name);
+}
+
+/**
+ * A span of captured footage worth showing.
+ *
+ * §163. A recording spans the whole browser session — in the first live capture
+ * that was 50 seconds, of which about ten were the product doing anything and
+ * forty were a *different*, drifted flow waiting on a selector that no longer
+ * exists. Playing the file is not an option; the beat needs spans.
+ */
+export interface FootageSpan {
+  startMs: number;
+  endMs: number;
+  /** The steps this span covers, so the cut can be explained. */
+  steps: string[];
+}
+
+/** A captured step, as `runFlow` reports it. */
+export interface CapturedStep {
+  step: string;
+  action?: string;
+  ok: boolean;
+  startMs?: number;
+  endMs?: number;
+  elide?: boolean;
+}
+
+/**
+ * Actions that occupy no screen time worth keeping.
+ *
+ * Filtered by **action**, not by step name: a name is prose an author chose and
+ * `let the result settle` reads nothing like `wait`, while its action is
+ * exactly that. Names drift; the action vocabulary is the flow contract.
+ */
+const SILENT_ACTIONS = new Set(['wait', 'still']);
+
+/**
+ * The parts of a recording that show the product doing something.
+ *
+ * Returns **spans**, plural, and that is the whole point. In the real capture
+ * the adaptation wait sits in the middle: the result card appears *during* it.
+ * One span either includes three seconds of a spinner or cuts away before the
+ * result exists. Two spans joined — setup, then result — is what an editor
+ * would do, and it is what `elide` has meant since §159.
+ *
+ * Deterministic and product-agnostic. Nothing is fabricated: every boundary is
+ * a measured offset from the real recording, so the footage inside a span is
+ * exactly what happened.
+ */
+export function footageSpansFor(
+  steps: CapturedStep[],
+  options: { minSpanMs?: number; padMs?: number } = {},
+): FootageSpan[] {
+  const padMs = options.padMs ?? 200;
+  const minSpanMs = options.minSpanMs ?? 400;
+
+  const ordered = [...steps].sort((a, b) => (a.startMs ?? 0) - (b.startMs ?? 0));
+
+  /**
+   * A settle straight after an elided step is the payoff, not dead air.
+   *
+   * §163. The first cut of real footage dropped every `wait`, and the result
+   * card was never on screen: it appears *during* the adaptation wait, which is
+   * elided, and stays up through the settle that follows. Cutting both showed
+   * the viewer the setup and then a 400ms flash of an ingredient expanding —
+   * the product's actual output, missing.
+   *
+   * So a wait is held when the step before it was cut. That is the moment the
+   * elision exists to reach.
+   */
+  const isPayoff = (index: number): boolean => {
+    const previous = ordered[index - 1];
+    return Boolean(previous?.elide) && (ordered[index]?.action ?? '') === 'wait';
+  };
+
+  const shows = (s: CapturedStep, index: number): boolean =>
+    s.ok &&
+    s.startMs !== undefined &&
+    s.endMs !== undefined &&
+    !s.elide &&
+    (isPayoff(index) || !SILENT_ACTIONS.has(s.action ?? '')) &&
+    s.endMs - s.startMs >= 30;
+
+  const spans: FootageSpan[] = [];
+  let current: CapturedStep[] = [];
+
+  const flush = (): void => {
+    if (current.length === 0) return;
+    const startMs = Math.max(0, current[0]!.startMs! - padMs);
+    const endMs = current[current.length - 1]!.endMs! + padMs;
+    if (endMs - startMs >= minSpanMs) {
+      spans.push({ startMs, endMs, steps: current.map((s) => s.step) });
+    }
+    current = [];
+  };
+
+  ordered.forEach((step, index) => {
+    if (shows(step, index)) current.push(step);
+    else flush();
+  });
+  flush();
+
+  /*
+   * Padding can push neighbouring spans into each other, and two overlapping
+   * cuts would replay the same frames. Merged so the timeline only moves
+   * forward.
+   */
+  return spans.reduce<FootageSpan[]>((merged, span) => {
+    const last = merged[merged.length - 1];
+    if (last && span.startMs <= last.endMs) {
+      last.endMs = Math.max(last.endMs, span.endMs);
+      last.steps = [...last.steps, ...span.steps];
+      return merged;
+    }
+    merged.push({ ...span });
+    return merged;
+  }, []);
+}
+
+/** Total footage kept, in milliseconds. */
+export function footageDurationMs(spans: FootageSpan[]): number {
+  return spans.reduce((total, s) => total + (s.endMs - s.startMs), 0);
+}

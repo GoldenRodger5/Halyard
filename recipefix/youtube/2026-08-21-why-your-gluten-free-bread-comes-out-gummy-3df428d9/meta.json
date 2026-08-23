@@ -1,0 +1,59 @@
+{
+  "id": "3df428d9-1f61-4912-9bde-1dc69a0add7e",
+  "platform": "youtube",
+  "format": "video",
+  "status": "failed",
+  "category": "founder_insight",
+  "recipe": null,
+  "title": "Why your gluten-free bread comes out gummy",
+  "createdAt": "2026-08-21T14:20:40.278445-04:00",
+  "linkUrl": "http://localhost:3200/r/3df428d9-1f61-4912-9bde-1dc69a0add7e",
+  "qcPassed": true,
+  "gates": [
+    {
+      "gate": "copy",
+      "status": "passed",
+      "summary": "passed (0 flags)"
+    },
+    {
+      "gate": "claims",
+      "status": "skipped",
+      "summary": "no claims to verify"
+    },
+    {
+      "gate": "visual",
+      "status": "skipped",
+      "summary": "no media here — measured after render, by review_media"
+    },
+    {
+      "gate": "audio",
+      "status": "skipped",
+      "summary": "no voiceover here — measured after synthesis, by tts"
+    },
+    {
+      "gate": "coherence",
+      "status": "skipped",
+      "summary": "nothing rendered to compare against the post"
+    },
+    {
+      "gate": "destination",
+      "status": "skipped",
+      "summary": "no link"
+    },
+    {
+      "gate": "proof",
+      "status": "skipped",
+      "summary": "no quoted testimonial"
+    }
+  ],
+  "claims": [],
+  "generation": {
+    "model": "claude-sonnet-5",
+    "costUsd": 0.022359,
+    "attempts": 1,
+    "inputTokens": 1653,
+    "outputTokens": 1160,
+    "promptVersion": "copywriter.v1",
+    "failed_because": "No enabled Remotion template could render this item."
+  }
+}

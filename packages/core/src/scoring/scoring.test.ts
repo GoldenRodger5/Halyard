@@ -18,12 +18,14 @@ import {
   ENGAGEMENT_WEIGHTS,
   LOW_CONFIDENCE_IMPRESSIONS,
   SCORE_WEIGHTS,
+  activatedPerThousand,
   engagementRate,
   rawEngagementRate,
   findOpportunities,
   percentileRank,
   repostEligibleAt,
   scorePosts,
+  unmeasured,
 } from './performance.js';
 
 describe('UTM stamping — v1 §9', () => {
@@ -128,7 +130,16 @@ describe('performance scoring — v1 §9', () => {
   it('redistributes the weights and says so when no attribution exists', () => {
     const [score] = scorePosts([{ contentItemId: 'a', impressions: 5000, likes: 200 }]);
     expect(score!.notes).toMatch(/No attribution data/);
-    expect(score!.conversionScore).toBe(0.5);
+    /**
+     * This asserted `0.5`, which was the value `percentileRank(0, [0])`
+     * happened to produce — a percentile computed over nothing. It documented
+     * the synthetic middle rather than an invariant, and §106 replaced it with
+     * null: unmeasured is not zero and it is not the median either.
+     *
+     * The invariant this test is actually about — the weights redistribute and
+     * the note explains it — is the assertion above and is unchanged.
+     */
+    expect(score!.conversionScore).toBeNull();
   });
 
   it('computes engagement as a rate, not a count', () => {
@@ -299,5 +310,125 @@ describe('cold start — milestone 51', () => {
     expect(verdict.allowed).toBe(false);
     expect(verdict.reason).toContain('there are 3 and 40');
     expect(canMakeClaim(40, 40, 20).allowed).toBe(true);
+  });
+});
+
+/**
+ * Unmeasured is not zero.
+ *
+ * `scorePerformance` read `Number(row.impressions ?? 0)` over a `left join
+ * lateral`, so a published post whose metrics had never been collected arrived
+ * here as a measured zero. It earned a score, a percentile and a row in
+ * `performance_scores`, indistinguishable from a post the platform had genuinely
+ * reported nothing for.
+ *
+ * The damage is not one wrong score. Percentiles are computed over the cohort,
+ * so every fabricated zero moved the score of every measured post beside it.
+ */
+describe('scoring refuses to score what was never measured', () => {
+  it('omits an unmeasured post entirely rather than scoring it zero', () => {
+    const scores = scorePosts([
+      { contentItemId: 'measured', impressions: 5000, likes: 200 },
+      { contentItemId: 'never-collected', impressions: null },
+    ]);
+    expect(scores.map((s) => s.contentItemId)).toEqual(['measured']);
+  });
+
+  it('does not let an unmeasured post move a measured one’s percentile', () => {
+    // The assertion that matters. A fabricated zero at the bottom of the cohort
+    // lifts everything above it, so one uncollected post silently inflates
+    // every real score in the same run.
+    const alone = scorePosts([
+      { contentItemId: 'a', impressions: 5000, likes: 100 },
+      { contentItemId: 'b', impressions: 1000, likes: 10 },
+    ]);
+    const withGhost = scorePosts([
+      { contentItemId: 'a', impressions: 5000, likes: 100 },
+      { contentItemId: 'b', impressions: 1000, likes: 10 },
+      { contentItemId: 'ghost', impressions: null },
+    ]);
+    expect(withGhost.map((s) => s.score)).toEqual(alone.map((s) => s.score));
+  });
+
+  it('still scores a genuine zero, which is a real observation', () => {
+    // `0` means the platform reported zero. That is a measurement and it counts.
+    const [score] = scorePosts([{ contentItemId: 'flop', impressions: 0, likes: 0 }]);
+    expect(score).toBeDefined();
+    expect(score!.lowConfidence).toBe(true);
+  });
+
+  it('names what it refused to score', () => {
+    // "Nothing published" and "published but never collected" are different
+    // problems, and an empty scores table looks identical in both.
+    expect(
+      unmeasured([
+        { contentItemId: 'a', impressions: 10 },
+        { contentItemId: 'b', impressions: null },
+        { contentItemId: 'c', impressions: null },
+      ]),
+    ).toEqual(['b', 'c']);
+  });
+
+  it('returns nothing at all when nothing has been measured', () => {
+    expect(scorePosts([{ contentItemId: 'a', impressions: null }])).toEqual([]);
+  });
+
+  it('treats an unmeasured post as a zero rate rather than dividing by null', () => {
+    const input = { contentItemId: 'a', impressions: null, likes: 10, activatedUsers: 3 };
+    expect(engagementRate(input)).toBe(0);
+    expect(activatedPerThousand(input)).toBe(0);
+  });
+});
+
+/**
+ * A percentile computed over nothing is not a measurement.
+ *
+ * With no attribution anywhere, `activatedPerThousand` is 0 for every post and
+ * `percentileRank(0, [0,0,0])` is **0.5** — ranking zeros against zeros produces
+ * a confident-looking middle. Stored, that made `conversion_score`
+ * indistinguishable from a post that genuinely converted at the cohort median.
+ *
+ * Harmless while nothing has attribution: the weight is zero and every value is
+ * identical. It stops being harmless the moment attribution is partial, because
+ * §86 averages `conversion_score` per category into the idea scorer — and an
+ * average mixing real percentiles with synthetic 0.5s is a number with no
+ * meaning presented as evidence.
+ */
+describe('conversion score with no attribution', () => {
+  it('is null, not the synthetic middle', () => {
+    const scores = scorePosts([
+      { contentItemId: 'a', impressions: 5000, likes: 100 },
+      { contentItemId: 'b', impressions: 1000, likes: 10 },
+    ]);
+    for (const score of scores) expect(score.conversionScore).toBeNull();
+  });
+
+  it('still says why in the notes rather than only in the null', () => {
+    const [score] = scorePosts([{ contentItemId: 'a', impressions: 5000, likes: 100 }]);
+    expect(score!.notes).toMatch(/No attribution data/);
+  });
+
+  it('does not let the null change the overall score', () => {
+    // The weights already redistributed away from conversion; nulling the
+    // stored value must not move the number the operator sees.
+    const [score] = scorePosts([{ contentItemId: 'a', impressions: 5000, likes: 200 }]);
+    expect(score!.score).toBeGreaterThan(0);
+    expect(Number.isFinite(score!.score)).toBe(true);
+  });
+
+  it('becomes a real percentile as soon as any post has attribution', () => {
+    /**
+     * The case that made this worth fixing. One post with attribution means the
+     * cohort can be ranked, so every score in it is a genuine percentile —
+     * including the zeros, which are now *measured* zeros.
+     */
+    const scores = scorePosts([
+      { contentItemId: 'converted', impressions: 1000, activatedUsers: 5 },
+      { contentItemId: 'did-not', impressions: 1000, activatedUsers: 0 },
+    ]);
+    for (const score of scores) expect(score.conversionScore).not.toBeNull();
+    const converted = scores.find((s) => s.contentItemId === 'converted')!;
+    const flat = scores.find((s) => s.contentItemId === 'did-not')!;
+    expect(converted.conversionScore!).toBeGreaterThan(flat.conversionScore!);
   });
 });

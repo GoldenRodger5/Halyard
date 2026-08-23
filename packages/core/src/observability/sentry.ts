@@ -64,9 +64,32 @@ const SENSITIVE_VALUE: Array<{ pattern: RegExp; label: string }> = [
   { pattern: /\bsk-[A-Za-z0-9-]{20,}\b/g, label: '[redacted api key]' },
 ];
 
+/**
+ * Credentials carried in a URL query string.
+ *
+ * `SENSITIVE_KEY` only inspects **object keys**, and the patterns above only
+ * match credentials with a recognisable shape. Neither sees
+ * `?access_token=EAAGm0PX…`, and the Instagram adapter puts exactly that in the
+ * URL of every GET it makes — Meta's Graph API takes the token as a query
+ * parameter rather than a header.
+ *
+ * That token is a long opaque string with no distinguishing prefix, so nothing
+ * above matches it. Any path that put such a URL into a log line or an error
+ * chain would have sent a live credential to Sentry, in the clear.
+ *
+ * Matched by parameter *name* rather than by value shape, because the value is
+ * by definition unrecognisable. The name list is deliberately broad: over-
+ * redacting a log costs a debugging detail, and under-redacting one costs a
+ * credential.
+ */
+const SENSITIVE_QUERY_PARAM =
+  /([?&](?:access_token|refresh_token|id_token|token|client_secret|secret|code|code_verifier|api[-_]?key|apikey|signature|sig|password|passwd|auth|session)=)[^&\s"'<>)\]]+/gi;
+
 export function scrubString(value: string): string {
   let out = value;
   for (const { pattern, label } of SENSITIVE_VALUE) out = out.replace(pattern, label);
+  // The parameter name is kept so a reader can still tell *what* was removed.
+  out = out.replace(SENSITIVE_QUERY_PARAM, '$1[redacted]');
   return out;
 }
 
