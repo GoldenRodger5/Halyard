@@ -20,7 +20,7 @@ packages/render Satori image templates + Remotion compositions.
 packages/ui    Shared components.
 ```
 
-**Data flow.** Everything asynchronous goes through one table: `jobs`. The web tier inserts a job; the worker polls, claims it with a lock, and runs a handler from `apps/worker/src/handlers/index.ts` (`HANDLERS` map, 26 job kinds). Nothing else coordinates — no queue service, no events, no supervisor.
+**Data flow.** Everything asynchronous goes through one table: `jobs`. The web tier inserts a job; the worker polls, claims it with a lock, and runs a handler from `apps/worker/src/handlers/index.ts` (`HANDLERS` map, 29 job kinds). Nothing else coordinates — no queue service, no events, no supervisor.
 
 ```
 idea → generate → render/tts → review gates → queue (human approves) → publish → collect metrics → score

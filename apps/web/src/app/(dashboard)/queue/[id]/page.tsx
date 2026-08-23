@@ -18,7 +18,8 @@ import {
 } from '@halyard/core';
 import { AssetPicker } from '@/components/AssetPicker';
 import { ManualPublish } from '@/components/ManualPublish';
-import { getItemArtifact, getProducts, getQueueItem } from '@/lib/queries';
+import { getItemArtifact,
+  getCorrectionHistory, getProducts, getQueueItem } from '@/lib/queries';
 import { formatInOperatorTz } from '@/lib/format';
 import { editItem, markManuallyPublished, publishNow, rescheduleItem } from '../actions';
 import { resetDestination, setDestination } from '../destinationActions';
@@ -39,6 +40,16 @@ export default async function QueueItemPage({ params }: { params: Promise<{ id: 
   } | null;
 
   const gates = item.qc_results?.gates ?? [];
+
+  /*
+   * §165. What Halyard tried before asking anyone to look at this.
+   *
+   * Empty for an item generated before the correction loop existed, and for one
+   * that has not been reviewed yet — both render as nothing rather than as an
+   * empty box, because "no corrections were needed" and "the loop never ran"
+   * are different things and only the history can tell them apart.
+   */
+  const iterations = await getCorrectionHistory(id);
 
   // The coherence gate's findings and the frame descriptions they came from.
   // A rule name is not an explanation; the evidence is.
@@ -331,6 +342,77 @@ export default async function QueueItemPage({ params }: { params: Promise<{ id: 
         </div>
 
         <aside className="space-y-6">
+          {/* ── what Halyard tried before asking ─────────────────────────
+              §165. The operator's first question about a corrected item is not
+              "did it pass" — the status says that — but "what was wrong with
+              it, and what changed". One line per iteration, in order, with the
+              defect that drove each correction. */}
+          {iterations.length > 0 ? (
+            <Card className="p-4">
+              <SectionTitle>Correction history</SectionTitle>
+              <ol className="space-y-3">
+                {iterations.map((it) => (
+                  <li key={it.iteration} className="text-sm">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span className="font-mono text-xs text-muted">
+                        Version {it.iteration}
+                      </span>
+                      <span
+                        className={
+                          it.outcome === 'accepted'
+                            ? 'font-mono text-xs text-good'
+                            : it.outcome === 'corrected'
+                              ? 'font-mono text-xs text-muted'
+                              : 'font-mono text-xs text-danger'
+                        }
+                      >
+                        {it.outcome.replace(/_/g, ' ')}
+                      </span>
+                    </div>
+
+                    {/* The defects, which are the "because X" half. */}
+                    {it.defects.length > 0 ? (
+                      <ul className="mt-1 space-y-0.5">
+                        {it.defects.slice(0, 3).map((d) => (
+                          <li key={d.rule} className="text-xs text-muted">
+                            <span className="font-mono">{d.rule}</span> — {d.observation}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+
+                    {/* The correction, which is the "attempted Y" half. */}
+                    {it.action ? (
+                      <p className="mt-1 text-xs text-ink">
+                        → {it.action.replace(/_/g, ' ')}
+                        {it.changed.length > 0 ? ` (${it.changed.join(', ')})` : ''}
+                      </p>
+                    ) : null}
+
+                    {it.regressions.length > 0 ? (
+                      <p className="mt-1 text-xs text-danger">
+                        {it.regressions.length} regression(s): {it.regressions[0]!.message}
+                      </p>
+                    ) : null}
+
+                    {Number(it.cost_usd) > 0 ? (
+                      <p className="mt-0.5 font-mono text-[11px] text-muted">
+                        ${Number(it.cost_usd).toFixed(4)}
+                      </p>
+                    ) : null}
+                  </li>
+                ))}
+              </ol>
+
+              <p className="mt-3 border-t border-line pt-2 font-mono text-[11px] text-muted">
+                total $
+                {iterations
+                  .reduce((sum, it) => sum + Number(it.cost_usd), 0)
+                  .toFixed(4)}
+              </p>
+            </Card>
+          ) : null}
+
           <Card className="p-4">
             <SectionTitle>QC</SectionTitle>
             <div className="space-y-1.5">

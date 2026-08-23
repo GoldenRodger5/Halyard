@@ -18,43 +18,97 @@ export interface NavCounts {
   storiesWaiting?: number;
 }
 
-const NAV: Array<{ href: string; label: string; group: 'work' | 'plan' | 'config' }> = [
-  { href: '/', label: 'Dashboard', group: 'work' },
-  { href: '/queue', label: 'Queue', group: 'work' },
-  { href: '/take', label: 'Daily Take', group: 'work' },
-  { href: '/compose', label: 'Compose', group: 'work' },
-  { href: '/inbox', label: 'Inbox', group: 'work' },
-  { href: '/launch', label: 'First two weeks', group: 'plan' },
-  { href: '/calendar', label: 'Calendar', group: 'plan' },
-  { href: '/ideas', label: 'Ideas', group: 'plan' },
-  { href: '/swipe', label: 'Swipe file', group: 'plan' },
-  { href: '/hooks', label: 'Hooks', group: 'plan' },
-  { href: '/series', label: 'Series', group: 'plan' },
-  { href: '/social-proof', label: 'Social proof', group: 'plan' },
-  { href: '/finds', label: 'Finds', group: 'plan' },
-  { href: '/library', label: 'Library', group: 'plan' },
-  { href: '/assets', label: 'Assets', group: 'plan' },
-  { href: '/campaigns', label: 'Campaigns', group: 'plan' },
-  { href: '/analytics', label: 'Analytics', group: 'plan' },
-  { href: '/brain', label: 'Product Brain', group: 'plan' },
-  { href: '/products', label: 'Products', group: 'config' },
-  { href: '/accounts', label: 'Accounts', group: 'config' },
-  { href: '/setup-kit', label: 'Setup kit', group: 'config' },
-  { href: '/templates', label: 'Templates', group: 'config' },
-  { href: '/submissions', label: 'Submissions', group: 'config' },
-  { href: '/settings/readiness', label: 'Readiness', group: 'config' },
-  { href: '/settings/pronunciation', label: 'Pronunciation', group: 'config' },
-  { href: '/first-30-days', label: 'First 30 days', group: 'config' },
-  { href: '/settings', label: 'Settings', group: 'config' },
-  { href: '/agents', label: 'Agents', group: 'config' },
-  { href: '/system', label: 'System', group: 'config' },
+/**
+ * Seven destinations, then everything else.
+ *
+ * §172. The sidebar carried twenty-nine links across three groups named after
+ * Halyard's internals — Swipe file, Hooks, Series, Social proof, Finds,
+ * Readiness, Pronunciation, Agents, System. Each is a real capability and none
+ * of them is a question a person arrives with.
+ *
+ * The primary list is organised around what the operator wants to know, one
+ * question per destination:
+ *
+ *   Home       what needs me?
+ *   Create     what do I want to publish?
+ *   Content    what am I working on?
+ *   Calendar   what goes out, and when?
+ *   Inbox      who needs a reply?
+ *   Analytics  how is it doing?
+ *   Accounts   what is connected?
+ *
+ * **Nothing was removed.** Every previous destination is still one click away
+ * under More, grouped by what it is for. Progressive disclosure, not feature
+ * reduction — the capability matrix in `docs/PRODUCT_UX.md` maps old location to
+ * new for all of them.
+ */
+export const NAV: Array<{ href: string; label: string }> = [
+  { href: '/', label: 'Home' },
+  { href: '/compose', label: 'Create' },
+  { href: '/queue', label: 'Content' },
+  { href: '/calendar', label: 'Calendar' },
+  { href: '/inbox', label: 'Inbox' },
+  { href: '/analytics', label: 'Analytics' },
+  { href: '/accounts', label: 'Accounts' },
+];
+
+/**
+ * The specialised tools, kept and grouped rather than hidden.
+ *
+ * Collapsed by default because none of them answers a first-visit question; a
+ * heading says what each group is for, so finding one is a guess about purpose
+ * rather than a memory of a name.
+ */
+export const MORE: Array<{ heading: string; items: Array<{ href: string; label: string }> }> = [
+  {
+    heading: 'Planning',
+    items: [
+      { href: '/launch', label: 'First two weeks' },
+      { href: '/ideas', label: 'Ideas' },
+      { href: '/hooks', label: 'Hooks' },
+      { href: '/swipe', label: 'Swipe file' },
+      { href: '/series', label: 'Series' },
+      { href: '/campaigns', label: 'Campaigns' },
+      { href: '/finds', label: 'Finds' },
+      { href: '/take', label: 'Daily Take' },
+    ],
+  },
+  {
+    heading: 'Library',
+    items: [
+      { href: '/library', label: 'Library' },
+      { href: '/assets', label: 'Assets' },
+      { href: '/templates', label: 'Templates' },
+      { href: '/social-proof', label: 'Social proof' },
+      { href: '/submissions', label: 'Submissions' },
+    ],
+  },
+  {
+    heading: 'Your product',
+    items: [
+      { href: '/brain', label: 'Product Brain' },
+      { href: '/products', label: 'Products' },
+      { href: '/setup-kit', label: 'Setup kit' },
+      { href: '/first-30-days', label: 'First 30 days' },
+    ],
+  },
+  {
+    heading: 'Advanced',
+    items: [
+      { href: '/settings', label: 'Settings' },
+      { href: '/settings/readiness', label: 'Readiness' },
+      { href: '/settings/pronunciation', label: 'Pronunciation' },
+      { href: '/agents', label: 'Agents' },
+      { href: '/system', label: 'System' },
+    ],
+  },
 ];
 
 const MOBILE_TABS = [
-  { href: '/queue', label: 'Queue' },
+  { href: '/', label: 'Home' },
+  { href: '/queue', label: 'Content' },
   { href: '/calendar', label: 'Calendar' },
-  { href: '/library', label: 'Library' },
-  { href: '/settings', label: 'More' },
+  { href: '/inbox', label: 'Inbox' },
 ];
 
 export interface ShellProduct {
@@ -87,6 +141,11 @@ export function Shell({
     return 0;
   };
 
+  /* Whether the current page lives under More, so the disclosure opens itself. */
+  const inMore = MORE.some((section) =>
+    section.items.some((item) => pathname === item.href),
+  );
+
   return (
     <div className="min-h-dvh md:flex">
       <aside className="hidden w-60 shrink-0 border-r border-line bg-surface md:block">
@@ -96,61 +155,125 @@ export function Shell({
               Halyard
             </Link>
 
-            {products.length > 1 ? (
-              <div className="mt-2 flex flex-wrap gap-1">
-                {products.map((product) => (
-                  <Link
-                    key={product.id}
-                    href={`${pathname}?product=${product.id}`}
-                    className={cx(
-                      'rounded-md px-1.5 py-0.5 text-[11px]',
-                      product.id === currentProductId
-                        ? 'bg-primary/10 font-medium text-primary'
-                        : 'text-muted hover:bg-sunk hover:text-ink',
-                    )}
-                    title={product.kind === 'personal' ? 'A persona, not a product' : undefined}
-                  >
-                    {product.name}
-                  </Link>
-                ))}
-              </div>
-            ) : (
-              <p className="mt-1 text-xs text-muted">{productName}</p>
-            )}
+            {/*
+              The product switcher, and the way to manage products.
+
+              §172. Two reported problems, one cause. Clicking a product did
+              nothing, because the chip wrote `?product=` into the URL and the
+              layout never read it — see `app/api/product/route.ts`. And there was
+              no way to reach products from here at all: `/products`, `/products/new`
+              and `/products/[id]` all existed, buried in a sidebar group called
+              "Plan", while the operator was clicking the product name looking for
+              them. Capability is not the same as reachability.
+
+              The list renders even with one product, because "add another" is a
+              thing you want precisely when you only have one.
+            */}
+            <div className="mt-2 flex flex-wrap items-center gap-1">
+              {products.map((product) => (
+                <Link
+                  key={product.id}
+                  href={`/api/product?id=${product.id}&next=${encodeURIComponent(pathname)}`}
+                  className={cx(
+                    'rounded-md px-1.5 py-0.5 text-[11px]',
+                    product.id === currentProductId
+                      ? 'bg-primary/10 font-medium text-primary'
+                      : 'text-muted hover:bg-sunk hover:text-ink',
+                  )}
+                  title={product.kind === 'personal' ? 'A persona, not a product' : undefined}
+                >
+                  {product.name}
+                </Link>
+              ))}
+              {products.length === 0 ? (
+                <span className="px-1.5 py-0.5 text-[11px] text-muted">{productName}</span>
+              ) : null}
+              <Link
+                href="/products"
+                className="rounded-md px-1.5 py-0.5 text-[11px] text-muted hover:bg-sunk hover:text-ink"
+                title="View, add and configure products"
+              >
+                + Manage
+              </Link>
+            </div>
           </div>
 
-          <nav className="flex-1 space-y-6 overflow-y-auto px-3 pb-6">
-            {(['work', 'plan', 'config'] as const).map((group) => (
-              <div key={group}>
-                <p className="px-2 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
-                  {group === 'work' ? 'Today' : group === 'plan' ? 'Plan' : 'Configure'}
-                </p>
-                {NAV.filter((item) => item.group === group).map((item) => {
-                  const active =
-                    item.href === '/' ? pathname === '/' : pathname.startsWith(item.href);
-                  const count = badgeFor(item.href);
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className={cx(
-                        'flex items-center justify-between rounded-lg px-2.5 py-1.5 text-sm transition-colors',
-                        active
-                          ? 'bg-primary/10 font-medium text-primary'
-                          : 'text-ink/80 hover:bg-sunk hover:text-ink',
-                      )}
-                    >
-                      <span>{item.label}</span>
-                      {count > 0 ? (
-                        <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold text-white">
-                          {count}
-                        </span>
-                      ) : null}
-                    </Link>
-                  );
-                })}
+          <nav className="flex-1 overflow-y-auto px-3 pb-6">
+            {NAV.map((item) => {
+              const active =
+                item.href === '/' ? pathname === '/' : pathname.startsWith(item.href);
+              const count = badgeFor(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cx(
+                    'flex items-center justify-between rounded-lg px-2.5 py-1.5 text-sm transition-colors',
+                    active
+                      ? 'bg-primary/10 font-medium text-primary'
+                      : 'text-ink/80 hover:bg-sunk hover:text-ink',
+                  )}
+                >
+                  <span>{item.label}</span>
+                  {count > 0 ? (
+                    <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                      {count}
+                    </span>
+                  ) : null}
+                </Link>
+              );
+            })}
+
+            {/*
+              A native <details>, not a client component. The shell renders on the
+              server, and a disclosure triangle is one of the few interactions the
+              platform already has — reaching for `useState` here would make the
+              whole sidebar client-side to animate a caret.
+
+              It opens itself when the current page lives inside it, so arriving by
+              link or reload never shows the active page as collapsed away.
+            */}
+            <details className="group mt-4" open={inMore}>
+              <summary className="flex cursor-pointer list-none items-center justify-between rounded-lg px-2.5 py-1.5 text-sm text-muted transition-colors hover:bg-sunk hover:text-ink">
+                <span>More</span>
+                <span className="text-[10px] text-muted transition-transform group-open:rotate-90">
+                  &#9654;
+                </span>
+              </summary>
+
+              <div className="mt-1 space-y-3 border-l border-line pl-2">
+                {MORE.map((section) => (
+                  <div key={section.heading}>
+                    <p className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
+                      {section.heading}
+                    </p>
+                    {section.items.map((item) => {
+                      const active = pathname === item.href;
+                      const count = badgeFor(item.href);
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          className={cx(
+                            'flex items-center justify-between rounded-lg px-2.5 py-1 text-[13px] transition-colors',
+                            active
+                              ? 'bg-primary/10 font-medium text-primary'
+                              : 'text-ink/70 hover:bg-sunk hover:text-ink',
+                          )}
+                        >
+                          <span>{item.label}</span>
+                          {count > 0 ? (
+                            <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                              {count}
+                            </span>
+                          ) : null}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                ))}
               </div>
-            ))}
+            </details>
           </nav>
 
           {killSwitchOn ? (

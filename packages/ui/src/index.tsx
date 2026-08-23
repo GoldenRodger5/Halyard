@@ -39,10 +39,13 @@ export function Card({
   className,
   as: Tag = 'div',
   scrollLabel,
+  id,
 }: {
   children: ReactNode;
   className?: string;
   as?: 'div' | 'section' | 'article' | 'li';
+  /** Anchor target, so another page can deep-link to this card. */
+  id?: string;
   /**
    * Set on a card that scrolls its own content (`overflow-x-auto`), naming what
    * is inside it.
@@ -62,6 +65,7 @@ export function Card({
   const scrolls = scrollLabel !== undefined;
   return (
     <Tag
+      id={id}
       className={cx(
         'rounded-xl border border-line bg-surface shadow-[0_1px_2px_rgba(42,35,32,0.04)]',
         className,

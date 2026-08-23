@@ -1,5 +1,6 @@
-import { headers } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { PRODUCT_COOKIE } from '@/lib/product';
 import { Shell } from '@/components/Shell';
 import { databaseReachable } from '@/lib/db';
 import { getCurrentProduct, getNavCounts, getProducts, getSettings } from '@/lib/queries';
@@ -53,7 +54,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     getNavCounts(),
     getSettings(),
     getProducts(),
-    getCurrentProduct(),
+    getCurrentProduct((await cookies()).get(PRODUCT_COOKIE)?.value),
   ]);
 
   return (

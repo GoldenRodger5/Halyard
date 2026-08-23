@@ -24,9 +24,34 @@ export function pool(): pg.Pool {
         'DATABASE_URL is not set. Copy .env.example to apps/web/.env.local and point it at your database.',
       );
     }
+    /*
+     * §172. Sized for serverless, not for a long-lived server.
+     *
+     * Production failed with `(EMAXCONNSESSION) max clients reached in session
+     * mode`. Every Vercel lambda instance builds its own pool, so the ceiling
+     * is `max × concurrent instances` — at `max: 5` a handful of simultaneous
+     * requests exhausts Supabase's session-mode client limit and the whole app
+     * reports "Halyard cannot reach its database".
+     *
+     * Two connections is the right number for a request-scoped runtime: the
+     * page renders, its queries run, the instance freezes. A short idle timeout
+     * hands the connection back rather than holding it across the freeze, and
+     * `allowExitOnIdle` lets an instance shut down instead of being kept alive
+     * by an open socket.
+     *
+     * This is mitigation, not the cure. The cure is the **transaction** pooler
+     * (port 6543), which multiplexes and is what Supabase documents for
+     * serverless — see `docs/PLATFORM_COVERAGE.md` §18. The web tier is safe to
+     * move there: it holds no advisory locks, issues no `SET`, and runs no
+     * multi-statement transactions. The **worker must stay on session mode**,
+     * because §165's correction claim is a session-scoped advisory lock.
+     */
     globalThis.__halyardPool = new pg.Pool({
       connectionString,
-      max: 5,
+      max: 2,
+      idleTimeoutMillis: 10_000,
+      connectionTimeoutMillis: 10_000,
+      allowExitOnIdle: true,
       application_name: 'halyard-web',
     });
   }

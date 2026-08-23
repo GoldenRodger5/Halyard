@@ -354,6 +354,40 @@ export async function getItemArtifact(id: string): Promise<unknown> {
   return row;
 }
 
+/**
+ * The correction history for one item. §165.
+ *
+ * The data contract the operator view rests on: oldest first, one row per
+ * iteration, each carrying what it was judged to be, what was done about it and
+ * what that cost. The table is append-only, so this is a read of what actually
+ * happened rather than a reconstruction.
+ */
+export interface CorrectionIteration {
+  iteration: number;
+  parent_iteration: number | null;
+  gates: Array<{ gate: string; status: string; summary: string }>;
+  defects: Array<{ rule: string; severity: string; observation: string; rootCause: string }>;
+  action: string | null;
+  reason: string | null;
+  changed: string[];
+  invalidated: string[];
+  regressions: Array<{ kind: string; message: string }>;
+  cost_usd: string;
+  outcome: string;
+  created_at: string;
+}
+
+export async function getCorrectionHistory(id: string): Promise<CorrectionIteration[]> {
+  return query<CorrectionIteration>(
+    `select iteration, parent_iteration, gates, defects, action, reason,
+            changed, invalidated, regressions, cost_usd, outcome, created_at
+       from content_iterations
+      where content_item_id = $1
+      order by iteration`,
+    [id],
+  );
+}
+
 export interface IdeaRow {
   id: string;
   title: string;

@@ -1,22 +1,41 @@
 # Halyard
 
-An AI-assisted social content system. It generates content from **real product
-output**, renders it to images and video, holds it for one operator's approval,
-publishes through official platform APIs, and measures which content produces
-activated users.
+An autonomous product-marketing system for builders. Connect a product and
+Halyard learns what it does, writes and renders content grounded in that
+product's own output, gates it, corrects its own mistakes, and holds the result
+for one operator's approval.
 
-Serves RecipeFix now, Kinolog later, without rework.
+It starts from the **product**, not from a brief someone writes about their
+business. That is the difference worth knowing: most tools ask you to describe
+your company, and every prompt downstream inherits whatever you typed. Halyard
+reads the product — website, store listing, code, UI, captures, and an MCP
+server if there is one — and stores facts that cite the evidence behind them.
 
-It is not a scheduler with an LLM attached. Three things make it different:
+Four things follow from that:
 
-1. **Content is built from real product artifacts.** Halyard calls RecipeFix's
-   MCP server for an actual recipe adaptation and builds content from that JSON.
-   Never from imagination.
-2. **Four QC gates run before anything reaches the queue.** Copy lint, claim
-   verification against the artifact, visual QC, audio QC. Content that fails
-   never appears.
-3. **A human approves everything.** No auto-posting of unreviewed content, and
-   no `reply()` method anywhere on the adapter interface.
+1. **Content is built from real product artifacts.** A connector returns actual
+   product output and the copy is written from that JSON, never from
+   imagination. MCP makes this richer where a product offers one; it is
+   optional, and a product with only a website works.
+2. **Eight QC gates run before anything reaches the queue** — copy, claims,
+   destination, proof, audio, visual, retention and coherence. A claim is
+   verified against the artifact it came from, and media is reviewed by a
+   different provider than the one that wrote it. A skipped gate is not a
+   passed gate.
+3. **Halyard corrects its own work.** A failing verdict is diagnosed, mapped to
+   the smallest correction that addresses it, and rebuilt — bounded at three
+   attempts and a spend ceiling, with an append-only history of what changed
+   and why.
+4. **A human approves everything.** Autonomous up to the point of publication
+   and never past it. No auto-posting, and no `reply()` method anywhere on the
+   adapter interface.
+
+Seven platform adapters: X, Instagram, TikTok, YouTube, Pinterest, Threads and
+Bluesky. Product-agnostic throughout — RecipeFix is the product it runs for
+today, not an assumption in the architecture.
+
+Positioning, and what is genuinely built versus intended, is in
+[`docs/POSITIONING.md`](docs/POSITIONING.md).
 
 ---
 

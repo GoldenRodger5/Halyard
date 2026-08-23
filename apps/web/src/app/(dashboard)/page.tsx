@@ -1,8 +1,6 @@
 import Link from 'next/link';
 import {
   Badge,
-  CAPABILITY_LABEL,
-  CAPABILITY_TONE,
   Card,
   EmptyState,
   MiniBar,
@@ -12,6 +10,7 @@ import {
   SectionTitle,
   StatChip,
 } from '@halyard/ui';
+import { accountBadge } from '@/lib/accountBadge';
 import { findOpportunities, learningStatus } from '@halyard/core';
 import {
   getAccounts,
@@ -215,23 +214,42 @@ export default async function DashboardPage() {
                 . Reviews are wall-clock time you cannot compress, so start them on day two.
               </div>
             ) : (
-              accounts.map((account) => (
-                <div key={account.id} className="flex flex-wrap items-center gap-3 px-5 py-3">
+              accounts.map((account) => {
+                const badge = accountBadge(account);
+                return (
+                /*
+                 * §172. A row that reports a problem is the row a person clicks to
+                 * fix it. These were plain divs: the badge said NOT CONNECTED, the
+                 * cursor stayed an arrow, and clicking did nothing — the connect
+                 * button was on another page that the row never mentioned.
+                 *
+                 * The anchor lands on that platform's own card, not the top of a
+                 * page holding seven of them.
+                 */
+                <Link
+                  key={account.id}
+                  href={`/accounts#${account.platform}`}
+                  className="flex flex-wrap items-center gap-3 px-5 py-3 transition-colors hover:bg-sunk"
+                >
                   <PlatformDot platform={account.platform} />
                   <span className="w-24 text-sm font-medium text-ink">
                     {PLATFORM_LABELS[account.platform] ?? account.platform}
                   </span>
                   <span className="text-sm text-muted">{account.handle}</span>
-                  <Badge tone={CAPABILITY_TONE[account.capability_state] ?? 'neutral'}>
-                    {CAPABILITY_LABEL[account.capability_state] ?? account.capability_state}
-                  </Badge>
+                  <span title={badge.explanation}>
+                    <Badge tone={badge.tone}>{badge.label}</Badge>
+                  </span>
                   {account.capability_detail ? (
                     <span className="w-full text-xs leading-relaxed text-muted md:w-auto md:flex-1">
                       {account.capability_detail}
                     </span>
                   ) : null}
-                </div>
-              ))
+                  <span className="ml-auto text-xs text-muted" aria-hidden>
+                    &rsaquo;
+                  </span>
+                </Link>
+                );
+              })
             )}
           </Card>
 

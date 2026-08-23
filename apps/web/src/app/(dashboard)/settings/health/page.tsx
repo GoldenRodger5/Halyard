@@ -1,13 +1,12 @@
 import {
   Badge,
-  CAPABILITY_LABEL,
-  CAPABILITY_TONE,
   Card,
   PLATFORM_LABELS,
   PageHeader,
   PlatformDot,
   SectionTitle,
 } from '@halyard/ui';
+import { accountBadge } from '@/lib/accountBadge';
 import { allFlows } from '@halyard/core';
 import { getHealth, getProducts } from '@/lib/queries';
 import { formatInOperatorTz, formatRelative } from '@/lib/format';
@@ -78,21 +77,24 @@ export default async function HealthPage() {
             {health.accounts.length === 0 ? (
               <p className="p-4 text-sm text-muted">No accounts connected.</p>
             ) : (
-              health.accounts.map((account) => (
+              health.accounts.map((account) => {
+                const badge = accountBadge(account);
+                return (
                 <div key={account.id} className="flex flex-wrap items-center gap-2 px-4 py-3 text-sm">
                   <PlatformDot platform={account.platform} />
                   <span className="w-24 text-ink">{PLATFORM_LABELS[account.platform]}</span>
                   <span className="text-muted">{account.persona}</span>
-                  <Badge tone={CAPABILITY_TONE[account.capability_state] ?? 'neutral'}>
-                    {CAPABILITY_LABEL[account.capability_state]}
-                  </Badge>
+                  <span title={badge.explanation}>
+                    <Badge tone={badge.tone}>{badge.label}</Badge>
+                  </span>
                   <span className="ml-auto text-xs text-muted">
                     {account.token_expires_at
                       ? `expires ${formatInOperatorTz(account.token_expires_at, timeZone, 'd MMM HH:mm')}`
                       : 'no token'}
                   </span>
                 </div>
-              ))
+                );
+              })
             )}
           </Card>
 
