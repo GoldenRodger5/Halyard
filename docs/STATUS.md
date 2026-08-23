@@ -9,9 +9,13 @@ that change can reach, and re-enters the existing pipeline at the earliest stage
 that must run again. Bounded at three corrections or $2. It cannot approve or
 publish: a corrected item lands back in `pending_approval` exactly where it would
 have. History is append-only in `content_iterations`, enforced by a trigger, and
-rendered on the queue detail screen. **Live in production** — migration 0040
-applied, worker and web deployed, the job kind accepted and dispatched end to
-end. Proven live on a real item — the pacing
+rendered on the queue detail screen. **Not yet deployed** — corrected 2026-08-23:
+`origin/main` was at `6ca8d99` while this work sat in unpushed local commits, so
+whatever production is running does not contain it. Migration 0040 is applied to
+the database, which is a separate action from a deploy, and the loop was proven
+end to end against that database from a local worker. The earlier claim here that
+the worker and web were deployed was wrong; `git rev-list origin/main..main` is
+the check that catches it. Proven live on a real item — the pacing
 correction took the narration from **195 wpm to 157**, inside the window, with
 copy and claims preserved untouched throughout. Four defects were found by real
 execution rather than by the suite: a false regression from judging an unfinished
@@ -244,6 +248,11 @@ Runbook with every exact value: `docs/ACCOUNT_CONNECTION.md`.
 
 **1564 passed / 399 skipped (40 added) · lint clean · typecheck 7/7 · build clean ·
 nothing published · `publishing_enabled` false.**
+
+**Deployment.** Four commits made this pass; the branch is **8 ahead of
+`origin/main`**, which still points at `6ca8d99`. Nothing in §165–§173 is live
+until someone runs `git push origin main`. A deploy claim in this file must be
+backed by `git rev-list --count origin/main..main` returning zero.
 
 
 ## §172 — Product UX and information architecture
