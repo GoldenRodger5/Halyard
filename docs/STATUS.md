@@ -247,7 +247,18 @@ directly.
 - Three specs asserted against unscoped text and only ever passed on a small
   database; one would have clicked "Stop watching" on another term entirely.
 
-**Deployed and verified in production.** `/api/health` returns
+**Deployed and verified in production**, both tiers, by observation:
+
+- **Web** — commit `a885c99`, Vercel status `success`. `/api/health` →
+  `{"ok":true,"database":"reachable","pooler":"transaction"}`. `/accounts` still
+  redirects to `/signin`, which is the check that the development bypass is *not*
+  active in a deployed environment.
+- **Worker** — Railway logs `database.pooler mode="session" ok=true` at startup.
+  Note: `railway redeploy` rebuilds the previous *snapshot*, not the latest
+  commit; `railway up` is what actually ships current source. A redeploy looked
+  successful and shipped nothing new, and the missing log line is what caught it.
+
+`/api/health` returns
 `{"ok":true,"database":"reachable","pooler":"transaction"}`. The web tier is on
 the transaction pooler (6543) and EMAXCONNSESSION is resolved, not merely
 mitigated. The worker stays on session mode and now **refuses to start** on the

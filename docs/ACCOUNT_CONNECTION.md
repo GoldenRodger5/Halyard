@@ -136,5 +136,15 @@ and the only symptom would be duplicated correction spend. `assertPoolerFor` ref
 than run that.
 
 Supabase gives both URLs under **Project Settings → Database → Connection string**; they differ only
-in the port. Vercel returns `DATABASE_URL` as `[SENSITIVE]`, so the web tier's move to 6543 is an
-operator action.
+in the port.
+
+**Both are now set correctly and verified in production.** The web tier reports
+`{"pooler":"transaction"}` from `/api/health`; the worker logs
+`database.pooler mode="session" ok=true` at startup.
+
+The hazard is not theoretical: connecting on 6543 and taking the *same* advisory lock twice in a row
+succeeded both times. That is the failure §173 describes, observed — two workers would each believe
+they held the correction claim.
+
+**Deploying the worker:** `railway up`, not `railway redeploy`. Redeploy rebuilds the previous
+snapshot, so it can report success while shipping nothing new.
