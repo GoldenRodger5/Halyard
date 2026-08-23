@@ -12,7 +12,6 @@
  */
 import { mkdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import {
   FLOWS,
@@ -26,13 +25,7 @@ import type { Job, HandlerContext } from '../poller.js';
 import { runFlowChain, type FlowRunResult } from '../capture/runFlow.js';
 import { uploadAsset } from '../storage.js';
 import { cutFootage } from '../capture/cutFootage.js';
-import { invalidateBundle } from '../video.js';
-
-/** Where the Remotion bundle serves static assets from. */
-const RENDER_PUBLIC = path.join(
-  path.dirname(fileURLToPath(import.meta.url)),
-  '../../../../packages/render/public',
-);
+import { invalidateBundle, PUBLIC_DIR } from '../video.js';
 
 const CAPTURE_ROOT = process.env.HALYARD_CAPTURE_DIR ?? '/tmp/halyard-captures';
 
@@ -225,7 +218,7 @@ export async function captureHandler(job: Job, ctx: HandlerContext): Promise<voi
         const spans = footageSpansFor(result.steps as never[]);
         if (spans.length > 0) {
           const file = `capture/${result.flow}.mp4`;
-          const target = path.join(RENDER_PUBLIC, file);
+          const target = path.join(PUBLIC_DIR, file);
           await mkdir(path.dirname(target), { recursive: true });
           const cut = await cutFootage(result.videoPath, spans, target, {
             focusRegion: FLOWS[result.flow as FlowId]?.focusRegion,

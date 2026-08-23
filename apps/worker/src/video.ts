@@ -24,8 +24,14 @@ const RENDER_PACKAGE = path.resolve(
   '../../../packages/render',
 );
 const ENTRY = path.join(RENDER_PACKAGE, 'src/video/entry.tsx');
-/** Font faces are served from here rather than fetched, so renders work offline. */
-const PUBLIC_DIR = path.join(RENDER_PACKAGE, 'public');
+/**
+ * What the Remotion bundle serves static files from.
+ *
+ * Font faces live here so renders work offline, and §163 writes cut capture
+ * footage here too. Exported so the capture handler writes to the same place
+ * the renderer reads from, rather than recomputing the path from its own depth.
+ */
+export const PUBLIC_DIR = path.join(RENDER_PACKAGE, 'public');
 
 let bundlePromise: Promise<string> | undefined;
 let bundledPublicFingerprint: string | undefined;
