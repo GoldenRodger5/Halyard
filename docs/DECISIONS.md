@@ -5295,3 +5295,79 @@ exchange is refused.
 
 Bluesky's app-password path is correct and unchanged. It remains the one manual
 credential step, and the form on Accounts is the only correct place for it.
+
+---
+
+## 174. A dead test suite, and the bugs it was hiding
+
+`HALYARD_DEV_UNAUTHENTICATED=1` did nothing.
+
+The check sat inside `if (!supabaseConfigured())`, so on any machine with Supabase
+keys in `.env.local` — every real development setup — the flag was read, ignored,
+and the app kept redirecting to `/signin`. Nothing said why.
+
+It took the browser suite with it. Playwright cannot sign in to Supabase, so every
+spec that opens a protected page had been failing: `e2e/accounts.spec.ts` was five
+of six, and a full run was **2 passed**. After moving the check ahead of the
+Supabase branch — `NODE_ENV !== 'production'` was always the guard that mattered,
+and is now asserted directly — the same run is **128 passed**.
+
+A dead E2E suite is worse than no E2E suite. It is green when skipped, ignored
+when red, and it silently stops being evidence. What it had stopped reporting:
+
+### 158 contrast failures
+
+`text-muted/60` composited to `#a79f98` on the card behind it — **2.33:1**, half
+of what a person needs — once per skipped gate on every queue item. Dimming the
+one state an operator most needs to notice until it cannot be read.
+
+`--color-muted` itself cleared 4.5 on `surface` and `canvas` and failed on the
+tinted backgrounds it is actually used over: 4.31 on `primary/25`, 4.28 on
+`danger/10`. Darkened to `#6e635c`, the lightest value clearing 4.5 on every
+background axe measured — solved against those, not against white.
+
+### A post editor with no name
+
+The `<textarea>` that edits what gets published had no label. Thirty-five of them
+on a full queue; the largest critical finding in the product.
+
+### Previews no keyboard could reach
+
+The preview strip scrolls horizontally and could not be focused, so every image
+past the fold did not exist for a keyboard. The same defect `Card.scrollLabel`
+was built for, on a plain `div` that never went through `Card`.
+
+**Both spec reports now name the element.** "Contrast failed" is not actionable,
+and a composited colour like `#a79f98` appears in no stylesheet — grepping for it
+finds nothing.
+
+### Tests that only ever passed on a small database
+
+Three specs asserted against unscoped text: the seeded fact, the watch term, the
+contradiction. Each resolved to many elements once real data existed. One of them
+would have clicked "Stop watching" on **somebody else's watch term** and then
+asserted, correctly, that its own term was disabled.
+
+Facts and account cards gained stable ids so a test can name the row it means —
+and so anything citing a fact can link to it.
+
+### Connect was a dead button
+
+It rendered for every platform. TikTok, Pinterest and YouTube have no developer
+app, so it reached the OAuth route and came back **428 with a raw JSON body**.
+Those cards now say what is missing and name the variables — names, never values.
+Threads says out loud when it has fallen back to the Meta app id, because a silent
+fallback fails at consent with an error naming neither id.
+
+### Card ids collided
+
+Every platform renders twice, once per persona, and both got `id={platform}` —
+two elements with the same id, and §172's deep link landed on whichever rendered
+first. Scoped to `{persona}-{platform}`.
+
+### The web tier is on the transaction pooler
+
+Verified rather than argued: connecting on 6543 with the same credentials, the
+**same advisory lock was granted twice in a row**. That is the hazard §173
+described, observed. The web tier moved to 6543 and `/api/health` reports
+`{"pooler":"transaction","database":"reachable"}` in production.

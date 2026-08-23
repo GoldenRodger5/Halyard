@@ -1,6 +1,7 @@
 # Product UX and Information Architecture
 
-**Status:** navigation foundation shipped (§172). Screen-level work sequenced below, not yet built.
+**Status:** navigation foundation shipped (§172); accessibility and Accounts honesty shipped (§174).
+Screen-level work sequenced below, largely not yet built.
 **Rule for this document:** it describes what is true. Where something is designed but not built, it says so.
 
 ---
@@ -142,3 +143,44 @@ handler, which typechecks cleanly and fails the production build with *"not a va
 The constant now lives in `apps/web/src/lib/product.ts`.
 
 **Suite: 1524 passed, 399 skipped. Lint clean. Build clean. Nothing committed. `publishing_enabled` remains false.**
+
+
+---
+
+## §174 — what the revived browser suite changed
+
+The E2E suite had been dead: `HALYARD_DEV_UNAUTHENTICATED` was checked only when
+Supabase was *un*configured, so on any real development machine the flag did
+nothing and Playwright could not open a protected page. A full run was **2 passed**.
+
+That mattered for UX specifically, because the accessibility spec is a UX test and
+it had stopped reporting. What it found once it ran again:
+
+| Finding | Where | Fixed |
+|---|---|---|
+| **158 contrast violations** | queue gates, dashboard tints | DONE |
+| `text-muted/60` at **2.33:1** | every skipped gate, every queue item | DONE — skipped now reads as `muted` |
+| `--color-muted` failing on tinted backgrounds | `primary/25` 4.31, `danger/10` 4.28 | DONE — `#6e635c` |
+| **Post editor with no accessible name** | 35 per full queue, critical | DONE — `aria-label` |
+| **Preview strip unreachable by keyboard** | every queue item | DONE — focusable region |
+| Connect rendered as a **dead button** | TikTok, Pinterest, YouTube | DONE — says what is missing |
+| Duplicate DOM ids | every account card, both personas | DONE — `{persona}-{platform}` |
+
+Both spec reports now name the offending element. "Contrast failed" is not
+actionable, and a composited colour like `#a79f98` appears in no stylesheet, so
+grepping for it finds nothing.
+
+### The principle this pass added
+
+**A test suite that cannot run is not a weaker signal — it is a false one.** It
+reports green when skipped and gets ignored when red, and the product drifts
+underneath it. Every finding above had been true for a long time and was invisible
+because the thing that would have said so could not start.
+
+### Still not built
+
+Phases 2–6 from the plan above — Home as a control center, Accounts
+simplification, conventional auth, setup checklist, and the screen-level passes on
+Create / Content / Calendar / Analytics / Inbox — remain **NOT IMPLEMENTED**. The
+research/articles rework described in the brief is **NOT IMPLEMENTED**; it needs a
+data-model review before any UI, because notes and saved state may not exist yet.

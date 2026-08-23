@@ -89,7 +89,17 @@ test.describe('watch terms', () => {
     );
 
     await page.goto('/finds');
-    await page.getByRole('button', { name: 'Stop watching' }).click();
+    /*
+     * Scoped to this term's own row. An unscoped locator clicked whichever
+     * "Stop watching" rendered first, which is a different term as soon as the
+     * database holds more than one — so the assertion below could pass while the
+     * click had disabled somebody else's watch.
+     */
+    await page
+      .getByRole('listitem')
+      .filter({ hasText: TERM })
+      .getByRole('button', { name: 'Stop watching' })
+      .click();
 
     await expect
       .poll(async () => {

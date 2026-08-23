@@ -300,13 +300,23 @@ export function GateLine({
         ? 'text-warn-ink'
         : status === 'failed'
           ? 'text-danger'
-          : 'text-muted/60';
+          : 'text-muted';
 
   return (
     <div className="flex items-baseline gap-2 font-mono text-xs">
       <span className={cx('w-3 shrink-0 text-center font-bold', color)}>{mark}</span>
       <span className="w-14 shrink-0 capitalize text-muted">{gate}</span>
-      <span className={cx('truncate', status === 'skipped' ? 'text-muted/60' : 'text-ink')}>
+      {/*
+        §174. A skipped gate reads as muted, not as 60% of muted.
+
+        `text-muted/60` composited to #a79f98 on the card behind it — 2.33:1,
+        half the 4.5 a person needs — and it was the single largest source of
+        contrast failures in the product, once per skipped gate on every queue
+        item. The status is already carried by the mark and by the gate name;
+        dimming the summary past legibility added nothing except that the one
+        state an operator most needs to notice was the hardest to read.
+      */}
+      <span className={cx('truncate', status === 'skipped' ? 'text-muted' : 'text-ink')}>
         {summary}
       </span>
     </div>

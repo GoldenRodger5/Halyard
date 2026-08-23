@@ -222,6 +222,47 @@ execution could surface, all fixed and tamper-verified — `DECISIONS.md`
 
 ---
 
+## §174 — the browser suite was dead, and it was hiding real bugs
+
+`HALYARD_DEV_UNAUTHENTICATED=1` did nothing. The check sat inside
+`if (!supabaseConfigured())`, so on any machine with Supabase keys — every real
+development setup — the flag was read and ignored. Playwright cannot sign in to
+Supabase, so every spec that opens a protected page had been failing. A full run
+was **2 passed**. Moving the check ahead of the Supabase branch fixed it;
+`NODE_ENV !== 'production'` was always the guard that mattered and is now asserted
+directly.
+
+**What it had stopped reporting**, all now fixed:
+
+- **158 contrast violations.** `text-muted/60` composited to 2.33:1 on every
+  skipped gate on every queue item — dimming the one state an operator most needs
+  to notice until it could not be read. `--color-muted` itself failed on the
+  tinted backgrounds it is used over; darkened to `#6e635c`.
+- **The post editor had no accessible name** — 35 per full queue, critical.
+- **The preview strip could not be focused**, so every image past the fold did not
+  exist for a keyboard.
+- **Connect was a dead button** on TikTok, Pinterest and YouTube — it reached the
+  OAuth route and returned 428 as raw JSON. Those cards now say what is missing.
+- **Account card ids collided** — both personas rendered `id={platform}`.
+- Three specs asserted against unscoped text and only ever passed on a small
+  database; one would have clicked "Stop watching" on another term entirely.
+
+**Deployed and verified in production.** `/api/health` returns
+`{"ok":true,"database":"reachable","pooler":"transaction"}`. The web tier is on
+the transaction pooler (6543) and EMAXCONNSESSION is resolved, not merely
+mitigated. The worker stays on session mode and now **refuses to start** on the
+wrong one — verified empirically: on 6543 the same advisory lock was granted twice
+in a row.
+
+**Real browser coverage for the connect flow** (`e2e/oauth-connect.spec.ts`): a
+real click, the real route handler, the real redirect, asserted from the browser's
+own location, with all off-origin traffic sealed. It stops at consent, which needs
+the operator's provider login.
+
+**No account is connected.** Every remaining blocker is a provider-dashboard
+setting or a consent screen — see `docs/ACCOUNT_CONNECTION.md`.
+
+
 ## §173 — Account connection: three real bugs fixed, the rest is dashboard config
 
 **Fixed in code.** (1) **Threads authenticated as the Meta app.** Meta requires a

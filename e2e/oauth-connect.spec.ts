@@ -157,17 +157,65 @@ test.describe('what the operator is told', () => {
     await sealOrigin(page, APP);
     await page.goto('/accounts');
 
-    const card = page.locator('#brand-x');
+    /*
+     * The founder card, because the registration values are shown while a
+     * platform is *unconnected* — that is when they are needed — and the brand X
+     * account already holds a token in the local database. Keying on a connected
+     * card made this test depend on seed data rather than on behaviour.
+     */
+    const card = page.locator('#founder-x');
     const panel = card.getByText(/needs to be told/i).first();
     await expect(panel).toBeVisible();
     await panel.click();
 
     const shown = (await card.getByText(/\/api\/oauth\/x\/callback$/).first().innerText()).trim();
 
-    await connectOn(page, 'brand', 'x').click();
+    await connectOn(page, 'founder', 'x').click();
     await page.waitForURL(/x\.com/, { timeout: 15_000 });
 
     /* The value we tell them to register is the value we actually send. */
     expect(new URL(page.url()).searchParams.get('redirect_uri')).toBe(shown);
+  });
+});
+
+test.describe('platforms with no developer app', () => {
+  /*
+   * §174. These used to render Connect like everything else. Clicking it reached
+   * the OAuth route, which answered 428 with a raw JSON body — a dead button that
+   * told the operator nothing they could act on.
+   *
+   * Locally TikTok, Pinterest and YouTube have no complete client credentials,
+   * which is the same state production is in, so the honest rendering is
+   * assertable in a browser rather than only in a unit test.
+   */
+  for (const platform of ['tiktok', 'pinterest', 'youtube'] as const) {
+    test(`${platform} offers no dead Connect button, and says what is missing`, async ({
+      page,
+    }) => {
+      await page.goto('/accounts');
+      const card = page.locator(`#brand-${platform}`);
+      await expect(card).toBeVisible();
+
+      await expect(card.getByRole('link', { name: /^(Connect|Reconnect)$/ })).toHaveCount(0);
+      await expect(card.getByText(/needs developer setup/i)).toBeVisible();
+
+      /*
+       * Scoped to the setup block's own sentence. The same variable names also
+       * appear in the collapsed preflight details, and asserting on the card as a
+       * whole matched that hidden copy instead — passing on the wrong element is
+       * the failure mode a broad locator invites.
+       *
+       * A name is not a secret; a value would be.
+       */
+      const sentence = card.getByText(/is registered yet/);
+      await expect(sentence).toBeVisible();
+      await expect(sentence).toContainText(/_CLIENT_|_APP_|_ID/);
+    });
+  }
+
+  test('a platform that is configured still offers Connect', async ({ page }) => {
+    /* The contrast that proves the check is discriminating, not blanket. */
+    await page.goto('/accounts');
+    await expect(connectOn(page, 'founder', 'x')).toBeVisible();
   });
 });

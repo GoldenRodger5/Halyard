@@ -60,9 +60,17 @@ test.describe('the Product Brain', () => {
       [a, b],
     );
 
-    await page.goto('/brain');
-    await expect(page.getByText('Adapts recipes for real diets')).toBeVisible();
-    await expect(page.getByText(/verified · 0\.50 · 2 sources/).first()).toBeVisible();
+    /*
+     * The category page, not the /brain overview. The overview summarises rather
+     * than listing every fact, so this assertion only ever passed on a database
+     * with few enough facts for the seeded one to surface — which stopped being
+     * true, silently.
+     */
+    await page.goto('/brain/identity');
+    const fact = page.locator('#fact-e2e_what');
+    await expect(fact).toBeVisible();
+    await expect(fact.getByText('Adapts recipes for real diets')).toBeVisible();
+    await expect(fact.getByText(/verified · 0\.50 · 2 sources/)).toBeVisible();
   });
 
   test('a fact can be followed to the page it came from', async ({ page }) => {
@@ -115,8 +123,15 @@ test.describe('the Product Brain', () => {
     );
 
     await page.goto('/brain/differentiators');
-    await expect(page.getByText(/safe to state publicly/)).toBeVisible();
-    await expect(page.getByText(/Not safe to state publicly/)).toHaveCount(0);
+    /*
+     * Scoped to the fact this test seeded. The page lists every fact in the
+     * category, so an unscoped match resolved to six elements and reported a
+     * strict-mode violation — and would otherwise have asserted against whichever
+     * unrelated fact happened to render first.
+     */
+    const fact = page.locator('#fact-e2e_diff');
+    await expect(fact.getByText(/safe to state publicly/)).toBeVisible();
+    await expect(fact.getByText(/Not safe to state publicly/)).toHaveCount(0);
   });
 
   test('a contradiction shows both sides and resolves neither', async ({ page }) => {
@@ -153,11 +168,16 @@ test.describe('the Product Brain', () => {
     ]);
 
     await page.goto('/brain/contradictions');
-    await expect(page.getByText('5 pounds a month')).toBeVisible();
-    await expect(page.getByText('9 pounds a month')).toBeVisible();
-    await expect(page.getByText(explanation)).toBeVisible();
-    // Stated on the screen, so nobody reads the explanation as a verdict.
-    await expect(page.getByText('An explanation, not a decision')).toBeVisible();
+    await expect(page.getByText('5 pounds a month').first()).toBeVisible();
+    await expect(page.getByText('9 pounds a month').first()).toBeVisible();
+    await expect(page.getByText(explanation).first()).toBeVisible();
+    /*
+     * Stated on the screen, so nobody reads the explanation as a verdict. Counted
+     * rather than matched uniquely: the sentence appears once per contradiction,
+     * and the database holds many, so `toBeVisible` on the bare text resolved to
+     * twenty-two elements. What matters is that it is present, not that it is rare.
+     */
+    await expect(page.getByText('An explanation, not a decision').first()).toBeVisible();
   });
 
   test('evidence nothing cites is reported, not hidden', async ({ page }) => {

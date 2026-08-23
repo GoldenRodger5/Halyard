@@ -666,7 +666,8 @@ function AccountCard({
               <p className="text-sm font-medium text-muted">Needs developer setup</p>
               <p className="mt-0.5 text-[11px] leading-relaxed text-muted">
                 No {PLATFORM_LABELS[platform]} app is registered yet. Set{' '}
-                <span className="font-mono">{client?.tried.join(' or ')}</span> once you have one.
+                <span className="font-mono">{client?.tried.join(' or ')}</span> and its secret
+                once you have one.
               </p>
             </div>
           ) : (

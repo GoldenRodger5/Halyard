@@ -83,13 +83,22 @@ for (const vp of WIDTHS) {
           // not actionable and "#8c5035 on #ede3da = 4.37" is.
           for (const node of violation.nodes) {
             const data = (node.any?.[0] as { data?: Record<string, string> } | undefined)?.data ?? {};
+            /*
+             * The selector too. Colours alone say a rule was broken; they do not
+             * say which element to change, and a composited colour like #a79f98
+             * appears in no stylesheet — it is an opacity over a background, so
+             * grepping for it finds nothing.
+             */
             problems.push(
-              `${route}: contrast ${data.fgColor} on ${data.bgColor} = ${data.contrastRatio}`,
+              `${route}: contrast ${data.fgColor} on ${data.bgColor} = ${data.contrastRatio} — ${String(node.target?.[0] ?? '?')}`,
             );
           }
           continue;
         }
-        problems.push(`${route}: ${violation.id} (${violation.impact}) ×${violation.nodes.length}`);
+        /* The first target, for the same reason the contrast rule names one. */
+        problems.push(
+          `${route}: ${violation.id} (${violation.impact}) ×${violation.nodes.length} — ${String(violation.nodes[0]?.target?.[0] ?? '?')}`,
+        );
       }
     }
 

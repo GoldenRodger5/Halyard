@@ -21,13 +21,33 @@ this flow and is invisible until the first post lands.
 
 ## Status
 
-| Platform | Credentials | Code | Blocker |
-|---|---|---|---|
-| **X** | set | correct | register the callback + confidential-client app type |
-| **Instagram** | set | correct | App Domains + Valid OAuth Redirect URIs |
-| **Threads** | falls back to Meta | correct | its own app id, + Redirect Callback URLs |
-| **Bluesky** | n/a | correct | operator creates an app password — the only manual credential |
-| TikTok / Pinterest / YouTube | absent | ready | developer app not registered |
+Legend: **DONE** · **PARTIAL** · **BLOCKED (provider)** · **MANUAL (operator)** · **NOT IMPLEMENTED**
+
+| Platform | Code | UI | External config | Real provider flow | State |
+|---|---|---|---|---|---|
+| **X** | DONE | DONE | MANUAL — callback + app type | not exercised | BLOCKED (provider) |
+| **Instagram** | DONE | DONE | MANUAL — App Domains + Redirect URIs | not exercised | BLOCKED (provider) |
+| **Threads** | DONE | DONE | MANUAL — own app id + callback | not exercised | BLOCKED (provider) |
+| **Bluesky** | DONE | DONE | none | not exercised | MANUAL (app password) |
+| TikTok | DONE | DONE — says what is missing | MANUAL — register app | n/a | NOT CONFIGURED |
+| Pinterest | DONE | DONE — says what is missing | MANUAL — register app | n/a | NOT CONFIGURED |
+| YouTube | DONE | DONE — says what is missing | MANUAL — register app | n/a | NOT CONFIGURED |
+| Facebook | NOT IMPLEMENTED | — | — | — | no adapter |
+
+**No account is connected.** Every remaining blocker is a provider-dashboard setting
+or a consent screen that needs the operator's own login — neither is something code
+can do. What *is* done: the handoff from Halyard to each provider is correct and
+exercised in a real browser (`e2e/oauth-connect.spec.ts`), and the callback refuses
+a forged state, a missing code, and a provider error without creating anything.
+
+### What "not exercised" means precisely
+
+The browser drives: Accounts → click Connect → the real route handler → the real
+redirect → the provider's authorize URL, asserted from the browser's own location.
+It stops at consent, which needs the operator's provider login and MFA. Everything
+before that hop is tested; the hop itself, and everything after it — token
+exchange, identity lookup, pending connection, confirmation — waits on a real
+authorisation.
 
 ## X
 

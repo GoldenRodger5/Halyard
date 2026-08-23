@@ -98,7 +98,21 @@ export function QueueCard({ item, timeZone }: { item: QueueItem; timeZone: strin
               </p>
             </div>
           ) : (
-            <div className="flex gap-2 overflow-x-auto pb-1">
+            /*
+             * §174. Focusable, and named.
+             *
+             * A container that scrolls but cannot be focused is unreachable by
+             * keyboard: a mouse drags the strip sideways and a caret has nothing
+             * to land on, so every preview past the fold does not exist. This is
+             * the same defect `Card.scrollLabel` was built for, on a plain div
+             * that never went through Card.
+             */
+            <div
+              className="flex gap-2 overflow-x-auto pb-1"
+              tabIndex={0}
+              role="region"
+              aria-label={`Previews for ${item.platform} post`}
+            >
               {item.preview_urls.map((url, i) => (
                 <img
                   key={url}
@@ -113,8 +127,17 @@ export function QueueCard({ item, timeZone }: { item: QueueItem; timeZone: strin
 
         <form action={editItem} className="space-y-2">
           <input type="hidden" name="id" value={item.id} />
+          {/*
+            §174. Named for a screen reader.
+
+            This is the control that edits what gets published, and it had no
+            label at all — thirty-five of them on a full queue, the largest
+            critical finding in the product. The visible heading names the
+            platform, not the field, so the name is supplied here.
+          */}
           <textarea
             name="body"
+            aria-label={`Post text for ${item.platform}`}
             defaultValue={item.body}
             rows={Math.min(8, Math.max(3, Math.ceil(item.body.length / 70)))}
             className="w-full resize-y rounded-lg border border-line bg-surface px-3 py-2 text-sm leading-relaxed text-ink focus:border-primary focus:outline-none"

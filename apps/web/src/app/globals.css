@@ -21,7 +21,18 @@
   --color-sunk: #efe9df;
   --color-line: #e2d9cb;
   --color-ink: #2a2320;
-  --color-muted: #736760;
+  /**
+   * Darkened from #736760 on 2026-08-23 (§174).
+   *
+   * It cleared 4.5:1 on `surface` and `canvas` and failed on the tinted
+   * backgrounds the product actually uses it over — 4.31 on the primary/25
+   * border tint, 4.28 on danger/10. Both are secondary text on a card, which is
+   * exactly the text an operator squints at.
+   *
+   * This is the lightest darkening that clears 4.5 on every background axe
+   * measured, solved against those values rather than against white.
+   */
+  --color-muted: #6e635c;
 
   /**
    * Darkened from #c4714a on 2026-08-19 so the brand can carry text.

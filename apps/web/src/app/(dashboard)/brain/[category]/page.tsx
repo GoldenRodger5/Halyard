@@ -77,7 +77,14 @@ export default async function CategoryPage({
       ) : (
         <div className="space-y-4">
           {facts.map((fact) => (
-            <Card key={fact.id} className="p-5">
+            /*
+             * §174. A stable anchor per fact. It makes a fact linkable from
+             * anywhere that cites it, and it gives a test a way to assert about
+             * *this* fact rather than about whichever one renders first — an
+             * unscoped assertion here matched six facts and would have reported
+             * on an unrelated one.
+             */
+            <Card key={fact.id} id={`fact-${fact.key}`} className="scroll-mt-24 p-5">
               <div className="flex items-baseline justify-between gap-4">
                 <SectionTitle hint={fact.key}>{fact.value}</SectionTitle>
                 <FactConfidence
