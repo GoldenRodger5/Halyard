@@ -1,5 +1,139 @@
 # Where Halyard is right now
 
+**2026-08-23 — Halyard can fix its own work before asking anyone to look at
+it.** A failing QC verdict used to be terminal: `status = 'failed'`, and a person
+dealt with it. `correct_content` now runs first — it turns each failed gate into
+a structured defect, maps it through a deterministic policy to the *smallest*
+correction that addresses it, applies exactly that, invalidates only the gates
+that change can reach, and re-enters the existing pipeline at the earliest stage
+that must run again. Bounded at three corrections or $2. It cannot approve or
+publish: a corrected item lands back in `pending_approval` exactly where it would
+have. History is append-only in `content_iterations`, enforced by a trigger, and
+rendered on the queue detail screen. **Live in production** — migration 0040
+applied, worker and web deployed, the job kind accepted and dispatched end to
+end. Proven live on a real item — the pacing
+correction took the narration from **195 wpm to 157**, inside the window, with
+copy and claims preserved untouched throughout. Four defects were found by real
+execution rather than by the suite: a false regression from judging an unfinished
+rebuild, a voiceover correction that never re-queued its renders, a provider
+failure burning the retry budget instead of escalating, and no way to rehydrate a
+stored artifact. `DECISIONS.md` §165.
+
+**2026-08-23 — Account connection is an operator action, and the runbook is
+written.** No production account can be connected by Halyard: OAuth requires a
+human to authorise on the provider's site and Bluesky requires an app password
+only the operator holds — there is no CLI path, by design. `PLATFORM_COVERAGE.md`
+§17 is the exact runbook: which four platforms are connectable today, the
+callback URLs to register, and the developer-app setup TikTok, Pinterest and
+YouTube still need. **`OAUTH_REDIRECT_BASE_URL` was deliberately left unset** —
+the origin fallback is self-consistent, and a guessed value would break OAuth if
+the other stable URL is the registered one. Verified this pass: `accountStatus()`
+renders every production row honestly as "Not connected", and routing safety is
+already pinned by the approval-boundary suite.
+
+**2026-08-23 — Platform readiness audited; swap_toggle recovered at zero cost.**
+X, Instagram, Threads and Bluesky are all connectable today — the first three
+have client credentials in both tiers, Bluesky needs only an app password, and
+the account path has **no code defects**. TikTok, Pinterest and YouTube need
+developer apps registered, which is operator work. `swap_toggle`, dead in
+production for weeks, turned out never to have been a selector problem: the
+control is on `/` not `/adapt`, and `flow.path` is metadata that does not
+navigate, so the flow was searching `about:blank`. Fixed, verified by a real
+capture (1.29s, zero credits), and the invariant is now tested. `DECISIONS.md`
+§171.
+
+**2026-08-23 — The correction loop closed, for real, on OpenAI.** The one
+disposition that had never executed — a correction that clears its defect and is
+accepted next pass — ran end to end: `remeasure` → `rewrite_vo_script` →
+**accepted**, narration 183 → 172 wpm, audio gate passed. It used the provider
+seam that already existed (`LLM_PROVIDER=openai`); Anthropic was never called.
+Two defects surfaced that only a *successful* correction could reveal: an
+accepted item stayed in `draft` and never reached the approval queue, and a
+malformed history snapshot could brick an item's controller permanently. Both
+fixed and tamper-verified. `DECISIONS.md` §170.
+
+**The blocking fact for production: zero connected accounts in production.**
+Every production account is `pending_auth` with no token, so the deployed worker
+cannot publish. All working credentials are local. X is verified live locally
+(`GET /users/me`, @Recipe_Fix). One X post is pre-flighted and ready pending an
+operator go — see the iteration log.
+
+**Creative memory lives in `docs/CREATIVE_ITERATION_LOG.md`** — eight iterations,
+a "Do Not Regress / Already Solved" table, and a *NEXT RUN MUST READ THIS*
+section naming the exact next action. Read it before touching creative code.
+
+**2026-08-23 — The evidence beat carries its weight, and provenance survives the
+render boundary.** The proof beat used 21% of its band where the cards used
+56–60%; it now uses 50%. Separately, a real defect: the planner has set
+`sourcePath` on every artifact-derived beat since §160 and the mapping into
+`renders.input_props` silently dropped it, so a stored render could not be
+traced to its evidence — the test that asserted provenance was checking the
+plan, not the render. Fixed, extracted to `beatsForRender`, and guarded. The
+correction appliers had zero tests and now have 18. `DECISIONS.md` §169.
+
+**2026-08-23 — The demo is captured at the shape it is published in.** The flow
+recorded a 1280×900 desktop window, which is 1.20:1 against a 0.81:1 band — so a
+third of the demo band was slack no arrangement could remove, and the product's
+own type arrived at 0.94× and was unreadable on a phone. Cropping harder would
+have cut the second ingredient column, which is evidence. The viewport is now
+430×932, matching `cook_mode_timer`, and the product's responsive layout answers
+the question itself; the stale desktop focus region was removed rather than
+re-guessed. Footage is fitted in both dimensions instead of overflowing into
+`BeatStage`'s hidden overflow. Band occupancy 65% → 100% on a real render, with
+no evidence cropped. Selectors were verified at the new viewport before the
+change, without spending an adaptation credit. `DECISIONS.md` §168.
+
+**Still open:** the proof beat now measures 21% of its band against 56–60% for
+the transformation cards — the same fixed-type problem §167 solved for cards, in
+a different treatment. And the demo occupies 45% of the frame width, which is
+inherent to a portrait screen in a portrait frame; closing it needs per-step
+focus regions.
+
+**2026-08-23 — The transformation is now the largest thing on screen.** Card
+type sizes were fixed constants, so a short change used about a fifth of its
+band no matter where it was placed — and the hook headline (96px) was larger
+than the transformation it introduced (66px). Type now scales to the room the
+content actually needs, bounded 0.8–2.0 with a hard band ceiling; the planner's
+emphasis selects how much of the frame a beat should command rather than
+multiplying a fitted scale. Measured on real renders: ink in the band 21% → 51%,
+`after` type 66px → 109px, held cards larger than normal ones, and a card with
+no reason reserves no space for one. A multi-line strikethrough defect the
+larger type exposed was fixed in the same treatment. `DECISIONS.md` §167.
+
+**2026-08-23 — Setup footage no longer reaches the viewer.** A flow step can say
+`setup: true`: run it, do not show it. The hero beat used to open on a blank
+page, dismiss a promo bar and sit on a spinner; it now opens on rendered product
+UI and reaches the adapted result about two and a half seconds sooner. Measured
+on a live capture and a real render — cut 3.80s → 3.05s, payoff within the video
+~6.5s → ~4.0s. Deliberately distinct from `elide`, which is a captioned claim
+about real product latency and stays exactly as it was. `DECISIONS.md` §166.
+
+**P0 hardening, 2026-08-23.** The flaky approval-boundary test was asserting
+*which* duplicate guard fired rather than the invariant — safe either way, and
+order-dependent, so it failed whenever the machine was fast enough for the
+winner to finish first. The race window is now held open deliberately. Three
+further guards turned out not to be guarding what they claimed: the append-only
+trigger blocked its own cascade, its entire test file passed vacuously against
+an empty database, and `correct_content` had no protection against two
+controllers spending twice on one item. All fixed and tamper-verified.
+`DECISIONS.md` §165.
+
+**One path is still unproven, and the loop is not yet fully validated.** Four of
+the five dispositions have run for real — `accepted`, `corrected`,
+`rejected_regression` and `escalated`. The fifth is the one that matters most:
+a correction that runs, **clears its targeted defect, and is accepted on the
+next pass**. It is blocked on a single external fact — the Anthropic account has
+no credit, verified by direct probe against both the local and the production
+credential, which are the same key. Every non-provider prerequisite is ready:
+four real items sit with zero iterations and a genuine error-severity audio
+defect (three `audio.pacing`, one `audio.word_error_rate`), production carries
+migration 0040, and the deployed worker dispatches `correct_content`. Until that
+run succeeds, do not describe the correction loop as fully proven.
+
+**This is not the learning loop.** It makes Halyard better at the artifact in
+front of it and learns nothing across artifacts — there are still zero
+publications, zero metrics and zero scores. `POSITIONING.md` §11.
+
 **2026-08-23 — Real product footage is in the frame.** The `before_after`
 composition now opens on a `demo` beat playing an actual recording of RecipeFix
 adapting a recipe: captured live, cut to the 3.8 seconds worth watching out of
@@ -81,6 +215,77 @@ execution could surface, all fixed and tamper-verified — `DECISIONS.md`
 **2026-08-19.** Replaces the 2026-08-10 build-status document, which predated P0, P1 and P2. That version is superseded, not merely dated — its counts and its picture of the agent layer are both wrong now.
 
 `main` is at `36dbf53`, CI green. A substantial amount of verified work sits **uncommitted** on top of it — see the last section.
+
+---
+
+## §173 — Account connection: three real bugs fixed, the rest is dashboard config
+
+**Fixed in code.** (1) **Threads authenticated as the Meta app.** Meta requires a
+separate Threads app id; `THREADS_APP_ID`/`THREADS_APP_SECRET` now resolve first,
+falling back to Meta and *saying so*. A test had asserted the old behaviour — it
+encoded the bug. (2) **The Instagram login dialog was unversioned**, so it resolved
+to the oldest version Meta still serves while `GRAPH_VERSION` sat pinned at v23.0.
+(3) **`requireOperator` throws**, which a route handler turns into a bare 500 — an
+expired session made Connect look like a broken integration.
+
+**The values each provider needs are now on the card**, computed from the same
+helper the OAuth route uses, so what we tell the operator to register and what we
+send cannot drift. Asserted for all six OAuth platforms.
+
+**Poolers are opposite by tier.** Web wants transaction (6543); worker needs session
+(5432) for the correction advisory lock. The worker now **refuses to start** on a
+transaction pooler — that failure is silent and costs duplicated spend.
+
+**Not a bug: X.** Its authorize request matches X's current documentation exactly.
+The error is raised before consent, so it is the callback URI, the app type, or
+OAuth 2.0 being off — not scopes.
+
+Runbook with every exact value: `docs/ACCOUNT_CONNECTION.md`.
+
+**1564 passed / 399 skipped (40 added) · lint clean · typecheck 7/7 · build clean ·
+nothing published · `publishing_enabled` false.**
+
+
+## §172 — Product UX and information architecture
+
+The sidebar went from **29 links in three groups** to **seven destinations plus a
+collapsed More**. Nothing was removed: 29 destinations in, 29 out, asserted by a
+test against a frozen baseline and tamper-verified.
+
+Three reported bugs, all **reachability rather than missing capability**:
+
+- **Product switcher** wrote `?product=` that nothing read — the layout called
+  `getCurrentProduct()` with no argument. Now a cookie set by `GET /api/product`.
+  (A layout cannot read `searchParams`; only pages can.)
+- **Account health rows** were plain divs reporting `NOT CONNECTED` with nowhere
+  to click. Now link to `/accounts#<platform>`.
+- **Products** were unreachable from the switcher the operator was clicking.
+  `+ Manage` now points at `/products`.
+
+`EMAXCONNSESSION` root-caused: web tier on the session-mode pooler at `max: 5`
+per lambda. Mitigated to 2; the cure is moving the **web tier** to port 6543,
+which is an operator action. The **worker must stay on 5432** — its correction
+claim is a session-scoped advisory lock.
+
+X / Instagram / Threads OAuth all diagnosed as **dashboard configuration**, not
+code. Redirect URIs, scopes and PKCE verified correct.
+
+Full write-up, including phases 2–6 (designed, not built): `docs/PRODUCT_UX.md`.
+
+**1524 passed / 399 skipped · lint clean · build clean · nothing committed ·
+`publishing_enabled` false.**
+
+
+## Product positioning
+
+**Canonical positioning lives in `docs/POSITIONING.md`.** Halyard is positioned
+as an autonomous product-marketing system for builders — a system that starts
+from the connected *product* rather than from a brief the operator writes. That
+document carries the claim levels (Today / Established / Direction / Not yet) and
+an honesty ledger naming what must not be marketed as complete: performance
+learning, social-platform discovery, the automated revise-until-passing loop,
+Facebook, X threads, and self-serve multi-tenant onboarding. Update it when a
+capability changes level, not when work merely progresses.
 
 ---
 

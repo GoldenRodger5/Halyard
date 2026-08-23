@@ -4410,3 +4410,888 @@ where the footage ends*, so the capture beat is registering as the pattern
 interrupt it was meant to be, and the transformation cards that follow are not.
 `audio` fails on this item for reasons that predate footage: 5.5% WER and 195
 wpm. Those are properties of the voiceover, not of the creative.
+
+
+## §164 — Positioning is product-centric, and lives in one file
+
+Halyard is positioned as an **autonomous product-marketing system for builders**,
+not as a scheduler, an AI copywriter or a generic content generator. Those are
+components; treating any of them as the identity is what produces a product
+indistinguishable from a crowded market.
+
+The substantive choice is where the system *starts*. Most social tools start with
+a person describing their business, and that description becomes the brief, the
+brief becomes every prompt, and nothing downstream can tell a real capability
+from a remembered sentence. Halyard starts with the product — website, code, UI,
+artifacts, MCP — and the operator brief is one evidence source among six. That is
+not a marketing frame laid over the architecture; it is the architecture, already
+enforced by `product_facts` citing `product_evidence` under a trigger, by
+`deriveFactStatus` deciding status from evidence alone, and by §146's split
+between generic product intelligence and product-specific artifact adapters.
+
+**Rejected: positioning around the feature list.** Post generation, scheduling,
+trend discovery, repurposing, analytics, approval workflows and autonomous
+posting are all table stakes now. Claiming differentiation from having them
+invites a feature comparison Halyard does not need to win.
+
+**Rejected: absolute claims** — "the only", "the first", "no competitor does
+this". No competitive research exists in this repository to support one, and an
+unverifiable absolute makes every verifiable claim read as marketing too.
+
+`docs/POSITIONING.md` is the canonical source, and it carries a four-level claim
+ledger so the marketing and the code cannot drift apart silently: **Today**
+(exercised against real providers), **Established** (built, unexercised or
+partial), **Direction** (decided, unbuilt), **Not yet** (must not be implied).
+The most consequential entries are that Halyard does not learn from performance
+today, does not read third-party social content, and has published nothing —
+each a deliberate sequencing decision recorded here, and each far cheaper to
+state plainly than to have discovered in a demo.
+
+## §165 — Bounded self-correction: the loop that fixes its own work
+
+Halyard ran its gates and stopped there. A failing verdict set
+`content_items.status = 'failed'` and waited for a person — so the system could
+tell you precisely what was wrong with a video and could not do anything about
+it. This is the loop that tries first.
+
+```
+generate → tts → render → review_media → [correct_content] ⤴
+                                       └→ pending_approval
+```
+
+The controller orchestrates the pipeline that already exists. It synthesises
+nothing, renders nothing and reviews nothing: it decides what the smallest
+useful change is, applies it, invalidates exactly the gates that change can
+reach, and re-enters the chain at the earliest stage that has to run again.
+`tts` already releases the renders it gates and `render` already enqueues
+`review_media`, so re-entering at the right point is enough — including
+enqueuing the controller again with the new verdict.
+
+### The rule is a table, not a judgement
+
+The obvious design is to hand a failing artifact to a model and ask what to do.
+That produces a plausible answer every time, **including for defects that cannot
+be corrected by generation at all** — missing evidence, absent testimonial
+consent, a measurement that never ran.
+
+Five of the eight gates already emit `{ rule, severity, message }`, and that
+rule string is a stable identifier chosen by whoever wrote the check. So the
+mapping from "what failed" to "what to change" is a table keyed on it, written
+before any artifact fails. No model is consulted anywhere in the decision path.
+`policyCoverage.test.ts` reads the gate sources and fails if a rule has no
+entry — the technique `handlerCoverage.test.ts` uses on `JOB_KINDS`, and it
+immediately found four uncovered `delivery.*` rules.
+
+A model writes in exactly two places — revising copy and rewriting a narration
+script — and neither is asked whether a gate was right. Whatever comes back goes
+through the same deterministic gates, because `writeDraft` and `writeVoScript`
+already run the slop filter and the claim verifier over their own output and
+refuse to return copy that fails.
+
+**Worth naming: the copy half of self-correction already existed.** `writeDraft`
+has always generated, gated, called `buildFeedback` and retried. What it could
+never see is anything measured *after* copy time — audio, frames, retention,
+coherence — because those live in different jobs. That gap is what this fills.
+
+### Two corrections that look obvious and are wrong
+
+**Word-error is a script fix, not a re-synthesis.** The tempting answer is "say
+it again", but synthesis of the same script is near-deterministic: the second
+attempt reproduces the same mispronunciation and the loop has paid a provider
+call to learn nothing. The lexicon is worse — `voice_lexicon` requires a
+`phonetic`, and a machine inventing one is fabricating evidence about how a word
+sounds. What can be corrected is the script: spell the numeral, hyphenate the
+compound.
+
+**Pacing is not fixed by writing fewer words.** `audio.pacing` is
+`scriptWords / measuredDuration`, and a synthesiser reads at roughly its own
+rate — so cutting words shortens the audio proportionally and the ratio barely
+moves. What moves it is sentence structure: full stops become pauses, pauses
+lengthen the audio without adding words. And a read that is too *slow* is not
+correctable at all, because the gate's own remedy is a higher synthesis speed
+and `SynthesisOptions` has no speed control. It escalates rather than pretending.
+
+### Invalidation is computed from what was written, not what was allowed
+
+Three places already answered a version of "what does this change invalidate" —
+`gatesAfterEdit` (§157), `regateHookedBody` (§143), and `review_media`'s merge —
+each correct for exactly one change. This is the general form, and the three
+remain, because they encode caller knowledge the table does not have.
+
+The governing rule is that **correctness beats economy**: the question each entry
+answers is not "did this probably change the gate's input" but "can I *prove* it
+did not". A copy revision that left the narration alone keeps its audio verdict;
+one that rewrote the script does not — and which of those happened is read from
+the components the applier reports actually writing, not from the ones its action
+permits. An invalidated gate becomes `skipped` with a reason, never dropped and
+never left green, so a required gate that is not re-established still blocks.
+
+`ACTION_SCOPE` states what each action may and must not touch, and `assertScope`
+checks it against what really changed. A `resynthesise_voiceover` that rewrote
+the copy is a bug, and it is caught at the seam rather than found later in a diff.
+
+### Stopping
+
+- **All required gates pass** → back to `pending_approval`, and no further.
+- **Budget spent** → three corrections or $2, whichever binds first; the best
+  iteration is preserved and the operator is told what was attempted.
+- **Uncorrectable** → missing evidence, absent consent, an unknown rule, a
+  correction already tried twice without clearing its target, or a provider that
+  will not answer. Each escalates with a sentence saying why.
+
+A later iteration is never assumed better. Among iterations with no blocking
+gates, fewer warnings wins, then **the earliest** — the anti-churn rule, because
+two passing versions are both publishable and "the model liked it more" is not a
+measurable reason to prefer the more expensive one.
+
+### The history is append-only, and enforced
+
+`content_iterations` refuses UPDATE and DELETE by trigger. The operator-facing
+promise is a readable history — version 0 failed because X, version 1 attempted
+Y, version 2 passed — and a history that can be rewritten is not evidence of
+anything. §151 is why that is a trigger and not a convention. Each row is written
+once, complete: the correction chosen *in response to* an iteration is stored on
+that iteration's own row, which is what makes every row final at insert time.
+
+Cost reuses `agent_runs.cost_usd`, summed over the window between iterations. It
+is a window attribution rather than a per-item ledger — `trigger_ref` holds a job
+id — and the column comment says so, because a number that looks exact and is
+not is worse than one that admits its method.
+
+### What real execution found that the tests could not
+
+**A false regression.** The first live run cleared the voiceover so `tts` would
+produce a new one, the controller ran again before `tts` had, and the regression
+check saw `hasAudio` go true → false and called it a regression. It is the
+correction's own mechanism, observed halfway through. The fix is not a softer
+check but a refusal to judge an unfinished rebuild: while any invalidated gate is
+still `skipped`, there is nothing worth judging.
+
+**A rebuild that rebuilt nothing.** `tts` releases renders whose status is
+`queued`; after a successful render those rows read `done`. So a voiceover
+correction produced new audio, released nothing, and left the old video in place
+with the media gates never re-running — reported as `rendersReleased: 0` in a log
+line that otherwise looked like success.
+
+**A provider failure burning the retry budget.** Anthropic credits ran out
+mid-correction, `writeVoScript` threw, and the job died after three attempts with
+no iteration recorded and nobody told. Every attempt bought the same 400. It now
+escalates on the first occurrence, and says explicitly that this is a failure of
+the loop rather than of the content.
+
+**Nothing could rehydrate a stored artifact.** `content_items.product_artifact`
+holds the provider's raw JSON; the generic `highlights` wrapper every downstream
+component reads is derived and was never stored. That was fine while only
+generation used it, because generation had just built it. `rehydrateArtifact`
+closes it, keyed by `connector_config.adapter` like connectors are.
+
+### Two guards that were not guarding what they claimed
+
+**The append-only trigger blocked its own cascade.** §165 said the
+`on delete cascade` from `content_items` was "deliberately still allowed —
+the trigger guards edits to history, not the removal of an item that no longer
+exists". It was not allowed: the trigger refused every DELETE, cascades
+included, so any item with correction history could never be removed and a
+retention purge or an erasure request would fail on a foreign key nothing was
+permitted to clear. The fix reads the one signal that cannot be forged —
+Postgres deletes the parent before the cascading children, so an absent parent
+*is* the cascade, and a direct delete still finds the item present.
+
+**And the test that proved it proved nothing.** Every test in
+`contentIterations.test.ts` opened `select id from content_items limit 1` and
+bailed with `if (!itemId) return`. An isolated database is built from the
+migrations alone and seeds nothing, so `itemId` was always empty and all seven
+tests returned before their first assertion — including the one asserting the
+cascade worked, and the one asserting the trigger was doing the work. The file
+reported green while exercising nothing, which is §143 and §70 again in code
+written to prevent exactly that. It now builds its own fixtures and asserts
+`itemId` is a real uuid before anything else runs.
+
+**The correction claim protects spend, not rows.** Two controllers on one item
+would both read the same history, both decide the same correction, and both
+act — and the unique `(content_item_id, iteration)` key would hide the loser's
+*row* while its ElevenLabs synthesis and its render had already been paid for.
+The queue is the first line: `review_media` now enqueues with a **stable**
+dedupe key, and `jobs_dedupe_idx` is unique while a job is queued *or running*,
+so the `Date.now()` that used to be in that key was defeating the protection the
+index already provided. A session advisory lock is the second line, for a job
+inserted by a path that skipped the key.
+
+The first version of the concurrency test counted iteration *rows* and passed
+with the claim removed — because the unique key already guaranteed one row. It
+counts side effects now, and the tamper produces
+`['review_media', 'review_media']`.
+
+### `skipped` means two different things
+
+Found by looking at the *rendered operator view* rather than the database, which
+is the only reason it was found at all. Every version of a real item's history
+listed `destination.unspecified — no link` and `proof.unspecified — no quoted
+testimonial` as defects it had failed on. Both gates were `skipped` because they
+genuinely had nothing to examine: the post has no link and quotes nobody.
+
+A **required** gate that did not run is the "never verified is not passed" rule
+this codebase is built on, and it is a real defect. An **unrequired** one is a
+check with nothing to look at, and recording it as a defect is noise in the one
+screen that exists to explain what went wrong. `defectsFrom` now takes the
+required set and only manufactures a defect for the first kind.
+
+It never affected a decision — `blocking()` has always ignored unrequired gates
+— which is exactly why the database looked fine and the screen did not.
+
+### Implemented, and not
+
+**Implemented:** bounded self-correction — detection, diagnosis, a deterministic
+correction policy, dependency-aware revalidation, regression protection, stop
+conditions, cost bounds, an append-only history, and an operator view of it.
+
+**Proven live:** `accepted`, `corrected`, `rejected_regression` and `escalated`
+— the last twice, including against a genuinely unavailable provider.
+
+**Not yet proven:** a correction that clears its targeted defect and is accepted
+on the following pass. That is the loop closing, and it is blocked on Anthropic
+credit rather than on anything in this design. The honest reading of §165 today
+is that every mechanism is verified and the end-to-end success case is not.
+
+**Not implemented, and must not be read as such:** performance-driven learning
+from published results. That remains exactly where `POSITIONING.md` §11 puts it —
+zero publications, zero metrics, zero scores. This loop makes Halyard better at
+the artifact in front of it. It learns nothing across artifacts.
+
+## §166 — Setup footage is executed, not shown
+
+The first capture-backed render spent roughly half its hero beat on work no
+viewer wants: it opened on a **blank white page**, dismissed a promo bar, and
+sat on a spinner. The product's actual output — the adapted recipe — arrived in
+the last moments of a 3.8-second beat that existed to show it.
+
+A flow step can now say `setup: true`.
+
+### Why this is not `elide`
+
+The two look similar and mean opposite things, and collapsing them would lose
+the more valuable one.
+
+`elide` is a **claim about the product**: real work happened, here is how long
+it took, and the edit cuts it with that measured duration as a caption. It is
+the honest replacement for the speed ramp and synthetic progress overlay §159
+rejected. The adaptation wait is elided and must stay that way.
+
+`setup` says **there is nothing to tell the viewer**. A page loading, a banner
+closing, a placeholder disappearing. No caption, because no claim.
+
+A test asserts no step carries both.
+
+### Not shown is not not-run
+
+The distinction the whole design rests on. A setup step executes exactly as
+before: it is verified, its selector health is recorded, its offsets are
+measured, its failure still fails the flow. The artifact depends on it — without
+the page load there is no adaptation to film. `setup` is read in exactly one
+place, `shows()` inside `footageSpansFor`, and it withholds screen time and
+nothing else.
+
+It is checked *before* the payoff rule, so a setup step cannot be promoted back
+in by happening to follow an elision.
+
+### Where the knowledge lives
+
+In the flow configuration, beside that flow's selectors and focus region —
+because which steps are setup is knowledge about *this product's* flow. The
+footage engine stays product-agnostic and guesses nothing (§146, §163). Nothing
+in `packages/render` or the selection engine knows what a "recipe" is.
+
+### What was classified, and what deliberately was not
+
+**Setup:** `open the converter` (navigation to a blank page), `dismiss the App
+Store banner` (chrome, zero product information), `wait for the demo card to
+clear` (a placeholder disappearing — the spinner that was on screen at five
+seconds in the previous render).
+
+**Kept, deliberately:** `switch to the Link tab` and `paste the recipe URL`.
+Both were on the list of suspected waste and both survived inspection: together
+they are the product's central claim made concrete — *any recipe URL on the
+internet* — and the author had already marked the first with narration saying
+so. A rule that "early steps are setup" would have cut them. Judgement about
+what a viewer wants to watch is the reason this is configuration rather than a
+heuristic.
+
+`choose gluten-free`, `submit`, the settle and the reason reveal are the story.
+
+### Measured, on real captures
+
+A live capture through the production path, and a real render:
+
+| | before | after |
+|---|---|---|
+| cut length | 3.80s | 3.05s |
+| first frame | blank white page | rendered product UI |
+| payoff reached, within the cut | ~2.0s (53% pre-payoff) | ~1.0s (33%) |
+| payoff reached, within the video | ~6.5s | ~4.0s |
+| demo beat | 2.93→6.73s | 3.03→6.10s |
+
+The time a viewer waits to see the transformation fell by roughly two and a half
+seconds. Each transformation card gained about 0.2s from the freed budget, via
+the existing timing engine — no scene arithmetic was written for this.
+
+The transition needed nothing new: the `Rise` treatment already fades a beat in,
+and the span join is the same plain concat cut §163 established.
+
+### Not fixed here
+
+The transformation cards still leave about half the frame empty above them.
+`anchorFor` is the right seam, but the fix is not the one-line change it looks
+like — centring reintroduces a gap above the caption, and filling the band is a
+type-scale decision affecting every non-hook beat. It is the next visual task,
+not a rider on this one.
+
+## §167 — A transformation should be the largest thing on screen
+
+The transformation cards used about a fifth of the frame they were given.
+Measured on a real render: 242px of ink in a 1152px band, with 905px empty
+above it.
+
+The obvious reading is dead space, and the obvious fix is to move the card. Both
+are wrong, and §166 already said so without knowing why.
+
+### The cause was type size, not position
+
+Every size in the card was a fixed constant — before 44px, after 66px, reason
+32px — chosen once for a dense transformation and then used for every one.
+A short change like *2 large eggs → 1 flax egg* draws roughly 330px of type
+whatever band it is placed in. Moving that block up, down or to the middle
+changes where the emptiness sits and nothing else.
+
+The sharper version of the same finding: the **hook headline was 96px and the
+transformation was 66px**. The line that orients the viewer was typographically
+louder than the thing the piece exists to show.
+
+### Density selects the scale; emphasis selects the target
+
+Two inputs, kept separate, exactly as §160 requires:
+
+- The **planner** decides which change is the hero. That is `emphasis`, and it
+  now maps to how much of the band the beat should command — `hold` 0.74,
+  `normal` 0.62, `quick` 0.54.
+- The **treatment** decides what type size reaches that target for *these*
+  words. That is density, and it is a search rather than a formula.
+
+Neither recomputes the other's judgement, and no model is involved.
+
+**Emphasis as a target, not a multiplier.** The first attempt multiplied an
+emphasis factor onto a fitted scale, which pushes a held card past the band it
+was just fitted to. Selecting a larger target instead keeps every outcome under
+the ceiling by construction.
+
+**A search, because height is not linear in scale.** Bigger type wraps sooner,
+so a card at 2× can be more than twice as tall. Dividing a target by the height
+at scale 1 overshot badly — a real transformation aimed at 62% of the band and
+landed at 85%, because three lines had become five. Stepping down from the cap
+and taking the first scale that genuinely fits accounts for rewrapping.
+
+Bounds are explicit: 0.8–2.0, with a hard 92% band ceiling underneath and a
+floor below that for pathological content. Text does not grow until it fills the
+screen — a two-word card is capped, and it is capped by width anyway.
+
+Hierarchy survives every scale because all three sizes scale together: the
+ratios *are* the hierarchy. A missing reason contributes nothing to the
+measurement and reserves no space — reserving it would be §160's refusal to
+invent a reason, expressed as layout.
+
+### Measured, on real renders
+
+| | before | after |
+|---|---|---|
+| ink in the 1152px band | 242px (**21%**) | 586px (**51%**) |
+| empty above the content | 905px (79%) | 557px (48%) |
+| `after` type, real card | 66px | 109px |
+| held card | — | 55% of band |
+| card with no reason | — | 42% of band, no reserved gap |
+
+The hook is 96px; the transformation is now 109px at normal emphasis. The thing
+being introduced is finally larger than its introduction.
+
+The residual upper band is intentional. Two-thirds is the target because a card
+pressed against both edges reads as cramped, and the caption needs the eye to
+arrive at it rather than collide with it.
+
+### A defect the larger type exposed
+
+The strike on the before was a single absolutely-positioned rule at `top: 50%`
+of the block. That is a strikethrough only when the before is one line; at two
+lines it sits *between* them and reads as an underline of the first. Invisible
+at 44px, obvious at 88px. It is now a `line-through` copy of the text stacked
+over the plain one and clipped horizontally, which strikes every line and keeps
+the left-to-right draw that makes the change something the viewer watches.
+
+### Not built
+
+No layout engine, no second caption system, no per-platform branch, no model.
+Captions still come from `captionStyle` and were not touched; card typography
+and caption typography remain separate systems, which is why the caption band
+could be excluded from the measurement cleanly.
+
+## §168 — Capture the product at the shape it is published in
+
+The demo beat left about a third of its band unused, and the product UI inside
+it was too small to read on a phone. Both had one cause.
+
+### The cause was the capture's aspect ratio
+
+`adapt_and_reveal` recorded a **1280×900 desktop window**. Cropped by its focus
+region and scaled, the cut was 1080×900 — **1.20:1** against a band of
+**0.81:1**. Fitting that by width gives a 936×780 video in a 1152px band, so
+328px (28%) of slack remains no matter where it is placed. Unlike the
+transformation cards (§167), no scale removes it: a recording's aspect ratio is
+a property of the file.
+
+The second symptom came from the same place. A desktop layout renders at ~998
+CSS pixels and is then squeezed into 936 device pixels, so the product's own
+type arrives at roughly 0.94× — the ingredient rows measured a handful of pixels
+tall in a 1080-wide frame.
+
+### Cropping harder was the obvious answer and the wrong one
+
+A portrait crop of a desktop layout cuts the second ingredient column, and those
+columns are the transformation evidence. §163's rule — never crop out the thing
+being demonstrated — rules it out.
+
+### The lever is the viewport, not the crop
+
+A phone viewport needs no crop, because the product's own responsive layout
+already answers the question: at 430px the ingredients stack, the type is set
+for a hand, and the recording is the shape a social viewer actually sees.
+`cook_mode_timer` has captured at 430×932 since it was written. This flow was
+the outlier.
+
+Every selector the flow depends on was verified to resolve at the new viewport
+**before** the change, by loading the page and walking the steps up to but not
+including submit — so the check cost no adaptation credit.
+
+The old `focusRegion` described where a result panel sat *in a desktop window*.
+That window no longer exists, so it was removed rather than re-guessed: a region
+describing a layout the capture no longer produces is worse than none.
+
+### Fitted, not stretched
+
+`BeatStage` sets `overflow: hidden`, so a recording taller than its band lost
+its bottom edge silently — and a portrait capture is exactly that shape. The
+footage is now bounded in both dimensions with automatic sizing, which fits it
+at its own aspect ratio: no distortion, no letterbox bars, no clipping. The
+browser reads the intrinsic aspect from the file, so nothing has to be told the
+footage's dimensions or kept in sync with them.
+
+The band arithmetic is now computed once by `PlannedBeats` and threaded to the
+treatments, replacing three independent derivations. As a side effect the
+treatments need no Remotion context for geometry, which is what lets the
+"no footage renders nothing" refusal be asserted directly.
+
+### Measured, on real renders
+
+| | before | after |
+|---|---|---|
+| capture viewport | 1280×900 | 430×932 |
+| cut aspect | 1.20:1 | 0.46:1 |
+| band occupancy | 65% | **100%** |
+| product CSS width → device px | 998 → 936 (0.94×) | 430 → 485 (1.13×) |
+| ingredient rows | unreadable at a glance | legible |
+| evidence cropped | — | none |
+
+The progression now measures HOOK 20% · DEMO 100% · CARD 56% · CARD 60% ·
+PROOF 21%.
+
+### What this does not fix
+
+The demo occupies **45% of the frame width**. A portrait phone screen inside a
+portrait frame leaves horizontal margin, and that is inherent rather than
+accidental — it reads as framing, but it is not free space that has been won
+back. Filling the frame edge-to-edge would mean cropping the phone capture
+vertically to the band's aspect, and the meaningful region moves during the
+demo (input at the top early, result later), so a fixed window would cut the
+payoff. Doing it properly needs **per-step focus regions**, which is a camera
+abstraction this pass deliberately did not build.
+
+A defect found along the way: the media container was full-width, so the
+hairline border traced a box around 55% empty ground rather than the footage.
+`alignSelf` did not fix it — `Rise` renders a plain block, not a flex parent.
+It is shrink-wrapped and left-aligned now, sharing an edge with the label above
+and the cards that follow.
+
+## §169 — Evidence carries its weight, and provenance survives the render
+
+Three things, found by auditing rather than by looking at one more frame.
+
+### Provenance died at a boundary nobody was watching
+
+`planBeforeAfter` has set `sourcePath` on every beat drawn from the artifact
+since §160, and `creative.test.ts` asserts it — **on the plan**. The mapping into
+`renders.input_props` was an object literal inside the generate handler and did
+not copy it, so the thing that actually ships could not say which artifact path
+any of its beats came from.
+
+Nothing failed, because nothing looked. The guarantee held exactly as far as the
+test's reach and stopped at the moment it started mattering.
+
+The mapping is now `beatsForRender`, extracted so the boundary is testable, and
+a tamper that drops the field fails two tests.
+
+Provenance is **carried, not drawn**. A viewer has no use for
+`steps[3].updated_note`, and printing an internal path on a social post would be
+noise imitating rigour. It travels for the operator surface and for anything
+auditing a render after the fact.
+
+### The evidence beat was the thinnest moment in the piece
+
+21% of its band against 56–60% for the transformation cards beside it — §167's
+defect in a different treatment, with the same cause: fixed type sizes.
+
+It now measures 50%. It also refuses to render at all when the artifact carried
+no reason: the planner only emits this beat when a change explains itself, so a
+lone "WHY" over blank ground would be inventing evidence expressed as layout.
+
+**Quoted evidence is deliberately not special-cased.** The proof gate verifies
+testimonials against stored rows with recorded consent, but no planner path
+builds a proof beat from one — the only producer is a change's own `reason`.
+Styling a quotation nothing can emit would be architecture for a content shape
+that does not exist.
+
+### The search is shared; the measurement is not
+
+The first attempt reused `cardDensityScale` directly, which measures against a
+transformation's 66px heading — and then drew the note at its own 54px. It aimed
+at 62% of the band and landed at 35%.
+
+`fitScale` now holds the search and each treatment supplies its own `heightAt`.
+Sharing the *search* is one rule in one place; sharing the *measurement* is a
+silent miss whenever the bases differ.
+
+### Audits that changed nothing, and why that is the result
+
+**Creative-type selection — verified.** Across seven artifact shapes it refuses
+on an empty artifact, a null artifact and a note without text, and an artifact
+with no transformations correctly selects `ChefNoteCard` rather than being
+forced into before_after. `SubstitutionExplainer` is unreachable while
+`TransformationDiff` is enabled, because its condition is a strict subset and
+selection is fixed-priority — reachable only through per-account composition
+enablement. Documented, not changed: fit-based scoring with one built planner
+would be speculative.
+
+**QC → correction coverage — verified.** 92 gate rules resolve to 11 distinct
+correction paths with nothing unmapped. Five escalate by design.
+
+**The per-flow capture gate — verified in production, with numbers.** 13 capture
+jobs died of `swap_toggle` selector drift before §163's per-flow gate deployed;
+**0 have died since, and 10 have succeeded.** `swap_toggle` itself remains
+drifted: all five declared candidates return zero on the live page, and the idle
+`/adapt` carries no swap UI at all, so it cannot be re-derived without spending
+an adaptation. That is product drift, not a Halyard defect, and the system
+already degrades the way it was designed to — the root flow records and the
+operator is told.
+
+### Correction appliers had no tests
+
+The controller's decisions have been tested since §165. The code that carries
+them out — the code that clears a voiceover, requeues renders and spends
+provider calls — had none. A wrong decision produces a bad correction; a wrong
+applier spends money and writes an iteration row claiming it did something else.
+
+18 tests, all on deterministic paths that need no provider, which is precisely
+why the gap mattered while Anthropic is unavailable.
+
+## §170 — The correction loop closed, and two defects only success could reveal
+
+The one disposition that had never executed — a correction that **clears its
+targeted defect and is accepted on the following pass** — ran for real against
+item `0685510a`: `remeasure` → `rewrite_vo_script` → **accepted**. The narration
+went from 183 words per minute to 172, inside the 140–175 window, with word
+error at 1.6%.
+
+It ran on **OpenAI**, through the provider seam that already existed. Anthropic
+is credit-blocked and was not called.
+
+### No fallback was added, deliberately
+
+`resolveLlmProvider`, `modelsFor` and `createLlmClient` already make the provider
+a runtime choice, and `LLM_PROVIDER=openai` is an explicit override that wins
+over key presence. `describeLlmProvider` reports *"chosen explicitly"* and
+`agent_runs` records the model that actually served each call, so which vendor
+produced a given artifact is already answerable.
+
+Automatic failover was considered and rejected for now. A credit-exhausted key
+still *looks* real, so the resolver keeps choosing Anthropic — which is a
+configuration problem with a configuration answer. Silently retrying a second
+vendor on failure would double the cost of every genuine outage and hide the
+condition that caused it. Explicit selection is the safer default; if failover
+is ever wanted it belongs in `createLlmClient`, recording requested vs actual.
+
+### An accepted item never reached the approval queue
+
+`review_media` sets a failing item to `failed`. The *correct* branch moves it to
+`draft` while a rebuild is in flight. The accept branch promoted only
+`where status = 'failed'` — so an item that was corrected and then accepted
+stayed in `draft`: out of the queue a human works, carrying a full history that
+said it had passed.
+
+Unreachable until a correction actually succeeded, which is why fifteen passes
+of architecture work never found it and the first real success did.
+
+The promotion now covers `draft` as well, narrowed to drafts **this loop
+created** — a prior `corrected` iteration is the evidence. An operator's own
+work in progress must not be pushed into the approval queue behind their back.
+
+### A malformed snapshot could brick an item's controller
+
+`snapshot` is jsonb, and the regression check reads `snapshot.gates.map(...)`.
+A row written by an earlier version — or by hand during an incident — crashes
+the controller for that item **permanently**. The coercion existed in
+`toRecord`; the regression check built its `previous` record inline and bypassed
+it. One conversion, one place, and a missing snapshot now compares as "nothing
+known" rather than throwing.
+
+### Verified without changes
+
+**The empirical chain is complete.** `publish` → `publications` →
+`collect_metrics` at +1h on a decay schedule → `post_metrics` →
+`score_performance` → `performance_scores`, with `historicalConversion` feeding
+idea scoring and the scorer excluding posts it never measured (§68). There is no
+missing link: the first real publication becomes the first empirical
+observation.
+
+**X is verified live**, by one `GET /users/me` — a read, not a publish. Formats
+text, image, video.
+
+**Production has no connected accounts.** Every production row is `pending_auth`
+with no credential, so the deployed worker cannot publish at all. Every working
+credential is local. This is the single largest gap between the current system
+and production operation, and it is an operator action rather than an
+engineering one.
+
+## §171 — swap_toggle was never a selector problem
+
+Thirteen production capture jobs died on *"find the swap control"*. The
+diagnosis was wrong twice, and both wrong diagnoses were reasonable.
+
+**First it looked like selector drift.** §159 built a five-candidate fallback
+chain, which was the right response to the evidence available. Then all five
+candidates failed, which looked like the product having removed the feature —
+and §170 probed the idle `/adapt` page, found no swap UI at all, and recorded it
+as external product drift needing an operator capture to diagnose.
+
+It was neither. Three facts, each cheap to establish and none established until
+now:
+
+1. **The control is exactly where the flow always said it was.**
+   `[aria-label="Choose your swap"]` is present and visible — on **`/`**, not
+   `/adapt`. Its two options carry `aria-pressed`, so the flow's compound click
+   selector was correct too.
+2. **It does real work.** Clicking the unpressed option rewrote the ingredient
+   from *"1 can (400g) jackfruit, drained"* to *"150g soy curls, rehydrated in
+   warm broth"*, with the reason line beneath it. Verified before changing
+   anything, because filming a marketing still and calling it product behaviour
+   is the failure this codebase exists to prevent.
+3. **`flow.path` does not navigate.** It is metadata for `sourceUrl`. This flow
+   had no `goto` step because it was written to inherit the page
+   `adapt_and_reveal` left behind — and `runFlowChain` opens a fresh blank page.
+   Run as a root flow it was looking for the control on `about:blank`.
+
+That third fact is why the earlier diagnoses failed: the failure screenshot was
+a **blank white frame**, and a blank frame reads as "the page changed" rather
+than "the page was never opened".
+
+### The fix
+
+`path: '/'`, a portrait viewport matching §168, its own `goto` marked
+`setup: true` (§166 — a page load is not story), the verified `aria-label` as
+the primary selector with the `data-testid` leading the fallbacks so the flow
+moves back to it automatically if the product ever ships one, and `dependsOn`
+removed.
+
+Dropping the dependency matters as much as the selector: it is the coupling that
+let one drifting flow take down the other, and the homepage card is always
+present, so this flow needs no prior adaptation and spends no credit.
+
+Verified by a real capture: 1.29s of footage at 1080×2340 showing the swap and
+its reason. **Zero credits** — `consumesCredit: false`, and every diagnostic
+probe stopped short of submitting.
+
+### The invariant that would have caught it
+
+A flow that can run as a root must navigate itself. Tested for every flow, with
+the navigation required to be marked `setup`.
+
+### Known quality issue, not fixed
+
+A sign-in modal ("Continue with Google / Continue with Apple") overlays the
+lower third of the recovered footage. The swap, its badge and its reason are all
+above it and fully legible, so the capture is usable. Dismissing it wants the
+same treatment `adapt_and_reveal` gives the App Store banner — an optional
+`setup` step — but the selector has not been verified and this pass does not
+guess at selectors.
+
+---
+
+## 172. The navigation is organised by the operator's questions, not by ours
+
+Twenty-nine sidebar links over three groups named *Today*, *Plan* and *Configure*.
+Every group named a piece of Halyard's own machinery — Swipe file, Hooks, Series,
+Readiness, Pronunciation, Agents, System — and none of them named something a
+person arrives wanting. The list had no ceiling: each feature added a row, until
+the sidebar was a table of contents for the repository.
+
+**Chosen:** seven primary destinations, each answering exactly one question —
+Home, Create, Content, Calendar, Inbox, Analytics, Accounts — with everything
+else under a collapsed **More**, grouped by purpose.
+
+**Rejected:** deleting anything. 29 destinations went in and 29 came out; the
+count is asserted by a test against a frozen baseline, not remembered. A
+navigation that is smaller because it does less is not the goal.
+
+**Rejected:** a search-driven command palette as the primary answer. It works
+only for someone who already knows the name of what they want, which is exactly
+the operator this navigation was failing.
+
+`<details>` rather than `useState`, so the shell stays a server component. The
+disclosure opens itself when the current page is inside it.
+
+### Three bugs, one cause
+
+The three problems reported from a real session were all **reachability**, not
+missing capability:
+
+- Switching products did nothing. The chip wrote `?product=<id>` and the layout
+  called `getCurrentProduct()` with **no argument** — a parameter that had
+  accepted a `requested` id since it was written, and never once received one.
+  The same shape as every other orphaned parameter this codebase has found, and
+  invisible for the same reason: a query string nobody reads is not an error.
+- Clicking a `NOT CONNECTED` account did nothing. The rows were plain `<div>`s.
+  They reported a problem and linked nowhere.
+- Products could not be found. `/products`, `/products/new` and `/products/[id]`
+  all existed, filed under *Plan*, never referenced from the product switcher the
+  operator was actually clicking.
+
+**Capability is not reachability.** All three features worked perfectly. None
+could be operated from where the operator was standing. The lesson generalises:
+a feature that ships without an affordance pointing at it has not shipped.
+
+**Chosen for the switcher:** a cookie, set by `GET /api/product`, which validates
+the id against the real product list and refuses off-origin redirects.
+**Rejected:** the query parameter it already had — in the App Router a **layout
+does not receive `searchParams`**, only pages do, and the switcher lives in the
+shell that the layout renders. The parameter could never have worked.
+
+**Chosen for the rows:** a link to `/accounts#<platform>`, landing on the one
+card that can fix it rather than the top of a page holding seven.
+
+### `next build` is part of verification
+
+`PRODUCT_COOKIE` exported from a route handler typechecks cleanly, passes every
+test, and fails the production build: *"not a valid Route export field."* A route
+file may export only route fields. The constant moved to `lib/product.ts`.
+
+Another entry in the long list of failures whose symptom is a green result.
+
+### Connection exhaustion, mitigated and not cured
+
+`EMAXCONNSESSION` under load: the web tier runs against the **session-mode**
+pooler (port 5432, one Postgres connection per client) at `max: 5` per lambda,
+and the real ceiling is `max × concurrent instances`. Lowered to 2 with idle and
+connection timeouts.
+
+That is mitigation. The cure is moving the **web tier** to the **transaction**
+pooler on port 6543, which is safe: the web tier holds no session-scoped SQL.
+The **worker must stay on session mode** — §165's correction claim is a
+`pg_try_advisory_lock`, which is session-scoped and becomes silently useless
+behind a transaction pooler. Silently is the dangerous part: the lock would
+appear to be taken and would guard nothing.
+
+This is an operator action. Vercel returns `DATABASE_URL` as `[SENSITIVE]`.
+
+### X, Instagram and Threads
+
+Diagnosed by constructing and inspecting the real authorize URLs. Redirect URIs,
+scopes and PKCE parameters are all correct. Each fails at the provider because
+the deployed origin is not registered in that provider's dashboard. No code
+change would fix any of them, and none was made.
+
+---
+
+## 173. Three connection bugs the type system was happy with
+
+Every account-connection failure in this pass was a **configuration** failure that
+compiled, typechecked and passed the suite. None was catchable by "does it build" —
+only by asserting the shape of what we send against what the provider documents.
+
+### Threads is not the Meta app
+
+`PLATFORM_CLIENT_ENV.threads` mapped to `META_APP_ID`, and a test asserted that
+Instagram and Threads shared credentials — encoding the bug as the requirement.
+
+Meta's documentation is explicit: *"For Threads API implementation purposes, use
+the Threads app ID and its corresponding app secret,"* and the authorization
+reference names `client_id` as *"Your Threads App ID."* Adding the Threads use
+case to a Meta app mints a separate id.
+
+**Chosen:** `THREADS_APP_ID` / `THREADS_APP_SECRET`, with `resolvePlatformClient`
+falling back to the Meta app and **reporting that it did**. Some apps genuinely
+report the same value, and an operator who has not split them yet should get the
+behaviour they had — but never silently. **Rejected:** a hard switch, which would
+have broken the running deployment on deploy.
+
+The resolver also refuses to satisfy one platform from another platform's
+credentials, which would connect an account with the wrong app entirely.
+
+### The Instagram dialog was unversioned
+
+`GRAPH_VERSION` is pinned to `v23.0` for every Graph call, but the login dialog was
+`https://www.facebook.com/dialog/oauth`. An unversioned dialog resolves to the
+*oldest* version Meta still serves — by definition the one closest to removal. It
+would have started failing on Meta's deprecation schedule rather than on any change
+here, while the pinned constant sat there looking correct.
+
+### `requireOperator` throws, and a route handler turns that into a 500
+
+`GET /api/oauth/x/start` answered an expired session with a bare 500. A page turns
+that throw into an error boundary; a **route handler** turns it into an opaque
+error page. The operator clicks Connect and gets a blank failure that reads exactly
+like a broken integration rather than "sign in again."
+
+`operatorOrSignIn` returns the operator or the redirect, preserving the intended
+destination.
+
+### The values a provider needs are now computed, not remembered
+
+Every provider validates the redirect URI by **exact string match** and none of them
+names the mismatch in the error, so a nearly-right URL fails identically to a
+completely wrong one. Telling an operator the right value in a chat message fixes it
+once; showing it on the card, derived from the same `callbackUrl` helper the OAuth
+route uses, fixes it for every future deploy and origin change. A test asserts the
+displayed value equals the sent value for all six OAuth platforms.
+
+### The two tiers need opposite poolers
+
+Web wants **transaction** (6543); worker needs **session** (5432). The failure modes
+are not symmetric:
+
+- Web on session mode fails **loudly** — `EMAXCONNSESSION`.
+- Worker on transaction mode fails **silently**. `pg_try_advisory_lock` is
+  session-scoped; behind a transaction pooler it is taken and dropped around one
+  statement and guards nothing. Two workers would both believe they held the
+  correction claim, and the only symptom would be duplicated spend.
+
+**Chosen:** `assertPoolerFor` **refuses to start** the worker on a transaction
+pooler. A silent correctness failure is worth crashing over; the web tier only
+warns, because session mode there is survivable with a small pool.
+
+### What was not a bug
+
+X's authorize request is correct against X's current documentation — endpoint,
+every required parameter, `S256`, space-separated scopes, `offline.access` for a
+refresh token. *"Something went wrong — You weren't able to give access to the App"*
+is raised **before consent**, so it is never a scope-grant problem: it is the
+callback URI, the app type, or OAuth 2.0 being off. Halyard sends a client secret on
+token exchange, which makes it a confidential client, so the X app type must be
+**Web App, Automated App or Bot** — a Native App or SPA is a public client and the
+exchange is refused.
+
+Bluesky's app-password path is correct and unchanged. It remains the one manual
+credential step, and the form on Accounts is the only correct place for it.

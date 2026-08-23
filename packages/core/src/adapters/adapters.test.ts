@@ -161,7 +161,17 @@ describe('PlatformAdapter contract', () => {
   });
 
   it('maps every platform to its client credential env vars', () => {
-    expect(PLATFORM_CLIENT_ENV.instagram).toEqual(PLATFORM_CLIENT_ENV.threads);
+    /*
+     * §173. This used to assert Instagram and Threads shared credentials, which
+     * encoded the bug rather than the requirement: Meta's Threads documentation
+     * says to use "the Threads app ID and its corresponding app secret", and the
+     * Meta App ID fails at the provider before consent. `resolvePlatformClient`
+     * still falls back to the Meta app so existing setups keep working, and says
+     * when it has done so.
+     */
+    expect(PLATFORM_CLIENT_ENV.threads).not.toEqual(PLATFORM_CLIENT_ENV.instagram);
+    expect(PLATFORM_CLIENT_ENV.instagram.id).toBe('META_APP_ID');
+    expect(PLATFORM_CLIENT_ENV.threads.id).toBe('THREADS_APP_ID');
     expect(PLATFORM_CLIENT_ENV.youtube.id).toBe('GOOGLE_CLIENT_ID');
   });
 

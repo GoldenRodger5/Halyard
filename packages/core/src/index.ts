@@ -20,3 +20,5 @@ export * from './explorer/index.js';
 export * from './brain/index.js';
 export * from './platform/index.js';
 export * from './agents/index.js';
+export * from './correction/index.js';
+export * from './db/pooler.js';

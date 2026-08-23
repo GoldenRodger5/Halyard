@@ -56,7 +56,22 @@ export function allAdapters(): PlatformAdapter[] {
 export const PLATFORM_CLIENT_ENV: Record<PlatformId, { id: string; secret: string }> = {
   x: { id: 'X_CLIENT_ID', secret: 'X_CLIENT_SECRET' },
   instagram: { id: 'META_APP_ID', secret: 'META_APP_SECRET' },
-  threads: { id: 'META_APP_ID', secret: 'META_APP_SECRET' },
+  /*
+   * §173. Threads is **not** the Meta app.
+   *
+   * Meta's Threads documentation is explicit: "For Threads API implementation
+   * purposes, use the Threads app ID and its corresponding app secret," and the
+   * authorization reference names `client_id` as "Your Threads App ID." Adding
+   * the Threads use case to a Meta app mints a *separate* id; sending the Meta
+   * App ID to `threads.net/oauth/authorize` fails at the provider, before consent,
+   * with an error that says nothing about which id was wrong.
+   *
+   * The fallback to the Meta credentials is deliberate. Some apps do report the
+   * same value for both, and an operator who has not yet split them should get the
+   * behaviour they had rather than a hard failure — but `resolvePlatformClient`
+   * reports which source it used, so "it is falling back" is never a silent state.
+   */
+  threads: { id: 'THREADS_APP_ID', secret: 'THREADS_APP_SECRET' },
   tiktok: { id: 'TIKTOK_CLIENT_KEY', secret: 'TIKTOK_CLIENT_SECRET' },
   pinterest: { id: 'PINTEREST_APP_ID', secret: 'PINTEREST_APP_SECRET' },
   youtube: { id: 'GOOGLE_CLIENT_ID', secret: 'GOOGLE_CLIENT_SECRET' },
@@ -146,4 +161,72 @@ export function adapterForAccount(
     constraints: direct.constraints,
     capabilities,
   });
+}
+
+/**
+ * The client credentials one platform should actually authenticate with.
+ *
+ * §173. Reading `process.env[PLATFORM_CLIENT_ENV[p].id]` directly was correct for
+ * every platform until Threads, which needs its own app id and secret but is
+ * usually configured on an existing Meta app. This resolves the primary variable,
+ * falls back where a fallback is defined, and — importantly — says which one it
+ * used, so the UI can tell an operator that Threads is running on Meta credentials
+ * rather than leaving them to infer it from a provider error.
+ */
+export const PLATFORM_CLIENT_FALLBACK: Partial<Record<PlatformId, { id: string; secret: string }>> =
+  {
+    threads: { id: 'META_APP_ID', secret: 'META_APP_SECRET' },
+  };
+
+export type ResolvedClient = {
+  clientId: string | null;
+  clientSecret: string | null;
+  /** Which env pair supplied the value, for honest reporting. */
+  source: 'primary' | 'fallback' | 'missing';
+  /** The env var names tried, in order, for an error message worth reading. */
+  tried: string[];
+};
+
+export function resolvePlatformClient(
+  platform: PlatformId,
+  env: Record<string, string | undefined> = process.env,
+): ResolvedClient {
+  const primary = PLATFORM_CLIENT_ENV[platform];
+  const fallback = PLATFORM_CLIENT_FALLBACK[platform];
+
+  /*
+   * A trim-check, not `??`. `.env.example` ships `KEY=` with an inline comment,
+   * which dotenv parses to the empty string, and `??` does not fall back on one.
+   * This is CLAUDE.md gotcha 3, and it has broken OAuth on a fresh clone before.
+   */
+  const read = (name: string): string | null => {
+    const raw = env[name]?.trim();
+    return raw && raw.length > 0 ? raw : null;
+  };
+
+  const id = read(primary.id);
+  const secret = read(primary.secret);
+  if (id && secret) {
+    return { clientId: id, clientSecret: secret, source: 'primary', tried: [primary.id] };
+  }
+
+  if (fallback) {
+    const fid = read(fallback.id);
+    const fsecret = read(fallback.secret);
+    if (fid && fsecret) {
+      return {
+        clientId: fid,
+        clientSecret: fsecret,
+        source: 'fallback',
+        tried: [primary.id, fallback.id],
+      };
+    }
+  }
+
+  return {
+    clientId: null,
+    clientSecret: null,
+    source: 'missing',
+    tried: fallback ? [primary.id, fallback.id] : [primary.id],
+  };
 }

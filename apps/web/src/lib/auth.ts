@@ -60,6 +60,28 @@ export async function getOperator(): Promise<Operator | null> {
   return { id: data.user.id, email: data.user.email ?? null, isDevBypass: false };
 }
 
+/**
+ * The operator, or a redirect to sign in — for route handlers.
+ *
+ * §173. `requireOperator` throws, which a *page* turns into an error boundary and
+ * a **route handler** turns into a bare 500. `GET /api/oauth/x/start` answered an
+ * expired session with an opaque 500 and no way forward: the operator had clicked
+ * Connect and got a blank error page, which reads exactly like a broken
+ * integration rather than "your session ended, sign in again."
+ *
+ * Returns the operator, or the response to send instead.
+ */
+export async function operatorOrSignIn(
+  request: { nextUrl: URL },
+): Promise<{ operator: Operator } | { response: Response }> {
+  const operator = await getOperator();
+  if (operator) return { operator };
+
+  const signIn = new URL('/signin', request.nextUrl.origin);
+  signIn.searchParams.set('next', request.nextUrl.pathname + request.nextUrl.search);
+  return { response: Response.redirect(signIn, 307) };
+}
+
 export async function requireOperator(): Promise<Operator> {
   const operator = await getOperator();
   if (!operator) {

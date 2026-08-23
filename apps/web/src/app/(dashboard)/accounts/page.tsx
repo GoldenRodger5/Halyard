@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { headers } from 'next/headers';
 import {
   Badge,
   Card,
@@ -7,6 +8,7 @@ import {
   PlatformDot,
   SectionTitle,
 } from '@halyard/ui';
+import { registrationFor } from '@/lib/oauthRegistration';
 import {
   BROWSER_PROFILE_RULE,
   PREFLIGHT,
@@ -69,6 +71,15 @@ export default async function AccountsPage({
   }>;
 }) {
   const sp = await searchParams;
+
+  /*
+   * §173. The origin the OAuth routes will actually use, resolved the same way
+   * they resolve it: `OAUTH_REDIRECT_BASE_URL` when set, otherwise the request
+   * origin. Showing a callback URL derived any other way would be showing the
+   * operator a value Halyard does not send.
+   */
+  const h = await headers();
+  const callbackOrigin = `https://${h.get('x-forwarded-host') ?? h.get('host') ?? 'localhost:3200'}`;
   const [products, accounts, pending, provider, settings] = await Promise.all([
     query<ProductRow>(
       `select id, name, kind, operator_timezone from products
@@ -191,6 +202,7 @@ export default async function AccountsPage({
             <div className="space-y-3">
               {adapters.map((adapter) => (
                 <AccountCard
+                  callbackOrigin={callbackOrigin}
                   key={`${product.id}-${adapter.platform}`}
                   platform={adapter.platform}
                   persona="brand"
@@ -217,6 +229,7 @@ export default async function AccountsPage({
         <div className="space-y-3">
           {adapters.map((adapter) => (
             <AccountCard
+              callbackOrigin={callbackOrigin}
               key={`founder-${adapter.platform}`}
               platform={adapter.platform}
               persona="founder"
@@ -282,6 +295,7 @@ export default async function AccountsPage({
 }
 
 function AccountCard({
+  callbackOrigin,
   platform,
   persona,
   productId,
@@ -297,8 +311,19 @@ function AccountCard({
   account?: AccountRow;
   unified: PlatformCapability | null;
   publishingEnabled: boolean;
+  /** The origin the OAuth routes will build their redirect_uri from. */
+  callbackOrigin: string;
 }) {
   const preflight = PREFLIGHT[platform];
+  /*
+   * §173. Computed from the same helper the OAuth route uses, so what the card
+   * tells the operator to register and what Halyard actually sends cannot drift.
+   */
+  const registration = registrationFor(
+    platform,
+    process.env.OAUTH_REDIRECT_BASE_URL,
+    callbackOrigin,
+  );
   const connectHref = `/api/oauth/${platform}/start?persona=${persona}&product=${productId}`;
   const expiry = tokenExpiryState(
     account?.token_expires_at ? new Date(account.token_expires_at) : null,
@@ -336,7 +361,16 @@ function AccountCard({
       : null;
 
   return (
-    <Card className="p-4">
+    /*
+     * §172. The id is the landing point for a deep link. Account health on the
+     * dashboard reports that a platform is not connected; the row now links here,
+     * to the specific card that can fix it, rather than to the top of a page with
+     * seven cards on it.
+     *
+     * `scroll-mt` keeps the heading clear of the sticky chrome — an anchor that
+     * lands under the header reads as an anchor that did not work.
+     */
+    <Card id={platform} className="scroll-mt-24 p-4">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
@@ -482,6 +516,46 @@ function AccountCard({
                 ? ` · last posted ${formatInOperatorTz(account.last_published_at, timeZone, 'd MMM')}`
                 : ' · never posted'}
             </p>
+            </details>
+          ) : null}
+
+          {/* ── What this provider must be told ─────────────────────────
+              §173. Every provider validates the redirect URI by exact string
+              match, and none of them names the mismatch in the error. These are
+              the values to paste, derived from the same helper the OAuth route
+              uses so they cannot drift from what Halyard actually sends.
+
+              Shown while the platform is unconnected, which is when it is
+              needed, and folded away once it is connected. Nothing here is a
+              secret — every value is a public URL sent in a query string. */}
+          {registration && !status.canRead ? (
+            <details className="mt-3" open={Boolean(account?.last_error)}>
+              <summary className="cursor-pointer text-xs text-muted hover:text-ink">
+                What {PLATFORM_LABELS[platform]} needs to be told ({registration.fields.length})
+              </summary>
+              <div className="mt-2 space-y-2 rounded-lg bg-sunk px-3 py-2.5">
+                <p className="text-xs text-muted">{registration.dashboard}</p>
+                {registration.fields.map((field) => (
+                  <div key={field.label}>
+                    <p className="text-[11px] font-medium uppercase tracking-wide text-muted">
+                      {field.label}
+                    </p>
+                    <p className="mt-0.5 break-all font-mono text-xs text-ink">{field.value}</p>
+                    {field.note ? (
+                      <p className="mt-0.5 text-[11px] text-muted">{field.note}</p>
+                    ) : null}
+                  </div>
+                ))}
+                {registration.requirements.length > 0 ? (
+                  <ul className="mt-1 space-y-1 border-t border-line pt-2">
+                    {registration.requirements.map((r) => (
+                      <li key={r} className="text-[11px] leading-relaxed text-muted">
+                        {r}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
             </details>
           ) : null}
 

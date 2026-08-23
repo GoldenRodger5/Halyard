@@ -44,7 +44,15 @@ import {
  */
 export const GRAPH_VERSION = 'v23.0';
 const GRAPH = `https://graph.facebook.com/${GRAPH_VERSION}`;
-const AUTHORIZE_URL = 'https://www.facebook.com/dialog/oauth';
+/*
+ * §173. Versioned, like every other Graph call this adapter makes.
+ *
+ * An unversioned dialog resolves to the *oldest* version Meta still serves, which
+ * is by definition the one closest to removal — so the login dialog would start
+ * failing on Meta's deprecation schedule rather than on any change here, while
+ * `GRAPH_VERSION` stayed pinned and correct. Same version, one place.
+ */
+const AUTHORIZE_URL = `https://www.facebook.com/${GRAPH_VERSION}/dialog/oauth`;
 
 export const INSTAGRAM_CONSTRAINTS: PlatformConstraints = {
   maxChars: 2200,

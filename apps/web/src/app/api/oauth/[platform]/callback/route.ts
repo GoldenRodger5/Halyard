@@ -1,14 +1,14 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import {
-  PLATFORM_CLIENT_ENV,
   getAdapter,
   redactToken,
+  resolvePlatformClient,
   verifyState,
   type PlatformId,
 } from '@halyard/core';
 import { query } from '@/lib/db';
 import { stagePendingConnection } from '@/lib/connections';
-import { requireOperator } from '@/lib/auth';
+import { operatorOrSignIn } from '@/lib/auth';
 import { callbackUrl } from '@/lib/oauthRedirect';
 
 export const dynamic = 'force-dynamic';
@@ -29,7 +29,8 @@ export async function GET(
   request: NextRequest,
   context: { params: Promise<{ platform: string }> },
 ) {
-  await requireOperator();
+  const auth = await operatorOrSignIn(request);
+  if ('response' in auth) return auth.response;
   const { platform } = await context.params;
   const url = request.nextUrl;
 
@@ -54,15 +55,14 @@ export async function GET(
   }
 
   const adapter = getAdapter(platform as PlatformId);
-  const env = PLATFORM_CLIENT_ENV[platform as PlatformId];
-  const clientId = process.env[env.id];
-  const clientSecret = process.env[env.secret];
-  if (!clientId || !clientSecret) {
+  const client = resolvePlatformClient(platform as PlatformId);
+  if (!client.clientId || !client.clientSecret) {
     return redirectWithMessage(
       request,
-      `${env.id} and ${env.secret} are no longer set, so the code cannot be exchanged. Restore them and reconnect.`,
+      `${client.tried.join(' / ')} are no longer set, so the code cannot be exchanged. Restore them and reconnect.`,
     );
   }
+  const { clientId, clientSecret } = client;
 
   const redirectUri = callbackUrl(process.env.OAUTH_REDIRECT_BASE_URL, url.origin, platform);
   const codeVerifier = request.cookies.get(`halyard_pkce_${platform}`)?.value;

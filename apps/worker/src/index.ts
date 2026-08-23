@@ -6,6 +6,7 @@
  * owns anything measured in minutes.
  */
 import pg from 'pg';
+import { assertPoolerFor } from '@halyard/core';
 import { Poller } from './poller.js';
 import { HANDLERS } from './handlers/index.js';
 import { startScheduler } from './scheduler.js';
@@ -20,6 +21,19 @@ function requireEnv(name: string): string {
 async function main(): Promise<void> {
   const workerId = process.env.WORKER_ID ?? `worker-${process.pid}`;
   const connectionString = process.env.DATABASE_URL ?? requireEnv('SUPABASE_DB_URL');
+
+  /*
+   * §173. The worker must hold a real session, and this refuses to start if it
+   * does not. §165's correction claim is `pg_try_advisory_lock`; behind a
+   * transaction pooler that lock is taken and dropped around a single statement
+   * and guards nothing, so two workers would both believe they had the claim. The
+   * failure would show up only as duplicated correction spend, long after the
+   * misconfiguration, which is exactly the kind of silence worth crashing over.
+   */
+  const pooler = assertPoolerFor(connectionString, 'worker');
+  console.log(
+    JSON.stringify({ message: 'database.pooler', worker: workerId, mode: pooler.mode, ok: pooler.ok }),
+  );
 
   const pool = new pg.Pool({
     connectionString,
