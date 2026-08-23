@@ -11,6 +11,7 @@ import {
 import { registrationFor } from '@/lib/oauthRegistration';
 import {
   BROWSER_PROFILE_RULE,
+  resolvePlatformClient,
   PREFLIGHT,
   REVIEW_GATES,
   allAdapters,
@@ -324,6 +325,22 @@ function AccountCard({
     process.env.OAUTH_REDIRECT_BASE_URL,
     callbackOrigin,
   );
+
+  /*
+   * §174. Whether this platform can be connected *at all*, which is a different
+   * question from whether it is connected.
+   *
+   * Connect used to render for every platform. TikTok, Pinterest and YouTube have
+   * no developer app, so it was a dead button: it went to the OAuth route, which
+   * answered 428 with a raw JSON body. The operator got a wall of JSON instead of
+   * "this needs a developer app first", which is the actual answer.
+   *
+   * Bluesky has no client app by design — it is an app password — so it is never
+   * "unconfigured".
+   */
+  const client = platform === 'bluesky' ? null : resolvePlatformClient(platform);
+  const needsDeveloperSetup = client !== null && client.source === 'missing';
+  const usingFallbackClient = client !== null && client.source === 'fallback';
   const connectHref = `/api/oauth/${platform}/start?persona=${persona}&product=${productId}`;
   const expiry = tokenExpiryState(
     account?.token_expires_at ? new Date(account.token_expires_at) : null,
@@ -367,10 +384,16 @@ function AccountCard({
      * to the specific card that can fix it, rather than to the top of a page with
      * seven cards on it.
      *
+     * §174. Scoped by persona, because every platform is rendered twice — once for
+     * the brand and once for the founder. A bare `id={platform}` put two elements
+     * with the same id in the document, which is invalid, and made the deep link
+     * land on whichever happened to render first rather than the one the operator
+     * clicked.
+     *
      * `scroll-mt` keeps the heading clear of the sticky chrome — an anchor that
      * lands under the header reads as an anchor that did not work.
      */
-    <Card id={platform} className="scroll-mt-24 p-4">
+    <Card id={`${persona}-${platform}`} className="scroll-mt-24 p-4">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
@@ -528,6 +551,20 @@ function AccountCard({
               Shown while the platform is unconnected, which is when it is
               needed, and folded away once it is connected. Nothing here is a
               secret — every value is a public URL sent in a query string. */}
+          {/* §174. The fallback must not be silent.
+              Threads resolves its own app id first and falls back to the Meta app,
+              which is right for an operator who has not split them yet and wrong to
+              hide: if the two ids differ, consent fails at the provider with an
+              error that never mentions which id was sent. */}
+          {usingFallbackClient ? (
+            <p className="mt-3 rounded-lg bg-warn/10 px-3 py-2 text-xs leading-relaxed text-ink">
+              Using the Meta app credentials, because{' '}
+              <span className="font-mono">{client?.tried[0]}</span> is not set.{' '}
+              {PLATFORM_LABELS[platform]} issues its own app id — if it differs from the
+              Meta one, authorisation will fail before consent.
+            </p>
+          ) : null}
+
           {registration && !status.canRead ? (
             <details className="mt-3" open={Boolean(account?.last_error)}>
               <summary className="cursor-pointer text-xs text-muted hover:text-ink">
@@ -615,6 +652,23 @@ function AccountCard({
                 {account?.has_token ? 'Reconnect' : 'Connect'}
               </button>
             </form>
+          ) : needsDeveloperSetup ? (
+            /*
+             * §174. Not a Connect button.
+             *
+             * This platform has no developer app, so Connect would go to the OAuth
+             * route and come back 428 with a raw JSON body — a dead button that
+             * answers a question the operator did not ask. Saying what is missing
+             * is the honest version, and naming the variables is safe: they are
+             * names, never values.
+             */
+            <div className="w-56 rounded-lg border border-dashed border-line px-3 py-2">
+              <p className="text-sm font-medium text-muted">Needs developer setup</p>
+              <p className="mt-0.5 text-[11px] leading-relaxed text-muted">
+                No {PLATFORM_LABELS[platform]} app is registered yet. Set{' '}
+                <span className="font-mono">{client?.tried.join(' or ')}</span> once you have one.
+              </p>
+            </div>
           ) : (
             <a
               href={connectHref}

@@ -28,12 +28,28 @@ export function devBypassAllowed(): boolean {
 }
 
 export async function getOperator(): Promise<Operator | null> {
-  if (!supabaseConfigured()) {
-    if (devBypassAllowed()) {
-      return { id: '00000000-0000-4000-8000-000000000000', email: 'dev@localhost', isDevBypass: true };
-    }
-    return null;
+  /*
+   * §174. The bypass is checked *first*, not only when Supabase is missing.
+   *
+   * It used to live inside `if (!supabaseConfigured())`, which made
+   * `HALYARD_DEV_UNAUTHENTICATED=1` silently inert on any machine that had
+   * Supabase keys in `.env.local` — that is, every real development setup. The
+   * flag was set, the app kept redirecting to /signin, and nothing said why.
+   *
+   * It took the browser suite with it: `e2e/accounts.spec.ts` was failing five of
+   * six, and every other spec that opens a protected page was in the same state,
+   * because Playwright cannot sign in to Supabase. A dead E2E suite is worse than
+   * no E2E suite — it reports green when it is skipped and gets ignored when it
+   * is red.
+   *
+   * The guard that matters is unchanged and is the only one that ever mattered:
+   * `devBypassAllowed()` requires `NODE_ENV !== 'production'`, so this cannot be
+   * turned on in a deployed environment even if the variable were set there.
+   */
+  if (devBypassAllowed()) {
+    return { id: '00000000-0000-4000-8000-000000000000', email: 'dev@localhost', isDevBypass: true };
   }
+  if (!supabaseConfigured()) return null;
 
   const cookieStore = await cookies();
   const supabase = createServerClient(

@@ -228,7 +228,7 @@ export default async function DashboardPage() {
                  */
                 <Link
                   key={account.id}
-                  href={`/accounts#${account.platform}`}
+                  href={`/accounts#${account.persona}-${account.platform}`}
                   className="flex flex-wrap items-center gap-3 px-5 py-3 transition-colors hover:bg-sunk"
                 >
                   <PlatformDot platform={account.platform} />
