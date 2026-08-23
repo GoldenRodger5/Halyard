@@ -10,8 +10,20 @@ test('the whole approve flow works at phone width', async ({ page }) => {
 
   await page.goto('/queue');
 
-  // The bottom tab bar is the mobile navigation.
-  await expect(page.locator('nav').getByRole('link', { name: 'Queue' })).toBeVisible();
+  /*
+   * The bottom tab bar is the mobile navigation.
+   *
+   * Asserted by destination, not by label. §172 renamed this tab from "Queue" to
+   * "Content" — the same route, answering the operator's question rather than
+   * naming our table — and this test kept asserting the old word. It should have
+   * failed that day and did not, because the browser suite could not sign in
+   * (§174); a rename is exactly the kind of change an E2E suite exists to catch.
+   */
+  const queueTab = page
+    .getByRole('navigation', { name: 'Sections' })
+    .locator('a[href="/queue"]');
+  await expect(queueTab).toBeVisible();
+  await expect(queueTab).toHaveText(/content/i);
 
   const card = page.locator(`#queue-item-${item.id}`);
   await expect(card).toBeVisible();

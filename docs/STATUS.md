@@ -254,6 +254,13 @@ mitigated. The worker stays on session mode and now **refuses to start** on the
 wrong one — verified empirically: on 6543 the same advisory lock was granted twice
 in a row.
 
+**Verification.** 1574 unit tests passed / 399 skipped · typecheck 7/7 · lint clean
+· production build clean · **Playwright 132 passed / 0 failed / 9 skipped** on a
+freshly started dev server (it was 2 passed before this pass). Two specs
+(`delivery`, `launch`) time out intermittently on a *long-running* dev server and
+pass in isolation — a Next dev degradation under sustained recompiles, not a
+product defect. Run the suite against a fresh server.
+
 **Real browser coverage for the connect flow** (`e2e/oauth-connect.spec.ts`): a
 real click, the real route handler, the real redirect, asserted from the browser's
 own location, with all off-origin traffic sealed. It stops at consent, which needs

@@ -198,7 +198,16 @@ export function Shell({
             </div>
           </div>
 
-          <nav className="flex-1 overflow-y-auto px-3 pb-6">
+          {/*
+            §174. Named landmarks.
+
+            The shell renders two <nav> elements — the sidebar and the phone tab
+            bar — and neither had a name, so a screen reader announced two
+            identical "navigation" landmarks and gave no way to tell them apart.
+            It also made them indistinguishable to a test, which is how a mobile
+            spec ended up matching the desktop sidebar.
+          */}
+          <nav aria-label="Main" className="flex-1 overflow-y-auto px-3 pb-6">
             {NAV.map((item) => {
               const active =
                 item.href === '/' ? pathname === '/' : pathname.startsWith(item.href);
@@ -302,7 +311,10 @@ export function Shell({
           {children}
         </main>
 
-        <nav className="fixed inset-x-0 bottom-0 z-20 flex border-t border-line bg-surface/95 backdrop-blur md:hidden">
+        <nav
+          aria-label="Sections"
+          className="fixed inset-x-0 bottom-0 z-20 flex border-t border-line bg-surface/95 backdrop-blur md:hidden"
+        >
           {MOBILE_TABS.map((tab) => {
             const active = pathname.startsWith(tab.href);
             const count = badgeFor(tab.href);
