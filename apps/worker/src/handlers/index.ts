@@ -32,6 +32,7 @@ import { clusterRejectionsHandler } from './clusterRejections.js';
 import { digestHandler } from './digest.js';
 import { purgeLogsHandler } from './purgeLogs.js';
 import { reviewMediaHandler } from './reviewMedia.js';
+import { correctContentHandler } from './correct.js';
 import { collectSignalsHandler } from './signals.js';
 import { ttsHandler } from './tts.js';
 import { exploreHandler } from './explore.js';
@@ -526,6 +527,8 @@ export const HANDLERS: Partial<Record<JobKind, JobHandler>> = {
   score_performance: scorePerformance,
   refresh_tokens: refreshTokens,
   review_media: reviewMediaHandler,
+  /** §165: diagnose a failing verdict and apply the smallest correction. */
+  correct_content: correctContentHandler,
   tts: ttsHandler,
   verify_feature: verifyFeatureHandler,
   explore_product: exploreHandler,

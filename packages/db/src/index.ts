@@ -102,6 +102,12 @@ export const JOB_KINDS = [
   'build_product_brain',
   /** P2: probe what a transport can actually do, and record the observation. */
   'verify_provider_capability',
+  /**
+   * §165: diagnose a failing QC verdict and apply the smallest correction that
+   * addresses it. Re-enters the existing pipeline rather than driving a second
+   * one, so this job decides and delegates; it renders nothing itself.
+   */
+  'correct_content',
 ] as const;
 export type JobKind = (typeof JOB_KINDS)[number];
 
@@ -125,6 +131,13 @@ export const JOB_POLICY: Record<
   // Frame sampling plus one describer call per frame. Slow, and worth waiting
   // for: it is the only thing that looks at the finished media.
   review_media: { timeoutMs: 5 * 60_000, maxAttempts: 2, backoffSeconds: 90 },
+  /**
+   * Decides and delegates. The expensive work — synthesis, render, review —
+   * happens in the jobs this one enqueues, so it needs neither a long timeout
+   * nor many attempts. Two, because a transient database error should not
+   * strand an item mid-correction with no controller ever running again.
+   */
+  correct_content: { timeoutMs: 2 * 60_000, maxAttempts: 2, backoffSeconds: 30 },
   /**
    * A real browser walking a real product flow. Generous, like `capture`, and
    * for the same reason: the thing being measured is someone's live app, and a

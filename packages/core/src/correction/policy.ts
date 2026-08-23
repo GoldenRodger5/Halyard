@@ -1,0 +1,413 @@
+/**
+ * What to do about each kind of defect, decided in advance.
+ *
+ * §165. This is the file that stops self-correction becoming "roll the dice
+ * again". Every rule the gates can emit maps to one action and one component,
+ * written down before any artifact fails, so the correction applied to a
+ * failing post is a consequence of *which check failed* rather than of what a
+ * model thought while looking at it.
+ *
+ * Two properties are load-bearing and both are tested:
+ *
+ * **Every rule is covered.** `policyCoverage.test.ts` enumerates the rule
+ * identifiers in the gate sources and fails if one has no entry — the same
+ * technique `handlerCoverage.test.ts` uses to keep `JOB_KINDS` honest. A rule
+ * added to a gate without a policy entry would otherwise fall to the default
+ * and quietly get the wrong correction.
+ *
+ * **Some defects are not correctable.** Missing evidence, an unverifiable
+ * product behaviour, absent testimonial consent, a measurement that never ran —
+ * none of these is fixed by writing different words, and a loop that tries will
+ * burn its whole budget producing variations of the same failure. Those map to
+ * `escalate`, which stops the loop and tells a person why.
+ */
+import type { GateName } from '../qc/index.js';
+import type { Component, CorrectionAction } from './defects.js';
+
+export interface PolicyEntry {
+  rootCause: string;
+  component: Component;
+  action: CorrectionAction;
+  correctable: boolean;
+}
+
+/**
+ * Rules that need their own entry, because the namespace default is wrong.
+ *
+ * Kept small on purpose. A table with an entry per rule is a table nobody
+ * maintains; the namespace carries the common case and this carries the
+ * exceptions, each with the reason it is one.
+ */
+const BY_RULE: Record<string, PolicyEntry> = {
+  /*
+   * Pace and word-error are both `audio`, and they need opposite corrections.
+   * Pacing is the *script* — 195 words per minute against a 140–175 window
+   * means there are too many words for the runtime, and resynthesising the same
+   * script produces the same speech at the same speed. Word-error is the
+   * *synthesis* — the words were right and the voice said something else, which
+   * is a pronunciation problem the lexicon exists for.
+   */
+  'audio.pacing': {
+    rootCause: 'The script has more words than the runtime allows, so the voice reads it too fast.',
+    component: 'vo_script',
+    action: 'rewrite_vo_script',
+    correctable: true,
+  },
+  /*
+   * Word-error is a *script* correction, not a re-synthesis, and the reason is
+   * worth stating because the obvious answer is wrong.
+   *
+   * The tempting fix is "say it again" — but synthesis of the same script is
+   * near-deterministic, so a second attempt reproduces the same mispronunciation
+   * and the loop has spent a provider call to learn nothing. That is precisely
+   * the dice-rolling this design exists to prevent.
+   *
+   * The lexicon is the other tempting answer, and it is worse: `voice_lexicon`
+   * requires a `phonetic` column, and a machine inventing a phonetic spelling
+   * is fabricating evidence about how a word sounds. A person adds those.
+   *
+   * What *can* be corrected deterministically is the script: spell the numeral,
+   * hyphenate the compound, replace the term the synthesiser cannot say with
+   * one it can. The gate already names the culprits in `suggestedLexiconTerms`.
+   */
+  'audio.word_error_rate': {
+    rootCause: 'The synthesiser said something other than the script — a term it cannot pronounce as written.',
+    component: 'vo_script',
+    action: 'rewrite_vo_script',
+    correctable: true,
+  },
+  'audio.unnormalised_numerals': {
+    rootCause: 'A numeral reached the synthesiser unspoken, so it was read as digits.',
+    component: 'vo_script',
+    action: 'rewrite_vo_script',
+    correctable: true,
+  },
+  'audio.trailing_silence': {
+    rootCause: 'The mix holds silence past the last word.',
+    component: 'voiceover',
+    action: 'resynthesise_voiceover',
+    correctable: true,
+  },
+
+  /*
+   * Caption legibility is §158's territory and has a treatment seam, so it is
+   * corrected by changing the caption treatment rather than by rewriting the
+   * words. Rewriting a caption to fit a bad backdrop is fixing the wrong thing.
+   */
+  'visual.contrast': {
+    rootCause: 'Captions do not clear the contrast floor against what is behind them.',
+    component: 'caption_style',
+    action: 'adjust_caption_treatment',
+    correctable: true,
+  },
+  'visual.text_clipped': {
+    rootCause: 'Text runs outside the frame or through another element.',
+    component: 'composition',
+    action: 'adjust_caption_treatment',
+    correctable: true,
+  },
+  'visual.safe_area': {
+    rootCause: 'Content sits where the platform draws its own interface over it.',
+    component: 'composition',
+    action: 'adjust_caption_treatment',
+    correctable: true,
+  },
+  'visual.caption_drift': {
+    rootCause: 'Captions have drifted out of sync with the narration.',
+    component: 'voiceover',
+    action: 'resynthesise_voiceover',
+    correctable: true,
+  },
+
+  /*
+   * These describe the *file*, not the creative. A render at the wrong
+   * resolution or aspect ratio is a composition selection problem; the words
+   * and the plan are innocent.
+   */
+  'visual.aspect_ratio': {
+    rootCause: 'The render does not match the aspect ratio the platform expects.',
+    component: 'composition',
+    action: 'adjust_caption_treatment',
+    correctable: true,
+  },
+  'visual.resolution': {
+    rootCause: 'The render is below the resolution the platform expects.',
+    component: 'composition',
+    action: 'adjust_caption_treatment',
+    correctable: true,
+  },
+  'visual.black_frames': {
+    rootCause: 'The render contains frames with nothing on them.',
+    component: 'creative_plan',
+    action: 'adjust_scene_timing',
+    correctable: true,
+  },
+  'visual.duration': {
+    rootCause: 'The render is outside the platform’s duration limits.',
+    component: 'creative_plan',
+    action: 'adjust_scene_timing',
+    correctable: true,
+  },
+
+  /*
+   * Loudness and true peak are measured on the mix, and the mix is produced by
+   * a deterministic ffmpeg filter chain. If those fail the fault is in
+   * synthesis or normalisation, not in anything a writer chose.
+   */
+  'visual.loudness': {
+    rootCause: 'The mix is off the loudness target.',
+    component: 'voiceover',
+    action: 'resynthesise_voiceover',
+    correctable: true,
+  },
+  'visual.true_peak': {
+    rootCause: 'The mix exceeds the true-peak ceiling.',
+    component: 'voiceover',
+    action: 'resynthesise_voiceover',
+    correctable: true,
+  },
+
+  /*
+   * The vision rubric is the independent reviewer's own judgement of the
+   * frames. It is perception, and it is deliberately *not* given a component of
+   * its own: a model's overall impression is not a licence to rewrite the post.
+   * It escalates, so a person decides.
+   */
+  'visual.vision_rubric': {
+    rootCause: 'The independent reviewer judged the frames below the rubric, without naming a mechanical fault.',
+    component: 'evidence',
+    action: 'escalate',
+    correctable: false,
+  },
+
+  'destination.missing': {
+    rootCause: 'The post sends people nowhere.',
+    component: 'link',
+    action: 'fix_destination',
+    correctable: true,
+  },
+
+  /*
+   * A quoted testimonial with no consent recorded cannot be corrected by
+   * generation. There is no version of this that is fixed by rewriting: either
+   * the consent exists and was not linked, or the quote must not be published.
+   */
+  'proof.no_consent': {
+    rootCause: 'A quoted testimonial has no recorded consent.',
+    component: 'evidence',
+    action: 'escalate',
+    correctable: false,
+  },
+  'proof.no_source': {
+    rootCause: 'A quoted testimonial resolves to no stored row.',
+    component: 'evidence',
+    action: 'escalate',
+    correctable: false,
+  },
+};
+
+/**
+ * The common case, by rule namespace.
+ *
+ * Reading the namespace rather than the whole rule is what keeps this table
+ * maintainable: a new phrase added to the slop filter is still a copy defect
+ * fixed by revising copy, and needs no entry here.
+ */
+const BY_NAMESPACE: Record<string, PolicyEntry> = {
+  // Every slop-filter namespace. All of them are the same defect — words that
+  // should not have been written — and the same correction.
+  construction: { rootCause: 'A banned construction reached the copy.', component: 'copy', action: 'revise_copy', correctable: true },
+  phrase: { rootCause: 'A banned phrase reached the copy.', component: 'copy', action: 'revise_copy', correctable: true },
+  emoji: { rootCause: 'Emoji use is outside the platform policy.', component: 'copy', action: 'revise_copy', correctable: true },
+  hashtags: { rootCause: 'The hashtag count is outside the platform ceiling.', component: 'copy', action: 'revise_copy', correctable: true },
+  length: { rootCause: 'The copy is outside the platform length limit.', component: 'copy', action: 'revise_copy', correctable: true },
+  punctuation: { rootCause: 'Punctuation is outside the house style.', component: 'copy', action: 'revise_copy', correctable: true },
+  structure: { rootCause: 'The copy structure is outside the house style.', component: 'copy', action: 'revise_copy', correctable: true },
+  copy: { rootCause: 'The copy is empty or unusable.', component: 'copy', action: 'revise_copy', correctable: true },
+
+  /*
+   * `internals` is a leak of build detail — a branch name, a commit SHA, a file
+   * path — into copy meant for the public. Correctable, and worth its own root
+   * cause because it means an upstream prompt was fed something it should not
+   * have been.
+   */
+  internals: { rootCause: 'Build internals leaked into public copy.', component: 'copy', action: 'revise_copy', correctable: true },
+
+  /*
+   * A hard block is a claim the system must never publish — a medical
+   * guarantee, a competitor mention, a nutrition assertion it cannot stand
+   * behind. Correctable by removing it, and never by softening it, which is why
+   * it reroutes through the claims path rather than a plain copy revision.
+   */
+  hard_block: { rootCause: 'The copy contains a claim that must never be published.', component: 'claims', action: 'reground_claims', correctable: true },
+
+  /*
+   * Delivery findings — a flat read, a laboured word, sentences run together, a
+   * rushed open — are all descriptions of *how the script was spoken*, and the
+   * only lever this system has over that is the script's own structure. There
+   * is no speed or prosody control in `SynthesisOptions`; there are full stops,
+   * commas and sentence length. So they route where pacing routes.
+   */
+  delivery: { rootCause: 'The read is uneven, and the only lever available is the script’s sentence structure.', component: 'vo_script', action: 'rewrite_vo_script', correctable: true },
+
+  // Spoken-slop rules apply to the narration, wherever they are raised from.
+  spoken: { rootCause: 'The narration contains filler the house style bans.', component: 'vo_script', action: 'rewrite_vo_script', correctable: true },
+
+  retention: { rootCause: 'The opening or the pacing does not hold a viewer.', component: 'creative_plan', action: 'adjust_scene_timing', correctable: true },
+  coherence: { rootCause: 'What is said and what is shown do not line up.', component: 'creative_plan', action: 'resequence_scenes', correctable: true },
+  visual_slop: { rootCause: 'The render is visually inert.', component: 'creative_plan', action: 'adjust_scene_timing', correctable: true },
+  claims: { rootCause: 'A claim is not supported by the artifact.', component: 'claims', action: 'reground_claims', correctable: true },
+  destination: { rootCause: 'The destination is wrong for this platform.', component: 'link', action: 'fix_destination', correctable: true },
+  proof: { rootCause: 'A quoted testimonial does not check out.', component: 'evidence', action: 'escalate', correctable: false },
+  visual: { rootCause: 'The rendered frames failed a visual check.', component: 'composition', action: 'adjust_caption_treatment', correctable: true },
+  audio: { rootCause: 'The voiceover failed an audio check.', component: 'voiceover', action: 'resynthesise_voiceover', correctable: true },
+};
+
+/**
+ * A measurement that did not happen is not a defect in the artifact.
+ *
+ * `audio.not_measured`, `coherence.not_measured` and a gate that reports
+ * `skipped` are all statements about the *pipeline*, and correcting the content
+ * cannot make them go away. They re-measure once; if the measurement still does
+ * not happen, the controller escalates rather than rewriting a post that may be
+ * perfectly fine.
+ */
+function isMeasurementFault(rule: string): boolean {
+  return rule.endsWith('.not_measured') || rule.endsWith('.unspecified');
+}
+
+export function policyFor(
+  rule: string,
+  /**
+   * The gate that raised it. Unused today and deliberately kept: the rule is
+   * the join key, and a policy that fell back to the gate name would let a new
+   * rule get a plausible-looking correction rather than the refusal that the
+   * coverage test is there to force someone to replace.
+   */
+  _gate: GateName,
+): PolicyEntry {
+  if (isMeasurementFault(rule)) {
+    return {
+      rootCause: 'This check did not run, so nothing about the artifact was established either way.',
+      component: 'measurement',
+      action: 'remeasure',
+      correctable: true,
+    };
+  }
+
+  const exact = BY_RULE[rule];
+  if (exact) return exact;
+
+  const namespace = rule.split('.')[0] ?? '';
+  const byNamespace = BY_NAMESPACE[namespace];
+  if (byNamespace) return byNamespace;
+
+  /*
+   * An unknown rule escalates rather than guessing.
+   *
+   * The coverage test should make this unreachable for rules that exist in the
+   * repository. It is here for the case it cannot cover: a gate whose findings
+   * come from a provider response rather than from source, where a new rule
+   * string can appear without any code changing.
+   */
+  return {
+    rootCause: `No correction policy covers ${rule}, so it is not safe to guess one.`,
+    component: 'evidence',
+    action: 'escalate',
+    correctable: false,
+  };
+}
+
+/**
+ * What a given action is allowed to change, and what it must leave alone.
+ *
+ * The second half is the point. §4 of the brief that produced this file asks
+ * for a policy that "explicitly prevents unrelated portions of a successful
+ * artifact from being unnecessarily changed" — so the forbidden list is data,
+ * checked by `assertScope` before a correction is applied, rather than a
+ * property the correction code is trusted to have.
+ */
+export interface ActionScope {
+  /** Components this action may write. */
+  may: Component[];
+  /** Components this action must not write, stated rather than implied. */
+  mustNot: Component[];
+}
+
+export const ACTION_SCOPE: Record<CorrectionAction, ActionScope> = {
+  revise_copy: {
+    may: ['copy'],
+    mustNot: ['claims', 'creative_plan', 'voiceover', 'composition', 'link'],
+  },
+  reground_claims: {
+    // A claim lives in the copy, so regrounding one necessarily rewrites words.
+    may: ['claims', 'copy'],
+    mustNot: ['creative_plan', 'voiceover', 'composition', 'link'],
+  },
+  fix_destination: {
+    may: ['link'],
+    mustNot: ['copy', 'claims', 'creative_plan', 'voiceover', 'composition'],
+  },
+  rewrite_vo_script: {
+    // The script only. The post's own words are a separate artifact and a
+    // pacing problem in the narration is no reason to touch them.
+    may: ['vo_script', 'voiceover'],
+    mustNot: ['copy', 'claims', 'creative_plan', 'composition', 'link'],
+  },
+  resynthesise_voiceover: {
+    // The same script, said again. Not even the script may change here — that
+    // is `rewrite_vo_script`, and conflating them is how a pronunciation fix
+    // turns into a rewrite.
+    may: ['voiceover'],
+    mustNot: ['copy', 'claims', 'vo_script', 'creative_plan', 'composition', 'link'],
+  },
+  adjust_caption_treatment: {
+    may: ['caption_style', 'composition'],
+    mustNot: ['copy', 'claims', 'vo_script', 'voiceover', 'link'],
+  },
+  adjust_scene_timing: {
+    may: ['creative_plan'],
+    mustNot: ['copy', 'claims', 'vo_script', 'voiceover', 'link'],
+  },
+  resequence_scenes: {
+    may: ['creative_plan'],
+    mustNot: ['copy', 'claims', 'vo_script', 'voiceover', 'link'],
+  },
+  remeasure: {
+    // Measuring changes nothing about the artifact. That is the whole point.
+    may: ['measurement'],
+    mustNot: ['copy', 'claims', 'vo_script', 'voiceover', 'creative_plan', 'composition', 'link'],
+  },
+  escalate: {
+    may: [],
+    mustNot: ['copy', 'claims', 'vo_script', 'voiceover', 'creative_plan', 'composition', 'link'],
+  },
+};
+
+/**
+ * Whether a set of actually-changed components was permitted.
+ *
+ * Called *after* a correction runs, against what it really wrote, so the check
+ * is on behaviour rather than intent.
+ */
+export function assertScope(
+  action: CorrectionAction,
+  changed: Component[],
+): { ok: true } | { ok: false; violation: string } {
+  const scope = ACTION_SCOPE[action];
+  for (const component of changed) {
+    if (scope.mustNot.includes(component)) {
+      return {
+        ok: false,
+        violation: `${action} changed ${component}, which it is not permitted to touch.`,
+      };
+    }
+    if (!scope.may.includes(component)) {
+      return {
+        ok: false,
+        violation: `${action} changed ${component}, which is outside its declared scope.`,
+      };
+    }
+  }
+  return { ok: true };
+}

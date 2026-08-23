@@ -17,7 +17,7 @@ import type pg from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { sealToken } from '../../../packages/core/src/crypto/tokenCrypto.js';
 import { createIsolatedPool, databaseAvailable } from '../../../packages/db/src/__tests__/testDb.js';
-import { publishHandler } from './handlers/publish.js';
+import { DuplicatePublishAbort, publishHandler } from './handlers/publish.js';
 import { PermanentJobFailure, type HandlerContext, type Job } from './poller.js';
 
 const available = await databaseAvailable();
@@ -30,13 +30,45 @@ const KEY = randomBytes(32).toString('base64');
 
 /** Counts every outbound request. A publish that happens is a failed test. */
 let requests = 0;
-const countingFetch = (async () => {
-  requests += 1;
+
+function providerResponse(): Response {
   return new Response(JSON.stringify({ data: { id: 'should-not-exist' } }), {
     status: 200,
     headers: { 'content-type': 'application/json' },
   });
+}
+
+const countingFetch = (async () => {
+  requests += 1;
+  return providerResponse();
 }) as unknown as typeof fetch;
+
+/**
+ * A fetch that parks its caller inside the network call until released.
+ *
+ * The concurrency test needs one publish to be *provably* mid-flight while a
+ * second arrives. Starting two handlers and hoping they interleave is not a
+ * test, it is a coin flip — and it was: `publish` claims the publication row
+ * before the network call, so whichever way the race lands the invariants hold,
+ * but *which* duplicate guard fires depends on how far the winner got. Parking
+ * the winner inside `fetch` — after it holds the claim, before it returns —
+ * pins the window open and makes the outcome deterministic.
+ */
+function parkedFetch(): { impl: typeof fetch; entered: Promise<void>; release: () => void } {
+  let markEntered!: () => void;
+  let release!: () => void;
+  const entered = new Promise<void>((resolve) => (markEntered = resolve));
+  const gate = new Promise<void>((resolve) => (release = resolve));
+
+  const impl = (async () => {
+    requests += 1;
+    markEntered();
+    await gate;
+    return providerResponse();
+  }) as unknown as typeof fetch;
+
+  return { impl, entered, release };
+}
 
 beforeAll(async () => {
   if (!available) return;
@@ -101,11 +133,11 @@ function context(): HandlerContext {
   } as unknown as HandlerContext;
 }
 
-function job(contentItemId: string, attempts = 1): Job {
+function job(contentItemId: string, attempts = 1, fetchImpl: typeof fetch = countingFetch): Job {
   return {
     id: randomBytes(16).toString('hex'),
     kind: 'publish',
-    payload: { contentItemId, accountMeta: { fetchImpl: countingFetch } },
+    payload: { contentItemId, accountMeta: { fetchImpl } },
     attempts,
     max_attempts: 3,
     dedupe_key: null,
@@ -331,13 +363,52 @@ d('duplicate protection survives every route back in', () => {
   });
 
   it('keeps one publication per item and account under concurrency', async () => {
+    /*
+     * The window this exists for, held open deliberately.
+     *
+     * `publish` claims the publications row *before* the network call, so the
+     * unique index — not timing — is what guarantees a single request. The
+     * second attempt arrives while the first is parked inside `fetch`, holding
+     * that claim: the guard is therefore exercised at the moment it matters
+     * rather than whenever the two handlers happen to interleave.
+     *
+     * The earlier version asserted "exactly one of the two promises fulfilled",
+     * which is a statement about *which* duplicate guard fired, and that
+     * depends on how far the winner got before the loser looked. Both outcomes
+     * are safe; only one was asserted, so the test failed whenever the machine
+     * was fast enough for the winner to finish first.
+     */
     const id = await item('approved');
-    const results = await Promise.allSettled([
-      publishHandler(job(id), context()),
-      publishHandler(job(id), context()),
-    ]);
+    const parked = parkedFetch();
 
-    expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
+    const winner = publishHandler(job(id, 1, parked.impl), context());
+    await parked.entered;
+
+    // The competing transition, arriving mid-flight. It must be refused.
+    await expect(publishHandler(job(id), context())).rejects.toBeInstanceOf(DuplicatePublishAbort);
+
+    parked.release();
+    await winner;
+
+    // The invariants, which hold whichever guard fires.
+    expect(requests).toBe(1);
+    expect(await published(id)).toBe(1);
+  });
+
+  it('refuses a second attempt after the first has completely finished', async () => {
+    /*
+     * The other side of the same race, and the one the flaky assertion was
+     * accidentally exercising. Once the winner has finished the item is no
+     * longer publishable, so the second attempt stops at the approval guard
+     * rather than at a duplicate guard. It must still make no request and
+     * create no second publication.
+     */
+    const id = await item('approved');
+    await publishHandler(job(id), context());
+    expect(await published(id)).toBe(1);
+
+    await publishHandler(job(id), context());
+
     expect(requests).toBe(1);
     expect(await published(id)).toBe(1);
   });
