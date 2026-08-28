@@ -1,5 +1,42 @@
 # Where Halyard is right now
 
+**2026-08-28 — YouTube can express both of its products, and rehearsal works.**
+`maxSeconds: 60` was stated platform-wide: it was the Shorts cap until October
+2024 and never the YouTube cap, so a 90-second Short failed validation and
+long-form video could not be expressed at all. Shorts and long-form are now
+variants resolved from intent *and* from what YouTube will actually do with the
+file — the platform classifies at ingest and no API field overrides it, so
+declaring long-form on a vertical 30-second render is a warning at validation
+rather than a surprise after publication. `status.publishAt` is implemented
+(reachable on `youtube.upload` alone, advertised since §156, implemented by
+nothing); the claim that a private video could later be flipped public via
+`videos.update` is **withdrawn** — that needs a scope Halyard does not hold.
+`DECISIONS.md` §199, `docs/YOUTUBE.md`.
+
+**2026-08-28 — the dry run could not rehearse anything that polls.** Adapters
+depended on the clock twice, and only `sleep` was injectable, so a dry run
+stopped waiting while its deadline stayed five real minutes out — spinning and
+recording a request per pass until the heap died. `Clock` supplies both halves;
+an Instagram Reel now rehearses in 12 ms and four requests. The bug underneath
+was that §184 moved Instagram to `graph.instagram.com` and the response stub
+still matched `graph.facebook`. Writing the test found a second defect: the
+recorder redacted headers and bodies but not URLs, and the Meta family carries
+`access_token` in the query string. **X and Threads can now be rehearsed
+without a public post.** `DECISIONS.md` §200.
+
+**Production, verified against the live database this session** — not inferred:
+`publishing_enabled = false`, **0 publications**, five accounts connected with
+live credentials (YouTube, TikTok, X `@Recipe_Fix`, Threads, Instagram). One
+real private YouTube upload exists, `v5Ty6K5BuqE`, on the RecipeFix channel;
+private videos do not appear on a channel's public page or in its `videoCount`,
+which is why it looks absent. TikTok's app review has been submitted.
+
+**A trap worth knowing:** the local `.env` `DATABASE_URL` points at
+`localhost:5432/halyard`, and the local `youtube` row is an untouched seed row
+with no tokens. Every real connection lives in production Supabase. A script run
+without production credentials silently tests the wrong database and reports
+"not connected". Production credentials come from `railway variables --json`.
+
 **2026-08-23 — Halyard can fix its own work before asking anyone to look at
 it.** A failing QC verdict used to be terminal: `status = 'failed'`, and a person
 dealt with it. `correct_content` now runs first — it turns each failed gate into

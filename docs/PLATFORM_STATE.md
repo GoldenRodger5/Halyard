@@ -60,13 +60,14 @@ mode: a test post is immediately public on a brand account, and on X it is bille
 
 ## C. What each platform still needs
 
-### TikTok — one setting
-In the developer portal, switch **URL properties** from *Production* to **Sandbox** and verify
-the prefix `https://halyard-ten.vercel.app/` there too. The signature file is already served
-and unchanged. Without it, every Direct Post returns `url_ownership_unverified`.
+### TikTok — submitted, treat as done
+**App review has been submitted.** Login Kit, Content Posting and Direct Post through
+READY TO POST were all demonstrated. Nothing here is outstanding; do not reopen the scope or
+re-add Share Kit.
 
-Also before submitting for review: **remove Share Kit**. It is still selected and Halyard does
-not implement it; unused products delay review.
+The one operational note that survives: `url_ownership_unverified` on a sandbox Direct Post
+means the URL prefix is verified on the *Production* app and not the Sandbox. TikTok keeps URL
+properties per app. Relevant only if sandbox posting is exercised again.
 
 ### Threads — reconnect once
 Its stored scope list is **empty**. Threads returns granted scopes on the short-lived exchange
@@ -98,25 +99,32 @@ Register one, then set `PINTEREST_APP_ID` / `PINTEREST_APP_SECRET`.
 - **0 publications recorded** — nothing entered the publication ledger.
 - The one artefact that exists on a platform is a **private** YouTube video.
 
-## E. A known gap in the tooling
+## E. Rehearsal — fixed 2026-08-28
 
-`dryRunPublish` — build the exact request, record it, send nothing — cannot currently rehearse
-Instagram, TikTok or YouTube. All three poll a media container until the platform reports it
-finished; the dry-run fetch answers with a stub that never says finished, so the loop runs to
-its five-minute ceiling recording every poll until the heap dies.
+`dryRunPublish` could not rehearse anything that polls a media container. The adapters
+depended on the clock twice — interval and deadline — and only `sleep` was injectable, so a
+dry run stopped waiting while its deadline stayed five real minutes away, recording a request
+every pass until the heap died.
 
-That is worth fixing, because rehearsal is exactly the right instrument for X and Threads,
-where a real test post is public and irreversible. The fix is to let the adapters accept an
-injected clock rather than calling `setTimeout` directly — a contained change, and not one to
-make while pointing at live accounts.
+`Clock` supplies both halves, and the underlying bug (§184 moved Instagram to
+`graph.instagram.com`; the response stub still matched `graph.facebook`) is fixed. An
+Instagram Reel rehearses in 12 ms and four requests. Writing the test also caught the
+recorder logging `access_token` from Meta query strings in plain text.
+
+**X and Threads can now be rehearsed without a public post**, which is what the open question
+in F.4 was waiting on. `DECISIONS.md` §200.
 
 ## F. What to do next, in order
 
-1. **TikTok**: verify the URL prefix under **Sandbox**; remove Share Kit. Then the demo video
-   at `docs/tiktok-review/halyard-tiktok-demo.mp4` (61.8s, 1.02 MB) can be submitted.
+1. **YouTube — enable the Data API and submit the compliance audit.** This is the only thing
+   between Halyard and public YouTube publishing, and it is entirely dashboard work. Exact
+   clicks in `docs/YOUTUBE.md` §C.
 2. **Rotate the Halyard password** — two values passed through a chat transcript.
-3. **Threads**: reconnect to repopulate scopes.
-4. Decide about X and Threads test posts. Both are irreversibly public; the honest options are
-   a real post you then delete, or fixing the rehearsal harness in E first.
-5. **Instagram**: submit Meta App Review when ready.
-6. **Pinterest**: register a developer app.
+3. **Threads**: reconnect to repopulate scopes. Cosmetic today; nothing gates on it.
+4. **Instagram**: submit Meta App Review when ready.
+5. **Pinterest**: register a developer app.
+
+~~Decide about X and Threads test posts.~~ Closed by §200 — rehearsal builds and inspects the
+exact request without sending it, so no public test post is needed to validate orchestration.
+
+**Not outstanding:** TikTok (review submitted).

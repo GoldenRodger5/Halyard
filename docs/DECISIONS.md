@@ -5575,3 +5575,128 @@ Offering a choice would mean inventing one.
 
 The protection is unchanged and lives where it always did: the identity is
 fetched, shown to a person, and written only after they confirm it (§176).
+
+## 199. YouTube is two products, and the adapter only knew one
+
+`YOUTUBE_CONSTRAINTS.video.maxSeconds` was `60`. That was the Shorts cap until
+15 October 2024, and it was never the YouTube cap. Stated platform-wide it did
+two things at once: rejected a legitimate 90-second Short, and made long-form
+video *inexpressible* — one constraint capped the entire platform at a minute.
+
+### Who decides what a Short is
+
+Not Halyard. YouTube classifies at ingest: square-or-taller and ≤ 3 minutes is a
+Short, and no API field overrides it. `#Shorts` stopped being a classifier on
+the same date and survives only as a discovery signal.
+
+That makes intent and outcome two different facts, so `resolveVariant` returns
+both. A `long_form` intent on a 45-second vertical render is not a setting to be
+honoured — it is a mistake, and previously one that surfaced only after
+publication when the video turned up in the Shorts feed. It is now a warning at
+validation time, not a block: the upload is still legal, it is just not what was
+asked for.
+
+`format_subtype` already existed on `content_items` and already had a
+`FormatSubtype` union with `'short'` in it. Long-form is a new member of that
+union with its own `FORMAT_SPECS` entry, not a new system — a long-form video is
+a *search* object where a Short is a *feed* object, so it gets its own craft
+notes rather than a longer version of the Short's.
+
+### Two capability claims, one implemented and one withdrawn
+
+The delivery contract has advertised `apiScheduling: true` since §156, and the
+note explained that a private upload could later be published "via
+`videos.update`". Both halves were checked against Google's documentation.
+
+**`status.publishAt` is real and was never implemented.** `videos.insert`
+accepts it on the `youtube.upload` scope alone. It is implemented now, and a
+scheduled upload no longer offers a `manualPublishUrl` — sending an operator to
+Studio to finish something YouTube will finish itself is the same error §156
+fixed in the other direction.
+
+**`videos.update` is not reachable.** It requires `youtube`, `youtube.force-ssl`
+or `youtubepartner`; Halyard holds `youtube.upload`, `youtube.readonly` and
+`yt-analytics.readonly`. A private video cannot be made public over the API. The
+claim is withdrawn and the scope requirement recorded in
+`youtube/variant.ts#canModifyExistingVideo`, so the next person to want
+thumbnails or playlists finds the reason rather than the symptom.
+
+The scope was **not** added. Enlarging the requested set enlarges the Google
+verification surface, and there is no feature waiting on it — the compliance
+audit blocks public uploads anyway. It should be added deliberately, with the
+feature that needs it.
+
+### Smaller things the audit turned up
+
+`categoryId` was hardcoded to `'26'` (Howto & Style) for every upload, including
+founder-persona posts about building the product. `categoryIdFor` maps Halyard's
+own categories instead. Titles were sliced to 90 characters to leave room for
+`#Shorts` even when nothing was appended. Long-form descriptions now lead with
+the summary rather than the link, because that is the surface search reads.
+
+### What was deliberately not fixed
+
+`collectMetrics` sets `impressions` to `viewCount`. Those are different numbers,
+and reporting one as the other makes click-through rate meaningless. The fix is
+the YouTube Analytics API — which is what `yt-analytics.readonly` was granted
+for and which nothing calls — and it belongs with cross-platform metric
+normalisation, where "cannot see it" and "measured zero" have to stay apart.
+Recorded in `docs/YOUTUBE.md` §D rather than half-done here.
+
+## 200. Rehearsal was impossible because time was not a seam
+
+Three adapters poll a media container until the platform reports it finished.
+Each loop depends on the clock twice — the interval, and the deadline — and only
+the interval was injectable.
+
+A dry run replaced `sleep` with a no-op. The loop stopped waiting; the deadline
+stayed five real minutes away on `Date.now()`. So it span as fast as the event
+loop allowed, appending a `RecordedRequest` every pass, until the heap died.
+The symptom read as a timeout bug. It was a missing seam.
+
+`Clock` supplies both halves together. `sleep` advances `now`, so a five-minute
+ceiling at five-second intervals is exactly sixty iterations and takes no time.
+The adapter's own termination condition does the work, so there is still no
+dry-run branch inside `publish()` that could drift from the real path —
+the property the harness was built for in the first place. `maxPollsFor` is a
+second stop in case a clock is ever injected that does not advance.
+
+### The bug underneath was narrower and worse
+
+§184 moved Instagram to `graph.instagram.com`. The dry-run response stub still
+matched `graph.facebook`, so an Instagram rehearsal fell through to a bare
+`{ id }`, the container never reported `FINISHED`, and the loop ran to its
+ceiling. TikTok's `/status/fetch/` had the same gap.
+
+A rehearsal that cannot answer the adapter's own status check is not a rehearsal
+of it. The stub is now matched by hostname against the adapters as they exist.
+An Instagram Reel rehearses in 12 ms and four requests.
+
+### Writing the test found a second defect
+
+`redactHeaders` and `redactBody` existed from the first version of this file.
+`redactUrl` did not, because the adapters written then carried their token in an
+`authorization` header. **The Meta family does not** — Instagram and Threads put
+`access_token` in the query string, so every recorded GET held a live token in
+plain text.
+
+Found by asserting the absence of the token rather than by reading the code,
+which is the only way this class of thing gets found. Exposure was limited to
+in-memory results rendered in the UI: `platform_requests` has a `url` column and
+a purge cron, and nothing writes to it.
+
+### Two capabilities the matrix had backwards
+
+`short_video` and `scheduling` map to no adapter method, so the test that
+derives declarations from method names — the one that caught the `read_comments`
+drift in §-past — could not see either.
+
+Instagram declared no `short_video`, and its comment said Reels are "a distinct
+container type Halyard does not build". It builds it: every Instagram video
+container is `media_type: 'REELS'`, in two places, since the adapter was
+written. A test asserted the resulting `unknown`, so it was confirming an
+omission rather than a fact. Threads stays absent — checked, not assumed; it
+sends `media_type: 'VIDEO'`, a video post rather than a short-form product.
+
+X and Threads can now be rehearsed without a public post, which is what this was
+blocking.
