@@ -298,6 +298,16 @@ export async function writeVoScript(
     platform: SlopPlatform;
     contentRules?: { bannedPhrases?: string[]; forbiddenClaims?: string[] };
     maxAttempts?: number;
+    /**
+     * How this will be read, from the Voice Director. §232.
+     *
+     * ElevenLabs exposes no per-word emphasis and no speed control on the
+     * synthesis endpoint, so pace and stress are achieved in the *writing* —
+     * a comma is a pause, a short sentence is emphasis, an em dash is a beat.
+     * Passing these to the synthesiser instead would be asking the API to do
+     * something it cannot, and silently getting a flat read.
+     */
+    deliveryNotes?: string[];
   },
   llm: LlmClient,
 ): Promise<{ script: string; costUsd: number; qc: QCResults; attempts: number }> {
@@ -317,7 +327,13 @@ RULES
 - Spell every number as words: "four hundred fifty degrees", not "450F".
 - No hashtags, no emoji, no call to action.
 - Around ${targetWords} words, which reads as ${input.targetSeconds} seconds.
-
+${
+  input.deliveryNotes?.length
+    ? `
+DELIVERY — this script is being read at a specific energy. Write for it.
+${input.deliveryNotes.map((n) => `- ${n}`).join('\n')}`
+    : ''
+}
 ${HARD_RULES_BLOCK}
 
 Reply with the script text only.`,
@@ -343,7 +359,7 @@ Reply with the script text only.`,
       ],
       model: DRAFT_MODEL,
       maxTokens: 600,
-      promptVersion: 'vo_script.v2',
+      promptVersion: 'vo_script.v3',
     });
 
     totalCost += response.costUsd;

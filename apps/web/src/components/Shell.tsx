@@ -44,7 +44,13 @@ export interface NavCounts {
  */
 export const NAV: Array<{ href: string; label: string }> = [
   { href: '/', label: 'Home' },
-  { href: '/compose', label: 'Create' },
+  /*
+   * §235. Studio is where a piece is *decided*; Compose is where one is talked
+   * out with the co-pilot. Both are "creating", and they are different jobs —
+   * one picks a concept and a direction, the other is a conversation.
+   */
+  { href: '/studio', label: 'Create' },
+  { href: '/compose', label: 'Co-pilot' },
   { href: '/queue', label: 'Content' },
   { href: '/calendar', label: 'Calendar' },
   { href: '/inbox', label: 'Inbox' },

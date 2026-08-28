@@ -46,6 +46,8 @@ import {
   decideStrategy,
   DEFAULT_LANGUAGE,
   chooseOpening,
+  directVoice,
+  planVariants,
   directCreative,
   type VisualLanguage,
   LANGUAGE_FOR_TREATMENT,
@@ -781,6 +783,28 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
            * forbidden-claims list governed what was written beside a video and
            * not what was said in it.
            */
+          /*
+           * §232. The voice direction, decided once here and read by both the
+           * scriptwriter and the synthesiser.
+           *
+           * Computed in `generate` rather than in `tts` because the script has
+           * to be *written* for the delivery — the API has no emphasis or
+           * speed control, so pace lives in the sentences. Recorded on the
+           * brief so `tts` uses the same decision rather than making a second
+           * one from the same inputs.
+           */
+          const voice = directVoice({
+            platform: account.platform,
+            /*
+             * The visual language is not decided yet — the treatment is chosen
+             * after the copy exists, because the copy is part of what a
+             * treatment is judged against. So the voice is directed from what
+             * *is* known here: the platform and the runtime. Passing a
+             * language that has not been chosen would be inventing an input.
+             */
+            targetSeconds: VO_TARGET_SECONDS,
+          });
+
           const vo = await writeVoScript(
             {
               body: draft.body,
@@ -791,6 +815,9 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                 bannedPhrases: product.content_rules?.banned_phrases,
                 forbiddenClaims: product.content_rules?.forbidden_claims,
               },
+              /* §232. Pace and stress live in the sentences, because the
+                 synthesis endpoint has neither. */
+              deliveryNotes: voice.deliveryNotes,
             },
             llmFor(),
           );
@@ -1303,7 +1330,16 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                   opening: opening?.composition ?? null,
                   openingReason: opening?.reason ?? null,
                 }),
-                JSON.stringify({ captionBackdrop: plan.captionBackdrop }),
+                /* §232. The voice decision, recorded so `tts` reads it rather
+                   than deriving a second one from the same inputs. */
+                JSON.stringify({
+                  captionBackdrop: plan.captionBackdrop,
+                  voiceEnergy: voice.energy,
+                  voiceStability: voice.stability,
+                  voiceSimilarityBoost: voice.similarityBoost,
+                  voiceReason: voice.reason,
+                  deliveryNotes: voice.deliveryNotes,
+                }),
                 JSON.stringify({ overflowHome: budgetFor(account.platform).overflowHome }),
                 plan.evidence,
                 plan.rationale,
@@ -1313,6 +1349,70 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
               contentItemId,
               brief.rows[0]!.id,
             ]);
+
+            /**
+             * §231. What this concept should become on every other surface.
+             *
+             * `platform_variants` has had columns for pacing, text density,
+             * hook treatment, CTA and audio treatment since §218 and no writer
+             * at all — the only per-platform difference a render actually had
+             * was the caption budget. A TikTok, a Reel and a Short got the
+             * same file with different words underneath.
+             *
+             * Written as a *plan*, not as queued work. The decision — reuse,
+             * remix, make an original, or skip entirely — is a record an
+             * operator can read and disagree with before anything is built,
+             * and `skip` is the one that makes the others honest.
+             */
+            const connected = await ctx.pool.query<{ platform: string; unsupported: string[] }>(
+              `select platform,
+                      coalesce(array(select unnest(array['text','image','video','carousel'])
+                                     except select unnest(supported_formats)), '{}') as unsupported
+                 from social_accounts
+                /* Every connected account, whatever its capability state. A
+                   variant plan is a plan; whether the account can publish is
+                   the approval boundary's question, not the director's. */
+                where product_id = $1`,
+              [productId],
+            );
+            const variants = planVariants({
+              primaryPlatform: account.platform,
+              platforms: connected.rows.map((r) => r.platform),
+              treatment: plan.creativeType,
+              voiceCarriesMeaning: needsVideo(format),
+              needsFootage: plan.beats.some((b) => Boolean(b.media)),
+              hasFootage: Boolean(footage),
+              unsupported: Object.fromEntries(
+                connected.rows.map((r) => [r.platform, r.unsupported ?? []]),
+              ),
+            });
+            for (const variant of variants) {
+              await ctx.pool.query(
+                `insert into platform_variants
+                   (brief_id, content_item_id, platform, aspect_ratio, target_seconds,
+                    pacing, text_density, hook_treatment, cta, audio_treatment,
+                    decision, decision_reason)
+                 values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+                [
+                  brief.rows[0]!.id,
+                  variant.platform === account.platform ? contentItemId : null,
+                  variant.platform,
+                  variant.aspectRatio,
+                  variant.targetSeconds,
+                  variant.pacing,
+                  variant.textDensity,
+                  variant.hookTreatment,
+                  variant.cta,
+                  variant.audioTreatment,
+                  variant.decision,
+                  variant.decisionReason,
+                ],
+              );
+            }
+            ctx.log('platform variants planned', {
+              contentItemId,
+              plan: variants.map((v) => `${v.platform}:${v.decision}`),
+            });
 
             /**
              * §224. A thumbnail, for the one format that lives or dies by one.

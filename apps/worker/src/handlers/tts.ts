@@ -43,6 +43,7 @@ import {
   type LexiconEntry,
   type MusicClient,
   type AudioBrief,
+  directVoice,
   duckingFor,
   LANGUAGE_FOR_TREATMENT,
   type SpeechClient,
@@ -185,6 +186,26 @@ export async function ttsHandler(job: Job, ctx: HandlerContext, deps: TtsDeps = 
    */
   const beatCount = Array.isArray(item.beats) ? item.beats.length : 0;
   const briefSeconds = item.target_seconds === null ? null : Number(item.target_seconds);
+  /*
+   * §232. How this should be read.
+   *
+   * `synthesize` took stability 0.55 for everything and nothing ever passed
+   * anything else, so a playful 15-second TikTok and a considered explainer
+   * were read identically. Stability is a performance setting, not a quality
+   * one, and which end of the range is right depends on the piece.
+   */
+  const voice = directVoice({
+    platform: item.platform,
+    visualLanguage: item.treatment ? (LANGUAGE_FOR_TREATMENT[item.treatment] ?? null) : null,
+    emotionalAngle: item.emotional_angle,
+    targetSeconds: item.target_seconds ? Number(item.target_seconds) : 30,
+  });
+  ctx.log('voice direction', {
+    energy: voice.energy,
+    stability: voice.stability,
+    because: voice.reason,
+  });
+
   const audioBrief: AudioBrief = {
     platform: item.platform,
     emotionalAngle: item.emotional_angle,
@@ -205,7 +226,15 @@ export async function ttsHandler(job: Job, ctx: HandlerContext, deps: TtsDeps = 
   const mixPath = path.join(work, 'mix.mp3');
 
   try {
-    await writeFile(narrationPath, await speech.synthesize(script));
+    await writeFile(
+      narrationPath,
+      await speech.synthesize(script, {
+        /* §232. The directed performance, not the default one. */
+        stability: voice.stability,
+        similarityBoost: voice.similarityBoost,
+        ...(voice.voiceId ? { voiceId: voice.voiceId } : {}),
+      }),
+    );
     const narrationSeconds = await audioDuration(narrationPath);
 
     /**

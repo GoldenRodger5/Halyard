@@ -174,3 +174,140 @@ describe('repetition across the account', () => {
     expect(runCreativeQC(base).unmeasured).toContain('creative.repeated_treatment');
   });
 });
+
+describe('the creative acceptance suite', () => {
+  /*
+   * §234. Everything the gate judges beyond beat structure. Each rule here is
+   * a way a piece can be technically fine and creatively bad, which is the
+   * only class of defect that survives every other check.
+   */
+  const sound: CreativeQCInput = {
+    creativeType: 'before_after',
+    platform: 'tiktok',
+    footageAvailable: false,
+    durationSeconds: 30,
+    beats: [
+      { role: 'hook', emphasis: 'hold', wordCount: 6 },
+      { role: 'change', emphasis: 'normal', wordCount: 8 },
+      { role: 'proof', emphasis: 'normal', wordCount: 7 },
+      { role: 'cta', emphasis: 'quick', wordCount: 4 },
+    ],
+    motions: [
+      { entrance: 'pop', camera: 'still', transitionOut: 'cut' },
+      { entrance: 'slide', camera: 'push', transitionOut: 'cut' },
+      { entrance: 'none', camera: 'still', transitionOut: 'cut' },
+      { entrance: 'rise', camera: 'still', transitionOut: 'cut' },
+    ],
+    visualLanguage: 'kinetic',
+    typography: 'grotesque_punch',
+    opening: 'statement',
+    recentLanguages: ['documentary'],
+    recentOpenings: ['question'],
+    recentTypography: ['editorial_serif'],
+    hasMusic: true,
+    lufs: -14,
+    altText: 'A before and after of a bread flour swap',
+    targetCutsPerMinute: 8,
+  };
+
+  it('passes a piece with nothing wrong with it', () => {
+    const r = runCreativeQC(sound);
+    expect(r.findings.filter((f) => f.severity === 'error')).toEqual([]);
+    expect(r.passed).toBe(true);
+  });
+
+  it('fails a slideshow against the pacing this platform expects', () => {
+    // Three beats over 30s is correct on YouTube and a slideshow on TikTok.
+    // The number judged against is the variant's, not a constant.
+    const r = runCreativeQC({ ...sound, targetCutsPerMinute: 30 });
+    expect(r.findings.map((f) => f.rule)).toContain('creative.pacing_too_slow');
+    expect(r.passed).toBe(false);
+  });
+
+  it('fails a piece where nothing moves', () => {
+    const r = runCreativeQC({
+      ...sound,
+      motions: sound.motions!.map(() => ({ entrance: 'none', camera: 'still', transitionOut: 'cut' })),
+    });
+    expect(r.findings.map((f) => f.rule)).toContain('creative.no_motion');
+    expect(r.passed).toBe(false);
+  });
+
+  it('warns when everything moves, because then no move means anything', () => {
+    const r = runCreativeQC({
+      ...sound,
+      motions: sound.motions!.map(() => ({ entrance: 'pop', camera: 'push', transitionOut: 'crossfade' })),
+    });
+    expect(r.findings.map((f) => f.rule)).toContain('creative.constant_motion');
+  });
+
+  it('catches repetition the treatment rule cannot see', () => {
+    /*
+     * The hole the original repetition rule left. Two posts can use different
+     * treatments and still be set in the same type, open the same way and cut
+     * in the same language — which is what a viewer actually notices.
+     */
+    const r = runCreativeQC({
+      ...sound,
+      recentLanguages: ['kinetic'],
+      recentOpenings: ['statement'],
+      recentTypography: ['grotesque_punch'],
+    });
+    const rules = r.findings.map((f) => f.rule);
+    expect(rules).toContain('creative.repeated_language');
+    expect(rules).toContain('creative.repeated_opening');
+    expect(rules).toContain('creative.repeated_typography');
+  });
+
+  it('distinguishes chosen silence from silence nobody noticed', () => {
+    // §221's argument, enforced: narration alone is a normal style, and an
+    // unexplained silence is indistinguishable from a bed that failed to mix.
+    expect(
+      runCreativeQC({ ...sound, hasMusic: false, musicSkippedReason: 'library is empty' })
+        .findings.map((f) => f.rule),
+    ).not.toContain('creative.unexplained_silence');
+
+    expect(
+      runCreativeQC({ ...sound, hasMusic: false, musicSkippedReason: null })
+        .findings.map((f) => f.rule),
+    ).toContain('creative.unexplained_silence');
+  });
+
+  it('flags a mix far from what platforms normalise to', () => {
+    expect(runCreativeQC({ ...sound, lufs: -28 }).findings.map((f) => f.rule))
+      .toContain('creative.loudness_off_target');
+    expect(runCreativeQC({ ...sound, lufs: -14 }).findings.map((f) => f.rule))
+      .not.toContain('creative.loudness_off_target');
+  });
+
+  it('flags a rendered asset with no alt text', () => {
+    expect(runCreativeQC({ ...sound, altText: '' }).findings.map((f) => f.rule))
+      .toContain('creative.missing_alt_text');
+  });
+
+  it('names every rule it could not run rather than passing it', () => {
+    /*
+     * Gotcha 6, and the reason each new field is optional. A gate given no
+     * motion data has not judged the motion, and reporting a pass would be
+     * the exact failure `unmeasured` exists to prevent.
+     */
+    const bare: CreativeQCInput = {
+      creativeType: 'before_after',
+      platform: 'tiktok',
+      footageAvailable: false,
+      beats: sound.beats,
+    };
+    const r = runCreativeQC(bare);
+    for (const rule of [
+      'creative.pacing_too_slow',
+      'creative.no_motion',
+      'creative.repeated_language',
+      'creative.repeated_opening',
+      'creative.repeated_typography',
+      'creative.loudness_off_target',
+      'creative.missing_alt_text',
+    ]) {
+      expect(r.unmeasured, `${rule} must be reported unmeasured`).toContain(rule);
+    }
+  });
+});

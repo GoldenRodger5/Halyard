@@ -83,7 +83,7 @@ export const AGENT_REGISTRY: AgentContract[] = [
       'Writes the voiceover script for a video, gated by the spoken-mode slop rules and the product forbidden-claims list.',
     model: 'draft',
     runtimeAttribution: 'prompt_version',
-    promptVersions: ['vo_script.v2'],
+    promptVersions: ['vo_script.v3'],
     implementation: 'packages/core/src/generation/copywriter.ts#writeVoScript',
     inputSchema: {
       body: 'string — the post copy this narrates',

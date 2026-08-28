@@ -75,6 +75,33 @@ export interface CreativeQCInput {
    * is a creative defect even when each individual piece is fine.
    */
   recentTypes?: string[];
+  /*
+   * §234. The rest of the creative record, so the gate can judge more than
+   * beat structure. Every field is optional and an absent one produces an
+   * `unmeasured` entry rather than a pass — gotcha 6: a skipped gate is not a
+   * passed gate.
+   */
+  /** The visual language the director chose. */
+  visualLanguage?: string | null;
+  /** The typography system id. */
+  typography?: string | null;
+  /** The opening composition. */
+  opening?: string | null;
+  /** Motion per beat, for pacing and density. */
+  motions?: Array<{ entrance: string; camera: string; transitionOut: string }>;
+  /** Recent creative history, most recent first. */
+  recentLanguages?: string[];
+  recentOpenings?: string[];
+  recentTypography?: string[];
+  /** Whether a bed was actually mixed in, and why not if not. */
+  hasMusic?: boolean;
+  musicSkippedReason?: string | null;
+  /** Measured loudness of the finished mix. */
+  lufs?: number | null;
+  /** Alt text on the rendered asset. */
+  altText?: string | null;
+  /** Cuts per minute this platform's variant asked for. */
+  targetCutsPerMinute?: number | null;
 }
 
 export interface CreativeFinding {
@@ -266,6 +293,134 @@ export function runCreativeQC(input: CreativeQCInput): CreativeQCResult {
     });
   }
   if ((input.recentTypes ?? []).length === 0) unmeasured.push('creative.repeated_treatment');
+
+  /*
+   * §234. Pacing, measured against what the platform variant asked for.
+   *
+   * A 30-second piece with three beats is a slideshow on TikTok and correct
+   * on YouTube. The number to judge against is the variant's, not a constant,
+   * which is why this is `unmeasured` rather than skipped when absent.
+   */
+  if (input.targetCutsPerMinute && input.durationSeconds && input.durationSeconds > 0) {
+    const actual = (beats.length / input.durationSeconds) * 60;
+    /* Half the target is the point at which a viewer reads it as static. */
+    if (actual < input.targetCutsPerMinute * 0.5) {
+      findings.push({
+        rule: 'creative.pacing_too_slow',
+        severity: 'error',
+        message: `${actual.toFixed(1)} cuts per minute against a target of ${input.targetCutsPerMinute}.`,
+        detail:
+          'At under half the pacing this platform expects, the piece reads as a slideshow ' +
+          'rather than an edit. Either more beats or a shorter runtime.',
+        correction: 'restructure_beats',
+      });
+    }
+  } else {
+    unmeasured.push('creative.pacing_too_slow');
+  }
+
+  /*
+   * Motion density. A piece where nothing moves is a stack of cards; a piece
+   * where everything moves is exhausting. Both fail, and they need different
+   * corrections.
+   */
+  if (input.motions && input.motions.length > 0) {
+    const moving = input.motions.filter((m) => m.camera !== 'still' || m.entrance !== 'none').length;
+    const share = moving / input.motions.length;
+    if (share === 0) {
+      findings.push({
+        rule: 'creative.no_motion',
+        severity: 'error',
+        message: 'Nothing moves in any beat.',
+        detail: 'Every beat is a still card with a hard entrance. This is a slideshow.',
+        correction: 'restructure_beats',
+      });
+    } else if (share === 1 && input.motions.length > 3) {
+      findings.push({
+        rule: 'creative.constant_motion',
+        severity: 'warning',
+        message: 'Every beat moves.',
+        detail:
+          'Continuous movement across every beat removes the contrast that makes any one ' +
+          'move mean something. A still beat is what makes the next push land.',
+        correction: 'restructure_beats',
+      });
+    }
+  } else {
+    unmeasured.push('creative.no_motion');
+  }
+
+  /*
+   * Repetition beyond treatment. §226-§229 gave a piece a language, a
+   * typography system and an opening; each is a way for consecutive posts to
+   * look identical while the treatment differs, which is the hole the original
+   * repetition rule left.
+   */
+  const repetitionChecks: Array<[string, string | null | undefined, string[] | undefined, string]> = [
+    ['creative.repeated_language', input.visualLanguage, input.recentLanguages, 'visual language'],
+    ['creative.repeated_opening', input.opening, input.recentOpenings, 'opening composition'],
+    ['creative.repeated_typography', input.typography, input.recentTypography, 'typography system'],
+  ];
+  for (const [rule, value, recent, label] of repetitionChecks) {
+    if (!value || !recent) {
+      unmeasured.push(rule);
+      continue;
+    }
+    if (recent.length > 0 && recent[0] === value) {
+      findings.push({
+        rule,
+        severity: 'warning',
+        message: `The same ${label} as the previous post (${value}).`,
+        detail: `Two consecutive posts sharing a ${label} is the repetition a viewer actually notices.`,
+        correction: 'vary_treatment',
+      });
+    }
+  }
+
+  /*
+   * Audio. Silence is a legitimate style; an *unexplained* silence is a bug —
+   * §221's argument, enforced.
+   */
+  if (input.hasMusic === false && !input.musicSkippedReason) {
+    findings.push({
+      rule: 'creative.unexplained_silence',
+      severity: 'warning',
+      message: 'No music bed, and no reason recorded.',
+      detail:
+        'Narration alone is a normal short-form style. Silence with no recorded reason is ' +
+        'indistinguishable from a bed that failed to mix, which is the state nobody notices.',
+      correction: 'restructure_beats',
+    });
+  }
+
+  if (typeof input.lufs === 'number') {
+    /* Platforms normalise to about -14 LUFS. Far outside that is either quiet
+       enough to be skipped past or loud enough to be turned down. */
+    if (input.lufs < -20 || input.lufs > -9) {
+      findings.push({
+        rule: 'creative.loudness_off_target',
+        severity: 'warning',
+        message: `Mix measures ${input.lufs.toFixed(1)} LUFS.`,
+        detail: 'Platforms normalise to roughly -14 LUFS; far outside that is turned down or lost.',
+        correction: 'restructure_beats',
+      });
+    }
+  } else {
+    unmeasured.push('creative.loudness_off_target');
+  }
+
+  /* Accessibility. The audit named missing alt text as the standing gap. */
+  if (input.altText === undefined) {
+    unmeasured.push('creative.missing_alt_text');
+  } else if (!input.altText?.trim()) {
+    findings.push({
+      rule: 'creative.missing_alt_text',
+      severity: 'warning',
+      message: 'No alt text.',
+      detail: 'A rendered asset with no alt text is unusable to anyone reading with a screen reader.',
+      correction: 'restructure_beats',
+    });
+  }
 
   const errors = findings.filter((f) => f.severity === 'error');
   const passed = errors.length === 0;

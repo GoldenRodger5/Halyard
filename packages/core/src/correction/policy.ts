@@ -82,6 +82,102 @@ const BY_RULE: Record<string, PolicyEntry> = {
     correctable: true,
   },
 
+  /*
+   * §234. The rules added with the creative acceptance suite.
+   *
+   * Entered individually rather than left to the `creative` namespace
+   * fallback, which routed all nine to `resequence_scenes` — a correction that
+   * cannot add alt text, cannot change a font and cannot remix audio. The
+   * coverage test passed the whole time, because a namespace fallback is
+   * coverage in the letter and a wrong answer in substance.
+   */
+  /*
+   * §234. Two the namespace fallback had wrong, found by the heterogeneity
+   * guard rather than by anything failing.
+   *
+   * Repetition is a property of the *sequence*, not of this artifact — the fix
+   * is for the next piece to choose differently, which the directors already
+   * do from recency. Re-rolling a finished render to solve a problem it does
+   * not have on its own is churn.
+   */
+  'creative.repeated_treatment': {
+    rootCause: 'The account used this treatment on a recent post.',
+    component: 'creative_plan',
+    action: 'escalate',
+    correctable: false,
+  },
+  /* An opening line that buries the point is a *writing* defect. Resequencing
+     the scenes moves the same buried line to a different frame. */
+  'coherence.opening_line_buries_it': {
+    rootCause: 'The opening line puts the point after the setup.',
+    component: 'copy',
+    action: 'revise_copy',
+    correctable: true,
+  },
+
+  'creative.pacing_too_slow': {
+    rootCause: 'Too few beats for the runtime, so the piece reads as a slideshow.',
+    component: 'creative_plan',
+    action: 'resequence_scenes',
+    correctable: true,
+  },
+  'creative.no_motion': {
+    rootCause: 'Every beat is a still card, so nothing in the edit moves.',
+    component: 'creative_plan',
+    action: 'resequence_scenes',
+    correctable: true,
+  },
+  'creative.constant_motion': {
+    rootCause: 'Every beat moves, so no single move means anything.',
+    component: 'creative_plan',
+    action: 'adjust_scene_timing',
+    correctable: true,
+  },
+  /*
+   * The three repetition rules escalate rather than self-correcting.
+   *
+   * A correction runs on *this* artifact, and repetition is a property of the
+   * sequence it sits in — the fix is for the next piece to choose differently,
+   * which the directors already do from recency. Re-rolling this one would
+   * churn a finished render to solve a problem it does not have on its own.
+   */
+  'creative.repeated_language': {
+    rootCause: 'The account used this visual language on the previous post.',
+    component: 'creative_plan',
+    action: 'escalate',
+    correctable: false,
+  },
+  'creative.repeated_opening': {
+    rootCause: 'The account opened the previous post the same way.',
+    component: 'creative_plan',
+    action: 'escalate',
+    correctable: false,
+  },
+  'creative.repeated_typography': {
+    rootCause: 'The account set the previous post in the same typography system.',
+    component: 'creative_plan',
+    action: 'escalate',
+    correctable: false,
+  },
+  'creative.unexplained_silence': {
+    rootCause: 'The mix has no bed and no recorded reason, so silence cannot be distinguished from failure.',
+    component: 'measurement',
+    action: 'remeasure',
+    correctable: true,
+  },
+  'creative.loudness_off_target': {
+    rootCause: 'The finished mix sits far from the loudness platforms normalise to.',
+    component: 'voiceover',
+    action: 'resynthesise_voiceover',
+    correctable: true,
+  },
+  'creative.missing_alt_text': {
+    rootCause: 'The rendered asset carries no alt text.',
+    component: 'copy',
+    action: 'revise_copy',
+    correctable: true,
+  },
+
 
   /*
    * Pace and word-error are both `audio`, and they need opposite corrections.

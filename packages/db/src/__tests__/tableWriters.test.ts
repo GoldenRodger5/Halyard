@@ -42,6 +42,10 @@ import { collectSqlStatements } from './sqlSources.js';
 const MUST_HAVE_A_WRITER = [
   'concepts',
   'creative_briefs',
+  /* §231. Had columns for pacing, density, hook treatment, CTA and audio
+     treatment since §218 and no writer — so "platform-specific" was a table
+     and nothing else. */
+  'platform_variants',
   'strategy_decisions',
   'signals',
   'learned_insights',
