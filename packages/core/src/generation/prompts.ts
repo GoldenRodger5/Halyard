@@ -10,6 +10,7 @@
  */
 import type { SlopPlatform } from '../qc/slopFilter.js';
 import { BODY_LIMITS, HASHTAG_LIMITS } from '../qc/slopFilter.js';
+import { budgetFor } from '../copy/budget.js';
 import {
   CAPTION_ARCHITECTURE,
   formatSpecBlock,
@@ -66,28 +67,54 @@ export interface CopywriterContext {
   series?: { name: string; nextSequence: number } | null;
 }
 
+/**
+ * What each surface actually wants. §215.
+ *
+ * These used to quote the platform's own ceiling — "Up to 2,200 characters" for
+ * Instagram, "Short" with no number for TikTok — and the request block below
+ * added "Hard ceiling: 2200 characters". A model told *short* and *2,200* wrote
+ * 472, which is exactly what it was asked for and roughly five times what
+ * anyone reads before the fold.
+ *
+ * The ceiling is a rejection threshold, not a brief. Each entry now carries the
+ * number that matters, and says where the longer version goes — because the
+ * essay is not the problem, putting it in the caption is.
+ */
 export const PLATFORM_BRIEFS: Record<SlopPlatform, string> = {
-  x: `X. 280 characters. No link in the body — the link goes in a reply, so do not
-write one. Zero to two hashtags, and usually zero. The best posts here are one
-observation stated plainly.`,
-  instagram: `Instagram caption. Up to 2,200 characters but the first line is what
-shows in the feed. Three to eight hashtags. Links are not clickable, so never
-write "link in bio" as if it were an instruction — say the thing instead.`,
-  tiktok: `TikTok caption. Short. Three to five hashtags. The video carries the
-message; the caption adds the one thing the video could not show.`,
+  x: `X. 280 characters, and the best posts are nearer 240. No link in the body —
+the link goes in a reply, so do not write one. Zero to two hashtags, and usually
+zero. One observation stated plainly.`,
+  instagram: `Instagram caption. Aim for 220 characters. About 125 show before
+"more", so the first sentence has to work alone. Three to eight hashtags. Links
+are not clickable, so never write "link in bio" as if it were an instruction —
+say the thing instead. Anything longer than the caption needs belongs in
+\`overflow\`, which is posted as the first comment.`,
+  tiktok: `TikTok caption. Aim for 150 characters — about 90 show before "more".
+The video carries the message; the caption adds the one thing the video could
+not show. Three to five hashtags. If you have more to say, it goes in
+\`overflow\` and is posted as the first comment, where it will actually be read.`,
   pinterest: `Pinterest. Keyword-forward, because this is a search index, not a
-feed. No hashtags at all. Write the title as a search query someone would type.`,
-  youtube: `YouTube Shorts description. The first line sits above the fold and is
-the only line most viewers see. Up to five tags.`,
-  threads: `Threads. 500 characters. Links are clickable inline. Conversational,
-closer to X than Instagram.`,
-  bluesky: `Bluesky. 300 characters. Links are clickable and unfurl into a card,
-so the URL does not need describing. Zero to two hashtags and usually zero. This
-audience is unusually allergic to marketing register: write it the way you would
-say it to someone who already knows the subject.`,
+feed. Around 400 characters is right. No hashtags at all. Write the title as a
+search query someone would type.`,
+  youtube: `YouTube Shorts description. Aim for 350 characters. The first line
+sits above the fold and is the only line most viewers see. Up to five tags.`,
+  threads: `Threads. 500 characters and aim for 300. Links are clickable inline.
+Conversational, closer to X than Instagram. A longer thought goes in
+\`overflow\`, posted as a reply in the same thread.`,
+  bluesky: `Bluesky. 300 characters and aim for 260. Links are clickable and
+unfurl into a card, so the URL does not need describing. Zero to two hashtags and
+usually zero. This audience is unusually allergic to marketing register: write it
+the way you would say it to someone who already knows the subject.`,
 };
 
-export const COPYWRITER_PROMPT_VERSION = 'copywriter.v1';
+/**
+ * §215. Bumped from v1: the length brief changed materially.
+ *
+ * `generation_meta.prompt_version` is how a regression is traced, and a stored
+ * v1 must keep meaning the brief that quoted the platform ceiling. A prompt
+ * whose text changes under a fixed version makes every past attribution a lie.
+ */
+export const COPYWRITER_PROMPT_VERSION = 'copywriter.v2';
 
 export function buildCopywriterPrompt(context: CopywriterContext): {
   system: string;
@@ -108,7 +135,14 @@ export function buildCopywriterPrompt(context: CopywriterContext): {
     '',
     `PLATFORM\n${PLATFORM_BRIEFS[context.platform]}`,
     `Hashtags: ${limits.min} to ${limits.max}.`,
-    `Hard ceiling: ${BODY_LIMITS[context.platform]} characters including hashtags. The platform rejects anything longer.`,
+    /*
+     * §215. The budget first, the ceiling second and clearly labelled as a
+     * rejection threshold. Stated the other way round, a model reads the larger
+     * number as the target — which is how a 150-character surface got 472.
+     */
+    `Aim for ${budgetFor(context.platform, context.formatSubtype).target} characters. ` +
+      `About ${budgetFor(context.platform, context.formatSubtype).visible} show before the fold.`,
+    `Hard ceiling: ${BODY_LIMITS[context.platform]} characters including hashtags — a rejection threshold, not a target.`,
     '',
     /**
      * The format spec, which selects between eleven declared craft prompts.
@@ -133,7 +167,8 @@ export function buildCopywriterPrompt(context: CopywriterContext): {
     '',
     `OUTPUT — reply with this JSON object and nothing else:
 {
-  "body": "the post copy",
+  "body": "the post copy, inside the character budget above",
+  "overflow": "optional. Anything worth saying that did not fit the budget. Posted as a first comment or reply, never discarded. Omit when the body says everything.",
   "title": "only for Pinterest and YouTube, otherwise omit",
   "alt_text": "one sentence describing the image for a screen reader, always present",
   "hashtags": ["without", "the", "hash"],
@@ -144,7 +179,11 @@ export function buildCopywriterPrompt(context: CopywriterContext): {
 }
 
 Every factual claim needs a source path that resolves against the artifact JSON
-below. A claim you cannot source is a claim you must not make.`,
+below. A claim you cannot source is a claim you must not make.
+
+Do not pad the body to reach the budget, and do not cut a thought to fit it —
+move it to \`overflow\`. A short caption with a strong first line beats a
+complete one nobody expands.`,
   ]
     .filter(Boolean)
     .join('\n');

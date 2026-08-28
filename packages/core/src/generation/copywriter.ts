@@ -46,6 +46,15 @@ export interface DraftRequest {
 
 export interface Draft {
   body: string;
+  /**
+   * What the writer had left to say after the caption budget. §215.
+   *
+   * Posted as a first comment or a reply, never discarded. The copy this system
+   * writes is genuinely good and the budget is about *where* it goes, not about
+   * having less of it — dropping the remainder would make the constraint a loss
+   * rather than a placement.
+   */
+  overflow?: string;
   title?: string;
   altText?: string;
   hashtags: string[];
@@ -76,6 +85,8 @@ export class DraftRejectedError extends Error {
 }
 
 interface RawDraft {
+  /** §215. Whatever did not fit the caption budget. */
+  overflow?: string;
   body?: string;
   title?: string;
   alt_text?: string;
@@ -189,6 +200,9 @@ export async function writeDraft(request: DraftRequest, llm: LlmClient): Promise
     if (qc.passed) {
       return {
         body,
+        ...(typeof raw.overflow === 'string' && raw.overflow.trim()
+          ? { overflow: raw.overflow.trim() }
+          : {}),
         title: raw.title,
         altText: raw.alt_text,
         hashtags,

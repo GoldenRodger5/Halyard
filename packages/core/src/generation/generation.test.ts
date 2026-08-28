@@ -122,7 +122,7 @@ describe('writeDraft', () => {
     expect(draft.attempts).toBe(1);
     expect(draft.claims).toHaveLength(1);
     expect(draft.altText).toBeTruthy();
-    expect(draft.generationMeta.promptVersion).toBe('copywriter.v1');
+    expect(draft.generationMeta.promptVersion).toBe('copywriter.v2');
     expect(draft.generationMeta.costUsd).toBeGreaterThan(0);
   });
 

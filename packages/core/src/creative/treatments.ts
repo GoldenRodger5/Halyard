@@ -34,6 +34,7 @@
 import type { Highlight, ProductArtifact } from '../connectors/types.js';
 import { actionableInsights, type Insight } from '../learning/insights.js';
 import { portfolioPreferences, type PortfolioReport } from '../social/portfolio.js';
+import { imageAllowedForRole } from '../imagery/types.js';
 import {
   planBeforeAfter,
   transformationsIn,
@@ -76,21 +77,44 @@ function footageBeat(input: PlanInput): CreativeBeat | null {
   };
 }
 
+/**
+ * Drop any image a beat is not allowed to carry. §215.
+ *
+ * §213 wrote `imageAllowedForRole` and nothing called it, so the rule lived
+ * only in the gate — which catches a fabricated evidence beat *after* it has
+ * been rendered, and spends a correction on something the planner could simply
+ * not have done. Enforced here as well, because the two layers fail
+ * differently: this one prevents, the gate proves.
+ *
+ * Dropping the image rather than refusing the plan is deliberate. An
+ * illustration that cannot sit on a proof beat is not a reason to abandon a
+ * good structure; it is a reason for that beat to be a card.
+ */
+function withPermittedImagery(beats: CreativeBeat[]): CreativeBeat[] {
+  return beats.map((beat) => {
+    if (!beat.image) return beat;
+    if (imageAllowedForRole(beat.image.provenance, beat.role)) return beat;
+    const { image: _dropped, ...rest } = beat;
+    return rest;
+  });
+}
+
 function finish(
   creativeType: CreativeType,
   beats: CreativeBeat[],
   input: PlanInput,
   rationale: string,
 ): CreativePlan {
+  const permitted = withPermittedImagery(beats);
   return {
     creativeType,
     platform: input.platform,
     format: input.format,
     targetSeconds: input.targetSeconds,
-    beats,
+    beats: permitted,
     // §158. Footage means captions need their own plate; a flat surface does not.
     captionBackdrop: input.footage ? 'media' : 'surface',
-    evidence: beats.map((b) => b.sourcePath).filter((p): p is string => Boolean(p)),
+    evidence: permitted.map((b) => b.sourcePath).filter((p): p is string => Boolean(p)),
     rationale,
   };
 }

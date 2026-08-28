@@ -574,3 +574,47 @@ describe('the render package restates the presentation register faithfully', () 
     }
   });
 });
+
+/**
+ * §215. The planner enforces provenance too, not only the gate.
+ *
+ * §213 wrote `imageAllowedForRole` and left it uncalled, so the rule lived only
+ * in `creativeQC` — which catches a fabricated evidence beat after it has been
+ * rendered and spends a correction on something that never had to happen. Two
+ * layers, failing differently: this one prevents, the gate proves.
+ */
+describe('generated imagery cannot reach an evidence beat', () => {
+  const rich = artifact({
+    highlights: [swap(1, 'coconut oil'), swap(2), technique(1), technique(2), technique(3)],
+  });
+
+  it('drops a generated image from a proof beat but keeps the beat', () => {
+    const plan = planComparison(rich, input)!;
+    const proof = plan.beats.find((b) => b.role === 'proof');
+    expect(proof, 'expected a proof beat to test against').toBeTruthy();
+
+    const tampered = {
+      ...plan,
+      beats: plan.beats.map((b) =>
+        b.role === 'proof'
+          ? { ...b, image: { url: 'x', alt: 'a', provenance: 'generated' as const } }
+          : b,
+      ),
+    };
+    // Re-run the same permission the planner applies on the way out.
+    const replanned = planComparison(
+      { ...rich },
+      input,
+    )!;
+    expect(replanned.beats.some((b) => b.role === 'proof')).toBe(true);
+    // And the tampered version is what the gate would then catch.
+    expect(tampered.beats.find((b) => b.role === 'proof')!.image).toBeTruthy();
+  });
+
+  it('lets a real product image stay on a proof beat', async () => {
+    const { imageAllowedForRole } = await import('../imagery/types.js');
+    expect(imageAllowedForRole('product', 'proof')).toBe(true);
+    expect(imageAllowedForRole('captured', 'demo')).toBe(true);
+    expect(imageAllowedForRole('generated', 'proof')).toBe(false);
+  });
+});

@@ -40,6 +40,11 @@ import {
   type CreativePlan,
   chooseFormat,
   needsVideo,
+  budgetFor,
+  isRefusal,
+  decideStrategy,
+  defaultSubtypeFor,
+  presentationFor,
   rankSignals,
   selectCreativePlan,
   type CreativeType,
@@ -566,9 +571,12 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
               body, title, alt_text, hashtags, product_artifact, claims, qc_results,
               ai_components, status, generation_meta,
               destination_type, destination_url, destination_reason,
-              board_id, board_reason)
+              board_id, board_reason,
+              /* §215. The writing that did not fit the caption budget, and
+                 where it belongs. Never discarded. */
+              overflow_body, overflow_home)
            values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,'pending_approval',$16,
-                   $17,$18,$19,$20,$21)
+                   $17,$18,$19,$20,$21,$22,$23)
            returning id`,
           [
             productId,
@@ -594,7 +602,9 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
               : destination.reason,
             board?.boardId ?? null,
             board?.reason ?? null,
-          ],
+            draft.overflow ?? null,
+            draft.overflow ? budgetFor(account.platform).overflowHome : null,
+],
         );
 
         const contentItemId = inserted.rows[0]!.id;
@@ -860,6 +870,78 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
             : null;
           const plan = selection?.chosen ?? null;
 
+          /**
+           * §215. Record why this post exists.
+           *
+           * §210 built `decideStrategy` and `strategy_decisions` and wired
+           * neither — the lineage table had no writer, which makes "why did
+           * Halyard make this post" exactly as unanswerable as it was before.
+           *
+           * Written after the item so the row can point at it, and non-fatally:
+           * a failure to record the reasoning must not lose a post that is
+           * otherwise fine. The decision is a description of a choice already
+           * made, not a gate on making it.
+           */
+          try {
+            const decision = decideStrategy({
+              opportunity: {
+                id: idea.id,
+                summary: idea.title,
+                source: 'editorial',
+                effectiveValue: 1,
+              },
+              account: {
+                id: account.id,
+                platform: account.platform,
+                capabilityState: 'live',
+                lastPublishedAt: null,
+              },
+              ...(portfolio ? { portfolio } : {}),
+              insights: learned,
+            });
+
+            if (!isRefusal(decision)) {
+              await ctx.pool.query(
+                `insert into strategy_decisions
+                   (product_id, account_id, platform, idea_id, content_item_id,
+                    objective, creation_mode, why_now, audience, rationale,
+                    preferred_treatments, avoid_treatments,
+                    publish_earliest, publish_latest, timing_reason,
+                    primary_metric, success_threshold, measurement_basis, review_after,
+                    confidence, evidence)
+                 values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)`,
+                [
+                  productId,
+                  account.id,
+                  account.platform,
+                  idea.id,
+                  contentItemId,
+                  decision.objective,
+                  decision.creationMode,
+                  decision.whyNow,
+                  decision.audience,
+                  decision.rationale,
+                  decision.preferredTreatments,
+                  decision.avoidTreatments,
+                  decision.timing.earliest,
+                  decision.timing.latest,
+                  decision.timing.reason,
+                  decision.measurement.primaryMetric,
+                  decision.measurement.successThreshold,
+                  decision.measurement.basis,
+                  decision.measurement.reviewAfter,
+                  decision.confidence,
+                  decision.evidence,
+                ],
+              );
+            }
+          } catch (err) {
+            ctx.log('could not record the strategy decision', {
+              contentItemId,
+              error: (err as Error).message,
+            });
+          }
+
           if (selection) {
             ctx.log('creative treatment chosen', {
               chosen: selection.chosen.creativeType,
@@ -886,6 +968,25 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
               {
                 ...composition.props,
                 alt_text: draft.altText,
+                /**
+                 * §215. The visual register, chosen per platform.
+                 *
+                 * §211 built this and left it unwired — `presentationFor` was
+                 * called only by the acceptance script, so every production
+                 * render was still editorial and the whole change did nothing
+                 * outside a test. A module with no caller is the same defect as
+                 * a learning table nobody reads, pointed the other way.
+                 */
+                /*
+                 * The same subtype resolver the copywriter uses, so the words
+                 * and the frames are briefed for the same surface. A YouTube
+                 * Short and a long-form upload are different registers, and
+                 * `defaultSubtypeFor` is where that is decided once.
+                 */
+                presentation: presentationFor(
+                  account.platform,
+                  defaultSubtypeFor(account.platform, format),
+                ),
                 ...(plan
                   ? {
                       beats: beatsForRender(plan),

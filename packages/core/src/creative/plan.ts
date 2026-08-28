@@ -34,6 +34,7 @@
  * adapter, per §146.
  */
 import type { Highlight, ProductArtifact } from '../connectors/types.js';
+import type { ImageProvenance } from '../imagery/types.js';
 
 /**
  * The creative treatments Halyard can reason about.
@@ -146,6 +147,14 @@ export interface CreativeBeat {
    * a product state that never existed.
    */
   media?: { file: string; label?: string };
+  /**
+   * A still drawn full-bleed behind this beat. §211, §213.
+   *
+   * Carries its provenance, because what a picture is allowed to *say* depends
+   * entirely on where it came from — and a beat is where that question gets
+   * answered.
+   */
+  image?: { url: string; alt: string; provenance: ImageProvenance };
   /**
    * How long this beat naturally runs, when it has a natural length.
    *
