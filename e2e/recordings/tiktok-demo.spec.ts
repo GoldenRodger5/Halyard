@@ -41,7 +41,15 @@ test('records the TikTok integration demo', async ({ page }) => {
   await expect(card).toBeVisible();
   await page.waitForTimeout(BEAT);
 
-  const connected = (await card.getByText(/Direct Post is available/i).count()) > 0;
+  /*
+   * §195. A *visible* signal. This tested for "Direct Post is available", which
+   * lives inside the collapsed "Advanced connection details" disclosure — the
+   * text exists on a connected card and is hidden, so the check reported
+   * disconnected when connected and, later, timed out for thirty seconds waiting
+   * for something that was never going to appear. The status line is what a
+   * person actually reads.
+   */
+  const connected = await card.getByText('✓ Connected').isVisible().catch(() => false);
   test.info().annotations.push({
     type: 'coverage',
     description: connected
@@ -108,10 +116,21 @@ test('records the TikTok integration demo', async ({ page }) => {
     await page.waitForLoadState('networkidle');
     await card.scrollIntoViewIfNeeded();
     await expect(
-      card.getByText(/Direct Post is available/i),
+      card.getByText('✓ Connected'),
       'the account did not come back connected — check the confirmation screen was accepted',
     ).toBeVisible({ timeout: 30_000 });
     await page.waitForTimeout(BEAT);
+
+    /*
+     * Opened on camera: this is where the granted scopes and TikTok's own
+     * capability sentence live, and review wants to see which permissions the
+     * integration actually holds.
+     */
+    const details = card.getByText(/Advanced connection details/i).first();
+    if ((await details.count()) > 0) {
+      await details.click();
+      await page.waitForTimeout(BEAT * 2);
+    }
   }
 
   /* Advanced details carry the scopes and the capability TikTok reported. */
