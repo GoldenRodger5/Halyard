@@ -12,9 +12,13 @@ export const dynamic = 'force-dynamic';
  * the first production deploy was correctly protected and completely
  * unreachable. This is the missing half.
  *
- * A magic link rather than a password: there is exactly one operator, a password
- * would be a second secret to keep, and an email round trip proves control of
- * the address that `admin_users` is keyed on.
+ * §189. A password *or* a magic link. The link came first, on the reasoning that
+ * one operator needs no second secret and an email round trip proves control of
+ * the address `admin_users` is keyed on — all still true. What it missed is that
+ * an email round trip cannot be automated, so a browser test or a platform-review
+ * recording could not reach anything behind this screen.
+ *
+ * Both land on the same allow-list.
  */
 export default async function SignInPage({
   searchParams,
@@ -47,8 +51,9 @@ export default async function SignInPage({
         ) : (
           <>
             <p className="mt-3 text-sm leading-relaxed text-muted">
-              One operator, one allow-list. A link arrives by email; the account behind it still has
-              to appear in <code>admin_users</code> before anything is visible.
+              One operator, one allow-list. Sign in with a password, or have a link emailed —
+              either way the account still has to appear in <code>admin_users</code> before
+              anything is visible.
             </p>
             {sp.error ? (
               <p className="mt-4 rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{sp.error}</p>
