@@ -67,6 +67,23 @@ export const ADAPTER_DECLARED: Partial<
   youtube: {
     publish: { implementedBy: 'youtube.ts#publish' },
     read_comments: { implementedBy: 'youtube.ts#listComments (commentThreads)' },
+    /**
+     * §199 made both of these true, and they were not before.
+     *
+     * `scheduling` is the rarer kind: Halyard normally schedules in its own
+     * queue rather than asking a provider to hold a post, and for every other
+     * platform that is still the case. YouTube accepts `status.publishAt` on
+     * `videos.insert` — on the upload scope alone — so the *platform* holds it
+     * and releases it. That was advertised by the delivery contract since §156
+     * and implemented by nothing until §199.
+     *
+     * `short_video` is a real distinction here rather than a synonym for
+     * `video`: a Short and a twelve-minute upload go through the same endpoint
+     * and are different products, and `resolveVariant` is the code that tells
+     * them apart.
+     */
+    scheduling: { implementedBy: 'youtube.ts#publish sets status.publishAt (§199)' },
+    short_video: { implementedBy: 'youtube.ts#publish via resolveVariant in youtube/variant.ts (§199)' },
     // alt_text: YouTube has no alt text. Absent, not "no" — the constraints own
     // that answer.
   },
@@ -91,12 +108,23 @@ export const ADAPTER_DECLARED: Partial<
     video: { implementedBy: 'instagram.ts#publish (video container)' },
     alt_text: { implementedBy: 'instagram.ts#publish sets fields.alt_text' },
     read_comments: { implementedBy: 'instagram.ts#listComments' },
+    /**
+     * §200. This said "Reels publishing is a distinct container type Halyard
+     * does not build". It builds it — `media_type: 'REELS'` is what every
+     * Instagram video container has been sent as, in two places, since the
+     * adapter was written. The entry was absent, so `short_video` resolved to
+     * `unknown` on the one platform where Halyard's short video actually goes.
+     *
+     * The comment was not idly wrong: it is the same failure this file's own
+     * header describes, and the reason it survived is that `short_video` maps
+     * to no adapter method, so the test that derives declarations from method
+     * names could not see it. Found by reading a rehearsal's recorded request.
+     */
+    short_video: { implementedBy: "instagram.ts#publish sends media_type: 'REELS'" },
     // read_mentions: no method. The Graph API exposes mentions; Halyard has not
     // implemented them, so this stays absent and resolves to `unknown`.
     // scheduling: Halyard schedules in its own queue rather than asking the
     // provider to hold a post, so there is no adapter method to declare.
-    // short_video: Reels publishing is a distinct container type Halyard does
-    // not build. `video` is not a claim about Reels.
   },
   threads: {
     publish: { implementedBy: 'threads.ts#publish' },

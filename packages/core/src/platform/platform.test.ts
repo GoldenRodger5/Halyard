@@ -358,13 +358,29 @@ describe('Meta capability coverage', () => {
      * for our gap, and `declared` would be a lie.
      */
     for (const platform of [IG, TH]) {
-      for (const action of ['read_mentions', 'scheduling', 'short_video'] as CapabilityAction[]) {
+      for (const action of ['read_mentions', 'scheduling'] as CapabilityAction[]) {
         const r = resolveCapability({ platform, action, ...live });
         expect(r.verdict, `${platform}/${action}`).toBe('unknown');
         expect(isActionable(r.verdict)).toBe(false);
       }
       expect(adapterDeclares(platform, 'read_mentions')).toBe(false);
     }
+
+    /*
+     * §200. `short_video` used to be asserted here for both, and it was wrong
+     * for Instagram: every video container it builds is `media_type: 'REELS'`,
+     * and has been since the adapter was written. The assertion passed because
+     * the declaration was missing, so the test was confirming an omission
+     * rather than a fact.
+     *
+     * Threads is genuinely still absent — it sends `media_type: 'VIDEO'`, which
+     * is a video post and not a short-form product.
+     */
+    expect(adapterDeclares(TH, 'short_video')).toBe(false);
+    expect(resolveCapability({ platform: TH, action: 'short_video', ...live }).verdict).toBe(
+      'unknown',
+    );
+    expect(adapterDeclares(IG, 'short_video')).toBe(true);
   });
 
   it('keeps public posting behind the platform review both platforms require', () => {
@@ -735,6 +751,47 @@ describe('adapter declarations match the adapters', () => {
           `${adapter.platform} declares the prohibited action ${action}`,
         ).toBeNull();
       }
+    }
+  });
+});
+
+/**
+ * §199/§200. Declarations that no method name can derive.
+ *
+ * The suite already checks every action that maps one-to-one onto an adapter
+ * method, which is how the `read_comments` drift was caught. `short_video` and
+ * `scheduling` map to no method — they are properties of what `publish` sends —
+ * so nothing compared them to reality, and both were wrong in opposite
+ * directions: Instagram builds Reels containers and said it did not, YouTube
+ * schedules through the platform and said nothing at all.
+ *
+ * These assert the specific request shape rather than the declaration, so the
+ * test fails if the *code* changes rather than if the table does.
+ */
+describe('declarations that are not derivable from a method name', () => {
+  it('Instagram declares short_video, and sends REELS', async () => {
+    const { adapterDeclares } = await import('./declared.js');
+    const source = await import('node:fs').then((fs) =>
+      fs.readFileSync(new URL('../adapters/instagram.ts', import.meta.url), 'utf8'),
+    );
+    expect(source).toContain("media_type: 'REELS'");
+    expect(adapterDeclares('instagram', 'short_video')).toBe(true);
+  });
+
+  it('YouTube declares scheduling, and sets publishAt', async () => {
+    const { adapterDeclares } = await import('./declared.js');
+    const source = await import('node:fs').then((fs) =>
+      fs.readFileSync(new URL('../adapters/youtube.ts', import.meta.url), 'utf8'),
+    );
+    expect(source).toContain('publishAt');
+    expect(adapterDeclares('youtube', 'scheduling')).toBe(true);
+    expect(adapterDeclares('youtube', 'short_video')).toBe(true);
+  });
+
+  it('does not claim scheduling for platforms Halyard queues itself', async () => {
+    const { adapterDeclares } = await import('./declared.js');
+    for (const platform of ['x', 'threads', 'instagram', 'tiktok', 'pinterest'] as const) {
+      expect(adapterDeclares(platform, 'scheduling')).toBe(false);
     }
   });
 });
