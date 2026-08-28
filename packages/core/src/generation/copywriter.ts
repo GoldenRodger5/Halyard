@@ -308,6 +308,19 @@ export async function writeVoScript(
      * something it cannot, and silently getting a flat read.
      */
     deliveryNotes?: string[];
+    /**
+     * Write this section only, not the whole piece. §251.
+     *
+     * A seven-minute script is about eleven hundred words, and asking for
+     * that in one call produced sixty — the model wrote a short-form script
+     * and stopped, because that is what a single "write a voiceover" request
+     * looks like however large the word target says it is.
+     *
+     * Sections are the fix and they already exist: a long-form plan is a set
+     * of sections with their own briefs, and each is a normal-sized writing
+     * task. The caller stitches them.
+     */
+    section?: { title: string; brief: string; index: number; total: number };
   },
   llm: LlmClient,
 ): Promise<{ script: string; costUsd: number; qc: QCResults; attempts: number }> {
@@ -327,6 +340,15 @@ RULES
 - Spell every number as words: "four hundred fifty degrees", not "450F".
 - No hashtags, no emoji, no call to action.
 - Around ${targetWords} words, which reads as ${input.targetSeconds} seconds.
+${
+  input.section
+    ? `
+SECTION ${input.section.index + 1} OF ${input.section.total}: "${input.section.title}"
+Write ONLY this section. It is part of a longer piece; do not introduce the
+whole video, do not sign off, and do not repeat what other sections cover.
+What this section is for: ${input.section.brief}`
+    : ''
+}
 ${
   input.deliveryNotes?.length
     ? `

@@ -897,22 +897,91 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
             targetSeconds: runtimeSeconds,
           });
 
-          const vo = await writeVoScript(
-            {
-              body: draft.body,
-              artifact,
-              targetSeconds: runtimeSeconds,
-              platform: account.platform,
-              contentRules: {
-                bannedPhrases: product.content_rules?.banned_phrases,
-                forbiddenClaims: product.content_rules?.forbidden_claims,
-              },
-              /* §232. Pace and stress live in the sentences, because the
-                 synthesis endpoint has neither. */
-              deliveryNotes: voice.deliveryNotes,
-            },
-            llmFor(),
-          );
+          /**
+           * §251. A long script is written section by section.
+           *
+           * Asked for eleven hundred words in one call, the model wrote sixty
+           * — a short-form script, because that is what a single "write a
+           * voiceover" request looks like however large the word target says
+           * it is. The first long-form run planned seven minutes and produced
+           * a 372-character script.
+           *
+           * The sections already exist and each is a normal-sized writing
+           * task with its own brief. They are written in order and stitched,
+           * which also means each one can be told what it is *for* rather
+           * than inferring it from position.
+           */
+          const longFormSections =
+            artifact && aspectForRender(account.platform, subtype) === '16:9'
+              ? planLongForm({
+                  artifact,
+                  targetSeconds: runtimeSeconds,
+                  /*
+                   * Whether footage exists is not known yet — the capture is
+                   * resolved after the copy. It only affects which *shapes*
+                   * are available, and the section briefs a writer needs are
+                   * the same either way, so the structure here is planned
+                   * without it and re-planned with it when the beats are built.
+                   */
+                  hasFootage: false,
+                }).sections
+              : null;
+
+          const vo = longFormSections
+            ? await (async () => {
+                const parts: string[] = [];
+                let cost = 0;
+                let attempts = 0;
+                let lastQc: Awaited<ReturnType<typeof writeVoScript>>['qc'] | null = null;
+                for (const [i, section] of longFormSections.entries()) {
+                  const part = await writeVoScript(
+                    {
+                      body: draft.body,
+                      artifact,
+                      targetSeconds: section.targetSeconds,
+                      platform: account.platform,
+                      contentRules: {
+                        bannedPhrases: product.content_rules?.banned_phrases,
+                        forbiddenClaims: product.content_rules?.forbidden_claims,
+                      },
+                      deliveryNotes: voice.deliveryNotes,
+                      section: {
+                        title: section.title,
+                        brief: section.brief,
+                        index: i,
+                        total: longFormSections.length,
+                      },
+                    },
+                    llmFor(),
+                  );
+                  parts.push(part.script.trim());
+                  cost += part.costUsd;
+                  attempts += part.attempts;
+                  lastQc = part.qc;
+                }
+                ctx.log('long-form script written in sections', {
+                  sections: longFormSections.length,
+                  words: parts.join(' ').split(/\s+/).filter(Boolean).length,
+                  costUsd: Number(cost.toFixed(4)),
+                });
+                return { script: parts.join('\n\n'), costUsd: cost, qc: lastQc!, attempts };
+              })()
+            : await writeVoScript(
+                {
+                  body: draft.body,
+                  artifact,
+                  targetSeconds: runtimeSeconds,
+                  platform: account.platform,
+                  contentRules: {
+                    bannedPhrases: product.content_rules?.banned_phrases,
+                    forbiddenClaims: product.content_rules?.forbidden_claims,
+                  },
+                  /* §232. Pace and stress live in the sentences, because the
+                     synthesis endpoint has neither. */
+                  deliveryNotes: voice.deliveryNotes,
+                },
+                llmFor(),
+              );
 
           await ctx.pool.query(
             `update content_items
