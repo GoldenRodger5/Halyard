@@ -5432,3 +5432,56 @@ the test failed having changed nothing. A fixed `now` is only safe when it is
 
 Ten further failures were `ffmpeg` missing from the shell's PATH, not code.
 Worth recording because they looked exactly like a regression.
+
+---
+
+## 176. A first connection has nothing to be checked against
+
+Halyard could not connect an account it had never seen. The identity check
+required knowing the answer in advance: a `social_accounts` row is seeded for
+every platform so the Accounts screen can list them, and `expected_handles` was
+seeded alongside it with handles written *before anything was connected*. The
+first correct authorisation of @Recipe_Fix was therefore reported, severely, as
+the wrong account.
+
+That design cannot serve a second tenant. A new Halyard user has no handles to
+seed, so any rule that depends on them being present is a rule that only ever
+worked for the first customer. §175 corrected the seeded values, which fixed the
+symptom for one account on one platform and left the shape wrong.
+
+**The platform is the authority.**
+
+- A connection is **first** when the slot has no confirmed identity — no
+  `platform_user_id` and no `identity_confirmed_at`. A row existing proves
+  nothing; a person having confirmed who it is proves everything.
+- On a first connection the returned identity *becomes* canonical.
+  `confirmConnection` already wrote it; nothing now contradicts it.
+- On a **reconnection** continuity is checked against the stored
+  `platform_user_id`. It is stable across renames and cannot be mistyped, so a
+  handle never outranks it: renaming @Recipe_Fix to @RecipeFixHQ is a rename, and
+  reporting it as a stranger would only train the operator to click through the
+  warning that matters.
+- Where a provider returns no id, the confirmed handle is the only continuity
+  signal there is, so it is used — compared exactly.
+
+**Rejected:** widening the handle comparison. @recipefix, @recipe_fix and
+@recipe.fix are three usernames three different people can own; folding `_` or
+`.` would make a lookalike indistinguishable from the real account.
+
+**Rejected:** deleting the expectation outright. An operator may still declare
+one deliberately, and it now shows as a **non-severe** advisory on a first
+connection — "Halyard had @x noted; you authorised @y" — and is dropped entirely
+once an identity exists, because the platform's id has superseded it.
+
+Migration 0043 empties the seeded values in both databases. The column stays for
+deliberate use; it is simply never seeded, and it never blocks.
+
+### What still protects a first connection
+
+The mechanism that always did, and the reason this module exists: the identity is
+fetched from the provider, **shown to a person**, and written only after they
+confirm it. The seeded handle was a second, weaker guess layered on top — and the
+one that fired.
+
+Ownership is untouched: `duplicate_identity` still refuses an identity already
+connected to another persona or product, and product/persona routing is unchanged.

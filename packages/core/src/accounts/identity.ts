@@ -46,6 +46,15 @@ export interface IdentityCheckInput {
     platform: PlatformId;
     platformUserId: string | null;
     handle: string;
+    /**
+     * When a human last confirmed this row's identity, or null if never.
+     *
+     * §176. The distinguishing fact between a slot that has an identity and one
+     * that is merely reserved. Rows are seeded per platform before anything is
+     * connected, so "a row exists" says nothing; "a person confirmed who it is"
+     * says everything.
+     */
+    identityConfirmedAt?: Date | string | null;
   }>;
   /** Set when this is a reconnect of a specific account rather than a new one. */
   reconnectingAccountId?: string | null;
@@ -95,22 +104,57 @@ export function normaliseHandle(handle: string | null | undefined): string {
     .replace(/\.(bsky\.social|com|app|net|io)$/, '');
 }
 
+/**
+ * The identity this slot already has, or null if it has never had one.
+ *
+ * §176. A first connection has nothing to be checked against — that is what
+ * makes it first. Halyard seeds a `social_accounts` row for every platform so
+ * the Accounts screen can list them, so the existence of a row is not evidence
+ * of an identity; a confirmed `platform_user_id` (or, for providers that expose
+ * no id, a confirmed handle) is.
+ */
+export function establishedIdentity(
+  input: Pick<IdentityCheckInput, 'existing' | 'reconnectingAccountId'>,
+): { platformUserId: string | null; handle: string } | null {
+  const row = input.existing.find((a) => a.id === input.reconnectingAccountId);
+  if (!row) return null;
+  const everConfirmed = Boolean(row.platformUserId) || Boolean(row.identityConfirmedAt);
+  return everConfirmed ? { platformUserId: row.platformUserId, handle: row.handle } : null;
+}
+
 export function checkIdentity(input: IdentityCheckInput): IdentityWarning[] {
   const warnings: IdentityWarning[] = [];
   const { identity, existing, expectedHandle, persona, platform, productId } = input;
 
-  if (expectedHandle && normaliseHandle(expectedHandle) !== normaliseHandle(identity.handle)) {
+  const established = establishedIdentity(input);
+
+  /*
+   * §176. A configured handle is a hint, never a gate.
+   *
+   * This was severe, and it rejected the very first connection of a correct
+   * account: the expectation had been *seeded* — guessed before any account
+   * existed — and a guess cannot outrank what the platform just told us. A
+   * first-time connection has no prior identity by definition, so there is
+   * nothing to contradict; the platform's answer becomes the canonical identity
+   * and `confirmConnection` writes it.
+   *
+   * The real protection against connecting the wrong account on first setup is
+   * unchanged and is the reason this module exists: the identity is fetched,
+   * shown to a person, and written only after they confirm it.
+   *
+   * Continuity for an account that *does* have an identity is enforced below,
+   * against the platform's own id rather than against a name a human typed.
+   */
+  if (
+    !established &&
+    expectedHandle &&
+    normaliseHandle(expectedHandle) !== normaliseHandle(identity.handle)
+  ) {
     warnings.push({
       kind: 'handle_mismatch',
-      /*
-       * Both handles exactly as they are written. This printed the expected one
-       * lower-cased, so an operator comparing it against their own configuration
-       * saw a third spelling that appears nowhere — noise in the one message that
-       * has to be read carefully.
-       */
-      message: `You expected @${expectedHandle.replace(/^@/, '')} but authorised @${identity.handle.replace(/^@/, '')}.`,
-      fix: `Sign out of ${platform} in this browser, or open the connect link in a private window, then reconnect.`,
-      severe: true,
+      message: `Halyard had @${expectedHandle.replace(/^@/, '')} noted for this slot; you authorised @${identity.handle.replace(/^@/, '')}.`,
+      fix: 'If this is the right account, confirm — Halyard will remember this identity from now on. If it is not, open the connect link in a private window and try again.',
+      severe: false,
     });
   }
 
@@ -136,16 +180,32 @@ export function checkIdentity(input: IdentityCheckInput): IdentityWarning[] {
     });
   }
 
-  if (input.reconnectingAccountId) {
-    const previous = existing.find((a) => a.id === input.reconnectingAccountId);
-    if (
-      previous?.platformUserId &&
-      previous.platformUserId !== identity.platformUserId
-    ) {
+  /*
+   * §176. Continuity, checked against the platform's own identifier.
+   *
+   * A platform user id is stable across renames and cannot be typed wrong, so it
+   * is authoritative whenever the provider returns one — a handle never
+   * outranks it. Someone renaming @old to @new is a rename, not a different
+   * account, and must not be reported as one.
+   *
+   * Where a provider exposes no stable id, the confirmed handle is the only
+   * continuity signal there is, so it is used — compared exactly, never fuzzily.
+   */
+  if (established) {
+    if (established.platformUserId && identity.platformUserId) {
+      if (established.platformUserId !== identity.platformUserId) {
+        warnings.push({
+          kind: 'reconnect_changed_identity',
+          message: `This slot is @${established.handle.replace(/^@/, '')}; the new token is a different account, @${identity.handle.replace(/^@/, '')}.`,
+          fix: 'Reconnecting with a different identity orphans the existing post history and metrics. Connect the original account, or disconnect this one first.',
+          severe: true,
+        });
+      }
+    } else if (normaliseHandle(established.handle) !== normaliseHandle(identity.handle)) {
       warnings.push({
         kind: 'reconnect_changed_identity',
-        message: `This slot was @${previous.handle}; the new token is @${identity.handle}.`,
-        fix: 'Reconnecting with a different identity orphans the existing post history and metrics. Connect the original account, or create a new account row instead.',
+        message: `This slot is @${established.handle.replace(/^@/, '')}; the new token is @${identity.handle.replace(/^@/, '')}, and ${platform} returned no account id to tell a rename from a different account.`,
+        fix: 'Confirm only if you renamed this account. Otherwise connect the original one.',
         severe: true,
       });
     }

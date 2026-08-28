@@ -1,117 +1,235 @@
 /**
- * Which account the operator meant, and which ones are merely similar.
+ * Who this account is, and how Halyard comes to know it.
  *
- * §175. A real connection of @Recipe_Fix was flagged as the wrong account,
- * because `expected_handles` held `{"brand":"recipefix"}` — seeded by migration
- * 0014 before any account existed — and a brand's handle is per *platform*, not
- * per persona. The same product is @Recipe_Fix on X, @recipe.fix on Instagram
- * and Threads, @recipefix on TikTok.
+ * §176. The identity check used to require knowing the answer in advance. A
+ * `social_accounts` row is seeded for every platform so the Accounts screen can
+ * list them, and `expected_handles` was seeded alongside with guesses written
+ * before anything was connected — so the very first, correct authorisation of
+ * @Recipe_Fix was reported as the wrong account.
  *
- * The comparison was never the bug: it has always folded case. The tempting
- * "fix" is to fold `_` and `.` as well, and that is the one change that must not
- * be made — @recipefix, @recipe_fix and @recipe.fix are three usernames three
- * different people can own, and telling them apart is the entire job here.
+ * That does not generalise past the first tenant: a new Halyard user has no
+ * handles to seed, so any rule depending on them is a rule that only ever worked
+ * once. The platform is the authority. A first connection has nothing to
+ * contradict, its returned identity becomes canonical, and every later
+ * reconnection is checked against the stored **platform user id** — stable across
+ * renames, impossible to mistype.
+ *
+ * What is deliberately *not* done: widening the handle comparison. @recipefix,
+ * @recipe_fix and @recipe.fix are three usernames three different people can own.
  */
 import { describe, expect, it } from 'vitest';
-import { checkIdentity, expectedHandleFor, normaliseHandle } from './identity.js';
+import { checkIdentity, establishedIdentity, normaliseHandle } from './identity.js';
 import type { PlatformIdentity } from '../adapters/types.js';
 
-const identity = (handle: string): PlatformIdentity => ({
+const SLOT = 'slot-1';
+
+/** One row of `existing`, widened so placeholders and connected rows share a type. */
+type Row = {
+  id: string;
+  productId: string;
+  persona: 'founder' | 'brand';
+  platform: 'x';
+  platformUserId: string | null;
+  handle: string;
+  identityConfirmedAt: Date | string | null;
+};
+
+const identity = (handle: string, platformUserId = 'x-111'): PlatformIdentity => ({
   handle,
-  platformUserId: 'x-1',
+  platformUserId,
   displayName: 'RecipeFix',
-  followerCount: 0,
+  followerCount: 12,
 });
 
-function mismatch(expectedHandle: string | null, authorised: string) {
+/** A slot that exists but has never been connected — how every platform starts. */
+const placeholder = (handle: string): Row => ({
+  id: SLOT,
+  productId: 'p1',
+  persona: 'brand' as const,
+  platform: 'x' as const,
+  platformUserId: null,
+  handle,
+  identityConfirmedAt: null,
+});
+
+/** A slot a human has confirmed, carrying the platform's own id. */
+const connected = (handle: string, platformUserId: string | null): Row => ({
+  id: SLOT,
+  productId: 'p1',
+  persona: 'brand' as const,
+  platform: 'x' as const,
+  platformUserId,
+  handle,
+  identityConfirmedAt: new Date('2026-08-28T03:35:47Z'),
+});
+
+function check(opts: {
+  authorised: PlatformIdentity;
+  existing?: Row[];
+  expectedHandle?: string | null;
+  reconnecting?: boolean;
+}) {
   return checkIdentity({
     platform: 'x',
     persona: 'brand',
-    productId: 'recipefix',
-    expectedHandle,
-    identity: identity(authorised),
-    existing: [],
-  }).find((w) => w.kind === 'handle_mismatch');
+    productId: 'p1',
+    expectedHandle: opts.expectedHandle ?? null,
+    identity: opts.authorised,
+    existing: opts.existing ?? [],
+    reconnectingAccountId: opts.reconnecting === false ? null : SLOT,
+  });
 }
 
-describe('the account the operator meant', () => {
-  it('accepts the real account whatever its casing — the reported failure', () => {
-    expect(mismatch('Recipe_Fix', '@Recipe_Fix')).toBeUndefined();
-    expect(mismatch('recipe_fix', 'RECIPE_FIX')).toBeUndefined();
-    expect(mismatch('@RECIPE_FIX', 'recipe_fix')).toBeUndefined();
+const kinds = (ws: ReturnType<typeof check>) => ws.map((w) => w.kind);
+const blocking = (ws: ReturnType<typeof check>) => ws.filter((w) => w.severe).map((w) => w.kind);
+
+describe('a first connection', () => {
+  it('accepts whatever the platform says, with nothing configured', () => {
+    /* The default for every new Halyard user: no seeds, no expectations. */
+    const ws = check({ authorised: identity('@Recipe_Fix'), existing: [placeholder('@recipefix')] });
+    expect(kinds(ws)).not.toContain('handle_mismatch');
+    expect(blocking(ws)).toEqual([]);
   });
 
-  it('ignores a leading @ on either side', () => {
-    expect(mismatch('@Recipe_Fix', 'Recipe_Fix')).toBeUndefined();
-    expect(mismatch('Recipe_Fix', '@Recipe_Fix')).toBeUndefined();
+  it('is not blocked when a configured handle disagrees — the reported failure', () => {
+    /*
+     * The exact production case: seeded @recipefix, authorised @Recipe_Fix. It
+     * may say so, and it may not refuse.
+     */
+    const ws = check({
+      authorised: identity('@Recipe_Fix'),
+      existing: [placeholder('@recipefix')],
+      expectedHandle: 'recipefix',
+    });
+    expect(kinds(ws)).toContain('handle_mismatch');
+    expect(blocking(ws)).toEqual([]);
   });
 
-  it('ignores surrounding whitespace, which a pasted handle carries', () => {
-    expect(mismatch('  Recipe_Fix  ', '@Recipe_Fix')).toBeUndefined();
+  it('names both handles exactly as written', () => {
+    const w = check({
+      authorised: identity('@Recipe_Fix'),
+      expectedHandle: 'recipefix',
+    }).find((x) => x.kind === 'handle_mismatch')!;
+    expect(w.message).toContain('@recipefix');
+    expect(w.message).toContain('@Recipe_Fix');
+  });
+
+  it('says nothing when the configured handle agrees, whatever its casing', () => {
+    for (const configured of ['Recipe_Fix', 'recipe_fix', '@RECIPE_FIX', '  @Recipe_Fix ']) {
+      expect(kinds(check({ authorised: identity('@Recipe_Fix'), expectedHandle: configured })))
+        .not.toContain('handle_mismatch');
+    }
+  });
+
+  it('treats a slot with no row at all the same way', () => {
+    expect(blocking(check({ authorised: identity('@anything'), reconnecting: false }))).toEqual([]);
   });
 });
 
-describe('accounts that merely look alike still fail', () => {
-  /*
-   * Each of these is a username someone else can register. If any of them stops
-   * failing, the check can no longer tell the product's account from a
-   * lookalike, and every later safeguard is downstream of this one.
-   */
+describe('reconnecting an account that already has an identity', () => {
+  it('allows a rename: same platform id, different handle', () => {
+    /*
+     * The id is the account. Someone renaming @Recipe_Fix to @RecipeFixHQ has not
+     * become a different person, and reporting it as one would train the operator
+     * to click through the warning that matters.
+     */
+    const ws = check({
+      authorised: identity('@RecipeFixHQ', 'x-111'),
+      existing: [connected('@Recipe_Fix', 'x-111')],
+    });
+    expect(kinds(ws)).not.toContain('reconnect_changed_identity');
+    expect(blocking(ws)).toEqual([]);
+  });
+
+  it('refuses a genuinely different account, even with an identical handle', () => {
+    /* A handle can be released and re-registered by someone else. The id cannot. */
+    const ws = check({
+      authorised: identity('@Recipe_Fix', 'x-999'),
+      existing: [connected('@Recipe_Fix', 'x-111')],
+    });
+    expect(blocking(ws)).toContain('reconnect_changed_identity');
+  });
+
   it.each([
-    ['an underscore that is not there', 'Recipe_Fix', '@recipefix'],
-    ['an underscore that should not be', 'recipefix', '@recipe_fix'],
-    ['a dot instead of an underscore', 'Recipe_Fix', '@recipe.fix'],
-    ['a dot that is not there', 'recipe.fix', '@recipefix'],
-    ['a hyphen', 'Recipe_Fix', '@recipe-fix'],
-    ['a different account entirely', 'Recipe_Fix', '@someone_else'],
-    ['a prefix of the real handle', 'Recipe_Fix', '@recipe'],
-    ['the real handle plus a suffix', 'Recipe_Fix', '@Recipe_Fix2'],
-    ['a homoglyph-ish padding', 'Recipe_Fix', '@RecipeFix_'],
-  ])('%s', (_why, expected, authorised) => {
-    const w = mismatch(expected, authorised);
-    expect(w, `${authorised} must not be accepted as ${expected}`).toBeDefined();
-    expect(w!.severe).toBe(true);
+    ['an underscore that is not there', '@recipefix'],
+    ['a dot instead of an underscore', '@recipe.fix'],
+    ['a hyphen', '@recipe-fix'],
+    ['a suffix', '@Recipe_Fix2'],
+    ['a different account entirely', '@someone_else'],
+  ])('refuses a lookalike when the provider returns no id: %s', (_why, authorised) => {
+    /*
+     * Without an id the confirmed handle is the only continuity signal there is,
+     * so it is compared exactly. Folding `_` or `.` here would make these five
+     * indistinguishable from the real account.
+     */
+    const ws = check({
+      authorised: identity(authorised, null as unknown as string),
+      existing: [connected('@Recipe_Fix', null)],
+    });
+    expect(blocking(ws)).toContain('reconnect_changed_identity');
   });
 
-  it('names both handles exactly as written, so the operator can compare them', () => {
-    const w = mismatch('Recipe_Fix', '@recipefix');
-    expect(w!.message).toContain('@Recipe_Fix');
-    expect(w!.message).toContain('@recipefix');
+  it('allows the same handle back when the provider returns no id', () => {
+    const ws = check({
+      authorised: identity('@recipe_fix', null as unknown as string),
+      existing: [connected('@Recipe_Fix', null)],
+    });
+    expect(kinds(ws)).not.toContain('reconnect_changed_identity');
+  });
+
+  it('does not re-apply a configured handle once an identity is established', () => {
+    /* The platform's id has superseded it; repeating the hint would be noise. */
+    const ws = check({
+      authorised: identity('@Recipe_Fix', 'x-111'),
+      existing: [connected('@Recipe_Fix', 'x-111')],
+      expectedHandle: 'something-else-entirely',
+    });
+    expect(kinds(ws)).not.toContain('handle_mismatch');
   });
 });
 
-describe('expectedHandleFor', () => {
-  const handles = {
-    brand: 'recipefix',
-    'brand:x': 'Recipe_Fix',
-    'brand:instagram': 'recipe.fix',
-  };
-
-  it('prefers the platform-specific handle', () => {
-    expect(expectedHandleFor(handles, 'brand', 'x')).toBe('Recipe_Fix');
-    expect(expectedHandleFor(handles, 'brand', 'instagram')).toBe('recipe.fix');
+describe('establishedIdentity', () => {
+  it('is null for a seeded slot nobody has connected', () => {
+    expect(establishedIdentity({ existing: [placeholder('@recipefix')], reconnectingAccountId: SLOT }))
+      .toBeNull();
   });
 
-  it('falls back to the persona handle where no platform overrides it', () => {
-    expect(expectedHandleFor(handles, 'brand', 'tiktok')).toBe('recipefix');
+  it('is null when there is no row for the slot', () => {
+    expect(establishedIdentity({ existing: [], reconnectingAccountId: SLOT })).toBeNull();
   });
 
-  it('returns null when nothing is configured, which disables the check', () => {
-    /* No expectation is not the same as a failed expectation. */
-    expect(expectedHandleFor({}, 'brand', 'x')).toBeNull();
-    expect(expectedHandleFor(null, 'brand', 'x')).toBeNull();
-    expect(expectedHandleFor({ founder: 'isaacmineo' }, 'brand', 'x')).toBeNull();
+  it('is set once a platform id is stored', () => {
+    expect(establishedIdentity({ existing: [connected('@Recipe_Fix', 'x-111')], reconnectingAccountId: SLOT }))
+      .toEqual({ platformUserId: 'x-111', handle: '@Recipe_Fix' });
   });
 
-  it('treats blank and non-string values as unset', () => {
-    expect(expectedHandleFor({ brand: '   ' }, 'brand', 'x')).toBeNull();
-    expect(expectedHandleFor({ brand: 42 } as Record<string, unknown>, 'brand', 'x')).toBeNull();
+  it('is set for a confirmed account even where the provider exposes no id', () => {
+    expect(establishedIdentity({ existing: [connected('@Recipe_Fix', null)], reconnectingAccountId: SLOT }))
+      .toEqual({ platformUserId: null, handle: '@Recipe_Fix' });
   });
+});
 
-  it('keeps personas apart', () => {
-    const both = { brand: 'recipefix', founder: 'isaacmineo' };
-    expect(expectedHandleFor(both, 'founder', 'x')).toBe('isaacmineo');
-    expect(expectedHandleFor(both, 'brand', 'x')).toBe('recipefix');
+describe('ownership rules are untouched', () => {
+  it('still refuses an identity already connected elsewhere in this product', () => {
+    const ws = checkIdentity({
+      platform: 'x',
+      persona: 'brand',
+      productId: 'p1',
+      identity: identity('@Recipe_Fix', 'x-111'),
+      existing: [
+        {
+          id: 'other-slot',
+          productId: 'p1',
+          persona: 'founder',
+          platform: 'x',
+          platformUserId: 'x-111',
+          handle: '@Recipe_Fix',
+          identityConfirmedAt: new Date(),
+        },
+      ],
+      reconnectingAccountId: SLOT,
+    });
+    expect(ws.filter((w) => w.severe).map((w) => w.kind)).toContain('duplicate_identity');
   });
 });
 
@@ -124,9 +242,5 @@ describe('normaliseHandle folds case and nothing that identifies an account', ()
     expect(normaliseHandle('@recipe_fix')).not.toBe(normaliseHandle('@recipefix'));
     expect(normaliseHandle('@recipe.fix')).not.toBe(normaliseHandle('@recipefix'));
     expect(normaliseHandle('@recipe-fix')).not.toBe(normaliseHandle('@recipefix'));
-  });
-
-  it('still folds the Bluesky domain suffix, which is not part of the identity', () => {
-    expect(normaliseHandle('recipefix.bsky.social')).toBe(normaliseHandle('@RecipeFix'));
   });
 });

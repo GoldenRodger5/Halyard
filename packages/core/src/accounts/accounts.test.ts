@@ -57,7 +57,22 @@ describe('checkIdentity', () => {
     ).toEqual([]);
   });
 
-  it('flags the browser-session failure: authorised as someone else entirely', () => {
+  it('says so when a configured handle disagrees, without refusing a first connection', () => {
+    /*
+     * §176. This asserted `severe: true`, which made a *configured* handle
+     * outrank the platform — and the configured value was seeded before any
+     * account existed, so the first correct connection of @Recipe_Fix was
+     * reported as the wrong account. A guess cannot overrule the provider.
+     *
+     * The browser-session failure this guards against — authorising your personal
+     * account because that is what the browser was signed into — is still caught,
+     * by the mechanism that actually catches it: the identity is fetched, shown
+     * to a person, and written only once they confirm it. This warning now says
+     * what happened and leaves the judgement where it belongs.
+     *
+     * Continuity for an account that *has* an identity is enforced against the
+     * stored platform user id; see `expectedHandle.test.ts`.
+     */
     const warnings = checkIdentity({
       platform: 'x',
       persona: 'brand',
@@ -67,7 +82,9 @@ describe('checkIdentity', () => {
       existing: [],
     });
     const mismatch = warnings.find((w) => w.kind === 'handle_mismatch');
-    expect(mismatch?.severe).toBe(true);
+    expect(mismatch).toBeDefined();
+    expect(mismatch?.severe).toBe(false);
+    expect(mismatch?.message).toContain('@isaacmineo');
     expect(mismatch?.fix).toMatch(/private window/i);
   });
 

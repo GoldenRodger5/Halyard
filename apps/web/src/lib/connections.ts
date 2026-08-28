@@ -32,7 +32,17 @@ export async function stagePendingConnection(input: {
     platform: PlatformId;
     platform_user_id: string | null;
     handle: string;
-  }>('select id, product_id, persona, platform, platform_user_id, handle from social_accounts');
+    identity_confirmed_at: string | null;
+  }>(
+    /*
+     * §176. `identity_confirmed_at` too. A row exists for every platform before
+     * anything is connected, so its presence proves nothing; whether a person
+     * ever confirmed who it is decides whether this is a first connection or a
+     * reconnection, and that governs every check downstream.
+     */
+    `select id, product_id, persona, platform, platform_user_id, handle, identity_confirmed_at
+       from social_accounts`,
+  );
 
   const reconnecting = await query<{ id: string }>(
     'select id from social_accounts where product_id = $1 and platform = $2 and persona = $3',
@@ -65,6 +75,7 @@ export async function stagePendingConnection(input: {
       platform: a.platform,
       platformUserId: a.platform_user_id,
       handle: a.handle,
+      identityConfirmedAt: a.identity_confirmed_at,
     })),
     reconnectingAccountId: reconnecting[0]?.id ?? null,
   });
