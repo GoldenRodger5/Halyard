@@ -46,3 +46,7 @@ supabase/.temp/
 
 # Signed-in session for the review recording. Never commit.
 .demo-auth.json
+
+# Google OAuth client downloads. They contain a live client_secret and land in
+# the repo root by default from the Cloud console. §192.
+client_secret_*.apps.googleusercontent.com.json

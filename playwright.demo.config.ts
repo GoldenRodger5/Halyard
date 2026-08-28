@@ -18,13 +18,23 @@ const AUTH = '.demo-auth.json';
  */
 export default defineConfig({
   testDir: './e2e/recordings',
-  timeout: 300_000,
+  /*
+   * §191. Long, because the Login Kit segment waits for a person.
+   *
+   * TikTok's consent screen is a real page on TikTok's domain, and the only
+   * honest way to film it is to let the operator sign in and press Authorize
+   * while the recorder keeps rolling. That wait is minutes, not seconds, and the
+   * dead time is trimmed at encode.
+   */
+  timeout: 15 * 60_000,
   workers: 1,
   reporter: [['list']],
   use: {
     baseURL: process.env.HALYARD_URL ?? 'https://halyard-ten.vercel.app',
     ...(existsSync(AUTH) ? { storageState: AUTH } : {}),
     ...devices['Desktop Chrome'],
+    /* Headed when a human has to authorize; headless for unattended re-records. */
+    headless: process.env.DEMO_HEADED !== '1',
     viewport: { width: 1280, height: 800 },
     /* A visible cursor: reviewers need to see what is being clicked. */
     launchOptions: { args: ['--force-prefers-reduced-motion'] },

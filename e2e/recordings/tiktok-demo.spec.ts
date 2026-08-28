@@ -41,18 +41,58 @@ test('records the TikTok integration demo', async ({ page }) => {
   await expect(card).toBeVisible();
   await page.waitForTimeout(BEAT);
 
-  const connected = (await card.getByText(/Connected|Direct Post is available/i).count()) > 0;
+  const connected = (await card.getByText(/Direct Post is available/i).count()) > 0;
   test.info().annotations.push({
     type: 'coverage',
     description: connected
-      ? 'TikTok connected — filming Login Kit result and the Content Posting API panel.'
-      : 'TikTok not connected on this deployment; filmed up to the Connect affordance only.',
+      ? 'Already connected — filming the Content Posting API panel only.'
+      : 'Disconnected — filming the full Login Kit round trip.',
   });
 
   if (!connected) {
-    await expect(card.getByRole('link', { name: /^(Connect|Reconnect)$/ })).toBeVisible();
+    /*
+     * §191. The Login Kit round trip, filmed rather than described.
+     *
+     * TikTok requires the authorization to be demonstrated, and the consent
+     * screen is a real page on TikTok's domain. The recorder clicks Connect and
+     * then *waits*: the operator signs in and presses Authorize while the video
+     * keeps rolling. Automating that click would mean scripting a consent, which
+     * is the one thing a review demo must not fake.
+     *
+     * The wait is bounded but generous — a login can involve a second device —
+     * and the dead time is cut at encode.
+     */
+    const connect = card.getByRole('link', { name: /^Connect$/ });
+    await expect(connect).toBeVisible();
     await page.waitForTimeout(BEAT);
-    return;
+    await connect.click();
+
+    // On TikTok now. Everything from here until the redirect is the operator's.
+    await page.waitForURL(/tiktok\.com/, { timeout: 60_000 });
+    // eslint-disable-next-line no-console
+    console.log('\n  → TikTok is asking for authorization. Sign in and press Authorize.');
+    // eslint-disable-next-line no-console
+    console.log('    The recording is running; it continues by itself on return.\n');
+
+    await page.waitForURL(/halyard-ten\.vercel\.app/, { timeout: 12 * 60_000 });
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(BEAT);
+
+    /* Halyard shows which account was authorised and asks a human to confirm. */
+    const confirm = page.getByRole('button', { name: /Confirm and connect/i });
+    if ((await confirm.count()) > 0) {
+      await page.waitForTimeout(BEAT);
+      await confirm.click();
+      await page.waitForLoadState('networkidle');
+      await page.waitForTimeout(BEAT);
+    }
+
+    /* Back on Accounts, now connected, with what TikTok reported. */
+    await page.goto('/accounts');
+    await page.waitForLoadState('networkidle');
+    await card.scrollIntoViewIfNeeded();
+    await expect(card.getByText(/Direct Post is available/i)).toBeVisible({ timeout: 30_000 });
+    await page.waitForTimeout(BEAT);
   }
 
   /* Advanced details carry the scopes and the capability TikTok reported. */
