@@ -162,6 +162,18 @@ export interface PublishItem {
    * adapter refuses rather than supplying a default.
    */
   tiktokOptions?: import('../tiktok/directPost.js').TikTokPostOptions | null;
+  /**
+   * Chapter boundaries, for a long-form video that has them. §223.
+   *
+   * The beat plan already knows where the piece changes what it is doing, and
+   * those are the only honest chapter boundaries — so they are carried rather
+   * than re-derived at publish time from a description an adapter would have
+   * to parse back out of its own output.
+   *
+   * Absent is the normal case: a Short has no chapters and neither does
+   * anything on any other platform.
+   */
+  chapters?: Array<{ title: string; startSeconds: number }> | null;
 }
 
 export interface PublishAccount {

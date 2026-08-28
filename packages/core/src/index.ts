@@ -37,5 +37,7 @@ export * from './agents/index.js';
 export * from './correction/index.js';
 export * from './db/pooler.js';
 export * from './tiktok/directPost.js';
+export * from './youtube/chapters.js';
+export * from './youtube/thumbnail.js';
 export * from './youtube/variant.js';
 export * from './adapters/clock.js';

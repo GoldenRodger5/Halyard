@@ -36,6 +36,7 @@ import {
   type PublishItem,
   type PublishResult,
 } from '@halyard/core';
+import { chaptersForItem } from '../chapters.js';
 import { PermanentJobFailure, type Job, type HandlerContext } from '../poller.js';
 
 /**
@@ -413,6 +414,20 @@ export async function publishHandler(job: Job, ctx: HandlerContext): Promise<voi
      * refuses when they are absent rather than filling them in.
      */
     tiktokOptions: (item.tiktok_options as PublishItem['tiktokOptions']) ?? null,
+    /*
+     * §223. Chapter boundaries for a long-form upload.
+     *
+     * Resolved from the beat plan against the measured runtime of the file
+     * that is actually being uploaded, using the same `layoutScenes` the
+     * renderer used — so the timestamps point at the frames they name rather
+     * than at a plan's intentions. Null for everything that is not YouTube
+     * long-form, which is almost everything.
+     */
+    chapters: await chaptersForItem(
+      ctx.pool,
+      item.id,
+      assets.find((a) => a.kind === 'video')?.durationSeconds ?? 0,
+    ),
   };
 
   /*

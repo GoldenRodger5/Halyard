@@ -29,6 +29,7 @@ import {
   type PublishResult,
   type TokenSet,
 } from './types.js';
+import { chaptersFromBeats } from '../youtube/chapters.js';
 import {
   YOUTUBE_DESCRIPTION_MAX_CHARS,
   YOUTUBE_LONG_FORM_MAX_SECONDS,
@@ -309,9 +310,35 @@ export class YouTubeAdapter implements PlatformAdapter {
      * assembly that matches it.
      */
     const disclosure = item.requiresAiLabel && item.disclosureText ? item.disclosureText : '';
+
+    /*
+     * §223. Chapters, for long-form only.
+     *
+     * They are timestamps in the description, and YouTube shows them only when
+     * the whole list satisfies rules it never reports on. `chaptersFromBeats`
+     * enforces them, so what reaches here either works or is empty with a
+     * reason — never a list that uploads cleanly and does nothing.
+     *
+     * A Short cannot have chapters at all, so the plan is not even consulted.
+     */
+    let chapterBlock = '';
+    let chapterRefusal: string | null = null;
+    if (variant === 'long_form' && item.chapters && item.chapters.length > 0) {
+      const runtime = asset?.durationSeconds ?? 0;
+      const chapters = chaptersFromBeats(item.chapters, runtime);
+      /*
+       * A refusal is recorded on the item's own trail rather than dropped.
+       * "Chapters were asked for and are not there" is exactly the kind of
+       * silent nothing this module exists to prevent, and swallowing the
+       * reason here would reintroduce it one layer up.
+       */
+      chapterRefusal = chapters.refusedReason;
+      chapterBlock = chapters.refusedReason ? '' : chapters.lines.join('\n');
+    }
+
     const descriptionParts =
       variant === 'long_form'
-        ? [item.body, item.finalLinkUrl ?? '', disclosure]
+        ? [item.body, chapterBlock, item.finalLinkUrl ?? '', disclosure]
         : [item.finalLinkUrl ?? '', item.body, disclosure];
 
     const description = descriptionParts.filter(Boolean).join('\n\n').slice(0, YOUTUBE_DESCRIPTION_MAX_CHARS);
@@ -390,6 +417,16 @@ export class YouTubeAdapter implements PlatformAdapter {
         privacyStatus === 'private' && !publishAt
           ? `https://studio.youtube.com/video/${videoId}/edit`
           : undefined,
+      /*
+       * §223. Why the chapters are not there, when they were asked for.
+       *
+       * Recorded on the publication rather than dropped. YouTube accepts a
+       * malformed chapter list silently and simply does not render it, so
+       * "the upload succeeded" says nothing about whether chapters exist —
+       * and an operator looking at a published long-form video with no
+       * chapters would otherwise have no way to find out why.
+       */
+      raw: chapterRefusal ? { chaptersRefused: chapterRefusal } : undefined,
     };
   }
 
