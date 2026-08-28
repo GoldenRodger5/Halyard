@@ -42,3 +42,53 @@ export function mediaIdsFrom(payload: unknown): string[] {
   }
   return [...ids];
 }
+
+/**
+ * Meta's `signed_request`, used by the deauthorize and data-deletion callbacks.
+ *
+ * §183. A different mechanism from the webhook signature above, and easy to
+ * conflate. Webhooks sign the raw body and put the digest in an
+ * `x-hub-signature-256` header; these two callbacks instead POST a form field
+ * named `signed_request` shaped `<base64url signature>.<base64url payload>`,
+ * where the signature is an HMAC-SHA256 **of the encoded payload string** — not
+ * of the decoded JSON, and not of the whole body.
+ *
+ * Verified against every candidate secret rather than one. An app configured for
+ * Instagram Login signs with the Instagram app secret, while the same app's
+ * Facebook-side callbacks sign with the Meta app secret; accepting either is
+ * what lets one endpoint serve both without asking the caller to declare which
+ * product it came from. Comparison is constant-time and a bad payload yields
+ * null rather than throwing.
+ */
+export function verifySignedRequest(
+  signedRequest: string | null | undefined,
+  secrets: Array<string | undefined>,
+): { userId: string | null; issuedAt: number | null } | null {
+  if (!signedRequest || !signedRequest.includes('.')) return null;
+
+  const [encodedSig, encodedPayload] = signedRequest.split('.', 2);
+  if (!encodedSig || !encodedPayload) return null;
+
+  const usable = secrets.filter((s): s is string => Boolean(s && s.trim().length > 0));
+  if (usable.length === 0) return null;
+
+  const matches = usable.some((secret) => {
+    const expected = createHmac('sha256', secret).update(encodedPayload).digest('base64url');
+    return safeEqual(encodedSig, expected);
+  });
+  if (!matches) return null;
+
+  try {
+    const json = JSON.parse(Buffer.from(encodedPayload, 'base64url').toString('utf8')) as {
+      user_id?: unknown;
+      issued_at?: unknown;
+    };
+    return {
+      userId: typeof json.user_id === 'string' ? json.user_id : null,
+      issuedAt: typeof json.issued_at === 'number' ? json.issued_at : null,
+    };
+  } catch {
+    /* Signed but unparseable. Authentic and useless is still not trustworthy. */
+    return null;
+  }
+}
