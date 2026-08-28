@@ -78,9 +78,13 @@ test('records the TikTok integration demo', async ({ page }) => {
   await tiktokItem.scrollIntoViewIfNeeded();
   await page.waitForTimeout(BEAT);
 
-  /* Open it. The detail screen is where TikTok's own controls live. */
-  const open = tiktokItem.getByRole('link').first();
-  await open.click();
+  /*
+   * Opened by the item's own id rather than by clicking whichever link happens
+   * to be first inside the card — several of them lead elsewhere, and the
+   * recording should land on the detail screen every time.
+   */
+  const itemId = (await tiktokItem.getAttribute('id'))!.replace('queue-item-', '');
+  await page.goto(`/queue/${itemId}`);
   await page.waitForLoadState('networkidle');
   await page.waitForTimeout(BEAT);
 
