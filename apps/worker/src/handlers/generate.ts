@@ -48,6 +48,9 @@ import {
   EDITORIAL,
   PUNCH,
   chooseOpening,
+  creativeTypeForShape,
+  longFormBeats,
+  planLongForm,
   fitWords,
   directVoice,
   planVariants,
@@ -1019,6 +1022,51 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
               }
             : undefined;
 
+          /**
+           * §249. Long-form is a different architecture, not a longer short.
+           *
+           * Ask a short-form planner for eight minutes and the timing engine
+           * stretches four beats to two minutes each — a slideshow with very
+           * patient slides. A long-form piece has sections with intended
+           * lengths, real chapter titles, and a body that dominates.
+           *
+           * Decided before `selectCreativePlan` because the two produce
+           * different things: one returns beats, the other returns sections
+           * that become beats.
+           */
+          const wantsLongForm =
+            aspectForRender(account.platform, defaultSubtypeFor(account.platform, format)) === '16:9';
+
+          const longForm =
+            wantsLongForm && artifact
+              ? planLongForm({
+                  artifact,
+                  targetSeconds: Number(job.payload.targetSeconds ?? 420),
+                  hasFootage: Boolean(footage),
+                  /* Shape recency comes from the briefs themselves, read
+                     here rather than reusing the direction query below —
+                     which has not run yet at this point. */
+                  recentShapes: (
+                    await ctx.pool.query<{ shape: string }>(
+                      `select visual_direction ->> 'longFormShape' as shape
+                         from creative_briefs
+                        where account_id = $1
+                          and visual_direction ->> 'longFormShape' is not null
+                        order by created_at desc limit 4`,
+                      [account.id],
+                    )
+                  ).rows.map((r) => r.shape),
+                })
+              : null;
+          if (longForm) {
+            ctx.log('long-form structure', {
+              shape: longForm.shape,
+              because: longForm.rationale,
+              sections: longForm.sections.map((x) => `${x.title} (${x.targetSeconds}s)`),
+              totalSeconds: longForm.totalSeconds,
+            });
+          }
+
           const selection = artifact
             ? selectCreativePlan(artifact, {
                 platform: account.platform,
@@ -1030,7 +1078,31 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                 ...(footage ? { footage } : {}),
               })
             : null;
-          const plan = selection?.chosen ?? null;
+          /*
+           * §249. A long-form structure replaces the short-form plan.
+           *
+           * Built as a `CreativePlan` so everything downstream — motion,
+           * typography, the renderer, the QC gate — is unchanged. The
+           * difference is entirely in the beats and their intended lengths.
+           */
+          const plan: CreativePlan | null = longForm
+            ? {
+                creativeType: creativeTypeForShape(longForm.shape) as CreativePlan['creativeType'],
+                platform: account.platform,
+                format,
+                targetSeconds: longForm.totalSeconds,
+                beats: longFormBeats(longForm, artifact!),
+                /* Long-form sections that want footage play it full-bleed, so
+                   captions sit over media; the rest fall back to a surface. */
+                captionBackdrop: longForm.sections.some((x) => x.wantsFootage)
+                  ? 'media'
+                  : 'surface',
+                evidence: longFormBeats(longForm, artifact!)
+                  .map((b) => b.sourcePath)
+                  .filter((v): v is string => Boolean(v)),
+                rationale: longForm.rationale,
+              }
+            : (selection?.chosen ?? null);
 
           /**
            * §215. Record why this post exists.
@@ -1362,6 +1434,10 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                   typographyReason: typography?.reason ?? null,
                   opening: opening?.composition ?? null,
                   openingReason: opening?.reason ?? null,
+                  /* §249. So the next long-form piece can vary from this one. */
+                  longFormShape: longForm?.shape ?? null,
+                  longFormRationale: longForm?.rationale ?? null,
+                  longFormSections: longForm?.sections.map((x) => x.title) ?? null,
                 }),
                 /* §232. The voice decision, recorded so `tts` reads it rather
                    than deriving a second one from the same inputs. */

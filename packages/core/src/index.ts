@@ -4,6 +4,7 @@ export * from './creative/plan.js';
 export * from './creative/treatments.js';
 export * from './creative/presentation.js';
 export * from './creative/director.js';
+export * from './creative/longform.js';
 export * from './creative/openings.js';
 export * from './creative/variants.js';
 export * from './creative/typography.js';
