@@ -29,9 +29,9 @@ Legend: **DONE** · **PARTIAL** · **BLOCKED (provider)** · **MANUAL (operator)
 | **Instagram** | DONE (§184, Instagram Login) | DONE | MANUAL — redirect + deauthorize + deletion URLs | not exercised | BLOCKED (provider) |
 | **Threads** | DONE | DONE | MANUAL — own app id + callback | not exercised | BLOCKED (provider) |
 | **Bluesky** | DONE | DONE | none | not exercised | MANUAL (app password) |
-| TikTok | DONE | DONE — says what is missing | MANUAL — register app | n/a | NOT CONFIGURED |
+| TikTok | DONE | DONE | sandbox connected for review | handoff verified | SANDBOX READY |
 | Pinterest | DONE | DONE — says what is missing | MANUAL — register app | n/a | NOT CONFIGURED |
-| YouTube | DONE | DONE — says what is missing | MANUAL — register app | n/a | NOT CONFIGURED |
+| YouTube | DONE | DONE | credentials set, request verified | not exercised | READY TO CONNECT |
 | Facebook | NOT IMPLEMENTED | — | — | — | no adapter |
 
 **No account is connected.** Every remaining blocker is a provider-dashboard setting
@@ -137,16 +137,52 @@ model here.
 It goes straight into the same pending-connection flow. **Never paste it into chat** — the form is
 the only correct place.
 
-## TikTok, Pinterest, YouTube
+## YouTube
 
-Adapters, scopes, callbacks, persistence and refresh are implemented; no developer app exists, so
-`resolvePlatformClient` reports `missing` and Connect returns 428 naming the variables to set.
+Credentials are set in both tiers and the authorize request is verified correct against
+production: `accounts.google.com/o/oauth2/v2/auth`, the client id from the Cloud console
+download, `redirect_uri=https://halyard-ten.vercel.app/api/oauth/youtube/callback`,
+`access_type=offline` and `prompt=consent` — the pair that yields a refresh token, without
+which the connection dies in an hour.
+
+Google accepts the request today: it renders "Sign in with Google, to continue to
+halyard-ten.vercel.app" rather than an error, which means the client, the redirect URI and
+the scopes are all registered.
+
+### Scopes, and why each one
+
+| Scope | What it authorises |
+|---|---|
+| `youtube.upload` | the resumable upload that publishes a video |
+| `youtube.readonly` | reads the channel identity and the videos Halyard published |
+| `yt-analytics.readonly` | reads performance on those videos |
+
+### What Google still needs
+
+These do not fail at consent — they fail on the **first API call afterwards**, which is why
+they are worth checking before connecting rather than after:
+
+- **YouTube Data API v3** enabled on the Cloud project (upload and read).
+- **YouTube Analytics API** enabled (the analytics scope).
+- If the OAuth consent screen is in **Testing**, the authorising Google account must be
+  listed as a **test user**. Otherwise Google refuses with `access_denied` and says the app
+  is not verified.
+
+The client download from the Cloud console carries a live `client_secret` and lands in the
+repository root. `client_secret_*.apps.googleusercontent.com.json` is gitignored (§192); the
+values belong in `.env`, and `env-sync` carries them to both tiers.
+
+## TikTok, Pinterest
+
+TikTok's adapter, scopes, callback, persistence, refresh and Direct Post panel are complete,
+and the sandbox app is connected for app review — see `HALYARD_OAUTH_SANDBOX` in §185.
+
+Pinterest has an adapter and no developer app, so `resolvePlatformClient` reports `missing`
+and the card says which variables to set.
 
 | Platform | Register | Then set |
 |---|---|---|
-| TikTok | TikTok for Developers — add Login Kit **and** Content Posting API | `TIKTOK_CLIENT_KEY`, `TIKTOK_CLIENT_SECRET` |
 | Pinterest | Pinterest developers — trial apps write only to sandbox boards | `PINTEREST_APP_ID`, `PINTEREST_APP_SECRET` |
-| YouTube | Google Cloud — enable YouTube Data API v3, create an OAuth client | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` |
 
 Each redirect URI follows the same shape: `https://halyard-ten.vercel.app/api/oauth/{platform}/callback`
 
