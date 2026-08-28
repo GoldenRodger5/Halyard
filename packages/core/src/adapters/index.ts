@@ -201,10 +201,34 @@ export type ResolvedClient = {
   clientId: string | null;
   clientSecret: string | null;
   /** Which env pair supplied the value, for honest reporting. */
-  source: 'primary' | 'fallback' | 'missing';
+  source: 'primary' | 'sandbox' | 'fallback' | 'missing';
   /** The env var names tried, in order, for an error message worth reading. */
   tried: string[];
 };
+
+/**
+ * Platforms whose credentials should come from their `_SANDBOX` pair.
+ *
+ * §185. TikTok requires an app-review demo to be recorded against a **sandbox**
+ * app rather than the production one, which means the same deployment has to be
+ * able to authenticate as either. Two separate variables and an explicit switch,
+ * rather than editing the production value in place and hoping it gets put back:
+ * a demo recorded against production by accident is both a wasted submission and
+ * a real authorisation against the live app.
+ *
+ * Comma-separated, e.g. `HALYARD_OAUTH_SANDBOX=tiktok`. Absent means production
+ * everywhere, which is the safe default.
+ */
+export function sandboxPlatforms(
+  env: Record<string, string | undefined> = process.env,
+): Set<string> {
+  return new Set(
+    (env.HALYARD_OAUTH_SANDBOX ?? '')
+      .split(/[\s,]+/)
+      .map((p) => p.trim().toLowerCase())
+      .filter(Boolean),
+  );
+}
 
 export function resolvePlatformClient(
   platform: PlatformId,
@@ -222,6 +246,28 @@ export function resolvePlatformClient(
     const raw = env[name]?.trim();
     return raw && raw.length > 0 ? raw : null;
   };
+
+  /*
+   * Sandbox first, and only when explicitly asked for. Reported as its own
+   * `source` so the Accounts card can say which app an account was connected
+   * against — a sandbox connection that looks like a production one is how a
+   * review demo ends up filming the wrong thing.
+   */
+  const sandboxId = `${primary.id}_SANDBOX`;
+  const sandboxSecret = `${primary.secret}_SANDBOX`;
+  if (sandboxPlatforms(env).has(platform)) {
+    const sid = read(sandboxId);
+    const ssecret = read(sandboxSecret);
+    if (sid && ssecret) {
+      return { clientId: sid, clientSecret: ssecret, source: 'sandbox', tried: [sandboxId] };
+    }
+    /*
+     * Asked for and absent is a refusal, not a silent fall-through to
+     * production. Falling back here would authenticate a "sandbox" demo against
+     * the live app without saying so.
+     */
+    return { clientId: null, clientSecret: null, source: 'missing', tried: [sandboxId] };
+  }
 
   const id = read(primary.id);
   const secret = read(primary.secret);

@@ -209,3 +209,64 @@ describe('PKCE', () => {
     expect(createPkcePair().verifier).not.toBe(createPkcePair().verifier);
   });
 });
+
+describe('sandbox credentials, §185', () => {
+  const BOTH = {
+    TIKTOK_CLIENT_KEY: 'prod-key',
+    TIKTOK_CLIENT_SECRET: 'prod-secret',
+    TIKTOK_CLIENT_KEY_SANDBOX: 'sandbox-key',
+    TIKTOK_CLIENT_SECRET_SANDBOX: 'sandbox-secret',
+  };
+
+  it('uses production credentials when nothing asks for sandbox', () => {
+    /* The safe default: an unset switch must never mean sandbox. */
+    const r = resolvePlatformClient('tiktok', BOTH);
+    expect(r).toMatchObject({ clientId: 'prod-key', source: 'primary' });
+  });
+
+  it('uses sandbox credentials when the platform is listed', () => {
+    const r = resolvePlatformClient('tiktok', { ...BOTH, HALYARD_OAUTH_SANDBOX: 'tiktok' });
+    expect(r).toMatchObject({ clientId: 'sandbox-key', source: 'sandbox' });
+  });
+
+  it('refuses rather than falling back to production when sandbox is missing', () => {
+    /*
+     * The failure this prevents: a demo recorded "against sandbox" that quietly
+     * authorised against the live app, which is both a wasted review submission
+     * and a real authorisation nobody intended.
+     */
+    const r = resolvePlatformClient('tiktok', {
+      TIKTOK_CLIENT_KEY: 'prod-key',
+      TIKTOK_CLIENT_SECRET: 'prod-secret',
+      HALYARD_OAUTH_SANDBOX: 'tiktok',
+    });
+    expect(r.source).toBe('missing');
+    expect(r.clientId).toBeNull();
+    expect(r.tried).toEqual(['TIKTOK_CLIENT_KEY_SANDBOX']);
+  });
+
+  it('only affects the platforms named', () => {
+    const r = resolvePlatformClient('x', {
+      X_CLIENT_ID: 'x-id',
+      X_CLIENT_SECRET: 'x-secret',
+      HALYARD_OAUTH_SANDBOX: 'tiktok',
+    });
+    expect(r).toMatchObject({ clientId: 'x-id', source: 'primary' });
+  });
+
+  it('accepts a list, and ignores spacing and case', () => {
+    for (const value of ['tiktok,x', ' TikTok , x ', 'x tiktok']) {
+      expect(
+        resolvePlatformClient('tiktok', { ...BOTH, HALYARD_OAUTH_SANDBOX: value }).source,
+        value,
+      ).toBe('sandbox');
+    }
+  });
+
+  it('reports sandbox as its own source, distinct from production', () => {
+    /* So the UI can say which app an account was connected against. */
+    const sandbox = resolvePlatformClient('tiktok', { ...BOTH, HALYARD_OAUTH_SANDBOX: 'tiktok' });
+    const prod = resolvePlatformClient('tiktok', BOTH);
+    expect(sandbox.source).not.toBe(prod.source);
+  });
+});
