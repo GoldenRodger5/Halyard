@@ -158,3 +158,43 @@ describe('dryRunPublish sends nothing and finishes fast', () => {
     }
   });
 });
+
+/**
+ * §200. The cost estimate is the number an operator reads before deciding to
+ * spend money, so it is derived from the recorded writes rather than from an
+ * assumption about how many there will be.
+ */
+describe('cost is counted from the requests, not assumed', () => {
+  it('charges X for both the post and the link reply', { timeout: 5_000 }, async () => {
+    const withLink = await dryRunPublish(
+      getAdapter('x'),
+      item('x', { format: 'text', finalLinkUrl: 'https://recipefix.app/?utm_source=t' }),
+      [],
+      account('x'),
+    );
+    const writes = withLink.requests.filter((r) => r.method === 'POST');
+    expect(writes.length).toBe(2);
+
+    const rates = getAdapter('x').constraints.costPerPostUsd!;
+    // One plain tweet, one reply carrying the link.
+    expect(withLink.estimatedCostUsd).toBeCloseTo(rates.withoutLink + rates.withLink, 6);
+    // The old estimate was a single withoutLink, and it is now provably larger.
+    expect(withLink.estimatedCostUsd!).toBeGreaterThan(rates.withoutLink);
+  });
+
+  it('charges a single post when there is no link to reply with', { timeout: 5_000 }, async () => {
+    const noLink = await dryRunPublish(
+      getAdapter('x'),
+      item('x', { format: 'text', finalLinkUrl: null }),
+      [],
+      account('x'),
+    );
+    const rates = getAdapter('x').constraints.costPerPostUsd!;
+    expect(noLink.estimatedCostUsd).toBeCloseTo(rates.withoutLink * noLink.requests.filter((r) => r.method === 'POST').length, 6);
+  });
+
+  it('leaves cost undefined for platforms that do not charge', { timeout: 5_000 }, async () => {
+    const result = await dryRunPublish(getAdapter('youtube'), item('youtube'), [video], account('youtube'));
+    expect(result.estimatedCostUsd).toBeUndefined();
+  });
+});

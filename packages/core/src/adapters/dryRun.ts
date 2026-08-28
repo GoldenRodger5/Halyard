@@ -222,10 +222,29 @@ export async function dryRunPublish(
   }
 
   const writes = requests.filter((r) => r.method === 'POST' || r.method === 'PUT');
-  const cost = adapter.constraints.costPerPostUsd
-    ? item.finalLinkUrl && adapter.constraints.linkStrategy === 'in_body'
-      ? adapter.constraints.costPerPostUsd.withLink
-      : adapter.constraints.costPerPostUsd.withoutLink
+
+  /**
+   * Price the writes that actually happened, not the one we assumed. §200.
+   *
+   * This charged for a single post and picked the rate from `linkStrategy`:
+   * `withLink` only when the strategy was `in_body`, `withoutLink` otherwise.
+   * X's strategy is `first_reply` — it posts the tweet, then a *second* tweet
+   * carrying the link. Both are billed. So an X rehearsal with a link reported
+   * $0.015 against two chargeable calls, one of which carries a link and bills
+   * at the higher rate.
+   *
+   * Rehearsal exists to replace assumptions with the recorded request, and the
+   * estimate is the one number an operator reads before deciding to spend. It
+   * now counts the writes and prices each on whether that request carries the
+   * link — evidence rather than inference.
+   */
+  const rates = adapter.constraints.costPerPostUsd;
+  const cost = rates
+    ? writes.reduce((sum, request) => {
+        const carriesLink =
+          Boolean(item.finalLinkUrl) && JSON.stringify(request.body ?? '').includes(item.finalLinkUrl!);
+        return sum + (carriesLink ? rates.withLink : rates.withoutLink);
+      }, 0)
     : undefined;
 
   return {
