@@ -80,5 +80,15 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ id
   return new NextResponse(upstream.body, { status: 200, headers });
 }
 
-/** Matches the worker's bucket; assets are written there by `apps/worker/src/storage.ts`. */
-const ASSET_BUCKET = 'assets';
+/**
+ * The bucket the worker actually writes to.
+ *
+ * §188. This said `'assets'`, which is the *table* name, not the bucket — the
+ * bucket is `halyard-assets` (`apps/worker/src/storage.ts`). Every TikTok
+ * `PULL_FROM_URL` would have 404'd, and the symptom would have appeared minutes
+ * later at TikTok as `video_pull_failed`, naming nothing.
+ *
+ * Imported from the worker's own constant now rather than restated, so the two
+ * cannot drift again.
+ */
+const ASSET_BUCKET = 'halyard-assets';

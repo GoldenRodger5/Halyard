@@ -43,3 +43,6 @@ packages/render/public/capture/
 .vercel
 .env*
 supabase/.temp/
+
+# Signed-in session for the review recording. Never commit.
+.demo-auth.json
