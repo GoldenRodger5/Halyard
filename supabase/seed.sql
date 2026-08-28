@@ -179,7 +179,9 @@ insert into templates (id, product_id, renderer, format, aspect_ratio, descripti
   -- Same compositions; `geometry.ts` resolves the layout from the frame, so
   -- there is one implementation rather than two to keep in step.
   ('TransformationDiffWide',    'recipefix', 'remotion',  'video',    '16:9', 'Landscape TransformationDiff, for YouTube long-form'),
-  ('SubstitutionExplainerWide', 'recipefix', 'remotion',  'video',    '16:9', 'Landscape SubstitutionExplainer, for YouTube long-form')
+  ('SubstitutionExplainerWide', 'recipefix', 'remotion',  'video',    '16:9', 'Landscape SubstitutionExplainer, for YouTube long-form'),
+  -- §224. 1280x720, sized so it is legible at the ~360px a feed draws it.
+  ('youtube_thumbnail',         'recipefix', 'satori',    'image',    '16:9', 'YouTube long-form thumbnail')
 on conflict (id) do nothing;
 
 /*
@@ -195,7 +197,7 @@ on conflict (id) do nothing;
 update templates
    set enabled = false,
        disabled_reason = 'Awaiting operator review of the first landscape render'
- where id in ('TransformationDiffWide', 'SubstitutionExplainerWide');
+ where id in ('TransformationDiffWide', 'SubstitutionExplainerWide', 'youtube_thumbnail');
 
 /*
  * FeatureDemo is disabled, because nothing can produce it.

@@ -9,6 +9,12 @@
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import {
+  THUMBNAIL_HEIGHT,
+  THUMBNAIL_WIDTH,
+  checkThumbnail,
+  thumbnailPasses,
+} from '@halyard/core';
 import { renderTemplate, type TemplateId } from '@halyard/render';
 import { durationInFrames, type CaptionCue } from '@halyard/render/timing';
 import { muxAudioIntoVideo } from '../audio.js';
@@ -42,7 +48,42 @@ async function renderImageAsset(
     aspectRatio: options.aspectRatio,
     quality: render.quality,
     wordmark: options.wordmark,
+    /*
+     * §224. A thumbnail has an exact canvas, not an aspect ratio. 16:9
+     * resolves to 1920x1080 for a video frame, and a thumbnail is 1280x720 —
+     * the same shape, a different picture, and the legible-size arithmetic is
+     * calibrated against the real one.
+     */
+    ...(render.template_id === 'youtube_thumbnail'
+      ? { size: { width: THUMBNAIL_WIDTH, height: THUMBNAIL_HEIGHT } }
+      : {}),
   });
+
+  /*
+   * §224. Checked against the bytes that actually exist, not the intent.
+   *
+   * `thumbnails.set` accepts anything valid under 2 MB, so a thumbnail nobody
+   * can read uploads exactly as successfully as a good one. This is the only
+   * point where the rendered size and the real byte count are both facts.
+   */
+  if (render.template_id === 'youtube_thumbnail') {
+    const issues = checkThumbnail({
+      overlayText: (render.input_props.overlayText as string) ?? '',
+      fontSizePx: (render.input_props.fontSizePx as number) ?? 0,
+      width: result.width,
+      height: result.height,
+      byteLength: result.png.byteLength,
+    });
+    if (!thumbnailPasses(issues)) {
+      throw new Error(
+        `Thumbnail failed its own checks: ${issues
+          .filter((i) => i.severity === 'fail')
+          .map((i) => `${i.rule} — ${i.detail}`)
+          .join('; ')}`,
+      );
+    }
+    for (const issue of issues) ctx.log('thumbnail warning', { rule: issue.rule, detail: issue.detail });
+  }
 
   return uploadAsset(ctx, {
     bytes: result.png,

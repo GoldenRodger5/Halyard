@@ -29,7 +29,7 @@ import {
   type PublishResult,
   type TokenSet,
 } from './types.js';
-import { chaptersFromBeats } from '../youtube/chapters.js';
+import { chaptersFromBeats, parseChapters } from '../youtube/chapters.js';
 import { THUMBNAIL_MAX_BYTES } from '../youtube/thumbnail.js';
 import {
   YOUTUBE_DESCRIPTION_MAX_CHARS,
@@ -345,6 +345,26 @@ export class YouTubeAdapter implements PlatformAdapter {
         : [item.finalLinkUrl ?? '', item.body, disclosure];
 
     const description = descriptionParts.filter(Boolean).join('\n\n').slice(0, YOUTUBE_DESCRIPTION_MAX_CHARS);
+
+    /*
+     * §223. Read back what was actually written.
+     *
+     * The description is assembled and then truncated at 5,000 characters, and
+     * the chapter block sits after the body — so a long body silently eats the
+     * chapters, and the upload still succeeds. This parses the finished string
+     * with the same grammar YouTube uses and reports when fewer chapters
+     * survived than were emitted, which is the only way that truncation is
+     * ever visible.
+     */
+    if (chapterBlock) {
+      const survived = parseChapters(description).length;
+      const emitted = chapterBlock.split('\n').length;
+      if (survived < emitted) {
+        chapterRefusal =
+          `${emitted} chapters were written and ${survived} survived the ` +
+          `${YOUTUBE_DESCRIPTION_MAX_CHARS}-character description limit. Shorten the body.`;
+      }
+    }
     const tags = item.hashtags.slice(0, this.constraints.maxHashtags).map((t) => t.replace(/^#/, ''));
 
     /*

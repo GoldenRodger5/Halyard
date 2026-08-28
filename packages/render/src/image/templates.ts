@@ -1,4 +1,4 @@
-import { THUMBNAIL_HEIGHT, THUMBNAIL_WIDTH } from '@halyard/core';
+import { DURATION_BADGE, THUMBNAIL_HEIGHT, THUMBNAIL_WIDTH } from '@halyard/core';
 /**
  * Satori image templates. v1 §5.1.
  *
@@ -401,7 +401,7 @@ export function youtubeThumbnail(props: ThumbnailProps): SatoriElement {
    * cheaper than discovering later that the last word of every thumbnail is
    * under an opaque black pill.
    */
-  const badgeGuard = Math.ceil(canvas.height * 0.14);
+  const badgeGuard = Math.ceil(canvas.height * DURATION_BADGE.heightFraction);
 
   return box(
     {
@@ -446,7 +446,7 @@ export function youtubeThumbnail(props: ThumbnailProps): SatoriElement {
       {
         flexDirection: 'column',
         paddingLeft: 88,
-        paddingRight: 88 + Math.ceil(canvas.width * 0.18),
+        paddingRight: 88 + Math.ceil(canvas.width * DURATION_BADGE.widthFraction),
         paddingBottom: badgeGuard,
       },
       text(props.overlayText, {

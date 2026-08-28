@@ -101,3 +101,43 @@ describe('chaptersFromBeats', () => {
     expect(result.lines).toHaveLength(4);
   });
 });
+
+describe('chapters surviving the description', () => {
+  /*
+   * §223. The truncation seam. The chapter block is appended after the body
+   * and the whole description is then cut at 5,000 characters, so a long body
+   * silently eats the chapters — and the upload succeeds either way. Parsing
+   * the finished string back is the only way that is ever visible.
+   */
+  it('reads back every chapter from a description that fits', () => {
+    const lines = chaptersFromBeats(
+      [
+        { title: 'The problem', startSeconds: 0 },
+        { title: 'What breaks', startSeconds: 60 },
+        { title: 'The swap', startSeconds: 200 },
+      ],
+      600,
+    ).lines;
+    const description = ['A short body.', lines.join('\n'), 'https://example.com'].join('\n\n');
+    expect(parseChapters(description)).toHaveLength(3);
+  });
+
+  it('reads back fewer when the limit cuts them off', () => {
+    const lines = chaptersFromBeats(
+      [
+        { title: 'The problem', startSeconds: 0 },
+        { title: 'What breaks', startSeconds: 60 },
+        { title: 'The swap', startSeconds: 200 },
+      ],
+      600,
+    ).lines;
+    const body = 'x'.repeat(4990);
+    const description = [body, lines.join('\n')].join('\n\n').slice(0, 5000);
+    expect(parseChapters(description).length).toBeLessThan(lines.length);
+  });
+
+  it('does not mistake a plain number for a timestamp', () => {
+    // "Bake 40 minutes" and "1:15 The swap" must not both parse as chapters.
+    expect(parseChapters('Bake 40 minutes at 200C\nUse 2 cups of flour')).toEqual([]);
+  });
+});

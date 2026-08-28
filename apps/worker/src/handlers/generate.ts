@@ -46,6 +46,8 @@ import {
   decideStrategy,
   LANGUAGE_FOR_TREATMENT,
   aspectForRender,
+  thumbnailFontSize,
+  thumbnailTextFrom,
   defaultSubtypeFor,
   presentationFor,
   rankSignals,
@@ -1150,6 +1152,41 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
               contentItemId,
               brief.rows[0]!.id,
             ]);
+
+            /**
+             * §224. A thumbnail, for the one format that lives or dies by one.
+             *
+             * Long-form only: a Short is discovered by autoplay and never shows
+             * a custom thumbnail in the feed it appears in, so rendering one
+             * would be work nobody ever sees.
+             *
+             * The text comes from what the concept already said and is refused
+             * rather than truncated — a headline stopped mid-thought reads as a
+             * bug. A refusal is logged and the item continues: a long-form
+             * video with YouTube's auto-generated thumbnail is worse than one
+             * with a good custom thumbnail and better than no video.
+             */
+            if (renderAspect === '16:9' && enabledTemplates.includes('youtube_thumbnail')) {
+              const line = thumbnailTextFrom({ hook: draft.title, title: idea.title });
+              if (line.text === null) {
+                ctx.log('no thumbnail text', { contentItemId, reason: line.reason });
+              } else {
+                const thumb = await ctx.pool.query<{ id: string }>(
+                  `insert into renders (content_item_id, template_id, renderer, input_props, quality)
+                   values ($1, 'youtube_thumbnail', 'satori', $2, 'final') returning id`,
+                  [
+                    contentItemId,
+                    {
+                      overlayText: line.text,
+                      fontSizePx: thumbnailFontSize(line.text),
+                      alt_text: `Thumbnail: ${line.text}`,
+                    },
+                  ],
+                );
+                await ctx.enqueue('render', { renderId: thumb.rows[0]!.id }, { priority: 50 });
+                ctx.log('thumbnail queued', { contentItemId, text: line.text, from: line.source });
+              }
+            }
           }
 
           await ctx.enqueue(
