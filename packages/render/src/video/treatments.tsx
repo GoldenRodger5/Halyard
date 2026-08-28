@@ -65,7 +65,15 @@ export interface RenderableBeat {
    */
   maxSeconds?: number;
   emphasis?: 'quick' | 'normal' | 'hold';
-  content?: { before?: string; after?: string; reason?: string; text?: string };
+  /** §203. `label` is a step's own title; `index` is a countdown position. */
+  content?: {
+    before?: string;
+    after?: string;
+    reason?: string;
+    text?: string;
+    label?: string;
+    index?: number;
+  };
   /**
    * Captured product footage for this beat. §163.
    *
@@ -793,6 +801,154 @@ const CapturedFootage: BeatTreatment = ({ beat, brand, band }) => {
 };
 
 /**
+ * One step of a sequence. §203.
+ *
+ * Where a transformation card contrasts two states, this one is ordinal: it
+ * carries its own title above the instruction, so a viewer following a how-to
+ * knows where they are without counting. The label is the step's real title
+ * from the artifact, never a generated "Step 1" — a number the planner did not
+ * find is a number nobody can check.
+ */
+const StepCard: BeatTreatment = ({ beat, brand, band }) => {
+  const text = beat.content?.text;
+  if (!text || !text.trim()) return null;
+  const label = beat.content?.label;
+  const scale = fitScale((k) => noteHeightAt(text, band.width, k), band.height, beat.emphasis);
+
+  return (
+    <Rise>
+      {label ? (
+        <div
+          style={{
+            fontSize: NOTE_TYPE.label.size,
+            letterSpacing: 3,
+            textTransform: 'uppercase',
+            color: brand.primary,
+          }}
+        >
+          {label}
+        </div>
+      ) : null}
+      <div
+        style={{
+          fontFamily: brand.headingFont,
+          fontSize: NOTE_TYPE.body.size * scale,
+          lineHeight: NOTE_TYPE.body.lineHeight,
+          marginTop: label ? NOTE_TYPE.gap * scale : 0,
+          color: brand.ink,
+        }}
+      >
+        {text}
+      </div>
+    </Rise>
+  );
+};
+
+/**
+ * A numbered item in a countdown. §203.
+ *
+ * The number is drawn large and in the brand's primary, because in a listicle
+ * the position *is* the structure — it is how a viewer knows the piece is going
+ * somewhere. It comes from `content.index`, which the planner assigns when it
+ * orders the list; nothing here counts.
+ */
+const CountItem: BeatTreatment = ({ beat, brand, band }) => {
+  const text = beat.content?.text;
+  if (!text || !text.trim()) return null;
+  const index = beat.content?.index;
+  const scale = fitScale((k) => noteHeightAt(text, band.width, k), band.height, beat.emphasis);
+
+  return (
+    <Rise>
+      {index !== undefined ? (
+        <div
+          style={{
+            fontFamily: brand.headingFont,
+            fontSize: 96 * scaleFor(beat.emphasis),
+            lineHeight: 1,
+            color: brand.primary,
+          }}
+        >
+          {index}
+        </div>
+      ) : null}
+      <div
+        style={{
+          fontFamily: brand.headingFont,
+          fontSize: NOTE_TYPE.body.size * scale,
+          lineHeight: NOTE_TYPE.body.lineHeight,
+          marginTop: NOTE_TYPE.gap * scale,
+          color: brand.ink,
+        }}
+      >
+        {text}
+      </div>
+    </Rise>
+  );
+};
+
+/**
+ * The belief, in a myth/fact reversal. §203.
+ *
+ * Set in the muted ink rather than the primary, so the correction that follows
+ * reads as the brighter of the two. The contrast is the treatment: two beats
+ * drawn identically would be two statements rather than a reversal.
+ */
+const MythCard: BeatTreatment = ({ beat, brand, band }) => {
+  const text = beat.content?.text;
+  if (!text || !text.trim()) return null;
+  const scale = fitScale((k) => noteHeightAt(text, band.width, k), band.height, beat.emphasis);
+
+  return (
+    <Rise>
+      <div
+        style={{
+          fontSize: NOTE_TYPE.label.size,
+          letterSpacing: 3,
+          textTransform: 'uppercase',
+          color: brand.muted,
+        }}
+      >
+        Commonly believed
+      </div>
+      <div
+        style={{
+          fontFamily: brand.headingFont,
+          fontSize: NOTE_TYPE.body.size * scale,
+          lineHeight: NOTE_TYPE.body.lineHeight,
+          marginTop: NOTE_TYPE.gap * scale,
+          color: brand.muted,
+        }}
+      >
+        {text}
+      </div>
+    </Rise>
+  );
+};
+
+/**
+ * The result a piece lands on. §203.
+ *
+ * Deliberately the largest type in any treatment: a montage and a feature demo
+ * both exist for this frame, and everything before it is momentum toward it.
+ */
+const ResultCard: BeatTreatment = ({ beat, brand }) =>
+  beat.content?.text ? (
+    <Rise>
+      <div
+        style={{
+          fontFamily: brand.headingFont,
+          fontSize: 84 * scaleFor(beat.emphasis),
+          lineHeight: 1.08,
+          color: brand.ink,
+        }}
+      >
+        {beat.content.text}
+      </div>
+    </Rise>
+  ) : null;
+
+/**
  * `before` and `after` map to the same card as `change`.
  *
  * A creative type that splits a transformation across two beats is describing
@@ -811,6 +967,44 @@ export const BEFORE_AFTER_TREATMENTS: TreatmentSet = {
   after: TransformationCard,
   proof: EvidenceNote,
   cta: ClosingLine,
+  /*
+   * §203. One set covering every role, rather than a set per creative type.
+   *
+   * A role means the same thing whichever treatment emitted it — a `step` is a
+   * step in a how-to and in anything else that sequences — so a second map
+   * would be a second place for the same answer to drift. `PlannedBeats` skips
+   * a role it cannot draw *while the scene keeps its slice of the timeline*,
+   * so an unmapped role is not a missing beat, it is blank frames that still
+   * cost seconds. `EVERY_BEAT_ROLE` and its test make that unmissable.
+   */
+  step: StepCard,
+  item: CountItem,
+  myth: MythCard,
+  fact: TransformationCard,
+  result: ResultCard,
 };
+
+/**
+ * Every role a planner can emit. §203.
+ *
+ * Kept beside the set it must agree with, and asserted against `BeatRole` in
+ * the render tests. The failure this guards against is silent by construction:
+ * an unmapped role renders nothing, the timeline still allots it time, and the
+ * output is a video with a hole in it that no gate currently reads as a defect.
+ */
+export const EVERY_BEAT_ROLE = [
+  'hook',
+  'demo',
+  'before',
+  'change',
+  'after',
+  'proof',
+  'cta',
+  'step',
+  'item',
+  'myth',
+  'fact',
+  'result',
+] as const;
 
 export type { CaptionCue };

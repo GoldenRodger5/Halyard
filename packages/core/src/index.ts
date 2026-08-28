@@ -1,6 +1,7 @@
 export * from './qc/index.js';
 export * from './connectors/index.js';
 export * from './creative/plan.js';
+export * from './creative/treatments.js';
 export * from './adapters/index.js';
 export * from './setup/index.js';
 export * from './generation/index.js';

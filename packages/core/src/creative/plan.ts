@@ -38,9 +38,16 @@ import type { Highlight, ProductArtifact } from '../connectors/types.js';
 /**
  * The creative treatments Halyard can reason about.
  *
- * Only `before_after` is implemented. The others are named because the union is
- * the extension point — adding one is a new planner function and a new case,
- * not a new architecture.
+ * §203. This said "only `before_after` is implemented", and that was the whole
+ * of the creative problem: nine types were named, one existed, and selection
+ * was a fixed priority list — so every video was the same treatment chosen the
+ * same way. Seven are implemented now, in `creative/treatments.ts`, each
+ * refusing to plan when the artifact does not support it.
+ *
+ * The remaining three (`announcement`, `transformation`, `product_update`) are
+ * still names. They stay in the union because it is the extension point, and
+ * `selectCreativePlan` can only ever return a type a planner produced — an
+ * unimplemented name cannot be selected by accident.
  */
 export const CREATIVE_TYPES = [
   'before_after',
@@ -52,6 +59,9 @@ export const CREATIVE_TYPES = [
   'announcement',
   'transformation',
   'product_update',
+  /* §203. Added with planners, not ahead of them. */
+  'myth_fact',
+  'process_montage',
 ] as const;
 
 export type CreativeType = (typeof CREATIVE_TYPES)[number];
@@ -62,7 +72,28 @@ export type CreativeType = (typeof CREATIVE_TYPES)[number];
  * The role is what a composition keys off, so a template can render a `before`
  * differently from a `proof` without knowing which creative type produced it.
  */
-export type BeatRole = 'hook' | 'demo' | 'before' | 'change' | 'after' | 'proof' | 'cta';
+export type BeatRole =
+  | 'hook'
+  | 'demo'
+  | 'before'
+  | 'change'
+  | 'after'
+  | 'proof'
+  | 'cta'
+  /**
+   * §203. Roles the new treatments need.
+   *
+   * Every one of these must have a component in the render's `TreatmentSet`.
+   * `PlannedBeats` skips a beat whose role it cannot draw — the scene still
+   * occupies its slice of the timeline, so an unmapped role is not a missing
+   * beat, it is blank frames that still cost seconds. `treatmentSetFor` and its
+   * test exist to make that impossible to reintroduce.
+   */
+  | 'step'
+  | 'item'
+  | 'myth'
+  | 'fact'
+  | 'result';
 
 /**
  * How much room a beat gets, relative to its neighbours.
@@ -80,8 +111,24 @@ export interface CreativeBeat {
   id: string;
   role: BeatRole;
   emphasis: BeatEmphasis;
-  /** What this beat shows. Shape is deliberately loose; compositions read what they need. */
-  content: { before?: string; after?: string; reason?: string; text?: string };
+  /**
+   * What this beat shows. Shape is deliberately loose; compositions read what
+   * they need.
+   *
+   * §203 added `label` and `index` for the sequential treatments — a how-to
+   * step carries the step's own title, and a countdown item carries its number.
+   * Both are content rather than style: the number in "3 —" is which item this
+   * is, and a composition that invented it from array position would be
+   * numbering a list the planner had already ordered.
+   */
+  content: {
+    before?: string;
+    after?: string;
+    reason?: string;
+    text?: string;
+    label?: string;
+    index?: number;
+  };
   /**
    * Where in the raw artifact this beat came from.
    *

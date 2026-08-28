@@ -40,7 +40,8 @@ import {
   type CreativePlan,
   chooseFormat,
   needsVideo,
-  planBeforeAfter,
+  selectCreativePlan,
+  type CreativeType,
   writeVoScript,
 } from '@halyard/core';
 import { chooseVideoComposition } from '@halyard/render/video-props';
@@ -724,14 +725,58 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
             });
           }
 
-          const plan = artifact
-            ? planBeforeAfter(artifact, {
+          /**
+           * §203. Choose a treatment; do not assume one.
+           *
+           * This called `planBeforeAfter` directly, so every video on every
+           * account was a before/after — the nine declared creative types had
+           * one implementation between them. `selectCreativePlan` runs every
+           * planner, keeps the ones the artifact actually supports, and
+           * subtracts recent use so a strong treatment does not become the
+           * only treatment.
+           *
+           * The recency read is the account's own last few creative types,
+           * which generation has recorded in `generation_meta.creative.type`
+           * since §160 — so diversity needed a reader, not a column.
+           */
+          const recentTypes = artifact
+            ? (
+                await ctx.pool.query<{ type: string }>(
+                  `select generation_meta -> 'creative' ->> 'type' as type
+                     from content_items
+                    where account_id = $1
+                      and generation_meta -> 'creative' ->> 'type' is not null
+                    order by created_at desc
+                    limit 6`,
+                  [account.id],
+                )
+              ).rows.map((r) => r.type as CreativeType)
+            : [];
+
+          const selection = artifact
+            ? selectCreativePlan(artifact, {
                 platform: account.platform,
                 format,
                 targetSeconds: VO_TARGET_SECONDS,
+                recentTypes,
                 ...(footage ? { footage } : {}),
               })
             : null;
+          const plan = selection?.chosen ?? null;
+
+          if (selection) {
+            ctx.log('creative treatment chosen', {
+              chosen: selection.chosen.creativeType,
+              considered: selection.considered.map((c) => c.plan.creativeType),
+              recent: recentTypes,
+            });
+          } else if (artifact) {
+            // No treatment fitted. Honest, and worth seeing: it means the
+            // artifact carried nothing a planner recognised as a story.
+            ctx.log('no creative treatment supported by this artifact', {
+              highlights: artifact.highlights?.length ?? 0,
+            });
+          }
 
           await ctx.pool.query(
             `insert into renders (content_item_id, template_id, renderer, input_props, quality)
@@ -768,6 +813,17 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                     beats: plan.beats.length,
                     evidence: plan.evidence,
                     rationale: plan.rationale,
+                    /*
+                     * §203. What else the artifact supported, and what recency
+                     * cost each one. "Why this treatment" is only answerable
+                     * against the alternatives that lost.
+                     */
+                    considered: selection?.considered.map((c) => ({
+                      type: c.plan.creativeType,
+                      support: c.support,
+                      penalty: Number(c.penalty.toFixed(2)),
+                      score: Number(c.score.toFixed(2)),
+                    })),
                   },
                 }),
               ],

@@ -8,16 +8,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { layoutScenes } from './timing.js';
-import {
-  BEFORE_AFTER_TREATMENTS,
-  beatScenes,
-  CAPTION_BAND_TOP_PERCENT,
-  SAFE_PERCENT,
-  anchorFor,
-  scaleFor,
-  type BeatTreatment,
-  type TreatmentSet,
-} from './treatments.js';
+import { BEFORE_AFTER_TREATMENTS, CAPTION_BAND_TOP_PERCENT, EVERY_BEAT_ROLE, SAFE_PERCENT, anchorFor, beatScenes, scaleFor, type BeatTreatment, type TreatmentSet } from './treatments.js';
 
 describe('the before_after treatment set', () => {
   it('maps every role the planner can emit', () => {
@@ -202,5 +193,36 @@ describe('anchorFor', () => {
 
   it('applies to a role this file has never seen, so future types inherit it', () => {
     expect(anchorFor('step')).toBe('flex-end');
+  });
+});
+
+/**
+ * §203. Every role a planner can emit must be drawable.
+ *
+ * `PlannedBeats` does `if (!Treatment) return null`, and the scene around it
+ * keeps its slice of the timeline regardless. So an unmapped role is not a
+ * dropped beat — it is blank frames that still consume their seconds, in a
+ * video that renders successfully and passes every gate. That is the exact
+ * shape of failure this repository keeps finding: a green result hiding a hole.
+ *
+ * The role list lives in `@halyard/core`'s `BeatRole`, and this suite cannot
+ * import it — the render package is webpacked for the browser and the core
+ * barrel pulls `node:crypto` (gotcha 10). `EVERY_BEAT_ROLE` is the local
+ * restatement, and the core-side test asserts the two agree.
+ */
+describe('every beat role can actually be drawn', () => {
+  it('maps every role in EVERY_BEAT_ROLE to a component', () => {
+    for (const role of EVERY_BEAT_ROLE) {
+      expect(BEFORE_AFTER_TREATMENTS[role], `role "${role}" renders blank frames`).toBeTypeOf(
+        'function',
+      );
+    }
+  });
+
+  it('has no component that no role points at', () => {
+    const mapped = new Set(EVERY_BEAT_ROLE as readonly string[]);
+    for (const role of Object.keys(BEFORE_AFTER_TREATMENTS)) {
+      expect(mapped.has(role), `"${role}" is drawable but no planner emits it`).toBe(true);
+    }
   });
 });
