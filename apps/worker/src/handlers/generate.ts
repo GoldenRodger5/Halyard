@@ -63,6 +63,7 @@ import {
   thumbnailFontSize,
   thumbnailTextFrom,
   defaultSubtypeFor,
+  findFormatSpec,
   presentationFor,
   rankSignals,
   selectCreativePlan,
@@ -698,9 +699,27 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
          * behind a condition that never fired. The Studio sets this when an
          * operator picks YouTube long-form.
          */
+        const requestedSubtype = (job.payload.formatSubtype as string | undefined)?.trim();
+        /*
+         * A requested subtype only applies where the platform has it.
+         *
+         * The first production run asked for `long_form` and every account in
+         * the run recorded it — including X, where "long form" is not a thing
+         * that exists. The render was right (the aspect resolver already
+         * refuses long-form off YouTube) and the stored subtype was a lie,
+         * which is the kind that survives into a report.
+         */
         const subtype =
-          (job.payload.formatSubtype as string | undefined)?.trim() ||
-          defaultSubtypeFor(account.platform, format);
+          requestedSubtype && findFormatSpec(account.platform, requestedSubtype)
+            ? requestedSubtype
+            : defaultSubtypeFor(account.platform, format);
+        if (requestedSubtype && requestedSubtype !== subtype) {
+          ctx.log('requested subtype does not exist on this platform', {
+            platform: account.platform,
+            requested: requestedSubtype,
+            using: subtype,
+          });
+        }
 
         const inserted = await ctx.pool.query<{ id: string }>(
           `insert into content_items
