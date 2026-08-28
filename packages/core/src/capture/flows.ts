@@ -204,6 +204,7 @@ export const FLOWS: Record<FlowId, CaptureFlow> = {
         name: 'switch to the Link tab',
         action: 'click',
         selector: 'role=button[name="Link"]',
+        fallbackSelectors: ['role=tab[name=/link|url/i]', 'button:has-text("Link")'],
         narration: 'Any recipe URL on the internet.',
       },
       {
@@ -216,12 +217,40 @@ export const FLOWS: Record<FlowId, CaptureFlow> = {
         name: 'choose gluten-free',
         action: 'click',
         selector: 'role=button[name="Gluten-Free"]',
+        /* §253. Same reasoning as `submit`: one label change should not stop
+           every recording of the product's central action. */
+        fallbackSelectors: [
+          'role=button[name=/gluten[- ]?free/i]',
+          'role=checkbox[name=/gluten[- ]?free/i]',
+          'button:has-text("Gluten-Free")',
+        ],
         narration: 'One constraint. This is the only input.',
       },
       {
+        /*
+         * §253. The submit button, with fallbacks, because its label moved.
+         *
+         * A production capture failed on
+         * `role=button[name="Adapt This Recipe →"]` — an exact-match selector
+         * including a trailing arrow, against a UI that ships continuously.
+         * The flow had no fallbacks for this step, so one copy change stopped
+         * every recording of the product's central action, and the failure
+         * surfaced as "none of 1 selector(s) resolved".
+         *
+         * The fallbacks widen in the order a person would try: the same button
+         * without the arrow, any button whose name mentions adapting, then the
+         * form's submit control. The last one survives a complete rewording,
+         * which is the case an exact match can never survive.
+         */
         name: 'submit',
         action: 'click',
         selector: 'role=button[name="Adapt This Recipe →"]',
+        fallbackSelectors: [
+          'role=button[name="Adapt This Recipe"]',
+          'role=button[name=/adapt this recipe/i]',
+          'role=button[name=/^adapt\\b/i]',
+          'form button[type="submit"]',
+        ],
       },
       {
         // An idle /adapt shows an animated demo card that already contains a

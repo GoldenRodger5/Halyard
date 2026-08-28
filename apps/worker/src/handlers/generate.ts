@@ -116,8 +116,42 @@ function fitBeatContent(
   const spec = register === 'punch' ? PUNCH : EDITORIAL;
   const out: Record<string, unknown> = { ...content };
   for (const key of ['text', 'reason', 'before', 'after', 'label'] as const) {
-    const value = content[key];
-    if (typeof value === 'string' && value.trim()) out[key] = fitWords(value, spec);
+    const value = content[key] as unknown;
+
+    if (typeof value === 'string') {
+      if (value.trim()) out[key] = fitWords(value, spec);
+      continue;
+    }
+
+    /*
+     * §252. A field that is not a string never reaches the renderer.
+     *
+     * A production render died on `Minified React error #31` — an object with
+     * keys `{adapted, stepNote, tradeoff, replaceTerm}` passed as a React
+     * child. The connector had returned a structured swap where the planner
+     * expected a line of text, and every layer between simply carried it: the
+     * plan typed it as `string | undefined` and nothing checked at runtime,
+     * so the first thing to object was React, in a minified stack, three
+     * retries deep.
+     *
+     * The best available string is used where there is one; otherwise the
+     * field is dropped, because a beat missing its `after` renders as a
+     * partial card and a beat carrying an object renders as nothing at all.
+     */
+    if (value && typeof value === 'object') {
+      const record = value as Record<string, unknown>;
+      const salvaged = ['text', 'adapted', 'value', 'label', 'name']
+        .map((k) => record[k])
+        .find((v): v is string => typeof v === 'string' && v.trim().length > 0);
+      if (salvaged) out[key] = fitWords(salvaged, spec);
+      else delete out[key];
+      continue;
+    }
+
+    /* A null field means the same as an absent one, and carrying it is noise
+       in the stored props. A number is legitimate (`index`); nothing else is. */
+    if (value === undefined) continue;
+    if (typeof value !== 'number') delete out[key];
   }
   return out as CreativePlan['beats'][number]['content'];
 }
