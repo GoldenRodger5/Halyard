@@ -689,6 +689,19 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
           continue;
         }
 
+        /*
+         * §250. The subtype can be *asked for*, not only defaulted.
+         *
+         * `defaultSubtypeFor('youtube', ...)` returns `short`, which is the
+         * right default and meant long-form was unreachable: no caller could
+         * express "make this a long-form video", so §249's architecture sat
+         * behind a condition that never fired. The Studio sets this when an
+         * operator picks YouTube long-form.
+         */
+        const subtype =
+          (job.payload.formatSubtype as string | undefined)?.trim() ||
+          defaultSubtypeFor(account.platform, format);
+
         const inserted = await ctx.pool.query<{ id: string }>(
           `insert into content_items
              (product_id, idea_id, account_id, platform, persona, format, category,
@@ -698,9 +711,13 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
               board_id, board_reason,
               /* §215. The writing that did not fit the caption budget, and
                  where it belongs. Never discarded. */
-              overflow_body, overflow_home)
+              overflow_body, overflow_home,
+              /* §250. Which variant of the format this is. The YouTube adapter
+                 reads it to decide Short vs long-form, and without it a
+                 long-form piece publishes as a Short. */
+              format_subtype)
            values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,'pending_approval',$16,
-                   $17,$18,$19,$20,$21,$22,$23)
+                   $17,$18,$19,$20,$21,$22,$23,$24)
            returning id`,
           [
             productId,
@@ -728,6 +745,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
             board?.reason ?? null,
             draft.overflow ?? null,
             draft.overflow ? budgetFor(account.platform).overflowHome : null,
+            subtype,
 ],
         );
 
@@ -779,10 +797,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
            * what the platform happens to permit. Everything but YouTube
            * long-form is 9:16, which is what every render before this was.
            */
-          const renderAspect = aspectForRender(
-            account.platform,
-            defaultSubtypeFor(account.platform, format),
-          );
+          const renderAspect = aspectForRender(account.platform, subtype);
           const composition = chooseVideoComposition(
             artifact,
             enabledTemplates,
@@ -1034,8 +1049,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
            * different things: one returns beats, the other returns sections
            * that become beats.
            */
-          const wantsLongForm =
-            aspectForRender(account.platform, defaultSubtypeFor(account.platform, format)) === '16:9';
+          const wantsLongForm = aspectForRender(account.platform, subtype) === '16:9';
 
           const longForm =
             wantsLongForm && artifact
@@ -1310,10 +1324,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                  * `defaultSubtypeFor` is where that is decided once.
                  */
                 presentation: {
-                  ...presentationFor(
-                    account.platform,
-                    defaultSubtypeFor(account.platform, format),
-                  ),
+                  ...presentationFor(account.platform, subtype),
                   /*
                    * §226. The typography system, resolved per piece.
                    *
@@ -1332,7 +1343,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                   ? {
                       beats: beatsForRender(
                         plan,
-                        presentationFor(account.platform, defaultSubtypeFor(account.platform, format)).mode,
+                        presentationFor(account.platform, subtype).mode,
                         /* §228. The director's language, not the treatment's
                            default — otherwise eight of the thirteen are
                            reachable from nothing. */
