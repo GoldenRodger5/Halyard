@@ -56,7 +56,14 @@ export async function selectBed(
    * direction and refuses a bed whose licence does not cover the platform.
    */
   brief?: AudioBrief,
-): Promise<{ assetId: string; storagePath: string | null; publicUrl: string | null; licence: string | null } | null> {
+): Promise<{
+  assetId: string;
+  storagePath: string | null;
+  publicUrl: string | null;
+  licence: string | null;
+  bedId?: string;
+  reasons?: string[];
+} | null> {
   if (brief) {
     const { rows: bedRows } = await ctx.pool.query<{
       id: string;
@@ -188,38 +195,26 @@ export async function selectBed(
       because: selection.chosen.reasons,
       requiresAttribution: selection.chosen.requiresAttribution,
     });
-    await ctx.pool.query(
-      `update music_beds set last_used_at = now(), usage_count = usage_count + 1 where id = $1`,
-      [row.id],
-    );
     /*
-     * §239. One row per use, with the reasons.
+     * §245. Usage is NOT recorded here.
      *
-     * The bed's own `last_used_at` answers when, and nothing else. Selection
-     * needs "has this account heard it" and learning needs "did it work", and
-     * neither is derivable from a single timestamp.
+     * Selecting a bed is not using one. The first version wrote the usage row
+     * at selection, and production immediately produced a `music_usage` row
+     * for a bed whose bytes could not be read — so the mix shipped silent
+     * while the memory said it had played. That memory is what repetition
+     * avoidance and the learning join both read, so a phantom entry is worse
+     * than none: it silences a bed that was never heard.
+     *
+     * `recordBedUse` is called by the caller that actually mixes it.
      */
-    await ctx.pool.query(
-      `insert into music_usage
-         (music_bed_id, content_item_id, brief_id, account_id, platform,
-          treatment, visual_language, reasons)
-       values ($1,$2,$3,$4,$5,$6,$7,$8)`,
-      [
-        row.id,
-        brief.contentItemId ?? null,
-        brief.briefId ?? null,
-        brief.accountId ?? null,
-        brief.platform,
-        brief.treatment ?? null,
-        brief.visualLanguage ?? null,
-        selection.chosen.reasons,
-      ],
-    );
     return {
       assetId: row.asset_id,
       storagePath: row.storage_path,
       publicUrl: row.public_url,
       licence: row.licence,
+      /* §245. Carried so the caller can record the use it actually makes. */
+      bedId: row.id,
+      reasons: selection.chosen.reasons,
     };
   }
 
@@ -284,6 +279,35 @@ export class LibraryBedClient implements MusicClient {
     if (!bytes) {
       throw new BedUnavailable(
         `Bed asset ${bed.assetId} is recorded but its bytes could not be read back.`,
+      );
+    }
+
+    /*
+     * §245. Recorded here, where the bed is genuinely in hand.
+     *
+     * Everything above this line can still fail, and a usage row written
+     * earlier would claim a bed played when the mix shipped silent.
+     */
+    if (bed.bedId) {
+      await this.ctx.pool.query(
+        `update music_beds set last_used_at = now(), usage_count = usage_count + 1 where id = $1`,
+        [bed.bedId],
+      );
+      await this.ctx.pool.query(
+        `insert into music_usage
+           (music_bed_id, content_item_id, brief_id, account_id, platform,
+            treatment, visual_language, reasons)
+         values ($1,$2,$3,$4,$5,$6,$7,$8)`,
+        [
+          bed.bedId,
+          this.brief?.contentItemId ?? null,
+          this.brief?.briefId ?? null,
+          this.brief?.accountId ?? null,
+          this.brief?.platform ?? 'unknown',
+          this.brief?.treatment ?? null,
+          this.brief?.visualLanguage ?? null,
+          bed.reasons ?? [],
+        ],
       );
     }
 
