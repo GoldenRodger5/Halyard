@@ -44,7 +44,13 @@ import {
   motionForPlan,
   isRefusal,
   decideStrategy,
+  DEFAULT_LANGUAGE,
+  chooseOpening,
+  directCreative,
+  type VisualLanguage,
   LANGUAGE_FOR_TREATMENT,
+  renderTypography,
+  selectTypography,
   aspectForRender,
   thumbnailFontSize,
   thumbnailTextFrom,
@@ -87,6 +93,21 @@ import { recordingClient } from '../agentRuns.js';
 export function beatsForRender(
   plan: CreativePlan,
   register: 'editorial' | 'punch' = 'punch',
+  /**
+   * The language the Creative Director chose. §228.
+   *
+   * Absent falls back to the treatment's default, which is what every render
+   * before the director used — so an old plan replays identically.
+   */
+  language?: VisualLanguage,
+  /**
+   * The opening layout, for the hook beat only. §229.
+   *
+   * Passed rather than derived here because the choice depends on what the
+   * *account* recently opened with, which this function has no access to and
+   * should not acquire — it is a pure mapping from a plan to render props.
+   */
+  opening?: { composition: string; holdWords?: number },
 ): Array<Record<string, unknown>> {
   /**
    * §220. The motion grammar, resolved once for the whole plan.
@@ -114,6 +135,7 @@ export function beatsForRender(
         .filter(Boolean).length,
     })),
     register,
+    language,
   );
 
   return beatsToScenes(plan).map((scene, i) => {
@@ -132,6 +154,17 @@ export function beatsForRender(
       // §163. Only a beat the planner gave footage carries it.
       ...(beat.media ? { media: beat.media } : {}),
       ...(beat.image ? { image: { url: beat.image.url, alt: beat.image.alt } } : {}),
+      /*
+       * §229. Only the hook carries an opening: it is the layout of the first
+       * frame, and applying it to a later beat would make a mid-piece card
+       * pretend to be an opening.
+       */
+      ...(beat.role === 'hook' && opening
+        ? {
+            opening: opening.composition,
+            ...(opening.holdWords ? { opening_hold_words: opening.holdWords } : {}),
+          }
+        : {}),
     };
   });
 }
@@ -1028,6 +1061,98 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
             });
           }
 
+          /*
+           * §226. Which type this piece is set in, and why.
+           *
+           * Recency comes from the account's own recent briefs rather than a
+           * global window: two accounts should be allowed to use the same
+           * system at the same time, and only repetition *within one feed* is
+           * the thing a viewer notices.
+           */
+          /*
+           * §228. The Creative Director, and everything that hangs off it.
+           *
+           * One decision — the visual language — read by typography, motion
+           * and the music director, rather than five modules each guessing
+           * from the treatment. That is what makes the choices cooperate: a
+           * documentary bed under a fast-cut edit is the failure that happens
+           * when each module derives its own answer.
+           */
+          const recentDirection = await ctx.pool.query<{ language: string; typography: string; opening: string }>(
+            `select b.visual_direction ->> 'language' as language,
+                    b.visual_direction ->> 'typography' as typography,
+                    b.visual_direction ->> 'opening' as opening
+               from creative_briefs b
+              where b.account_id = $1
+              order by b.created_at desc
+              limit 6`,
+            [account.id],
+          );
+
+          const direction = plan
+            ? directCreative({
+                platform: account.platform,
+                treatment: plan.creativeType,
+                targetSeconds: plan.targetSeconds,
+                hasProductFootage: Boolean(footage),
+                hasImagery: plan.beats.some((b) => Boolean(b.image)),
+                recentLanguages: recentDirection.rows.map((r) => r.language).filter(Boolean),
+                insights: learned,
+              })
+            : null;
+          if (direction) {
+            ctx.log('creative direction', {
+              language: direction.language,
+              because: direction.reason,
+              considered: direction.considered.slice(0, 4),
+            });
+          }
+
+          /*
+           * §229. Which layout the first frame is.
+           *
+           * The one thing that survived every other variation: six typography
+           * systems all still opened with the same kicker over the same
+           * headline at the same height.
+           */
+          const hookBeat = plan?.beats.find((b) => b.role === 'hook');
+          const hookText =
+            (hookBeat?.content?.text as string | undefined) ?? draft.title ?? idea.title;
+          const opening = plan
+            ? chooseOpening({
+                text: hookText,
+                visualLanguage: direction?.language ?? DEFAULT_LANGUAGE,
+                hasMedia: Boolean(hookBeat?.image || hookBeat?.media),
+                /* Only a figure the artifact actually contains. */
+                numeral: (hookBeat?.content?.numeral as string | undefined) ?? null,
+                beforeState: (hookBeat?.content?.before as string | undefined) ?? null,
+                recent: recentDirection.rows
+                  .map((r) => (r as { opening?: string }).opening)
+                  .filter((v): v is string => Boolean(v)),
+              })
+            : null;
+          if (opening) {
+            ctx.log('opening composition', {
+              composition: opening.composition,
+              because: opening.reason,
+              unavailable: opening.unavailable.map((u) => `${u.composition}: ${u.because}`),
+            });
+          }
+
+          const typography = plan
+            ? selectTypography({
+                visualLanguage: direction?.language ?? DEFAULT_LANGUAGE,
+                recentSystemIds: recentDirection.rows.map((r) => r.typography).filter(Boolean),
+              })
+            : null;
+          if (typography) {
+            ctx.log('typography chosen', {
+              system: typography.system.id,
+              because: typography.reason,
+              instead: typography.alternatives,
+            });
+          }
+
           await ctx.pool.query(
             `insert into renders (content_item_id, template_id, renderer, input_props, quality)
              values ($1, $2, 'remotion', $3, 'final')`,
@@ -1052,15 +1177,40 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                  * Short and a long-form upload are different registers, and
                  * `defaultSubtypeFor` is where that is decided once.
                  */
-                presentation: presentationFor(
-                  account.platform,
-                  defaultSubtypeFor(account.platform, format),
-                ),
+                presentation: {
+                  ...presentationFor(
+                    account.platform,
+                    defaultSubtypeFor(account.platform, format),
+                  ),
+                  /*
+                   * §226. The typography system, resolved per piece.
+                   *
+                   * Every video before this set its headings in one serif and
+                   * its body in one sans, because those were the only faces on
+                   * disk. Motion varied, the register varied, the treatment
+                   * varied — and every frame still opened in the same type, so
+                   * none of that variation was visible. `typography` is chosen
+                   * from what fits the visual language and is least recently
+                   * used, so an account's feed stops looking like one video
+                   * with different words in it.
+                   */
+                  ...(typography ? { typography: renderTypography(typography.system) } : {}),
+                },
                 ...(plan
                   ? {
                       beats: beatsForRender(
                         plan,
                         presentationFor(account.platform, defaultSubtypeFor(account.platform, format)).mode,
+                        /* §228. The director's language, not the treatment's
+                           default — otherwise eight of the thirteen are
+                           reachable from nothing. */
+                        direction?.language,
+                        opening
+                          ? {
+                              composition: opening.composition,
+                              ...(opening.holdWords ? { holdWords: opening.holdWords } : {}),
+                            }
+                          : undefined,
                       ),
                       captionBackdrop: plan.captionBackdrop,
                     }
@@ -1141,7 +1291,18 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                       .mode,
                   ),
                 ),
-                JSON.stringify({ language: LANGUAGE_FOR_TREATMENT[plan.creativeType] ?? null }),
+                /* §226. The typography id lives here because this is what the
+                   next piece's recency window reads. A choice recorded nowhere
+                   cannot be varied against. */
+                JSON.stringify({
+                  language: direction?.language ?? LANGUAGE_FOR_TREATMENT[plan.creativeType] ?? null,
+                  languageReason: direction?.reason ?? null,
+                  languageConsidered: direction?.considered.slice(0, 5) ?? null,
+                  typography: typography?.system.id ?? null,
+                  typographyReason: typography?.reason ?? null,
+                  opening: opening?.composition ?? null,
+                  openingReason: opening?.reason ?? null,
+                }),
                 JSON.stringify({ captionBackdrop: plan.captionBackdrop }),
                 JSON.stringify({ overflowHome: budgetFor(account.platform).overflowHome }),
                 plan.evidence,

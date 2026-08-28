@@ -53,6 +53,33 @@ export interface RenderPresentation {
   entranceSeconds: number;
   mediaPush: number;
   maxWordsPerBeat: number;
+  /**
+   * The typography system this piece is set in. §226.
+   *
+   * Optional, and absent means the brand's own two faces — which is what every
+   * render before typography systems existed used, so nothing moves for them.
+   * Present, it overrides family, weight, tracking and case per role, which is
+   * the difference between six videos that look different and six videos with
+   * different words in the same type.
+   */
+  typography?: RenderTypography;
+}
+
+/** One role's type, resolved. Mirrors `TypographySystem` in `@halyard/core`. */
+export interface RenderTypeRole {
+  family: string;
+  weight: number;
+  tracking: number;
+  scale: number;
+  case: 'none' | 'upper';
+}
+
+export interface RenderTypography {
+  id: string;
+  display: RenderTypeRole;
+  heading: RenderTypeRole;
+  body: RenderTypeRole;
+  label: RenderTypeRole;
 }
 
 /** The register a render falls back to when none was supplied. */
@@ -199,7 +226,18 @@ export const Camera: React.FC<{
     const drift = 18 * t;
     transform = `translate(${motion.direction.x * drift}px, ${motion.direction.y * drift}px) scale(1.04)`;
   } else if (motion.camera === 'parallax') {
-    transform = `translateY(${-12 * t}px) scale(${1 + (motion.cameraAmount - 1) * t})`;
+    /*
+     * §230. The foreground half of a two-plane move.
+     *
+     * `FullBleedImage` travels 26px the other way, so the planes separate by
+     * about 40px over the beat — enough to read as depth on a phone and small
+     * enough not to look like a slide. On its own this is just a drift; the
+     * effect only exists because the background is doing the opposite.
+     */
+    const forward = 14 * t;
+    transform = `translate(${motion.direction.x * forward}px, ${
+      (motion.direction.y || -1) * forward
+    }px) scale(${1 + (motion.cameraAmount - 1) * t})`;
   }
 
   return <div style={{ transform, transformOrigin: 'center center' }}>{children}</div>;
@@ -284,8 +322,14 @@ export interface RenderableBeat {
    */
   maxSeconds?: number;
   emphasis?: 'quick' | 'normal' | 'hold';
+  /** Which opening layout the hook beat is drawn as. §229. */
+  opening?: string;
+  /** How many leading words a `fragment` opening holds. §229. */
+  opening_hold_words?: number;
   /** §203. `label` is a step's own title; `index` is a countdown position. */
   content?: {
+    /** A real figure from the artifact, for a `numeral` opening. Never invented. */
+    numeral?: string;
     before?: string;
     after?: string;
     reason?: string;
@@ -792,6 +836,9 @@ export const PlannedBeats: React.FC<{
                 url={beat.image.url}
                 push={spec.mediaPush}
                 durationInFrames={scene.durationFrames}
+                /* §230. So a parallax beat can move the plane behind the words
+                   against the words themselves. */
+                motion={beat.motion ?? STILL_MOTION}
               />
             ) : null}
             <BeatStage
@@ -840,58 +887,211 @@ export const PlannedBeats: React.FC<{
  * Large because it is the only thing a scrolling viewer reads before deciding,
  * and short because the plan gives it the least time of any beat.
  */
+/**
+ * The opening. §229.
+ *
+ * ## Why this branches instead of being one layout
+ *
+ * Rendered side by side, all six typography systems still opened identically:
+ * a small uppercase kicker, then the headline, both flush left at the same
+ * height. Type and motion vary *inside* a layout; the layout is what makes an
+ * account look like one show, and nothing was choosing it.
+ *
+ * The composition is decided in `@halyard/core` — `chooseOpening` knows what
+ * the artifact actually contains, and a layout that needs a real figure is
+ * simply unavailable without one rather than inventing a number to unlock
+ * itself. This draws the decision.
+ */
+/**
+ * A line whose opening fragment is held, then completed in place. §229.
+ *
+ * One block with two spans rather than two blocks: the words have to wrap as
+ * a single paragraph, or the hold point forces a line break wherever it
+ * happens to fall and the reveal reads as a mistake.
+ */
+const FragmentLine: React.FC<{
+  text: string;
+  hold: number;
+  style: React.CSSProperties;
+  revealFrame: number;
+}> = ({ text, hold, style, revealFrame }) => {
+  const frame = useCurrentFrame();
+  const words = text.split(/\s+/);
+  const held = words.slice(0, hold).join(' ');
+  const rest = words.slice(hold).join(' ');
+  const opacity = interpolate(frame, [revealFrame, revealFrame + 10], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  return (
+    <div style={style}>
+      <span>{held}</span>
+      {rest ? <span style={{ opacity }}> {rest}</span> : null}
+    </div>
+  );
+};
+
 const HookTitle: BeatTreatment = ({ beat, brand, headline, presentation }) => {
   const overImage = Boolean(beat.image);
   const t = presentation.typeScale;
   const { fps } = useVideoConfig();
-  return (
-    <Rise>
-      {/*
-        The eyebrow is dropped in the punch register. §211.
+  const text = beat.content?.text ?? headline;
+  /* Absent means the layout every render used before openings were a choice. */
+  const composition = beat.opening ?? (presentation.mode === 'editorial' ? 'kicker_headline' : 'statement');
 
-        "ONE ADAPTATION" is orientation for a reader who has already decided to
-        look. In a feed it spends the top of the most valuable frame in the
-        piece on a label nobody scrolled for, and the measured opening had this
-        as its brightest element.
-      */}
-      {presentation.mode === 'editorial' ? (
-        <div
-          style={{
-            fontSize: 30 * t,
-            letterSpacing: 3,
-            textTransform: 'uppercase',
-            ...inkFor(brand, presentation, overImage, 'primary'),
-          }}
-        >
-          One adaptation
-        </div>
-      ) : null}
-      {(() => {
-        const text = beat.content?.text ?? headline;
-        const type: React.CSSProperties = {
-          fontSize: 96 * t,
-          lineHeight: presentation.mode === 'punch' ? 1.0 : 1.03,
-          marginTop: presentation.mode === 'editorial' ? 22 : 0,
-          letterSpacing: presentation.mode === 'punch' ? '-0.02em' : undefined,
-          ...inkFor(brand, presentation, overImage),
-        };
+  const display: React.CSSProperties = {
+    fontSize: 96 * t,
+    lineHeight: presentation.mode === 'punch' ? 1.0 : 1.03,
+    letterSpacing: presentation.mode === 'punch' ? '-0.02em' : undefined,
+    ...inkFor(brand, presentation, overImage, 'ink', 'display'),
+  };
 
-        /* §220. The one line the whole piece depends on, word by word. */
-        if (beat.motion?.entrance === 'cascade') {
-          return (
-            <Cascade
-              text={text}
-              motion={beat.motion}
-              fps={fps}
-              style={type}
-              emphasisColor={overImage ? undefined : brand.primary}
-            />
-          );
-        }
-        return <div style={type}>{text}</div>;
-      })()}
-    </Rise>
+  const line = (style: React.CSSProperties = {}, override?: string): React.ReactNode => {
+    const shown = override ?? text;
+    /* §220. The one line the whole piece depends on, word by word. */
+    if (beat.motion?.entrance === 'cascade') {
+      return (
+        <Cascade
+          text={shown}
+          motion={beat.motion}
+          fps={fps}
+          style={{ ...display, ...style }}
+          emphasisColor={overImage ? undefined : brand.primary}
+        />
+      );
+    }
+    return <div style={{ ...display, ...style }}>{shown}</div>;
+  };
+
+  const kicker = (label: string): React.ReactNode => (
+    <div
+      style={{
+        fontSize: 30 * t,
+        letterSpacing: 3,
+        textTransform: 'uppercase',
+        ...inkFor(brand, presentation, overImage, 'primary', 'label'),
+      }}
+    >
+      {label}
+    </div>
   );
+
+  switch (composition) {
+    case 'kicker_headline':
+      /*
+       * The original. Right for an editorial register and wrong in a feed,
+       * where it spends the top of the most valuable frame on a label nobody
+       * scrolled for — which is why it is now one option rather than the only
+       * one. §211 measured this as the brightest element in the opening.
+       */
+      return (
+        <Rise>
+          {kicker(beat.content?.label ?? 'One adaptation')}
+          {line({ marginTop: 22 })}
+        </Rise>
+      );
+
+    case 'question':
+      /*
+       * A question opens a loop, and the loop is the reason to keep watching.
+       * The mark is set apart and oversized so the shape of the sentence reads
+       * before the words do.
+       *
+       * The line is stripped of its own '?' first. The first render printed
+       * both — the sentence's and the display one — which reads as a bug
+       * because it is one.
+       */
+      return (
+        <Rise>
+          {line({ fontSize: 104 * t }, text.replace(/\s*\?+\s*$/, ''))}
+          <div
+            style={{
+              fontSize: 132 * t,
+              lineHeight: 0.8,
+              marginTop: 8,
+              ...inkFor(brand, presentation, overImage, 'primary', 'display'),
+            }}
+          >
+            ?
+          </div>
+        </Rise>
+      );
+
+    case 'numeral':
+      /*
+       * A figure the artifact actually contains. `chooseOpening` refuses this
+       * composition when there is none rather than inventing one, because a
+       * number on a frame is a claim.
+       */
+      return (
+        <Rise>
+          <div
+            style={{
+              fontSize: 260 * t,
+              lineHeight: 0.82,
+              ...inkFor(brand, presentation, overImage, 'primary', 'display'),
+            }}
+          >
+            {beat.content?.numeral}
+          </div>
+          {line({ fontSize: 72 * t, marginTop: 18 })}
+        </Rise>
+      );
+
+    case 'fragment':
+      /*
+       * Hold the first words, then complete the line.
+       *
+       * Inline spans in one block, not two stacked blocks. The first version
+       * rendered the held part and the remainder as separate divs, which
+       * forced a line break at the hold point wherever it fell — so the reveal
+       * read as an arbitrary break rather than as a sentence completing. As
+       * one paragraph the words wrap naturally and only the opacity changes.
+       *
+       * The hold point itself is chosen upstream, where a break after "the"
+       * is refused: a fragment has to mean something on its own.
+       */
+      return (
+        <Rise>
+          <FragmentLine
+            text={text}
+            hold={beat.opening_hold_words ?? 3}
+            style={display}
+            revealFrame={Math.round(fps * 0.55)}
+          />
+        </Rise>
+      );
+
+    case 'cold_open':
+      /*
+       * Open on the problem rather than on a headline about the problem. The
+       * before-state stated flatly, so the change lands on the cut into the
+       * next beat instead of being announced.
+       */
+      return (
+        <Rise>
+          {kicker('Before')}
+          <div style={{ ...display, marginTop: 18 }}>{beat.content?.before ?? text}</div>
+        </Rise>
+      );
+
+    case 'over_media':
+      /*
+       * The picture is the hook; the words label it. No kicker, and the line
+       * sits at the bottom of the band so the image keeps the frame.
+       */
+      return (
+        <Rise>
+          {line({ fontSize: 84 * t })}
+        </Rise>
+      );
+
+    case 'statement':
+    default:
+      /* The line, alone. Distinguished from `kicker_headline` precisely by the
+         absence of the label above it. */
+      return <Rise>{line()}</Rise>;
+  }
 };
 
 /**
@@ -945,7 +1145,7 @@ const TransformationCard: BeatTreatment = ({ beat, brand, band, presentation }) 
          * something the viewer watches rather than infers (§162).
          */
         <div style={{ position: 'relative', alignSelf: 'flex-start', marginBottom: 18 * scale }}>
-          <div style={{ fontSize: 44 * scale * t, lineHeight: 1.25, ...inkFor(brand, presentation, overImage, 'muted') }}>{before}</div>
+          <div style={{ fontSize: 44 * scale * t, lineHeight: 1.25, ...inkFor(brand, presentation, overImage, 'muted', 'body') }}>{before}</div>
           <div
             aria-hidden
             style={{
@@ -953,7 +1153,7 @@ const TransformationCard: BeatTreatment = ({ beat, brand, band, presentation }) 
               inset: 0,
               fontSize: 44 * scale * t,
               lineHeight: 1.25,
-              ...inkFor(brand, presentation, overImage, 'muted'),
+              ...inkFor(brand, presentation, overImage, 'muted', 'body'),
               textDecoration: 'line-through',
               textDecorationThickness: Math.max(2, Math.round(3 * scale)),
               // `inset()` trims from each edge; trimming the right by the
@@ -971,7 +1171,7 @@ const TransformationCard: BeatTreatment = ({ beat, brand, band, presentation }) 
           style={{
             fontSize: 66 * scale * t,
             lineHeight: 1.12,
-            ...inkFor(brand, presentation, overImage),
+            ...inkFor(brand, presentation, overImage, 'ink', 'heading'),
           }}
         >
           {after}
@@ -987,7 +1187,7 @@ const TransformationCard: BeatTreatment = ({ beat, brand, band, presentation }) 
             borderLeft: `${Math.max(2, Math.round(3 * scale))}px solid ${brand.primary}`,
             fontSize: 32 * scale * t,
             lineHeight: 1.4,
-            ...inkFor(brand, presentation, overImage, 'muted'),
+            ...inkFor(brand, presentation, overImage, 'muted', 'body'),
           }}
         >
           {reason}
@@ -1048,7 +1248,7 @@ const EvidenceNote: BeatTreatment = ({ beat, brand, band, presentation }) => {
           fontSize: NOTE_TYPE.label.size * t,
           letterSpacing: 3,
           textTransform: 'uppercase',
-          ...inkFor(brand, presentation, overImage, 'primary'),
+          ...inkFor(brand, presentation, overImage, 'primary', 'label'),
         }}
       >
         Why
@@ -1058,7 +1258,7 @@ const EvidenceNote: BeatTreatment = ({ beat, brand, band, presentation }) => {
           fontSize: NOTE_TYPE.body.size * scale * t,
           lineHeight: NOTE_TYPE.body.lineHeight,
           marginTop: NOTE_TYPE.gap * scale,
-          ...inkFor(brand, presentation, overImage),
+          ...inkFor(brand, presentation, overImage, 'ink', 'body'),
         }}
       >
         {text}
@@ -1075,7 +1275,7 @@ const ClosingLine: BeatTreatment = ({ beat, brand, presentation }) =>
         style={{
           fontSize: 72 * presentation.typeScale,
           lineHeight: 1.1,
-          ...inkFor(brand, presentation, Boolean(beat.image)),
+          ...inkFor(brand, presentation, Boolean(beat.image), 'ink', 'display'),
         }}
       >
         {beat.content.text}
@@ -1129,7 +1329,7 @@ const CapturedFootage: BeatTreatment = ({ beat, brand, band, presentation }) => 
             fontSize: 28 * presentation.typeScale,
             letterSpacing: 3,
             textTransform: 'uppercase',
-            ...inkFor(brand, presentation, false, 'primary'),
+            ...inkFor(brand, presentation, false, 'primary', 'label'),
             marginBottom: 16,
           }}
         >
@@ -1189,11 +1389,28 @@ export function inkFor(
   presentation: RenderPresentation,
   overImage: boolean,
   tone: 'ink' | 'muted' | 'primary' = 'ink',
+  /**
+   * Which role this text plays. §226.
+   *
+   * Defaults to `display`, which is what every existing call meant — they were
+   * all setting the one big line. Naming the role is what lets a system give a
+   * label uppercase tracking and a body copy a different family, rather than
+   * every piece of text on the frame being the same face at different sizes.
+   */
+  role: 'display' | 'heading' | 'body' | 'label' = 'display',
 ): React.CSSProperties {
-  const base: React.CSSProperties = {
-    fontWeight: presentation.fontWeight,
-    fontFamily: presentation.useHeadingFont ? brand.headingFont : brand.bodyFont,
-  };
+  const type = presentation.typography?.[role];
+  const base: React.CSSProperties = type
+    ? {
+        fontFamily: `'${type.family}'`,
+        fontWeight: type.weight,
+        letterSpacing: `${type.tracking}em`,
+        ...(type.case === 'upper' ? { textTransform: 'uppercase' as const } : {}),
+      }
+    : {
+        fontWeight: presentation.fontWeight,
+        fontFamily: presentation.useHeadingFont ? brand.headingFont : brand.bodyFont,
+      };
   if (!overImage) {
     return {
       ...base,
@@ -1234,12 +1451,40 @@ const FullBleedImage: React.FC<{
   url: string;
   push: number;
   durationInFrames: number;
-}> = ({ url, push, durationInFrames }) => {
+  /**
+   * The beat's motion, so the background can move against the foreground. §230.
+   *
+   * `parallax` was in the vocabulary since §220 and was implemented as a
+   * translate-plus-scale on the *whole* subtree — which is a push with a
+   * drift, not parallax. Parallax is two planes moving at different rates,
+   * and it needs the background to know what the foreground is doing.
+   */
+  motion?: BeatMotionSpec;
+}> = ({ url, push, durationInFrames, motion }) => {
   const frame = useCurrentFrame();
-  const scale = interpolate(frame, [0, Math.max(1, durationInFrames)], [1, push], {
+  const t = interpolate(frame, [0, Math.max(1, durationInFrames)], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
+
+  const parallax = motion?.camera === 'parallax';
+  /*
+   * The background travels further than the foreground and in the opposite
+   * direction. Opposite rather than merely slower because a 1080-wide frame
+   * gives very little room: at the amplitudes that stay tasteful, same-
+   * direction motion at different rates is indistinguishable from a single
+   * drift, and the depth cue is lost. Counter-motion reads at 20px.
+   *
+   * The extra scale is what keeps the edges covered — an image translated
+   * 24px inside its own frame would otherwise show a strip of ground.
+   */
+  const drift = parallax ? -26 * t : 0;
+  const scale = parallax
+    ? 1.1 + (push - 1) * t
+    : interpolate(frame, [0, Math.max(1, durationInFrames)], [1, push], {
+        extrapolateLeft: 'clamp',
+        extrapolateRight: 'clamp',
+      });
 
   return (
     <AbsoluteFill>
@@ -1250,7 +1495,9 @@ const FullBleedImage: React.FC<{
             width: '100%',
             height: '100%',
             objectFit: 'cover',
-            transform: `scale(${scale})`,
+            transform: `translate(${(motion?.direction.x ?? 0) * drift}px, ${
+              (motion?.direction.y ?? 1) * drift
+            }px) scale(${scale})`,
             /* Scaling about the centre, so the push does not drift the subject
                out of frame on a tight crop. */
             transformOrigin: 'center center',
@@ -1293,7 +1540,7 @@ const StepCard: BeatTreatment = ({ beat, brand, band, presentation }) => {
             fontSize: NOTE_TYPE.label.size * t,
             letterSpacing: 3,
             textTransform: 'uppercase',
-            ...inkFor(brand, presentation, overImage, 'primary'),
+            ...inkFor(brand, presentation, overImage, 'primary', 'label'),
           }}
         >
           {label}
@@ -1304,7 +1551,7 @@ const StepCard: BeatTreatment = ({ beat, brand, band, presentation }) => {
           fontSize: NOTE_TYPE.body.size * scale * t,
           lineHeight: NOTE_TYPE.body.lineHeight,
           marginTop: label ? NOTE_TYPE.gap * scale : 0,
-          ...inkFor(brand, presentation, overImage),
+          ...inkFor(brand, presentation, overImage, 'ink', 'body'),
         }}
       >
         {text}
@@ -1336,7 +1583,7 @@ const CountItem: BeatTreatment = ({ beat, brand, band, presentation }) => {
           style={{
             fontSize: 96 * scaleFor(beat.emphasis) * t,
             lineHeight: 1,
-            ...inkFor(brand, presentation, overImage, 'primary'),
+            ...inkFor(brand, presentation, overImage, 'primary', 'heading'),
           }}
         >
           {index}
@@ -1347,7 +1594,7 @@ const CountItem: BeatTreatment = ({ beat, brand, band, presentation }) => {
           fontSize: NOTE_TYPE.body.size * scale * t,
           lineHeight: NOTE_TYPE.body.lineHeight,
           marginTop: NOTE_TYPE.gap * scale,
-          ...inkFor(brand, presentation, overImage),
+          ...inkFor(brand, presentation, overImage, 'ink', 'body'),
         }}
       >
         {text}
@@ -1377,7 +1624,7 @@ const MythCard: BeatTreatment = ({ beat, brand, band, presentation }) => {
           fontSize: NOTE_TYPE.label.size * t,
           letterSpacing: 3,
           textTransform: 'uppercase',
-          ...inkFor(brand, presentation, overImage, 'muted'),
+          ...inkFor(brand, presentation, overImage, 'muted', 'label'),
         }}
       >
         Commonly believed
@@ -1387,7 +1634,7 @@ const MythCard: BeatTreatment = ({ beat, brand, band, presentation }) => {
           fontSize: NOTE_TYPE.body.size * scale * t,
           lineHeight: NOTE_TYPE.body.lineHeight,
           marginTop: NOTE_TYPE.gap * scale,
-          ...inkFor(brand, presentation, overImage, 'muted'),
+          ...inkFor(brand, presentation, overImage, 'muted', 'body'),
         }}
       >
         {text}
@@ -1410,7 +1657,7 @@ const ResultCard: BeatTreatment = ({ beat, brand, presentation }) =>
           fontSize: 84 * scaleFor(beat.emphasis) * presentation.typeScale,
           lineHeight: 1.08,
           letterSpacing: presentation.mode === 'punch' ? '-0.02em' : undefined,
-          ...inkFor(brand, presentation, Boolean(beat.image)),
+          ...inkFor(brand, presentation, Boolean(beat.image), 'ink', 'display'),
         }}
       >
         {beat.content.text}

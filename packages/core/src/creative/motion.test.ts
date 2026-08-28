@@ -7,12 +7,17 @@
  */
 import { describe, expect, it } from 'vitest';
 import {
+  CAMERA_MOVES,
   DEFAULT_LANGUAGE,
+  ENTRANCES,
+  TRANSITIONS,
+  VISUAL_LANGUAGES,
   languageFor,
   motionDensity,
   motionFor,
   motionForPlan,
   type BeatMotion,
+  type VisualLanguage,
 } from './motion.js';
 
 const beat = (over: Partial<Parameters<typeof motionFor>[0]> = {}) =>
@@ -228,5 +233,74 @@ describe('emphasisWordFor', () => {
     const { emphasisWordFor } = await import('./motion.js');
     expect(emphasisWordFor('it is the')).toBeUndefined();
     expect(emphasisWordFor('')).toBeUndefined();
+  });
+});
+
+describe('the expanded vocabulary is a vocabulary, not synonyms', () => {
+  /*
+   * §227. Thirteen visual languages are only worth having if they produce
+   * thirteen different films. A language that resolves to the same motion as
+   * another is a label, and a set of labels over one behaviour is exactly the
+   * kind of variety-that-is-not-variety this codebase keeps finding.
+   */
+  const beats = [
+    { role: 'hook', emphasis: 'hold' as const, index: 0 },
+    { role: 'change', emphasis: 'normal' as const, index: 1 },
+    { role: 'proof', emphasis: 'normal' as const, index: 2 },
+    { role: 'cta', emphasis: 'quick' as const, index: 3 },
+  ];
+
+  function signatureOf(language: VisualLanguage): string {
+    return beats
+      .map((b) => {
+        const m = motionFor({
+          treatment: 'unmapped',
+          language,
+          role: b.role,
+          emphasis: b.emphasis,
+          index: b.index,
+          total: beats.length,
+          register: 'punch',
+          hasMedia: false,
+          wordCount: 6,
+          text: 'a line that has enough words to cascade',
+        });
+        return `${m.entrance}/${m.camera}/${m.transitionOut}/${m.cameraAmount}/${m.direction.x},${m.direction.y}`;
+      })
+      .join('|');
+  }
+
+  it('gives every language a distinct motion signature', () => {
+    const seen = new Map<string, string>();
+    for (const language of VISUAL_LANGUAGES) {
+      const sig = signatureOf(language);
+      const twin = seen.get(sig);
+      expect(twin, `${language} moves exactly like ${twin}`).toBeUndefined();
+      seen.set(sig, language);
+    }
+    expect(seen.size).toBe(VISUAL_LANGUAGES.length);
+  });
+
+  it('keeps every language inside the declared vocabulary', () => {
+    // A typo in a case arm produces a motion nothing can draw, which renders
+    // as a still frame and looks like a deliberate choice.
+    for (const language of VISUAL_LANGUAGES) {
+      for (const b of beats) {
+        const m = motionFor({
+          treatment: 'unmapped',
+          language,
+          role: b.role,
+          emphasis: b.emphasis,
+          index: b.index,
+          total: beats.length,
+          register: 'punch',
+          hasMedia: false,
+          wordCount: 6,
+        });
+        expect(ENTRANCES).toContain(m.entrance);
+        expect(CAMERA_MOVES).toContain(m.camera);
+        expect(TRANSITIONS).toContain(m.transitionOut);
+      }
+    }
   });
 });

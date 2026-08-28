@@ -109,6 +109,31 @@ export const VISUAL_LANGUAGES = [
   'product_led',
   /** Word-level cascade with emphasis. For a line that lands. */
   'typographic',
+  /*
+   * §227. The rest of the controlled vocabulary.
+   *
+   * Five languages was enough to prove the grammar and not enough to stop an
+   * account looking like one show. These are the looks a social team would
+   * actually name in a brief — and each one is a *distinct motion behaviour*,
+   * not a label. A language that resolves to the same motion as another is a
+   * synonym, and `motion.test.ts` fails on synonyms.
+   */
+  /** Slow, warm, food-forward. Long holds, gentle pushes, crossfades. */
+  'editorial_food',
+  /** Fast cuts, pops, no drift. The feed-native short. */
+  'energetic_short',
+  /** Wide slow pulls and long dissolves. Lets a picture breathe. */
+  'cinematic',
+  /** Overshoot and settle, alternating directions. Light on its feet. */
+  'playful',
+  /** Almost still, precise, wipes. Everything squared off. */
+  'clean_modern',
+  /** Largest type, hardest cuts, no entrance at all after the first. */
+  'bold_social',
+  /** Steady sequence with visible order. For anything taught in steps. */
+  'premium_instructional',
+  /** Punchy, uneven, quick. Reads as a person editing on a phone. */
+  'fast_cut_creator',
 ] as const;
 export type VisualLanguage = (typeof VISUAL_LANGUAGES)[number];
 
@@ -179,6 +204,16 @@ export interface MotionInput {
   text?: string;
   /** 'punch' shortens entrances and increases amplitude. */
   register?: 'editorial' | 'punch';
+  /**
+   * The language the brief chose, overriding the treatment's default. §227.
+   *
+   * `LANGUAGE_FOR_TREATMENT` maps seven treatments onto five languages, which
+   * means the eight added in §227 are reachable from no treatment at all —
+   * declared and unreachable, the exact dead-branch shape `cascade` had in
+   * §220. The Creative Director picks the language, and the treatment map is
+   * only the default for a piece that has no brief.
+   */
+  language?: VisualLanguage;
 }
 
 /** Alternating directions, so consecutive slides do not all come from the left. */
@@ -198,7 +233,7 @@ function directionFor(index: number): { x: number; y: number } {
  * rather than a tuned constant nobody can interpret.
  */
 export function motionFor(input: MotionInput): BeatMotion {
-  const language = languageFor(input.treatment);
+  const language = input.language ?? languageFor(input.treatment);
   const punch = (input.register ?? 'punch') === 'punch';
   const last = input.index === input.total - 1;
   const first = input.index === 0;
@@ -310,6 +345,114 @@ export function motionFor(input: MotionInput): BeatMotion {
         direction: { x: 0, y: 0 },
       };
 
+    case 'editorial_food':
+      /*
+       * Food wants time. The longest entrances in the set, a continuous gentle
+       * push on everything rather than only on the held beat, and dissolves —
+       * a hard cut between two dishes reads as a mistake.
+       */
+      return {
+        entrance: 'rise',
+        camera: 'push',
+        transitionOut: 'crossfade',
+        entranceSeconds: entranceSeconds * 1.35,
+        cameraAmount: 1.06,
+        direction: { x: 0, y: 0 },
+      };
+
+    case 'energetic_short':
+      /* Everything arrives already moving and leaves on a cut. No drift: a
+         push under a fast cut is two speeds fighting. */
+      return {
+        entrance: 'pop',
+        camera: 'still',
+        transitionOut: last ? 'crossfade' : 'cut',
+        entranceSeconds: quickEntrance * 0.85,
+        cameraAmount: 1,
+        direction: { x: 0, y: 0 },
+      };
+
+    case 'cinematic':
+      /*
+       * Pulls rather than pushes. Opening wide and revealing context is the
+       * one camera move that reads as deliberate on a static frame, and the
+       * long crossfades give it somewhere to go.
+       */
+      return {
+        entrance: first ? 'rise' : 'none',
+        camera: 'pull',
+        transitionOut: 'crossfade',
+        entranceSeconds: entranceSeconds * 1.5,
+        cameraAmount: 1.1,
+        direction: { x: 0, y: 0 },
+      };
+
+    case 'playful':
+      /* Overshoot, and alternate the direction so consecutive beats bounce
+         against each other rather than all leaning the same way. */
+      return {
+        entrance: input.index % 2 === 0 ? 'pop' : 'slide',
+        camera: input.emphasis === 'hold' ? 'push' : 'still',
+        transitionOut: last ? 'crossfade' : 'push_through',
+        entranceSeconds: quickEntrance,
+        cameraAmount: input.emphasis === 'hold' ? 1.07 : 1,
+        direction: directionFor(input.index + 1),
+      };
+
+    case 'clean_modern':
+      /* Precision. A wipe is the only move here that is not a fade, and
+         nothing drifts — the stillness is the style. */
+      return {
+        entrance: first ? 'wipe' : 'none',
+        camera: 'still',
+        transitionOut: 'wipe',
+        entranceSeconds,
+        cameraAmount: 1,
+        direction: { x: 1, y: 0 },
+      };
+
+    case 'bold_social':
+      /* The loudest register. After the opening nothing animates in at all;
+         the type is doing the work and movement would dilute it. */
+      return {
+        entrance: first ? 'pop' : 'none',
+        camera: 'still',
+        transitionOut: 'cut',
+        entranceSeconds: quickEntrance * 0.8,
+        cameraAmount: 1,
+        direction: { x: 0, y: 0 },
+      };
+
+    case 'premium_instructional':
+      /*
+       * Order has to be visible. Every beat slides in from the same side, so
+       * the sequence reads as a sequence rather than as unrelated cards, and
+       * the held beat is the only one that moves once it has arrived.
+       */
+      return {
+        entrance: 'slide',
+        camera: input.emphasis === 'hold' ? 'push' : 'still',
+        transitionOut: last ? 'crossfade' : 'push_through',
+        entranceSeconds,
+        cameraAmount: input.emphasis === 'hold' ? 1.05 : 1,
+        direction: { x: 1, y: 0 },
+      };
+
+    case 'fast_cut_creator':
+      /*
+       * Deliberately uneven. A person cutting on their phone does not hold
+       * every beat for the same length or enter every one the same way, and
+       * the regularity is what makes a template look like a template.
+       */
+      return {
+        entrance: input.index % 3 === 0 ? 'pop' : input.index % 3 === 1 ? 'slide' : 'none',
+        camera: input.index % 3 === 1 ? 'push' : 'still',
+        transitionOut: last ? 'crossfade' : 'cut',
+        entranceSeconds: quickEntrance * (input.index % 2 === 0 ? 0.8 : 1.1),
+        cameraAmount: input.index % 3 === 1 ? 1.05 : 1,
+        direction: directionFor(input.index),
+      };
+
     case 'documentary':
     default:
       /*
@@ -344,10 +487,13 @@ export function motionForPlan(
     text?: string;
   }>,
   register: 'editorial' | 'punch' = 'punch',
+  /** The brief's language, overriding the treatment's default. §227. */
+  language?: VisualLanguage,
 ): BeatMotion[] {
   return beats.map((beat, index) => {
     const motion = motionFor({
       treatment,
+      ...(language ? { language } : {}),
       role: beat.role,
       emphasis: beat.emphasis,
       index,

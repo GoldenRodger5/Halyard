@@ -129,6 +129,15 @@ export interface CreativeBeat {
     text?: string;
     label?: string;
     index?: number;
+    /**
+     * A figure the artifact actually contains. §229.
+     *
+     * Read by the `numeral` opening, which is unavailable without one. Never
+     * synthesised to unlock the layout — a number on a frame is a claim, and
+     * inventing one to get a nicer composition is fabricating evidence for a
+     * design reason, which is the worst kind.
+     */
+    numeral?: string;
   };
   /**
    * Where in the raw artifact this beat came from.
