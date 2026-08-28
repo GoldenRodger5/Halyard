@@ -29,6 +29,24 @@ WORKER="apps/worker/.env"
 [[ -f "$MASTER" ]] || { echo "no $MASTER — copy .env.example and fill it in"; exit 1; }
 
 # Keys the worker container needs. Everything else stays out of its env file.
+# §180. Refuse to sync a master file that says two different things.
+#
+# `.env` carried TIKTOK_CLIENT_KEY twice — once with the real value and once
+# empty, left behind by an earlier edit. Shell sourcing keeps the *last*
+# assignment, so the empty one won, and both tier files were written with a blank
+# credential. The Accounts card then said "Needs developer setup" for a platform
+# whose credentials were sitting in the file it had just been generated from.
+#
+# Nothing failed. That is the problem: an empty value is a value, and every layer
+# downstream treated it as a deliberate one.
+duplicates="$(grep -oE '^[A-Z_][A-Z0-9_]*=' "$MASTER" | sort | uniq -d | sed 's/=$//')"
+if [ -n "$duplicates" ]; then
+  echo "refusing to sync: $MASTER assigns these keys more than once, and the last one wins silently:" >&2
+  echo "$duplicates" | sed 's/^/  /' >&2
+  echo "keep one line per key, then run this again." >&2
+  exit 1
+fi
+
 WORKER_KEYS="DATABASE_URL WORKER_ID TOKEN_ENCRYPTION_KEY
 ANTHROPIC_API_KEY OPENAI_API_KEY LLM_PROVIDER
 ELEVENLABS_API_KEY ELEVENLABS_VOICE_ID ELEVENLABS_MUSIC_LICENSED

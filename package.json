@@ -30,7 +30,8 @@
     "pinterest-boards": "tsx scripts/pinterest-boards.ts",
     "capture": "tsx scripts/capture-flows.ts",
     "render-templates": "tsx scripts/render-templates.ts",
-    "audit-halyard": "tsx scripts/audit.ts"
+    "audit-halyard": "tsx scripts/audit.ts",
+    "demo:tiktok": "playwright test --config playwright.demo.config.ts && node scripts/encode-demo.mjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
