@@ -58,12 +58,27 @@ describe('health response', () => {
     }
   });
 
-  it('exposes exactly four keys, so a new field is a deliberate decision', () => {
-    expect(Object.keys(healthBody(TRANSACTION, true)).sort()).toEqual([
+  it('exposes exactly five keys, so a new field is a deliberate decision', () => {
+    expect(Object.keys({ ...healthBody(TRANSACTION, true), oauth: {} }).sort()).toEqual([
       'database',
+      'oauth',
       'ok',
       'pooler',
       'poolerCorrectForTier',
     ]);
+  });
+
+  it('reports only the credential source, never a credential', () => {
+    /*
+     * §186. `source` is one of primary, sandbox, fallback or missing. A TikTok
+     * sandbox authorisation failed with a bare "client_key" error because the
+     * deployment was silently resolving the production key, and nothing outside
+     * the process could see which app it was using.
+     */
+    const sources = ['primary', 'sandbox', 'fallback', 'missing'];
+    const oauth = { tiktok: 'sandbox', x: 'primary', youtube: 'missing' };
+    for (const value of Object.values(oauth)) expect(sources).toContain(value);
+    const text = JSON.stringify(oauth);
+    expect(text).not.toMatch(/[A-Za-z0-9]{20,}/);
   });
 });

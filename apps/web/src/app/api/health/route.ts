@@ -14,7 +14,7 @@
  * which routinely contains all three.
  */
 import { NextResponse } from 'next/server';
-import { describePooler } from '@halyard/core';
+import { allAdapters, describePooler, resolvePlatformClient } from '@halyard/core';
 import { databaseReachable } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
@@ -22,6 +22,24 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   const db = await databaseReachable();
   const pooler = describePooler(process.env.DATABASE_URL, 'web');
+
+  /*
+   * §186. Which app each platform authenticates as — never the credentials.
+   *
+   * A TikTok sandbox authorisation failed with a bare "client_key" error because
+   * the deployment was resolving the *production* key: the sandbox variables had
+   * been set locally and never in Vercel. Nothing could see that from outside,
+   * because the OAuth start route is auth-gated and the values are secret, so
+   * the only way to find out was to attempt an authorisation and read a provider
+   * error that names no variable.
+   *
+   * `source` is not a secret — it is one of primary, sandbox, fallback or
+   * missing — and publishing it turns "which app is this deployment using" into
+   * something checkable before a review demo rather than after it.
+   */
+  const oauth = Object.fromEntries(
+    allAdapters().map((a) => [a.platform, resolvePlatformClient(a.platform).source]),
+  );
 
   return NextResponse.json(
     {
@@ -33,6 +51,7 @@ export async function GET() {
        */
       pooler: pooler.mode,
       poolerCorrectForTier: pooler.ok,
+      oauth,
     },
     { status: db.ok ? 200 : 503, headers: { 'cache-control': 'no-store' } },
   );
