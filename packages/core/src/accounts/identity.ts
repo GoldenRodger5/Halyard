@@ -51,7 +51,41 @@ export interface IdentityCheckInput {
   reconnectingAccountId?: string | null;
 }
 
-/** Compare handles the way a human would: case- and @- and dot-insensitively. */
+/**
+ * The handle this product expects on one platform, most specific first.
+ *
+ * §175. `expected_handles` was keyed by persona alone — `{"brand":"recipefix"}`,
+ * seeded by migration 0014 before any account existed. But a brand's handle is
+ * **per platform**, not per persona: the same product is `@Recipe_Fix` on X,
+ * `@recipe.fix` on Instagram and Threads, and `@recipefix` on TikTok. One string
+ * cannot be right for all of them, and it was wrong for three.
+ *
+ * The lookup is `"<persona>:<platform>"` and then `"<persona>"`, so the general
+ * value keeps working everywhere it is still correct and a platform overrides it
+ * only where the handle genuinely differs.
+ */
+export function expectedHandleFor(
+  expectedHandles: Record<string, unknown> | null | undefined,
+  persona: 'founder' | 'brand',
+  platform: PlatformId,
+): string | null {
+  const read = (key: string): string | null => {
+    const v = expectedHandles?.[key];
+    return typeof v === 'string' && v.trim().length > 0 ? v.trim() : null;
+  };
+  return read(`${persona}:${platform}`) ?? read(persona);
+}
+
+/**
+ * Compare handles the way a human would: case- and @-insensitively.
+ *
+ * §175. Case only, plus the `@` and the Bluesky domain suffix. It deliberately
+ * does **not** fold anything that distinguishes two real accounts: `@recipefix`
+ * and `@recipe_fix` are separate X usernames that different people can own, as
+ * are `@recipefix` and `@recipe.fix`. Folding `_` or `.` here would make the
+ * identity check unable to tell the product's account from a lookalike, which is
+ * the single failure this whole module exists to prevent.
+ */
 export function normaliseHandle(handle: string | null | undefined): string {
   return (handle ?? '')
     .trim()
@@ -68,7 +102,13 @@ export function checkIdentity(input: IdentityCheckInput): IdentityWarning[] {
   if (expectedHandle && normaliseHandle(expectedHandle) !== normaliseHandle(identity.handle)) {
     warnings.push({
       kind: 'handle_mismatch',
-      message: `You expected @${normaliseHandle(expectedHandle)} but authorised @${identity.handle}.`,
+      /*
+       * Both handles exactly as they are written. This printed the expected one
+       * lower-cased, so an operator comparing it against their own configuration
+       * saw a third spelling that appears nowhere — noise in the one message that
+       * has to be read carefully.
+       */
+      message: `You expected @${expectedHandle.replace(/^@/, '')} but authorised @${identity.handle.replace(/^@/, '')}.`,
       fix: `Sign out of ${platform} in this browser, or open the connect link in a private window, then reconnect.`,
       severe: true,
     });

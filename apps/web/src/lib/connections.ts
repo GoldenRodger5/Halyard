@@ -1,6 +1,7 @@
 import 'server-only';
 import {
   checkIdentity,
+  expectedHandleFor,
   sealToken,
   type PlatformId,
   type PlatformIdentity,
@@ -38,16 +39,24 @@ export async function stagePendingConnection(input: {
     [productId, platform, persona],
   );
 
-  const expected = await query<{ handle: string | null }>(
-    'select expected_handles ->> $2 as handle from products where id = $1',
-    [productId, persona],
+  /*
+   * §175. The whole object, resolved in code rather than in SQL.
+   *
+   * This selected `expected_handles ->> persona`, which cannot express a handle
+   * that differs per platform — and the product's does: @Recipe_Fix on X,
+   * @recipe.fix on Instagram and Threads. `expectedHandleFor` prefers
+   * `"<persona>:<platform>"` and falls back to `"<persona>"`.
+   */
+  const expected = await query<{ expected_handles: Record<string, unknown> | null }>(
+    'select expected_handles from products where id = $1',
+    [productId],
   );
 
   const warnings = checkIdentity({
     platform,
     persona,
     productId,
-    expectedHandle: expected[0]?.handle ?? null,
+    expectedHandle: expectedHandleFor(expected[0]?.expected_handles, persona, platform),
     identity,
     existing: existing.map((a) => ({
       id: a.id,

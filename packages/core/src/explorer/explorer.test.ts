@@ -213,7 +213,16 @@ describe('verdictFor', () => {
 });
 
 describe('what may be said publicly', () => {
-  const now = new Date('2026-08-14T00:00:00Z');
+  /*
+   * Anchored to the real clock, because `canMarket` reads the real clock.
+   *
+   * This pinned `now` to a fixed date while the function under test defaulted to
+   * `new Date()`, so "a claim verified one day ago" silently became "verified ten
+   * days ago", then fourteen, and the test failed on a Tuesday having changed
+   * nothing. A fixed `now` is only safe when it is *given* to the code under
+   * test, which is what the `isStale(..., now)` calls below do correctly.
+   */
+  const now = new Date();
   const daysAgo = (n: number) => new Date(now.getTime() - n * 86_400_000);
 
   it('lets a fresh verified claim be marketed', () => {

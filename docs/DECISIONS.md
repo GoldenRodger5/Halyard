@@ -5371,3 +5371,64 @@ Verified rather than argued: connecting on 6543 with the same credentials, the
 **same advisory lock was granted twice in a row**. That is the hazard §173
 described, observed. The web tier moved to 6543 and `/api/health` reports
 `{"pooler":"transaction","database":"reachable"}` in production.
+
+---
+
+## 175. The expectation was wrong, not the comparison
+
+A real, correct authorisation of **@Recipe_Fix** was reported as the wrong
+account. The obvious reading — "the check is case-sensitive" — is wrong twice
+over, and acting on it would have been harmful.
+
+`normaliseHandle` has always folded case. `@Recipe_Fix` and `@recipefix`
+normalise to `recipe_fix` and `recipefix`, which differ by an **underscore**, not
+by capitalisation. Making them match requires folding `_`, and `@recipefix`,
+`@recipe_fix` and `@recipe.fix` are three usernames three different people can
+own. Folding them would leave the identity check unable to tell the product's
+account from a lookalike — the exact failure the module exists to prevent.
+
+### Where `@recipefix` came from
+
+`products.expected_handles`, a JSONB column, seeded by **migration 0014**:
+
+```sql
+set expected_handles = jsonb_build_object('brand', 'recipefix')
+```
+
+A guess written before any account existed, keyed by **persona alone**. But a
+brand's handle is per *platform*: the same product is `@Recipe_Fix` on X,
+`@recipe.fix` on Instagram and Threads, `@recipefix` on TikTok and Pinterest. One
+string cannot be right for all of them, and it was wrong for three — X was simply
+the first to be connected.
+
+**Chosen:** keys of `"<persona>"` with an optional `"<persona>:<platform>"`
+override, resolved by `expectedHandleFor`. The general value keeps applying
+wherever it is still correct; a platform overrides it only where the handle
+genuinely differs. **Rejected:** widening the comparison, and dropping the
+expectation for X — an unset expectation is not a satisfied one, it is no check.
+
+**Rejected:** deriving the expectation from `social_accounts.handle`. That row is
+what a connection *writes*; checking a connection against it would be circular
+and would approve whatever arrived.
+
+The founder row is deliberately untouched: `expected_handles.founder` reads
+`isaacmineo` while the seeded X row reads `@IsaacMBuilds`. Only the operator can
+say which is meant, and guessing would either wave through the wrong account or
+block the right one.
+
+### The message named a spelling that exists nowhere
+
+It printed the expected handle **lower-cased** — "You expected @recipefix" — so an
+operator comparing it against their own configuration saw a third spelling in the
+one message that has to be read carefully. Both handles are now printed exactly
+as written.
+
+### Two clock and PATH defects found alongside
+
+`explorer.test.ts` pinned `now` to a fixed date while `canMarket` read the real
+clock, so "verified one day ago" quietly became "verified fourteen days ago" and
+the test failed having changed nothing. A fixed `now` is only safe when it is
+*given* to the code under test.
+
+Ten further failures were `ffmpeg` missing from the shell's PATH, not code.
+Worth recording because they looked exactly like a regression.
