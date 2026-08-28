@@ -50,6 +50,8 @@ import {
   chooseOpening,
   creativeTypeForShape,
   longFormBeats,
+  LONG_FORM_MAX_SECONDS,
+  LONG_FORM_MIN_SECONDS,
   planLongForm,
   fitWords,
   directVoice,
@@ -721,6 +723,26 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
           });
         }
 
+        /**
+         * §250. How long this piece runs, decided once.
+         *
+         * The render's length follows the voiceover, and the voiceover was
+         * always written to `VO_TARGET_SECONDS` — 22 seconds. So the first
+         * long-form run planned a seven-minute structure and rendered a
+         * 28-second video: the stretched-Short failure in reverse, and just as
+         * wrong.
+         *
+         * A long-form target is a real number a person asked for; a
+         * short-form one is the house length.
+         */
+        const runtimeSeconds =
+          aspectForRender(account.platform, subtype) === '16:9'
+            ? Math.max(
+                LONG_FORM_MIN_SECONDS,
+                Math.min(LONG_FORM_MAX_SECONDS, Number(job.payload.targetSeconds ?? 420)),
+              )
+            : VO_TARGET_SECONDS;
+
         const inserted = await ctx.pool.query<{ id: string }>(
           `insert into content_items
              (product_id, idea_id, account_id, platform, persona, format, category,
@@ -872,14 +894,14 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
              * *is* known here: the platform and the runtime. Passing a
              * language that has not been chosen would be inventing an input.
              */
-            targetSeconds: VO_TARGET_SECONDS,
+            targetSeconds: runtimeSeconds,
           });
 
           const vo = await writeVoScript(
             {
               body: draft.body,
               artifact,
-              targetSeconds: VO_TARGET_SECONDS,
+              targetSeconds: runtimeSeconds,
               platform: account.platform,
               contentRules: {
                 bannedPhrases: product.content_rules?.banned_phrases,
@@ -1074,7 +1096,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
             wantsLongForm && artifact
               ? planLongForm({
                   artifact,
-                  targetSeconds: Number(job.payload.targetSeconds ?? 420),
+                  targetSeconds: runtimeSeconds,
                   hasFootage: Boolean(footage),
                   /* Shape recency comes from the briefs themselves, read
                      here rather than reusing the direction query below —
@@ -1104,7 +1126,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
             ? selectCreativePlan(artifact, {
                 platform: account.platform,
                 format,
-                targetSeconds: VO_TARGET_SECONDS,
+                targetSeconds: runtimeSeconds,
                 recentTypes,
                 insights: learned,
                 ...(portfolio ? { portfolio } : {}),
