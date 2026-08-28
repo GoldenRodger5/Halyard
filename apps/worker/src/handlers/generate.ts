@@ -41,6 +41,7 @@ import {
   chooseFormat,
   needsVideo,
   budgetFor,
+  motionForPlan,
   isRefusal,
   decideStrategy,
   defaultSubtypeFor,
@@ -79,7 +80,38 @@ import { recordingClient } from '../agentRuns.js';
  * every artifact-derived beat since §160, the plan-level test asserted it, and
  * nothing checked that it survived into the thing that actually ships. §169.
  */
-export function beatsForRender(plan: CreativePlan): Array<Record<string, unknown>> {
+export function beatsForRender(
+  plan: CreativePlan,
+  register: 'editorial' | 'punch' = 'punch',
+): Array<Record<string, unknown>> {
+  /**
+   * §220. The motion grammar, resolved once for the whole plan.
+   *
+   * Per-plan rather than per-beat because a transition belongs to a *pair* of
+   * beats and the last beat must not transition out of anything. Resolved here,
+   * in the worker, so the renderer draws a decision rather than making one —
+   * the same arrangement the timing engine already has with weights.
+   */
+  const motions = motionForPlan(
+    plan.creativeType,
+    plan.beats.map((b) => ({
+      role: b.role,
+      emphasis: b.emphasis,
+      hasMedia: Boolean(b.media || b.image),
+      text: Object.values(b.content ?? {})
+        .filter((v): v is string => typeof v === 'string')
+        .join(' ')
+        .trim(),
+      wordCount: Object.values(b.content ?? {})
+        .filter((v): v is string => typeof v === 'string')
+        .join(' ')
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean).length,
+    })),
+    register,
+  );
+
   return beatsToScenes(plan).map((scene, i) => {
     const beat = plan.beats[i]!;
     return {
@@ -90,10 +122,12 @@ export function beatsForRender(plan: CreativePlan): Array<Record<string, unknown
       // they drift apart.
       emphasis: beat.emphasis,
       content: beat.content,
+      motion: motions[i],
       // §169. Provenance, so a stored render is traceable to its evidence.
       ...(beat.sourcePath ? { sourcePath: beat.sourcePath } : {}),
       // §163. Only a beat the planner gave footage carries it.
       ...(beat.media ? { media: beat.media } : {}),
+      ...(beat.image ? { image: { url: beat.image.url, alt: beat.image.alt } } : {}),
     };
   });
 }
@@ -1004,7 +1038,10 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                 ),
                 ...(plan
                   ? {
-                      beats: beatsForRender(plan),
+                      beats: beatsForRender(
+                        plan,
+                        presentationFor(account.platform, defaultSubtypeFor(account.platform, format)).mode,
+                      ),
                       captionBackdrop: plan.captionBackdrop,
                     }
                   : {}),

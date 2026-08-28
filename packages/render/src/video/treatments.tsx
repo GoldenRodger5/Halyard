@@ -67,6 +67,190 @@ export const EDITORIAL_PRESENTATION: RenderPresentation = {
   maxWordsPerBeat: 24,
 };
 
+/**
+ * Motion, restated. §220.
+ *
+ * The grammar lives in `@halyard/core`'s `creative/motion.ts`, which decides
+ * *which* primitive a beat gets. This package draws them. Restated rather than
+ * imported for the same reason `RenderPresentation` is: the render bundle is
+ * webpacked for the browser and the core barrel pulls `node:crypto` (gotcha
+ * 10). `motion.test.ts` on the core side compares the two as text.
+ */
+export interface BeatMotionSpec {
+  entrance: 'none' | 'rise' | 'pop' | 'slide' | 'wipe' | 'cascade';
+  camera: 'still' | 'push' | 'pull' | 'pan' | 'parallax';
+  transitionOut: 'cut' | 'crossfade' | 'push_through' | 'wipe';
+  entranceSeconds: number;
+  cameraAmount: number;
+  direction: { x: number; y: number };
+  emphasisWordIndex?: number;
+}
+
+export const STILL_MOTION: BeatMotionSpec = {
+  entrance: 'rise',
+  camera: 'still',
+  transitionOut: 'cut',
+  entranceSeconds: 0.3,
+  cameraAmount: 1,
+  direction: { x: 0, y: 0 },
+};
+
+/**
+ * How long the incoming beat overlaps the outgoing one. §220.
+ *
+ * Zero for a cut, which is most of them. Short for everything else: a long
+ * crossfade in short-form reads as a mistake, and the overlap is paid for out
+ * of the outgoing beat's screen time.
+ */
+export function transitionFrames(motion: BeatMotionSpec | undefined, fps: number): number {
+  if (!motion || motion.transitionOut === 'cut') return 0;
+  return Math.round(fps * 0.22);
+}
+
+/**
+ * The entrance, as a transform.
+ *
+ * One component rather than five, because the primitives differ only in which
+ * properties they drive and sharing the easing is what makes a piece feel
+ * composed rather than assembled from separate effects.
+ *
+ * The easing is a cubic ease-out: fast departure, soft arrival. Linear motion
+ * is the single clearest tell of generated video.
+ */
+export const Enter: React.FC<{
+  motion: BeatMotionSpec;
+  fps: number;
+  children: React.ReactNode;
+}> = ({ motion, fps, children }) => {
+  const frame = useCurrentFrame();
+  const frames = Math.max(1, Math.round(motion.entranceSeconds * fps));
+
+  const linear = interpolate(frame, [0, frames], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  /* ease-out cubic */
+  const t = 1 - Math.pow(1 - linear, 3);
+
+  /*
+   * `none` and `cascade` both pass straight through. §220.
+   *
+   * A cascade is drawn *inside* the treatment, because it needs the text to
+   * split it into words — `Enter` only has the rendered children. The first
+   * version of this had no cascade branch, so it fell through to a plain fade
+   * and kinetic typography existed only in the grammar. Found by extracting
+   * frames and looking at them, which is the only way that class of bug is
+   * ever found.
+   */
+  if (motion.entrance === 'none' || motion.entrance === 'cascade') return <>{children}</>;
+
+  const style: React.CSSProperties = { opacity: t };
+
+  if (motion.entrance === 'rise') {
+    style.transform = `translateY(${(1 - t) * 24}px)`;
+  } else if (motion.entrance === 'pop') {
+    /* Overshoot and settle. The extra 4% is what makes it read as arrival
+       rather than as a fade that happens to scale. */
+    const overshoot = 1 + Math.sin(t * Math.PI) * 0.04;
+    style.transform = `scale(${(0.94 + t * 0.06) * overshoot})`;
+  } else if (motion.entrance === 'slide') {
+    const distance = 90 * (1 - t);
+    style.transform = `translate(${motion.direction.x * distance}px, ${motion.direction.y * distance}px)`;
+  } else if (motion.entrance === 'wipe') {
+    /* Uncovered behind a moving edge, rather than faded. */
+    style.opacity = 1;
+    style.clipPath =
+      motion.direction.y !== 0
+        ? `inset(${(1 - t) * 100}% 0 0 0)`
+        : `inset(0 ${(1 - t) * 100}% 0 0)`;
+  }
+
+  return <div style={style}>{children}</div>;
+};
+
+/**
+ * The camera, as a transform over the whole beat.
+ *
+ * Separate from the entrance because they run on different clocks: an entrance
+ * is a fraction of a second and a camera move spans the beat. Composing them in
+ * one element would make a push restart every time the entrance re-rendered.
+ */
+export const Camera: React.FC<{
+  motion: BeatMotionSpec;
+  durationInFrames: number;
+  children: React.ReactNode;
+}> = ({ motion, durationInFrames, children }) => {
+  const frame = useCurrentFrame();
+  if (motion.camera === 'still') return <>{children}</>;
+
+  const t = interpolate(frame, [0, Math.max(1, durationInFrames)], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+
+  let transform = '';
+  if (motion.camera === 'push') {
+    transform = `scale(${1 + (motion.cameraAmount - 1) * t})`;
+  } else if (motion.camera === 'pull') {
+    transform = `scale(${motion.cameraAmount - (motion.cameraAmount - 1) * t})`;
+  } else if (motion.camera === 'pan') {
+    /* Small. A pan a viewer notices on a static card is a distraction. */
+    const drift = 18 * t;
+    transform = `translate(${motion.direction.x * drift}px, ${motion.direction.y * drift}px) scale(1.04)`;
+  } else if (motion.camera === 'parallax') {
+    transform = `translateY(${-12 * t}px) scale(${1 + (motion.cameraAmount - 1) * t})`;
+  }
+
+  return <div style={{ transform, transformOrigin: 'center center' }}>{children}</div>;
+};
+
+/**
+ * Word-level entrance. §220.
+ *
+ * Each word arrives on its own beat, and one may be emphasised — the closest
+ * thing in the system to how a person would actually cut a line of type. Used
+ * only where the grammar asks for it, because a cascade on every beat is a
+ * tic rather than a technique.
+ */
+export const Cascade: React.FC<{
+  text: string;
+  motion: BeatMotionSpec;
+  fps: number;
+  style?: React.CSSProperties;
+  emphasisColor?: string;
+}> = ({ text, motion, fps, style, emphasisColor }) => {
+  const frame = useCurrentFrame();
+  const words = text.split(/\s+/).filter(Boolean);
+  /* Spread across the entrance, with a floor so a long line does not crawl. */
+  const perWord = Math.max(2, Math.round((motion.entranceSeconds * fps) / Math.max(1, words.length)));
+
+  return (
+    <div style={{ ...style, display: 'flex', flexWrap: 'wrap', gap: '0 0.28em' }}>
+      {words.map((word, i) => {
+        const local = interpolate(frame - i * perWord, [0, 8], [0, 1], {
+          extrapolateLeft: 'clamp',
+          extrapolateRight: 'clamp',
+        });
+        const eased = 1 - Math.pow(1 - local, 3);
+        const emphasised = motion.emphasisWordIndex === i;
+        return (
+          <span
+            key={`${word}-${i}`}
+            style={{
+              display: 'inline-block',
+              opacity: eased,
+              transform: `translateY(${(1 - eased) * 18}px)`,
+              ...(emphasised && emphasisColor ? { color: emphasisColor } : {}),
+            }}
+          >
+            {word}
+          </span>
+        );
+      })}
+    </div>
+  );
+};
+
 /** 12% safe area top and bottom on 9:16 (v2 F.3). */
 export const SAFE_PERCENT = 12;
 
@@ -115,6 +299,15 @@ export interface RenderableBeat {
    * spans worth watching. Generic: any product whose adapter produces a capture
    * can set it, and a beat without one renders exactly as before.
    */
+  /**
+   * How this beat moves. §220.
+   *
+   * Decided by the grammar in core and carried on the beat, so the renderer
+   * draws a decision rather than making one — the same arrangement the timing
+   * engine already has with weights. Absent means the still default, which is
+   * how every render queued before motion existed still draws.
+   */
+  motion?: BeatMotionSpec;
   media?: { file: string; label?: string };
   /**
    * A still the product supplied, drawn full-bleed behind the beat. §211.
@@ -540,7 +733,22 @@ export const PlannedBeats: React.FC<{
         const Treatment = treatments[beat.role];
         if (!Treatment) return null;
         return (
-          <Sequence key={scene.id} from={scene.startFrame} durationInFrames={scene.durationFrames}>
+          /*
+           * §220. A transition is an overlap, not an effect layer.
+           *
+           * A beat whose grammar asks for a crossfade or a push-through starts
+           * slightly early and is drawn over its predecessor. `Sequence` has no
+           * concept of a transition, so the overlap *is* the transition — which
+           * keeps the timing engine authoritative and means a transition can
+           * never desynchronise from the beat it belongs to.
+           */
+          <Sequence
+            key={scene.id}
+            from={Math.max(0, scene.startFrame - transitionFrames(beats[index - 1]?.motion, fps))}
+            durationInFrames={
+              scene.durationFrames + transitionFrames(beats[index - 1]?.motion, fps)
+            }
+          >
             {/* §211. The product's own picture, full-bleed and moving, behind
                 whatever the role draws on top of it. */}
             {beat.image ? (
@@ -558,13 +766,26 @@ export const PlannedBeats: React.FC<{
                  itself must not paint a ground over it. */
               transparent={Boolean(beat.image)}
             >
-              <Treatment
-                beat={beat}
-                brand={brand}
-                headline={headline}
-                band={bandFor({ width, height }, hasCaptions, spec)}
-                presentation={spec}
-              />
+              {/*
+                §220. Camera outside, entrance inside.
+                Two clocks: the camera spans the beat, the entrance is a
+                fraction of a second. Nested the other way, a push would
+                restart whenever the entrance re-rendered.
+              */}
+              <Camera
+                motion={beat.motion ?? STILL_MOTION}
+                durationInFrames={scene.durationFrames}
+              >
+                <Enter motion={beat.motion ?? STILL_MOTION} fps={fps}>
+                  <Treatment
+                    beat={beat}
+                    brand={brand}
+                    headline={headline}
+                    band={bandFor({ width, height }, hasCaptions, spec)}
+                    presentation={spec}
+                  />
+                </Enter>
+              </Camera>
             </BeatStage>
           </Sequence>
         );
@@ -584,6 +805,7 @@ export const PlannedBeats: React.FC<{
 const HookTitle: BeatTreatment = ({ beat, brand, headline, presentation }) => {
   const overImage = Boolean(beat.image);
   const t = presentation.typeScale;
+  const { fps } = useVideoConfig();
   return (
     <Rise>
       {/*
@@ -606,17 +828,30 @@ const HookTitle: BeatTreatment = ({ beat, brand, headline, presentation }) => {
           One adaptation
         </div>
       ) : null}
-      <div
-        style={{
+      {(() => {
+        const text = beat.content?.text ?? headline;
+        const type: React.CSSProperties = {
           fontSize: 96 * t,
           lineHeight: presentation.mode === 'punch' ? 1.0 : 1.03,
           marginTop: presentation.mode === 'editorial' ? 22 : 0,
           letterSpacing: presentation.mode === 'punch' ? '-0.02em' : undefined,
           ...inkFor(brand, presentation, overImage),
-        }}
-      >
-        {beat.content?.text ?? headline}
-      </div>
+        };
+
+        /* §220. The one line the whole piece depends on, word by word. */
+        if (beat.motion?.entrance === 'cascade') {
+          return (
+            <Cascade
+              text={text}
+              motion={beat.motion}
+              fps={fps}
+              style={type}
+              emphasisColor={overImage ? undefined : brand.primary}
+            />
+          );
+        }
+        return <div style={type}>{text}</div>;
+      })()}
     </Rise>
   );
 };

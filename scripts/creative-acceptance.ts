@@ -32,6 +32,7 @@ import {
 } from '../packages/core/src/creative/plan.js';
 import { selectCreativePlan } from '../packages/core/src/creative/treatments.js';
 import { presentationFor } from '../packages/core/src/creative/presentation.js';
+import { motionDensity, motionForPlan } from '../packages/core/src/creative/motion.js';
 import { runCreativeQC } from '../packages/core/src/qc/creativeQC.js';
 import { runRetentionQC } from '../packages/core/src/qc/retentionQC.js';
 import { runVisualQC } from '../packages/core/src/qc/visualQC.js';
@@ -49,9 +50,27 @@ const FOOTAGE = { file: 'capture/adapt_and_reveal.mp4', label: 'Adapting the rec
 const PLATFORM = 'tiktok';
 const TARGET_SECONDS = 24;
 
-function beatsForRender(plan: CreativePlan): Array<Record<string, unknown>> {
+function beatsForRender(
+  plan: CreativePlan,
+  register: 'editorial' | 'punch' = 'punch',
+): Array<Record<string, unknown>> {
   const scenes = beatsToScenes(plan);
+  const motions = motionForPlan(
+    plan.creativeType,
+    plan.beats.map((b) => ({
+      role: b.role,
+      emphasis: b.emphasis,
+      hasMedia: Boolean(b.media),
+      text: Object.values(b.content ?? {})
+        .filter((v): v is string => typeof v === 'string')
+        .join(' ')
+        .trim(),
+      wordCount: wordsIn(b.content as Record<string, unknown>),
+    })),
+    register,
+  );
   return plan.beats.map((beat, i) => ({
+    motion: motions[i],
     id: beat.id,
     role: beat.role,
     emphasis: beat.emphasis,
@@ -79,7 +98,7 @@ async function renderAndMeasure(
   /** §211. Which visual register to draw in. */
   mode: 'editorial' | 'punch' = 'editorial',
 ) {
-  const beats = beatsForRender(plan);
+  const beats = beatsForRender(plan, mode === 'punch' ? 'punch' : 'editorial');
   const outputPath = path.join(OUT, `${name}.mp4`);
 
   const startedAt = Date.now();
@@ -115,6 +134,10 @@ async function renderAndMeasure(
       role: b.role,
       emphasis: b.emphasis,
       hasMedia: Boolean(b.media),
+      text: Object.values(b.content ?? {})
+        .filter((v): v is string => typeof v === 'string')
+        .join(' ')
+        .trim(),
       wordCount: wordsIn(b.content as Record<string, unknown>),
     })),
   });
@@ -160,6 +183,22 @@ async function renderAndMeasure(
     dimensions: `${probe.width}x${probe.height}`,
     meanDelta: Number(meanDelta.toFixed(4)),
     peakDelta: Number(peakDelta.toFixed(4)),
+    motionDensity: motionDensity(
+      motionForPlan(
+        plan.creativeType,
+        plan.beats.map((b) => ({
+          role: b.role,
+          emphasis: b.emphasis,
+          hasMedia: Boolean(b.media),
+          text: Object.values(b.content ?? {})
+        .filter((v): v is string => typeof v === 'string')
+        .join(' ')
+        .trim(),
+      wordCount: wordsIn(b.content as Record<string, unknown>),
+        })),
+        mode === 'punch' ? 'punch' : 'editorial',
+      ),
+    ),
     creative,
     retention: { passed: retention.passed, findings: retention.findings.length },
     /*
@@ -217,7 +256,7 @@ async function main(): Promise<void> {
     console.log(`${r.name}  (${r.creativeType})`);
     console.log(`  file        : ${(r.bytes / 1024).toFixed(0)} KB, ${r.durationSeconds}s, ${r.dimensions}, rendered in ${(r.renderMs / 1000).toFixed(1)}s`);
     console.log(`  beats       : ${r.beats} (${r.footageBeats} carrying real footage)`);
-    console.log(`  motion      : mean Δ ${r.meanDelta}, peak Δ ${r.peakDelta}`);
+    console.log(`  motion      : mean Δ ${r.meanDelta}, peak Δ ${r.peakDelta}, grammar density ${r.motionDensity}`);
     console.log(`  creative QA : ${r.creative.passed ? 'PASS' : 'FAIL'} — ${r.creative.summary}`);
     for (const f of r.creative.findings) console.log(`      [${f.severity}] ${f.rule}: ${f.message}`);
     console.log(`  retention   : ${r.retention.passed ? 'pass' : 'FAIL'} (${r.retention.findings} findings)`);
@@ -246,10 +285,27 @@ async function main(): Promise<void> {
     ],
     ['the corrected treatment PASSES creative QA', after.creative.passed === true, `passed=${after.creative.passed}`],
     ['the corrected artifact contains real product footage', after.footageBeats > 0, `${after.footageBeats} footage beats`],
+    /*
+     * §220. The comparison changed because the system did.
+     *
+     * This compared peak tonal delta between the two renders, which was the
+     * right measure when one of them had no motion at all. Both now run the
+     * motion grammar — the editorial register drifts and crossfades, the punch
+     * register cascades and slides — so the delta between them measures
+     * register, not quality, and it legitimately goes either way.
+     *
+     * What still distinguishes them is what the grammar produced: every beat
+     * moving, and real footage on screen.
+     */
     [
-      'the corrected artifact moves materially more',
-      after.peakDelta > before.peakDelta,
-      `peak Δ ${before.peakDelta} → ${after.peakDelta}`,
+      'every beat in the corrected artifact has deliberate motion',
+      after.motionDensity === 1,
+      `grammar density ${after.motionDensity}`,
+    ],
+    [
+      'both renders move measurably, rather than sitting still',
+      before.peakDelta > 0.01 && after.peakDelta > 0.01,
+      `peak Δ ${before.peakDelta} / ${after.peakDelta}`,
     ],
     ['both renders are technically valid 9:16 video', before.visual.passed && after.visual.passed, '—'],
     ['both renders produced a real file', before.bytes > 10_000 && after.bytes > 10_000, '—'],

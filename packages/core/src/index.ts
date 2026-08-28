@@ -3,6 +3,7 @@ export * from './connectors/index.js';
 export * from './creative/plan.js';
 export * from './creative/treatments.js';
 export * from './creative/presentation.js';
+export * from './creative/motion.js';
 export * from './imagery/types.js';
 export * from './imagery/openai.js';
 export * from './copy/budget.js';
