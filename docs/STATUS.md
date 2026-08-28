@@ -1,5 +1,24 @@
 # Where Halyard is right now
 
+**2026-08-28 — Halyard can tell a story more than one way, and it learns which
+way worked.** Nine creative types were declared and one was implemented, with
+composition selection a fixed priority list — so every video on every account
+was a before/after opening on a card. Seven planners now exist, each refusing
+when the artifact does not support it, producing five distinct beat structures;
+selection subtracts recent use so a strong treatment cannot become the only one.
+`learned_insights` turns measured performance into beliefs whose confidence is
+sample size times effect size, and **the beliefs change which treatment a later
+plan picks** — proven against a real database, along with contradiction halving
+confidence rather than being discarded. `DECISIONS.md` §203, §204.
+
+**The suite had been skipping 26 files.** Every database-backed test skips
+unless `TEST_DATABASE_URL` is set, and nothing was setting it. Run with a
+database attached the count goes 1691 → **2166 across 120 files**, and two real
+defects surfaced immediately: a new table shipped without RLS, and
+`hooks.test.ts` had been failing since §179 because its fixture inserts a
+published TikTok item with no Direct Post choices — which the constraint
+correctly refuses. Use `TEST_DATABASE_URL=postgres://localhost:5432/postgres`.
+
 **2026-08-28 — YouTube can express both of its products, and rehearsal works.**
 `maxSeconds: 60` was stated platform-wide: it was the Shorts cap until October
 2024 and never the YouTube cap, so a 90-second Short failed validation and

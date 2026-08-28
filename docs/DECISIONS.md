@@ -5762,3 +5762,128 @@ off YouTube:
 it. Its request shape is verified by rehearsal instead, where nothing is sent.
 That asymmetry — some things cannot be tested live without doing the thing you
 are testing — is the argument for the rehearsal harness in §200.
+
+## 203. Every video was the same because there was only one planner
+
+`CREATIVE_TYPES` declared nine treatments. `plan.ts` stated in its own comment
+that only `before_after` was implemented, and `chooseVideoComposition` was a
+fixed priority list returning the first template whose props could be built.
+Both halves pointed the same way: every video on every account was a
+before/after, rendered by `TransformationDiff`, opening on a card.
+
+That is the "static recipe text with minor movement" complaint, and it was never
+a rendering problem. Four compositions existed and one of them was always
+chosen.
+
+### What actually makes two treatments different
+
+Not the words on the cards. Three things, and the module is organised around
+them:
+
+- **Structure.** A how-to sequences, a comparison forks, a myth/fact reverses,
+  a listicle counts down. Five treatments produce five distinct beat-role
+  sequences, and that is asserted rather than asserted about.
+- **Pacing.** A montage is mostly `quick` with a single `hold` at the end; a
+  myth/fact holds twice and does nothing else.
+- **Evidence.** A comparison needs a swap carrying a real `alternative`; a
+  how-to needs `technique` steps; a feature demo needs footage.
+
+### Refusal is the feature
+
+Each planner returns `null` when the artifact does not support it. That is what
+stops a transformation being dressed up as a countdown, and it is the discipline
+`planBeforeAfter` already had. `planComparison` will not invent a second option
+and `planFeatureDemo` will not substitute a card for missing footage — both
+would be fabricating product behaviour, which §2.4 of the specification and
+gotcha 9 independently forbid.
+
+Three names in the union remain unimplemented. They stay because the union is
+the extension point, and `selectCreativePlan` can only ever return a type a
+planner produced, so an unimplemented name cannot be selected by accident.
+
+### Selection subtracts recent use
+
+Distance-weighted: the last post costs a full point, the oldest in the window a
+fraction, and repeats are summed. Recency is read from
+`generation_meta.creative.type`, which generation has recorded since §160 — so
+diversity needed a reader, not a column. What else was considered, and what each
+alternative scored, is recorded too: "why this treatment" is only answerable
+against the options that lost.
+
+### The landmine underneath
+
+`PlannedBeats` does `if (!Treatment) return null` while `layoutScenes` still
+allots the beat its slice of the timeline. A role with no component is therefore
+not a dropped beat — it is **blank frames that still consume seconds**, in a
+video that renders successfully and passes every gate. Adding roles without
+components would have shipped exactly that.
+
+Four components added, and `EVERY_BEAT_ROLE` plus a test in each package makes
+it unmissable. Two tests rather than one because `@halyard/render` is webpacked
+and cannot import the core barrel (gotcha 10), so the core side compares the
+render source as text.
+
+## 204. Learning that changes a decision, not a table nobody reads
+
+The `learning` team had one agent and it clustered *operator rejections* — what
+a human disliked before publication. Useful, and not what the specification
+means: nothing read `post_metrics` and turned it into a belief, so every
+creative decision was made from priors that no result could revise.
+
+### Why the arithmetic is deterministic
+
+The tempting design is a model reading a dashboard and writing insights. That
+produces confident sentences with nothing behind them and fails the only test
+that matters. So a row in `learned_insights` is not "feature_demo is good"; it
+is a cohort mean, a baseline mean, the ids on both sides, the window, and a
+confidence anyone can recompute.
+
+Confidence is sample size and effect size **multiplied**, because neither alone
+is worth anything: a huge effect on four posts is noise and a 2% difference over
+four hundred is real and useless. It is deliberately not a p-value — calling it
+one would imply a test that was not run.
+
+### Contradiction is the interesting case
+
+`reconcileInsight` has three branches, and the middle one is the reason it
+exists. Agreement corroborates and can reach `validated`. **Contradiction halves
+confidence, resets corroboration, drops the belief out of `validated`, and keeps
+the earlier cohort as contradicting evidence** — a pattern that reverses is not
+a new fact, it is a weaker one, and a disagreement that has been tidied away
+cannot be weighed by a later reader.
+
+### Consumption is the half usually missing
+
+`selectCreativePlan` takes insights, filters them through `actionableInsights`
+(no `observed` notes, nothing past its review date), and scales the adjustment
+by confidence with a hard cap. **Learning reorders what the artifact supports;
+it can never select a treatment the evidence does not carry.** Overwhelming
+evidence for `feature_demo` still loses to the absence of footage. An account
+nobody has measured gets exactly zero adjustment, which is the honest state and
+is asserted.
+
+### Proven against a real database
+
+Not stubs. A cohort forms a belief with both sides recorded; a second pass
+corroborates rather than duplicating; the belief changes which treatment a later
+plan chooses and names the belief that moved it; sixty contradicting results
+reverse the lift, halve the confidence and drop the status. Unmeasured posts and
+low-confidence scores are excluded rather than counted as zero.
+
+### Two defects that only a database could reveal
+
+Running the suite with `TEST_DATABASE_URL` set — which nothing had been doing —
+un-skipped 26 suites and immediately found two things:
+
+- `learned_insights` shipped without RLS. `schema.test.ts` asserts the invariant
+  across every table rather than trusting each migration to remember, and caught
+  it.
+- **`hooks.test.ts` has been failing since §179.** Its fixture inserts a
+  published TikTok item with no Direct Post choices, which
+  `content_items_tiktok_needs_choices` correctly refuses. It was invisible
+  because the suite skips without a database. Repaired by supplying the panel
+  rather than moving the fixture off TikTok, since the test is specifically
+  about TikTok being one of several platforms.
+
+The second is the more useful finding: a suite that skips silently is a suite
+that can rot, and 26 of them were.

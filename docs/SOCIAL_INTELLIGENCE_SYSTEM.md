@@ -7,6 +7,52 @@
 
 ---
 
+## 0. Implementation status — audited 2026-08-28
+
+> This section is the truthful record of what exists. Everything below it is the
+> target specification and is unchanged. **implemented ≠ tested ≠ deployed ≠
+> production-proven**, and the column says which.
+
+The audit's headline finding: most of §3.7 through §3.9 and all of §11 **already
+existed** and the specification assumes less than the repository contains.
+Rebuilding them would have destroyed working infrastructure.
+
+### Already built — reused, not rebuilt
+
+| Spec | Where it lives | State |
+|---|---|---|
+| §3.7 critics on real artifacts | `qc/visualQC` probes actual media through FFmpeg/Sharp — frame luminance, text bounding boxes with contrast ratios, caption drift. Plus `audioQC`, `retentionQC`, `coherence`, `claimVerifier`, `slopFilter`, `deliveryQC`, `destinationQC` | production |
+| §3.8 bounded correction | `correction/{controller,defects,invalidation,policy,regression}` and append-only `content_iterations` carrying gates, defects, snapshot, action, reason, changed, invalidated, regressions, cost, outcome | production |
+| §3.9 performance | `post_metrics` — impressions, reach, likes, comments, shares, saves, video_views, watch_time, profile_visits, link_clicks, follows — tied to `publication_id` → exact content item | production |
+| §11 observability | `agent_runs` — run_id, agent, team, trigger, input_ref, output_ref, cost_usd, latency, **`downstream_consumer`/`downstream_consumed_at`** | production |
+| §3.3 timing | `scheduling/{cadence,stagger,timezone,reschedule}`, `scoring/{bestTime,coldStart}` | production |
+| §2.3 real product footage | `capture_runs.video_asset_id` → footage beats (§163, §168). Frames that were recorded, not generated | production |
+| §7 canonical → variants | `ideas` → one model call per platform → per-platform `content_items` | production |
+| §12 lineage | `signals` → `ideas` → `content_items` → `renders` → `publications` → `post_metrics` → `performance_scores` | production |
+
+### Built in this pass
+
+| Spec | What | State |
+|---|---|---|
+| §3.6 treatments | **Seven planners** (before_after, how_to, process_montage, listicle, comparison, myth_fact, feature_demo) replacing one. Five distinct beat-role sequences, asserted. §203 | tested |
+| §6 diversity | Treatment selection subtracts recent use, distance-weighted, read from `generation_meta.creative.type` | tested |
+| §3.10 learning | `learned_insights` + `learn_from_performance`. Confidence = sample × effect. observed → inferred → validated. Contradiction halves confidence and drops status. §204 | tested against a real database |
+| §13 learning acceptance | A belief changes which treatment a later plan chooses, and names the belief that moved it. Counter-evidence reverses it | tested against a real database |
+
+### Not yet built
+
+| Spec | Gap |
+|---|---|
+| §3.1 Discovery | `signals`/`finds`/`watch_terms` exist but carry no platform, expiry, confidence or velocity. Stale trends stay equally valuable forever — §9 forbids exactly this |
+| §3.2 Social Engine | No account intelligence snapshots, no social graph, no recommendations |
+| §3.3 Strategy records | Nothing records why this, why now, why here as a durable decision |
+| §3.4 Concepts | `ideas` are close, but nothing generates several and selects among them |
+| §5 creative briefs | `plan.ts` computes beats in memory; never persisted, not per-platform |
+| §6 portfolio | `format_cadence` covers format only — no topic, treatment, hook or CTA distribution |
+| §3.7 treatment-quality critic | Nothing yet fails a creative *for being a text card*, which the brief names explicitly |
+
+---
+
 ## 1. Product goal
 
 Halyard should behave like a high-performing social media team rather than a prompt wrapper.
