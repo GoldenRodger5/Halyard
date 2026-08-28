@@ -5887,3 +5887,86 @@ un-skipped 26 suites and immediately found two things:
 
 The second is the more useful finding: a suite that skips silently is a suite
 that can rot, and 26 of them were.
+
+## 205. A gate that fails a video for being a stack of text cards
+
+Every existing gate answers a technical question — is the frame legal, does the
+picture change often enough, is the loudness right. A video can pass all of them
+and still be a stack of text cards with a word swapping on each, while a
+recording of the product doing the thing sits unused in the database.
+
+### Why this cannot be a pixel rule
+
+§73 and §74 already walked that road. Mean-frame luminance could not see a light
+card with dark text changing, so the motion signal became tonal range — which
+works, and which a card sequence *also satisfies honestly*, because each new
+card is a genuine visual state change. A four-second cadence of cards passes the
+pattern-interrupt rule on its merits. **No threshold on that signal separates
+"cards changing" from "product being used", because at the level of pixels they
+are the same event.**
+
+The difference is structural, and knowable without a single frame: did this
+piece use the strongest evidence it had?
+
+### What it deliberately does not do
+
+It does not fail card creative as such. An artifact with no capture has nothing
+better to show, and failing it would produce a defect no correction could clear
+— which is a gate that gets switched off. The rule fires on the *gap* between
+what was available and what was used, and reports itself unmeasured when no
+footage existed, because `passed` has never meant "every rule ran" (gotcha 6).
+
+Also caught: every beat after the hook sharing one role, nothing held, a beat
+carrying more words than anyone reads, and the same treatment three posts
+running — a portfolio defect even when each piece is individually fine.
+
+### Policy
+
+`policyCoverage.test.ts` caught all six rules as unmapped, which is what it is
+for. The namespace routes to a re-plan. Two rules are exceptions for opposite
+reasons: an empty plan escalates, because planning again produces the same
+emptiness; text density routes to a copy revision, because shortening an overlay
+is not a resequence.
+
+Runs in `review_media`, where the rendered beats and the capture history are
+both available. `examined: 0` reports `skipped`, never `passed`.
+
+## 206. Discovery decayed in the specification and not in the schema
+
+`generate` selected signals with `order by relevance desc nulls last, created_at
+desc`. Relevance is the primary key of that sort, so **a six-month-old trend
+scored 0.9 outranked today's scored 0.7 — permanently.** §9 of the specification
+forbids exactly this.
+
+### A half-life per source, not one expiry
+
+The sources age at genuinely different rates and flattening them is wrong in
+both directions. A platform trend is worthless in a week; a shipped changelog
+entry is as true a month later, because the product still does the thing. One
+window would either keep dead trends alive or discard durable material.
+
+A seasonal signal has a date rather than a decay, so `expiresAt` overrides the
+curve entirely.
+
+### Where the rule lives
+
+In `discovery/freshness.ts`, not in SQL. A half-life per source is a judgement
+about the world, and the UI ranks with the same function the worker does.
+`generate` therefore reads candidates, ranks in code, and consumes the winners
+by id — the `skip locked` claim is preserved, and the extra round trip buys one
+authoritative implementation of staleness instead of two that drift.
+
+`rankSignals` returns fewer than asked rather than padding, because a caller
+that wants twenty and gets four has four worth acting on.
+
+### Unmeasured is not zero, again
+
+Confidence and velocity are both nullable and both treated as "no adjustment"
+when absent rather than as low confidence or no growth. The same distinction
+`performance.ts` holds, and it is asserted in both directions.
+
+The migration's own bug is worth recording: rewriting the consume statement left
+`$1` unused, and Postgres cannot infer the type of a parameter nothing
+references. `sqlValid.test.ts` plans every statement against the real schema and
+caught it immediately. The fix restored the product scope to the `where`, which
+the statement should have had anyway.

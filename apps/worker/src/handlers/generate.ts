@@ -40,6 +40,7 @@ import {
   type CreativePlan,
   chooseFormat,
   needsVideo,
+  rankSignals,
   selectCreativePlan,
   type CreativeType,
   writeVoScript,
@@ -1051,21 +1052,86 @@ export async function proposeFromSignals(
    * would drain every signal on the first run while there are no LLM credits,
    * and they would be gone when credits arrive.
    */
+  /**
+   * Candidates first, ranked second. §206.
+   *
+   * Deliberately reads more than it needs — staleness is decided by the curve,
+   * and a fixed SQL limit would truncate before the curve got a look. Sixty is
+   * generous against a table that holds a few dozen live signals per product.
+   */
+  const { rows: candidates } = await ctx.pool.query<{
+    id: string;
+    source: string;
+    relevance: string | null;
+    observed_at: string;
+    expires_at: string | null;
+    confidence: string | null;
+    velocity: string | null;
+    platform: string | null;
+  }>(
+    `select id, source, relevance, coalesce(observed_at, created_at) as observed_at,
+            expires_at, confidence, velocity, platform
+       from signals
+      where product_id = $1 and consumed_at is null
+      order by coalesce(observed_at, created_at) desc
+      limit 60`,
+    [product.id],
+  );
+
+  const ranked = rankSignals(
+    candidates.map((c) => ({
+      id: c.id,
+      source: c.source,
+      relevance: c.relevance === null ? null : Number(c.relevance),
+      observedAt: new Date(c.observed_at),
+      expiresAt: c.expires_at ? new Date(c.expires_at) : null,
+      confidence: c.confidence === null ? null : Number(c.confidence),
+      velocity: c.velocity === null ? null : Number(c.velocity),
+      platform: c.platform,
+    })),
+    new Date(),
+    20,
+  );
+
+  const chosenSignalIds = ranked.map((r) => r.id);
+
+  if (candidates.length > 0 && chosenSignalIds.length === 0) {
+    /*
+     * Every candidate had decayed. Worth saying out loud: it means discovery
+     * has stopped supplying anything current, which reads identically to "no
+     * signals" unless someone says so.
+     */
+    ctx.log('every unconsumed signal is stale', { productId: product.id, candidates: candidates.length });
+    // Zero ideas proposed, and no model call — the same shape as "no signals".
+    return 0;
+  }
+
   const { rows: signals } = await ctx.pool.query<{
     id: string;
     source: string;
     summary: string;
   }>(
+    /*
+     * §206. Ranked by present worth, not by relevance alone.
+     *
+     * This ordered by `relevance desc, created_at desc`, and relevance being
+     * the primary key of that sort meant a six-month-old trend at 0.9 beat
+     * today's at 0.7 forever. The decay curve lives in
+     * `discovery/freshness.ts` because a half-life per source is a judgement
+     * about the world rather than a SQL expression, and it is the same function
+     * the UI ranks with.
+     *
+     * So: read the candidates, rank them in code, consume the winners by id.
+     * The `skip locked` claim is preserved — two workers still cannot take the
+     * same signal — and the extra round trip buys one authoritative
+     * implementation of staleness instead of two that drift.
+     */
     `update signals set consumed_at = now()
-      where id in (
-        select id from signals
-         where product_id = $1 and consumed_at is null
-         order by relevance desc nulls last, created_at desc
-         limit 20
-         for update skip locked
-      )
+      where product_id = $1
+        and id = any($2::uuid[])
+        and consumed_at is null
       returning id, source, summary`,
-    [product.id],
+    [product.id, chosenSignalIds],
   );
 
   /**
