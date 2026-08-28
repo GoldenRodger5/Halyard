@@ -123,3 +123,98 @@ withDb('the job kinds the database will actually accept', () => {
     }
   }, 120_000);
 });
+
+/**
+ * §217. Every job kind must be reachable — the inverse of the guard above.
+ *
+ * The existing test asks "does everything the scheduler enqueues have a
+ * handler?", which is the safe direction. Nothing asked the dangerous one:
+ * **does everything with a handler have a way of being enqueued?**
+ *
+ * `learn_from_performance` and `build_account_intelligence` shipped with
+ * handlers, job policies and `JOB_KINDS` entries, and no scheduler entry and no
+ * caller. Nothing would ever have enqueued them, both tables sat at zero rows,
+ * and from the outside that is indistinguishable from an unimplemented feature.
+ * A handler nothing can reach is dead code that looks alive.
+ */
+describe('every job kind is reachable', () => {
+  it('is either scheduled, enqueued by another handler, or knowingly manual', async () => {
+    const { readFileSync, readdirSync } = await import('node:fs');
+    const path = await import('node:path');
+    const { fileURLToPath } = await import('node:url');
+
+    const here = path.dirname(fileURLToPath(import.meta.url));
+    const scheduled = new Set(SCHEDULES.map((s) => s.kind));
+
+    /* Every `enqueue('kind'` in the worker and the web app. */
+    const enqueued = new Set<string>();
+    const roots = [path.join(here, 'handlers'), here, path.join(here, '..', '..', 'web', 'src')];
+    const walk = (dir: string): string[] => {
+      let out: string[] = [];
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) out = out.concat(walk(full));
+        else if (/\.tsx?$/.test(entry.name) && !entry.name.includes('.test.')) out.push(full);
+      }
+      return out;
+    };
+    for (const root of roots) {
+      let files: string[];
+      try {
+        files = walk(root);
+      } catch {
+        /* A root that does not exist in this checkout is not a failure. */
+        continue;
+      }
+      for (const file of files) {
+        const source = readFileSync(file, 'utf8');
+        for (const m of source.matchAll(/enqueue(?:Job)?\(\s*['"]([a-z_]+)['"]/g)) {
+          enqueued.add(m[1]!);
+        }
+        /*
+         * Raw inserts count too. `verify_provider_capability` is enqueued by
+         * `accounts/actions.ts` with an `insert into jobs (kind, ...) values
+         * ('verify_provider_capability', ...)`, and the first version of this
+         * test reported it unreachable because it only looked for `enqueue(`.
+         * A guard that misreports a reachable kind teaches people to ignore it.
+         */
+        for (const m of source.matchAll(/values\s*\(\s*['"]([a-z_]+)['"]/g)) {
+          enqueued.add(m[1]!);
+        }
+      }
+    }
+
+    /**
+     * Kinds with no automatic trigger by design, each with its reason.
+     *
+     * `capture` and `explore_product` spend real product credits and stay
+     * deliberate operator actions; `publish` is behind the approval boundary
+     * and is enqueued by approval, not by a schedule.
+     */
+    const knowinglyManual: Record<string, string> = {
+      capture: 'Spends product credits; an operator action from the UI.',
+      explore_product: 'Spends product credits; an operator action.',
+      /*
+       * Recorded as a real gap rather than dressed up as a decision.
+       *
+       * `send_newsletter` has a handler, a job policy and a `JOB_KINDS` entry,
+       * and there is no scheduler entry, no caller and no screen — production
+       * holds zero newsletters. `draft_newsletter` runs and nothing can send
+       * what it drafts. It sits here so the guard stays useful for the creative
+       * pipeline rather than failing on a known, unrelated hole; it is listed
+       * as unreachable, not as intentional.
+       */
+      send_newsletter: 'GAP: no enqueue path and no operator screen. Drafts are never sendable.',
+    };
+
+    const unreachable = JOB_KINDS.filter(
+      (kind) =>
+        !scheduled.has(kind) && !enqueued.has(kind) && !(kind in knowinglyManual),
+    );
+
+    expect(
+      unreachable,
+      'job kinds with a handler and no way to be enqueued — dead code that looks alive',
+    ).toEqual([]);
+  });
+});

@@ -248,6 +248,9 @@ async function collectForProduct(productId: string, ctx: HandlerContext): Promis
     [productId],
   );
 
+  const promoted = await promoteToSignals(ctx, productId);
+  const fromProduct = await promoteProductFacts(ctx, productId);
+
   ctx.log('signals collected', {
     productId,
     sources: sources.length,
@@ -255,8 +258,227 @@ async function collectForProduct(productId: string, ctx: HandlerContext): Promis
     fetched: fetched.length,
     clusters: clusters.length,
     stored,
+    promoted,
+    fromProduct,
     // Logged rather than dropped quietly: a source whose every item is stale is
     // an archive feed, not a news feed, and that is worth being able to see.
     stale,
   });
+}
+
+/**
+ * How many stories become signals in one pass.
+ *
+ * Small on purpose. Each signal is raw material for a model call downstream,
+ * and a run that promoted four hundred would turn one RSS fetch into a very
+ * expensive afternoon. The freshest and most-converged few are the ones worth
+ * reacting to anyway.
+ */
+export const PROMOTE_PER_RUN = 5;
+
+/**
+ * Turn collected stories into signals the content pipeline can use. §217.
+ *
+ * **This is the link that was missing, and it stalled everything downstream.**
+ * Production had 5,833 `rss_items` and zero `signals`. `proposeFromSignals` is
+ * the only producer of `ideas`, it reads `signals`, and nothing wrote any — so
+ * `generate` ran daily, found nothing to work with, and exited cleanly. No
+ * ideas, therefore no content, therefore no renders, no voiceover, no creative
+ * QA, no corrections and nothing for the learning loop to learn from. Seven
+ * clean `generate` runs and an empty pipeline.
+ *
+ * ## Why this does not contradict the header
+ *
+ * The note at the top of this file says the handler deliberately does not
+ * decide what is interesting, because the founder's daily take is input-gated
+ * and a handler that pre-judged would put words in their mouth. That still
+ * holds, and this does not break it: a signal is not a take. It is raw material
+ * for *brand* idea proposal, and everything it produces still passes through
+ * `scoreIdeas`, `selectIdeas`, every QC gate and a human approval before it can
+ * reach anyone. The founder's opinion is still the founder's to give.
+ *
+ * ## Shape borrowed rather than invented
+ *
+ * `watch.ts` already promotes recurring questions into signals: one signal per
+ * cluster rather than per hit, `source: 'editorial'`, deduped against a
+ * 30-day window, and the source rows stamped so nothing is promoted twice.
+ * This follows it exactly — a second promotion pattern would be a second set of
+ * duplicate-signal bugs.
+ */
+export async function promoteToSignals(
+  ctx: HandlerContext,
+  productId: string,
+): Promise<number> {
+  const { rows: candidates } = await ctx.pool.query<{
+    id: string;
+    cluster_key: string;
+    title: string;
+    summary: string | null;
+    url: string;
+    relevance: string | null;
+    feed_count: number;
+    published_at: string | null;
+    expires_at: string | null;
+  }>(
+    `select id, cluster_key, title, summary, url, relevance, feed_count,
+            published_at, expires_at
+       from rss_items
+      where product_id = $1
+        and status = 'new'
+        and expires_at > now()
+      order by relevance desc nulls last, published_at desc nulls last
+      limit $2`,
+    [productId, PROMOTE_PER_RUN],
+  );
+
+  let promoted = 0;
+
+  for (const item of candidates) {
+    /*
+     * One signal per cluster, and never the same cluster twice in 30 days.
+     * A story carried by five outlets is one thing that happened, and the
+     * clusterer has already established that — promoting per item would spend
+     * five model calls on one story.
+     */
+    const signal = await ctx.pool.query<{ id: string }>(
+      `insert into signals
+         (product_id, source, summary, raw, relevance, observed_at, expires_at)
+       select $1, 'editorial', $2, $3, $4, $5, $6
+        where not exists (
+          select 1 from signals
+           where product_id = $1 and source = 'editorial'
+             and raw ->> 'clusterKey' = $7
+             and created_at > now() - interval '30 days')
+       returning id`,
+      [
+        productId,
+        item.summary?.trim()
+          ? `${item.title} — ${item.summary.trim().slice(0, 400)}`
+          : item.title,
+        {
+          clusterKey: item.cluster_key,
+          title: item.title,
+          url: item.url,
+          outlets: item.feed_count,
+          rssItemId: item.id,
+        },
+        item.relevance === null ? null : Number(item.relevance),
+        /* Decay runs from when the story was published, not from when this
+           row was written — §206's whole point. */
+        item.published_at,
+        item.expires_at,
+        /* $7 — the dedupe key in the `not exists`. */
+        item.cluster_key,
+      ],
+    );
+
+    /*
+     * `surfaced` was already in the status constraint and nothing ever set it.
+     * It means exactly this: collected, and now in front of the pipeline.
+     *
+     * Set whether or not *this* row produced the signal. A story whose cluster
+     * a sibling already covered has still been surfaced — by the sibling — and
+     * leaving it `new` would be a slow leak: it can never be promoted, it
+     * outranks newer stories on relevance, and it would consume one of the five
+     * slots on every run for as long as it stays unexpired. The first version
+     * of this did exactly that, and the bounded-run test caught it by getting
+     * four promotions where it expected five.
+     */
+    await ctx.pool.query(
+      `update rss_items set status = 'surfaced' where id = $1`,
+      [item.id],
+    );
+
+    if (!signal.rows[0]) continue;
+    promoted += 1;
+  }
+
+  return promoted;
+}
+
+/** How many product facts become signals in one pass. */
+export const PROMOTE_FACTS_PER_RUN = 3;
+
+/**
+ * A product's own verified capabilities are discovery too. §217.
+ *
+ * RSS answers "what is the world talking about", which is the right question
+ * for a founder persona reacting to the news. It is the wrong one for a brand
+ * account, and production proved it: RecipeFix has five connected accounts,
+ * **zero RSS sources**, and therefore zero signals and zero ideas — while the
+ * eight feeds that do exist belong to the founder product, whose only account
+ * is unauthenticated. Discovery was configured for one half of the system and
+ * the accounts for the other.
+ *
+ * The brand's own answer is already in the database: `product_facts` holds what
+ * the Product Brain has established the product actually does, with evidence
+ * ids and a verification status behind each one. A verified fact is the most
+ * defensible thing a brand account can post about — it is true, it is checkable,
+ * and §9's rule about never fabricating capability is satisfied by construction.
+ *
+ * Only `verified` facts are promoted. A `proposed` fact is a claim the Brain has
+ * not stood behind yet, and turning one into public content would publish an
+ * unverified capability — which is the exact failure the fact status exists to
+ * prevent.
+ */
+export async function promoteProductFacts(
+  ctx: HandlerContext,
+  productId: string,
+): Promise<number> {
+  const { rows: facts } = await ctx.pool.query<{
+    id: string;
+    category: string;
+    key: string;
+    value: string;
+    detail: string | null;
+    confidence: string | null;
+    last_verified_at: string | null;
+  }>(
+    `select id, category, key, value, detail, confidence, last_verified_at
+       from product_facts
+      where product_id = $1
+        and status = 'verified'
+        and superseded_by is null
+        /* Not already the basis of a signal in the last 60 days. A capability
+           does not become newsworthy again every six hours. */
+        and not exists (
+          select 1 from signals
+           where product_id = $1 and source = 'product_activity'
+             and raw ->> 'factId' = product_facts.id::text
+             and created_at > now() - interval '60 days')
+      order by confidence desc nulls last, last_verified_at desc nulls last
+      limit $2`,
+    [productId, PROMOTE_FACTS_PER_RUN],
+  );
+
+  let promoted = 0;
+
+  for (const fact of facts) {
+    const summary = fact.detail?.trim()
+      ? `${fact.value} — ${fact.detail.trim().slice(0, 400)}`
+      : fact.value;
+
+    const { rowCount } = await ctx.pool.query(
+      `insert into signals
+         (product_id, source, summary, raw, relevance, observed_at, confidence)
+       values ($1, 'product_activity', $2, $3, $4, $5, $6)`,
+      [
+        productId,
+        summary,
+        {
+          factId: fact.id,
+          category: fact.category,
+          key: fact.key,
+        },
+        /* A verified fact is fully relevant to its own product. Ranking between
+           facts is what `confidence` is for. */
+        1,
+        fact.last_verified_at,
+        fact.confidence === null ? null : Number(fact.confidence),
+      ],
+    );
+    promoted += rowCount ?? 0;
+  }
+
+  return promoted;
 }

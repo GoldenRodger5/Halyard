@@ -211,6 +211,34 @@ export const SCHEDULES: Schedule[] = [
     why: 'Scoring reads metric time series that only move on the polling schedule.',
   },
   {
+    /**
+     * §217. Both of these had handlers, policies and job-kind entries — and no
+     * entry here, so nothing would ever enqueue them and both tables sat at
+     * zero rows. A handler with no scheduler entry is indistinguishable from an
+     * unimplemented feature from the outside, which is what the audit found.
+     *
+     * Ordered after `score_performance` and on the same daily cadence
+     * deliberately: learning reads `performance_scores`, so running it first
+     * would compute beliefs from yesterday's numbers every single day.
+     */
+    kind: 'learn_from_performance',
+    everyMinutes: 24 * 60,
+    perProduct: true,
+    priority: 25,
+    why: 'Turns measured performance into beliefs the next plan reads. Reads performance_scores, so it must follow scoring rather than lead it.',
+  },
+  {
+    /*
+     * More often than learning, because the mix changes with every publication
+     * while a belief needs a cohort. Cheap — it is arithmetic over rows that
+     * are already stored.
+     */
+    kind: 'build_account_intelligence',
+    everyMinutes: 12 * 60,
+    priority: 25,
+    why: 'Snapshots each account\'s content mix and refreshes social recommendations from comments and watch hits.',
+  },
+  {
     kind: 'cluster_rejections',
     everyMinutes: 24 * 60,
     perProduct: true,

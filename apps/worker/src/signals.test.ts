@@ -178,7 +178,16 @@ d('collectSignalsHandler', () => {
       'select title, status from rss_items',
     );
     expect(rows).toHaveLength(1);
-    expect(rows[0]!.status).toBe('new');
+    /*
+     * `surfaced`, not `new`. §217.
+     *
+     * The handler now promotes fresh stories into `signals` in the same pass
+     * that collects them, because the missing link between the two was why
+     * `generate` had nothing to work with in production. A collected story is
+     * therefore immediately in front of the pipeline rather than waiting for a
+     * reader that did not exist.
+     */
+    expect(rows[0]!.status).toBe('surfaced');
     vi.unstubAllGlobals();
   });
 
@@ -336,9 +345,16 @@ d('collectSignalsHandler', () => {
     await collectSignalsHandler(job(), context());
 
     const { rows } = await pool.query<{ status: string }>('select status from rss_items');
-    // Still there: a story nobody reacted to is evidence of what the feeds
-    // were carrying that week.
-    expect(rows[0]!.status).toBe('expired');
+    /*
+     * Still there: a story nobody reacted to is evidence of what the feeds were
+     * carrying that week.
+     *
+     * §217. It reads `surfaced` rather than `expired` now — the first pass
+     * promoted it before it aged out, and the expiry sweep only moves rows that
+     * are still `new`. That is correct: a story that became a signal has been
+     * used, and re-marking it expired would lose that.
+     */
+    expect(rows[0]!.status).toBe('surfaced');
     vi.unstubAllGlobals();
   });
 });
