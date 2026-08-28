@@ -241,6 +241,30 @@ describe('the creative acceptance suite', () => {
     expect(r.findings.map((f) => f.rule)).toContain('creative.constant_motion');
   });
 
+  it('does not warn about uniform motion in a language built on it', () => {
+    /*
+     * Found by running the gate on a real production render. A
+     * `premium_instructional` piece was warned for constant motion, and that
+     * language deliberately slides every beat in from the same side so the
+     * sequence reads as a sequence. A rule that fires on every piece in a
+     * language is noise, and noise is how a warning stops being read.
+     */
+    const uniform = sound.motions!.map(() => ({
+      entrance: 'slide',
+      camera: 'push',
+      transitionOut: 'push_through',
+    }));
+    expect(
+      runCreativeQC({ ...sound, visualLanguage: 'premium_instructional', motions: uniform })
+        .findings.map((f) => f.rule),
+    ).not.toContain('creative.constant_motion');
+    /* And still fires for a language where it is an accident. */
+    expect(
+      runCreativeQC({ ...sound, visualLanguage: 'kinetic', motions: uniform })
+        .findings.map((f) => f.rule),
+    ).toContain('creative.constant_motion');
+  });
+
   it('catches repetition the treatment rule cannot see', () => {
     /*
      * The hole the original repetition rule left. Two posts can use different

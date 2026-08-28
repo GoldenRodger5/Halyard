@@ -131,6 +131,19 @@ export interface CreativeQCResult {
   unmeasured: string[];
 }
 
+/**
+ * Languages whose grammar is uniform movement, so "everything moves" is the
+ * design rather than a defect. §234.
+ *
+ * Found by running the gate on a real production render: a
+ * `premium_instructional` piece was warned for constant motion, and that
+ * language deliberately slides every beat in from the same side so the
+ * sequence reads as a sequence. `editorial_food` pushes continuously for the
+ * same kind of reason. A rule that fires on every piece in a language is not a
+ * finding, it is noise — and noise is how a warning stops being read.
+ */
+const UNIFORM_BY_DESIGN = new Set(['premium_instructional', 'editorial_food', 'cinematic']);
+
 /** Words on screen a viewer will actually read in a short-form beat. */
 export const MAX_WORDS_PER_BEAT = 18;
 /** How many of the last posts count when judging repetition. */
@@ -335,7 +348,11 @@ export function runCreativeQC(input: CreativeQCInput): CreativeQCResult {
         detail: 'Every beat is a still card with a hard entrance. This is a slideshow.',
         correction: 'restructure_beats',
       });
-    } else if (share === 1 && input.motions.length > 3) {
+    } else if (
+      share === 1 &&
+      input.motions.length > 3 &&
+      !UNIFORM_BY_DESIGN.has(input.visualLanguage ?? '')
+    ) {
       findings.push({
         rule: 'creative.constant_motion',
         severity: 'warning',

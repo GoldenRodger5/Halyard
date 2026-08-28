@@ -23,6 +23,7 @@ import path from 'node:path';
 import {
   OpenAiVisionClient,
   runCoherenceQC,
+  cutsPerMinuteFor,
   runCreativeQC,
   runRetentionQC,
   runVisualQC,
@@ -38,6 +39,8 @@ import type { HandlerContext, Job } from '../poller.js';
 
 interface ItemRow {
   account_id?: string;
+  /** §234. Accessibility is part of the creative acceptance suite. */
+  alt_text?: string | null;
   /** §205. The recorded creative plan: type, beat count, evidence, rationale. */
   creative?: { type?: string; beats?: number; evidence?: string[] } | null;
   id: string;
@@ -141,7 +144,7 @@ export async function reviewMediaHandler(
   const { rows } = await ctx.pool.query<ItemRow>(
     `select id, product_id, platform, format, body, title, hashtags, category,
             vo_script, qc_results, product_artifact, status,
-            account_id,
+            account_id, alt_text,
             /* §205. The creative gate reads the plan, not the pixels. */
             generation_meta -> 'creative' as creative
        from content_items where id = $1`,
@@ -234,6 +237,58 @@ export async function reviewMediaHandler(
     [item.account_id ?? null, contentItemId],
   );
 
+  /**
+   * §234. What this piece was directed to be, and what the account did last.
+   *
+   * The creative gate judges repetition of language, opening and typography
+   * as well as treatment, because two posts can use different treatments and
+   * still be set in the same type, open the same way and cut in the same
+   * language — which is the repetition a viewer actually notices. Absent
+   * fields report `unmeasured` rather than passing.
+   */
+  const { rows: briefRows } = await ctx.pool.query<{
+    language: string | null;
+    typography: string | null;
+    opening: string | null;
+    target_seconds: string | null;
+  }>(
+    `select b.visual_direction ->> 'language' as language,
+            b.visual_direction ->> 'typography' as typography,
+            b.visual_direction ->> 'opening' as opening,
+            b.target_seconds
+       from creative_briefs b
+       join content_items ci on ci.brief_id = b.id
+      where ci.id = $1`,
+    [contentItemId],
+  );
+  const brief = briefRows[0];
+
+  const { rows: recentDirection } = await ctx.pool.query<{
+    language: string | null;
+    typography: string | null;
+    opening: string | null;
+  }>(
+    `select b.visual_direction ->> 'language' as language,
+            b.visual_direction ->> 'typography' as typography,
+            b.visual_direction ->> 'opening' as opening
+       from creative_briefs b
+       join content_items ci on ci.brief_id = b.id
+      where b.account_id = $1 and ci.id <> $2
+      order by b.created_at desc limit 4`,
+    [item.account_id ?? null, contentItemId],
+  );
+
+  const { rows: variantRows } = await ctx.pool.query<{ pacing: string }>(
+    `select pacing from platform_variants
+      where content_item_id = $1 limit 1`,
+    [contentItemId],
+  );
+
+  /* Loudness and the music decision were measured by `tts` and recorded on the
+     item. Read back rather than re-measured: one measurement, one place. */
+  const audio = (item.qc_results as { audio?: { lufs?: number; hadMusic?: boolean; musicSkipped?: string | null } } | null)
+    ?.audio;
+
   const plannedBeats = Array.isArray(renderProps[0]?.input_props?.beats)
     ? (renderProps[0]!.input_props.beats as Array<Record<string, unknown>>)
     : [];
@@ -243,6 +298,23 @@ export async function reviewMediaHandler(
     platform: item.platform,
     footageAvailable,
     recentTypes: recentCreative.map((r) => r.type),
+    /* §234. The creative record, so the gate judges more than beat structure. */
+    visualLanguage: brief?.language ?? null,
+    typography: brief?.typography ?? null,
+    opening: brief?.opening ?? null,
+    recentLanguages: recentDirection.map((r) => r.language).filter((v): v is string => Boolean(v)),
+    recentTypography: recentDirection.map((r) => r.typography).filter((v): v is string => Boolean(v)),
+    recentOpenings: recentDirection.map((r) => r.opening).filter((v): v is string => Boolean(v)),
+    ...(brief?.target_seconds ? { durationSeconds: Number(brief.target_seconds) } : {}),
+    ...(variantRows[0]?.pacing
+      ? { targetCutsPerMinute: cutsPerMinuteFor(variantRows[0].pacing as never) }
+      : {}),
+    ...(audio ? { hasMusic: Boolean(audio.hadMusic), musicSkippedReason: audio.musicSkipped ?? null } : {}),
+    ...(typeof audio?.lufs === 'number' ? { lufs: audio.lufs } : {}),
+    altText: (item.alt_text as string | null) ?? null,
+    motions: plannedBeats
+      .map((b) => b.motion as { entrance?: string; camera?: string; transitionOut?: string } | undefined)
+      .filter((m): m is { entrance: string; camera: string; transitionOut: string } => Boolean(m?.camera)),
     beats: plannedBeats.map((b) => {
       const content = (b.content ?? {}) as Record<string, unknown>;
       const words = Object.values(content)
