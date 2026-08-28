@@ -78,6 +78,18 @@ test('records the TikTok integration demo', async ({ page }) => {
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(BEAT);
 
+    /*
+     * §193. The callback can come back refusing, and it says why in the URL.
+     * Asserting straight past this timed out on a locator instead — thirty
+     * seconds of waiting for a card that was never going to change, and a
+     * failure message naming a CSS selector rather than the provider's reason.
+     */
+    const returned = new URL(page.url());
+    const callbackError = returned.searchParams.get('error');
+    if (callbackError) {
+      throw new Error(`TikTok returned to Halyard refusing the authorization: ${callbackError}`);
+    }
+
     /* Halyard shows which account was authorised and asks a human to confirm. */
     const confirm = page.getByRole('button', { name: /Confirm and connect/i });
     if ((await confirm.count()) > 0) {
@@ -85,13 +97,20 @@ test('records the TikTok integration demo', async ({ page }) => {
       await confirm.click();
       await page.waitForLoadState('networkidle');
       await page.waitForTimeout(BEAT);
+    } else if (!returned.pathname.startsWith('/accounts')) {
+      throw new Error(
+        `Expected the confirmation screen after the redirect; landed on ${returned.pathname} instead.`,
+      );
     }
 
     /* Back on Accounts, now connected, with what TikTok reported. */
     await page.goto('/accounts');
     await page.waitForLoadState('networkidle');
     await card.scrollIntoViewIfNeeded();
-    await expect(card.getByText(/Direct Post is available/i)).toBeVisible({ timeout: 30_000 });
+    await expect(
+      card.getByText(/Direct Post is available/i),
+      'the account did not come back connected — check the confirmation screen was accepted',
+    ).toBeVisible({ timeout: 30_000 });
     await page.waitForTimeout(BEAT);
   }
 
