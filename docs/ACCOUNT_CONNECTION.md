@@ -26,7 +26,7 @@ Legend: **DONE** · **PARTIAL** · **BLOCKED (provider)** · **MANUAL (operator)
 | Platform | Code | UI | External config | Real provider flow | State |
 |---|---|---|---|---|---|
 | **X** | DONE | DONE | MANUAL — callback + app type | not exercised | BLOCKED (provider) |
-| **Instagram** | DONE | DONE | MANUAL — App Domains + Redirect URIs | not exercised | BLOCKED (provider) |
+| **Instagram** | DONE (§184, Instagram Login) | DONE | MANUAL — redirect + deauthorize + deletion URLs | not exercised | BLOCKED (provider) |
 | **Threads** | DONE | DONE | MANUAL — own app id + callback | not exercised | BLOCKED (provider) |
 | **Bluesky** | DONE | DONE | none | not exercised | MANUAL (app password) |
 | TikTok | DONE | DONE — says what is missing | MANUAL — register app | n/a | NOT CONFIGURED |
@@ -71,19 +71,48 @@ it is the callback URI, the app type, or OAuth 2.0 being off.
 
 ## Instagram
 
-Halyard uses **Instagram API with Facebook Login**, which requires the Instagram account to be
-Business or Creator **and linked to a Facebook Page**.
+Halyard uses **Instagram API with Instagram Login** (§184). The account must be a
+**Professional** account (Business or Creator) — but it does **not** need a Facebook Page, and
+Halyard never touches one.
 
-**Meta App Dashboard**
+Instagram Login issues its own app id and secret, separate from the Meta app's, exactly as
+Threads does.
 
-- **Facebook Login → Settings → Valid OAuth Redirect URIs** →
+- Set **`INSTAGRAM_APP_ID`** and **`INSTAGRAM_APP_SECRET`** (Meta App Dashboard → Instagram API
+  use case → *API setup with Instagram login*, the "Instagram app ID" and "Instagram app secret"
+  fields — **not** the Meta App ID).
+- **Business login settings → OAuth redirect URIs** →
   `https://halyard-ten.vercel.app/api/oauth/instagram/callback`
-- **App settings → Basic → App Domains** → `halyard-ten.vercel.app` (domain only — no scheme, no path)
+- **Deauthorize callback URL** → `https://halyard-ten.vercel.app/api/webhooks/meta/deauthorize`
+- **Data deletion request URL** → `https://halyard-ten.vercel.app/api/webhooks/meta/data-deletion`
 
-The domain error is one of these two being unset. They are different fields and both are required.
+### Scopes, and why each one
 
-While the app is in **Development** mode this works for accounts with a role on the app, which
-covers the owner. Anyone else needs App Review.
+Four, and every one has a call site — asserted by `metaScopes.test.ts`.
+
+| Scope | What it authorises |
+|---|---|
+| `instagram_business_basic` | `/me` — the account's own profile, shown on the confirmation screen |
+| `instagram_business_content_publish` | `/{id}/media` and `/media_publish` |
+| `instagram_business_manage_comments` | `/{id}/comments` on Halyard's own posts |
+| `instagram_business_manage_insights` | `/{id}/insights` on Halyard's own posts |
+
+`instagram_business_manage_messages` is deliberately **not** requested. Meta's setup page lists
+it; Halyard implements no direct messaging, and asking review to approve a permission nothing
+calls is a rejection risk.
+
+### The flow
+
+`instagram.com/oauth/authorize` → code → `api.instagram.com/oauth/access_token` (short-lived,
+plus the granted `permissions`) → `graph.instagram.com/access_token?grant_type=ig_exchange_token`
+(60-day) → `/me` for the identity → operator confirms → stored.
+
+Refresh is `graph.instagram.com/refresh_access_token?grant_type=ig_refresh_token`, which takes the
+token itself and no client secret.
+
+**Requested, granted and approved stay distinct.** The requested set is the list above; the
+granted set is what Instagram returns in `permissions` at exchange time and is what the publish
+gate reads; App Review approval is neither, and is recorded separately by the operator.
 
 ## Threads
 

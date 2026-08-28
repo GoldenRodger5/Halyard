@@ -118,17 +118,26 @@ export function needsRefresh(expiresAt: Date | null | undefined, leadMinutes = 6
 export const PLATFORM_SCOPES: Record<string, string[]> = {
   // X: OAuth2 PKCE with refresh tokens (v1 §7).
   x: ['tweet.read', 'tweet.write', 'users.read', 'offline.access'],
-  // v2 A.3: publishing needs instagram_business_content_publish, which needs
-  // Meta App Review. Dev mode works against your own account immediately.
+  /*
+   * §184. Instagram Login scopes, and only the four with a call site.
+   *
+   * The Facebook Login set is gone with the flow that needed it: `pages_show_list`
+   * and `pages_read_engagement` existed to walk `/me/accounts` to a Page, and
+   * Instagram Login has no Page. `business_management` never had a call site at
+   * all — the audit in `metaScopes.test.ts` had been naming it as unexercised for
+   * months.
+   *
+   * `instagram_business_manage_messages` is deliberately absent. Meta's own setup
+   * page lists it, and Halyard implements no direct messaging, so requesting it
+   * would be asking App Review to approve a permission nothing calls.
+   */
   instagram: [
-    'instagram_basic',
-    'instagram_content_publish',
-    'instagram_manage_comments',
-    'instagram_manage_insights',
-    'pages_show_list',
-    'pages_read_engagement',
-    'business_management',
+    'instagram_business_basic',
+    'instagram_business_content_publish',
+    'instagram_business_manage_comments',
+    'instagram_business_manage_insights',
   ],
+
   threads: ['threads_basic', 'threads_content_publish', 'threads_manage_replies', 'threads_manage_insights'],
   /*
    * §179. Direct Post, and only the scopes that are actually called.

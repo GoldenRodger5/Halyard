@@ -5511,3 +5511,67 @@ keeping the fallback with a louder warning — the connection still fails, just 
 two explanations instead of one.
 
 A fallback is only worth having when the thing it falls back to can work.
+
+---
+
+## 184. Instagram moves from Facebook Login to Instagram Login
+
+Halyard implemented Meta's *other* Instagram product. **Instagram API with
+Facebook Login** authorises against `facebook.com`, calls `graph.facebook.com`,
+and finds the account by walking `/me/accounts` to a Page carrying a linked
+`instagram_business_account`. It works, and it requires the creator to own a
+Facebook Page and to have linked it — an obstacle for the many people who only
+have Instagram, and a step Halyard cannot perform for them.
+
+**Instagram API with Instagram Login** authorises against `instagram.com`, calls
+`graph.instagram.com`, and the token *is* the account: `/me` returns it, no Page
+anywhere. It issues its own app id and secret, distinct from the Meta app's —
+the same split §173 found for Threads, and the reason `META_APP_ID` was
+authorising against the wrong app entirely.
+
+The portal was already configured for Instagram Login. The code was not, so a
+connection would have redirected correctly and then failed at token exchange
+against endpoints that do not serve this flow.
+
+### What changed
+
+| | Facebook Login | Instagram Login |
+|---|---|---|
+| Authorize | `facebook.com/v23.0/dialog/oauth` | `instagram.com/oauth/authorize` |
+| Exchange | `GET graph.facebook.com/oauth/access_token` | `POST api.instagram.com/oauth/access_token` |
+| Long-lived | `fb_exchange_token` | `ig_exchange_token` |
+| Refresh | `fb_exchange_token` + secret | `ig_refresh_token`, token only |
+| Identity | `/me/accounts` → Page → IG account | `/me` |
+| Credentials | `META_APP_ID` | `INSTAGRAM_APP_ID` |
+
+Publishing, metrics and comments were untouched: they route through `this.get` /
+`this.post` against a `GRAPH` constant, so changing the host moved all three.
+
+### Granted scopes arrive earlier, and the passengers are gone
+
+Facebook Login returns no `scope`, so the adapter made a second call to
+`/me/permissions` to learn what was granted. Instagram Login returns
+`permissions` on the code exchange itself — but **only on the short-lived
+response**, not the long-lived upgrade, so they are carried across. That is the
+same bug §180 fixed for Threads, in the flow next door, caught this time before
+it shipped.
+
+The scope list dropped from seven to four, and `KNOWN_UNEXERCISED` is empty for
+the first time. `pages_show_list` and `pages_read_engagement` existed only to
+walk to a Page; `business_management` never had a call site at all and the audit
+had been naming it as unexercised for months. Meta's setup page also offers
+`instagram_business_manage_messages`, which is **not** requested — Halyard
+implements no messaging, and asking review to approve a permission nothing calls
+is a rejection risk.
+
+### What was lost, and why that is right
+
+`fetchIdentity` no longer returns `alternatives`. Under Facebook Login one token
+commonly reached several Pages, each with its own Instagram account, and picking
+wrong was silent until a post appeared on a business account the operator had
+forgotten they administered — so all of them were listed and a human chose.
+Instagram Login has no such ambiguity: the authorisation is for one account.
+Offering a choice would mean inventing one.
+
+The protection is unchanged and lives where it always did: the identity is
+fetched, shown to a person, and written only after they confirm it (§176).

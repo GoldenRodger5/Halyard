@@ -96,20 +96,38 @@ describe('Threads authorization request', () => {
 describe('Instagram authorization request', () => {
   const url = authUrlFor('instagram');
 
-  it('uses a versioned dialog, so it does not resolve to the oldest live version', () => {
-    expect(url.hostname).toBe('www.facebook.com');
-    expect(url.pathname).toMatch(/^\/v\d+\.\d+\/dialog\/oauth$/);
+  /*
+   * §184. Rewritten from Facebook Login for Business to Instagram Login. The
+   * old assertions pinned `www.facebook.com/v23.0/dialog/oauth` and the
+   * `instagram_basic` scope family; both belonged to a flow that required the
+   * creator to own and link a Facebook Page.
+   */
+  it('authorises against instagram.com, not facebook.com', () => {
+    expect(url.origin + url.pathname).toBe('https://www.instagram.com/oauth/authorize');
   });
 
-  it('pins the dialog to the same Graph version the adapter calls', async () => {
-    const { GRAPH_VERSION } = await import('./instagram.js');
-    expect(url.pathname).toBe(`/${GRAPH_VERSION}/dialog/oauth`);
+  it('carries the parameters Instagram Login documents as required', () => {
+    for (const p of ['client_id', 'redirect_uri', 'response_type', 'scope', 'state']) {
+      expect(url.searchParams.get(p), `missing ${p}`).toBeTruthy();
+    }
+    expect(url.searchParams.get('response_type')).toBe('code');
   });
 
-  it('requests the Facebook-Login-for-Business permissions, which need a linked Page', () => {
+  it('sends the production callback exactly', () => {
+    expect(url.searchParams.get('redirect_uri')).toBe(`${PROD}/api/oauth/instagram/callback`);
+  });
+
+  it('requests the Instagram Login permissions, which need no Facebook Page', () => {
     const scopes = url.searchParams.get('scope')?.split(',') ?? [];
-    expect(scopes).toContain('instagram_content_publish');
-    expect(scopes).toContain('pages_show_list');
+    expect(scopes).toContain('instagram_business_basic');
+    expect(scopes).toContain('instagram_business_content_publish');
+    /* The Page-walking scopes are gone with the flow that needed them. */
+    expect(scopes).not.toContain('pages_show_list');
+    expect(scopes).not.toContain('instagram_content_publish');
+  });
+
+  it('does not request messaging, which Halyard does not implement', () => {
+    expect(url.searchParams.get('scope')).not.toContain('manage_messages');
   });
 });
 

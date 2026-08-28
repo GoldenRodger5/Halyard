@@ -43,16 +43,34 @@ import {
  * NEXT REVIEW: 2028-02-01.
  */
 export const GRAPH_VERSION = 'v23.0';
-const GRAPH = `https://graph.facebook.com/${GRAPH_VERSION}`;
+
 /*
- * §173. Versioned, like every other Graph call this adapter makes.
+ * §184. Instagram Login, not Facebook Login.
  *
- * An unversioned dialog resolves to the *oldest* version Meta still serves, which
- * is by definition the one closest to removal — so the login dialog would start
- * failing on Meta's deprecation schedule rather than on any change here, while
- * `GRAPH_VERSION` stayed pinned and correct. Same version, one place.
+ * Halyard used Meta's *other* Instagram product: the Facebook Login for
+ * Business flow, which authorises against facebook.com, talks to
+ * graph.facebook.com, and finds the account by walking `/me/accounts` to a Page
+ * with a linked `instagram_business_account`. That flow requires the creator to
+ * own a Facebook Page and to have linked it, which is a real obstacle for people
+ * who only have Instagram.
+ *
+ * Instagram Login authorises against instagram.com, talks to
+ * graph.instagram.com, and the token *is* the account — `/me` returns it
+ * directly, with no Page in the picture. It also has its own app id and secret,
+ * distinct from the Meta app's, exactly as Threads does (§173).
  */
-const AUTHORIZE_URL = `https://www.facebook.com/${GRAPH_VERSION}/dialog/oauth`;
+const GRAPH = `https://graph.instagram.com/${GRAPH_VERSION}`;
+
+/** Short-lived code exchange. Note: api.instagram.com, not graph. */
+const TOKEN_URL = 'https://api.instagram.com/oauth/access_token';
+
+/** Long-lived exchange and refresh live on graph, unversioned. */
+const GRAPH_ROOT = 'https://graph.instagram.com';
+/*
+ * Unversioned by design here: Instagram Login's authorize endpoint takes no API
+ * version, unlike the Facebook dialog it replaces (§173).
+ */
+const AUTHORIZE_URL = 'https://www.instagram.com/oauth/authorize';
 
 export const INSTAGRAM_CONSTRAINTS: PlatformConstraints = {
   maxChars: 2200,
@@ -93,147 +111,150 @@ export class InstagramAdapter implements PlatformAdapter {
   }
 
   async exchangeCode(code: string, options: OAuthExchangeOptions): Promise<TokenSet> {
+    /*
+     * §184. A form POST to api.instagram.com, not a GET to graph.facebook.com.
+     *
+     * Instagram Login's code exchange is the one endpoint in this adapter that
+     * lives outside graph.instagram.com, and it takes form-encoded fields rather
+     * than query parameters. It also returns something the Facebook flow never
+     * did: `permissions`, the list of scopes the user actually granted — so the
+     * separate `/me/permissions` round trip that flow needed is gone.
+     */
     const short = (await platformFetch(
       options.fetchImpl ?? fetch,
-      `${GRAPH}/oauth/access_token?` +
-        new URLSearchParams({
+      TOKEN_URL,
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
           client_id: options.clientId,
           client_secret: options.clientSecret,
+          grant_type: 'authorization_code',
           redirect_uri: options.redirectUri,
           code,
         }),
-      { method: 'GET' },
+      },
       'Instagram code exchange',
-    )) as TokenResponse;
+    )) as TokenResponse & { user_id?: string | number; permissions?: unknown };
 
-    // Short-lived tokens last an hour. Exchange immediately for the 60-day one,
-    // otherwise the connection dies before the first cron run.
+    /*
+     * Granted, not requested. A user can decline individual permissions on the
+     * consent screen, and the publish gate reads this list — recording the
+     * requested set here would report a refused permission as available.
+     */
+    const granted = grantedFrom(short.permissions);
+
+    /*
+     * Short-lived tokens last an hour. Exchanged immediately for the 60-day one,
+     * otherwise the connection dies before the first cron run.
+     */
     const long = (await platformFetch(
       options.fetchImpl ?? fetch,
-      `${GRAPH}/oauth/access_token?` +
+      `${GRAPH_ROOT}/access_token?` +
         new URLSearchParams({
-          grant_type: 'fb_exchange_token',
-          client_id: options.clientId,
+          grant_type: 'ig_exchange_token',
           client_secret: options.clientSecret,
-          fb_exchange_token: String(short.access_token),
+          access_token: String(short.access_token),
         }),
       { method: 'GET' },
       'Instagram long-lived token exchange',
     )) as TokenResponse;
 
-    /**
-     * Ask Meta which permissions were actually granted.
-     *
-     * Meta's token response carries no `scope` field — unlike X's — so without
-     * this the account persists an empty scope list, and the publish gate
-     * (`scopes.includes('instagram_content_publish')`) reports the permission
-     * refused when it was granted. Requested is not granted, and Halyard had no
-     * evidence of the second.
-     *
-     * `/me/permissions` is the endpoint Meta provides for exactly this, and it
-     * distinguishes `granted` from `declined` — so a permission the user
-     * refused is recorded as absent rather than assumed present.
-     *
-     * A failure here is not fatal to the connection: the token is real and the
-     * account should still be saved. It leaves scopes empty, which the gate
-     * correctly reads as "no evidence", not as "granted".
+    /*
+     * The long-lived response carries no `permissions` and no `user_id`, so both
+     * are carried across from the short-lived one — the same shape of bug §180
+     * fixed for Threads, where scopes were silently dropped on the upgrade.
      */
-    const scopes = await this.grantedPermissions(String(long.access_token), options.fetchImpl);
-    return { ...toTokenSet(long), scopes };
-  }
-
-  /**
-   * The permissions Meta reports as granted for this token.
-   *
-   * Only `status === 'granted'` is kept. Anything declined or expired is
-   * omitted, so the persisted list is evidence of what is actually available
-   * rather than a copy of what was asked for.
-   */
-  async grantedPermissions(accessToken: string, fetchImpl?: typeof fetch): Promise<string[]> {
-    try {
-      const response = (await platformFetch(
-        fetchImpl ?? fetch,
-        `${GRAPH}/me/permissions?access_token=${encodeURIComponent(accessToken)}`,
-        { method: 'GET' },
-        'Instagram permission check',
-      )) as { data?: Array<{ permission?: string; status?: string }> };
-
-      return (response.data ?? [])
-        .filter((entry) => entry.status === 'granted' && typeof entry.permission === 'string')
-        .map((entry) => entry.permission as string);
-    } catch {
-      // Unreachable or refused. Returning nothing keeps the state honestly
-      // unknown; inventing the requested list here would defeat the gate.
-      return [];
-    }
+    const upgraded = toTokenSet(long);
+    return {
+      ...upgraded,
+      scopes: upgraded.scopes.length > 0 ? upgraded.scopes : granted,
+      meta: { instagramUserId: short.user_id != null ? String(short.user_id) : undefined },
+    };
   }
 
   async refresh(tokens: TokenSet, options: OAuthClientOptions): Promise<TokenSet> {
+    /*
+     * §184. `ig_refresh_token` takes the long-lived token itself and needs no
+     * client secret — unlike the Facebook flow's `fb_exchange_token`. Instagram
+     * only refreshes a token that is at least 24 hours old and not yet expired,
+     * which the scheduler's lead time already satisfies.
+     */
     const refreshed = (await platformFetch(
       options.fetchImpl ?? fetch,
-      `${GRAPH}/oauth/access_token?` +
+      `${GRAPH_ROOT}/refresh_access_token?` +
         new URLSearchParams({
-          grant_type: 'fb_exchange_token',
-          client_id: options.clientId,
-          client_secret: options.clientSecret,
-          fb_exchange_token: tokens.accessToken,
+          grant_type: 'ig_refresh_token',
+          access_token: tokens.accessToken,
         }),
       { method: 'GET' },
       'Instagram token refresh',
     )) as TokenResponse;
-    return { ...toTokenSet(refreshed), meta: tokens.meta };
+
+    const next = toTokenSet(refreshed);
+    /* Neither scopes nor the user id come back; both are carried forward. */
+    return {
+      ...next,
+      scopes: next.scopes.length > 0 ? next.scopes : (tokens.scopes ?? []),
+      meta: tokens.meta,
+    };
   }
 
   /**
-   * A Meta token commonly reaches several Pages, each with its own Instagram
-   * Professional account. Picking the wrong one is silent until the first post
-   * appears on a business account you forgot you administered, so all of them
-   * are returned and the operator chooses.
+   * Who this token belongs to.
+   *
+   * §184. One call, and no alternatives. Under Facebook Login a token commonly
+   * reached several Pages, each with its own Instagram account, so the adapter
+   * listed them all and made the operator choose — picking the wrong one was
+   * silent until a post appeared on a business account they had forgotten they
+   * administered.
+   *
+   * Instagram Login has no such ambiguity: the authorisation *is* for one
+   * Instagram account, and `/me` returns it. The identity-confirmation screen
+   * still shows it and still requires a human to confirm, which is where the
+   * protection actually lives (§176).
    */
   async fetchIdentity(account: PublishAccount): Promise<PlatformIdentity> {
-    const pages = (await this.get(
-      '/me/accounts?fields=name,instagram_business_account{id,username,name,profile_picture_url,followers_count}',
+    const me = (await this.get(
+      '/me?fields=user_id,username,name,profile_picture_url,followers_count',
       account,
     )) as {
-      data?: Array<{
-        name?: string;
-        instagram_business_account?: {
-          id?: string;
-          username?: string;
-          name?: string;
-          profile_picture_url?: string;
-          followers_count?: number;
-        };
-      }>;
+      id?: string;
+      user_id?: string;
+      username?: string;
+      name?: string;
+      profile_picture_url?: string;
+      followers_count?: number;
     };
 
-    const linked = (pages.data ?? [])
-      .filter((p) => p.instagram_business_account?.id)
-      .map((p) => ({ page: p.name, ig: p.instagram_business_account! }));
+    /*
+     * `user_id` is the Instagram-scoped id used by every publishing endpoint;
+     * `id` is the app-scoped one. Preferring `user_id` matters because it is the
+     * value `/{ig-user-id}/media` expects.
+     */
+    const igUserId =
+      me.user_id ?? me.id ?? (account.tokens.meta?.instagramUserId as string | undefined);
 
-    if (linked.length === 0) {
+    if (!igUserId) {
       throw new PublishError(
-        'This Facebook account administers no Page with a linked Instagram Professional account. ' +
-          'In the Instagram app: Settings → Account type and tools → Switch to professional account, ' +
-          'then link it to a Facebook Page under Settings → Page.',
+        'Instagram returned no account id for this token. Reconnect the account.',
+        'malformed_response',
+      );
+    }
+
+    if (!me.username) {
+      throw new PublishError(
+        'Instagram returned no username for this token. The account may not be a Professional (Business or Creator) account — switch it in the Instagram app under Settings, Account type and tools.',
         'permanent',
       );
     }
 
-    const [first, ...rest] = linked;
     return {
-      platformUserId: first!.ig.id!,
-      handle: first!.ig.username ?? first!.ig.id!,
-      displayName: first!.ig.name,
-      avatarUrl: first!.ig.profile_picture_url,
-      followerCount: first!.ig.followers_count,
-      detail: `Linked to the Facebook Page "${first!.page ?? 'unnamed'}".`,
-      alternatives: rest.map((r) => ({
-        platformUserId: r.ig.id!,
-        handle: r.ig.username ?? r.ig.id!,
-        displayName: r.ig.name,
-        detail: `Page "${r.page ?? 'unnamed'}"`,
-      })),
+      platformUserId: igUserId,
+      handle: me.username,
+      displayName: me.name,
+      avatarUrl: me.profile_picture_url,
+      followerCount: me.followers_count,
     };
   }
 
@@ -243,9 +264,9 @@ export class InstagramAdapter implements PlatformAdapter {
       /**
        * `account_type` is deliberately not requested.
        *
-       * It is not a field on the Instagram *Business* node reached through
-       * Facebook Login — it belongs to the Instagram Login / Basic Display
-       * APIs — so asking for it made Meta reject the whole call with
+       * Under the Facebook Login flow it was not a field on the Instagram
+       * Business node at all, so asking for it made Meta reject the whole call
+       * with
        * `(#100) Tried accessing nonexisting field (account_type)`. Nothing here
        * ever read the value; it was dead in the request and fatal to it, which
        * is why a correctly connected account sat at `pending_auth`.
@@ -259,12 +280,12 @@ export class InstagramAdapter implements PlatformAdapter {
       )) as { username?: string };
 
       const scopes = account.tokens.scopes ?? [];
-      const canPublish = scopes.includes('instagram_content_publish');
+      const canPublish = scopes.includes('instagram_business_content_publish');
 
       if (!canPublish) {
         return {
           state: 'pending_auth',
-          detail: 'Connected, but instagram_content_publish was not granted.',
+          detail: 'Connected, but instagram_business_content_publish was not granted.',
           supportedFormats: [],
           nextAction: 'Reconnect and accept the content-publishing permission.',
         };
@@ -289,7 +310,7 @@ export class InstagramAdapter implements PlatformAdapter {
         state: error.kind === 'auth' ? 'error' : 'pending_auth',
         detail: error.message,
         supportedFormats: [],
-        nextAction: 'Check the Facebook Page link and the Instagram Professional account.',
+        nextAction: 'Check that the account is an Instagram Professional account and reconnect.',
       };
     }
   }
@@ -491,6 +512,24 @@ export class InstagramAdapter implements PlatformAdapter {
       `Instagram POST ${path}`,
     );
   }
+}
+
+/**
+ * The scopes Instagram reports as granted on the code exchange.
+ *
+ * §184. Returned as a comma-separated string in practice and as an array in the
+ * documentation, so both are accepted; anything else yields an empty list rather
+ * than a guess. Empty means "no evidence", which the publish gate correctly
+ * refuses on — inventing the requested set here would defeat it.
+ */
+function grantedFrom(permissions: unknown): string[] {
+  if (Array.isArray(permissions)) {
+    return permissions.filter((p): p is string => typeof p === 'string' && p.length > 0);
+  }
+  if (typeof permissions === 'string') {
+    return permissions.split(/[\s,]+/).filter(Boolean);
+  }
+  return [];
 }
 
 function mediaFieldsFor(asset: PublishAsset): Record<string, string> {

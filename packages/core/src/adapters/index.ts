@@ -55,7 +55,12 @@ export function allAdapters(): PlatformAdapter[] {
 /** Env var names per platform, so the OAuth route reads them in one place. */
 export const PLATFORM_CLIENT_ENV: Record<PlatformId, { id: string; secret: string }> = {
   x: { id: 'X_CLIENT_ID', secret: 'X_CLIENT_SECRET' },
-  instagram: { id: 'META_APP_ID', secret: 'META_APP_SECRET' },
+  /*
+   * §184. Instagram Login issues its own app id and secret, separate from the
+   * Meta app's — the same split Threads has. Using META_APP_ID here authorised
+   * against the wrong app entirely.
+   */
+  instagram: { id: 'INSTAGRAM_APP_ID', secret: 'INSTAGRAM_APP_SECRET' },
   /*
    * §173. Threads is **not** the Meta app.
    *

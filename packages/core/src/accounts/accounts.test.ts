@@ -249,30 +249,50 @@ describe('fetchIdentity', () => {
     expect(identity.avatarUrl).toBe('https://pbs.twimg.com/pic.jpg');
   });
 
-  it('returns every Instagram account the Meta token reaches, first one selected', async () => {
+  it('returns the one account the Instagram token belongs to', async () => {
+    /*
+     * §184. Under Facebook Login a token commonly reached several Pages, each
+     * with its own Instagram account, so this asserted that all of them came
+     * back and the operator chose. Instagram Login has no such ambiguity — the
+     * authorisation is for one account and `/me` returns it — so there is
+     * nothing to disambiguate and offering a choice would be inventing one.
+     *
+     * The protection against connecting the wrong account is unchanged and
+     * lives where it always did: the identity is shown to a human who confirms
+     * it before the token is written (§176).
+     */
     const identity = await getAdapter('instagram').fetchIdentity(
       withFetch('instagram', {
-        data: [
-          {
-            name: 'RecipeFix Page',
-            instagram_business_account: { id: 'ig-1', username: 'recipefix', followers_count: 10 },
-          },
-          {
-            name: 'Old Side Project',
-            instagram_business_account: { id: 'ig-2', username: 'oldthing' },
-          },
-        ],
+        user_id: '17841400000000000',
+        username: 'recipe.fix',
+        name: 'RecipeFix',
+        profile_picture_url: 'https://scontent.cdninstagram.com/pic.jpg',
+        followers_count: 42,
       }),
     );
-    expect(identity.platformUserId).toBe('ig-1');
-    expect(identity.alternatives).toHaveLength(1);
-    expect(identity.alternatives![0]!.handle).toBe('oldthing');
+    expect(identity).toMatchObject({
+      platformUserId: '17841400000000000',
+      handle: 'recipe.fix',
+      displayName: 'RecipeFix',
+      followerCount: 42,
+    });
+    expect(identity.alternatives ?? []).toHaveLength(0);
   });
 
-  it('tells you how to fix a Facebook account with no linked professional Instagram', async () => {
+  it('says what to fix when the account is not a Professional one', async () => {
+    /*
+     * Instagram returns no username for a personal account, which is the only
+     * signal the API gives. Saying so beats a generic malformed-response error.
+     */
     await expect(
-      getAdapter('instagram').fetchIdentity(withFetch('instagram', { data: [] })),
-    ).rejects.toThrow(/Switch to professional account/);
+      getAdapter('instagram').fetchIdentity(withFetch('instagram', { user_id: '1' })),
+    ).rejects.toThrow(/Professional/i);
+  });
+
+  it('refuses a token Instagram will not name an account for', async () => {
+    await expect(
+      getAdapter('instagram').fetchIdentity(withFetch('instagram', {})),
+    ).rejects.toThrow(/no account id/i);
   });
 
   it('lists YouTube brand channels as alternatives rather than picking one silently', async () => {

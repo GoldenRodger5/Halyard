@@ -170,7 +170,9 @@ describe('PlatformAdapter contract', () => {
      * when it has done so.
      */
     expect(PLATFORM_CLIENT_ENV.threads).not.toEqual(PLATFORM_CLIENT_ENV.instagram);
-    expect(PLATFORM_CLIENT_ENV.instagram.id).toBe('META_APP_ID');
+    /* §184. Instagram Login issues its own app id, like Threads. */
+    expect(PLATFORM_CLIENT_ENV.instagram.id).toBe('INSTAGRAM_APP_ID');
+    expect(PLATFORM_CLIENT_ENV.instagram).not.toEqual(PLATFORM_CLIENT_ENV.threads);
     expect(PLATFORM_CLIENT_ENV.threads.id).toBe('THREADS_APP_ID');
     expect(PLATFORM_CLIENT_ENV.youtube.id).toBe('GOOGLE_CLIENT_ID');
   });
@@ -443,7 +445,7 @@ describe('InstagramAdapter — v2 A.3', () => {
     ]);
     const pending = await adapter.verifyCapabilities({
       ...ig(),
-      tokens: { accessToken: 't', scopes: ['instagram_content_publish'] },
+      tokens: { accessToken: 't', scopes: ['instagram_business_content_publish'] },
       meta: { fetchImpl },
     });
     expect(pending.state).toBe('draft_only');
@@ -451,7 +453,7 @@ describe('InstagramAdapter — v2 A.3', () => {
 
     const live = await adapter.verifyCapabilities({
       ...ig(),
-      tokens: { accessToken: 't', scopes: ['instagram_content_publish'] },
+      tokens: { accessToken: 't', scopes: ['instagram_business_content_publish'] },
       meta: { fetchImpl, appReviewApproved: true },
     });
     expect(live.state).toBe('live');
@@ -927,65 +929,90 @@ describe('instagram verifyCapabilities requests only valid fields', () => {
  * persisted an empty list and the publish gate reported a granted permission as
  * refused. `/me/permissions` is the evidence, and only `granted` counts.
  */
-describe('instagram granted permissions', () => {
-  const adapter = getAdapter('instagram') as never as {
-    grantedPermissions: (t: string, f?: typeof fetch) => Promise<string[]>;
-  };
+describe('instagram granted permissions, §184', () => {
+  const adapter = getAdapter('instagram');
 
-  function permissionsFetch(data: Array<{ permission: string; status: string }>) {
-    return (async (_url: string) => ({
-      ok: true,
-      status: 200,
-      json: async () => ({ data }),
-      text: async () => JSON.stringify({ data }),
-    })) as unknown as typeof fetch;
+  /*
+   * Instagram Login returns the granted scopes on the code exchange itself, so
+   * the separate /me/permissions round trip the Facebook flow needed is gone.
+   * The property being protected is unchanged: what is persisted is what the
+   * user *granted*, not what Halyard asked for.
+   */
+  function exchange(shortBody: Record<string, unknown>, longBody: Record<string, unknown> = { access_token: 'long', expires_in: 5184000 }) {
+    const { fetchImpl, calls } = scriptedFetch([
+      { match: (u) => u.includes('api.instagram.com/oauth/access_token'), respond: () => json(shortBody) },
+      { match: (u) => u.includes('ig_exchange_token'), respond: () => json(longBody) },
+    ]);
+    return {
+      calls,
+      run: () =>
+        adapter.exchangeCode('code-1', {
+          clientId: 'ig-app-id',
+          clientSecret: 'ig-app-secret',
+          redirectUri: 'https://halyard-ten.vercel.app/api/oauth/instagram/callback',
+          fetchImpl,
+        }),
+    };
   }
 
-  it('persists a permission Meta reports as granted', async () => {
-    const granted = await adapter.grantedPermissions(
-      't',
-      permissionsFetch([
-        { permission: 'instagram_content_publish', status: 'granted' },
-        { permission: 'instagram_basic', status: 'granted' },
-      ]),
-    );
-    expect(granted).toContain('instagram_content_publish');
-    expect(granted).toContain('instagram_basic');
+  it('persists the permissions Instagram reports as granted', async () => {
+    const tokens = await exchange({
+      access_token: 'short',
+      user_id: 17841400000000000,
+      permissions: 'instagram_business_basic,instagram_business_content_publish',
+    }).run();
+    expect(tokens.scopes).toContain('instagram_business_content_publish');
+    expect(tokens.accessToken).toBe('long');
   });
 
-  it('omits a permission the user declined, however it was requested', async () => {
-    // The whole point: Halyard asked for it, Meta says no, so it is not evidence.
-    const granted = await adapter.grantedPermissions(
-      't',
-      permissionsFetch([
-        { permission: 'instagram_basic', status: 'granted' },
-        { permission: 'instagram_content_publish', status: 'declined' },
-      ]),
-    );
-    expect(granted).toContain('instagram_basic');
-    expect(granted).not.toContain('instagram_content_publish');
+  it('accepts the array form as well as the comma-separated one', async () => {
+    const tokens = await exchange({
+      access_token: 'short',
+      user_id: '1',
+      permissions: ['instagram_business_basic', 'instagram_business_manage_comments'],
+    }).run();
+    expect(tokens.scopes).toHaveLength(2);
   });
 
-  it('records nothing when the permission check fails', async () => {
-    // Unknown, not "all granted". An empty list keeps the gate closed.
-    const granted = await adapter.grantedPermissions('t', (async () => {
-      throw new Error('network');
-    }) as never);
-    expect(granted).toEqual([]);
+  it('records nothing when Instagram reports no permissions', async () => {
+    /*
+     * Empty means "no evidence", which the publish gate refuses on. Filling in
+     * the requested list here would defeat it.
+     */
+    const tokens = await exchange({ access_token: 'short', user_id: '1' }).run();
+    expect(tokens.scopes).toEqual([]);
   });
 
-  it('keeps refusing publishing when the evidence lacks the publish grant', async () => {
-    const report = await getAdapter('instagram').verifyCapabilities({
-      id: 'a', platform: 'instagram', handle: '@recipe.fix', platformUserId: '1',
-      capabilityState: 'live',
-      tokens: { accessToken: 't', refreshToken: null, scopes: ['instagram_basic'] },
-      meta: {
-        igUserId: '1',
-        fetchImpl: (async () =>
-          ({ ok: true, status: 200, json: async () => ({ username: 'recipe.fix' }), text: async () => '{}' }) as never) as never,
-      },
-    } as never);
-    expect(report.state).toBe('pending_auth');
+  it('carries the granted scopes across the long-lived upgrade', async () => {
+    /* §180's bug, in the flow next door: the upgrade response has no scope. */
+    const tokens = await exchange(
+      { access_token: 'short', user_id: '1', permissions: 'instagram_business_basic' },
+      { access_token: 'long', expires_in: 5184000 },
+    ).run();
+    expect(tokens.scopes).toEqual(['instagram_business_basic']);
+  });
+
+  it('keeps the Instagram user id the exchange returned', async () => {
+    const tokens = await exchange({ access_token: 'short', user_id: 17841400000000000, permissions: '' }).run();
+    expect(tokens.meta?.instagramUserId).toBe('17841400000000000');
+  });
+
+  it('authorises against instagram.com, never facebook.com', async () => {
+    const url = adapter.getAuthUrl('state-1', {
+      clientId: 'ig-app-id',
+      clientSecret: 's',
+      redirectUri: 'https://halyard-ten.vercel.app/api/oauth/instagram/callback',
+      scopes: ['instagram_business_basic'],
+    });
+    expect(url).toContain('https://www.instagram.com/oauth/authorize');
+    expect(url).not.toContain('facebook.com');
+  });
+
+  it('exchanges the code at api.instagram.com, not graph.facebook.com', async () => {
+    const { calls, run } = exchange({ access_token: 'short', user_id: '1', permissions: '' });
+    await run();
+    expect(calls[0]!.url).toContain('api.instagram.com/oauth/access_token');
+    expect(calls.every((c) => !c.url.includes('facebook.com'))).toBe(true);
   });
 });
 

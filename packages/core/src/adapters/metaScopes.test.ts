@@ -28,25 +28,21 @@ const threadsSource = readFileSync(path.join(HERE, 'threads.ts'), 'utf8');
  * without removing its scope fails here rather than going unnoticed.
  */
 const EXERCISED_BY: Record<string, { endpoint: RegExp; why: string }> = {
-  instagram_basic: {
-    endpoint: /fields=username,media_count/,
+  instagram_business_basic: {
+    endpoint: /fields=user_id,username/,
     why: 'reads the connected account’s own profile',
   },
-  instagram_content_publish: {
+  instagram_business_content_publish: {
     endpoint: /\/media_publish/,
     why: 'creates and publishes a media container',
   },
-  instagram_manage_comments: {
+  instagram_business_manage_comments: {
     endpoint: /\/comments\?fields=/,
     why: 'reads comments on the account’s own posts',
   },
-  instagram_manage_insights: {
+  instagram_business_manage_insights: {
     endpoint: /\/insights\?metric=/,
     why: 'reads insights on the account’s own posts',
-  },
-  pages_show_list: {
-    endpoint: /\/me\/accounts\?fields=/,
-    why: 'finds the Page the Instagram business account hangs off',
   },
 };
 
@@ -58,10 +54,18 @@ const EXERCISED_BY: Record<string, { endpoint: RegExp; why: string }> = {
  * makes the gap explicit and keeps a third one from joining quietly.
  */
 const KNOWN_UNEXERCISED: Record<string, string> = {
-  business_management:
-    'no call site; every endpoint the adapter reaches is covered by another scope',
-  pages_read_engagement:
-    'no call site; /me/accounts is authorised by pages_show_list in this codebase',
+  /*
+   * §184. Empty, for the first time.
+   *
+   * The Facebook Login set carried three passengers: `pages_show_list` and
+   * `pages_read_engagement` existed only to walk `/me/accounts` to a Page, and
+   * `business_management` never had a call site at all — this audit had been
+   * naming it as unexercised for months. Instagram Login has no Page, so the
+   * first two are gone with the flow, and the third went with them.
+   *
+   * Meta's setup page also lists `instagram_business_manage_messages`, which is
+   * deliberately not requested: Halyard implements no direct messaging.
+   */
 };
 
 describe('every requested Meta scope is accounted for', () => {
@@ -69,8 +73,11 @@ describe('every requested Meta scope is accounted for', () => {
 
   it('requests the scopes this audit was written against', () => {
     // Non-vacuity: an empty or renamed list would satisfy every loop below.
-    expect(requested.length).toBeGreaterThanOrEqual(7);
-    expect(requested).toContain('instagram_content_publish');
+    expect(requested.length).toBe(4);
+    expect(requested).toContain('instagram_business_content_publish');
+    /* The Facebook Login scopes must not creep back with the flow removed. */
+    expect(requested).not.toContain('pages_show_list');
+    expect(requested).not.toContain('instagram_content_publish');
   });
 
   for (const scope of Object.keys(EXERCISED_BY)) {
@@ -107,16 +114,20 @@ describe('every requested Meta scope is accounted for', () => {
     }
   });
 
-  it('still finds no call site for the two unexercised scopes', () => {
-    /**
-     * Pinned so the recommendation in §98 stays evidence-backed. If a future
-     * change genuinely starts using one of these, this fails and the entry must
-     * move to `EXERCISED_BY` — which is the moment the removal recommendation
-     * becomes wrong.
+  it('requests nothing without a call site', () => {
+    /*
+     * §184. With the Facebook Login flow gone, every requested scope is
+     * exercised and `KNOWN_UNEXERCISED` is empty — so this asserts the stronger
+     * property directly rather than looping over an empty object, which would
+     * pass whatever the scope list said.
      */
-    for (const scope of Object.keys(KNOWN_UNEXERCISED)) {
-      expect(adapterSource).not.toContain(scope);
-    }
+    expect(Object.keys(KNOWN_UNEXERCISED)).toEqual([]);
+    expect(requested.every((scope) => scope in EXERCISED_BY)).toBe(true);
+  });
+
+  it('does not ask for messaging, which Halyard does not implement', () => {
+    expect(requested).not.toContain('instagram_business_manage_messages');
+    expect(adapterSource).not.toMatch(/\/conversations|\/messages\b/);
   });
 });
 
