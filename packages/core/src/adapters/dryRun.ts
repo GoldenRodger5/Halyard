@@ -14,6 +14,7 @@
  * Requests are logged with tokens redacted and a seven-day retention.
  */
 import { redactToken } from '../crypto/tokenCrypto.js';
+import { createVirtualClock } from './clock.js';
 import type { PlatformAdapter, PublishAccount, PublishAsset, PublishItem, PublishResult } from './types.js';
 
 export interface RecordedRequest {
@@ -54,6 +55,39 @@ export function redactHeaders(headers: HeadersInit | undefined): Record<string, 
   return out;
 }
 
+/** Query parameters whose value is a credential. */
+const SENSITIVE_PARAMS = /^(access_token|client_secret|refresh_token|token|api_key|key|password|code)$/i;
+
+/**
+ * Redact credentials carried in the URL itself. §200.
+ *
+ * Headers and bodies were redacted from the first version of this file; URLs
+ * were not, because the adapters written at the time carried their token in an
+ * `authorization` header. The Meta family does not — Instagram and Threads put
+ * `access_token` in the query string, so every recorded GET held a live token
+ * in plain text, in a log with seven-day retention that the accounts screen
+ * renders. Found by asserting the absence rather than by reading the code.
+ *
+ * Non-URL strings are returned unchanged: this runs on whatever `fetch` was
+ * handed, and a malformed input should not throw inside a recorder.
+ */
+export function redactUrl(raw: string): string {
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch {
+    return raw;
+  }
+  let touched = false;
+  for (const [key, value] of [...url.searchParams]) {
+    if (SENSITIVE_PARAMS.test(key) && value) {
+      url.searchParams.set(key, redactToken(value));
+      touched = true;
+    }
+  }
+  return touched ? url.toString() : raw;
+}
+
 function redactBody(body: unknown): unknown {
   if (typeof body !== 'string') {
     if (body instanceof URLSearchParams) return redactBody(Object.fromEntries(body));
@@ -88,22 +122,56 @@ export function createDryRunFetch(): { fetchImpl: typeof fetch; requests: Record
     const url = String(input);
     requests.push({
       method: init?.method ?? 'GET',
-      url,
+      // §200. The Meta family carries its token here, not in a header.
+      url: redactUrl(url),
       headers: redactHeaders(init?.headers),
       body: redactBody(init?.body),
       at: new Date(),
     });
 
-    // Shapes chosen to satisfy each adapter's parsing so the whole flow runs.
-    const body = url.includes('graph.facebook') || url.includes('graph.threads')
-      ? { id: 'dry-run-id', permalink: 'https://example.invalid/dry-run', status_code: 'FINISHED' }
-      : url.includes('api.x.com')
-        ? { data: { id: 'dry-run-id' } }
-        : url.includes('pinterest')
-          ? { id: 'dry-run-id' }
-          : url.includes('tiktokapis')
-            ? { data: { publish_id: 'dry-run-id', creator_username: 'dry-run' } }
-            : { id: 'dry-run-id' };
+    /*
+     * Shapes chosen to satisfy each adapter's parsing so the whole flow runs.
+     *
+     * §200. This list is matched by hostname, and it silently went stale.
+     * §184 moved Instagram from `graph.facebook.com` to `graph.instagram.com`,
+     * and nothing here followed — so an Instagram rehearsal fell through to the
+     * bare `{ id }` default, its Reel container never reported `FINISHED`, and
+     * `waitForContainer` polled to its five-minute ceiling. A dry run that
+     * cannot answer the adapter's own status check is not a rehearsal of it.
+     *
+     * The Threads host is `graph.threads.net`; Instagram's is
+     * `graph.instagram.com`. Both need `status_code`, because both poll.
+     */
+    const body =
+      url.includes('graph.instagram.com') ||
+      url.includes('graph.threads') ||
+      url.includes('graph.facebook')
+        ? {
+            id: 'dry-run-id',
+            permalink: 'https://example.invalid/dry-run',
+            status_code: 'FINISHED',
+            // Instagram Login identity and code exchange run through this host too.
+            user_id: 'dry-run-user',
+            username: 'dry-run',
+          }
+        : url.includes('api.instagram.com')
+          ? { access_token: 'dry-run-token', user_id: 'dry-run-user', permissions: [] }
+          : url.includes('api.x.com')
+            ? { data: { id: 'dry-run-id' } }
+            : url.includes('pinterest')
+              ? { id: 'dry-run-id' }
+              : url.includes('tiktokapis')
+                ? {
+                    data: {
+                      publish_id: 'dry-run-id',
+                      creator_username: 'dry-run',
+                      // `/status/fetch/` polls this until it is terminal.
+                      status: 'PUBLISH_COMPLETE',
+                    },
+                  }
+                : url.includes('googleapis.com')
+                  ? { id: 'dry-run-id', items: [{ id: 'dry-run-id' }] }
+                  : { id: 'dry-run-id' };
 
     return new Response(JSON.stringify(body), {
       status: 200,
@@ -132,10 +200,22 @@ export async function dryRunPublish(
   let result: PublishResult | null = null;
   let error: string | null = null;
 
+  /*
+   * §200. A virtual clock, not a no-op sleep.
+   *
+   * The previous `sleep: async () => undefined` stopped the waiting and left
+   * the deadline where it was, on the real clock — so a container that never
+   * reported FINISHED span for five wall-clock minutes recording a request per
+   * pass until the heap died. Advancing time on sleep makes the adapter's own
+   * ceiling terminate the loop in a bounded number of iterations, immediately,
+   * with no branch inside `publish()` that could drift from the real path.
+   */
+  const clock = createVirtualClock();
+
   try {
     result = await adapter.publish(item, assets, {
       ...account,
-      meta: { ...account.meta, fetchImpl, sleep: async () => undefined },
+      meta: { ...account.meta, fetchImpl, clock, sleep: clock.sleep },
     });
   } catch (err) {
     error = (err as Error).message;

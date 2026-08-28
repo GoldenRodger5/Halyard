@@ -34,7 +34,6 @@ import {
   YOUTUBE_LONG_FORM_MAX_SECONDS,
   YOUTUBE_TITLE_MAX_CHARS,
   categoryIdFor,
-  limitsFor,
   resolveVariant,
   validateYouTubeUpload,
   type YouTubeVariant,

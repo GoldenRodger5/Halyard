@@ -34,6 +34,7 @@ import {
   type PublishResult,
   type TokenSet,
 } from './types.js';
+import { clockFor, maxPollsFor } from './clock.js';
 
 /**
  * Pinned deliberately. v2 A.3: "Meta versions the Graph API quarterly and
@@ -456,11 +457,21 @@ export class InstagramAdapter implements PlatformAdapter {
     timeoutMs = 5 * 60_000,
     intervalMs = 5_000,
   ): Promise<void> {
-    const sleep = (account.meta?.sleep as ((ms: number) => Promise<void>) | undefined) ??
-      ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
-    const deadline = Date.now() + timeoutMs;
+    /*
+     * §200. The clock is injected, not read from the ambient one.
+     *
+     * Both halves of the wait have to come from the same place. When only
+     * `sleep` was replaceable, a rehearsal that stubbed it stopped waiting but
+     * kept a deadline five real minutes out — so this loop span as fast as the
+     * event loop allowed, recording a request every pass, until the heap gave
+     * up. `maxPolls` is the second stop, in case a clock is ever injected that
+     * does not advance.
+     */
+    const clock = clockFor(account.meta);
+    const deadline = clock.now() + timeoutMs;
+    const maxPolls = maxPollsFor(timeoutMs, intervalMs);
 
-    for (;;) {
+    for (let poll = 0; ; poll += 1) {
       const status = (await this.get(
         `/${containerId}?fields=status_code,status`,
         account,
@@ -473,13 +484,13 @@ export class InstagramAdapter implements PlatformAdapter {
           'permanent',
         );
       }
-      if (Date.now() > deadline) {
+      if (clock.now() > deadline || poll >= maxPolls) {
         throw new PublishError(
           `Instagram container ${containerId} did not finish processing within ${timeoutMs / 1000}s.`,
           'transient',
         );
       }
-      await sleep(intervalMs);
+      await clock.sleep(intervalMs);
     }
   }
 
