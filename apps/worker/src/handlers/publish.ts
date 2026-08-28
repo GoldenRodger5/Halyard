@@ -18,7 +18,7 @@ import {
   disclosureSatisfied,
   getAdapter,
   openToken,
-  PLATFORM_CLIENT_ENV,
+  resolvePlatformClient,
   publishableBaseUrl,
   publishFailurePolicy,
   scrubString,
@@ -624,16 +624,24 @@ async function refreshAccountToken(
 ): Promise<PublishAccount | null> {
   if (!accountRow.refresh_token_enc) return null;
 
-  const env = PLATFORM_CLIENT_ENV[accountRow.platform];
-  const clientId = process.env[env.id];
-  const clientSecret = process.env[env.secret];
-  if (!clientId || !clientSecret) {
+  /*
+   * §178. Resolved the same way the OAuth routes resolve it.
+   *
+   * This read `process.env` directly, which meant it missed the trim-check that
+   * treats `KEY=` as unset — dotenv parses that to the empty string, and an empty
+   * string is not `undefined`, so `!clientId` was the only thing standing between
+   * a blank secret and a refresh attempt. It also named a fixed variable pair,
+   * which stopped being true once platforms could name their own.
+   */
+  const client = resolvePlatformClient(accountRow.platform);
+  if (!client.clientId || !client.clientSecret) {
     ctx.log('cannot refresh mid-publish, client credentials absent', {
       platform: accountRow.platform,
-      needs: `${env.id} and ${env.secret}`,
+      needs: client.tried.join(' or '),
     });
     return null;
   }
+  const { clientId, clientSecret } = client;
 
   try {
     const adapter = getAdapter(accountRow.platform);
