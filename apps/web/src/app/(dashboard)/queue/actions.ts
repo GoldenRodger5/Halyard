@@ -72,7 +72,7 @@ export async function approveItem(formData: FormData): Promise<void> {
       creatorInfo: (item.tiktok_creator_info as never) ?? null,
     });
     if (problems.length > 0) {
-      await query('update content_items set last_error = $2 where id = $1', [
+      await query('update content_items set tiktok_last_error = $2 where id = $1', [
         id,
         `TikTok settings are incomplete: ${problems.map((p) => p.message).join(' ')}`.slice(0, 500),
       ]);

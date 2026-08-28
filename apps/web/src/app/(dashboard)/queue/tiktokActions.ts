@@ -77,7 +77,7 @@ export async function refreshTikTokCreatorInfo(formData: FormData): Promise<void
     } else {
       await query(
         `update content_items
-            set tiktok_creator_info = $2, tiktok_creator_info_at = now(), last_error = null
+            set tiktok_creator_info = $2, tiktok_creator_info_at = now(), tiktok_last_error = null
           where id = $1`,
         [id, parsed],
       );
@@ -100,7 +100,7 @@ export async function refreshTikTokCreatorInfo(formData: FormData): Promise<void
 }
 
 async function storeCreatorInfoError(id: string, message: string): Promise<void> {
-  await query('update content_items set last_error = $2 where id = $1', [id, message.slice(0, 500)]);
+  await query('update content_items set tiktok_last_error = $2 where id = $1', [id, message.slice(0, 500)]);
 }
 
 /**
@@ -148,7 +148,7 @@ export async function saveTikTokOptions(formData: FormData): Promise<void> {
   });
 
   await query(
-    'update content_items set tiktok_options = $2, last_error = $3 where id = $1',
+    'update content_items set tiktok_options = $2, tiktok_last_error = $3 where id = $1',
     [
       id,
       options,

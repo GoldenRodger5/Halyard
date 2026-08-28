@@ -368,7 +368,7 @@ export async function getTikTokPanel(id: string): Promise<{
     tiktok_options: unknown;
     tiktok_creator_info: unknown;
     tiktok_creator_info_at: string | null;
-    last_error: string | null;
+    tiktok_last_error: string | null;
     duration_seconds: string | null;
   }>(
     /*
@@ -379,7 +379,7 @@ export async function getTikTokPanel(id: string): Promise<{
      * item to open, which there had never been.
      */
     `select ci.platform, ci.status, ci.tiktok_options, ci.tiktok_creator_info,
-            ci.tiktok_creator_info_at, ci.last_error,
+            ci.tiktok_creator_info_at, ci.tiktok_last_error,
             (select a.duration_seconds
                from renders r
                join assets a on a.id = r.output_asset_id
@@ -396,7 +396,7 @@ export async function getTikTokPanel(id: string): Promise<{
     tiktokOptions: row.tiktok_options,
     creatorInfo: row.tiktok_creator_info,
     creatorInfoAt: row.tiktok_creator_info_at,
-    lastError: row.last_error,
+    lastError: row.tiktok_last_error,
     videoDurationSec: row.duration_seconds ? Number(row.duration_seconds) : null,
   };
 }
