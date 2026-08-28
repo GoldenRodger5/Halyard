@@ -45,7 +45,10 @@ import {
   isRefusal,
   decideStrategy,
   DEFAULT_LANGUAGE,
+  EDITORIAL,
+  PUNCH,
   chooseOpening,
+  fitWords,
   directVoice,
   planVariants,
   directCreative,
@@ -92,6 +95,27 @@ import { recordingClient } from '../agentRuns.js';
  * every artifact-derived beat since §160, the plan-level test asserted it, and
  * nothing checked that it survived into the thing that actually ships. §169.
  */
+/**
+ * Trim every text field on a beat to what the register can show. §237.
+ *
+ * Applied per field rather than to the beat as a whole: a transformation card
+ * carries `before`, `after` and `reason` and each is set at a different size,
+ * so a single budget across all three would starve the one that matters.
+ */
+function fitBeatContent(
+  content: CreativePlan['beats'][number]['content'] | undefined,
+  register: 'editorial' | 'punch',
+): CreativePlan['beats'][number]['content'] | undefined {
+  if (!content) return content;
+  const spec = register === 'punch' ? PUNCH : EDITORIAL;
+  const out: Record<string, unknown> = { ...content };
+  for (const key of ['text', 'reason', 'before', 'after', 'label'] as const) {
+    const value = content[key];
+    if (typeof value === 'string' && value.trim()) out[key] = fitWords(value, spec);
+  }
+  return out as CreativePlan['beats'][number]['content'];
+}
+
 export function beatsForRender(
   plan: CreativePlan,
   register: 'editorial' | 'punch' = 'punch',
@@ -149,7 +173,16 @@ export function beatsForRender(
       // Carried, not recomputed: duration and size must come from one value or
       // they drift apart.
       emphasis: beat.emphasis,
-      content: beat.content,
+      /*
+       * §237. Trimmed to what the register can actually show.
+       *
+       * `fitWords` existed since §211 with no caller, and the cost was visible
+       * on the first real production frame: a step beat carrying 25 words,
+       * rendered at punch scale, overflowing its band and clipping mid-word.
+       * The cap is the register's own `maxWordsPerBeat`, and the cut lands on
+       * a sentence boundary rather than on the word limit.
+       */
+      content: fitBeatContent(beat.content, register),
       motion: motions[i],
       // §169. Provenance, so a stored render is traceable to its evidence.
       ...(beat.sourcePath ? { sourcePath: beat.sourcePath } : {}),

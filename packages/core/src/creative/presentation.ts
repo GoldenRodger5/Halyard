@@ -125,8 +125,43 @@ export function presentationFor(platform: string, formatSubtype?: string | null)
  * truncated forever.
  */
 export function fitWords(text: string, spec: PresentationSpec): string {
-  const words = text.trim().split(/\s+/);
-  if (words.length <= spec.maxWordsPerBeat) return text.trim();
+  const trimmed = text.trim();
+  const words = trimmed.split(/\s+/);
+  if (words.length <= spec.maxWordsPerBeat) return trimmed;
+
+  /*
+   * §237. Cut at a boundary the writer put there, not at the word limit.
+   *
+   * The first version sliced at `maxWordsPerBeat` exactly, which turns
+   * "keep the boil active but not a harsh rolling boil to prevent breakage"
+   * into "keep the boil active but not a harsh rolling" — a sentence that
+   * stops mid-thought, which reads as a bug rather than as brevity. Clipping
+   * the frame and truncating the sentence are two ways of showing the viewer
+   * something broken.
+   *
+   * So: the longest complete sentence that fits. Failing that, the longest
+   * clause. Failing that — a single unbroken run of words longer than the
+   * budget — the hard slice, because something has to give and a clipped
+   * frame is worse.
+   */
+  const sentences = trimmed.match(/[^.!?]+[.!?]+|[^.!?]+$/g) ?? [trimmed];
+  let kept = '';
+  for (const sentence of sentences) {
+    const candidate = (kept + sentence).trim();
+    if (candidate.split(/\s+/).length > spec.maxWordsPerBeat) break;
+    kept = `${candidate} `;
+  }
+  if (kept.trim()) return kept.trim();
+
+  const clauses = trimmed.split(/(?<=[,;:—])\s+/);
+  let clauseKept = '';
+  for (const clause of clauses) {
+    const candidate = (clauseKept + clause).trim();
+    if (candidate.split(/\s+/).length > spec.maxWordsPerBeat) break;
+    clauseKept = `${candidate} `;
+  }
+  if (clauseKept.trim()) return clauseKept.trim().replace(/[,;:—]$/, '');
+
   return words.slice(0, spec.maxWordsPerBeat).join(' ');
 }
 

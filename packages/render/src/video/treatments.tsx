@@ -555,6 +555,15 @@ export function cardDensityScale(
   content: CardContent,
   band: { width: number; height: number },
   emphasis?: string,
+  /**
+   * The register's multiplier, applied to the fitted scale at render time. §237.
+   *
+   * Passed in rather than folded into the band, because height is not linear
+   * in scale — bigger type wraps sooner, so a band divided by 1.85 is not the
+   * same constraint as type multiplied by 1.85. The first correction did
+   * exactly that and still overflowed by 7%.
+   */
+  typeScale = 1,
 ): number {
   if (band.height <= 0 || band.width <= 0) return 1;
   if (!content.before && !content.after && !content.reason) return 1;
@@ -573,7 +582,11 @@ export function cardDensityScale(
    * 1% apart, and a coarse grid makes the output stable: small content edits do
    * not jitter the layout between renders.
    */
-  return fitScale((scale) => cardHeightAt(content, band.width, scale), band.height, emphasis);
+  return fitScale(
+    (scale) => cardHeightAt(content, band.width, scale * typeScale),
+    band.height,
+    emphasis,
+  );
 }
 
 /**
@@ -1114,10 +1127,22 @@ const TransformationCard: BeatTreatment = ({ beat, brand, band, presentation }) 
    * a fitted scale would have pushed a held card past the band it was just
    * fitted to.
    */
+  /*
+   * §237. Measured against the band the type will actually occupy.
+   *
+   * The fitted scale is multiplied by `presentation.typeScale` at render time,
+   * so a band measured at base size is 1.85x too generous in the punch
+   * register. Shrinking the band by `t` before fitting is equivalent to
+   * measuring at the real size, and keeps `cardDensityScale` unaware of the
+   * register — which is right, because it is arithmetic about text and boxes.
+   */
   const scale = cardDensityScale(
     { before: beat.content?.before, after: beat.content?.after, reason: beat.content?.reason },
     band,
     beat.emphasis,
+    /* §237. The register's multiplier, so the fit is against the size that is
+       actually drawn rather than the base size. */
+    t,
   );
   const strike = interpolate(frame, [10, 10 + fps * 0.45], [0, 1], {
     extrapolateLeft: 'clamp',
@@ -1239,7 +1264,25 @@ const EvidenceNote: BeatTreatment = ({ beat, brand, band, presentation }) => {
    */
   if (!text || !text.trim()) return null;
 
-  const scale = fitScale((k) => noteHeightAt(text, band.width, k), band.height, beat.emphasis);
+  /*
+   * §237. Fitted against the size actually rendered, not the base size.
+   *
+   * `fitScale` searched for a scale whose height fits the band, and then the
+   * font size was computed as `size * scale * t` — so in the punch register
+   * every fitted block was multiplied by 1.85 *after* being fitted, and
+   * overflowed by exactly that factor. The first real production frame showed
+   * it: ten words on a step card, clipped at the top and running off the right
+   * edge.
+   *
+   * `noteHeightAt` wraps at the real width for the size it is given, so only
+   * the *scale* carries the multiplier — dividing the width as well would
+   * count `t` twice and fit for a frame half the size of the real one.
+   */
+  const scale = fitScale(
+    (k) => noteHeightAt(text, band.width, k * t),
+    band.height,
+    beat.emphasis,
+  );
 
   return (
     <Rise>
@@ -1530,7 +1573,25 @@ const StepCard: BeatTreatment = ({ beat, brand, band, presentation }) => {
   const text = beat.content?.text;
   if (!text || !text.trim()) return null;
   const label = beat.content?.label;
-  const scale = fitScale((k) => noteHeightAt(text, band.width, k), band.height, beat.emphasis);
+  /*
+   * §237. Fitted against the size actually rendered, not the base size.
+   *
+   * `fitScale` searched for a scale whose height fits the band, and then the
+   * font size was computed as `size * scale * t` — so in the punch register
+   * every fitted block was multiplied by 1.85 *after* being fitted, and
+   * overflowed by exactly that factor. The first real production frame showed
+   * it: ten words on a step card, clipped at the top and running off the right
+   * edge.
+   *
+   * `noteHeightAt` wraps at the real width for the size it is given, so only
+   * the *scale* carries the multiplier — dividing the width as well would
+   * count `t` twice and fit for a frame half the size of the real one.
+   */
+  const scale = fitScale(
+    (k) => noteHeightAt(text, band.width, k * t),
+    band.height,
+    beat.emphasis,
+  );
 
   return (
     <Rise>
@@ -1574,7 +1635,25 @@ const CountItem: BeatTreatment = ({ beat, brand, band, presentation }) => {
   const text = beat.content?.text;
   if (!text || !text.trim()) return null;
   const index = beat.content?.index;
-  const scale = fitScale((k) => noteHeightAt(text, band.width, k), band.height, beat.emphasis);
+  /*
+   * §237. Fitted against the size actually rendered, not the base size.
+   *
+   * `fitScale` searched for a scale whose height fits the band, and then the
+   * font size was computed as `size * scale * t` — so in the punch register
+   * every fitted block was multiplied by 1.85 *after* being fitted, and
+   * overflowed by exactly that factor. The first real production frame showed
+   * it: ten words on a step card, clipped at the top and running off the right
+   * edge.
+   *
+   * `noteHeightAt` wraps at the real width for the size it is given, so only
+   * the *scale* carries the multiplier — dividing the width as well would
+   * count `t` twice and fit for a frame half the size of the real one.
+   */
+  const scale = fitScale(
+    (k) => noteHeightAt(text, band.width, k * t),
+    band.height,
+    beat.emphasis,
+  );
 
   return (
     <Rise>
@@ -1615,7 +1694,25 @@ const MythCard: BeatTreatment = ({ beat, brand, band, presentation }) => {
   const t = presentation.typeScale;
   const text = beat.content?.text;
   if (!text || !text.trim()) return null;
-  const scale = fitScale((k) => noteHeightAt(text, band.width, k), band.height, beat.emphasis);
+  /*
+   * §237. Fitted against the size actually rendered, not the base size.
+   *
+   * `fitScale` searched for a scale whose height fits the band, and then the
+   * font size was computed as `size * scale * t` — so in the punch register
+   * every fitted block was multiplied by 1.85 *after* being fitted, and
+   * overflowed by exactly that factor. The first real production frame showed
+   * it: ten words on a step card, clipped at the top and running off the right
+   * edge.
+   *
+   * `noteHeightAt` wraps at the real width for the size it is given, so only
+   * the *scale* carries the multiplier — dividing the width as well would
+   * count `t` twice and fit for a frame half the size of the real one.
+   */
+  const scale = fitScale(
+    (k) => noteHeightAt(text, band.width, k * t),
+    band.height,
+    beat.emphasis,
+  );
 
   return (
     <Rise>
