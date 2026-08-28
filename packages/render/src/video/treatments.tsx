@@ -646,8 +646,28 @@ export function noteHeightAt(text: string, width: number, scale = 1): number {
   return NOTE_TYPE.label.size * NOTE_TYPE.label.lineHeight + NOTE_TYPE.gap * scale + lines * size * NOTE_TYPE.body.lineHeight;
 }
 
-export function anchorFor(role: string): 'center' | 'flex-end' {
-  return role === 'hook' || role === 'demo' ? 'center' : 'flex-end';
+export function anchorFor(
+  role: string,
+  /** True when a full-bleed image or footage sits behind this beat. §247. */
+  overMedia = false,
+): 'center' | 'flex-end' {
+  /*
+   * §247. Over media, the words sit low so the picture keeps the frame.
+   * Without media, they centre — because there is no picture to keep.
+   *
+   * The old rule bottom-anchored everything except a hook or a demo, and the
+   * reason given was clearing the caption band. But the *band* already
+   * excludes the caption zone: `bandFor` ends content at 72% of the frame
+   * height precisely so captions have their own space. Anchoring to the
+   * bottom of that band as well pushed a text card into the lowest third and
+   * left the top half of the frame empty.
+   *
+   * A production frame showed it plainly: a label and two lines of type in
+   * the bottom 40%, and 55% of a 1080x1920 card holding nothing at all. On a
+   * phone that reads as an unfinished slide.
+   */
+  if (overMedia) return 'flex-end';
+  return role === 'cta' ? 'flex-end' : 'center';
 }
 
 /**
@@ -858,7 +878,7 @@ export const PlannedBeats: React.FC<{
               hasCaptions={hasCaptions}
               /* §222. Landscape centres; every other frame keeps the role's
                  own anchor. */
-              anchor={geometry.anchorOverride ?? anchorFor(beat.role)}
+              anchor={geometry.anchorOverride ?? anchorFor(beat.role, Boolean(beat.image || beat.media))}
               presentation={spec}
               /* A full-bleed image is drawn behind the stage, so the stage
                  itself must not paint a ground over it. */

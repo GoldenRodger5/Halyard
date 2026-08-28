@@ -185,14 +185,38 @@ describe('anchorFor', () => {
     expect(anchorFor('hook')).toBe('center');
   });
 
-  it('bottom-anchors every other beat, so copy sits above the captions', () => {
-    for (const role of ['change', 'before', 'after', 'proof', 'cta']) {
-      expect(anchorFor(role)).toBe('flex-end');
+  it('bottom-anchors over media, so the picture keeps the frame', () => {
+    /*
+     * §247. The distinction is media, not role. Over footage or a full-bleed
+     * image the words belong low; over nothing there is no picture to keep.
+     */
+    for (const role of ['change', 'before', 'after', 'proof', 'step']) {
+      expect(anchorFor(role, true), role).toBe('flex-end');
     }
   });
 
+  it('centres a text-only beat rather than stranding the top half', () => {
+    /*
+     * The old rule bottom-anchored everything but a hook, and justified it as
+     * clearing the caption band — which `bandFor` already does, by ending
+     * content at 72% of the height. Anchoring to the bottom of that band as
+     * well pushed a text card into the lowest third.
+     *
+     * A production frame showed it: a label and two lines of type in the
+     * bottom 40%, and 55% of a 1080x1920 card holding nothing at all.
+     */
+    for (const role of ['change', 'before', 'after', 'proof', 'step']) {
+      expect(anchorFor(role, false), role).toBe('center');
+    }
+  });
+
+  it('keeps the closing line low, where a sign-off belongs', () => {
+    expect(anchorFor('cta', false)).toBe('flex-end');
+  });
+
   it('applies to a role this file has never seen, so future types inherit it', () => {
-    expect(anchorFor('step')).toBe('flex-end');
+    expect(anchorFor('a_future_role', false)).toBe('center');
+    expect(anchorFor('a_future_role', true)).toBe('flex-end');
   });
 });
 

@@ -112,8 +112,8 @@ whoosh is the same class of fabrication as inventing product evidence.
 
 | Blocked | On | Exactly what is needed |
 |---|---|---|
-| Music in any video | purchase | Licensed beds imported into `music_beds` with `licence`, `licensor` and any `platform_restrictions`. The mixer, ducking and selection are done and tested. |
-| Sound design | purchase | The same for `sound_effects`, tagged by `role`. |
+| Music in a **published** post | purchase | Import beds with `provenance='licensed_production'` and a `licence_proof`. Everything else is done: selection, ducking, loudness, repetition memory, and a publish gate that refuses anything else. Six `[TEST]` fixtures exist so the path is exercisable now. |
+| Sound design in a **published** post | purchase | The same for `sound_effects`. Four `[TEST]` effects exist. |
 | YouTube custom thumbnails | OAuth scope | `thumbnails.set` needs `youtube` or `youtube.force-ssl`; the channel granted `upload`, `readonly`, `analytics`. Widening it changes what the compliance audit covers and grants full channel write access. |
 | YouTube long-form publishing | provider | The compliance audit submission. |
 | Landscape and thumbnail templates | operator review | Seeded **disabled**. Enable in `templates` once you have looked at a render. |

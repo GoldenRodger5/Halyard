@@ -6569,3 +6569,107 @@ that could not be verified, and resurrecting such an item would push
 unverifiable content back toward approval.
 
 The marker is what makes the recovery safe rather than merely convenient.
+
+## 239. What a production music library actually needs
+
+`music_beds` had mood, energy, tempo and licence fields and could not answer:
+where did this come from, who proved the licence, does it have vocals, is it
+retired, has this *account* heard it. Selection was a mood match and a
+timestamp.
+
+**Provenance is the column that makes a fixture library safe.** §221 refused to
+synthesise beds because a synthesised pad would be indistinguishable in the
+pipeline from a real one, so nobody would notice which shipped. That danger is
+now a gate: `licensed_production` may be published, `test` may be previewed,
+`unverified` is neither — and a production claim with no `licence_proof` is
+refused by both a database constraint and the director.
+
+`music_usage` exists because `last_used_at` answers *when* and nothing else.
+Repetition is judged in the feed a viewer actually scrolls, not globally: two
+accounts may legitimately use the same bed on the same day.
+
+Selection now weighs tempo against the cut rhythm, refuses vocals under
+narration, matches energy to how much the picture is moving, and takes measured
+performance as a tilt rather than a verdict. Every choice returns reasons.
+
+## 240–241. A fixture library, clearly marked
+
+Six `[TEST]` beds and four effects, synthesised deterministically, spanning the
+mood and tempo space so the selector has something to choose between — a single
+candidate always wins and "chose this because" means nothing.
+
+They are not licensed music and the operator action is unchanged. They exist so
+the mixing, ducking, loudness, selection, repetition and placement code can be
+exercised without inventing a licence.
+
+## 242. Sound design was unreachable
+
+`planSfx` and `selectEffect` were written in §233, tested, and called by
+nothing: no handler invoked them, and `mixAudio` had no input that could take
+the result. The fourth instance of this codebase's signature failure.
+
+Effects are mixed as delayed inputs *after* the duck rather than inside it: an
+effect is punctuation on the edit, not part of the bed, and side-chaining it
+against the voice would swallow the transient that makes it audible.
+
+The tests measure band energy in the mixed file. Asserting that a function ran
+is what let this sit dead for two sections.
+
+## 243. A stale worker is a silent outage
+
+The deployed worker's heartbeat listed 29 job kinds where the code has 32. It
+predated `generate_concepts`, `learn_from_performance` and
+`build_account_intelligence`, so those jobs sat `pending` forever — no error, no
+failed job, and the features they belong to looked broken for reasons nothing
+explained.
+
+The `kinds` list is a good staleness signal because it is derived from the code
+actually running and changes exactly when the handler map does. The heartbeat
+also recorded version `0.1.0` on every deploy ever made; it now records the
+commit.
+
+## 244. The check §242 said existed
+
+§242 set `forPublication: false` in the TTS handler — correctly, that mix
+happens long before approval — and left a comment claiming the publish path
+re-checked provenance. It did not. A fixture mixed at draft time would have
+reached a real post and the whole apparatus would have been decoration.
+
+`audioIsPublishable` runs against what was **recorded as used**, not against
+what the selector would choose if asked again: the file that exists is the one
+being published.
+
+## 245. Selecting a bed is not using one
+
+Production produced a `music_usage` row for a bed whose bytes were never read —
+the run selected it, wrote the row, then died before the mix. The mix shipped
+silent while the memory said the bed had played.
+
+That memory drives repetition avoidance, so a phantom entry silences a bed
+nobody heard, for a fortnight, on the strength of a use that did not happen.
+
+## 246. Captured footage did not survive a deploy
+
+A beat references product footage as a path inside the Remotion bundle's
+`public/` directory, and the capture handler wrote it there and nowhere else. A
+deployed container is ephemeral, so after any redeploy every render planning on
+product footage failed with a 404 from the bundle's own dev server — three
+retries, then `dead`, with nothing saying the file had not survived.
+
+The cut footage is now an asset tagged with the bundle-relative path the beat
+references, and the render handler stages it back before rendering. A render
+whose footage cannot be staged is **refused**: a beat planned around product
+footage that silently becomes a text card looks finished while the evidence it
+was built on is absent.
+
+## 247. The anchor stranded the top half of the frame
+
+Everything but a hook was bottom-anchored, justified as clearing the caption
+band — which `bandFor` already does by ending content at 72% of the height.
+Anchoring to the bottom of that band as well pushed a text card into the lowest
+third.
+
+A production frame showed it: a label and two lines in the bottom 40%, and 55%
+of a 1080×1920 card holding nothing. The distinction is **media, not role** —
+over footage the words belong low because there is a picture to keep; over
+nothing there is not.
