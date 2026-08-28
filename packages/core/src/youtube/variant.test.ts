@@ -177,3 +177,72 @@ describe('limitsFor', () => {
     expect(limitsFor('long_form').maxSeconds).toBeGreaterThan(180);
   });
 });
+
+/**
+ * §201. The audit gate needs a producer, and `capability_state` is it.
+ *
+ * These assert behaviour through the adapter rather than through the flag,
+ * because the defect was precisely that the flag existed and nothing wrote it.
+ */
+describe('the compliance-audit gate has a producer', () => {
+  const uploadStub = () => {
+    const calls: Array<{ url: string; body: unknown }> = [];
+    const fetchImpl = (async (input: string | URL, init?: RequestInit) => {
+      const url = String(input);
+      // Only the metadata initiation carries JSON; the chunk PUT carries bytes.
+      const body = typeof init?.body === 'string' ? JSON.parse(init.body) : undefined;
+      calls.push({ url, body });
+
+      // The adapter reads the asset bytes before it opens a session.
+      if (url.includes('x.invalid')) return new Response(new Uint8Array(512), { status: 200 });
+      if (url.includes('uploadType=resumable')) {
+        return new Response('{}', { status: 200, headers: { location: 'https://up.invalid/session-1' } });
+      }
+      return new Response(JSON.stringify({ id: 'vid-1' }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    }) as unknown as typeof fetch;
+    return { fetchImpl, calls };
+  };
+
+  const asset = {
+    id: 'a', publicUrl: 'https://x.invalid/v.mp4', mimeType: 'video/mp4',
+    kind: 'video' as const, width: 1080, height: 1920, durationSeconds: 20,
+  };
+  const item = {
+    id: 'i', platform: 'youtube' as const, format: 'video' as const,
+    body: 'body', title: 'Title', hashtags: [],
+  };
+
+  const publishWith = async (capabilityState: string) => {
+    const { getAdapter } = await import('../adapters/index.js');
+    const { fetchImpl, calls } = uploadStub();
+    await getAdapter('youtube').publish(item as never, [asset], {
+      id: 'acct', platform: 'youtube', handle: '@h', platformUserId: 'c1',
+      capabilityState,
+      tokens: { accessToken: 't', refreshToken: null, expiresAt: null, scopes: [] },
+      meta: { fetchImpl },
+    } as never);
+    const init = calls.find((c) => c.url.includes('uploadType=resumable'))!;
+    return (init.body as { status: { privacyStatus: string } }).status.privacyStatus;
+  };
+
+  it('uploads private while the account is draft_only', async () => {
+    expect(await publishWith('draft_only')).toBe('private');
+  });
+
+  /**
+   * The regression that matters. Before §201 this returned `private` too,
+   * because the only gate was a meta flag nothing in production ever set — so
+   * passing the audit changed nothing.
+   */
+  it('uploads public once an operator marks the account live', async () => {
+    expect(await publishWith('live')).toBe('public');
+  });
+
+  it('still refuses on any other state', async () => {
+    expect(await publishWith('pending_auth')).toBe('private');
+    expect(await publishWith('error')).toBe('private');
+  });
+});

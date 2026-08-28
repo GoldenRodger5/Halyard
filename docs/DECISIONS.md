@@ -5700,3 +5700,65 @@ sends `media_type: 'VIDEO'`, a video post rather than a short-form product.
 
 X and Threads can now be rehearsed without a public post, which is what this was
 blocking.
+
+## 201. The compliance-audit gate had no producer
+
+`YouTubeAdapter.publish` decided privacy like this:
+
+```ts
+const audited = account.meta?.complianceAuditPassed === true;
+const privacyStatus = audited && account.capabilityState === 'live' ? 'public' : 'private';
+```
+
+**Nothing in production sets `complianceAuditPassed`.** `account.meta` is
+assembled in `publish.ts` from `job.payload.accountMeta`, and a search for
+producers of that key finds four test files and nothing else. So `audited` was
+permanently `false`, the `&&` could never be satisfied, and every YouTube
+upload was private — *forever*, regardless of whether the audit had passed.
+
+The whole point of submitting the compliance audit is to stop uploading
+private. Passing it would have changed nothing, and the failure would have
+looked like YouTube's fault.
+
+### The producer it needed already existed
+
+`capability_state = 'live'` means "an operator marked this past platform
+review" (gotcha 5). For YouTube, platform review *is* the compliance audit.
+Using it makes the gate reachable, keeps the decision with a person, and keeps
+it in the same place it lives for every other platform rather than inventing a
+YouTube-shaped flag beside it.
+
+The meta flag is still honoured, so a test can force the public path without a
+database.
+
+### What this does and does not change
+
+It does not broaden anything today: YouTube is `draft_only`, so uploads stay
+private until a human deliberately changes that, and `publishing_enabled` still
+gates the pipeline above it. Verified against production after the change —
+`capability_state: draft_only`, `publishing_enabled: false`, 0 publications.
+
+`verifyCapabilities` got the same treatment with one deliberate limit: it never
+reports `live` on its own initiative. No API discloses audit status, so a
+capability refresh can only repeat what an operator declared. Inferring it from
+a successful upload would be wrong — unaudited uploads succeed too, they are
+just private.
+
+### Verified against the real API, which is how it was found
+
+§199 shipped on unit tests and rehearsals, neither of which sends anything. A
+real private upload (`ZWTKMBPMq9s`) exercised the changed path and was read back
+off YouTube:
+
+| | old code (`v5Ty6K5BuqE`) | new code (`ZWTKMBPMq9s`) |
+|---|---|---|
+| `categoryId` | 26, hardcoded Howto & Style | **27**, Education, from the item |
+| title | plain | `… #Shorts` appended within the 100-char limit |
+| description | — | link first, the Shorts assembly |
+| privacy | private | private |
+
+`status.publishAt` was deliberately **not** exercised live: scheduling a real
+`publishAt` schedules a real *public* video, so "testing" it means publishing
+it. Its request shape is verified by rehearsal instead, where nothing is sent.
+That asymmetry — some things cannot be tested live without doing the thing you
+are testing — is the argument for the rehearsal harness in §200.

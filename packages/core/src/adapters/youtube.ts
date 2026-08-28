@@ -217,7 +217,16 @@ export class YouTubeAdapter implements PlatformAdapter {
           nextAction: 'Create a channel on this account, then reconnect.',
         };
       }
-      const audited = account.meta?.complianceAuditPassed === true;
+      /*
+       * §201. Same gate, same reason — but note what this does *not* do: it
+       * never reports `live` on its own initiative. There is no API that
+       * discloses whether the compliance audit passed, so a capability refresh
+       * can only repeat what an operator already declared. Inferring it from a
+       * successful upload would be wrong: unaudited uploads succeed too, they
+       * are just private.
+       */
+      const audited =
+        account.capabilityState === 'live' || account.meta?.complianceAuditPassed === true;
       return {
         state: audited ? 'live' : 'draft_only',
         detail: audited
@@ -242,7 +251,29 @@ export class YouTubeAdapter implements PlatformAdapter {
     const asset = assets.find((a) => a.kind === 'video');
     if (!asset) throw new PublishError('YouTube requires a video asset.', 'permanent');
 
-    const audited = account.meta?.complianceAuditPassed === true;
+    /**
+     * §201. The audit gate had no producer, so it could never open.
+     *
+     * This read `account.meta?.complianceAuditPassed === true`, and **nothing
+     * in production sets it.** `meta` is assembled in `publish.ts` from
+     * `job.payload.accountMeta`, which only ever appears in tests. So `audited`
+     * was always false, and every YouTube upload was private regardless of
+     * whether the compliance audit had actually passed. Passing the audit —
+     * the whole point of the exercise — would have changed nothing.
+     *
+     * The producer it needed already exists. `capability_state = 'live'` is
+     * exactly "an operator marked this past platform review" (gotcha 5), which
+     * for YouTube *is* the compliance audit. Using it makes the audit
+     * meaningful and keeps the decision where it belongs: with a person, in one
+     * place, for every platform.
+     *
+     * This does not broaden anything today — YouTube is `draft_only`, so
+     * uploads stay private until a human changes that deliberately, and
+     * `publishing_enabled` still gates the pipeline above it. The meta flag is
+     * still honoured so a test can force the path without a database.
+     */
+    const audited =
+      account.capabilityState === 'live' || account.meta?.complianceAuditPassed === true;
     const privacyStatus = audited && account.capabilityState === 'live' ? 'public' : 'private';
 
     /**

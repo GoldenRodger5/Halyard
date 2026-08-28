@@ -108,42 +108,23 @@ conflating them is why "YouTube verification" sounds like one task.
   Adding a scope enlarges the verification surface, so it should be added
   *deliberately*, when there is a feature that needs it — not pre-emptively.
 
-### 2. GOOGLE CLOUD CONSOLE ACTIONS — yours, and mechanical
+### 2. GOOGLE CLOUD CONSOLE — already done, verified from evidence
 
-**Enable the APIs**
+These were checked rather than assumed, and all three are **already correct**.
+Recorded here so nobody re-does them.
+
+| | How it was verified |
+|---|---|
+| **YouTube Data API v3 enabled** | `videos.insert` succeeded. A disabled API returns `accessNotConfigured`, not a video id. |
+| **Redirect URI correct** | The OAuth round trip completed and stored a refresh token. A mismatch fails at `redirect_uri_mismatch` before any token exists. |
+| **Consent screen is *In production*, not Testing** | The connection is **14 days old and its refresh token still works**. Google expires Testing-mode refresh tokens after 7 days. A token refreshing at day 14 cannot be in Testing. |
+
+The one value worth keeping written down, since it must match exactly:
 
 ```
-CLICK → console.cloud.google.com → APIs & Services → Library
-      → "YouTube Data API v3"      → Enable      (required; everything uses it)
-      → "YouTube Analytics API"    → Enable      (only when D is implemented)
-```
-
-**Check the OAuth client's redirect URI matches exactly**
-
-```
-CLICK → APIs & Services → Credentials → the OAuth 2.0 Client ID
-FIELD   Authorised redirect URIs
+FIELD   Authorised redirect URI
 VALUE   https://halyard-ten.vercel.app/api/oauth/youtube/callback
 ```
-
-Exact match, including scheme and no trailing slash. Halyard builds this from
-`OAUTH_REDIRECT_BASE_URL`, falling back to the request origin
-(`lib/oauthRedirect.ts`).
-
-**Check the publishing status of the consent screen**
-
-```
-CLICK → APIs & Services → OAuth consent screen
-FIELD   Publishing status
-```
-
-- **Testing** — only listed test users can connect, refresh tokens expire after
-  7 days, and the connection dies weekly. If it says Testing, either add
-  `isaacmineo@gmail.com` as a test user *and expect weekly reconnects*, or
-  publish the app.
-- **In production** — unverified apps show an "unverified app" interstitial and
-  are capped at 100 users. For a single-operator tool that cap is irrelevant;
-  the warning screen is cosmetic.
 
 ### 3. GOOGLE VERIFICATION / AUDIT ACTIONS — two *different* reviews
 
@@ -198,13 +179,13 @@ and `0`.
 
 | | What | Whose |
 |---|---|---|
-| 1 | Enable YouTube Data API v3 in Cloud Console | you |
-| 2 | Confirm redirect URI matches exactly | you |
-| 3 | Confirm consent-screen publishing status (Testing = weekly reconnects) | you |
-| 4 | Submit the YouTube API Services audit — this is what lifts `draft_only` | you |
-| 5 | Replace `impressions = viewCount` with real Analytics API figures | code |
-| 6 | Add `youtube.force-ssl` **when** a feature needs thumbnails or privacy flips | code, deliberately deferred |
-| 7 | Long-form render path — no composition produces landscape video yet | code |
+| 1 | **Submit the YouTube API Services audit** — the only remaining gate on public publishing | you |
+| 2 | After it passes: set the account to `live` on the Accounts screen. Nothing else opens the gate (§201) | you |
+| 3 | Replace `impressions = viewCount` with real Analytics API figures | code |
+| 4 | Add `youtube.force-ssl` **when** a feature needs thumbnails or privacy flips | code, deliberately deferred |
+| 5 | Long-form render path — no composition produces landscape video yet | code |
+
+Cloud Console configuration is **done** — see §C.2. It was verified, not assumed.
 
 Item 7 is worth naming plainly. The adapter, the copywriter spec and the
 validation all support long-form now, but **nothing renders landscape video.**
