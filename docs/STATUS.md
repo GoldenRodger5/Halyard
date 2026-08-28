@@ -1,5 +1,53 @@
 # Where Halyard is right now
 
+**2026-08-28 — the creative system is a system, and it has run against
+production.**
+
+*What was wrong.* Every video Halyard made set its headings in one serif and its
+body in one sans, opened with the same kicker over the same headline at the same
+height, and cut in one of five languages derived from the treatment by a lookup.
+Motion varied, the register varied, the treatment varied — and none of it was
+visible, because the three things a viewer actually registers never changed.
+
+*What exists now.* Seven bundled SIL OFL families, six typography systems,
+thirteen visual languages each with a distinct motion signature, seven opening
+compositions, and a **Creative Director** that chooses the language every other
+decision hangs off — so typography, motion and the music bed agree about what
+kind of film this is instead of each guessing from the treatment. Recency
+carries the largest weight in every one of those choices, because an account
+that always looks the same is the complaint. `docs/CREATIVE_SYSTEM.md`.
+
+*Platform variants are real.* `platform_variants` had columns and no writer;
+a TikTok, a Reel and a Short got the same file with different words. Each
+platform now gets its own pacing, density, hook treatment, CTA and audio
+treatment, and a decision — reuse, remix, original, or **skip**. Skip is what
+makes the others honest.
+
+*It ran in production.* Publishing stayed off. The first run found that
+production had **never generated anything**: a first-run wizard guard refusing on
+stale flags, with the brand voice and eleven templates in place all along. Then
+four more defects that no test could see — two NOT NULL columns that assumed a
+concept always comes first, a decision vocabulary with no word for `remix`,
+`fitWords` with no caller putting 25 words on a frame, and a fit computed at base
+size then multiplied by 1.85 after fitting. Three consecutive pieces on the same
+account came out as `listicle/energetic_short/creator_condensed`,
+`process_montage/fast_cut_creator/grotesque_punch`, and
+`how_to/premium_instructional/display_contrast`.
+
+*Real media, measured.* A production video: 1080×1920 h264, 30fps, 26.8s, AAC
+48kHz, **−14.39 LUFS**, −1.01 dBTP, no silence over 1.5s.
+
+**2537 tests, 147 files.** Typecheck, lint and `next build` all clean — the
+build matters, because a client component importing the core barrel passed
+2,524 tests and failed only there. `clientBoundary.test.ts` is now the fast
+version of that signal.
+
+**Waiting on you:** licensed music and SFX (a purchase, not code); the YouTube
+compliance audit; whether to request `youtube.force-ssl` for thumbnails;
+enabling the landscape and thumbnail templates once you have looked at a render;
+and Anthropic credit — the key is out of balance, and the production run used
+`LLM_PROVIDER=openai`.
+
 **2026-08-28 — the creative model stopped being write-only, and long-form got
 the two things that make it shippable.**
 

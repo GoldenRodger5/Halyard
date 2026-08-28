@@ -310,6 +310,35 @@ export async function renderHandler(job: Job, ctx: HandlerContext): Promise<void
         [render.content_item_id],
       );
       if (Number(outstanding[0]?.n ?? 0) === 0) {
+        /*
+         * §238. A render that succeeds clears a failure it caused.
+         *
+         * Only when the item was failed *by a render* — the marker written in
+         * the catch below — and only when no final render for it is still
+         * failed. An item failed for any other reason keeps its status,
+         * because a render succeeding says nothing about a claim that could
+         * not be verified.
+         */
+        const { rows: recovered } = await ctx.pool.query<{ id: string }>(
+          `update content_items
+              set status = 'pending_approval',
+                  generation_meta = generation_meta - 'renderFailure'
+            where id = $1
+              and status = 'failed'
+              and generation_meta ? 'renderFailure'
+              and not exists (
+                select 1 from renders
+                 where content_item_id = $1 and quality = 'final' and status = 'failed'
+              )
+            returning id`,
+          [render.content_item_id],
+        );
+        if (recovered.length > 0) {
+          ctx.log('item recovered after a successful re-render', {
+            contentItemId: render.content_item_id,
+          });
+        }
+
         await ctx.enqueue(
           'review_media',
           { contentItemId: render.content_item_id },
@@ -323,9 +352,28 @@ export async function renderHandler(job: Job, ctx: HandlerContext): Promise<void
       (err as Error).message.slice(0, 2000),
     ]);
     if (render.content_item_id && job.attempts >= job.max_attempts) {
-      await ctx.pool.query(`update content_items set status = 'failed' where id = $1`, [
-        render.content_item_id,
-      ]);
+      /*
+       * §238. Marked failed *and attributed*.
+       *
+       * The reason matters because it is the only thing that makes recovery
+       * safe. Without it a later successful render cannot tell whether the
+       * item is failed because of this render or because of something else
+       * entirely, so it must leave it alone — and a production item was found
+       * stuck at `failed` with both of its renders `done` and no error, which
+       * no screen explains and no job retries.
+       */
+      await ctx.pool.query(
+        `update content_items
+            set status = 'failed',
+                generation_meta = generation_meta || jsonb_build_object(
+                  'renderFailure', jsonb_build_object(
+                    'renderId', $2::text,
+                    'at', now()::text,
+                    'error', $3::text
+                  ))
+          where id = $1`,
+        [render.content_item_id, renderId, (err as Error).message.slice(0, 400)],
+      );
     }
     throw err;
   }

@@ -6356,3 +6356,216 @@ Writing it down is not a derivation. `CreativePlan` already carries the
 treatment, the beats, the runtime, the evidence and the rationale; the row is a
 record of a decision that was already made, and `content_items.brief_id` is what
 makes it findable from the thing it produced.
+
+## 226. Six typography systems, because one pairing made every video the same
+
+Every video set its headings in Instrument Serif and its body in Inter, because
+those were the only two families on disk. Motion varied (§220), the register
+varied (§211), the treatment varied (§203) — and every frame still opened in the
+same type, so none of that variation was visible.
+
+Five more families ship with the render package, all SIL OFL, as **variable**
+faces so one file covers a weight range. Fetched from the upstream sources
+rather than the CDN, whose unicode-range subsets are partial faces that render
+missing glyphs.
+
+The unit of choice is a **system**, not a face. A pairing is not two independent
+choices: a high-contrast display serif wants a quiet grotesque under it and
+looks wrong under a second display face. A director picks a system; it never
+picks a font.
+
+`inkFor` gained a `role`, so a label can be uppercase and tracked while body
+copy in the same system is neither. Before that, every piece of text on a frame
+was the same face at different sizes.
+
+## 227. Thirteen visual languages, and a test that they are not synonyms
+
+Five languages was enough to prove the grammar and not enough to stop an account
+looking like one show. The new ones are the looks a social team would name in a
+brief — `editorial_food`, `fast_cut_creator`, `premium_instructional` — and each
+is a distinct *motion behaviour*, not a label.
+
+`motion.test.ts` builds a signature from every language's entrance, camera,
+transition, amplitude and direction across four beats, and fails any two that
+match. A set of labels over one behaviour is variety that is not variety, which
+is the specific failure this codebase keeps finding.
+
+**Coverage is an invariant, not a hope.** The first typography mapping left six
+of the thirteen languages with exactly one compatible system, so type never
+varied for them at all. Every language now has at least three: two alternate,
+and a viewer reads an alternation as a pattern; three or more rotate.
+
+## 228. A Creative Director, so the choices cooperate
+
+`selectCreativePlan` chose a treatment, `motionFor` moved a beat,
+`selectTypography` picked type. Each was right alone and none chose the **look** —
+the language everything else hangs off, which was derived from the treatment by
+a seven-entry lookup. Eight of the thirteen languages were reachable from
+nothing at all.
+
+Deterministic, because this is a resolution of constraints that all exist as
+data: what the concept is about, what the platform rewards, what the account
+just did, what performed, what assets exist. A model asked the same question
+would be less consistent and could not explain itself against the alternatives.
+
+**It refuses rather than penalising.** `product_led` with no footage is
+restrained motion around nothing; `cinematic` under fifteen seconds has no room
+for a considered pace. Recency carries the largest single weight, because an
+account that always looks the same is the actual complaint.
+
+## 229. Seven openings, because the layout was the last thing that never varied
+
+Rendered side by side, all six typography systems still opened identically: a
+small uppercase kicker, then the headline, both flush left at the same height.
+Type and motion vary *inside* a layout; the layout is what makes an account look
+like one show.
+
+Availability is content-dependent and that is the point. `numeral` needs a real
+figure from the artifact and is unavailable without one — inventing a number to
+unlock a nicer composition would be fabricating evidence for a design reason,
+which is the worst kind. `over_media` needs media; `cold_open` needs a before
+state; `question` needs a hook that actually asks something, because punctuating
+a statement with a question mark is the cheapest trick in the format.
+
+**Two defects, both found by rendering the frames.** The question opening printed
+its mark twice — the sentence's and the display one. The fragment reveal split
+one sentence into two blocks, so the hold forced a line break wherever it fell;
+it is one paragraph with two spans now, and only the opacity changes.
+
+## 230. Parallax was a push with a drift
+
+`parallax` had been in the vocabulary since §220, implemented as a translate and
+a scale on the *whole subtree*. Two planes moving at different rates is what
+parallax is, and one plane moving is a camera move with a different name.
+
+The background and the foreground were already siblings, so the fix was to make
+them move *against* each other. Counter-motion rather than merely different
+rates: on a 1080-wide frame, at amplitudes that stay tasteful, same-direction
+motion at different speeds is indistinguishable from a single drift.
+
+## 231. Platform variants that are actually different
+
+`platform_variants` had columns for pacing, text density, hook treatment, CTA
+and audio treatment since §218 and **no writer**. A TikTok, a Reel and a Short
+got the same file with different words underneath.
+
+The decision matters more than the spec: `reuse`, `remix`, `original`, `skip`.
+**Skip is what makes the others honest** — a system that always finds a way to
+post everywhere is a system that posts things it should not, and a montage on a
+still surface is a slideshow.
+
+A reused *edit* never reuses the *wording*. Two accounts posting the identical
+hook a day apart is the clearest tell that a feed is automated, and the cheapest
+thing to vary.
+
+## 232. A voice that is directed rather than defaulted
+
+`synthesize` took stability 0.55 and similarity 0.8, and nothing ever passed
+anything else, so a playful fifteen-second TikTok and a considered explainer were
+read identically. Stability is a **performance** setting, not a quality one:
+high is consistent and flat, low is expressive and varies between renders.
+
+The half the API cannot take goes to the writer instead. ElevenLabs exposes no
+per-word emphasis and no speed control on this endpoint, so pace and stress live
+in the sentences — a comma is a pause, a short sentence is emphasis, an em dash
+is a beat. Passing a `speed` that does not exist would silently produce a flat
+read, which is the same shape as a gate that never runs.
+
+## 233. Sound design, anchored to the edit
+
+Every cue is tied to something the edit already decided: a transition sound
+marks a transition that exists, an impact marks a beat that enters on a pop, a
+UI sound marks a **captured** product interaction. Nothing is placed for energy.
+
+A hard cut gets nothing, because the point of a hard cut is that it is instant
+and a whoosh over one turns it into a wipe. `documentary`, `cinematic` and
+`editorial_food` get no sound design at all — punctuating them reads as a sizzle
+reel.
+
+The density cap is deliberately low. One effect every four seconds is already
+busy; above that a viewer stops hearing individual sounds and starts hearing
+production.
+
+A tap over footage where nothing is tapped is a **fabricated interaction**, in
+the same family as a fabricated screenshot. The library ships empty for the same
+reason `music_beds` does.
+
+## 234. Nine more gates, and a namespace that was covering for them
+
+The creative acceptance suite judges pacing against what the platform variant
+asked for, motion density in both directions, repetition of language, opening
+and typography, unexplained silence, loudness, and alt text. Every input is
+optional and an absent one reports `unmeasured` rather than passing — gotcha 6.
+
+All nine were "covered" by the `creative` namespace fallback, which routes to
+`resequence_scenes`: a correction that cannot add alt text, cannot change a font
+and cannot remix audio. `policyCoverage.test.ts` passed the entire time.
+
+It now fails when a namespace that already needed a specific entry leaves any
+rule inherited — the evidence that a namespace is not uniform is that somebody
+already had to write one. That found two more that were wrong:
+`creative.repeated_treatment` was resequencing a finished render to fix a
+property of the *sequence*, and `coherence.opening_line_buries_it` was
+resequencing scenes to fix a writing defect.
+
+## 235. The Studio, and gotcha 10 catching a fourth victim
+
+Concepts, selection, direction pins, rejection with a reason. Everything an
+operator sets is a **pin**: the directors honour it absolutely, including over
+their own objection, which they record rather than silently overriding.
+
+Its client component imported `@halyard/core` to fill a dropdown. That
+typechecked, linted, and passed all 2,524 tests, then failed the production
+build with `UnhandledSchemeError: node:crypto`. The landmine is documented in
+CLAUDE.md and it still happened, because the only thing that catches it is the
+slowest signal in the repository.
+
+`clientBoundary.test.ts` is the one-second version.
+
+## 236. What the first real production run found
+
+Production had generated nothing, ever. The cause was a first-run wizard guard
+refusing on **stale flags**: a brand voice with rules existed and eleven
+templates were enabled, and `step_voice_done` and `step_templates_done` had
+never been flipped.
+
+Then, running against real RecipeFix data:
+
+- `creative_briefs.concept_id` and `platform_variants.concept_id` were `not
+  null`, which assumed a concept always comes first. §218 made concept
+  generation asynchronous precisely so a model call could not stall a run, so a
+  brief planned from the artifact alone is a real state.
+- `platform_variants.decision` had no value for **remix**, which is the case
+  that separates a cross-post from a feed that reads as automated.
+
+## 237. A fit that fitted the wrong size
+
+`fitWords` had existed since §211 with no caller. The cost was visible on the
+first real production frame: a step beat carrying 25 words. It also cut at the
+word limit, turning a sentence into a fragment that stops mid-thought, so it now
+cuts at a boundary the writer put there.
+
+The larger bug was underneath it. `fitScale` searched for a scale whose height
+fits the band, and the font size was then computed as `base × scale ×
+typeScale`. In the punch register that multiplies a fitted block by 1.85 **after**
+fitting it, so every dense beat overflowed by exactly that factor.
+
+Both halves were correct and their composition was not, which no unit test of
+either half can see.
+
+The first correction divided the band by `typeScale` instead, and still
+overflowed by 7%: height is not linear in scale, because bigger type wraps
+sooner. The multiplier is passed *into* the fit.
+
+## 238. A failure nothing could explain
+
+A production item sat at `status = 'failed'` with both of its renders `done` and
+no error recorded anywhere. The render had failed, marked the item, then been
+retried successfully — and there was no path back.
+
+A render failure is now attributed on the item, and a later success clears **only
+a failure that renders caused**. A render succeeding says nothing about a claim
+that could not be verified, and resurrecting such an item would push
+unverifiable content back toward approval.
+
+The marker is what makes the recovery safe rather than merely convenient.
