@@ -124,9 +124,16 @@ describe('client credential resolution', () => {
     expect(r).toMatchObject({ clientId: 'threads-id', source: 'primary' });
   });
 
-  it('falls back to the Meta app, and says that it did', () => {
+  it('does not borrow the Meta app id for Threads', () => {
+    /*
+     * §177. This asserted the opposite. Production disproved it: Threads answers
+     * `META_APP_ID` with "No App ID was sent with the request", so the fallback
+     * bought nothing and cost the diagnosis — a fixable Halyard state became a
+     * provider error naming no variable.
+     */
     const r = resolvePlatformClient('threads', { META_APP_ID: 'meta-id', META_APP_SECRET: 'meta-secret' });
-    expect(r).toMatchObject({ clientId: 'meta-id', source: 'fallback' });
+    expect(r.source).toBe('missing');
+    expect(r.clientId).toBeNull();
   });
 
   it('treats an empty string as unset — dotenv parses `KEY=` to ""', () => {
@@ -137,7 +144,7 @@ describe('client credential resolution', () => {
   });
 
   it('names every variable it tried, so the error is actionable', () => {
-    expect(resolvePlatformClient('threads', {}).tried).toEqual(['THREADS_APP_ID', 'META_APP_ID']);
+    expect(resolvePlatformClient('threads', {}).tried).toEqual(['THREADS_APP_ID']);
   });
 
   it('never resolves one platform from another platform’s credentials', () => {

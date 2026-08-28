@@ -173,10 +173,24 @@ export function adapterForAccount(
  * used, so the UI can tell an operator that Threads is running on Meta credentials
  * rather than leaving them to infer it from a provider error.
  */
+/**
+ * Where a platform may borrow another's credentials. Deliberately empty.
+ *
+ * §177. Threads used to fall back to the Meta app id, on the theory that an
+ * operator who had not split them yet should keep working. Production settled it:
+ * sending `META_APP_ID` to `threads.net/oauth/authorize` fails with
+ * **"Authorization Failed: No App ID was sent with the request"** — Meta's way of
+ * saying the id it received is not a *Threads* app id.
+ *
+ * So the fallback never bought anything. What it cost was the diagnosis: a clear,
+ * fixable Halyard state — "Threads needs its own app id" — was converted into a
+ * provider error naming no variable, on a page Halyard does not control.
+ *
+ * A platform with no credentials of its own now reports `missing`, and the
+ * Accounts card says exactly which variables to set.
+ */
 export const PLATFORM_CLIENT_FALLBACK: Partial<Record<PlatformId, { id: string; secret: string }>> =
-  {
-    threads: { id: 'META_APP_ID', secret: 'META_APP_SECRET' },
-  };
+  {};
 
 export type ResolvedClient = {
   clientId: string | null;

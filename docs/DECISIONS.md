@@ -5485,3 +5485,29 @@ one that fired.
 
 Ownership is untouched: `duplicate_identity` still refuses an identity already
 connected to another persona or product, and product/persona routing is unchanged.
+
+---
+
+## 177. Threads cannot borrow the Meta app id
+
+§173 gave Threads a fallback to `META_APP_ID`, reasoning that an operator who had
+not yet split the two should keep working. Production disproved it: the Threads
+authorisation returns
+
+> Authorization Failed: No App ID was sent with the request.
+
+which is Meta's way of saying the id it received is not a *Threads* app id. The
+fallback never bought anything.
+
+What it cost was the diagnosis. A clear, fixable Halyard state — "Threads needs
+its own app id, set `THREADS_APP_ID`" — was converted into a provider error that
+names no variable, on a page Halyard does not control, after a redirect. The
+operator's only clue was a sentence that sounds like a bug in the request.
+
+**Chosen:** no fallback at all. `PLATFORM_CLIENT_FALLBACK` is empty, and a
+platform with no credentials of its own reports `missing`, which the Accounts card
+renders as "Needs developer setup" naming the exact variables. **Rejected:**
+keeping the fallback with a louder warning — the connection still fails, just with
+two explanations instead of one.
+
+A fallback is only worth having when the thing it falls back to can work.
