@@ -14,6 +14,7 @@ export * from './imagery/openai.js';
 export * from './copy/budget.js';
 export * from './learning/insights.js';
 export * from './discovery/freshness.js';
+export * from './discovery/opportunity.js';
 export * from './social/portfolio.js';
 export * from './social/recommendations.js';
 export * from './strategy/decide.js';

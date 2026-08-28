@@ -6673,3 +6673,92 @@ A production frame showed it: a label and two lines in the bottom 40%, and 55%
 of a 1080×1920 card holding nothing. The distinction is **media, not role** —
 over footage the words belong low because there is a picture to keep; over
 nothing there is not.
+
+## 248. An import path that will not guess a licence
+
+The library is the one place where a mistake is a *legal* mistake. A bed with
+a plausible-looking licence string and no proof is exactly as publishable as a
+real one unless something refuses it, so the refusal lives in code with tests
+rather than in the head of whoever ran the importer.
+
+Duration is measured from the file. A manifest claiming ninety seconds for a
+twelve-second file produces a bed the selector believes can cover a
+thirty-second piece, and the mix runs dry two thirds through with nothing
+reporting it.
+
+There is no path from "this was free to download" to publishable that does not
+pass through a person writing down where the grant can be checked. An
+unfamiliar licence is `unverified`, not assumed fine — and unverified beds are
+still imported, because discarding them means downloading them again later and
+re-deciding the same question.
+
+A bed whose mood the director cannot score is refused outright: it would sit in
+the library, paid for, and never be selected.
+
+## 249–251. Long-form, and the two ways it was still a Short
+
+Ask a short-form planner for eight minutes and the timing engine stretches four
+beats to two minutes each. Five structures now produce *sections* with intended
+lengths; the proportions are the argument.
+
+The chapter rules shape the structure rather than being applied to it (§223), so
+a test runs the sections through `chaptersFromBeats` to prove the list is one
+YouTube will render.
+
+**Then it was still a Short, twice.** `defaultSubtypeFor('youtube')` returns
+`short`, so nothing could *ask* for long-form and the whole architecture sat
+behind a condition that never fired. And once it fired, the render was 28
+seconds: the render length follows the voiceover, and the voiceover was written
+to `VO_TARGET_SECONDS` regardless.
+
+**Then the script was sixty words.** Asked for eleven hundred in one call, the
+model wrote a short-form script and stopped — that is what a single "write a
+voiceover" request looks like however large the number in it is. The sections
+were already there and each is a normal-sized writing task with its own brief.
+
+## 252. Types do not survive a JSON boundary
+
+A render died on `Minified React error #31` — an object with keys
+`{adapted, stepNote, tradeoff, replaceTerm}` passed as a React child. The
+connector returned a structured swap where the planner expected a line of text,
+and every layer carried it: the plan *types* the field as `string | undefined`
+and nothing checked at runtime, so the first thing to object was React,
+minified, three retries deep, on the deployed worker.
+
+The best available string is salvaged where there is one. A transformation card
+missing its "after" is a worse render; a card carrying an object is no render at
+all, because React refuses the whole tree.
+
+## 253. A selector with no way to fail gracefully
+
+Capture died on `role=button[name="Adapt This Recipe →"]` — an exact match
+including a trailing arrow, against a UI that ships continuously, with no
+fallbacks on the step. One copy change stopped every recording of the product's
+central action.
+
+§159 learned this for `aria-label="Choose your swap"` and the fix did not
+spread. Four more bare click steps now have fallbacks that widen the way a
+person would try: the same name without the decoration, a pattern, then the
+structural control.
+
+## 254–255. Discovery that refuses in four distinguishable ways
+
+`freshness.ts` decayed a signal and ranked it. Nothing decided whether a signal
+was *worth making content about*, which is a different question.
+
+Four refusals, and they are not interchangeable: `off_brand` is permanent,
+`covered` is a no for now, `unbuildable` is a no until the product ships
+something, `stale` fixes itself by being dropped. Collapsing them into one
+`false` is how a discovery system becomes a thing that rejects everything for
+reasons nobody can act on.
+
+A signal with no source is refused **before** scoring. Gotcha 9 applies to
+trends exactly as it does to metrics: a trend Halyard cannot point at is one it
+invented.
+
+`pipeline.test.ts` carries a signal through all ten stages — opportunity,
+direction, typography, opening, motion, variants, voice, music, sound design,
+QC — using the real production functions with fixed inputs. It does not prove
+the content is good; nothing automated can. It proves each stage produces
+something the next can consume, which is the failure this codebase keeps
+finding: two stages that each work, joined by nothing.
