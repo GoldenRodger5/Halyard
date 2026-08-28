@@ -1,5 +1,42 @@
 # Where Halyard is right now
 
+**2026-08-28 — the creative model stopped being write-only, and long-form got
+the two things that make it shippable.**
+
+*The bug under the bug.* `creative_briefs` had **no writer at all**. Production
+held zero briefs, so §221's audio direction and §223's chapters were both
+correct code joined to an empty table — three systems, one missing insert. This
+is the third time (§210 `strategy_decisions`, §217 `signals`, now this), and
+every time it looked like success: fixtures fill the table in tests, no rows is
+not an error, the dashboards stay green. `tableWriters.test.ts` now reads every
+SQL statement in production code and fails when a table on its list has readers
+and no writer. Verified by removing the fix and watching it fail. §225.
+
+*Chapters.* YouTube shows them only when the whole list satisfies rules it never
+reports on — first stamp `0:00`, at least three, ten seconds each. Break one and
+the description renders as plain text with an identical API response. Enforced
+in code; a list that cannot comply is refused with a reason recorded on the
+publication. Timestamps come from `layoutScenes` against the measured runtime of
+the file being uploaded. §223.
+
+*Thumbnails.* A thumbnail is served at 1280×720 and drawn at ~360px, so the
+limits are expressed as rendered sizes and the canvas figures derived from them.
+Two defects found by shrinking a render and looking: the canvas was 1920×1080
+(right ratio, wrong picture, invalidating the arithmetic) and the overlay asked a
+400-weight serif for 700, which fell back silently and read as a thin line.
+**`thumbnails.set` is unreachable**: it needs `youtube.force-ssl`, and the
+connected channel holds `upload`/`readonly`/`analytics` — checked against
+production. The upload refuses and names the scope rather than 403ing. Widening
+the grant changes what the compliance audit covers and gives full channel write
+access, so it is the operator's call. §224.
+
+**2447 tests, 139 files**, with `TEST_DATABASE_URL=postgres://localhost:5432/postgres`.
+
+**Open, and needing you:** licensed music (zero beds — a purchase, not code),
+the YouTube compliance audit submission, whether to request `youtube.force-ssl`
+for thumbnails, and enabling the landscape templates once you have looked at a
+render.
+
 **2026-08-28 — a video can be landscape, and a mix can be directed.** Two gaps
 that had been quietly structural closed in one pass.
 

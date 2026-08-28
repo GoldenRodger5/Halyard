@@ -106,6 +106,8 @@ export interface RenderTemplateInput {
   aspectRatio: string;
   quality?: 'preview' | 'final';
   wordmark?: string;
+  /** Exact canvas, where the aspect ratio does not determine it. §224. */
+  size?: { width: number; height: number };
 }
 
 export async function renderTemplate(input: RenderTemplateInput): Promise<RenderedImage> {
@@ -151,7 +153,19 @@ export async function renderTemplate(input: RenderTemplateInput): Promise<Render
     wordmark: input.wordmark,
   } as never);
 
-  return renderElement(element, { aspectRatio: input.aspectRatio, quality: input.quality });
+  return renderElement(element, {
+    aspectRatio: input.aspectRatio,
+    quality: input.quality,
+    /*
+     * §224. A thumbnail has an exact canvas, not an aspect ratio.
+     *
+     * 16:9 resolves to 1920x1080 for a video frame, and a YouTube thumbnail
+     * is 1280x720 — the same ratio, a different picture. The legible-size
+     * arithmetic is calibrated against the real canvas, so passing the wrong
+     * one produces type that satisfies the check and is unreadable anyway.
+     */
+    ...(input.size ? { size: input.size } : {}),
+  });
 }
 
 /**

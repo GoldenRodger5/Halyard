@@ -351,6 +351,10 @@ describe('required props are declared correctly', () => {
     total: 6,
     kicker: 'One change',
     bodyLines: ['A line of body copy.'],
+    /* §224. A thumbnail is read at ~360px wide, so its sample is a real
+       six-words-or-fewer line at a size that survives the shrink. */
+    overlayText: 'Why gluten-free bread fails',
+    fontSizePx: 150,
   };
 
   for (const [templateId, required] of Object.entries(TEMPLATE_REQUIRED_PROPS)) {

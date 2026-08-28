@@ -164,3 +164,55 @@ export function checkThumbnail(input: {
 export function thumbnailPasses(issues: ThumbnailIssue[]): boolean {
   return !issues.some((i) => i.severity === 'fail');
 }
+
+/**
+ * The words on the thumbnail, from what the concept already said. §224.
+ *
+ * ## Why this is not a truncation
+ *
+ * The obvious implementation is to cut the hook at six words. It produces
+ * things like "Why gluten-free bread fails every" — a sentence stopped
+ * mid-thought, which reads as a bug rather than as a headline. A thumbnail
+ * line has to be a complete thought, so the only safe transformations are
+ * ones that end on a boundary the writer already put there.
+ *
+ * So: take the hook if it already fits; otherwise take its first clause if
+ * *that* fits; otherwise refuse. Refusing is honest and rare — it means the
+ * concept never expressed itself briefly, which is a thing worth knowing
+ * about the concept.
+ *
+ * A refusal is not a failure to render. It is the signal that this line needs
+ * a person or a writer, and `checkThumbnail` is what decides either way.
+ */
+export function thumbnailTextFrom(
+  concept: { hook?: string | null; title?: string | null },
+): { text: string; source: 'hook' | 'hook_clause' | 'title'; } | { text: null; reason: string } {
+  const candidates: Array<[string, 'hook' | 'hook_clause' | 'title']> = [];
+
+  const hook = (concept.hook ?? '').trim().replace(/\s+/g, ' ');
+  if (hook) {
+    candidates.push([hook, 'hook']);
+    /* A clause boundary the writer chose, not a cut at an arbitrary word. */
+    const clause = hook.split(/\s*[,;:—–]\s*|\s+[-]\s+/)[0]?.trim();
+    if (clause && clause !== hook) candidates.push([clause, 'hook_clause']);
+  }
+
+  const title = (concept.title ?? '').trim().replace(/\s+/g, ' ');
+  if (title) candidates.push([title, 'title']);
+
+  for (const [text, source] of candidates) {
+    const stripped = text.replace(/[.!?]+$/, '');
+    if (stripped.split(/\s+/).filter(Boolean).length <= MAX_THUMBNAIL_WORDS) {
+      return { text: stripped, source };
+    }
+  }
+
+  return {
+    text: null,
+    reason:
+      candidates.length === 0
+        ? 'The concept carries neither a hook nor a title.'
+        : `Nothing the concept says fits in ${MAX_THUMBNAIL_WORDS} words without cutting a sentence in half. ` +
+          `Shortest candidate: "${candidates.reduce((a, b) => (a[0].length <= b[0].length ? a : b))[0]}".`,
+  };
+}

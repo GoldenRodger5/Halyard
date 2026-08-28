@@ -1,3 +1,4 @@
+import { THUMBNAIL_HEIGHT, THUMBNAIL_WIDTH } from '@halyard/core';
 /**
  * Satori image templates. v1 §5.1.
  *
@@ -364,6 +365,109 @@ function screenshot(dataUri: string): SatoriElement {
   };
 }
 
+
+/**
+ * A YouTube thumbnail. §224.
+ *
+ * Built against `MIN_CANVAS_TEXT_PX` rather than against the canvas, because
+ * this is the one template in the package that is never seen at its own size.
+ * A thumbnail is served at 1280x720 and drawn at roughly 360px wide, so type
+ * that looks generous here is 28% of that where it is actually read.
+ *
+ * Deliberately not `frame()`. That helper centres content in a padded column,
+ * which is right for a feed card and wrong here: a thumbnail has to keep its
+ * bottom-right corner clear of the duration badge YouTube stamps over every
+ * impression, and it wants its words hard against one edge rather than
+ * floating in the middle.
+ */
+export interface ThumbnailProps extends TemplateBase {
+  /** Short. `checkThumbnail` refuses more than six words, and means it. */
+  overlayText: string;
+  /** Canvas font size, already corrected for the feed by `thumbnailFontSize`. */
+  fontSizePx: number;
+  /** A real screenshot, inlined by the render handler. Never generated. */
+  screenshotDataUri?: string;
+}
+
+export function youtubeThumbnail(props: ThumbnailProps): SatoriElement {
+  /*
+   * The real canvas, not `CANVAS['16:9']`. That entry is 1920x1080 — the same
+   * ratio as a thumbnail and not the same picture, and the legible-size
+   * arithmetic in `@halyard/core` is calibrated against 1280x720.
+   */
+  const canvas = { width: THUMBNAIL_WIDTH, height: THUMBNAIL_HEIGHT };
+  /*
+   * The badge sits bottom-right on every impression. Reserving the space is
+   * cheaper than discovering later that the last word of every thumbnail is
+   * under an opaque black pill.
+   */
+  const badgeGuard = Math.ceil(canvas.height * 0.14);
+
+  return box(
+    {
+      width: canvas.width,
+      height: canvas.height,
+      flexDirection: 'column',
+      justifyContent: 'flex-end',
+      backgroundColor: props.brand.background,
+      color: props.brand.ink,
+      fontFamily: props.brand.bodyFont,
+      position: 'relative',
+    },
+    props.screenshotDataUri
+      ? {
+          type: 'img',
+          props: {
+            src: props.screenshotDataUri,
+            style: {
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: canvas.width,
+              height: canvas.height,
+              objectFit: 'cover',
+            },
+          },
+        }
+      : box({ height: 0 }),
+    /* A scrim, not a panel. Over a screenshot the words need contrast; behind
+       them the product must still be visible or the picture is decoration. */
+    props.screenshotDataUri
+      ? box({
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: canvas.width,
+          height: canvas.height,
+          backgroundColor: 'rgba(8,8,8,0.52)',
+        })
+      : box({ height: 0 }),
+    box(
+      {
+        flexDirection: 'column',
+        paddingLeft: 88,
+        paddingRight: 88 + Math.ceil(canvas.width * 0.18),
+        paddingBottom: badgeGuard,
+      },
+      text(props.overlayText, {
+        /*
+         * The body face, not the heading face. `Instrument Serif` loads at
+         * weight 400 only, so asking it for 700 falls back silently — which
+         * is exactly what the first render did, and at feed size it read as a
+         * thin line rather than a thumbnail. A thumbnail needs the weight
+         * that actually exists.
+         */
+        fontFamily: props.brand.bodyFont,
+        fontSize: props.fontSizePx,
+        fontWeight: 600,
+        lineHeight: 1.02,
+        letterSpacing: -2,
+        color: props.screenshotDataUri ? '#FFFFFF' : props.brand.ink,
+      }),
+    ),
+  );
+}
+
 export const TEMPLATE_REGISTRY = {
   transformation_diff_1x1: (p: TransformationDiffProps) => transformationDiff({ ...p, aspectRatio: '1:1' }),
   transformation_diff_4x5: (p: TransformationDiffProps) => transformationDiff({ ...p, aspectRatio: '4:5' }),
@@ -372,6 +476,7 @@ export const TEMPLATE_REGISTRY = {
   scaling_math: scalingMath,
   pinterest_tall: pinterestTall,
   carousel_6: carouselSlide,
+  youtube_thumbnail: youtubeThumbnail,
 } as const;
 
 export type TemplateId = keyof typeof TEMPLATE_REGISTRY;
@@ -398,6 +503,7 @@ export const TEMPLATE_REQUIRED_PROPS: Record<TemplateId, readonly string[]> = {
   scaling_math: ['fromServings', 'toServings', 'rows', 'note'],
   pinterest_tall: ['title', 'subtitle', 'bullets'],
   carousel_6: ['index', 'total', 'kicker', 'headline', 'bodyLines'],
+  youtube_thumbnail: ['overlayText', 'fontSizePx'],
 };
 
 export { h, box, text };

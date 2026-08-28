@@ -30,10 +30,13 @@ import {
   type TokenSet,
 } from './types.js';
 import { chaptersFromBeats } from '../youtube/chapters.js';
+import { THUMBNAIL_MAX_BYTES } from '../youtube/thumbnail.js';
 import {
   YOUTUBE_DESCRIPTION_MAX_CHARS,
   YOUTUBE_LONG_FORM_MAX_SECONDS,
   YOUTUBE_TITLE_MAX_CHARS,
+  YOUTUBE_SCOPES,
+  canSetThumbnail,
   categoryIdFor,
   resolveVariant,
   validateYouTubeUpload,
@@ -546,6 +549,72 @@ export class YouTubeAdapter implements PlatformAdapter {
       );
     }
     return null;
+  }
+
+  /**
+   * Set a custom thumbnail on an uploaded video. §224.
+   *
+   * ## Why this refuses before it calls
+   *
+   * `thumbnails.set` needs `youtube` or `youtube.force-ssl`. Halyard requests
+   * `youtube.upload`, `youtube.readonly` and `yt-analytics.readonly`, and the
+   * connected channel holds exactly those three — so today this call would
+   * 403 every single time. Making the request anyway would burn quota, fill
+   * the log with an error that looks like a fault, and tell an operator
+   * nothing about what would fix it.
+   *
+   * Widening the scope is not a code change anyone should make quietly: the
+   * requested scopes are what the pending YouTube compliance audit is
+   * assessed against, and `youtube.force-ssl` grants far more than thumbnails
+   * — it grants full write access to the channel. That is an operator's
+   * decision, so the refusal names it and stops.
+   *
+   * The upload itself is written and correct, and runs the moment the grant
+   * exists. It is not a stub.
+   */
+  async setThumbnail(
+    videoId: string,
+    account: PublishAccount,
+    image: { bytes: Uint8Array; mimeType: string },
+  ): Promise<{ set: boolean; reason: string | null }> {
+    const scopes = account.tokens.scopes ?? [];
+    if (!canSetThumbnail(scopes)) {
+      return {
+        set: false,
+        reason:
+          `thumbnails.set needs ${YOUTUBE_SCOPES.manage} or ${YOUTUBE_SCOPES.forceSsl}; ` +
+          `this channel granted ${scopes.length === 0 ? 'no scopes' : scopes.join(', ')}. ` +
+          'Widening the grant changes what the compliance audit covers and gives Halyard ' +
+          'full write access to the channel, so it is an operator decision rather than a retry.',
+      };
+    }
+
+    if (image.bytes.byteLength > THUMBNAIL_MAX_BYTES) {
+      /* Checked here as well as at render time: the file that reaches this
+         method is the one being uploaded, and it is the only place the actual
+         byte count is a fact rather than a prediction. */
+      return {
+        set: false,
+        reason: `Thumbnail is ${(image.bytes.byteLength / 1024 / 1024).toFixed(2)} MB; YouTube rejects anything over 2 MB.`,
+      };
+    }
+
+    const fetchImpl = (account.meta?.fetchImpl as typeof fetch | undefined) ?? fetch;
+    await platformFetch(
+      fetchImpl,
+      `${UPLOAD_API}/thumbnails/set?videoId=${encodeURIComponent(videoId)}&uploadType=media`,
+      {
+        method: 'POST',
+        headers: {
+          authorization: `Bearer ${account.tokens.accessToken}`,
+          'content-type': image.mimeType,
+          'content-length': String(image.bytes.byteLength),
+        },
+        body: image.bytes as unknown as BodyInit,
+      },
+      `YouTube thumbnails.set ${videoId}`,
+    );
+    return { set: true, reason: null };
   }
 
   private get(path: string, account: PublishAccount): Promise<unknown> {

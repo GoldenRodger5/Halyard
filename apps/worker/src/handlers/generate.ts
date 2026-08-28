@@ -44,6 +44,7 @@ import {
   motionForPlan,
   isRefusal,
   decideStrategy,
+  LANGUAGE_FOR_TREATMENT,
   aspectForRender,
   defaultSubtypeFor,
   presentationFor,
@@ -1101,6 +1102,54 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                 }),
               ],
             );
+
+            /**
+             * §225. The brief as a row, and the item pointing at it.
+             *
+             * §218 built `concepts`, `creative_briefs` and `platform_variants`
+             * and wired none of them: production held zero briefs, and
+             * `content_items.brief_id` had no writer at all. So §221's audio
+             * direction and §223's chapters — both of which read the brief —
+             * were correct code joined to an empty table. Three systems, one
+             * missing insert.
+             *
+             * The plan *is* the brief. It already carries the treatment, the
+             * beats, the runtime and the register; writing it down is not a
+             * derivation, it is a record of a decision that was made.
+             */
+            const brief = await ctx.pool.query<{ id: string }>(
+              `insert into creative_briefs
+                 (product_id, account_id, platform, treatment, presentation_mode,
+                  target_seconds, aspect_ratio, beats, visual_direction,
+                  audio_direction, caption_direction, evidence, rationale)
+               values ($1,$2,$3,$4,$5,$6,$7,$8::jsonb,$9::jsonb,$10::jsonb,$11::jsonb,$12,$13)
+               returning id`,
+              [
+                productId,
+                account.id,
+                account.platform,
+                plan.creativeType,
+                presentationFor(account.platform, defaultSubtypeFor(account.platform, format)).mode,
+                plan.targetSeconds,
+                renderAspect,
+                JSON.stringify(
+                  beatsForRender(
+                    plan,
+                    presentationFor(account.platform, defaultSubtypeFor(account.platform, format))
+                      .mode,
+                  ),
+                ),
+                JSON.stringify({ language: LANGUAGE_FOR_TREATMENT[plan.creativeType] ?? null }),
+                JSON.stringify({ captionBackdrop: plan.captionBackdrop }),
+                JSON.stringify({ overflowHome: budgetFor(account.platform).overflowHome }),
+                plan.evidence,
+                plan.rationale,
+              ],
+            );
+            await ctx.pool.query('update content_items set brief_id = $2 where id = $1', [
+              contentItemId,
+              brief.rows[0]!.id,
+            ]);
           }
 
           await ctx.enqueue(

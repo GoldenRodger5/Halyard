@@ -6262,3 +6262,97 @@ has not looked at should not start carrying posts because a seed ran.
 Registered in `seed.sql`, not a migration. A migration inserting a template with
 a `product_id` breaks `createIsolatedPool`, whose freshly-migrated database has
 no products in it — 37 test files failed at collection before this moved.
+
+## 223. Chapters, and the silence that made them worth enforcing
+
+YouTube shows chapters only when the whole list satisfies rules it does not
+report on: the first stamp must be `0:00`, there must be at least three, and
+each must run ten seconds. Break one and YouTube renders the description as
+plain text. The upload succeeds, the API response is identical, and the
+chapters are not there.
+
+So the rules are enforced in `chaptersFromBeats` and a list that cannot satisfy
+them is refused **with a reason**, which is recorded on the publication. An
+operator looking at a long-form video with no chapters would otherwise have no
+way to find out why.
+
+Timestamps come from `layoutScenes` against the measured runtime of the file
+being uploaded — the same function the renderer used, called with the same
+inputs. Rejected: storing resolved times at render time, which would be a
+second copy of the same fact and therefore a thing that can disagree.
+
+A beat with no title gets no chapter. "Chapter 3" tells a viewer nothing the
+scrubber did not already.
+
+## 224. A thumbnail is not a small picture, it is a picture seen small
+
+YouTube serves 1280×720 and draws it at roughly 360 px wide. Everything follows:
+type that looks generous on the canvas is worth 28% of that where it is read.
+So the limits are expressed as *rendered* sizes and the canvas figures derived
+from them — the opposite of every other template here, and deliberately.
+
+`thumbnails.set` accepts anything that is a valid image under 2 MB. A thumbnail
+with eleven words uploads exactly as successfully as a good one, and the only
+feedback is a click-through rate weeks later that nobody can attribute. Same
+shape as §223: the API's success is not evidence the thing works.
+
+**Two defects, both found by shrinking a render to feed size and looking.** The
+canvas was `CANVAS['16:9']` — 1920×1080, the right ratio and the wrong picture,
+which quietly invalidated the legible-size arithmetic. And the overlay asked
+`Instrument Serif` for weight 700, which loads at 400 only, so it fell back
+silently and read as a thin line rather than a thumbnail. It now uses the face
+that actually has weight.
+
+### The upload refuses before it calls
+
+`thumbnails.set` needs `youtube` or `youtube.force-ssl`. Halyard requests
+`youtube.upload`, `youtube.readonly` and `yt-analytics.readonly`, and the
+connected channel holds exactly those three — verified against production, not
+inferred. So the call would 403 every time.
+
+Making the request anyway would burn quota, fill the log with an error that
+looks like a fault, and tell an operator nothing about what would fix it. The
+refusal names the scope instead and stops. Widening the grant is not a quiet
+code change: the requested scopes are what the pending compliance audit is
+assessed against, and `force-ssl` grants full write access to the channel.
+That is an operator's decision.
+
+The upload itself is written and correct, and runs the moment the grant exists.
+It is not a stub.
+
+## 225. A table with readers and no writer
+
+This has now happened three times, and every time it looked like success.
+
+- §210 built `strategy_decisions` and wired no writer.
+- §217 found 5,833 `rss_items` and zero `signals`, because nothing joined the
+  two tables.
+- §218 built `concepts`, `creative_briefs` and `platform_variants`, and
+  `creative_briefs` had **no writer at all** — so §221's audio direction and
+  §223's chapters were both correct code joined to an empty table. Three
+  systems, one missing insert. Production held zero briefs.
+
+Nothing in the suite could see any of it. Tests insert their own fixtures, so
+they pass. Typecheck passes, because nothing is wrong with the types. No rows
+is not an error, so the dashboards stay green and the table stays empty.
+
+`tableWriters.test.ts` reads every SQL statement in production code and requires
+each table on a declared list to have an `insert` or an `update` somewhere
+outside a test. It fails today if the brief writer is removed — checked by
+removing it.
+
+The list is deliberately not every table. `music_beds` ships empty until someone
+buys music (§221), and `halyard_empirical` claims are zero everywhere by design
+(gotcha 9). Those are decisions, and listing them would turn a decision into a
+failure. The list is the tables where empty means broken.
+
+**What it does not prove:** that the writer runs, that it runs often enough, or
+that what it writes is right. Only that a path exists — which is precisely the
+thing that was missing all three times.
+
+### The plan is the brief
+
+Writing it down is not a derivation. `CreativePlan` already carries the
+treatment, the beats, the runtime, the evidence and the rationale; the row is a
+record of a decision that was already made, and `content_items.brief_id` is what
+makes it findable from the thing it produced.
