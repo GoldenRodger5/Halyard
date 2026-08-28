@@ -97,6 +97,33 @@ const EFFECTS: FixtureSfx[] = [
     filter: 'sine=frequency=880:duration=0.1,volume=0.35' },
 ];
 
+/**
+ * Put the bytes where the pipeline will look for them.
+ *
+ * A row pointing at a storage path with nothing behind it is worse than no
+ * row: selection succeeds, the download fails, and the failure surfaces
+ * halfway through a mix rather than at import.
+ */
+async function upload(storagePath: string, bytes: Buffer): Promise<string> {
+  const url = process.env.SUPABASE_URL?.replace(/\/$/, '');
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) return `file://local/${storagePath}`;
+
+  const response = await fetch(`${url}/storage/v1/object/halyard-assets/${storagePath}`, {
+    method: 'POST',
+    headers: {
+      authorization: `Bearer ${key}`,
+      'content-type': 'audio/mpeg',
+      'x-upsert': 'true',
+    },
+    body: new Uint8Array(bytes),
+  });
+  if (!response.ok && response.status !== 409) {
+    throw new Error(`fixture upload failed: ${response.status} ${await response.text()}`);
+  }
+  return `${url}/storage/v1/object/public/halyard-assets/${storagePath}`;
+}
+
 async function synthesise(filter: string, out: string): Promise<Buffer> {
   await run('ffmpeg', [
     '-hide_banner', '-loglevel', 'error', '-y',
@@ -116,13 +143,14 @@ async function main(): Promise<void> {
       const file = path.join(work, `${b.key}.mp3`);
       const bytes = await synthesise(b.filter, file);
       const storagePath = `fixtures/audio/${b.key}.mp3`;
+      const publicUrl = await upload(storagePath, bytes);
 
       const { rows: asset } = await pool.query<{ id: string }>(
         `insert into assets (product_id, kind, mime_type, storage_path, public_url, tags, caption)
-         values ($1,'audio','audio/mpeg',$2,$2,array['music_bed','fixture'],$3)
+         values ($1,'audio','audio/mpeg',$2,$3,array['music_bed','fixture'],$4)
          on conflict do nothing
          returning id`,
-        [productId, storagePath, `${b.title} — synthesised test fixture, not licensed music`],
+        [productId, storagePath, publicUrl, `${b.title} — synthesised test fixture, not licensed music`],
       );
       let assetId = asset[0]?.id;
       if (!assetId) {
@@ -152,12 +180,13 @@ async function main(): Promise<void> {
       const file = path.join(work, `${e.key}.mp3`);
       const bytes = await synthesise(e.filter, file);
       const storagePath = `fixtures/audio/sfx-${e.key}.mp3`;
+      const publicUrl = await upload(storagePath, bytes);
 
       const { rows: asset } = await pool.query<{ id: string }>(
         `insert into assets (product_id, kind, mime_type, storage_path, public_url, tags, caption)
-         values ($1,'audio','audio/mpeg',$2,$2,array['sfx','fixture'],$3)
+         values ($1,'audio','audio/mpeg',$2,$3,array['sfx','fixture'],$4)
          on conflict do nothing returning id`,
-        [productId, storagePath, `${e.title} — synthesised test fixture, not licensed audio`],
+        [productId, storagePath, publicUrl, `${e.title} — synthesised test fixture, not licensed audio`],
       );
       let assetId = asset[0]?.id;
       if (!assetId) {

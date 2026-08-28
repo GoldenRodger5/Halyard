@@ -72,6 +72,7 @@ interface ItemRow {
   /* §221. Creative direction, joined in. Null on anything generated before
      concepts and briefs existed. */
   treatment: string | null;
+  account_id: string | null;
   emotional_angle: string | null;
   target_seconds: string | null;
   beats: unknown[] | null;
@@ -105,6 +106,7 @@ export async function ttsHandler(job: Job, ctx: HandlerContext, deps: TtsDeps = 
     `select ci.id, ci.product_id, ci.platform, ci.vo_script, ci.audio_mode, ci.format,
             ci.qc_results,
             ci.generation_meta -> 'creative' ->> 'type' as treatment,
+            ci.account_id,
             c.emotional_angle,
             b.target_seconds,
             b.beats
@@ -208,6 +210,18 @@ export async function ttsHandler(job: Job, ctx: HandlerContext, deps: TtsDeps = 
   });
 
   const audioBrief: AudioBrief = {
+    /*
+     * §244. A draft mix may use a fixture; a post may not.
+     *
+     * This audio is produced long before anybody approves anything, so
+     * refusing fixtures here would mean the whole audio path could never be
+     * exercised without buying music. `audioIsPublishable` is what stops a
+     * fixture reaching a real post, and it runs against what was actually
+     * mixed rather than against what would be chosen if asked again.
+     */
+    forPublication: false,
+    accountId: item.account_id,
+    contentItemId,
     platform: item.platform,
     emotionalAngle: item.emotional_angle,
     visualLanguage: item.treatment ? (LANGUAGE_FOR_TREATMENT[item.treatment] ?? null) : null,
@@ -304,6 +318,24 @@ export async function ttsHandler(job: Job, ctx: HandlerContext, deps: TtsDeps = 
       },
       readAssetBytes,
     );
+    /*
+     * §244. What actually went into the mix, recorded on the item.
+     *
+     * The publish gate reads this rather than re-deriving a selection: the
+     * file that exists is the one that matters, and asking the selector again
+     * could easily produce a different answer.
+     */
+    await ctx.pool.query(
+      `update content_items
+          set qc_results = jsonb_set(
+                coalesce(qc_results, '{}'::jsonb),
+                '{audio,sfxUsed}',
+                $2::jsonb,
+                true)
+        where id = $1`,
+      [contentItemId, JSON.stringify(sfx.cues.map((c) => ({ id: c.effectId, title: c.title })))],
+    );
+
     if (sfx.cues.length > 0) {
       ctx.log('sound design', {
         contentItemId,

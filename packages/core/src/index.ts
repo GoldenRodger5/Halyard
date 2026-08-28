@@ -19,6 +19,7 @@ export * from './strategy/decide.js';
 export * from './concepts/score.js';
 export * from './concepts/generate.js';
 export * from './audio/director.js';
+export * from './audio/publishGate.js';
 export * from './audio/sfx.js';
 export * from './audio/voice.js';
 export * from './adapters/index.js';

@@ -14,6 +14,7 @@
  * Plus the kill switch, checked first, every time (v1 §10).
  */
 import {
+  audioIsPublishable,
   adapterForAccount,
   PublishError,
   disclosureSatisfied,
@@ -175,6 +176,53 @@ export async function publishHandler(job: Job, ctx: HandlerContext): Promise<voi
   if (!['approved', 'scheduled', 'publishing'].includes(item.status)) {
     ctx.log('skipping publish, item is not approved', { contentItemId, status: item.status });
     return;
+  }
+
+  /**
+   * §244. Nothing unlicensed in the audio, checked against what was mixed.
+   *
+   * §242 set `forPublication: false` in the TTS handler — correctly, because
+   * that mix is produced long before anybody approves anything — and left a
+   * comment claiming the publish path re-checked provenance. It did not. A
+   * fixture mixed at draft time would have travelled all the way to a real
+   * post and the whole provenance apparatus would have been decoration.
+   *
+   * Read from what was recorded, not re-derived: the file that exists is the
+   * one being published, and asking the selector again could produce a
+   * different answer.
+   */
+  const { rows: audioProvenance } = await ctx.pool.query<{
+    kind: string;
+    title: string;
+    provenance: string;
+  }>(
+    `select 'music' as kind, m.title, m.provenance
+       from music_usage u join music_beds m on m.id = u.music_bed_id
+      where u.content_item_id = $1
+     union all
+     select 'sfx' as kind, s.title, s.provenance
+       from sound_effects s
+      where s.id::text in (
+        select jsonb_array_elements(coalesce(ci.qc_results -> 'audio' -> 'sfxUsed', '[]'::jsonb)) ->> 'id'
+          from content_items ci where ci.id = $1
+      )`,
+    [contentItemId],
+  );
+
+  const verdict = audioIsPublishable({
+    musicProvenance: audioProvenance.filter((r) => r.kind === 'music'),
+    sfxProvenance: audioProvenance.filter((r) => r.kind === 'sfx'),
+  });
+  if (!verdict.publishable) {
+    /*
+     * Permanent, not retried: nothing about waiting changes an unlicensed
+     * bed into a licensed one. The operator either re-runs the audio or
+     * licenses what is in it.
+     */
+    throw new PermanentJobFailure(
+      `Audio provenance refuses this publish. ${verdict.problems.join(' ')}`,
+      'Waiting does not turn an unlicensed bed into a licensed one. Re-run the audio, or license what is in it.',
+    );
   }
 
   // ── 1. Pre-flight idempotency check ──────────────────────────────────────
