@@ -37,6 +37,27 @@ export default function TermsPage() {
         </p>
       </Section>
 
+      {/*
+        §202. The YouTube API Services Developer Policies require an API client
+        to bind its users to YouTube's Terms of Service by reference. A
+        compliance audit reads this page.
+      */}
+      <Section title="YouTube">
+        <p>
+          Halyard uses YouTube API Services. By connecting a YouTube channel you agree to be bound
+          by the{' '}
+          <a className="underline" href="https://www.youtube.com/t/terms" rel="noreferrer">
+            YouTube Terms of Service
+          </a>
+          . What Halyard reads and stores from YouTube, and how to revoke its access, are set out in
+          the{' '}
+          <a className="underline" href="/privacy">
+            privacy policy
+          </a>
+          .
+        </p>
+      </Section>
+
       <Section title="No warranty">
         <p>
           Halyard is provided as-is, without warranty. It depends on third-party platform APIs which

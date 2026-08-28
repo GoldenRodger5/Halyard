@@ -7,7 +7,7 @@ import type { ReactNode } from 'react';
  * and need no session — Meta's reviewers must be able to open them while signed
  * out, and a page that redirects to a login screen fails App Review.
  */
-export const UPDATED = '19 August 2026';
+export const UPDATED = '28 August 2026';
 
 export function LegalPage({
   title,

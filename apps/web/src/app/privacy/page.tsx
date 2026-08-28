@@ -68,6 +68,72 @@ export default function PrivacyPage() {
         </p>
       </Section>
 
+      {/*
+        §202. Required by the YouTube API Services Developer Policies, and
+        absent until now.
+
+        This policy was written for Meta App Review and covered YouTube only by
+        accident of generality — the word never appeared. The Developer Policies
+        require an API client to disclose its use of YouTube API Services by
+        name, link YouTube's Terms and Google's Privacy Policy, say what YouTube
+        data it handles, and tell people where to revoke access. A compliance
+        audit checks this page, so its absence was a rejection waiting to happen.
+      */}
+      <Section title="YouTube">
+        <p>
+          Halyard uses <strong>YouTube API Services</strong> to upload videos to a YouTube channel
+          you connect, to read that channel&rsquo;s own public statistics, and to read comments left
+          on videos published through Halyard. By connecting a YouTube channel you are also bound by
+          the{' '}
+          <a className="underline" href="https://www.youtube.com/t/terms" rel="noreferrer">
+            YouTube Terms of Service
+          </a>
+          , and Google&rsquo;s handling of your data is described in the{' '}
+          <a
+            className="underline"
+            href="https://policies.google.com/privacy"
+            rel="noreferrer"
+          >
+            Google Privacy Policy
+          </a>
+          .
+        </p>
+        <ul>
+          <li>
+            <strong>What it accesses.</strong> The connected channel&rsquo;s id, title, handle and
+            subscriber count; videos Halyard itself uploaded, and their view, like and comment
+            counts; and comment threads on those videos.
+          </li>
+          <li>
+            <strong>What it stores.</strong> The encrypted OAuth credential, the granted permissions,
+            the channel identity above, and the metrics and comments it reads. Nothing else.
+          </li>
+          <li>
+            <strong>What it does not do.</strong> It does not read channels you have not connected,
+            does not access anyone else&rsquo;s viewing history or watch data, does not post comments
+            or replies, and does not share YouTube data with any third party. Video content is never
+            sent to a language-model provider.
+          </li>
+          <li>
+            <strong>Uploads are private by default.</strong> Until the compliance audit has passed
+            and the operator has marked the channel live, every upload is created with{' '}
+            <code>privacyStatus: private</code> and is visible only to the channel owner.
+          </li>
+        </ul>
+        <p>
+          You can revoke Halyard&rsquo;s access to your Google account at any time at{' '}
+          <a
+            className="underline"
+            href="https://myaccount.google.com/permissions"
+            rel="noreferrer"
+          >
+            myaccount.google.com/permissions
+          </a>
+          , which invalidates the stored credential immediately. Disconnecting the account inside
+          Halyard erases the stored credential and the YouTube data read with it.
+        </p>
+      </Section>
+
       <Section title="Retention">
         <p>
           Connections, content and results are kept until they are deleted. The Accounts screen has
