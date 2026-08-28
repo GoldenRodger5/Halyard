@@ -56,6 +56,7 @@ import { alignToScript } from '../captions.js';
 import { audioDuration, measureEdgeSilence, mixAudio } from '../audio.js';
 import type { HandlerContext, Job } from '../poller.js';
 import { LibraryBedClient } from '../bed.js';
+import { resolveSfx } from '../sfx.js';
 import { readAssetBytes, uploadAsset } from '../storage.js';
 import { transcribeWords } from '../video.js';
 
@@ -266,12 +267,62 @@ export async function ttsHandler(job: Job, ctx: HandlerContext, deps: TtsDeps = 
       }
     }
 
+    /**
+     * §242. Sound design, finally reachable.
+     *
+     * `planSfx` and `selectEffect` were written in §233 and called by nothing —
+     * there was no handler that invoked them and no input on `mixAudio` that
+     * could take the result. This is the caller.
+     *
+     * `forPublication` is false here on purpose: this mix is produced before
+     * anybody has approved anything, so a test fixture is legitimate. The
+     * publish path re-checks provenance against what actually got mixed.
+     */
+    const beatsForSfx = (item.beats ?? []).map((b, i) => {
+      const beat = b as Record<string, unknown>;
+      const motion = (beat.motion ?? {}) as Record<string, unknown>;
+      return {
+        startSeconds: (narrationSeconds / Math.max(1, (item.beats ?? []).length)) * i,
+        role: String(beat.role ?? ''),
+        transitionOut: motion.transitionOut as string | undefined,
+        entrance: motion.entrance as string | undefined,
+        isProductFootage: Boolean(beat.media),
+      };
+    });
+
+    const sfx = await resolveSfx(
+      ctx,
+      {
+        productId: item.product_id,
+        platform: item.platform,
+        workDir: work,
+        beats: beatsForSfx,
+        totalSeconds: narrationSeconds,
+        visualLanguage: item.treatment ? (LANGUAGE_FOR_TREATMENT[item.treatment] ?? null) : null,
+        hasVoiceover: true,
+        forPublication: false,
+      },
+      readAssetBytes,
+    );
+    if (sfx.cues.length > 0) {
+      ctx.log('sound design', {
+        contentItemId,
+        cues: sfx.cues.map((c) => `${c.title} @${c.atSeconds.toFixed(1)}s — ${c.because}`),
+      });
+    } else {
+      ctx.log('no sound design', { contentItemId, reason: sfx.skippedReason });
+    }
+
     const mix = await mixAudio({
       narrationPath,
       musicPath,
       outputPath: mixPath,
       /* §221. Where the bed sits is a creative call, not a constant. */
       ducking: duckingFor(audioBrief),
+      /* §242. Punctuation on the edit, under the voice by level. */
+      ...(sfx.cues.length > 0
+        ? { sfx: sfx.cues.map((c) => ({ path: c.path, atSeconds: c.atSeconds, gainDb: c.gainDb })) }
+        : {}),
     });
 
     /**

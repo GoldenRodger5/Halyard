@@ -293,3 +293,117 @@ d('measureEdgeSilence', () => {
     expect(leadingMs).toBe(0);
   }, 120_000);
 });
+
+describe('sound effects reach the mix', () => {
+  /*
+   * §242. `planSfx` and `selectEffect` were written in §233 and called by
+   * nothing: no handler invoked them, and `mixAudio` had no input that could
+   * take the result. These assert the *audio* changed, not that a function
+   * was called.
+   */
+  async function blip(file: string, seconds = 0.2): Promise<void> {
+    await execFileAsync('ffmpeg', [
+      '-hide_banner', '-nostats', '-y',
+      '-f', 'lavfi', '-i', `sine=frequency=1800:duration=${seconds}`,
+      '-ar', '48000', file,
+    ]);
+  }
+
+  it('changes the mixed audio when a cue is supplied', async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'halyard-sfx-'));
+    try {
+      const narration = path.join(dir, 'vo.mp3');
+      const effect = path.join(dir, 'tick.mp3');
+      await makeNarration(narration);
+      await blip(effect);
+
+      const dry = await mixAudio({
+        narrationPath: narration,
+        outputPath: path.join(dir, 'dry.mp3'),
+      });
+      const wet = await mixAudio({
+        narrationPath: narration,
+        outputPath: path.join(dir, 'wet.mp3'),
+        sfx: [{ path: effect, atSeconds: 1.2, gainDb: -12 }],
+      });
+
+      /*
+       * Both are normalised to the same target, so loudness alone cannot show
+       * the difference. Energy in the effect's own band can: the narration is
+       * built from 300Hz bursts and the effect is 1800Hz.
+       */
+      const dryBand = await meanVolumeDb(dry.outputPath, 1.0, 1.8, 1800);
+      const wetBand = await meanVolumeDb(wet.outputPath, 1.0, 1.8, 1800);
+      expect(wetBand).toBeGreaterThan(dryBand + 3);
+      expect(wet.durationSeconds).toBeCloseTo(dry.durationSeconds, 1);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  }, 180_000);
+
+  it('places a cue where it was asked for, not at the start', async () => {
+    // An effect at the wrong time is not heard as "wrong time"; it just sounds
+    // sloppy. So the test measures the band energy before and after the cue.
+    const dir = await mkdtemp(path.join(tmpdir(), 'halyard-sfx-when-'));
+    try {
+      const narration = path.join(dir, 'vo.mp3');
+      const effect = path.join(dir, 'blip.mp3');
+      await makeNarration(narration);
+      await blip(effect, 0.25);
+
+      const mix = await mixAudio({
+        narrationPath: narration,
+        outputPath: path.join(dir, 'late.mp3'),
+        sfx: [{ path: effect, atSeconds: 2.4, gainDb: -8 }],
+      });
+
+      const before = await meanVolumeDb(mix.outputPath, 0.2, 1.0, 1800);
+      const at = await meanVolumeDb(mix.outputPath, 2.4, 2.9, 1800);
+      expect(at).toBeGreaterThan(before + 3);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  }, 180_000);
+
+  it('mixes several cues without breaking the true peak ceiling', async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'halyard-sfx-many-'));
+    try {
+      const narration = path.join(dir, 'vo.mp3');
+      const effect = path.join(dir, 'e.mp3');
+      await makeNarration(narration);
+      await blip(effect);
+
+      const mixed = await mixAudio({
+        narrationPath: narration,
+        outputPath: path.join(dir, 'many.mp3'),
+        sfx: [0.4, 0.9, 1.4, 1.9].map((t) => ({ path: effect, atSeconds: t, gainDb: -12 })),
+      });
+      expect(mixed.truePeakDb).toBeLessThanOrEqual(-0.5);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  }, 180_000);
+
+  it('mixes effects under a bed as well as under narration alone', async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'halyard-sfx-bed-'));
+    try {
+      const narration = path.join(dir, 'vo.mp3');
+      const music = path.join(dir, 'bed.mp3');
+      const effect = path.join(dir, 'e.mp3');
+      await makeNarration(narration);
+      await makeMusic(music);
+      await blip(effect);
+
+      const mixed = await mixAudio({
+        narrationPath: narration,
+        musicPath: music,
+        outputPath: path.join(dir, 'full.mp3'),
+        sfx: [{ path: effect, atSeconds: 1.5, gainDb: -12 }],
+      });
+      expect(mixed.hadMusic).toBe(true);
+      expect(mixed.truePeakDb).toBeLessThanOrEqual(-0.5);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  }, 180_000);
+});

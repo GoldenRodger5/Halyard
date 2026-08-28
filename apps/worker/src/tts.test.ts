@@ -449,8 +449,10 @@ d('ttsHandler', () => {
       await pool.query(
         `insert into music_beds
            (product_id, asset_id, title, mood, energy, bpm, duration_seconds, loopable,
-            licence, licensor, attribution_required, platform_restrictions)
-         values ('recipefix', $1, $2, $3, $4, 90, 120, true, 'Purchased', 'Test', false, $5)`,
+            licence, licensor, attribution_required, platform_restrictions,
+            provenance, licence_proof)
+         values ('recipefix', $1, $2, $3, $4, 90, 120, true, 'Purchased', 'Test', false, $5,
+                 'licensed_production', 'receipt://test-fixture')`,
         [rows[0]!.id, `bed-${name}`, mood, energy, restrictions],
       );
     }

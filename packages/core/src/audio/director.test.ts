@@ -30,6 +30,10 @@ function bed(over: Partial<MusicBed> = {}): MusicBed {
     bpm: 90,
     durationSeconds: 60,
     loopable: true,
+    /* §239. The default fixture is a licensed production bed with proof, so a
+       test that means to exercise the *licence* gate has to say so. */
+    provenance: 'licensed_production',
+    licenceProof: 'receipt://fixture-0001',
     licence: 'Artlist unlimited, seat 1',
     attributionRequired: false,
     platformRestrictions: [],
@@ -196,5 +200,157 @@ describe('ducking', () => {
 
   it('does not duck what has nothing to duck under', () => {
     expect(duckingFor(brief({ hasVoiceover: false })).duckDb).toBe(0);
+  });
+});
+
+describe('provenance decides what may reach a post', () => {
+  /*
+   * §239/§241. The gate that makes a fixture library safe to have.
+   *
+   * §221 refused to synthesise beds because a synthesised pad would be
+   * indistinguishable in the pipeline from a real one, so nobody would notice
+   * which shipped. That danger is this column: a fixture is usable for a
+   * preview and refused for a post, by name.
+   */
+  const brief = {
+    platform: 'tiktok',
+    targetSeconds: 30,
+    hasVoiceover: true,
+  };
+
+  it('refuses a test fixture for anything that will be published', () => {
+    const fixture = bed({ provenance: 'test', licenceProof: null });
+    const r = selectBed([fixture], { ...brief, forPublication: true }, NOW);
+    expect(r.chosen).toBeNull();
+    expect(r.rejected[0]!.reason).toContain('never for a post');
+  });
+
+  it('allows the same fixture for a preview or a regression render', () => {
+    const fixture = bed({ provenance: 'test', licenceProof: null });
+    const r = selectBed([fixture], { ...brief, forPublication: false }, NOW);
+    expect(r.chosen?.bed.id).toBe(fixture.id);
+  });
+
+  it('defaults to refusing, so a fixture cannot leak in by omission', () => {
+    // A caller that wants a fixture has to say so. The unsafe direction is
+    // never the default.
+    const r = selectBed([bed({ provenance: 'test', licenceProof: null })], brief, NOW);
+    expect(r.chosen).toBeNull();
+  });
+
+  it('refuses a production claim with no proof', () => {
+    /*
+     * The database has the same constraint. Checked here too because a bed
+     * can arrive from a fixture, a migration or an older row, and "claims a
+     * licence" is not the same fact as "a licence exists".
+     */
+    const r = selectBed(
+      [bed({ provenance: 'licensed_production', licenceProof: '  ' })],
+      brief,
+      NOW,
+    );
+    expect(r.chosen).toBeNull();
+    expect(r.rejected[0]!.reason).toContain('no proof');
+  });
+
+  it('refuses an unverified bed and says what would fix it', () => {
+    const r = selectBed([bed({ provenance: 'unverified' })], brief, NOW);
+    expect(r.rejected[0]!.reason).toContain('licensed_production');
+  });
+
+  it('refuses a retired bed without deleting its history', () => {
+    const r = selectBed([bed({ active: false })], brief, NOW);
+    expect(r.rejected[0]!.reason).toContain('Retired');
+  });
+
+  it('honours an express platform prohibition', () => {
+    const r = selectBed([bed({ prohibitedPlatforms: ['tiktok'] })], brief, NOW);
+    expect(r.rejected[0]!.reason).toContain('prohibited on tiktok');
+  });
+
+  it('honours a per-account restriction', () => {
+    const r = selectBed([bed({ accountRestrictions: ['acct-1'] })], { ...brief, accountId: 'acct-1' }, NOW);
+    expect(r.rejected[0]!.reason).toContain('does not cover this account');
+  });
+});
+
+describe('selection uses more than mood and recency', () => {
+  const brief = {
+    platform: 'tiktok',
+    targetSeconds: 30,
+    hasVoiceover: true,
+    cutsPerMinute: 28,
+    visualLanguage: 'energetic_short',
+    treatment: 'process_montage',
+  };
+
+  it('avoids a vocal bed under narration', () => {
+    /*
+     * The most audible mistake this module can make, and the cheapest to
+     * avoid. A penalty rather than a refusal: a vocal bed under a piece with
+     * no narration is fine.
+     */
+    const vocal = bed({ id: 'vocal', hasVocals: true, mood: 'bright', energy: 0.75, bpm: 112 });
+    const instrumental = bed({ id: 'instr', hasVocals: false, mood: 'bright', energy: 0.75, bpm: 112 });
+    const r = selectBed([vocal, instrumental], brief, NOW);
+    expect(r.chosen?.bed.id).toBe('instr');
+    expect(r.chosen?.reasons.join(' ')).toContain('does not fight the voice');
+  });
+
+  it('allows a vocal bed when nothing is being said', () => {
+    const vocal = bed({ id: 'vocal', hasVocals: true, mood: 'bright', energy: 0.75 });
+    const r = selectBed([vocal], { ...brief, hasVoiceover: false }, NOW);
+    expect(r.chosen?.bed.id).toBe('vocal');
+  });
+
+  it('matches tempo to the cut rhythm and says so', () => {
+    const slow = bed({ id: 'slow', bpm: 70, mood: 'bright', energy: 0.7 });
+    const fast = bed({ id: 'fast', bpm: 115, mood: 'bright', energy: 0.7 });
+    const r = selectBed([slow, fast], brief, NOW);
+    expect(r.chosen?.bed.id).toBe('fast');
+    expect(r.chosen?.reasons.join(' ')).toMatch(/bpm matched/);
+  });
+
+  it('penalises a bed this account used recently, not merely one used recently', () => {
+    /*
+     * §239. `lastUsedAt` is global; a viewer scrolling one account notices
+     * repetition in *that* feed. Two accounts may legitimately use the same
+     * bed on the same day.
+     */
+    const a = bed({ id: 'a', mood: 'bright', energy: 0.7, bpm: 112 });
+    const b = bed({ id: 'b', mood: 'bright', energy: 0.7, bpm: 112 });
+    const r = selectBed([a, b], {
+      ...brief,
+      accountId: 'acct-1',
+      history: [
+        { musicBedId: 'a', platform: 'tiktok', usedAt: new Date(NOW.getTime() - DAY) },
+      ],
+    }, NOW);
+    expect(r.chosen?.bed.id).toBe('b');
+    expect(r.chosen?.reasons).toContain('not used by this account');
+  });
+
+  it('lets measurement tilt the choice and names it', () => {
+    const a = bed({ id: 'a', mood: 'bright', energy: 0.7, bpm: 112 });
+    const b = bed({ id: 'b', mood: 'bright', energy: 0.7, bpm: 112 });
+    const r = selectBed([a, b], {
+      ...brief,
+      insights: [{ feature: 'music_bed', featureValue: 'b', lift: 0.8, confidence: 0.9 }],
+    }, NOW);
+    expect(r.chosen?.bed.id).toBe('b');
+    expect(r.chosen?.reasons.join(' ')).toContain('historically strong');
+  });
+
+  it('prefers music that matches how much the picture is moving', () => {
+    const quiet = bed({ id: 'quiet', mood: 'bright', energy: 0.2, bpm: 112 });
+    const lively = bed({ id: 'lively', mood: 'bright', energy: 0.75, bpm: 112 });
+    const r = selectBed([quiet, lively], { ...brief, motionDensity: 0.8 }, NOW);
+    expect(r.chosen?.bed.id).toBe('lively');
+  });
+
+  it('explains every choice in terms an operator can disagree with', () => {
+    const r = selectBed([bed({ mood: 'bright', energy: 0.7, bpm: 112 })], brief, NOW);
+    expect(r.chosen!.reasons.length).toBeGreaterThan(0);
+    for (const reason of r.chosen!.reasons) expect(reason.length).toBeGreaterThan(4);
   });
 });

@@ -46,6 +46,10 @@ const MUST_HAVE_A_WRITER = [
      treatment since §218 and no writer — so "platform-specific" was a table
      and nothing else. */
   'platform_variants',
+  /* §239. Usage memory. `last_used_at` on the bed answers "when" and nothing
+     else; selection needs "has this account heard it" and learning needs "did
+     it work", and neither is derivable from one timestamp. */
+  'music_usage',
   'strategy_decisions',
   'signals',
   'learned_insights',

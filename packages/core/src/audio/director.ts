@@ -59,6 +59,42 @@ export interface MusicBed {
   platformRestrictions: string[];
   expiresAt?: Date | null;
   lastUsedAt?: Date | null;
+
+  /* ── §239. What a production library actually needs ────────────────────── */
+
+  /**
+   * Whether this bed may reach a published post.
+   *
+   * The one column that makes a fixture library safe to have. Test audio was
+   * never the danger; test audio *indistinguishable from licensed audio* was.
+   */
+  provenance: 'licensed_production' | 'test' | 'unverified';
+  /** Where the grant can be checked. A licence with no proof is unverified. */
+  licenceProof?: string | null;
+  source?: string | null;
+  /** Platforms this bed must NOT be used on, distinct from the allow-list. */
+  prohibitedPlatforms?: string[];
+  /** A vocal bed under a voiceover is two people talking at once. */
+  hasVocals?: boolean;
+  genre?: string | null;
+  instrumentation?: string[];
+  /** Retired without deleting, so its usage history survives. */
+  active?: boolean;
+  usageCount?: number;
+  /** Accounts this bed is barred from, when a licence is per-channel. */
+  accountRestrictions?: string[];
+}
+
+/** One past use, for repetition avoidance and learned preference. §239. */
+export interface BedUsage {
+  musicBedId: string;
+  accountId?: string | null;
+  platform: string;
+  treatment?: string | null;
+  visualLanguage?: string | null;
+  usedAt: Date;
+  /** Performance, once the post has any. Null means unmeasured. */
+  score?: number | null;
 }
 
 /**
@@ -79,6 +115,30 @@ export interface AudioBrief {
   cutsPerMinute?: number | null;
   /** True when narration will sit on top and the bed must stay under it. */
   hasVoiceover: boolean;
+
+  /* ── §239. The rest of what the choice should turn on ──────────────────── */
+
+  /** The treatment, so a transformation and a tutorial do not sound alike. */
+  treatment?: string | null;
+  /** The account, so repetition is judged in the feed a viewer actually sees. */
+  accountId?: string | null;
+  /** How much the frame is moving. Music below the picture reads as flat. */
+  motionDensity?: number | null;
+  /**
+   * Whether this piece may be published.
+   *
+   * `true` restricts selection to `licensed_production`. A preview or a
+   * regression render sets it false and may use a fixture — which is the whole
+   * reason the fixture library is safe to have.
+   */
+  forPublication?: boolean;
+  /** Past uses on this account, most recent first. */
+  history?: BedUsage[];
+  /** What measurement established about music, from §204. */
+  insights?: Array<{ feature: string; featureValue: string; lift: number; confidence: number }>;
+  /* Recorded on the usage row, so a choice is answerable months later. */
+  contentItemId?: string | null;
+  briefId?: string | null;
 }
 
 /**
@@ -151,7 +211,39 @@ export function bedPermitted(
   bed: MusicBed,
   platform: string,
   now: Date = new Date(),
+  /**
+   * Whether this is for something that will be published. §239.
+   *
+   * The gate that makes a fixture library safe. A preview, a regression render
+   * or a Studio proof may use a `test` bed; a post may not, and the refusal
+   * names the class rather than saying "no licence".
+   */
+  forPublication = true,
+  accountId?: string | null,
 ): { allowed: boolean; reason: string } {
+  if (bed.active === false) {
+    return { allowed: false, reason: 'Retired from the library.' };
+  }
+  if (forPublication && bed.provenance !== 'licensed_production') {
+    return {
+      allowed: false,
+      reason:
+        bed.provenance === 'test'
+          ? 'A test fixture. Usable for previews and regression renders, never for a post.'
+          : 'Licence not verified. Record where the grant can be checked, then mark it licensed_production.',
+    };
+  }
+  if (bed.provenance === 'licensed_production' && !bed.licenceProof?.trim()) {
+    /* Belt and braces: the database constraint says the same thing, and a bed
+       arriving from a fixture or an older row should not slip past it. */
+    return { allowed: false, reason: 'Claims a production licence with no proof recorded.' };
+  }
+  if (accountId && bed.accountRestrictions?.includes(accountId)) {
+    return { allowed: false, reason: 'The licence does not cover this account.' };
+  }
+  if (bed.prohibitedPlatforms?.includes(platform)) {
+    return { allowed: false, reason: `Expressly prohibited on ${platform}.` };
+  }
   if (!bed.licence || !bed.licence.trim()) {
     return { allowed: false, reason: 'No licence terms recorded. "Probably fine" is not a licence.' };
   }
@@ -200,7 +292,15 @@ export function selectBed(
   const eligible: MusicBed[] = [];
 
   for (const bed of beds) {
-    const licence = bedPermitted(bed, brief.platform, now);
+    const licence = bedPermitted(
+      bed,
+      brief.platform,
+      now,
+      /* Absent means this is for a post. A caller that wants a fixture must
+         say so explicitly, rather than a fixture leaking in by default. */
+      brief.forPublication !== false,
+      brief.accountId,
+    );
     if (!licence.allowed) {
       rejected.push({ bed, reason: licence.reason });
       continue;
@@ -230,12 +330,13 @@ export function selectBed(
   const wantMood = moodFor(brief);
   const wantEnergy = energyFor(brief);
   const wantBpm = brief.cutsPerMinute ? Math.max(60, Math.min(180, brief.cutsPerMinute * 4)) : null;
+  const history = brief.history ?? [];
 
   const scored = eligible.map((bed): BedChoice => {
     const reasons: string[] = [];
 
     const moodMatch = bed.mood === wantMood ? 1 : 0;
-    if (moodMatch) reasons.push(`${bed.mood} suits the piece`);
+    if (moodMatch) reasons.push(`${bed.mood} suits ${brief.treatment ?? 'the piece'}`);
 
     /* Energy distance, inverted. A bed half a point away is a poor fit. */
     const energyFit = 1 - Math.min(1, Math.abs(bed.energy - wantEnergy) / 0.5);
@@ -243,16 +344,92 @@ export function selectBed(
 
     const tempoFit =
       wantBpm && bed.bpm ? 1 - Math.min(1, Math.abs(bed.bpm - wantBpm) / 60) : 0.5;
-    if (wantBpm && bed.bpm && tempoFit > 0.75) reasons.push(`${bed.bpm}bpm sits with the cuts`);
+    if (wantBpm && bed.bpm && tempoFit > 0.75) {
+      reasons.push(`${bed.bpm}bpm matched to a ${Math.round(brief.cutsPerMinute ?? 0)}-cut-per-minute edit`);
+    }
 
-    /* Recency. Anything used in the last fortnight is penalised, most heavily
-       if it was the last thing used. */
+    /*
+     * §239. A vocal bed under a voiceover is two people talking at once.
+     *
+     * The single most audible mistake in this whole module, and the cheapest
+     * to avoid — so it is a heavy penalty rather than a tiebreak, but not a
+     * refusal: a vocal bed under a piece with no narration is fine.
+     */
+    let vocalPenalty = 0;
+    if (brief.hasVoiceover && bed.hasVocals) {
+      vocalPenalty = 2.5;
+      reasons.push('vocals under narration — heavily penalised');
+    } else if (brief.hasVoiceover && bed.hasVocals === false) {
+      reasons.push('instrumental, so it does not fight the voice');
+    }
+
+    /*
+     * Music that sits below the picture reads as flat. A fast cut wants a bed
+     * with energy behind it; a still, considered piece wants the opposite, and
+     * the mismatch is worse in that direction because loud music over nothing
+     * happening is the sound of a template.
+     */
+    let motionPenalty = 0;
+    if (typeof brief.motionDensity === 'number') {
+      const gap = bed.energy - brief.motionDensity;
+      if (gap < -0.3) {
+        motionPenalty = 0.9;
+        reasons.push('quieter than the picture is moving');
+      } else if (gap > 0.35) {
+        motionPenalty = 0.6;
+        reasons.push('busier than the picture');
+      }
+    }
+
+    /*
+     * §239. Repetition judged in the feed a viewer actually sees.
+     *
+     * `lastUsedAt` is global; this account's own history is what somebody
+     * scrolling it would notice. Both count, and the account's own weighs more.
+     */
     const daysSince = bed.lastUsedAt ? (now.getTime() - bed.lastUsedAt.getTime()) / DAY : 999;
     const recency = daysSince >= 14 ? 0 : (14 - daysSince) / 14;
-    if (recency > 0.5) reasons.push('recently used');
+
+    const onAccount = history.filter((u) => u.musicBedId === bed.id);
+    const postsSince = onAccount.length === 0 ? 999 : history.indexOf(onAccount[0]!);
+    let accountRepetition = 0;
+    if (onAccount.length > 0) {
+      /* Within the last ten posts on this account is where a repeat is heard. */
+      accountRepetition = postsSince >= 10 ? 0 : (10 - postsSince) / 10;
+      if (accountRepetition > 0.4) {
+        reasons.push(`used ${postsSince + 1} post${postsSince === 0 ? '' : 's'} ago on this account`);
+      }
+    } else {
+      reasons.push('not used by this account');
+    }
+
+    /*
+     * What measurement established. Weighted below fit, because an insight is
+     * a belief with a confidence rather than a fact, and music is a weak
+     * signal that is easy to over-attribute.
+     */
+    let learned = 0;
+    for (const insight of brief.insights ?? []) {
+      const matches =
+        (insight.feature === 'music_bed' && insight.featureValue === bed.id) ||
+        (insight.feature === 'music_mood' && insight.featureValue === bed.mood);
+      if (matches) {
+        learned += insight.lift * insight.confidence * 1.5;
+        reasons.push(
+          `${insight.lift >= 0 ? 'historically strong' : 'historically weak'} for this account`,
+        );
+      }
+    }
 
     const score =
-      moodMatch * 2.0 + energyFit * 1.5 + tempoFit * 0.8 - recency * 1.2;
+      moodMatch * 2.0 +
+      energyFit * 1.5 +
+      tempoFit * 0.8 +
+      learned -
+      recency * 0.8 -
+      accountRepetition * 1.6 -
+      vocalPenalty -
+      motionPenalty;
 
     return {
       bed,

@@ -236,6 +236,20 @@ export interface MixInput {
    * call, not a constant.
    */
   ducking?: { bedGainDb: number; duckDb: number };
+  /**
+   * Sound effects, already resolved to files with a time and a level. §242.
+   *
+   * `planSfx` and `selectEffect` have existed since §233 with **no caller at
+   * all** — `mixAudio` had no input that could take them, so the whole
+   * subsystem was unreachable from any handler. This is the input that makes
+   * it reachable.
+   *
+   * Each cue is mixed as its own delayed input rather than pre-rendered into
+   * one track: a pre-rendered SFX bus would have to be built at the right
+   * length and offset anyway, and `adelay` does it exactly and audibly better
+   * than arithmetic on buffers.
+   */
+  sfx?: Array<{ path: string; atSeconds: number; gainDb: number }>;
 }
 
 export interface MixResult {
@@ -299,12 +313,28 @@ export async function mixAudio(input: MixInput): Promise<MixResult> {
        * simply stop, leaving the back half of the video dry. Looping a bed is
        * standard practice and inaudible on the kind of material used here.
        */
+      /*
+       * §242. Effects are inputs 2..n, each delayed to its cue.
+       *
+       * Placed *after* the duck rather than inside it: an effect is a
+       * punctuation mark on the edit, not part of the bed, and side-chaining
+       * it against the voice would swallow exactly the transient that makes it
+       * audible. They sit under the voice by level instead — `SFX_GAIN_DB`.
+       */
+      const cues = input.sfx ?? [];
+      const sfxChains = cues.map((cue, i) => {
+        const ms = Math.max(0, Math.round(cue.atSeconds * 1000));
+        return `[${i + 2}:a]adelay=${ms}|${ms},volume=${cue.gainDb}dB[sfx${i}]`;
+      });
+      const mixInputs = ['[vo_mix]', '[ducked]', ...cues.map((_, i) => `[sfx${i}]`)];
+
       const filter = [
         `[0:a]apad=whole_dur=${totalSeconds.toFixed(3)},atrim=0:${totalSeconds.toFixed(3)},asetpts=N/SR/TB[vo]`,
         `[1:a]aloop=loop=-1:size=2147483647,atrim=0:${totalSeconds.toFixed(3)},asetpts=N/SR/TB,volume=${bedGainDb}dB[bed]`,
         `[vo]asplit=2[vo_mix][vo_key]`,
         `[bed][vo_key]sidechaincompress=threshold=${DUCK_THRESHOLD}:ratio=${duckRatio}:attack=${DUCK_ATTACK_MS}:release=${DUCK_RELEASE_MS}:makeup=1[ducked]`,
-        `[vo_mix][ducked]amix=inputs=2:duration=longest:normalize=0[mixed]`,
+        ...sfxChains,
+        `${mixInputs.join('')}amix=inputs=${mixInputs.length}:duration=longest:normalize=0[mixed]`,
       ].join(';');
 
       await execFileAsync(
@@ -317,6 +347,7 @@ export async function mixAudio(input: MixInput): Promise<MixResult> {
           input.narrationPath,
           '-i',
           input.musicPath,
+          ...cues.flatMap((cue) => ['-i', cue.path]),
           '-filter_complex',
           filter,
           '-map',
@@ -330,6 +361,42 @@ export async function mixAudio(input: MixInput): Promise<MixResult> {
         { maxBuffer: 8 * 1024 * 1024 },
       );
     } else {
+      /*
+       * §242. Narration and effects, with no bed.
+       *
+       * The common case while the music library is empty, so SFX has to work
+       * here or it works nowhere in production. Same placement as above: after
+       * the voice, under it by level.
+       */
+      const cues = input.sfx ?? [];
+      const pad = `apad=whole_dur=${totalSeconds.toFixed(3)},atrim=0:${totalSeconds.toFixed(3)},asetpts=N/SR/TB`;
+
+      if (cues.length > 0) {
+        const chains = cues.map((cue, i) => {
+          const ms = Math.max(0, Math.round(cue.atSeconds * 1000));
+          return `[${i + 1}:a]adelay=${ms}|${ms},volume=${cue.gainDb}dB[sfx${i}]`;
+        });
+        const mixInputs = ['[vo]', ...cues.map((_, i) => `[sfx${i}]`)];
+        const filter = [
+          `[0:a]${pad}[vo]`,
+          ...chains,
+          `${mixInputs.join('')}amix=inputs=${mixInputs.length}:duration=longest:normalize=0[mixed]`,
+        ].join(';');
+
+        await execFileAsync(
+          'ffmpeg',
+          [
+            '-hide_banner', '-nostats', '-y',
+            '-i', input.narrationPath,
+            ...cues.flatMap((cue) => ['-i', cue.path]),
+            '-filter_complex', filter,
+            '-map', '[mixed]',
+            '-ar', '48000', '-ac', '2',
+            staged,
+          ],
+          { maxBuffer: 8 * 1024 * 1024 },
+        );
+      } else {
       await execFileAsync(
         'ffmpeg',
         [
@@ -339,7 +406,7 @@ export async function mixAudio(input: MixInput): Promise<MixResult> {
           '-i',
           input.narrationPath,
           '-af',
-          `apad=whole_dur=${totalSeconds.toFixed(3)},atrim=0:${totalSeconds.toFixed(3)},asetpts=N/SR/TB`,
+          pad,
           '-ar',
           '48000',
           '-ac',
@@ -348,6 +415,7 @@ export async function mixAudio(input: MixInput): Promise<MixResult> {
         ],
         { maxBuffer: 8 * 1024 * 1024 },
       );
+      }
     }
 
     const measured = await measureLoudness(staged);

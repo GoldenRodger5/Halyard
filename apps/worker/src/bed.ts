@@ -74,18 +74,54 @@ export async function selectBed(
       platform_restrictions: string[];
       expires_at: string | null;
       last_used_at: string | null;
+      provenance: string;
+      licence_proof: string | null;
+      source: string | null;
+      prohibited_platforms: string[];
+      has_vocals: boolean;
+      genre: string | null;
+      instrumentation: string[];
+      active: boolean;
+      usage_count: number;
+      account_restrictions: string[];
       storage_path: string | null;
       public_url: string | null;
     }>(
       `select m.id, m.asset_id, m.title, m.mood, m.energy, m.bpm, m.duration_seconds,
               m.loopable, m.intro_seconds, m.licence, m.attribution_required,
               m.attribution_text, m.platform_restrictions, m.expires_at, m.last_used_at,
+              m.provenance, m.licence_proof, m.source, m.prohibited_platforms,
+              m.has_vocals, m.genre, m.instrumentation, m.active, m.usage_count,
+              m.account_restrictions,
               a.storage_path, a.public_url
          from music_beds m
          join assets a on a.id = m.asset_id
         where (m.product_id = $1 or m.product_id is null)
           and a.archived_at is null`,
       [productId],
+    );
+
+    /*
+     * §239. What this account has already used, most recent first.
+     *
+     * `last_used_at` is global and cannot answer "has this account heard it",
+     * which is the question a viewer scrolling one feed actually poses. Two
+     * accounts may legitimately use the same bed on the same day.
+     */
+    const { rows: usageRows } = await ctx.pool.query<{
+      music_bed_id: string;
+      platform: string;
+      treatment: string | null;
+      visual_language: string | null;
+      used_at: string;
+      score: string | null;
+    }>(
+      `select music_bed_id, platform, treatment, visual_language, used_at, score
+         from music_usage
+        where ($1::uuid is null or account_id = $1)
+        order by used_at desc
+        limit 20`,
+      [brief.accountId ?? null],
     );
 
     const selection = directBed(
@@ -105,8 +141,28 @@ export async function selectBed(
         platformRestrictions: r.platform_restrictions ?? [],
         expiresAt: r.expires_at ? new Date(r.expires_at) : null,
         lastUsedAt: r.last_used_at ? new Date(r.last_used_at) : null,
+        provenance: r.provenance as MusicBed['provenance'],
+        licenceProof: r.licence_proof,
+        source: r.source,
+        prohibitedPlatforms: r.prohibited_platforms ?? [],
+        hasVocals: r.has_vocals,
+        genre: r.genre,
+        instrumentation: r.instrumentation ?? [],
+        active: r.active,
+        usageCount: r.usage_count,
+        accountRestrictions: r.account_restrictions ?? [],
       })),
-      brief,
+      {
+        ...brief,
+        history: usageRows.map((u) => ({
+          musicBedId: u.music_bed_id,
+          platform: u.platform,
+          treatment: u.treatment,
+          visualLanguage: u.visual_language,
+          usedAt: new Date(u.used_at),
+          score: u.score === null ? null : Number(u.score),
+        })),
+      },
     );
 
     if (!selection.chosen) {
@@ -127,11 +183,38 @@ export async function selectBed(
     const row = bedRows.find((r) => r.id === selection.chosen!.bed.id)!;
     ctx.log('music bed selected', {
       title: selection.chosen.bed.title,
+      provenance: selection.chosen.bed.provenance,
       score: selection.chosen.score,
       because: selection.chosen.reasons,
       requiresAttribution: selection.chosen.requiresAttribution,
     });
-    await ctx.pool.query('update music_beds set last_used_at = now() where id = $1', [row.id]);
+    await ctx.pool.query(
+      `update music_beds set last_used_at = now(), usage_count = usage_count + 1 where id = $1`,
+      [row.id],
+    );
+    /*
+     * §239. One row per use, with the reasons.
+     *
+     * The bed's own `last_used_at` answers when, and nothing else. Selection
+     * needs "has this account heard it" and learning needs "did it work", and
+     * neither is derivable from a single timestamp.
+     */
+    await ctx.pool.query(
+      `insert into music_usage
+         (music_bed_id, content_item_id, brief_id, account_id, platform,
+          treatment, visual_language, reasons)
+       values ($1,$2,$3,$4,$5,$6,$7,$8)`,
+      [
+        row.id,
+        brief.contentItemId ?? null,
+        brief.briefId ?? null,
+        brief.accountId ?? null,
+        brief.platform,
+        brief.treatment ?? null,
+        brief.visualLanguage ?? null,
+        selection.chosen.reasons,
+      ],
+    );
     return {
       assetId: row.asset_id,
       storagePath: row.storage_path,
