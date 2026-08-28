@@ -283,7 +283,27 @@ export class Poller {
        values ($1, now(), $2, $3)
        on conflict (worker_id) do update
          set last_seen_at = now(), version = excluded.version, detail = excluded.detail`,
-      [this.workerId, process.env.npm_package_version ?? '0.1.0', { kinds: this.handledKinds }],
+      [
+        this.workerId,
+        /*
+         * §243. The commit, not the package version.
+         *
+         * `npm_package_version` is `0.1.0` on every deploy Halyard has ever
+         * made, so "which code is running" was unanswerable from outside the
+         * container — and the deployed worker turned out to be missing three
+         * job kinds, which was only discoverable by comparing the `kinds` list
+         * against `JOB_KINDS` by eye.
+         *
+         * Railway sets `RAILWAY_GIT_COMMIT_SHA`; Vercel sets
+         * `VERCEL_GIT_COMMIT_SHA`. Neither is present locally, and `unknown`
+         * is the honest answer there rather than a version that means nothing.
+         */
+        process.env.RAILWAY_GIT_COMMIT_SHA?.slice(0, 12) ??
+          process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 12) ??
+          process.env.GIT_COMMIT_SHA?.slice(0, 12) ??
+          'unknown',
+        { kinds: this.handledKinds },
+      ],
     );
 
     /**
