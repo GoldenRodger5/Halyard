@@ -34,7 +34,7 @@
  * adapter, per §146.
  */
 import type { Highlight, ProductArtifact } from '../connectors/types.js';
-import type { ImageProvenance } from '../imagery/types.js';
+import type { ImageAttribution, ImageLicense, ImageProvenance } from '../imagery/types.js';
 
 /**
  * The creative treatments Halyard can reason about.
@@ -154,7 +154,21 @@ export interface CreativeBeat {
    * entirely on where it came from — and a beat is where that question gets
    * answered.
    */
-  image?: { url: string; alt: string; provenance: ImageProvenance };
+  image?: {
+    url: string;
+    alt: string;
+    provenance: ImageProvenance;
+    license: ImageLicense;
+    attribution?: ImageAttribution;
+  };
+  /**
+   * This beat renders a visible credit for its image. §216.
+   *
+   * Set by a composition that has somewhere to put one — a Pinterest tile, an
+   * inset frame. A full-bleed beat cannot, which is why an
+   * `attribution_required` picture is dropped from one and kept on the other.
+   */
+  attributed?: boolean;
   /**
    * How long this beat naturally runs, when it has a natural length.
    *

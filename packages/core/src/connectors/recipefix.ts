@@ -7,6 +7,7 @@
  */
 import { McpClient, type McpClientOptions } from './mcpClient.js';
 import {
+  type ArtifactImage,
   ConnectorUnavailableError,
   type ActivityItem,
   type ChangelogEntry,
@@ -43,6 +44,25 @@ export interface RecipeFixToolStatus {
 export interface RecipeFixAdaptation {
   recipeName: string;
   sourceUrl?: string;
+  /**
+   * The publisher's own photograph of the dish, and its terms. §216.
+   *
+   * Discover returns one for every recipe with the note *"Publisher's own
+   * og:image — attribute and link back; do not re-host or present as a
+   * RecipeFix asset."* It is a real photograph of the real dish, which makes it
+   * genuinely useful — and it belongs to Budget Bytes, Love and Lemons or
+   * Sally's Baking Addiction, which makes it unusable as full-bleed brand
+   * creative.
+   *
+   * Carried with its terms rather than as a bare URL, because a URL alone
+   * invites exactly the use the note forbids.
+   */
+  sourceImage?: {
+    url: string;
+    publisher: string;
+    /** Verbatim from the API, so the constraint travels with the picture. */
+    note?: string;
+  };
   dietary?: string[];
   servings?: { original?: number; adapted?: number; unit?: string };
   ingredients: RecipeFixIngredient[];
@@ -201,7 +221,7 @@ export class RecipeFixConnector implements ProductConnector {
   private async chooseSample(
     spec: SampleSpec,
     attempt = 0,
-  ): Promise<{ url?: string; text?: string; dietary: string[] }> {
+  ): Promise<{ url?: string; text?: string; dietary: string[]; sourceImage?: { url: string; publisher: string; note?: string } }> {
     const dietary = normaliseDietary(spec.params.dietary);
     const url = typeof spec.params.url === 'string' ? spec.params.url : undefined;
     const text = typeof spec.params.text === 'string' ? spec.params.text : undefined;
@@ -209,7 +229,16 @@ export class RecipeFixConnector implements ProductConnector {
     if ((url || text) && dietary.length > 0) return { url, text, dietary };
 
     const discover = await this.client.callToolJson<{
-      recipes?: Array<{ source_url?: string; suggested_diet?: string; title?: string }>;
+      recipes?: Array<{
+        source_url?: string;
+        suggested_diet?: string;
+        title?: string;
+        /* §216. Discarded until now, which is why every video was type on a
+           flat ground: the one real photograph in the payload was thrown away
+           at the point it was chosen. */
+        publisher_image_url?: string;
+        publisher_image_note?: string;
+      }>;
     }>('get_discover_recipes', { scope: 'current_week' });
 
     const pool = (discover.recipes ?? []).filter((r) => r.source_url && r.suggested_diet);
@@ -233,6 +262,17 @@ export class RecipeFixConnector implements ProductConnector {
       url: url ?? chosen.source_url!,
       ...(text ? { text } : {}),
       dietary: dietary.length > 0 ? dietary : [chosen.suggested_diet!],
+      ...(chosen.publisher_image_url
+        ? {
+            sourceImage: {
+              url: chosen.publisher_image_url,
+              /* The publisher is the host of the recipe, which is who the
+                 note says to attribute. Derived rather than guessed. */
+              publisher: publisherOf(chosen.source_url ?? ''),
+              ...(chosen.publisher_image_note ? { note: chosen.publisher_image_note } : {}),
+            },
+          }
+        : {}),
     };
   }
 
@@ -245,7 +285,7 @@ export class RecipeFixConnector implements ProductConnector {
      * raw transport error that nothing upstream knows how to treat.
      */
     for (let attempt = 0; attempt <= this.adaptRetries; attempt++) {
-      let sample: { url?: string; text?: string; dietary: string[] };
+      let sample: { url?: string; text?: string; dietary: string[]; sourceImage?: { url: string; publisher: string; note?: string } };
       try {
         sample = await this.chooseSample(spec, attempt);
       } catch (err) {
@@ -381,6 +421,23 @@ export class RecipeFixConnector implements ProductConnector {
  * step notes, which are the highest-value content in the payload; and the chef
  * explanations.
  */
+/**
+ * The publisher to credit, from the recipe's own URL. §216.
+ *
+ * The API's note says "attribute and link back" and names no publisher, so the
+ * host is the only honest source — it is where the link goes, and it is what a
+ * reader would check. Nothing is invented: a URL that yields no host yields no
+ * attribution, and `licenceAllows` then refuses the use rather than crediting
+ * an empty string.
+ */
+export function publisherOf(sourceUrl: string): string {
+  try {
+    return new URL(sourceUrl).hostname.replace(/^www\./, '');
+  } catch {
+    return '';
+  }
+}
+
 export function toArtifact(recipe: RecipeFixAdaptation): ProductArtifact {
   const highlights: Highlight[] = [];
 
@@ -417,11 +474,43 @@ export function toArtifact(recipe: RecipeFixAdaptation): ProductArtifact {
     ? recipe.servings.original !== recipe.servings.adapted
     : false;
 
+  /**
+   * The publisher's photograph, with the terms it arrived under. §216.
+   *
+   * `provenance: 'product'` because RecipeFix's own API returned it and it
+   * depicts a real dish — but `license: 'attribution_required'`, because the
+   * photograph belongs to whoever published the recipe. The two disagree, and
+   * that disagreement is the entire reason the licence field exists: reading
+   * provenance alone would conclude this was free to burn into a branded video.
+   */
+  const imagery: ArtifactImage[] = recipe.sourceImage?.url
+    ? [
+        {
+          url: recipe.sourceImage.url,
+          role: 'hero',
+          alt: `${recipe.recipeName}, photographed by ${recipe.sourceImage.publisher || 'the recipe publisher'}.`,
+          sourcePath: 'sourceImage.url',
+          provenance: 'product',
+          license: 'attribution_required',
+          ...(recipe.sourceImage.publisher && recipe.sourceUrl
+            ? {
+                attribution: {
+                  publisher: recipe.sourceImage.publisher,
+                  sourceUrl: recipe.sourceUrl,
+                },
+              }
+            : {}),
+          retrievedAt: new Date(),
+        },
+      ]
+    : [];
+
   return {
     kind: 'recipe_adaptation',
     raw: recipe,
     headline: recipe.recipeName,
     highlights,
+    ...(imagery.length > 0 ? { imagery } : {}),
     visualHints: [
       'transformation_diff_1x1',
       'transformation_diff_4x5',

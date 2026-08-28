@@ -34,7 +34,7 @@
 import type { Highlight, ProductArtifact } from '../connectors/types.js';
 import { actionableInsights, type Insight } from '../learning/insights.js';
 import { portfolioPreferences, type PortfolioReport } from '../social/portfolio.js';
-import { imageAllowedForRole } from '../imagery/types.js';
+import { imageAllowedForRole, licenceAllows } from '../imagery/types.js';
 import {
   planBeforeAfter,
   transformationsIn,
@@ -93,9 +93,30 @@ function footageBeat(input: PlanInput): CreativeBeat | null {
 function withPermittedImagery(beats: CreativeBeat[]): CreativeBeat[] {
   return beats.map((beat) => {
     if (!beat.image) return beat;
-    if (imageAllowedForRole(beat.image.provenance, beat.role)) return beat;
-    const { image: _dropped, ...rest } = beat;
-    return rest;
+
+    /* §213. A model's picture cannot stand where evidence belongs. */
+    if (!imageAllowedForRole(beat.image.provenance, beat.role)) {
+      const { image: _dropped, ...rest } = beat;
+      return rest;
+    }
+
+    /*
+     * §216. And a picture Halyard does not own cannot fill a branded frame.
+     *
+     * A beat draws full-bleed, so `attribution_required` fails here unless the
+     * beat is going to render a credit. RecipeFix's Discover photographs are
+     * exactly this case: real, relevant, and somebody else's.
+     */
+    const licence = licenceAllows(
+      beat.image.license,
+      beat.attributed ? 'attributed_inset' : 'full_bleed',
+      beat.image.attribution ?? null,
+    );
+    if (!licence.allowed) {
+      const { image: _unlicensed, ...rest } = beat;
+      return rest;
+    }
+    return beat;
   });
 }
 

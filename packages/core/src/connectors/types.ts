@@ -54,6 +54,24 @@ export interface ArtifactImage {
   sourcePath: string;
   width?: number;
   height?: number;
+  /**
+   * Where it came from, and what may be done with it. §216.
+   *
+   * Two fields because they answer different questions and RecipeFix proved
+   * they can disagree: a publisher's og:image is `product` provenance — the
+   * product's API returned it and it depicts something real — and
+   * `attribution_required` licence, because the photograph belongs to Budget
+   * Bytes. Reading provenance alone would conclude it was free to use.
+   *
+   * Defaulted by consumers to the conservative reading when an adapter written
+   * before this omits them: unknown provenance is not evidence, and unknown
+   * licence is not owned.
+   */
+  provenance?: import('../imagery/types.js').ImageProvenance;
+  license?: import('../imagery/types.js').ImageLicense;
+  attribution?: import('../imagery/types.js').ImageAttribution;
+  /** When it was retrieved, for the same freshness reasoning discovery uses. */
+  retrievedAt?: Date;
 }
 
 export interface ProductArtifact {

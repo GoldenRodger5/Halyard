@@ -41,6 +41,35 @@
  */
 export type ImageProvenance = 'product' | 'captured' | 'generated' | 'operator';
 
+/**
+ * What Halyard is allowed to *do* with a picture, which is a separate question
+ * from where it came from. §216.
+ *
+ * RecipeFix forced this distinction and it generalises. Its Discover catalogue
+ * returns a real photograph for every recipe, and every one carries the same
+ * note: *"Publisher's own og:image — attribute and link back; do not re-host or
+ * present as a RecipeFix asset."* The images belong to Budget Bytes, Love and
+ * Lemons and Sally's Baking Addiction.
+ *
+ * So provenance says `product` — RecipeFix's own API returned it, and it
+ * depicts something real — while the licence says the one thing that matters
+ * for social: it cannot be burned full-bleed into a branded video. Reading
+ * provenance alone would have concluded the opposite.
+ *
+ * `owned`                — the operator or the product owns it. Any use.
+ * `attribution_required` — usable only where a visible credit and a working
+ *                          link back are both rendered.
+ * `generated`            — a model made it. Illustration only (§213).
+ */
+export type ImageLicense = 'owned' | 'attribution_required' | 'generated';
+
+export interface ImageAttribution {
+  /** Who took it. Rendered on screen when the licence requires it. */
+  publisher: string;
+  /** Where it came from. Must be linked, not merely named. */
+  sourceUrl: string;
+}
+
 /** Provenances that may back a claim about the product. */
 export const EVIDENTIAL_PROVENANCE: readonly ImageProvenance[] = [
   'product',
@@ -141,4 +170,75 @@ export function assertIllustrative(prompt: string): void {
 export function imageAllowedForRole(provenance: ImageProvenance, role: string): boolean {
   if (canEvidence(provenance)) return true;
   return !EVIDENTIAL_ROLES.includes(role);
+}
+
+/** Where a picture is being drawn, which decides what its licence permits. */
+export type ImageUsage =
+  /** Filling the frame of a branded post. The strongest claim of ownership. */
+  | 'full_bleed'
+  /** Inside a frame, with a credit rendered beside it. */
+  | 'attributed_inset'
+  /** Not drawn at all — a link, a thumbnail in Halyard's own UI. */
+  | 'reference';
+
+export interface LicenceDecision {
+  allowed: boolean;
+  /** True when the composition must render a credit for this to be allowed. */
+  requiresVisibleCredit: boolean;
+  reason: string;
+}
+
+/**
+ * May this picture be used this way?
+ *
+ * The rule that stops Halyard republishing someone else's photograph as its
+ * own. An `attribution_required` image full-bleed under a brand wordmark is
+ * exactly "re-host and present as a RecipeFix asset", whatever the intent —
+ * and the intent is not the test, the rendered frame is.
+ *
+ * Deliberately returns a reason rather than a boolean alone: an operator who
+ * sees a strong image rejected needs to know it is a licence decision and not
+ * a quality one.
+ */
+export function licenceAllows(
+  license: ImageLicense,
+  usage: ImageUsage,
+  attribution?: ImageAttribution | null,
+): LicenceDecision {
+  if (license === 'owned') {
+    return { allowed: true, requiresVisibleCredit: false, reason: 'Owned; any use.' };
+  }
+
+  if (license === 'generated') {
+    return {
+      allowed: usage !== 'reference',
+      requiresVisibleCredit: false,
+      reason: 'Generated; illustration only, and never as product evidence (§213).',
+    };
+  }
+
+  /* attribution_required */
+  if (usage === 'full_bleed') {
+    return {
+      allowed: false,
+      requiresVisibleCredit: true,
+      reason:
+        `Licensed for attribution-linked reference only${attribution ? ` (${attribution.publisher})` : ''}. ` +
+        'Filling a branded frame with it re-hosts someone else\'s photograph as this account\'s own.',
+    };
+  }
+
+  if (!attribution?.publisher || !attribution?.sourceUrl) {
+    return {
+      allowed: false,
+      requiresVisibleCredit: true,
+      reason: 'Attribution required, and no publisher or source URL was supplied to render.',
+    };
+  }
+
+  return {
+    allowed: true,
+    requiresVisibleCredit: true,
+    reason: `Permitted with a visible credit to ${attribution.publisher} and a link back.`,
+  };
 }
