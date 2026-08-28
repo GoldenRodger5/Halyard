@@ -19,11 +19,7 @@ import { DEFAULT_BRAND, type BrandTokens } from '../brand.js';
 import { Fonts } from './fonts.js';
 import { layoutScenes, type CaptionCue } from './timing.js';
 import { captionStyle, type CaptionBackdrop } from './captionStyle.js';
-import {
-  BEFORE_AFTER_TREATMENTS,
-  PlannedBeats,
-  type RenderableBeat,
-} from './treatments.js';
+import { BEFORE_AFTER_TREATMENTS, PlannedBeats, type RenderableBeat, type RenderPresentation } from './treatments.js';
 
 export interface VideoBaseProps {
   brand?: BrandTokens;
@@ -44,6 +40,8 @@ export interface TransformationDiffVideoProps extends VideoBaseProps {
    * render enqueued before the plan existed still works.
    */
   beats?: RenderableBeat[];
+  /** §211. How loud the frame should be. Absent keeps the editorial register. */
+  presentation?: RenderPresentation;
   /** Which caption treatment the plan called for. Resolved through §158. */
   captionBackdrop?: 'surface' | 'media';
 }
@@ -245,6 +243,7 @@ export const TransformationDiffVideo: React.FC<TransformationDiffVideoProps> = (
           brand={brand}
           headline={props.headline}
           hasCaptions={hasCaptions}
+          presentation={props.presentation}
         />
       ) : (
         legacyScenes.map((scene, index) => (

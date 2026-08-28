@@ -59,6 +59,22 @@ const BY_RULE: Record<string, PolicyEntry> = {
    * revision, not a resequence. Routed accordingly so a correction changes the
    * thing that is actually wrong.
    */
+  /*
+   * §213. A generated image standing where product evidence belongs.
+   *
+   * Not a resequence: the beat order is fine and the picture is the problem.
+   * Not correctable by re-planning either, because the planner would reach for
+   * the same illustration — the fix is a real product image or a capture, and
+   * whether either exists is not something a correction can decide. Escalates,
+   * for the same reason missing evidence does.
+   */
+  'creative.fabricated_evidence': {
+    rootCause: 'A generated image is presented as evidence of product behaviour.',
+    component: 'evidence',
+    action: 'escalate',
+    correctable: false,
+  },
+
   'creative.text_density': {
     rootCause: 'A beat carries more on-screen text than a viewer will read.',
     component: 'copy',

@@ -36,6 +36,10 @@
  * and the UI and testable without a render.
  */
 
+import { EVIDENTIAL_ROLES } from '../imagery/types.js';
+
+export { EVIDENTIAL_ROLES };
+
 export interface CreativeQCBeat {
   role: string;
   emphasis: 'quick' | 'normal' | 'hold';
@@ -43,6 +47,15 @@ export interface CreativeQCBeat {
   hasMedia?: boolean;
   /** Words drawn on this beat, when known. */
   wordCount?: number;
+  /**
+   * Where this beat's still came from, when it has one. §213.
+   *
+   * The gate repeats the planner's provenance check against the rendered
+   * artifact, because a planner is a thing that can be bypassed — by a
+   * correction, by a hand-edited render row, by a future caller — and a gate
+   * is not.
+   */
+  imageProvenance?: 'product' | 'captured' | 'generated' | 'operator';
 }
 
 export interface CreativeQCInput {
@@ -77,7 +90,8 @@ export interface CreativeFinding {
     | 'vary_treatment'
     | 'reduce_text'
     | 'add_payoff'
-    | 'restructure_beats';
+    | 'restructure_beats'
+    | 'replace_fabricated_image';
 }
 
 export interface CreativeQCResult {
@@ -148,6 +162,29 @@ export function runCreativeQC(input: CreativeQCInput): CreativeQCResult {
      */
     unmeasured.push('creative.unused_product_footage');
   }
+
+  /*
+   * §213. A generated picture standing where proof belongs.
+   *
+   * The most serious defect this gate can raise. A model-drawn atmosphere shot
+   * is illustration and is fine; the same image under a `demo` or `proof` beat
+   * is a picture presented as evidence of product behaviour, and a picture is
+   * believed in a way a text card is not. Gotcha 9 and §2.4 both forbid it, and
+   * this is the layer that cannot be bypassed.
+   */
+  beats.forEach((beat, index) => {
+    if (beat.imageProvenance !== 'generated') return;
+    if (!EVIDENTIAL_ROLES.includes(beat.role)) return;
+    findings.push({
+      rule: 'creative.fabricated_evidence',
+      severity: 'error',
+      message: `Beat ${index + 1} is a "${beat.role}" backed by a generated image. That presents an invented picture as product evidence.`,
+      detail:
+        'Generated imagery may illustrate and may never evidence. Use a product image or a capture here, or make the beat decorative.',
+      beatIndex: index,
+      correction: 'replace_fabricated_image',
+    });
+  });
 
   /*
    * Monotony. One role for the whole piece is a slideshow whatever the plan

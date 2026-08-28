@@ -23,6 +23,7 @@
 import React from 'react';
 import {
   AbsoluteFill,
+  Img,
   OffthreadVideo,
   Sequence,
   interpolate,
@@ -32,6 +33,39 @@ import {
 } from 'remotion';
 import type { BrandTokens } from '../brand.js';
 import { layoutScenes, type CaptionCue, type Scene } from './timing.js';
+
+/**
+ * How loud this frame should be. §211.
+ *
+ * Restated here rather than imported from `@halyard/core`: this bundle is
+ * webpacked for the browser and the core barrel pulls `node:crypto` (gotcha
+ * 10). `presentation.test.ts` on the core side asserts the two agree, which is
+ * the same arrangement `EVERY_BEAT_ROLE` uses.
+ */
+export interface RenderPresentation {
+  mode: 'editorial' | 'punch';
+  typeScale: number;
+  fill: number;
+  padding: number;
+  fontWeight: number;
+  useHeadingFont: boolean;
+  entranceSeconds: number;
+  mediaPush: number;
+  maxWordsPerBeat: number;
+}
+
+/** The register a render falls back to when none was supplied. */
+export const EDITORIAL_PRESENTATION: RenderPresentation = {
+  mode: 'editorial',
+  typeScale: 1,
+  fill: 0.62,
+  padding: 72,
+  fontWeight: 400,
+  useHeadingFont: true,
+  entranceSeconds: 0.3,
+  mediaPush: 1,
+  maxWordsPerBeat: 24,
+};
 
 /** 12% safe area top and bottom on 9:16 (v2 F.3). */
 export const SAFE_PERCENT = 12;
@@ -83,6 +117,17 @@ export interface RenderableBeat {
    */
   media?: { file: string; label?: string };
   /**
+   * A still the product supplied, drawn full-bleed behind the beat. §211.
+   *
+   * Distinct from `media`, which is captured footage of the product being
+   * used. An image is the product's own picture of the thing — a finished
+   * dish, an exported artboard, a completed session — and it is the difference
+   * between a frame someone stops on and a frame of type on a flat ground.
+   *
+   * Never generated. See `ArtifactImage` in the connectors contract.
+   */
+  image?: { url: string; alt: string };
+  /**
    * Where in the artifact this beat came from. §169.
    *
    * Carried so a stored render is traceable to its evidence, the same way
@@ -110,6 +155,8 @@ export interface BeatViewProps {
    * `CapturedFootage` be asserted directly.
    */
   band: { width: number; height: number };
+  /** §211. How loud this frame should be. Defaults to the editorial register. */
+  presentation: RenderPresentation;
 }
 
 export type BeatTreatment = React.FC<BeatViewProps>;
@@ -361,19 +408,33 @@ export function anchorFor(role: string): 'center' | 'flex-end' {
 export function bandFor(
   frame: { width: number; height: number },
   hasCaptions: boolean,
+  /** §211. The register decides the gutter; absent keeps the editorial one. */
+  presentation: RenderPresentation = EDITORIAL_PRESENTATION,
 ): { width: number; height: number } {
   const top = Math.round((SAFE_PERCENT / 100) * frame.height);
   const bottom = Math.round(
     ((hasCaptions ? 100 - CAPTION_BAND_TOP_PERCENT : SAFE_PERCENT) / 100) * frame.height,
   );
-  return { width: frame.width - PAGE_PADDING * 2, height: frame.height - top - bottom };
+  return {
+    width: frame.width - presentation.padding * 2,
+    height: frame.height - top - bottom,
+  };
 }
 
 export const BeatStage: React.FC<{
   children: React.ReactNode;
   hasCaptions: boolean;
   anchor?: 'center' | 'flex-end';
-}> = ({ children, hasCaptions, anchor = 'flex-end' }) => {
+  presentation?: RenderPresentation;
+  /** True when a full-bleed image is drawn behind this stage. §211. */
+  transparent?: boolean;
+}> = ({
+  children,
+  hasCaptions,
+  anchor = 'flex-end',
+  presentation = EDITORIAL_PRESENTATION,
+  transparent = false,
+}) => {
   /*
    * Pixels computed from the frame height, not percentages.
    *
@@ -394,8 +455,11 @@ export const BeatStage: React.FC<{
       style={{
         paddingTop: top,
         paddingBottom: bottom,
-        paddingLeft: PAGE_PADDING,
-        paddingRight: PAGE_PADDING,
+        paddingLeft: presentation.padding,
+        paddingRight: presentation.padding,
+        /* Over a full-bleed image the stage paints nothing; the scrim under the
+           text is the legibility mechanism, not a panel behind everything. */
+        backgroundColor: transparent ? 'transparent' : undefined,
         display: 'flex',
         flexDirection: 'column',
         justifyContent: anchor,
@@ -461,7 +525,11 @@ export const PlannedBeats: React.FC<{
   brand: BrandTokens;
   headline: string;
   hasCaptions: boolean;
-}> = ({ beats, treatments, brand, headline, hasCaptions }) => {
+  /** §211. Absent means the editorial register, which is what every render
+   *  queued before presentation modes existed was drawn in. */
+  presentation?: RenderPresentation;
+}> = ({ beats, treatments, brand, headline, hasCaptions, presentation }) => {
+  const spec = presentation ?? EDITORIAL_PRESENTATION;
   const { durationInFrames, fps, width, height } = useVideoConfig();
   const scenes = layoutScenes(beatScenes(beats), durationInFrames, fps);
 
@@ -473,12 +541,29 @@ export const PlannedBeats: React.FC<{
         if (!Treatment) return null;
         return (
           <Sequence key={scene.id} from={scene.startFrame} durationInFrames={scene.durationFrames}>
-            <BeatStage hasCaptions={hasCaptions} anchor={anchorFor(beat.role)}>
+            {/* §211. The product's own picture, full-bleed and moving, behind
+                whatever the role draws on top of it. */}
+            {beat.image ? (
+              <FullBleedImage
+                url={beat.image.url}
+                push={spec.mediaPush}
+                durationInFrames={scene.durationFrames}
+              />
+            ) : null}
+            <BeatStage
+              hasCaptions={hasCaptions}
+              anchor={anchorFor(beat.role)}
+              presentation={spec}
+              /* A full-bleed image is drawn behind the stage, so the stage
+                 itself must not paint a ground over it. */
+              transparent={Boolean(beat.image)}
+            >
               <Treatment
                 beat={beat}
                 brand={brand}
                 headline={headline}
-                band={bandFor({ width, height }, hasCaptions)}
+                band={bandFor({ width, height }, hasCaptions, spec)}
+                presentation={spec}
               />
             </BeatStage>
           </Sequence>
@@ -496,31 +581,45 @@ export const PlannedBeats: React.FC<{
  * Large because it is the only thing a scrolling viewer reads before deciding,
  * and short because the plan gives it the least time of any beat.
  */
-const HookTitle: BeatTreatment = ({ beat, brand, headline }) => (
-  <Rise>
-    <div
-      style={{
-        fontSize: 30,
-        letterSpacing: 3,
-        textTransform: 'uppercase',
-        color: brand.primary,
-      }}
-    >
-      One adaptation
-    </div>
-    <div
-      style={{
-        fontFamily: brand.headingFont,
-        fontSize: 96,
-        lineHeight: 1.03,
-        marginTop: 22,
-        color: brand.ink,
-      }}
-    >
-      {beat.content?.text ?? headline}
-    </div>
-  </Rise>
-);
+const HookTitle: BeatTreatment = ({ beat, brand, headline, presentation }) => {
+  const overImage = Boolean(beat.image);
+  const t = presentation.typeScale;
+  return (
+    <Rise>
+      {/*
+        The eyebrow is dropped in the punch register. §211.
+
+        "ONE ADAPTATION" is orientation for a reader who has already decided to
+        look. In a feed it spends the top of the most valuable frame in the
+        piece on a label nobody scrolled for, and the measured opening had this
+        as its brightest element.
+      */}
+      {presentation.mode === 'editorial' ? (
+        <div
+          style={{
+            fontSize: 30 * t,
+            letterSpacing: 3,
+            textTransform: 'uppercase',
+            ...inkFor(brand, presentation, overImage, 'primary'),
+          }}
+        >
+          One adaptation
+        </div>
+      ) : null}
+      <div
+        style={{
+          fontSize: 96 * t,
+          lineHeight: presentation.mode === 'punch' ? 1.0 : 1.03,
+          marginTop: presentation.mode === 'editorial' ? 22 : 0,
+          letterSpacing: presentation.mode === 'punch' ? '-0.02em' : undefined,
+          ...inkFor(brand, presentation, overImage),
+        }}
+      >
+        {beat.content?.text ?? headline}
+      </div>
+    </Rise>
+  );
+};
 
 /**
  * One transformation: what it was, what it became, and why.
@@ -529,7 +628,9 @@ const HookTitle: BeatTreatment = ({ beat, brand, headline }) => (
  * the viewer *watches* rather than infers from two stacked lines. Scale follows
  * the beat's emphasis, so the hero change is visibly the hero.
  */
-const TransformationCard: BeatTreatment = ({ beat, brand, band }) => {
+const TransformationCard: BeatTreatment = ({ beat, brand, band, presentation }) => {
+  const overImage = Boolean(beat.image);
+  const t = presentation.typeScale;
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
@@ -571,15 +672,15 @@ const TransformationCard: BeatTreatment = ({ beat, brand, band }) => {
          * something the viewer watches rather than infers (§162).
          */
         <div style={{ position: 'relative', alignSelf: 'flex-start', marginBottom: 18 * scale }}>
-          <div style={{ fontSize: 44 * scale, lineHeight: 1.25, color: brand.muted }}>{before}</div>
+          <div style={{ fontSize: 44 * scale * t, lineHeight: 1.25, ...inkFor(brand, presentation, overImage, 'muted') }}>{before}</div>
           <div
             aria-hidden
             style={{
               position: 'absolute',
               inset: 0,
-              fontSize: 44 * scale,
+              fontSize: 44 * scale * t,
               lineHeight: 1.25,
-              color: brand.muted,
+              ...inkFor(brand, presentation, overImage, 'muted'),
               textDecoration: 'line-through',
               textDecorationThickness: Math.max(2, Math.round(3 * scale)),
               // `inset()` trims from each edge; trimming the right by the
@@ -595,10 +696,9 @@ const TransformationCard: BeatTreatment = ({ beat, brand, band }) => {
       {after ? (
         <div
           style={{
-            fontFamily: brand.headingFont,
-            fontSize: 66 * scale,
+            fontSize: 66 * scale * t,
             lineHeight: 1.12,
-            color: brand.ink,
+            ...inkFor(brand, presentation, overImage),
           }}
         >
           {after}
@@ -612,9 +712,9 @@ const TransformationCard: BeatTreatment = ({ beat, brand, band }) => {
             marginTop: 22 * scale,
             paddingLeft: 20 * scale,
             borderLeft: `${Math.max(2, Math.round(3 * scale))}px solid ${brand.primary}`,
-            fontSize: 32 * scale,
+            fontSize: 32 * scale * t,
             lineHeight: 1.4,
-            color: brand.muted,
+            ...inkFor(brand, presentation, overImage, 'muted'),
           }}
         >
           {reason}
@@ -655,7 +755,9 @@ const TransformationCard: BeatTreatment = ({ beat, brand, band }) => {
  * own `reason`. Styling a quotation that nothing can currently emit would be
  * architecture for a content shape that does not exist.
  */
-const EvidenceNote: BeatTreatment = ({ beat, brand, band }) => {
+const EvidenceNote: BeatTreatment = ({ beat, brand, band, presentation }) => {
+  const overImage = Boolean(beat.image);
+  const t = presentation.typeScale;
   const text = beat.content?.text;
   /*
    * No evidence is no beat. The planner only emits this beat when the change
@@ -670,21 +772,20 @@ const EvidenceNote: BeatTreatment = ({ beat, brand, band }) => {
     <Rise>
       <div
         style={{
-          fontSize: NOTE_TYPE.label.size,
+          fontSize: NOTE_TYPE.label.size * t,
           letterSpacing: 3,
           textTransform: 'uppercase',
-          color: brand.primary,
+          ...inkFor(brand, presentation, overImage, 'primary'),
         }}
       >
         Why
       </div>
       <div
         style={{
-          fontFamily: brand.headingFont,
-          fontSize: NOTE_TYPE.body.size * scale,
+          fontSize: NOTE_TYPE.body.size * scale * t,
           lineHeight: NOTE_TYPE.body.lineHeight,
           marginTop: NOTE_TYPE.gap * scale,
-          color: brand.ink,
+          ...inkFor(brand, presentation, overImage),
         }}
       >
         {text}
@@ -694,15 +795,14 @@ const EvidenceNote: BeatTreatment = ({ beat, brand, band }) => {
 };
 
 /** A deliberate ending, when the plan supplies one. Never invented. */
-const ClosingLine: BeatTreatment = ({ beat, brand }) =>
+const ClosingLine: BeatTreatment = ({ beat, brand, presentation }) =>
   beat.content?.text ? (
     <Rise>
       <div
         style={{
-          fontFamily: brand.headingFont,
-          fontSize: 72,
+          fontSize: 72 * presentation.typeScale,
           lineHeight: 1.1,
-          color: brand.ink,
+          ...inkFor(brand, presentation, Boolean(beat.image)),
         }}
       >
         {beat.content.text}
@@ -721,7 +821,7 @@ const ClosingLine: BeatTreatment = ({ beat, brand }) =>
  * The footage is silent by construction — the narration is the voiceover, and a
  * browser recording has nothing worth hearing.
  */
-const CapturedFootage: BeatTreatment = ({ beat, brand, band }) => {
+const CapturedFootage: BeatTreatment = ({ beat, brand, band, presentation }) => {
   const media = beat.media;
   // No footage is no beat. Substituting a still or a graphic here would be
   // inventing product state, which is the one thing this must never do.
@@ -753,10 +853,10 @@ const CapturedFootage: BeatTreatment = ({ beat, brand, band }) => {
       {media.label ? (
         <div
           style={{
-            fontSize: 28,
+            fontSize: 28 * presentation.typeScale,
             letterSpacing: 3,
             textTransform: 'uppercase',
-            color: brand.primary,
+            ...inkFor(brand, presentation, false, 'primary'),
             marginBottom: 16,
           }}
         >
@@ -801,6 +901,101 @@ const CapturedFootage: BeatTreatment = ({ beat, brand, band }) => {
 };
 
 /**
+ * How type is drawn, given the register and what is behind it. §211.
+ *
+ * One place, because the alternative is every component deciding
+ * independently whether it is over a photograph — and getting it wrong once
+ * means white text on a cream ground, which is invisible rather than merely
+ * ugly.
+ *
+ * Over an image the palette inverts: white, with a shadow rather than a panel.
+ * A panel behind the text would undo the reason for going full-bleed.
+ */
+export function inkFor(
+  brand: BrandTokens,
+  presentation: RenderPresentation,
+  overImage: boolean,
+  tone: 'ink' | 'muted' | 'primary' = 'ink',
+): React.CSSProperties {
+  const base: React.CSSProperties = {
+    fontWeight: presentation.fontWeight,
+    fontFamily: presentation.useHeadingFont ? brand.headingFont : brand.bodyFont,
+  };
+  if (!overImage) {
+    return {
+      ...base,
+      color: tone === 'muted' ? brand.muted : tone === 'primary' ? brand.primary : brand.ink,
+    };
+  }
+  return {
+    ...base,
+    color: tone === 'muted' ? 'rgba(255,255,255,0.82)' : '#fff',
+    /* Two shadows: a tight one for edge definition on busy texture, a wide
+     * soft one so the block reads as separate from the picture. */
+    textShadow: '0 2px 6px rgba(0,0,0,0.55), 0 10px 40px rgba(0,0,0,0.45)',
+  };
+}
+
+/**
+ * The product's own picture, full-bleed and always moving. §211.
+ *
+ * Two things are happening, and both are corrections to something measured in
+ * the rendered files.
+ *
+ * **Full-bleed.** The one appetising asset in a whole 24-second render was a
+ * photograph inside a screenshot inside a card, occupying about 15% of one
+ * frame. A picture worth having is worth the whole frame; the type goes on top
+ * of it.
+ *
+ * **A push.** A still image is a static frame however good the photograph, and
+ * a static frame is exactly what the retention rules penalise — the measured
+ * opening moved 0.0157 in tonal range across two seconds. A slow scale over the
+ * beat's own duration keeps the picture alive without becoming a zoom effect
+ * anybody notices.
+ *
+ * The scrim is a gradient rather than a flat panel: it is dark where the text
+ * sits and absent where the picture is, so legibility costs the image nothing
+ * it does not have to.
+ */
+const FullBleedImage: React.FC<{
+  url: string;
+  push: number;
+  durationInFrames: number;
+}> = ({ url, push, durationInFrames }) => {
+  const frame = useCurrentFrame();
+  const scale = interpolate(frame, [0, Math.max(1, durationInFrames)], [1, push], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+
+  return (
+    <AbsoluteFill>
+      <AbsoluteFill style={{ overflow: 'hidden' }}>
+        <Img
+          src={url}
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            transform: `scale(${scale})`,
+            /* Scaling about the centre, so the push does not drift the subject
+               out of frame on a tight crop. */
+            transformOrigin: 'center center',
+          }}
+        />
+      </AbsoluteFill>
+      <AbsoluteFill
+        style={{
+          background:
+            'linear-gradient(to bottom, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0) 32%, ' +
+            'rgba(0,0,0,0.15) 55%, rgba(0,0,0,0.78) 100%)',
+        }}
+      />
+    </AbsoluteFill>
+  );
+};
+
+/**
  * One step of a sequence. §203.
  *
  * Where a transformation card contrasts two states, this one is ordinal: it
@@ -809,7 +1004,9 @@ const CapturedFootage: BeatTreatment = ({ beat, brand, band }) => {
  * from the artifact, never a generated "Step 1" — a number the planner did not
  * find is a number nobody can check.
  */
-const StepCard: BeatTreatment = ({ beat, brand, band }) => {
+const StepCard: BeatTreatment = ({ beat, brand, band, presentation }) => {
+  const overImage = Boolean(beat.image);
+  const t = presentation.typeScale;
   const text = beat.content?.text;
   if (!text || !text.trim()) return null;
   const label = beat.content?.label;
@@ -820,10 +1017,10 @@ const StepCard: BeatTreatment = ({ beat, brand, band }) => {
       {label ? (
         <div
           style={{
-            fontSize: NOTE_TYPE.label.size,
+            fontSize: NOTE_TYPE.label.size * t,
             letterSpacing: 3,
             textTransform: 'uppercase',
-            color: brand.primary,
+            ...inkFor(brand, presentation, overImage, 'primary'),
           }}
         >
           {label}
@@ -831,11 +1028,10 @@ const StepCard: BeatTreatment = ({ beat, brand, band }) => {
       ) : null}
       <div
         style={{
-          fontFamily: brand.headingFont,
-          fontSize: NOTE_TYPE.body.size * scale,
+          fontSize: NOTE_TYPE.body.size * scale * t,
           lineHeight: NOTE_TYPE.body.lineHeight,
           marginTop: label ? NOTE_TYPE.gap * scale : 0,
-          color: brand.ink,
+          ...inkFor(brand, presentation, overImage),
         }}
       >
         {text}
@@ -852,7 +1048,9 @@ const StepCard: BeatTreatment = ({ beat, brand, band }) => {
  * somewhere. It comes from `content.index`, which the planner assigns when it
  * orders the list; nothing here counts.
  */
-const CountItem: BeatTreatment = ({ beat, brand, band }) => {
+const CountItem: BeatTreatment = ({ beat, brand, band, presentation }) => {
+  const overImage = Boolean(beat.image);
+  const t = presentation.typeScale;
   const text = beat.content?.text;
   if (!text || !text.trim()) return null;
   const index = beat.content?.index;
@@ -863,10 +1061,9 @@ const CountItem: BeatTreatment = ({ beat, brand, band }) => {
       {index !== undefined ? (
         <div
           style={{
-            fontFamily: brand.headingFont,
-            fontSize: 96 * scaleFor(beat.emphasis),
+            fontSize: 96 * scaleFor(beat.emphasis) * t,
             lineHeight: 1,
-            color: brand.primary,
+            ...inkFor(brand, presentation, overImage, 'primary'),
           }}
         >
           {index}
@@ -874,11 +1071,10 @@ const CountItem: BeatTreatment = ({ beat, brand, band }) => {
       ) : null}
       <div
         style={{
-          fontFamily: brand.headingFont,
-          fontSize: NOTE_TYPE.body.size * scale,
+          fontSize: NOTE_TYPE.body.size * scale * t,
           lineHeight: NOTE_TYPE.body.lineHeight,
           marginTop: NOTE_TYPE.gap * scale,
-          color: brand.ink,
+          ...inkFor(brand, presentation, overImage),
         }}
       >
         {text}
@@ -894,7 +1090,9 @@ const CountItem: BeatTreatment = ({ beat, brand, band }) => {
  * reads as the brighter of the two. The contrast is the treatment: two beats
  * drawn identically would be two statements rather than a reversal.
  */
-const MythCard: BeatTreatment = ({ beat, brand, band }) => {
+const MythCard: BeatTreatment = ({ beat, brand, band, presentation }) => {
+  const overImage = Boolean(beat.image);
+  const t = presentation.typeScale;
   const text = beat.content?.text;
   if (!text || !text.trim()) return null;
   const scale = fitScale((k) => noteHeightAt(text, band.width, k), band.height, beat.emphasis);
@@ -903,21 +1101,20 @@ const MythCard: BeatTreatment = ({ beat, brand, band }) => {
     <Rise>
       <div
         style={{
-          fontSize: NOTE_TYPE.label.size,
+          fontSize: NOTE_TYPE.label.size * t,
           letterSpacing: 3,
           textTransform: 'uppercase',
-          color: brand.muted,
+          ...inkFor(brand, presentation, overImage, 'muted'),
         }}
       >
         Commonly believed
       </div>
       <div
         style={{
-          fontFamily: brand.headingFont,
-          fontSize: NOTE_TYPE.body.size * scale,
+          fontSize: NOTE_TYPE.body.size * scale * t,
           lineHeight: NOTE_TYPE.body.lineHeight,
           marginTop: NOTE_TYPE.gap * scale,
-          color: brand.muted,
+          ...inkFor(brand, presentation, overImage, 'muted'),
         }}
       >
         {text}
@@ -932,15 +1129,15 @@ const MythCard: BeatTreatment = ({ beat, brand, band }) => {
  * Deliberately the largest type in any treatment: a montage and a feature demo
  * both exist for this frame, and everything before it is momentum toward it.
  */
-const ResultCard: BeatTreatment = ({ beat, brand }) =>
+const ResultCard: BeatTreatment = ({ beat, brand, presentation }) =>
   beat.content?.text ? (
     <Rise>
       <div
         style={{
-          fontFamily: brand.headingFont,
-          fontSize: 84 * scaleFor(beat.emphasis),
+          fontSize: 84 * scaleFor(beat.emphasis) * presentation.typeScale,
           lineHeight: 1.08,
-          color: brand.ink,
+          letterSpacing: presentation.mode === 'punch' ? '-0.02em' : undefined,
+          ...inkFor(brand, presentation, Boolean(beat.image)),
         }}
       >
         {beat.content.text}

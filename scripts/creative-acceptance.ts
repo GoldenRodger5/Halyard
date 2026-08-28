@@ -31,6 +31,7 @@ import {
   type CreativePlan,
 } from '../packages/core/src/creative/plan.js';
 import { selectCreativePlan } from '../packages/core/src/creative/treatments.js';
+import { presentationFor } from '../packages/core/src/creative/presentation.js';
 import { runCreativeQC } from '../packages/core/src/qc/creativeQC.js';
 import { runRetentionQC } from '../packages/core/src/qc/retentionQC.js';
 import { runVisualQC } from '../packages/core/src/qc/visualQC.js';
@@ -71,7 +72,13 @@ function wordsIn(content: Record<string, unknown>): number {
   return text ? text.split(/\s+/).length : 0;
 }
 
-async function renderAndMeasure(name: string, plan: CreativePlan, footageAvailable: boolean) {
+async function renderAndMeasure(
+  name: string,
+  plan: CreativePlan,
+  footageAvailable: boolean,
+  /** §211. Which visual register to draw in. */
+  mode: 'editorial' | 'punch' = 'editorial',
+) {
   const beats = beatsForRender(plan);
   const outputPath = path.join(OUT, `${name}.mp4`);
 
@@ -88,6 +95,10 @@ async function renderAndMeasure(name: string, plan: CreativePlan, footageAvailab
       beats,
       captionBackdrop: plan.captionBackdrop,
       wordmark: 'RecipeFix',
+      presentation:
+        mode === 'punch'
+          ? presentationFor(PLATFORM)
+          : presentationFor('pinterest'),
     },
   });
   const renderMs = Date.now() - startedAt;
@@ -188,8 +199,18 @@ async function main(): Promise<void> {
   console.log(`\ntreatments considered: ${selection.considered.map((c) => c.plan.creativeType).join(', ')}`);
   console.log(`chosen               : ${selection.chosen.creativeType}\n`);
 
-  const before = await renderAndMeasure('before-card-only', cardOnly, true);
-  const after = await renderAndMeasure('after-selected', selection.chosen, true);
+  /*
+   * §212. The hook the hook-writer would have supplied.
+   *
+   * Taken from the real hooks this system has generated, because that is what
+   * production now patches into the opening beat. Rendering the planner's
+   * placeholder here would measure a frame nobody will ever see.
+   */
+  const REAL_HOOK = 'Halving a recipe isn\'t math';
+  selection.chosen.beats[0]!.content = { text: REAL_HOOK };
+
+  const before = await renderAndMeasure('before-card-only', cardOnly, true, 'editorial');
+  const after = await renderAndMeasure('after-selected', selection.chosen, true, 'punch');
 
   for (const r of [before, after]) {
     console.log('─'.repeat(72));

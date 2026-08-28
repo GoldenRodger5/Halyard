@@ -533,3 +533,44 @@ describe('portfolio balance steers the next treatment', () => {
     );
   });
 });
+
+/**
+ * §211. The register is restated in the render package, and the two must agree.
+ *
+ * `@halyard/render` is webpacked for the browser and cannot import the core
+ * barrel (gotcha 10), so `RenderPresentation` and `EDITORIAL_PRESENTATION` are
+ * hand-copied there. Two hand-written copies drift; this reads the render
+ * source as text and compares, the same arrangement `EVERY_BEAT_ROLE` uses.
+ */
+describe('the render package restates the presentation register faithfully', () => {
+  it('has the same fields, and the same editorial defaults', async () => {
+    const { readFileSync } = await import('node:fs');
+    const { EDITORIAL } = await import('./presentation.js');
+    const source = readFileSync(
+      new URL('../../../render/src/video/treatments.tsx', import.meta.url),
+      'utf8',
+    );
+
+    const iface = /export interface RenderPresentation \{([\s\S]*?)\n\}/.exec(source);
+    expect(iface, 'RenderPresentation not found in the render package').not.toBeNull();
+    const renderFields = new Set(
+      [...iface![1]!.matchAll(/^\s*(\w+)\s*[?:]/gm)].map((m) => m[1]!),
+    );
+    for (const key of Object.keys(EDITORIAL)) {
+      expect(renderFields.has(key), `render's RenderPresentation is missing "${key}"`).toBe(true);
+    }
+
+    const block = /export const EDITORIAL_PRESENTATION: RenderPresentation = \{([\s\S]*?)\n\};/.exec(
+      source,
+    );
+    expect(block, 'EDITORIAL_PRESENTATION not found').not.toBeNull();
+    for (const [key, value] of Object.entries(EDITORIAL)) {
+      const found = new RegExp(`${key}:\\s*([^,\\n]+)`).exec(block![1]!);
+      expect(found, `render default missing ${key}`).not.toBeNull();
+      expect(
+        found![1]!.trim().replace(/['"]/g, ''),
+        `render's editorial default for ${key} disagrees with core's`,
+      ).toBe(String(value));
+    }
+  });
+});

@@ -28,6 +28,34 @@ export interface Highlight {
   text?: string;
 }
 
+/**
+ * What an image from a product is *for*, in the story. §211.
+ *
+ * Roles rather than positions, so a planner can ask for "the thing after the
+ * change" without knowing which product it is talking to. A recipe adapter
+ * emits a finished dish as `after`; a fitness product emits a completed
+ * session; a design tool emits the exported artboard. None of them needs this
+ * file to know what they are.
+ */
+export type ArtifactImageRole = 'hero' | 'before' | 'after' | 'step' | 'detail';
+
+export interface ArtifactImage {
+  /**
+   * Publicly reachable at render time.
+   *
+   * Remotion fetches it during the render, so a signed URL with a short expiry
+   * fails the same way Meta's cURL does — the same trap `PublishAsset` carries.
+   */
+  url: string;
+  role: ArtifactImageRole;
+  /** Required. An image with no alt text cannot be published accessibly. */
+  alt: string;
+  /** Where in the raw payload this came from, for the same provenance as a highlight. */
+  sourcePath: string;
+  width?: number;
+  height?: number;
+}
+
 export interface ProductArtifact {
   kind: string; // 'recipe_adaptation'
   /** The full API response, stored verbatim on content_items.product_artifact. */
@@ -36,6 +64,20 @@ export interface ProductArtifact {
   highlights: Highlight[];
   /** Which templates suit this artifact. */
   visualHints: string[];
+  /**
+   * Imagery the product itself supplies. §211.
+   *
+   * Optional and product-agnostic. Halyard's video was card-first because the
+   * artifact contract had nowhere to put a picture — every frame was type on a
+   * flat ground, which is a defensible editorial look and a poor short-form
+   * one. An adapter that has images emits them here and the planners use them;
+   * one that does not is unchanged, and its content still renders.
+   *
+   * **Never generated.** An image here is one the product returned. Illustrating
+   * a claim with a stock photograph of something that is not the product is the
+   * same class of fabrication as inventing a capability.
+   */
+  imagery?: ArtifactImage[];
 }
 
 export interface ActivityItem {

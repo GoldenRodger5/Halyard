@@ -8,15 +8,7 @@
  * band lost its bottom edge with nothing to say so.
  */
 import { describe, expect, it } from 'vitest';
-import {
-  BEFORE_AFTER_TREATMENTS,
-  CARD_TYPE,
-  NOTE_TYPE,
-  CAPTION_BAND_TOP_PERCENT,
-  PAGE_PADDING,
-  SAFE_PERCENT,
-  bandFor,
-} from './treatments.js';
+import { BEFORE_AFTER_TREATMENTS, CAPTION_BAND_TOP_PERCENT, CARD_TYPE, EDITORIAL_PRESENTATION, NOTE_TYPE, PAGE_PADDING, SAFE_PERCENT, bandFor } from './treatments.js';
 import { FLOWS } from '@halyard/core';
 
 const FRAME = { width: 1080, height: 1920 };
@@ -43,7 +35,14 @@ function videoBounds(
     minSeconds: 3,
     media: { file: 'capture/x.mp4', ...(hasLabel ? { label: 'In the product' } : {}) },
   };
-  const tree = Demo({ beat, brand: { muted: '#888', primary: '#c00' }, band } as never);
+  /* §211. The register is required now, and `PlannedBeats` always supplies it.
+     Editorial keeps every assertion below measuring what it measured before. */
+  const tree = Demo({
+    beat,
+    brand: { muted: '#888', primary: '#c00' },
+    band,
+    presentation: EDITORIAL_PRESENTATION,
+  } as never);
 
   // Walk the returned element tree for the node carrying the video's style.
   const found: Array<Record<string, unknown>> = [];
@@ -182,7 +181,14 @@ describe('the refusal survives', () => {
   it('still renders nothing when a demo beat has no footage', () => {
     const Demo = BEFORE_AFTER_TREATMENTS.demo!;
     const beat = { id: 'demo', role: 'demo', weight: 3, minSeconds: 3.6 };
-    expect(Demo({ beat, brand: {}, band: bandFor(FRAME, true) } as never)).toBeNull();
+    expect(
+      Demo({
+        beat,
+        brand: {},
+        band: bandFor(FRAME, true),
+        presentation: EDITORIAL_PRESENTATION,
+      } as never),
+    ).toBeNull();
   });
 });
 
@@ -197,7 +203,7 @@ describe('the evidence note', () => {
   /** The note's rendered body size, read out of the treatment's own output. */
   function bodySize(text: string | undefined, emphasis?: string): number | null {
     const beat = { id: 'proof', role: 'proof', weight: 2, minSeconds: 2.4, emphasis, content: { text } };
-    const tree = Note({ beat, brand, band } as never);
+    const tree = Note({ beat, brand, band, presentation: EDITORIAL_PRESENTATION } as never);
     if (tree === null) return null;
     const sizes: number[] = [];
     const visit = (node: unknown): void => {

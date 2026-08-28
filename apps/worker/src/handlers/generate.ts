@@ -995,6 +995,38 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
               platform: account.platform,
             });
           }
+
+          /**
+           * §212. The hook reaches the frames, not just the caption.
+           *
+           * The hook stage produces genuinely good openings — "One teaspoon.
+           * Nothing else moved.", "Halving a recipe isn't math" — and until now
+           * they only ever rewrote `content_items.body`. The *video* opened on
+           * whatever the planner had put in the hook beat, which is the
+           * artifact headline: "5 things — Sally's Artisan Bread, gluten-free".
+           *
+           * So the best line the system wrote was in the caption, and the most
+           * valuable frame in the piece — the one that is also the thumbnail —
+           * showed a title. Two halves of one decision, disconnected.
+           *
+           * Patched here rather than by re-planning because the plan's
+           * *structure* is right and only its opening words were a placeholder.
+           * Safe at this point in the flow: the video render is enqueued later
+           * by `tts`, so the row being edited has not been drawn yet.
+           */
+          await ctx.pool.query(
+            `update renders
+                set input_props = jsonb_set(
+                      input_props,
+                      '{beats,0,content,text}',
+                      to_jsonb($2::text),
+                      true
+                    )
+              where content_item_id = $1
+                and status = 'queued'
+                and input_props -> 'beats' -> 0 ->> 'role' = 'hook'`,
+            [contentItemId, hookStage.applied.textHook],
+          );
         }
 
         if (draft.hookPattern) {
