@@ -6092,3 +6092,173 @@ exists, with the basis saying so.
 
 A decision with no measurement cannot be wrong later, and a decision that cannot
 be wrong teaches nothing.
+
+## 211. Two registers, because an editorial voice is not a feed voice
+
+`presentationFor(platform, formatSubtype)` returns one of two specs. `EDITORIAL`
+is what every render had always been: a modest type scale, a card filling 62% of
+its band, a heading face, an eyebrow above the hook. `PUNCH` is 1.85× the type,
+86% fill, weight 700, no heading face, no eyebrow, and a harder push on media.
+
+The eyebrow is the clearest case. "ONE ADAPTATION" above the hook spends the top
+of the most valuable frame in the piece on a label nobody scrolled for, and in
+the measured opening it was the brightest element on screen. In an editorial
+context it is a masthead. In a feed it is a tax.
+
+Rejected: one register with a tuning knob. Every value moves together or none of
+them do — a punchy type scale inside an editorial fill produces a card that
+overflows, and the two registers exist precisely so that cannot be assembled.
+
+**It shipped dead.** §211 built `presentationFor` and only the acceptance script
+called it, so every production render was still editorial and the change did
+nothing outside a test. Found by auditing modules against their callers, not by
+any test. A module with no caller is the same defect as a learning table nobody
+reads, pointed the other way.
+
+## 212. The hook reaches the frames, not only the caption
+
+The hook variant was chosen, recorded, and used to write the caption — and then
+the video was rendered from the artifact, so the frames said something else. An
+experiment measuring hooks was measuring a hook the viewer never saw.
+
+## 213. Generated imagery may illustrate, and may never be evidence
+
+A model can make a picture of a kitchen. It cannot make a picture of the product
+doing something, because the picture would be a claim, and the claim would be
+manufactured. `assertIllustrative` refuses **before** the provider call rather
+than filtering afterwards: a fabricated product shot that exists on disk is one
+mistake away from being attached to a post, and the cheapest place to stop it is
+before it is made.
+
+This is gotcha 9 applied to pixels. `null` means unmeasured; a generated image
+means illustration; neither is evidence.
+
+## 214. A caption budget per platform, and an overflow with somewhere to go
+
+`COPY_BUDGETS` records three numbers per platform — what is visible before a
+"more" link, what to aim for, and what the API will accept — plus where the
+remainder goes. TikTok shows about 90 characters and accepts 2200; writing to
+the ceiling puts the whole point behind a tap.
+
+**The prompt and the gate disagreed for a full pass.** The gate rejected long
+captions while `copywriter.v1` still instructed "hard ceiling: 2200 characters",
+so the model was being told to write the thing the gate would reject, and the
+retry loop paid for it. Prompts are configuration; a gate added without reading
+them ships a contradiction that looks like a flaky model.
+
+## 215. Seven ways to tell a story, and the honesty to refuse all seven
+
+Each planner declares what the artifact must support and returns null when it
+does not. Selection scores `support − penalty×2 + learned + portfolio`, so a
+strong treatment used twice recently loses to a weaker fresh one, and an
+artifact carrying nothing a planner recognises produces no plan rather than a
+default.
+
+Rejected: a fallback treatment. A default that always fits is how every video on
+every account became a before/after opening on a card.
+
+## 216. Provenance travels with the picture
+
+An image's licence is not a property of the pipeline stage that fetched it, so
+`ImageProvenance` and `ImageLicense` travel on the asset itself. `owned`,
+`attribution_required` and `generated` are different permissions, and
+`licenceAllows(license, usage, attribution)` answers the question at the point
+of use rather than at the point of download — because the usage is what the
+licence actually constrains.
+
+## 217. 5,833 rows and no signals, because nothing joined two tables
+
+`rss_items` had 5,833 rows. `signals` had none. Both tables were correct, both
+were being written and read, and the join between them did not exist — so the
+discovery half of the system had been running for weeks producing nothing, with
+every dashboard green.
+
+`promoteToSignals` and `promoteProductFacts` close it, rate-limited (5 and 3 per
+run) so a backlog drains steadily instead of arriving as one flood. Facts
+promote only at `status = 'verified'`.
+
+**A deduped candidate leaked a slot.** A candidate rejected as a duplicate
+stayed `new` forever and consumed one of the five every run thereafter. The
+symptom was a system that promoted fewer and fewer things and never errored.
+
+## 218. Concepts are generated and scored before anything is built
+
+`generateConcepts` produces several angles on one signal; `scoreConcepts` ranks
+them. An unbuildable concept scores **0 and is still returned**, because "we
+thought of this and could not build it" is information about the product's
+evidence gaps, and deleting it destroys the only record of the gap.
+
+`conceptDiversity` measures spread, so three phrasings of one idea do not read
+as three concepts.
+
+## 220. Motion is a grammar, not a per-treatment decision
+
+Each visual language — `documentary`, `kinetic`, `editorial_cut`, `product_led`
+— maps to entrances, camera moves and transitions, and `LANGUAGE_FOR_TREATMENT`
+binds a treatment to one. A transition is implemented as a `Sequence` overlap
+rather than an effect layer, which keeps the timing engine authoritative: a
+transition cannot desynchronise from the beat it belongs to.
+
+**Three defects, all found by rendering frames and looking at them.** `cascade`
+was unreachable, because it was keyed on a language nothing mapped to. Made
+reachable, it rendered as a plain block fade, because `Enter` had no cascade
+branch. Fixed, the word it emphasised was "a" — `emphasisWordFor` now takes the
+last non-stopword. Every one of these passed typecheck, lint and the full suite.
+
+## 221. A music director, and a mix that stops being one constant
+
+The bed was chosen by least-recently-used rotation and mixed at a fixed −22 dB
+with a fixed ducking ratio, for every video Halyard has ever made. That is why
+they all sounded like the same video.
+
+Mood and energy now come from the concept's emotional angle and the visual
+language §220 already chose, so the bed and the cutting agree about what kind of
+film this is. Ducking is derived rather than constant: a bed under narration
+sits at −26 dB, a bed carrying the piece alone at −14 dB with no duck at all.
+
+**Licence is a gate, not a tiebreak.** A bed whose terms exclude a platform is
+refused there even when it is the best creative match. The first version of the
+test did not prove this — the restricted bed was losing on mood anyway, so
+neutralising the licence check changed nothing and the test still passed. It now
+makes the restricted bed the *better* match, so only the gate can produce the
+expected answer.
+
+`music_beds` ships empty and stays empty until someone buys music. Inventing a
+licensed track is the same class of fabrication as inventing product evidence,
+so the empty case reports **why** it is silent rather than substituting a
+synthesised pad — which would be ours outright, would sound like a synthesised
+pad, and would be indistinguishable in the pipeline from a real bed.
+
+## 222. The frame decides the layout, so there is one implementation to be right
+
+Every composition was 1080×1920, and the constants that went with it — a 12%
+safe area top and bottom, a caption band starting at 72% — encoded two facts
+about a *phone*: TikTok and Reels draw their own UI over the frame, and portrait
+has vertical room to spare. Neither is true of a YouTube player. So
+`resolveVariant` could tell an operator "render it landscape to make it
+long-form" and there was no landscape to render.
+
+`geometryFor(frame)` resolves the safe areas, the caption band, the content
+column and the type scale from the canvas. The landscape compositions share
+their components with the portrait ones, so a treatment cannot be right in one
+orientation and wrong in the other.
+
+The column cap is the load-bearing part. Padding cannot fix a landscape measure:
+1920 px less two 72 px gutters is still nearly thirty words across. Landscape
+caps the column at 62% of the frame and centres it, and overrides the role's
+vertical anchor — bottom-anchoring puts words near the thumb on a phone and
+strands a third of the picture on a 16:9 frame.
+
+**The type scale was settled by looking, not by arithmetic.** Derived from the
+height ratio it came out at 1.6, which turned a hook into a title card. 1.25 is
+what the rendered frames actually supported.
+
+**A landscape slot refuses rather than falling back to portrait.** A 9:16 file in
+a long-form slot publishes as a Short — exactly the mismatch `resolveVariant`
+exists to report, except the render would have succeeded and nobody would see
+the report. The landscape templates arrive **disabled**: a template the operator
+has not looked at should not start carrying posts because a seed ran.
+
+Registered in `seed.sql`, not a migration. A migration inserting a template with
+a `product_id` breaks `createIsolatedPool`, whose freshly-migrated database has
+no products in it — 37 test files failed at collection before this moved.

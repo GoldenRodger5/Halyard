@@ -10,6 +10,7 @@
  * so choosing a template is a matter of asking rather than guessing.
  */
 import type { Highlight, ProductArtifact } from '@halyard/core';
+import { LANDSCAPE_SUFFIX } from './geometry.js';
 
 /** Composition ids, matching the `Composition` elements registered in root.tsx. */
 export type VideoCompositionId =
@@ -98,7 +99,17 @@ export function chefNoteCardProps(artifact: ProductArtifact): Record<string, unk
 export function chooseVideoComposition(
   artifact: ProductArtifact | null | undefined,
   enabled: string[],
-): { id: VideoCompositionId; props: Record<string, unknown> } | null {
+  /**
+   * The canvas this piece is for. §222.
+   *
+   * Defaults to portrait, so every existing caller is unaffected. When it is
+   * landscape the wide twin is preferred *and required*: falling back to the
+   * portrait composition would render a 9:16 video for a slot that asked for
+   * 16:9, which YouTube would then classify as a Short — the exact mismatch
+   * `resolveVariant` exists to report. Better to refuse and say why.
+   */
+  aspect: '9:16' | '16:9' = '9:16',
+): { id: string; props: Record<string, unknown> } | null {
   if (!artifact) return null;
   const allowed = new Set(enabled);
 
@@ -109,7 +120,13 @@ export function chooseVideoComposition(
   ];
 
   for (const [id, props] of candidates) {
-    if (props && allowed.has(id)) return { id, props };
+    if (!props) continue;
+    if (aspect === '16:9') {
+      const wide = `${id}${LANDSCAPE_SUFFIX}`;
+      if (allowed.has(wide)) return { id: wide, props };
+      continue;
+    }
+    if (allowed.has(id)) return { id, props };
   }
   return null;
 }

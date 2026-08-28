@@ -129,3 +129,25 @@ export function fitWords(text: string, spec: PresentationSpec): string {
   if (words.length <= spec.maxWordsPerBeat) return text.trim();
   return words.slice(0, spec.maxWordsPerBeat).join(' ');
 }
+
+/**
+ * Which canvas a video should be rendered on. §222.
+ *
+ * Almost everything Halyard makes is 9:16, because almost everything it makes
+ * is a Short. Landscape is a deliberate choice for one thing — YouTube
+ * long-form — and it must be *intended*, never inferred from a platform's
+ * capabilities. Threads accepts 16:9, but a Threads post is not a long-form
+ * film, and rendering one landscape because the adapter permits it would be
+ * reading a capability as an instruction. `capability_state = 'live'` does not
+ * mean connected, and `aspectRatios` includes 16:9 does not mean landscape.
+ *
+ * Product-agnostic: the rule is about the piece's format, not about what the
+ * product is.
+ */
+export function aspectForRender(
+  platform: string,
+  formatSubtype?: string | null,
+): '9:16' | '16:9' {
+  if (platform === 'youtube' && formatSubtype === 'long_form') return '16:9';
+  return '9:16';
+}

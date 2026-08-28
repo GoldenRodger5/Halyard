@@ -32,6 +32,7 @@ import {
   useVideoConfig,
 } from 'remotion';
 import type { BrandTokens } from '../brand.js';
+import { geometryFor } from './geometry.js';
 import { layoutScenes, type CaptionCue, type Scene } from './timing.js';
 
 /**
@@ -604,12 +605,25 @@ export function bandFor(
   /** §211. The register decides the gutter; absent keeps the editorial one. */
   presentation: RenderPresentation = EDITORIAL_PRESENTATION,
 ): { width: number; height: number } {
-  const top = Math.round((SAFE_PERCENT / 100) * frame.height);
+  /*
+   * §222. The safe areas and the caption band come from the frame, because a
+   * YouTube player and a TikTok feed do not obscure the same parts of it. On
+   * a 9:16 frame these resolve to the constants above and nothing moves.
+   */
+  const g = geometryFor(frame);
+  const top = Math.round((g.safeTopPercent / 100) * frame.height);
   const bottom = Math.round(
-    ((hasCaptions ? 100 - CAPTION_BAND_TOP_PERCENT : SAFE_PERCENT) / 100) * frame.height,
+    ((hasCaptions ? 100 - g.captionBandTopPercent : g.safeBottomPercent) / 100) * frame.height,
   );
+  /*
+   * The column is capped independently of the gutter. Padding alone cannot
+   * fix a landscape measure: 1920px less two 72px gutters is still nearly
+   * thirty words across.
+   */
+  const gutters = frame.width - presentation.padding * 2;
+  const column = Math.round((g.contentMaxWidthPercent / 100) * frame.width);
   return {
-    width: frame.width - presentation.padding * 2,
+    width: Math.min(gutters, column),
     height: frame.height - top - bottom,
   };
 }
@@ -637,19 +651,30 @@ export const BeatStage: React.FC<{
    * straight through the reason text because of it. `useVideoConfig` knows the
    * real height, so the band is computed rather than assumed.
    */
-  const { height } = useVideoConfig();
-  const top = Math.round((SAFE_PERCENT / 100) * height);
+  const { height, width } = useVideoConfig();
+  /* §222. Same arithmetic as `bandFor`, from the same source, so the stage the
+     content is drawn into and the band it was measured against cannot drift. */
+  const g = geometryFor({ width, height });
+  const top = Math.round((g.safeTopPercent / 100) * height);
   const bottom = Math.round(
-    ((hasCaptions ? 100 - CAPTION_BAND_TOP_PERCENT : SAFE_PERCENT) / 100) * height,
+    ((hasCaptions ? 100 - g.captionBandTopPercent : g.safeBottomPercent) / 100) * height,
   );
+  /*
+   * On a wide frame the gutter is whatever is left over once the column is
+   * capped, so the content sits in a centred measure rather than running the
+   * full width. On 9:16 the column is the full frame and this is the gutter
+   * it always was.
+   */
+  const column = Math.round((g.contentMaxWidthPercent / 100) * width);
+  const sidePadding = Math.max(presentation.padding, Math.round((width - column) / 2));
 
   return (
     <AbsoluteFill
       style={{
         paddingTop: top,
         paddingBottom: bottom,
-        paddingLeft: presentation.padding,
-        paddingRight: presentation.padding,
+        paddingLeft: sidePadding,
+        paddingRight: sidePadding,
         /* Over a full-bleed image the stage paints nothing; the scrim under the
            text is the legibility mechanism, not a panel behind everything. */
         backgroundColor: transparent ? 'transparent' : undefined,
@@ -722,8 +747,19 @@ export const PlannedBeats: React.FC<{
    *  queued before presentation modes existed was drawn in. */
   presentation?: RenderPresentation;
 }> = ({ beats, treatments, brand, headline, hasCaptions, presentation }) => {
-  const spec = presentation ?? EDITORIAL_PRESENTATION;
   const { durationInFrames, fps, width, height } = useVideoConfig();
+  /*
+   * §222. The register decides how loud the type is; the frame decides how
+   * big that has to be to read. Composed once here rather than at each of the
+   * ten places a treatment reaches for `typeScale`, so a new treatment gets
+   * the correction without knowing the correction exists.
+   */
+  const geometry = geometryFor({ width, height });
+  const base = presentation ?? EDITORIAL_PRESENTATION;
+  const spec: RenderPresentation =
+    geometry.typeScale === 1
+      ? base
+      : { ...base, typeScale: base.typeScale * geometry.typeScale };
   const scenes = layoutScenes(beatScenes(beats), durationInFrames, fps);
 
   return (
@@ -760,7 +796,9 @@ export const PlannedBeats: React.FC<{
             ) : null}
             <BeatStage
               hasCaptions={hasCaptions}
-              anchor={anchorFor(beat.role)}
+              /* §222. Landscape centres; every other frame keeps the role's
+                 own anchor. */
+              anchor={geometry.anchorOverride ?? anchorFor(beat.role)}
               presentation={spec}
               /* A full-bleed image is drawn behind the stage, so the stage
                  itself must not paint a ground over it. */

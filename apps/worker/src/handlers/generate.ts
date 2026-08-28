@@ -44,6 +44,7 @@ import {
   motionForPlan,
   isRefusal,
   decideStrategy,
+  aspectForRender,
   defaultSubtypeFor,
   presentationFor,
   rankSignals,
@@ -699,12 +700,28 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
          * render once the audio has landed.
          */
         if (needsVideo(format)) {
-          const composition = chooseVideoComposition(artifact, enabledTemplates);
+          /*
+           * §222. The canvas, from the piece's own format rather than from
+           * what the platform happens to permit. Everything but YouTube
+           * long-form is 9:16, which is what every render before this was.
+           */
+          const renderAspect = aspectForRender(
+            account.platform,
+            defaultSubtypeFor(account.platform, format),
+          );
+          const composition = chooseVideoComposition(
+            artifact,
+            enabledTemplates,
+            renderAspect,
+          );
           if (!composition) {
             // No enabled Remotion template can carry this. Refused, not queued:
             // a video item with no render never becomes publishable.
             ctx.log('no video template available', {
               platform: account.platform,
+              /* §222. Named, because "no template" reads very differently when
+                 the piece needed a landscape one that is not enabled. */
+              aspect: renderAspect,
               enabled: enabledTemplates,
             });
             await ctx.pool.query(

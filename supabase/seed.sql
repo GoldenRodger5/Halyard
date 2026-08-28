@@ -174,8 +174,28 @@ insert into templates (id, product_id, renderer, format, aspect_ratio, descripti
   ('SubstitutionExplainer',    'recipefix', 'remotion',  'video',    '9:16', 'Ratio animation, failure mode as payoff'),
   ('ScalingMath',              'recipefix', 'remotion',  'video',    '9:16', 'Non-linear scaling, visualised'),
   ('ChefNoteCard',             'recipefix', 'remotion',  'video',    '9:16', 'Kinetic typography over b-roll'),
-  ('FeatureDemo',              'recipefix', 'playwright','video',    '9:16', 'Playwright capture, long wait cut, captioned with the measured time')
+  ('FeatureDemo',              'recipefix', 'playwright','video',    '9:16', 'Playwright capture, long wait cut, captioned with the measured time'),
+  -- §222. Landscape twins, so YouTube long-form has a canvas to render on.
+  -- Same compositions; `geometry.ts` resolves the layout from the frame, so
+  -- there is one implementation rather than two to keep in step.
+  ('TransformationDiffWide',    'recipefix', 'remotion',  'video',    '16:9', 'Landscape TransformationDiff, for YouTube long-form'),
+  ('SubstitutionExplainerWide', 'recipefix', 'remotion',  'video',    '16:9', 'Landscape SubstitutionExplainer, for YouTube long-form')
 on conflict (id) do nothing;
+
+/*
+ * §222. The landscape twins arrive disabled.
+ *
+ * A template the operator has not looked at should not start carrying posts
+ * because a seed ran, and `chooseVideoComposition` reads `enabled` exactly so
+ * that switching one on is a decision someone made. Until then a YouTube
+ * long-form slot finds no template and refuses, which is the honest outcome —
+ * the alternative is rendering 9:16 into a long-form slot, which YouTube then
+ * classifies as a Short.
+ */
+update templates
+   set enabled = false,
+       disabled_reason = 'Awaiting operator review of the first landscape render'
+ where id in ('TransformationDiffWide', 'SubstitutionExplainerWide');
 
 /*
  * FeatureDemo is disabled, because nothing can produce it.

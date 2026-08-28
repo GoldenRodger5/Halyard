@@ -1,5 +1,44 @@
 # Where Halyard is right now
 
+**2026-08-28 — a video can be landscape, and a mix can be directed.** Two gaps
+that had been quietly structural closed in one pass.
+
+*Sound.* The bed was picked by least-recently-used rotation and mixed at a fixed
+−22 dB for every video Halyard has ever made, which is why they all sounded like
+the same video. `selectBed` now matches mood, energy and tempo against the
+concept's emotional angle and the visual language §220 chose, and `duckingFor`
+derives the level from whether anything is being said over it. **Licence is a
+gate, not a tiebreak** — and the first version of that test did not prove it, so
+it was rebuilt until neutralising the gate actually fails it. `music_beds` ships
+empty and stays empty until someone buys music; the empty case reports why it is
+silent rather than substituting a synthesised pad. §221.
+
+*Picture.* Every composition was 1080×1920 and the layout constants encoded
+facts about a *phone*, so `resolveVariant` could say "render it landscape to make
+it long-form" with no landscape to render. `geometryFor(frame)` now resolves the
+safe areas, caption band, content column and type scale from the canvas, and the
+landscape compositions share components with the portrait ones — one
+implementation to be right. The type scale was settled by rendering frames and
+looking: derived arithmetically it was 1.6 and turned a hook into a title card;
+1.25 is what the frames supported. A landscape slot **refuses** rather than
+falling back to portrait, because a 9:16 file in a long-form slot publishes as a
+Short. §222.
+
+**Templates arrive disabled.** `TransformationDiffWide` and
+`SubstitutionExplainerWide` are seeded off. Switching one on is an operator
+decision, and until then a YouTube long-form slot refuses honestly.
+
+**2401 tests, 135 files**, with `TEST_DATABASE_URL=postgres://localhost:5432/postgres`.
+Migration 0053 (`music_beds`) is applied to production. Landscape templates live
+in `seed.sql`, not a migration — a migration inserting a template with a
+`product_id` breaks `createIsolatedPool`, whose freshly-migrated database has no
+products, and 37 files failed at collection before that moved.
+
+**Still open:** licensed music (zero beds — a purchasing decision, not a code
+one), the YouTube compliance audit submission, per-platform render variants
+beyond aspect, long-form chapters and thumbnails, and the remaining Creative
+Studio UX.
+
 **2026-08-28 — the loop closes, and it is proven on real artifacts.** A signal
 decays, a strategy decision records the objective and the one metric it will be
 judged on, a treatment is chosen from seven with diversity and portfolio
