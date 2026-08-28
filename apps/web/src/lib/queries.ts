@@ -371,11 +371,19 @@ export async function getTikTokPanel(id: string): Promise<{
     last_error: string | null;
     duration_seconds: string | null;
   }>(
+    /*
+     * §190. The duration comes through the render chain, which is how a video is
+     * actually attached: content_items.render_ids -> renders.output_asset_id ->
+     * assets. This read ci.asset_ids, a column that does not exist, so every
+     * TikTok item detail page threw a 500 — invisible until there was a TikTok
+     * item to open, which there had never been.
+     */
     `select ci.platform, ci.status, ci.tiktok_options, ci.tiktok_creator_info,
             ci.tiktok_creator_info_at, ci.last_error,
             (select a.duration_seconds
-               from assets a
-              where a.id = any(ci.asset_ids) and a.mime_type like 'video/%'
+               from renders r
+               join assets a on a.id = r.output_asset_id
+              where r.id = any(ci.render_ids) and a.mime_type like 'video/%'
               limit 1) as duration_seconds
        from content_items ci
       where ci.id = $1`,

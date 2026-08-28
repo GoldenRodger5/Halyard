@@ -1,133 +1,143 @@
 /**
  * Records the TikTok app-review demo video.
  *
- * §181. Not a test. It drives the real Halyard UI with Playwright's video
- * recorder so the submission video shows the actual product rather than a
- * screen-capture of someone narrating over a mock.
+ * §190. Not a test. It drives the real Halyard UI on the real deployment so the
+ * submission video shows the actual product.
  *
- * Run it with `pnpm demo:tiktok`, which encodes the result to MP4.
+ * It reads its state from **the page it is filming**, not from a database. The
+ * first version asked `DATABASE_URL` whether a TikTok account was connected,
+ * which is the local database — so it filmed production while consulting a
+ * different install, decided nothing was connected, and stopped after four
+ * seconds. Whatever the recording is about to show is the only honest source for
+ * what it can show.
  *
- * ## What it will and will not film
- *
- * TikTok requires the video to show a working end-to-end integration, and a
- * recording that implies more than has happened is worse than a short one — app
- * review is exactly the audience that checks.
- *
- * So the script films only what is real at the time it runs, and it decides that
- * by looking at the database state rather than by being told:
- *
- *   · **Always** — Halyard opening, the dashboard, Accounts, the TikTok card.
- *   · **Once a TikTok account is connected** — the Direct Post panel with live
- *     `creator_info`: creator name, privacy options, interaction controls, the
- *     commercial disclosure, the preview, and the Music Usage Confirmation.
- *
- * The authorization hop itself is deliberately not automated. It is a real
- * consent screen on TikTok's domain, and driving it from a script is both
- * against the spirit of the thing and impossible to do honestly without real
- * credentials in the recording. The operator performs that hop; the script picks
- * up on the other side.
+ * The authorization hop itself is never automated. It is a real consent screen
+ * on TikTok's domain, and a script pretending to be a person consenting is the
+ * thing this file exists not to do. The account is connected beforehand; the
+ * recording shows the result, which is what review needs to see.
  */
 import { expect, test } from '@playwright/test';
-import { db } from '../fixtures';
 
-/** Long enough for a viewer to read the screen, short enough to keep under 120s. */
-const BEAT = 1800;
+/** Long enough to read a screen, short enough to stay inside 120 seconds. */
+const BEAT = 2200;
 
 test('records the TikTok integration demo', async ({ page }) => {
-  test.setTimeout(240_000);
+  test.setTimeout(300_000);
 
-  const connected = await db().query<{ handle: string }>(
-    `select handle from social_accounts
-      where platform = 'tiktok' and access_token_enc is not null
-        and identity_confirmed_at is not null limit 1`,
-  );
-  const tiktokConnected = connected.rows.length > 0;
-  test.info().annotations.push({
-    type: 'coverage',
-    description: tiktokConnected
-      ? 'TikTok connected — filming the full flow including the Direct Post panel.'
-      : 'No TikTok account connected — filming up to the Connect handoff only. ' +
-        'Connect an account and re-run to film the posting panel.',
-  });
-
-  // 1–3. The product opening, and the dashboard.
+  // ── 1. The product, on the domain the submission names. ──────────────────
   await page.goto('/');
   await page.waitForLoadState('networkidle');
+  await expect(page.getByRole('navigation', { name: 'Main' })).toBeVisible();
   await page.waitForTimeout(BEAT);
 
-  // 4. Where a user manages the accounts they own.
+  // ── 2. Where a user manages the accounts they own. ───────────────────────
   await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Accounts' }).click();
   await page.waitForLoadState('networkidle');
   await page.waitForTimeout(BEAT);
 
-  // 5. The TikTok card, with its real connection state.
+  // ── 3. The TikTok account, connected, with what TikTok itself reports. ───
   const card = page.locator('#brand-tiktok');
   await card.scrollIntoViewIfNeeded();
   await expect(card).toBeVisible();
   await page.waitForTimeout(BEAT);
 
-  if (!tiktokConnected) {
-    /*
-     * Stops here on purpose. The next click leaves for TikTok's consent screen,
-     * which a person must complete; filming a script pretending to be a person
-     * consenting is the kind of thing this file exists to avoid.
-     */
+  const connected = (await card.getByText(/Connected|Direct Post is available/i).count()) > 0;
+  test.info().annotations.push({
+    type: 'coverage',
+    description: connected
+      ? 'TikTok connected — filming Login Kit result and the Content Posting API panel.'
+      : 'TikTok not connected on this deployment; filmed up to the Connect affordance only.',
+  });
+
+  if (!connected) {
     await expect(card.getByRole('link', { name: /^(Connect|Reconnect)$/ })).toBeVisible();
     await page.waitForTimeout(BEAT);
     return;
   }
 
-  // 6–8. A prepared TikTok video, and the panel that governs posting it.
+  /* Advanced details carry the scopes and the capability TikTok reported. */
+  const advanced = card.getByText(/Advanced connection details/i).first();
+  if ((await advanced.count()) > 0) {
+    await advanced.click();
+    await page.waitForTimeout(BEAT);
+  }
+
+  // ── 4. A prepared TikTok video, found through the UI. ────────────────────
   await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Content' }).click();
   await page.waitForLoadState('networkidle');
   await page.waitForTimeout(BEAT);
 
-  const item = await db().query<{ id: string }>(
-    `select ci.id from content_items ci
-      where ci.platform = 'tiktok' and ci.status in ('pending_approval','draft')
-      order by ci.created_at desc limit 1`,
-  );
-  if (item.rows.length === 0) {
+  const tiktokItem = page.locator('[id^="queue-item-"]').filter({ hasText: /TikTok/i }).first();
+  if ((await tiktokItem.count()) === 0) {
     test.info().annotations.push({
       type: 'coverage',
-      description: 'No TikTok item queued, so the posting panel could not be filmed.',
+      description: 'No TikTok item in the queue, so the posting panel could not be filmed.',
     });
     return;
   }
+  await tiktokItem.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(BEAT);
 
-  await page.goto(`/queue/${item.rows[0]!.id}`);
+  /* Open it. The detail screen is where TikTok's own controls live. */
+  const open = tiktokItem.getByRole('link').first();
+  await open.click();
   await page.waitForLoadState('networkidle');
+  await page.waitForTimeout(BEAT);
 
+  // ── 5. The Direct Post panel, built from live creator_info. ──────────────
   const panel = page.getByText('TikTok posting settings');
   await panel.scrollIntoViewIfNeeded();
   await expect(panel).toBeVisible();
   await page.waitForTimeout(BEAT);
 
-  // 9–16. Each control TikTok requires, exercised in order.
-  const privacy = page.getByRole('radio').first();
-  if (await privacy.isVisible()) {
-    await privacy.check();
+  /* If creator info has not been fetched yet, fetch it on camera. */
+  const fetchInfo = page.getByRole('button', { name: /Get TikTok settings/i });
+  if ((await fetchInfo.count()) > 0) {
+    await fetchInfo.click();
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(BEAT);
+    await page.getByText('TikTok posting settings').scrollIntoViewIfNeeded();
+  }
+
+  // ── 6. Visibility, chosen — never defaulted. ────────────────────────────
+  const privacy = page.getByRole('radio');
+  if ((await privacy.count()) > 0) {
+    await privacy.first().check();
     await page.waitForTimeout(BEAT);
   }
-  for (const name of ['Comments', 'Duet', 'Stitch']) {
-    const box = page.getByRole('checkbox', { name, exact: false }).first();
+
+  // ── 7. Interaction settings, each off until chosen. ─────────────────────
+  for (const name of [/Comments/i, /Duet/i, /Stitch/i]) {
+    const box = page.getByRole('checkbox', { name }).first();
     if ((await box.count()) > 0 && (await box.isEnabled())) {
       await box.check();
-      await page.waitForTimeout(600);
+      await page.waitForTimeout(700);
     }
   }
+
+  // ── 8. Commercial content disclosure, off by default. ───────────────────
   const commercial = page.getByRole('checkbox', { name: /promotes a brand/i }).first();
   if ((await commercial.count()) > 0) {
     await commercial.check();
     await page.waitForTimeout(BEAT);
     await commercial.uncheck();
+    await page.waitForTimeout(600);
   }
+
+  // ── 9. TikTok's Music Usage Confirmation. ───────────────────────────────
   const music = page.getByRole('checkbox', { name: /Music Usage Confirmation/i }).first();
   if ((await music.count()) > 0) {
     await music.check();
     await page.waitForTimeout(BEAT);
   }
-  await page.getByRole('button', { name: /Save TikTok settings/i }).click();
-  await page.waitForLoadState('networkidle');
-  await page.waitForTimeout(BEAT * 2);
+
+  // ── 10. Saved, and the panel reports whether it may be posted. ──────────
+  const save = page.getByRole('button', { name: /Save TikTok settings/i });
+  if ((await save.count()) > 0) {
+    await save.click();
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(BEAT);
+    await page.getByText('TikTok posting settings').scrollIntoViewIfNeeded();
+    await page.waitForTimeout(BEAT * 2);
+  }
 });
