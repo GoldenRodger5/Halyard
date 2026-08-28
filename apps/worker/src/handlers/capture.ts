@@ -225,6 +225,33 @@ export async function captureHandler(job: Job, ctx: HandlerContext): Promise<voi
           });
           if (cut) {
             invalidateBundle();
+            /*
+             * §246. The cut footage becomes a real asset.
+             *
+             * It used to exist only in this container's `public/` directory,
+             * so a redeploy destroyed it and every later render that planned
+             * on it failed with a 404. Stored under the same bundle-relative
+             * path the beat references, which is what `stageFootage` joins on.
+             */
+            await uploadAsset(ctx, {
+              bytes: await readFile(target),
+              mimeType: 'video/mp4',
+              kind: 'video',
+              source: 'capture',
+              /*
+               * Tagged with the bundle-relative path the beat references.
+               * `uploadAsset` chooses its own hashed storage path, so the tag
+               * is the join — one string, in one place, rather than a second
+               * identifier on the beat that could drift from the first.
+               */
+              tags: ['capture_cut', file],
+              caption: `Captured product footage: ${result.flow}`,
+            }).catch((err: Error) => {
+              /* Non-fatal: the file is on disk and this render will work. The
+                 next container is the one that suffers, so it is worth a log
+                 rather than losing the capture entirely. */
+              ctx.log('could not persist cut footage', { file, error: err.message });
+            });
             footageFile = file;
             // Carried so a beat can be exactly as long as its footage rather
             // than holding a frozen last frame to fill an emphasis.

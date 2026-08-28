@@ -16,8 +16,10 @@ import {
   thumbnailPasses,
 } from '@halyard/core';
 import { renderTemplate, type TemplateId } from '@halyard/render';
+import { stageFootage } from '../footage.js';
 import { durationInFrames, type CaptionCue } from '@halyard/render/timing';
 import { muxAudioIntoVideo } from '../audio.js';
+import { PermanentJobFailure } from '../poller.js';
 import type { Job, HandlerContext } from '../poller.js';
 import { readAssetBytes, uploadAsset, type UploadedAsset } from '../storage.js';
 import { renderVideo } from '../video.js';
@@ -117,6 +119,35 @@ async function renderVideoAsset(
   brandTokens: Record<string, unknown> | null,
 ): Promise<UploadedAsset> {
   const audio = render.content_item_id ? await loadVoiceover(ctx, render.content_item_id) : null;
+
+  /**
+   * §246. Put the product footage back before asking Remotion for it.
+   *
+   * A beat references footage as a path inside the bundle's `public/`
+   * directory, and the capture handler writes it there and nowhere else. A
+   * deployed container is ephemeral, so after any redeploy that file is gone
+   * and the render fails with a 404 from the bundle's own dev server — three
+   * retries, then `dead`, with nothing in the error saying the file did not
+   * survive the deploy.
+   */
+  const beats = Array.isArray(render.input_props?.beats)
+    ? (render.input_props.beats as Array<Record<string, unknown>>)
+    : [];
+  const footage = await stageFootage(ctx, beats, readAssetBytes);
+  if (footage.missing.length > 0) {
+    /*
+     * Refused rather than rendered without it. A beat planned around product
+     * footage that silently renders as a text card is worse than a failure:
+     * it looks finished, and the evidence the piece was built on is simply
+     * absent.
+     */
+    throw new PermanentJobFailure(
+      `Captured footage is missing and cannot be staged: ${footage.missing
+        .map((m) => `${m.file} — ${m.reason}`)
+        .join(' ')}`,
+      'Re-run the capture for this flow. Retrying the render cannot conjure a file that is not stored.',
+    );
+  }
 
   const work = await mkdtemp(path.join(tmpdir(), 'halyard-render-'));
   const silentPath = path.join(work, 'silent.mp4');
