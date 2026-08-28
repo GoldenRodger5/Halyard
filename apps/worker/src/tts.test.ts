@@ -423,6 +423,82 @@ d('ttsHandler', () => {
     await pool.query(`delete from assets where kind = 'audio'`);
   }, 60_000);
 
+  it('refuses a bed the licence does not cover even when it is the best match', async () => {
+    /*
+     * §221. The Music Director, exercised through the real query rather than a
+     * fixture, and constructed so only the licence gate can produce the
+     * expected answer.
+     *
+     * The restricted bed is the *better* creative match — right mood, right
+     * energy, right tempo. If licence were a tiebreak rather than a gate it
+     * would win. It is excluded on TikTok and permitted on YouTube, so the
+     * same library returns different beds for the two platforms, and the
+     * difference is the licence and nothing else.
+     */
+    const inserted: string[] = [];
+    for (const [name, mood, energy, restrictions] of [
+      ['restricted', 'calm', 0.3, ['tiktok']],
+      ['permitted', 'tense', 0.9, []],
+    ] as const) {
+      const { rows } = await pool.query<{ id: string }>(
+        `insert into assets (product_id, kind, mime_type, storage_path, public_url, tags)
+         values ('recipefix','audio','audio/mpeg',$1,$1,array['music_bed']) returning id`,
+        [`directed-${name}.mp3`],
+      );
+      inserted.push(rows[0]!.id);
+      await pool.query(
+        `insert into music_beds
+           (product_id, asset_id, title, mood, energy, bpm, duration_seconds, loopable,
+            licence, licensor, attribution_required, platform_restrictions)
+         values ('recipefix', $1, $2, $3, $4, 90, 120, true, 'Purchased', 'Test', false, $5)`,
+        [rows[0]!.id, `bed-${name}`, mood, energy, restrictions],
+      );
+    }
+
+    const { selectBed } = await import('./bed.js');
+    const brief = {
+      platform: 'tiktok',
+      emotionalAngle: 'relief',
+      visualLanguage: 'documentary',
+      targetSeconds: 30,
+      cutsPerMinute: 12,
+      hasVoiceover: true,
+    };
+
+    // On TikTok the better bed is excluded, so the worse one ships.
+    expect((await selectBed(context(), 'recipefix', brief))?.storagePath).toBe(
+      'directed-permitted.mp3',
+    );
+    // On YouTube nothing excludes it, and the direction picks it.
+    expect(
+      (await selectBed(context(), 'recipefix', { ...brief, platform: 'youtube' }))?.storagePath,
+    ).toBe('directed-restricted.mp3');
+
+    await pool.query(`delete from music_beds where asset_id = any($1::uuid[])`, [inserted]);
+    await pool.query(`delete from assets where kind = 'audio'`);
+  }, 60_000);
+
+  it('sits the bed lower under a voice than under none', async () => {
+    /*
+     * §221. Ducking is a creative call now, so the two cases must differ. A
+     * single constant for both is what made every mix sound the same.
+     */
+    const { duckingFor } = await import('@halyard/core');
+    const spoken = duckingFor({
+      platform: 'tiktok',
+      targetSeconds: 30,
+      hasVoiceover: true,
+    });
+    const instrumental = duckingFor({
+      platform: 'tiktok',
+      targetSeconds: 30,
+      hasVoiceover: false,
+    });
+    expect(spoken.bedGainDb).toBeLessThan(instrumental.bedGainDb);
+    expect(spoken.duckDb).toBeLessThan(0);
+    expect(instrumental.duckDb).toBe(0);
+  });
+
   it('says the library is empty rather than substituting something', async () => {
     const id = await seedItem();
     const ctx = context();

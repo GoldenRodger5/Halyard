@@ -24,7 +24,7 @@
  */
 import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import type { MusicClient } from '@halyard/core';
+import { selectBed as directBed, type AudioBrief, type MusicBed, type MusicClient } from '@halyard/core';
 import type { HandlerContext } from './poller.js';
 
 /** The tag that marks an audio asset as usable as a bed. */
@@ -47,7 +47,99 @@ export interface BedSelection {
 export async function selectBed(
   ctx: HandlerContext,
   productId: string,
+  /**
+   * What the piece needs. §221.
+   *
+   * Optional so every existing caller keeps working: without a brief this
+   * falls back to the least-recently-used rotation it always had. With one,
+   * the Music Director matches mood, energy and tempo against the creative
+   * direction and refuses a bed whose licence does not cover the platform.
+   */
+  brief?: AudioBrief,
 ): Promise<{ assetId: string; storagePath: string | null; publicUrl: string | null; licence: string | null } | null> {
+  if (brief) {
+    const { rows: bedRows } = await ctx.pool.query<{
+      id: string;
+      asset_id: string;
+      title: string;
+      mood: string;
+      energy: string;
+      bpm: number | null;
+      duration_seconds: string;
+      loopable: boolean;
+      intro_seconds: string | null;
+      licence: string;
+      attribution_required: boolean;
+      attribution_text: string | null;
+      platform_restrictions: string[];
+      expires_at: string | null;
+      last_used_at: string | null;
+      storage_path: string | null;
+      public_url: string | null;
+    }>(
+      `select m.id, m.asset_id, m.title, m.mood, m.energy, m.bpm, m.duration_seconds,
+              m.loopable, m.intro_seconds, m.licence, m.attribution_required,
+              m.attribution_text, m.platform_restrictions, m.expires_at, m.last_used_at,
+              a.storage_path, a.public_url
+         from music_beds m
+         join assets a on a.id = m.asset_id
+        where (m.product_id = $1 or m.product_id is null)
+          and a.archived_at is null`,
+      [productId],
+    );
+
+    const selection = directBed(
+      bedRows.map((r) => ({
+        id: r.id,
+        assetId: r.asset_id,
+        title: r.title,
+        mood: r.mood as MusicBed['mood'],
+        energy: Number(r.energy),
+        bpm: r.bpm,
+        durationSeconds: Number(r.duration_seconds),
+        loopable: r.loopable,
+        introSeconds: r.intro_seconds === null ? null : Number(r.intro_seconds),
+        licence: r.licence,
+        attributionRequired: r.attribution_required,
+        attributionText: r.attribution_text,
+        platformRestrictions: r.platform_restrictions ?? [],
+        expiresAt: r.expires_at ? new Date(r.expires_at) : null,
+        lastUsedAt: r.last_used_at ? new Date(r.last_used_at) : null,
+      })),
+      brief,
+    );
+
+    if (!selection.chosen) {
+      /*
+       * Reported rather than swallowed. "No bed fits" and "the library is
+       * empty" are different facts, and a video shipping silent for the second
+       * reason is an accident nobody would otherwise see.
+       */
+      ctx.log('no music bed selected', {
+        productId,
+        considered: selection.considered,
+        reason: selection.silenceReason,
+        rejected: selection.rejected.map((r) => `${r.bed.title}: ${r.reason}`),
+      });
+      return null;
+    }
+
+    const row = bedRows.find((r) => r.id === selection.chosen!.bed.id)!;
+    ctx.log('music bed selected', {
+      title: selection.chosen.bed.title,
+      score: selection.chosen.score,
+      because: selection.chosen.reasons,
+      requiresAttribution: selection.chosen.requiresAttribution,
+    });
+    await ctx.pool.query('update music_beds set last_used_at = now() where id = $1', [row.id]);
+    return {
+      assetId: row.asset_id,
+      storagePath: row.storage_path,
+      publicUrl: row.public_url,
+      licence: row.licence,
+    };
+  }
+
   const { rows } = await ctx.pool.query<{
     id: string;
     storage_path: string | null;
@@ -90,10 +182,12 @@ export class LibraryBedClient implements MusicClient {
       storagePath: string | null,
       publicUrl: string | null,
     ) => Promise<Buffer | null>,
+    /** What the piece needs, when the caller knows. §221. */
+    private readonly brief?: AudioBrief,
   ) {}
 
   async compose(): Promise<Buffer> {
-    const bed = await selectBed(this.ctx, this.productId);
+    const bed = await selectBed(this.ctx, this.productId, this.brief);
     if (!bed) {
       throw new BedUnavailable(
         `No music bed is available for ${this.productId}. Add a licensed audio asset ` +

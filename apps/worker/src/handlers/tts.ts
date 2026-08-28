@@ -42,6 +42,9 @@ import {
   type GateResult,
   type LexiconEntry,
   type MusicClient,
+  type AudioBrief,
+  duckingFor,
+  LANGUAGE_FOR_TREATMENT,
   type SpeechClient,
 } from '@halyard/core';
 // From the timing subpath rather than the package root: `timing.ts` is pure
@@ -64,6 +67,12 @@ interface ItemRow {
   format: string;
   /** Read so the audio verdict can be merged into the existing gate list. */
   qc_results: { gates?: GateResult[] } | null;
+  /* §221. Creative direction, joined in. Null on anything generated before
+     concepts and briefs existed. */
+  treatment: string | null;
+  emotional_angle: string | null;
+  target_seconds: string | null;
+  beats: unknown[] | null;
 }
 
 /**
@@ -86,8 +95,21 @@ export async function ttsHandler(job: Job, ctx: HandlerContext, deps: TtsDeps = 
   if (!contentItemId) throw new Error('tts job has no contentItemId');
 
   const { rows } = await ctx.pool.query<ItemRow>(
-    `select id, product_id, platform, vo_script, audio_mode, format, qc_results
-       from content_items where id = $1`,
+    /*
+     * §221. The creative direction rides along so the Music Director can hear
+     * what the piece is. Left-joined: an item generated before concepts
+     * existed has neither, and still needs a voiceover.
+     */
+    `select ci.id, ci.product_id, ci.platform, ci.vo_script, ci.audio_mode, ci.format,
+            ci.qc_results,
+            ci.generation_meta -> 'creative' ->> 'type' as treatment,
+            c.emotional_angle,
+            b.target_seconds,
+            b.beats
+       from content_items ci
+       left join concepts c on c.id = ci.concept_id
+       left join creative_briefs b on b.id = ci.brief_id
+      where ci.id = $1`,
     [contentItemId],
   );
   const item = rows[0];
@@ -155,9 +177,29 @@ export async function ttsHandler(job: Job, ctx: HandlerContext, deps: TtsDeps = 
    * No library means narration alone, normalised. That is a normal short-form
    * style, and the reason is recorded on the item either way.
    */
+  /*
+   * §221. What the piece needs, assembled from what the creative already
+   * decided rather than guessed here. `LANGUAGE_FOR_TREATMENT` is the same
+   * mapping the motion grammar uses, so the bed and the cutting agree about
+   * what kind of film this is.
+   */
+  const beatCount = Array.isArray(item.beats) ? item.beats.length : 0;
+  const briefSeconds = item.target_seconds === null ? null : Number(item.target_seconds);
+  const audioBrief: AudioBrief = {
+    platform: item.platform,
+    emotionalAngle: item.emotional_angle,
+    visualLanguage: item.treatment ? (LANGUAGE_FOR_TREATMENT[item.treatment] ?? null) : null,
+    targetSeconds: briefSeconds && briefSeconds > 0 ? briefSeconds : 30,
+    cutsPerMinute:
+      beatCount > 0 && briefSeconds && briefSeconds > 0
+        ? (beatCount / briefSeconds) * 60
+        : null,
+    hasVoiceover: true,
+  };
+
   const music =
     deps.music === undefined
-      ? new LibraryBedClient(ctx, item.product_id, work, readAssetBytes)
+      ? new LibraryBedClient(ctx, item.product_id, work, readAssetBytes, audioBrief)
       : deps.music;
   const narrationPath = path.join(work, 'narration.mp3');
   const mixPath = path.join(work, 'mix.mp3');
@@ -195,7 +237,13 @@ export async function ttsHandler(job: Job, ctx: HandlerContext, deps: TtsDeps = 
       }
     }
 
-    const mix = await mixAudio({ narrationPath, musicPath, outputPath: mixPath });
+    const mix = await mixAudio({
+      narrationPath,
+      musicPath,
+      outputPath: mixPath,
+      /* §221. Where the bed sits is a creative call, not a constant. */
+      ducking: duckingFor(audioBrief),
+    });
 
     /**
      * Transcribe the mix, not the narration.

@@ -227,6 +227,15 @@ export interface MixInput {
   /** Silence held after the last word, so the video does not cut on a syllable. */
   tailSeconds?: number;
   targetLufs?: number;
+  /**
+   * Where the Music Director wants the bed to sit, and how hard it ducks. §221.
+   *
+   * Optional: without it the mix uses the constants below, which is what every
+   * video did before there was a director. A piece with no narration wants a
+   * different bed level than one with a voice over it, and that is a creative
+   * call, not a constant.
+   */
+  ducking?: { bedGainDb: number; duckDb: number };
 }
 
 export interface MixResult {
@@ -263,6 +272,18 @@ export async function mixAudio(input: MixInput): Promise<MixResult> {
   const narrationSeconds = await audioDuration(input.narrationPath);
   const totalSeconds = narrationSeconds + tail;
 
+  /*
+   * §221. The Director's levels, or the historical constants when no director
+   * ran. `duckDb` is a depth in decibels; the sidechain wants a ratio, and a
+   * deeper duck is a harder ratio. Clamped so a stray value cannot invert the
+   * compressor or push it past what FFmpeg accepts.
+   */
+  const bedGainDb = input.ducking?.bedGainDb ?? MUSIC_BED_DB;
+  const duckRatio =
+    input.ducking === undefined
+      ? DUCK_RATIO
+      : Math.min(20, Math.max(1, Math.round(Math.abs(input.ducking.duckDb) * 1.5)));
+
   const work = await mkdtemp(path.join(tmpdir(), 'halyard-mix-'));
   const staged = path.join(work, 'staged.wav');
 
@@ -280,9 +301,9 @@ export async function mixAudio(input: MixInput): Promise<MixResult> {
        */
       const filter = [
         `[0:a]apad=whole_dur=${totalSeconds.toFixed(3)},atrim=0:${totalSeconds.toFixed(3)},asetpts=N/SR/TB[vo]`,
-        `[1:a]aloop=loop=-1:size=2147483647,atrim=0:${totalSeconds.toFixed(3)},asetpts=N/SR/TB,volume=${MUSIC_BED_DB}dB[bed]`,
+        `[1:a]aloop=loop=-1:size=2147483647,atrim=0:${totalSeconds.toFixed(3)},asetpts=N/SR/TB,volume=${bedGainDb}dB[bed]`,
         `[vo]asplit=2[vo_mix][vo_key]`,
-        `[bed][vo_key]sidechaincompress=threshold=${DUCK_THRESHOLD}:ratio=${DUCK_RATIO}:attack=${DUCK_ATTACK_MS}:release=${DUCK_RELEASE_MS}:makeup=1[ducked]`,
+        `[bed][vo_key]sidechaincompress=threshold=${DUCK_THRESHOLD}:ratio=${duckRatio}:attack=${DUCK_ATTACK_MS}:release=${DUCK_RELEASE_MS}:makeup=1[ducked]`,
         `[vo_mix][ducked]amix=inputs=2:duration=longest:normalize=0[mixed]`,
       ].join(';');
 
