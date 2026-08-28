@@ -988,3 +988,62 @@ describe('instagram granted permissions', () => {
     expect(report.state).toBe('pending_auth');
   });
 });
+
+describe('ThreadsAdapter — token exchange, §180', () => {
+  const adapter = getAdapter('threads');
+
+  it('keeps the scopes the short-lived exchange returned', async () => {
+    /*
+     * Threads returns `scope` on the code exchange and omits it from the
+     * long-lived upgrade. Reading only the upgrade stored `scopes: []` for a
+     * fully authorised account, which is indistinguishable from granted nothing.
+     */
+    const { fetchImpl } = scriptedFetch([
+      {
+        match: (u) => u.includes('graph.threads.net/oauth/access_token'),
+        respond: () =>
+          json({
+            access_token: 'short-token',
+            user_id: '17841400000000000',
+            scope: 'threads_basic,threads_content_publish,threads_manage_replies',
+          }),
+      },
+      {
+        match: (u) => u.includes('th_exchange_token'),
+        respond: () => json({ access_token: 'long-token', expires_in: 5184000 }),
+      },
+    ]);
+
+    const tokens = await adapter.exchangeCode('code-1', {
+      clientId: 'threads-app-id',
+      clientSecret: 'threads-secret',
+      redirectUri: 'https://halyard-ten.vercel.app/api/oauth/threads/callback',
+      fetchImpl,
+    });
+
+    expect(tokens.accessToken).toBe('long-token');
+    expect(tokens.scopes).toContain('threads_content_publish');
+    expect(tokens.scopes).toHaveLength(3);
+    expect(tokens.meta?.threadsUserId).toBe('17841400000000000');
+  });
+
+  it('prefers the long-lived scopes when Threads does return them', async () => {
+    const { fetchImpl } = scriptedFetch([
+      {
+        match: (u) => u.includes('graph.threads.net/oauth/access_token'),
+        respond: () => json({ access_token: 's', user_id: '1', scope: 'threads_basic' }),
+      },
+      {
+        match: (u) => u.includes('th_exchange_token'),
+        respond: () => json({ access_token: 'l', scope: 'threads_basic,threads_content_publish' }),
+      },
+    ]);
+    const tokens = await adapter.exchangeCode('c', {
+      clientId: 'a',
+      clientSecret: 'b',
+      redirectUri: 'https://halyard-ten.vercel.app/api/oauth/threads/callback',
+      fetchImpl,
+    });
+    expect(tokens.scopes).toHaveLength(2);
+  });
+});

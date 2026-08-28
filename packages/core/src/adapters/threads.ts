@@ -93,7 +93,26 @@ export class ThreadsAdapter implements PlatformAdapter {
       'Threads long-lived token exchange',
     )) as TokenResponse;
 
-    return { ...toTokenSet(long), meta: { threadsUserId: short.user_id } };
+    /*
+     * §180. The scopes come from the *short* exchange.
+     *
+     * Threads returns `scope` on the authorization-code response and omits it
+     * from the `th_exchange_token` response that upgrades the token to
+     * long-lived. Building the TokenSet from `long` alone therefore stored an
+     * empty scope list for a fully authorised account — which is what production
+     * showed after @recipe.fix connected: four scopes granted, `scopes: []`
+     * persisted.
+     *
+     * It reads as harmless until something asks what the account may do. The
+     * publish path and `verifyCapabilities` both reason about granted scopes, and
+     * an empty list is indistinguishable from "granted nothing".
+     */
+    const upgraded = toTokenSet(long);
+    return {
+      ...upgraded,
+      scopes: upgraded.scopes.length > 0 ? upgraded.scopes : toTokenSet(short).scopes,
+      meta: { threadsUserId: short.user_id },
+    };
   }
 
   async refresh(tokens: TokenSet, options: OAuthClientOptions): Promise<TokenSet> {
