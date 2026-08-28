@@ -6,6 +6,7 @@ export * from './learning/insights.js';
 export * from './discovery/freshness.js';
 export * from './social/portfolio.js';
 export * from './social/recommendations.js';
+export * from './strategy/decide.js';
 export * from './adapters/index.js';
 export * from './setup/index.js';
 export * from './generation/index.js';
