@@ -647,70 +647,162 @@ describe('YouTubeAdapter — v2 A.6', () => {
 
 // ── TikTok ──────────────────────────────────────────────────────────────────
 
-describe('TikTokAdapter — v2 A.4 and E.4', () => {
+describe('TikTokAdapter — Direct Post, §179', () => {
   const adapter = new TikTokAdapter();
 
-  it('uploads to the inbox by default and returns a deep link, not a live post', async () => {
+  /** A completed panel: what a creator actually chose, plus their consent. */
+  const chosen = {
+    privacyLevel: 'MUTUAL_FOLLOW_FRIENDS',
+    allowComment: true,
+    allowDuet: false,
+    allowStitch: false,
+    commercialContent: false,
+    brandOrganic: false,
+    brandedContent: false,
+    musicConfirmedAt: '2026-08-28T05:00:00.000Z',
+    creatorInfoFetchedAt: '2026-08-28T05:00:00.000Z',
+  };
+
+  const video = () =>
+    asset({
+      kind: 'video',
+      mimeType: 'video/mp4',
+      publicUrl: 'https://halyard-ten.vercel.app/r/asset-1.mp4',
+      durationSeconds: 28,
+    });
+
+  it('sends exactly the settings the creator chose', async () => {
     const { fetchImpl, calls } = scriptedFetch([
-      { match: (u) => u.includes('/inbox/video/init/'), respond: () => json({ data: { publish_id: 'pub-1' } }) },
+      { match: (u) => u.includes('/post/publish/video/init/'), respond: () => json({ data: { publish_id: 'pub-1' } }) },
     ]);
     const result = await adapter.publish(
-      item({ platform: 'tiktok', format: 'video', hashtags: ['glutenfree', 'baking', 'bread'] }),
-      [asset({ kind: 'video', mimeType: 'video/mp4', publicUrl: 'https://storage.example.com/public/v.mp4', durationSeconds: 28 })],
-      account({ platform: 'tiktok', capabilityState: 'draft_only', meta: { fetchImpl } }),
+      item({ platform: 'tiktok', format: 'video', tiktokOptions: chosen }),
+      [video()],
+      account({ platform: 'tiktok', capabilityState: 'live', meta: { fetchImpl } }),
     );
-    expect(calls[0]?.url).toContain('/inbox/video/init/');
-    expect(result.mode).toBe('draft');
-    expect(result.manualPublishUrl).toContain('tiktok.com');
+
+    expect(calls[0]?.url).toContain('/post/publish/video/init/');
+    const post = (calls[0]!.body as { post_info: Record<string, unknown> }).post_info;
+    expect(post.privacy_level).toBe('MUTUAL_FOLLOW_FRIENDS');
+    /* Halyard's "allow" is TikTok's "disable"; getting this backwards would
+       publish the opposite of what the creator asked for. */
+    expect(post.disable_comment).toBe(false);
+    expect(post.disable_duet).toBe(true);
+    expect(post.disable_stitch).toBe(true);
+    expect(result.mode).toBe('direct');
+    expect(result.platformPostId).toBe('pub-1');
   });
 
-  it('still uses the inbox when the audit passed but direct publish was not opted into', async () => {
+  it('pulls the video from a URL rather than uploading bytes', async () => {
     const { fetchImpl, calls } = scriptedFetch([
-      { match: (u) => u.includes('/inbox/video/init/'), respond: () => json({ data: { publish_id: 'pub-2' } }) },
+      { match: (u) => u.includes('/post/publish/video/init/'), respond: () => json({ data: { publish_id: 'p' } }) },
     ]);
     await adapter.publish(
-      item({ platform: 'tiktok', format: 'video' }),
-      [asset({ kind: 'video', mimeType: 'video/mp4', publicUrl: 'https://storage.example.com/public/v.mp4' })],
-      {
-        ...account({ platform: 'tiktok', capabilityState: 'live' }),
-        meta: { fetchImpl, contentPostingAuditPassed: true },
-      },
+      item({ platform: 'tiktok', format: 'video', tiktokOptions: chosen }),
+      [video()],
+      account({ platform: 'tiktok', capabilityState: 'live', meta: { fetchImpl } }),
     );
-    expect(calls[0]?.url).toContain('/inbox/');
+    const source = (calls[0]!.body as { source_info: Record<string, unknown> }).source_info;
+    expect(source.source).toBe('PULL_FROM_URL');
+    expect(String(source.video_url)).toMatch(/^https:\/\//);
   });
 
-  it('uses direct publish only behind the explicit opt-in', async () => {
+  it('refuses to post when the creator never completed the panel', async () => {
+    /*
+     * The heart of §179. This used to send PUBLIC_TO_EVERYONE with comments,
+     * Duet and Stitch all on — a silent default on the one decision TikTok
+     * requires a human to make.
+     */
     const { fetchImpl, calls } = scriptedFetch([
-      { match: (u) => u.includes('/post/publish/video/init/'), respond: () => json({ data: { publish_id: 'pub-3' } }) },
+      { match: () => true, respond: () => json({ data: { publish_id: 'should-not-happen' } }) },
     ]);
-    const result = await adapter.publish(
-      item({ platform: 'tiktok', format: 'video' }),
-      [asset({ kind: 'video', mimeType: 'video/mp4', publicUrl: 'https://storage.example.com/public/v.mp4' })],
-      {
-        ...account({ platform: 'tiktok', capabilityState: 'live' }),
-        meta: { fetchImpl, contentPostingAuditPassed: true, allowDirectPublish: true },
-      },
-    );
-    expect(calls[0]?.url).toContain('/post/publish/video/init/');
-    expect((calls[0]!.body as { post_info: { privacy_level: string } }).post_info.privacy_level).toBe(
-      'PUBLIC_TO_EVERYONE',
-    );
-    expect(result.mode).toBe('direct');
+    await expect(
+      adapter.publish(
+        item({ platform: 'tiktok', format: 'video' }),
+        [video()],
+        account({ platform: 'tiktok', capabilityState: 'live', meta: { fetchImpl } }),
+      ),
+    ).rejects.toThrow(/complete the TikTok panel/i);
+    expect(calls).toHaveLength(0);
   });
 
-  it('reports draft_only even after the audit, because the API cannot attach trending audio', async () => {
+  it('refuses without a chosen visibility, and without music confirmation', async () => {
+    const { fetchImpl, calls } = scriptedFetch([{ match: () => true, respond: () => json({}) }]);
+    const attempt = (options: Record<string, unknown>) =>
+      adapter.publish(
+        item({ platform: 'tiktok', format: 'video', tiktokOptions: options as never }),
+        [video()],
+        account({ platform: 'tiktok', capabilityState: 'live', meta: { fetchImpl } }),
+      );
+
+    await expect(attempt({ ...chosen, privacyLevel: null })).rejects.toThrow(/will not pick one/i);
+    await expect(attempt({ ...chosen, musicConfirmedAt: null })).rejects.toThrow(/Music Usage/i);
+    expect(calls).toHaveLength(0);
+  });
+
+  it('reports live only when the token carries video.publish and TikTok offers public', async () => {
     const { fetchImpl } = scriptedFetch([
       {
         match: (u) => u.includes('creator_info'),
-        respond: () => json({ data: { creator_username: 'recipefix', privacy_level_options: ['PUBLIC_TO_EVERYONE'] } }),
+        respond: () =>
+          json({
+            data: {
+              creator_nickname: 'RecipeFix',
+              creator_username: 'recipefix',
+              privacy_level_options: ['PUBLIC_TO_EVERYONE', 'SELF_ONLY'],
+              max_video_post_duration_sec: 600,
+            },
+          }),
       },
     ]);
+    const base = account({ platform: 'tiktok' });
     const report = await adapter.verifyCapabilities({
-      ...account({ platform: 'tiktok' }),
-      meta: { fetchImpl, contentPostingAuditPassed: true },
+      ...base,
+      tokens: { ...base.tokens, scopes: ['user.info.profile', 'video.publish'] },
+      meta: { fetchImpl },
+    });
+    expect(report.state).toBe('live');
+  });
+
+  it('stays draft_only while the app is unaudited, and says why', async () => {
+    /*
+     * `privacy_level_options` is where app approval becomes observable: an
+     * unaudited client is offered SELF_ONLY only. Asking the creator beats
+     * tracking a flag Halyard set about itself.
+     */
+    const { fetchImpl } = scriptedFetch([
+      {
+        match: (u) => u.includes('creator_info'),
+        respond: () =>
+          json({ data: { creator_nickname: 'RecipeFix', creator_username: 'recipefix', privacy_level_options: ['SELF_ONLY'] } }),
+      },
+    ]);
+    const base = account({ platform: 'tiktok' });
+    const report = await adapter.verifyCapabilities({
+      ...base,
+      tokens: { ...base.tokens, scopes: ['video.publish'] },
+      meta: { fetchImpl },
     });
     expect(report.state).toBe('draft_only');
-    expect(report.detail).toMatch(/trending audio/i);
+    expect(report.detail).toMatch(/SELF_ONLY/i);
+  });
+
+  it('stays draft_only when the token never received video.publish', async () => {
+    const { fetchImpl } = scriptedFetch([
+      {
+        match: (u) => u.includes('creator_info'),
+        respond: () =>
+          json({ data: { creator_nickname: 'RecipeFix', privacy_level_options: ['PUBLIC_TO_EVERYONE'] } }),
+      },
+    ]);
+    const base = account({ platform: 'tiktok' });
+    const report = await adapter.verifyCapabilities({
+      ...base,
+      tokens: { ...base.tokens, scopes: ['user.info.profile'] },
+      meta: { fetchImpl },
+    });
+    expect(report.state).toBe('draft_only');
+    expect(report.detail).toMatch(/video\.publish/);
   });
 });
 

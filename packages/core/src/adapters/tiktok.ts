@@ -14,11 +14,15 @@
  *     puts the video in drafts, the operator opens the app, attaches a trending
  *     sound and publishes. Thirty seconds of human work the API cannot replace.
  *
- * So TikTok is *assisted*, not automated, and `publish()` returns mode:'draft'
- * with a deep link. Direct publish exists behind an explicit opt-in flag for the
- * case where the audit does land.
+ * §179 replaced that inbox-first design with Direct Post, because the scope it
+ * depended on — `video.upload` — was never granted in the developer portal, so
+ * the fallback could not have worked. What survives from the reasoning above is
+ * the honesty: `verifyCapabilities` reports `live` only when the token really
+ * carries `video.publish` and TikTok is really offering a public visibility, and
+ * the creator still chooses every setting TikTok requires a human to choose.
  */
 import { PLATFORM_SCOPES, buildAuthUrl, toTokenSet, type TokenResponse } from './oauth.js';
+import { parseCreatorInfo, toTikTokPostInfo } from '../tiktok/directPost.js';
 import {
   PublishError,
   composeCaption,
@@ -52,11 +56,12 @@ export const TIKTOK_CONSTRAINTS: PlatformConstraints = {
   requiresReviewForPublicPosting: true,
   supportsTrendingAudioViaApi: false,
   delivery: {
-    nativeDraft: true,
+    nativeDraft: false,
     privateUpload: false,
     apiScheduling: false,
-    requiresCreatorCompletion: true,
-    note: 'The inbox upload (/v2/post/publish/inbox/video/init/, scope video.upload) puts a real draft in the creator\'s TikTok inbox. They finish and post it inside TikTok; Halyard cannot publish it afterwards.',
+    requiresCreatorCompletion: false,
+    note:
+      'Direct Post (/v2/post/publish/video/init/, scope video.publish). The creator chooses visibility and interaction settings on the item and confirms TikTok\'s Music Usage Confirmation; Halyard sends exactly those choices and then polls /status/fetch/ until TikTok reports the post complete.',
   },
 };
 
@@ -149,20 +154,45 @@ export class TikTokAdapter implements PlatformAdapter {
 
   async verifyCapabilities(account: PublishAccount): Promise<CapabilityReport> {
     try {
-      const info = (await this.creatorInfo(account)) as {
-        data?: { creator_username?: string; privacy_level_options?: string[] };
-      };
-      const audited = account.meta?.contentPostingAuditPassed === true;
-      const privacyOptions = info.data?.privacy_level_options ?? [];
-      const canGoPublic = privacyOptions.includes('PUBLIC_TO_EVERYONE');
+      const parsed = parseCreatorInfo(await this.creatorInfo(account));
+      if (!parsed) {
+        return {
+          state: 'pending_auth',
+          detail: 'TikTok answered the creator query without creator details. Reconnect the account.',
+          supportedFormats: [],
+        };
+      }
+
+      /*
+       * §179. Measured, not assumed.
+       *
+       * Two things have to be true before Halyard may say a TikTok account can
+       * publish: the token actually carries `video.publish`, and TikTok is
+       * currently offering this creator a public visibility. An unaudited client
+       * is restricted to SELF_ONLY, so `privacy_level_options` is where app
+       * approval becomes observable — asking the creator rather than tracking a
+       * flag Halyard set about itself.
+       */
+      const granted = account.tokens.scopes ?? [];
+      const hasPublishScope = granted.includes('video.publish');
+      const canGoPublic = parsed.privacyLevelOptions.includes('PUBLIC_TO_EVERYONE');
+      const who = `@${parsed.creatorUsername ?? parsed.creatorNickname}`;
+
+      if (hasPublishScope && canGoPublic) {
+        return {
+          state: 'live',
+          detail: `Direct Post is available for ${who}. TikTok is offering ${parsed.privacyLevelOptions.length} visibility options and allows videos up to ${parsed.maxVideoPostDurationSec}s.`,
+          supportedFormats: ['video'],
+        };
+      }
 
       return {
         state: 'draft_only',
-        detail: audited && canGoPublic
-          ? `Audit passed for @${info.data?.creator_username ?? account.handle}, but Halyard still uploads to drafts: the API cannot attach trending audio, and sound is a large share of TikTok distribution.`
-          : `Connected as @${info.data?.creator_username ?? account.handle}. Unaudited clients can only post SELF_ONLY with the account set to private, so uploads go to your drafts instead.`,
+        detail: !hasPublishScope
+          ? `Connected as ${who}, but this token does not carry video.publish, so Halyard cannot post. Reconnect once the TikTok app has Direct Post approved.`
+          : `Connected as ${who}, but TikTok is only offering ${parsed.privacyLevelOptions.join(', ') || 'no'} visibility for this account — an unaudited client can post SELF_ONLY only.`,
         supportedFormats: ['video'],
-        nextAction: 'Open TikTok, attach a trending sound, and publish from drafts.',
+        nextAction: 'Finish TikTok app review, then reconnect the account so a new token is issued.',
       };
     } catch (err) {
       const error = err as PublishError;
@@ -199,35 +229,50 @@ export class TikTokAdapter implements PlatformAdapter {
     const { text } = composeCaption(item, this.constraints);
     const fetchImpl = (account.meta?.fetchImpl as typeof fetch | undefined) ?? fetch;
 
-    // Direct publish is opt-in and only reachable once the audit has landed.
-    // Everything else, including the default, goes to the inbox.
-    const directPublish =
-      account.meta?.allowDirectPublish === true &&
-      account.meta?.contentPostingAuditPassed === true &&
-      account.capabilityState === 'live';
+    /*
+     * §179. Direct Post, built from what the creator chose.
+     *
+     * This used to send `privacy_level: 'PUBLIC_TO_EVERYONE'` with every
+     * interaction toggle enabled — a silent default on the one decision TikTok
+     * requires a human to make, and the most public option available. It is now
+     * refused outright: no completed panel, no post.
+     *
+     * The inbox path is gone with the `video.upload` scope it needed, which was
+     * never granted in the developer portal, so it could not have worked.
+     */
+    const options = item.tiktokOptions ?? null;
+    if (!options) {
+      throw new PublishError(
+        'TikTok posting needs the creator to choose visibility and interaction settings first. Open the item and complete the TikTok panel.',
+        'permanent',
+      );
+    }
+    if (!options.privacyLevel) {
+      throw new PublishError(
+        'TikTok posting needs a visibility chosen by the creator; Halyard will not pick one.',
+        'permanent',
+      );
+    }
+    if (!options.musicConfirmedAt) {
+      throw new PublishError(
+        "TikTok posting needs the creator's Music Usage Confirmation.",
+        'permanent',
+      );
+    }
 
-    const endpoint = directPublish
-      ? `${API}/post/publish/video/init/`
-      : `${API}/post/publish/inbox/video/init/`;
+    const endpoint = `${API}/post/publish/video/init/`;
 
     const payload: Record<string, unknown> = {
       source_info: {
         source: 'PULL_FROM_URL',
         video_url: asset.publicUrl,
       },
-    };
-
-    if (directPublish) {
-      payload.post_info = {
-        title: text.slice(0, this.constraints.maxChars),
-        privacy_level: 'PUBLIC_TO_EVERYONE',
-        disable_comment: false,
-        disable_duet: false,
-        disable_stitch: false,
+      post_info: {
+        ...toTikTokPostInfo(options, text.slice(0, this.constraints.maxChars)),
         // v2 Part C: declare synthetic content natively where a toggle exists.
         ...(item.requiresAiLabel ? { is_aigc: true } : {}),
-      };
-    }
+      },
+    };
 
     const initiated = (await platformFetch(
       fetchImpl,
@@ -246,12 +291,13 @@ export class TikTokAdapter implements PlatformAdapter {
     const publishId = initiated.data?.publish_id;
     if (!publishId) return { mode: 'draft', malformedResponse: true, raw: initiated };
 
-    return {
-      mode: directPublish ? 'direct' : 'draft',
-      platformPostId: publishId,
-      manualPublishUrl: directPublish ? undefined : 'https://www.tiktok.com/upload?lang=en',
-      raw: initiated,
-    };
+    /*
+     * `publish_id` is a receipt for the *request*, not for a post. TikTok pulls
+     * the video, transcodes it and publishes asynchronously, so the worker polls
+     * `/status/fetch/` before anything is recorded as published — see
+     * `interpretPublishStatus`.
+     */
+    return { mode: 'direct', platformPostId: publishId, raw: initiated };
   }
 
   /** Step 3: poll /status/fetch/ until PUBLISH_COMPLETE. */

@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600" viewBox="0 0 600 600" role="img" aria-label="Halyard">
+  <!--
+    Halyard app icon, developer portal submission variant.
+
+    Same identity the product already ships in apps/web/public/icon.svg: a
+    halyard is the line that raises a sail, so the mark is that line, the sail it
+    raises, and the cleat it is made fast to. Nothing goes up on its own, which
+    is the product's whole argument.
+
+    Three deliberate differences from the in app icon.
+
+    No corner radius. The in app version bakes in a 112 unit rounded rect, and
+    every portal applies its own mask, so a pre rounded square inside a rounded
+    mask shows a visible double border.
+
+    Optically centred rather than geometrically centred. The sail hangs to one
+    side of the mast, so centring the mast leaves the mark visibly right heavy.
+    The mast sits left of centre and the combined bounds of mast, sail and cleat
+    are what is centred on the canvas.
+
+    Heavier strokes and tighter margins. At 48px in a portal listing the 512
+    artwork went thin and the cleat vanished.
+
+    Palette is the product's own: ink 2A2320, terracotta 8C5035 (the current
+    primary token, darkened in August 2026 so the brand could carry text), paper
+    FAF8F4. No text, no third party marks.
+  -->
+  <rect width="600" height="600" fill="#2A2320"/>
+  <path d="M265 120 L265 480" stroke="#FAF8F4" stroke-width="40" stroke-linecap="round"/>
+  <path d="M265 158 L442 262 L265 366 Z" fill="#8C5035"/>
+  <path d="M178 480 L352 480" stroke="#8C5035" stroke-width="40" stroke-linecap="round"/>
+</svg>

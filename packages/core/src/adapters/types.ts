@@ -128,6 +128,15 @@ export interface PublishItem {
   boardId?: string | null;
   disclosureText?: string | null;
   requiresAiLabel?: boolean;
+  /**
+   * The TikTok Direct Post choices a human made, when the destination is TikTok.
+   *
+   * §179. Carried on the item rather than derived at publish time because TikTok
+   * requires them to be *chosen*, and a value computed by the publisher is by
+   * definition not a choice. Absent means the panel was never completed, and the
+   * adapter refuses rather than supplying a default.
+   */
+  tiktokOptions?: import('../tiktok/directPost.js').TikTokPostOptions | null;
 }
 
 export interface PublishAccount {
@@ -234,6 +243,28 @@ export interface PlatformAdapter {
     publication: { platformPostId: string; permalink?: string | null },
     account: PublishAccount,
   ): Promise<MetricSnapshot>;
+
+  /**
+   * What this creator is currently allowed to post, where the platform says so.
+   *
+   * §179. TikTok only. Its Content Posting API requires the publishing UI to be
+   * built from a live `creator_info/query` response — available privacy levels,
+   * whether comments, Duet or Stitch are disabled on the account, the maximum
+   * video duration — rather than from anything Halyard remembers. Optional
+   * because no other platform exposes an equivalent, and inventing one for them
+   * would mean inventing the answer.
+   */
+  creatorInfo?(account: PublishAccount): Promise<unknown>;
+
+  /**
+   * Where an accepted publish request actually got to.
+   *
+   * §179. TikTok again: `publish()` returns a `publish_id` the moment the request
+   * is accepted, and the post is downloaded, transcoded and published
+   * afterwards. Recording that receipt as a publication would mark posts live
+   * that never appeared.
+   */
+  fetchStatus?(publishId: string, account: PublishAccount): Promise<string>;
 
   /**
    * Read-only. Comments are surfaced in the inbox for a human to answer; there

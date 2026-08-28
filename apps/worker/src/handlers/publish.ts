@@ -15,7 +15,9 @@
  */
 import {
   adapterForAccount,
+  PublishError,
   disclosureSatisfied,
+  emptyTikTokOptions,
   getAdapter,
   openToken,
   resolvePlatformClient,
@@ -24,12 +26,13 @@ import {
   scrubString,
   sealToken,
   stampUtm,
+  tiktokMediaUrl,
+  validateTikTokPost,
   type AiComponent,
   type PlatformId,
   type ProviderCapabilities,
   type PublishAccount,
   type PublishAsset,
-  type PublishError,
   type PublishItem,
   type PublishResult,
 } from '@halyard/core';
@@ -116,6 +119,8 @@ interface ContentRow {
   ai_components: AiComponent[];
   disclosure_text: string | null;
   requires_ai_label: boolean | null;
+  tiktok_options: unknown;
+  tiktok_creator_info: unknown;
   render_ids: string[];
   attached_asset_ids: string[];
   series_id: string | null;
@@ -391,7 +396,53 @@ export async function publishHandler(job: Job, ctx: HandlerContext): Promise<voi
     boardId: item.board_id ?? (job.payload.boardId as string | undefined) ?? null,
     disclosureText: item.disclosure_text,
     requiresAiLabel: item.requires_ai_label ?? false,
+    /*
+     * §179. Carried, never computed. TikTok requires these to be a person's
+     * choices; a value the publisher derived would not be one, and the adapter
+     * refuses when they are absent rather than filling them in.
+     */
+    tiktokOptions: (item.tiktok_options as PublishItem['tiktokOptions']) ?? null,
   };
+
+  /*
+   * §179. Re-checked here, against the creator_info the answers were given
+   * against. Approval already validated them, but a creator can turn their
+   * account private in the hours between approving and posting, which would make
+   * a chosen PUBLIC_TO_EVERYONE invalid at exactly the moment it is used.
+   */
+  if (item.platform === 'tiktok') {
+    /*
+     * §179. TikTok pulls the video itself, from a URL prefix it has verified, so
+     * the stored asset URL — Supabase Storage, or a local dev path — is rewritten
+     * to Halyard's own `/media/<id>` route on the production origin.
+     *
+     * Refused rather than attempted when that cannot be built. Sending an
+     * unreachable URL still returns a `publish_id`, so the operator would be told
+     * the post was sent and learn otherwise from a later `video_pull_failed`.
+     */
+    const base = publishableBaseUrl(process.env.HALYARD_PUBLIC_URL);
+    for (const asset of assets) {
+      const rewritten = tiktokMediaUrl(base, asset.id);
+      if (!rewritten) {
+        throw new PublishError(
+          'TikTok fetches the video from Halyard, so HALYARD_PUBLIC_URL must be the verified https origin. It is not set to one.',
+          'permanent',
+        );
+      }
+      asset.publicUrl = rewritten;
+    }
+
+    const problems = validateTikTokPost({
+      options: (item.tiktok_options as never) ?? emptyTikTokOptions(),
+      creatorInfo: (item.tiktok_creator_info as never) ?? null,
+    });
+    if (problems.length > 0) {
+      throw new PublishError(
+        `TikTok settings are no longer valid: ${problems.map((p) => p.message).join(' ')}`,
+        'permanent',
+      );
+    }
+  }
 
   // ── 4. Claim the publication row BEFORE the network call ─────────────────
   // If two workers reach here at once, the unique index rejects the loser and

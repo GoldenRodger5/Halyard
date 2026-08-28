@@ -130,9 +130,20 @@ export const PLATFORM_SCOPES: Record<string, string[]> = {
     'business_management',
   ],
   threads: ['threads_basic', 'threads_content_publish', 'threads_manage_replies', 'threads_manage_insights'],
-  // v2 A.4: video.publish is direct posting; video.upload is inbox-upload, which
-  // is the path Halyard actually takes.
-  tiktok: ['user.info.basic', 'video.upload', 'video.list'],
+  /*
+   * §179. Direct Post, and only the scopes that are actually called.
+   *
+   *   user.info.profile — open_id, username, display_name, avatar_url
+   *   user.info.stats   — follower_count, shown on the account card
+   *   video.list        — /v2/video/query/, which collectMetrics uses
+   *   video.publish     — /v2/post/publish/video/init/, the Direct Post endpoint
+   *
+   * `video.upload` is gone with the inbox path it served. It was never granted in
+   * the developer portal, so the inbox fallback could not have worked, and asking
+   * for a scope the integration does not call is the kind of thing app review
+   * rejects.
+   */
+  tiktok: ['user.info.profile', 'user.info.stats', 'video.list', 'video.publish'],
   pinterest: ['boards:read', 'pins:read', 'pins:write', 'user_accounts:read'],
   youtube: [
     'https://www.googleapis.com/auth/youtube.upload',

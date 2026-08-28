@@ -346,6 +346,53 @@ export async function getQueueItem(id: string): Promise<QueueItem | null> {
   return rows[0] ?? null;
 }
 
+/**
+ * Everything the TikTok panel needs, for one item.
+ *
+ * §179. A separate read rather than three more columns on `QUEUE_SELECT`, which
+ * every queue screen runs: TikTok is one platform out of seven, and widening the
+ * shared select would make every list page carry columns only this panel uses.
+ */
+export async function getTikTokPanel(id: string): Promise<{
+  platform: string;
+  status: string;
+  tiktokOptions: unknown;
+  creatorInfo: unknown;
+  creatorInfoAt: string | null;
+  lastError: string | null;
+  videoDurationSec: number | null;
+} | null> {
+  const row = await one<{
+    platform: string;
+    status: string;
+    tiktok_options: unknown;
+    tiktok_creator_info: unknown;
+    tiktok_creator_info_at: string | null;
+    last_error: string | null;
+    duration_seconds: string | null;
+  }>(
+    `select ci.platform, ci.status, ci.tiktok_options, ci.tiktok_creator_info,
+            ci.tiktok_creator_info_at, ci.last_error,
+            (select a.duration_seconds
+               from assets a
+              where a.id = any(ci.asset_ids) and a.mime_type like 'video/%'
+              limit 1) as duration_seconds
+       from content_items ci
+      where ci.id = $1`,
+    [id],
+  );
+  if (!row) return null;
+  return {
+    platform: row.platform,
+    status: row.status,
+    tiktokOptions: row.tiktok_options,
+    creatorInfo: row.tiktok_creator_info,
+    creatorInfoAt: row.tiktok_creator_info_at,
+    lastError: row.last_error,
+    videoDurationSec: row.duration_seconds ? Number(row.duration_seconds) : null,
+  };
+}
+
 export async function getItemArtifact(id: string): Promise<unknown> {
   const row = await one<{ product_artifact: unknown; generation_meta: unknown }>(
     'select product_artifact, generation_meta from content_items where id = $1',

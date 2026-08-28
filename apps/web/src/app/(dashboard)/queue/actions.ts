@@ -4,7 +4,14 @@ import { revalidatePath } from 'next/cache';
 import { query, one } from '@/lib/db';
 import { fromDatetimeLocalValue } from '@/lib/format';
 import { requireOperator } from '@/lib/auth';
-import { gatesAfterEdit, slopFilter, type GateResult, type SlopPlatform } from '@halyard/core';
+import {
+  emptyTikTokOptions,
+  gatesAfterEdit,
+  slopFilter,
+  validateTikTokPost,
+  type GateResult,
+  type SlopPlatform,
+} from '@halyard/core';
 
 async function audit(action: string, entityId: string, detail: Record<string, unknown>) {
   const operator = await requireOperator();
@@ -33,11 +40,46 @@ export async function approveItem(formData: FormData): Promise<void> {
    */
   await requireOperator();
   const id = String(formData.get('id'));
-  const item = await one<{ status: string; scheduled_at: string | null }>(
-    'select status, scheduled_at from content_items where id = $1',
+  const item = await one<{
+    status: string;
+    scheduled_at: string | null;
+    platform: string;
+    tiktok_options: unknown;
+    tiktok_creator_info: unknown;
+  }>(
+    `select status, scheduled_at, platform, tiktok_options, tiktok_creator_info
+       from content_items where id = $1`,
     [id],
   );
   if (!item) return;
+
+  /*
+   * §179. TikTok cannot be approved on someone's behalf.
+   *
+   * Every other platform's approval is a single decision: this copy is good, send
+   * it. TikTok's Content Posting API additionally requires the *creator* to have
+   * chosen visibility, the comment/Duet/Stitch settings, any commercial-content
+   * disclosure, and to have given the Music Usage Confirmation.
+   *
+   * Approval is where scheduling begins, so it is the honest place to stop:
+   * letting an incomplete item through would mean the worker either refuses it
+   * hours later, out of sight, or supplies the answers itself — which is exactly
+   * the behaviour this pass removed.
+   */
+  if (item.platform === 'tiktok') {
+    const problems = validateTikTokPost({
+      options: (item.tiktok_options as never) ?? emptyTikTokOptions(),
+      creatorInfo: (item.tiktok_creator_info as never) ?? null,
+    });
+    if (problems.length > 0) {
+      await query('update content_items set last_error = $2 where id = $1', [
+        id,
+        `TikTok settings are incomplete: ${problems.map((p) => p.message).join(' ')}`.slice(0, 500),
+      ]);
+      revalidatePath(`/queue/${id}`);
+      return;
+    }
+  }
 
   await query(
     `update content_items

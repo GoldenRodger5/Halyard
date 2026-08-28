@@ -18,8 +18,14 @@ import {
 } from '@halyard/core';
 import { AssetPicker } from '@/components/AssetPicker';
 import { ManualPublish } from '@/components/ManualPublish';
-import { getItemArtifact,
-  getCorrectionHistory, getProducts, getQueueItem } from '@/lib/queries';
+import {
+  getItemArtifact,
+  getCorrectionHistory,
+  getProducts,
+  getQueueItem,
+  getTikTokPanel,
+} from '@/lib/queries';
+import { TikTokPanel } from '@/components/TikTokPanel';
 import { formatInOperatorTz } from '@/lib/format';
 import { editItem, markManuallyPublished, publishNow, rescheduleItem } from '../actions';
 import { resetDestination, setDestination } from '../destinationActions';
@@ -40,6 +46,12 @@ export default async function QueueItemPage({ params }: { params: Promise<{ id: 
   } | null;
 
   const gates = item.qc_results?.gates ?? [];
+
+  /*
+   * §179. TikTok only. Loaded separately because it is one platform out of
+   * seven, and every other destination publishes without a per-post panel.
+   */
+  const tiktokPanel = item.platform === 'tiktok' ? await getTikTokPanel(id) : null;
 
   /*
    * §165. What Halyard tried before asking anyone to look at this.
@@ -140,6 +152,8 @@ export default async function QueueItemPage({ params }: { params: Promise<{ id: 
               />
             </div>
           </Card>
+
+          {tiktokPanel ? <TikTokPanel itemId={id} panel={tiktokPanel} /> : null}
 
           {/*
             * §156. Where this actually is.

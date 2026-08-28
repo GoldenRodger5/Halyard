@@ -22,13 +22,24 @@ describe('platform delivery capability', () => {
     }
   });
 
-  it('gives TikTok the only native draft, and says a person must finish it', () => {
-    // /v2/post/publish/inbox/video/init/ puts a real draft in the creator's
-    // TikTok inbox. Halyard cannot post it afterwards; they do, in the app.
+  it('posts TikTok directly, with the creator choosing the settings first', () => {
+    /*
+     * §179. TikTok used to be the only native draft: the inbox upload put a
+     * draft in the creator's TikTok inbox for them to finish by hand. That path
+     * needed the `video.upload` scope, which the developer portal never granted,
+     * so it could not have worked — it is replaced by Direct Post.
+     *
+     * `requiresCreatorCompletion` is false because nothing is left to finish
+     * inside TikTok. The creator's involvement moved earlier: they choose
+     * visibility, interaction settings and the music confirmation on the item
+     * before it is sent, which is what TikTok requires.
+     */
     const { delivery } = getAdapter('tiktok').constraints;
-    expect(delivery.nativeDraft).toBe(true);
-    expect(delivery.requiresCreatorCompletion).toBe(true);
+    expect(delivery.nativeDraft).toBe(false);
+    expect(delivery.requiresCreatorCompletion).toBe(false);
     expect(delivery.privateUpload).toBe(false);
+    expect(delivery.apiScheduling).toBe(false);
+    expect(delivery.note).toMatch(/video\.publish/);
   });
 
   it('gives YouTube a private upload and API scheduling, and no draft', () => {
