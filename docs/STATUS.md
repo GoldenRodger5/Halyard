@@ -1,5 +1,27 @@
 # Where Halyard is right now
 
+**2026-08-28 — the loop closes, and it is proven on real artifacts.** A signal
+decays, a strategy decision records the objective and the one metric it will be
+judged on, a treatment is chosen from seven with diversity and portfolio
+pressure, the rendered video is inspected by a gate that fails a stack of text
+cards, and measured performance changes which treatment the next plan picks.
+Every link is tested; the learning and social links against a real database.
+`DECISIONS.md` §203–§210, `docs/SOCIAL_INTELLIGENCE_SYSTEM.md` §0.
+
+**Proven with two real renders.** `pnpm creative-acceptance` renders the
+card-only treatment and the selected one from the same adaptation and measures
+both with FFmpeg: peak tonal delta 0.0157 → 0.0275, creative QA FAIL → PASS,
+retention FAIL → pass. The card version's text density is the original complaint
+quantified — 35, 29 and 23 words on three consecutive cards.
+
+**Not built, and said so:** cross-platform creator discovery (needs search
+endpoints the adapters lack — recommendations come only from comments on
+Halyard's own posts and watch-term hits), multi-concept generation, briefs as a
+first-class record, experiments beyond hooks, music as a per-piece decision.
+
+**Run the suite with a database.** 26 files skip without one:
+`TEST_DATABASE_URL=postgres://localhost:5432/postgres` → 2252 tests, 125 files.
+
 **2026-08-28 — Halyard can tell a story more than one way, and it learns which
 way worked.** Nine creative types were declared and one was implemented, with
 composition selection a fixed priority list — so every video on every account

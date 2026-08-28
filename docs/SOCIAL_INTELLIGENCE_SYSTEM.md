@@ -7,49 +7,74 @@
 
 ---
 
-## 0. Implementation status — audited 2026-08-28
+## 0. Implementation status — 2026-08-28
 
-> This section is the truthful record of what exists. Everything below it is the
-> target specification and is unchanged. **implemented ≠ tested ≠ deployed ≠
-> production-proven**, and the column says which.
+> The truthful record. Everything below this section is the target
+> specification, unchanged. **implemented ≠ tested ≠ deployed ≠
+> production-proven** — the State column says which, and does not blur them.
 
-The audit's headline finding: most of §3.7 through §3.9 and all of §11 **already
-existed** and the specification assumes less than the repository contains.
-Rebuilding them would have destroyed working infrastructure.
+### §12 required entities
 
-### Already built — reused, not rebuilt
-
-| Spec | Where it lives | State |
+| Entity | Where | State |
 |---|---|---|
-| §3.7 critics on real artifacts | `qc/visualQC` probes actual media through FFmpeg/Sharp — frame luminance, text bounding boxes with contrast ratios, caption drift. Plus `audioQC`, `retentionQC`, `coherence`, `claimVerifier`, `slopFilter`, `deliveryQC`, `destinationQC` | production |
-| §3.8 bounded correction | `correction/{controller,defects,invalidation,policy,regression}` and append-only `content_iterations` carrying gates, defects, snapshot, action, reason, changed, invalidated, regressions, cost, outcome | production |
-| §3.9 performance | `post_metrics` — impressions, reach, likes, comments, shares, saves, video_views, watch_time, profile_visits, link_clicks, follows — tied to `publication_id` → exact content item | production |
-| §11 observability | `agent_runs` — run_id, agent, team, trigger, input_ref, output_ref, cost_usd, latency, **`downstream_consumer`/`downstream_consumed_at`** | production |
-| §3.3 timing | `scheduling/{cadence,stagger,timezone,reschedule}`, `scoring/{bestTime,coldStart}` | production |
-| §2.3 real product footage | `capture_runs.video_asset_id` → footage beats (§163, §168). Frames that were recorded, not generated | production |
-| §7 canonical → variants | `ideas` → one model call per platform → per-platform `content_items` | production |
-| §12 lineage | `signals` → `ideas` → `content_items` → `renders` → `publications` → `post_metrics` → `performance_scores` | production |
+| discovery opportunities | `signals` + `discovery/freshness.ts` (half-life per source, hard expiry, velocity) | tested |
+| account intelligence snapshots | `account_intelligence` + `social/portfolio.ts` | tested (real DB) |
+| strategy decisions | `strategy_decisions` + `strategy/decide.ts` | tested |
+| content concepts | `ideas` | production (pre-existing) |
+| creative briefs | `generation_meta.creative` + render `input_props.beats` | **partial** — persisted, not a first-class table |
+| content variants | `content_items`, one row per platform | production |
+| creative evaluations | `qc_results` + 9 gates incl. `creativeQC` | tested |
+| correction iterations | `content_iterations`, append-only | production |
+| publication attribution | `publications`, `attribution`, `link_clicks` | production |
+| performance snapshots | `post_metrics`, `performance_scores` | production |
+| experiments / cohorts | `hook_experiments`, `hook_variants` | **partial** — hooks only |
+| learned insights | `learned_insights` + `learning/insights.ts` | tested (real DB) |
+| creative memory | `learned_insights` + `content_iterations` | tested |
+| social recommendations | `social_recommendations` + `social/recommendations.ts` | tested (real DB) |
 
-### Built in this pass
+### The closed loop, and where it is proven
 
-| Spec | What | State |
+```
+signal (decays, §206)
+  → strategy decision (objective + ONE metric + review date, §210)
+    → treatment chosen from 7, diversity- and portfolio-aware (§203, §208)
+      → render → creative QA on the real artifact (§205)
+        → bounded correction → operator approval → publish
+          → post_metrics → learned_insights (§204)
+            → changes the next treatment choice  ← proven, real DB
+```
+
+### Proven with real artifacts
+
+`pnpm creative-acceptance` renders **two actual videos** from one real
+adaptation and measures both with FFmpeg:
+
+| | card-only (pre-§203) | selected |
 |---|---|---|
-| §3.6 treatments | **Seven planners** (before_after, how_to, process_montage, listicle, comparison, myth_fact, feature_demo) replacing one. Five distinct beat-role sequences, asserted. §203 | tested |
-| §6 diversity | Treatment selection subtracts recent use, distance-weighted, read from `generation_meta.creative.type` | tested |
-| §3.10 learning | `learned_insights` + `learn_from_performance`. Confidence = sample × effect. observed → inferred → validated. Contradiction halves confidence and drops status. §204 | tested against a real database |
-| §13 learning acceptance | A belief changes which treatment a later plan chooses, and names the belief that moved it. Counter-evidence reverses it | tested against a real database |
+| beats | 4, no footage | 7, one carrying real capture |
+| peak tonal Δ | 0.0157 | **0.0275** |
+| creative QA | **FAIL** — unused footage | **PASS** |
+| retention | **FAIL** | pass |
 
-### Not yet built
+### Not built, stated plainly
 
-| Spec | Gap |
-|---|---|
-| §3.1 Discovery | `signals`/`finds`/`watch_terms` exist but carry no platform, expiry, confidence or velocity. Stale trends stay equally valuable forever — §9 forbids exactly this |
-| §3.2 Social Engine | No account intelligence snapshots, no social graph, no recommendations |
-| §3.3 Strategy records | Nothing records why this, why now, why here as a durable decision |
-| §3.4 Concepts | `ideas` are close, but nothing generates several and selects among them |
-| §5 creative briefs | `plan.ts` computes beats in memory; never persisted, not per-platform |
-| §6 portfolio | `format_cadence` covers format only — no topic, treatment, hook or CTA distribution |
-| §3.7 treatment-quality critic | Nothing yet fails a creative *for being a text card*, which the brief names explicitly |
+- **Cross-platform creator/community discovery.** Needs platform search
+  endpoints the adapters do not implement. Recommendations are built only from
+  evidence Halyard already holds — comments on its own posts, and watch-term
+  hits. Inventing candidates to fill the table would be the fabrication the
+  evidence rule exists to prevent.
+- **Multi-concept generation.** `ideas` holds one concept; nothing generates
+  several and selects among them.
+- **Creative briefs as a first-class record**, separate from the render props.
+- **Experiments generalised beyond hooks.**
+- **Music selection as a creative decision.** Voiceover is first-class;
+  music is not chosen per-piece.
+
+### Operational note
+
+26 test files skip unless `TEST_DATABASE_URL` is set, and nothing was setting
+it. With a database attached the suite is **2252 across 125 files**. Use
+`TEST_DATABASE_URL=postgres://localhost:5432/postgres`.
 
 ---
 

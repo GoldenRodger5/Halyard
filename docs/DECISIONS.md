@@ -5970,3 +5970,125 @@ The migration's own bug is worth recording: rewriting the consume statement left
 references. `sqlValid.test.ts` plans every statement against the real schema and
 caught it immediately. The fix restored the product scope to the `where`, which
 the statement should have had anyway.
+
+## 207. The creative acceptance test, on two real rendered files
+
+The brief's standard verbatim: "A static recipe text card with minor movement
+should FAIL creative QA... Then inspect the corrected artifact and prove that
+the quality materially improved."
+
+So `pnpm creative-acceptance` renders **two actual videos** from the same real
+adaptation — the card-only treatment Halyard produced for every post before
+§203, and whatever `selectCreativePlan` chooses with the capture available —
+then measures both with FFmpeg and runs the gates over the measurements.
+
+| | card-only | selected (listicle) |
+|---|---|---|
+| beats | 4, no footage | 7, one carrying real capture |
+| peak tonal delta | 0.0157 | 0.0275 |
+| creative QA | FAIL | PASS |
+| retention | FAIL | pass |
+| words on beat 2 | 35 | — |
+
+The card-only render fails for the right reason and independently fails
+retention, which is corroboration from a gate that knows nothing about
+treatments. Its text density is the original complaint quantified: 35, 29 and 23
+words on three consecutive cards.
+
+Kept as a script rather than a suite test, matching `render-demo-videos.ts`: a
+Remotion render is about a minute and does not belong in a run that must stay
+fast.
+
+## 208. The account as a body of work
+
+`format_cadence` bounded formats per week and nothing else, so an account could
+publish five transformations about one feature with one hook and break no rule —
+each piece individually fine, the sequence monotonous.
+
+`analysePortfolio` slices recent published work by treatment, format, topic,
+hook, destination and feature. Overuse is measured **within** a dimension, so a
+dominant treatment is a finding even when the topics beneath it vary.
+
+Undercoverage is measured only against a *declared* expectation. Inferring what
+an account should cover from what it has covered would make every account
+permanently correct, which is the failure mode of every self-referential metric.
+
+It steers rather than reports. Treatment selection carries a portfolio term kept
+deliberately **separate** from the learning term: what worked and what the
+account has been doing are different facts, a treatment can be both the best
+performer and overused, and an operator should see both rather than their sum.
+`score = support − penalty×2 + learned + portfolio` is asserted so the parts stay
+legible.
+
+## 209. Intelligence, and deliberately not action
+
+§3.2 and §8 both say the same thing in different words, and it is the most
+important sentence in either: **"Public engagement automation is not implied by
+this intelligence layer."**
+
+A paragraph saying so is followed until someone needs a feature.
+`assertNoAutonomousAction` throws if a verb that touches a platform ever appears
+among the recommendation kinds, and the test calls it — so adding `reply` is a
+build failure rather than a quiet capability gain. This is the same decision
+`platform/policy.ts` already makes one level down, where "respond to comments"
+is not represented at all.
+
+Two ranking rules carry the rest:
+
+**Evidence or nothing.** A recommendation about a third party without evidence
+is not a weak claim, it is not a claim. Dropped by the ranker, and refused by
+the database with a non-empty-array constraint rather than left to the caller.
+
+**Popularity is not evidence.** §13 asks the engine to avoid recommending
+high-volume accounts merely because they are popular, so relevance is the sort
+key and reach is a logarithmic tiebreak that cannot promote an irrelevant
+subject past a relevant one — asserted with a 4k-follower relevant account
+beating a 9M-follower irrelevant one.
+
+`ignore` is kept visible rather than filtered: a subject considered and rejected
+is more useful than its silent absence, and it stops the same candidate being
+re-surfaced every run.
+
+### What produces them
+
+Deliberately narrow, and entirely real. Cross-platform creator discovery needs
+search endpoints the adapters do not implement, and inventing candidates to fill
+the table would be the exact fabrication the evidence rule prevents. So:
+comments on this account's own posts — someone who replies repeatedly is
+relevant by demonstration rather than inference — and authors surfaced by the
+operator's own watch terms.
+
+An operator's decision is authoritative: the upsert is guarded on `status =
+'proposed'`, so a dismissed subject is not re-proposed by the next observation.
+
+## 210. Why this, why now, why here
+
+`ideas` records a topic, `content_items` a platform, `slots` a time. Nothing
+recorded the reasoning that joined them, so "why did Halyard make this post" was
+answerable only by inference from three tables each holding a third of it.
+
+`decideStrategy` is arithmetic over facts that already exist — the opportunity's
+decayed worth, the account's mix, what performance established, when it last
+posted — so it is identical on identical input and an operator can disagree with
+a term rather than with a vibe.
+
+**It refuses**, and that is the point. An account that cannot publish, a decayed
+opportunity, a platform-specific signal routed elsewhere, and a post inside the
+spacing window all produce no plan at all. A strategy layer that always produces
+a plan is a queue filler.
+
+### The measurement plan is why the table is worth having
+
+One metric, chosen from the objective. Judging an education post on link clicks
+measures the wrong thing and then teaches the wrong lesson — and §204 will
+happily learn from a badly chosen metric. Review delay varies with how long the
+number takes to mean anything: two days for impressions, seven for a conversion
+signal that needs the person to come back.
+
+`success_threshold` is **null and deliberately not guessed**. A threshold
+invented before any measurement would be met or missed for reasons unrelated to
+the content, and would then become a fabricated lesson. Null until a baseline
+exists, with the basis saying so.
+
+A decision with no measurement cannot be wrong later, and a decision that cannot
+be wrong teaches nothing.
