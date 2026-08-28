@@ -108,7 +108,10 @@ interface ContentRow {
   account_id: string;
   platform: PlatformId;
   format: PublishItem['format'];
+  /** §199. Shorts vs long-form for YouTube; the generic variant slot elsewhere. */
+  format_subtype: string | null;
   category: string;
+  scheduled_at: string | null;
   body: string;
   title: string | null;
   alt_text: string | null;
@@ -390,6 +393,14 @@ export async function publishHandler(job: Job, ctx: HandlerContext): Promise<voi
     title: item.title,
     altText: item.alt_text,
     hashtags: item.hashtags ?? [],
+    formatSubtype: item.format_subtype,
+    category: item.category,
+    /*
+     * §199. Only platforms that can hold a post themselves read this; YouTube
+     * turns it into `status.publishAt`. Halyard's scheduler is still what fires
+     * the job, so this is a hand-off, not a second scheduler.
+     */
+    scheduledAt: item.scheduled_at ? new Date(item.scheduled_at) : null,
     finalLinkUrl: finalLink,
     // Routed at draft time and stored on the item, so the board shown in the
     // queue is the board the pin lands on.

@@ -22,6 +22,7 @@ export type FormatSubtype =
   | 'script'
   | 'pin'
   | 'short'
+  | 'long_form'
   | 'post'
   | 'take'
   | 'tip';
@@ -189,6 +190,38 @@ export const FORMAT_SPECS: FormatSpec[] = [
     isVideo: true,
   },
   {
+    /**
+     * §199. A long-form video is not a longer Short.
+     *
+     * The Short is a feed object: the title is the hook, the description is
+     * almost never expanded, and discovery is the algorithm. A long-form video
+     * is a search object — people find it by typing something, decide from a
+     * thumbnail and a title, and the description is where the video explains
+     * itself to both a reader and a ranker. Writing one like the other produces
+     * a video nobody searches for, with a caption nobody reads.
+     */
+    id: 'youtube/long_form',
+    platform: 'youtube',
+    subtype: 'long_form',
+    promptFile: 'prompts/copywriter/youtube/long_form.v1.md',
+    version: 'copywriter.youtube.long_form.v1',
+    craft:
+      'A searchable title, and a description that is the first thing a reader and a ranker both meet.',
+    rules: [
+      'The title front-loads the words someone would actually type. Under seventy characters.',
+      'No curiosity gap the video does not close. A title that oversells is the fastest way to lose a channel.',
+      'The first two lines of the description are the above-the-fold summary; write them as if nothing follows.',
+      'Then the detail: what the video covers, in the order it covers it.',
+      'Chapters as "0:00 Label" lines when the video has real sections. Never invent timings.',
+      'Up to five tags, specific rather than broad.',
+      'Never write "#Shorts". This is not one.',
+    ],
+    extraOutput: {
+      chapters: 'optional array of {label, note} in running order, no timings — the renderer supplies those',
+    },
+    isVideo: true,
+  },
+  {
     id: 'threads/post',
     platform: 'threads',
     subtype: 'post',
@@ -310,6 +343,8 @@ export function selectFormatSpec(
    */
   const byFormat: Record<string, FormatSubtype | undefined> = {
     carousel: 'carousel',
+    // YouTube defaults to a Short: it is what most of Halyard's video is. A
+    // long-form item declares `long_form` explicitly and `preferred` wins above.
     video: platform === 'instagram' ? 'reel_script' : platform === 'youtube' ? 'short' : 'script',
     pin: 'pin',
     image: platform === 'instagram' ? 'single' : 'insight',

@@ -23,3 +23,4 @@ export * from './agents/index.js';
 export * from './correction/index.js';
 export * from './db/pooler.js';
 export * from './tiktok/directPost.js';
+export * from './youtube/variant.js';

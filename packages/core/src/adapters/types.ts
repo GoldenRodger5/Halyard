@@ -118,10 +118,35 @@ export interface PublishItem {
   id: string;
   platform: PlatformId;
   format: 'text' | 'image' | 'carousel' | 'video' | 'story' | 'pin';
+  /**
+   * The variant within the format, as chosen at draft time. §199.
+   *
+   * `video` is the same word for a TikTok, a Reel, a YouTube Short and a
+   * twelve-minute YouTube upload, and those are not the same job — different
+   * lengths, different titles, different descriptions, different feeds. The
+   * subtype is what tells an adapter which one it is being asked for; without
+   * it the only signal is the shape of the file, which cannot express intent.
+   *
+   * Free text on the row, so adapters narrow it themselves and treat anything
+   * unrecognised as absent rather than guessing.
+   */
+  formatSubtype?: string | null;
   body: string;
   title?: string | null;
   altText?: string | null;
   hashtags: string[];
+  /** Halyard's content category, where a platform maps it to one of its own. */
+  category?: string | null;
+  /** BCP-47, when known. YouTube uses it for `snippet.defaultLanguage`. */
+  language?: string | null;
+  /**
+   * When the item is due, for platforms that schedule server-side.
+   *
+   * Halyard's own scheduler is what normally fires a publish, so this is only
+   * meaningful where the *platform* can hold a post and release it later —
+   * YouTube's `status.publishAt` today. Absent means publish on arrival.
+   */
+  scheduledAt?: Date | null;
   /** UTM-stamped at schedule time. */
   finalLinkUrl?: string | null;
   /** Pinterest requires one; supplied from account config. */

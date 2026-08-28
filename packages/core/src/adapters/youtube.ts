@@ -29,6 +29,16 @@ import {
   type PublishResult,
   type TokenSet,
 } from './types.js';
+import {
+  YOUTUBE_DESCRIPTION_MAX_CHARS,
+  YOUTUBE_LONG_FORM_MAX_SECONDS,
+  YOUTUBE_TITLE_MAX_CHARS,
+  categoryIdFor,
+  limitsFor,
+  resolveVariant,
+  validateYouTubeUpload,
+  type YouTubeVariant,
+} from '../youtube/variant.js';
 
 const AUTHORIZE_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 const TOKEN_URL = 'https://oauth2.googleapis.com/token';
@@ -42,11 +52,21 @@ export const YOUTUBE_DAILY_UPLOAD_BUCKET = 100;
 export const YOUTUBE_CHUNK_BYTES = 256 * 1024 * 32; // 8 MB, a multiple of 256 KB
 
 export const YOUTUBE_CONSTRAINTS: PlatformConstraints = {
-  maxChars: 5000,
+  maxChars: YOUTUBE_DESCRIPTION_MAX_CHARS,
   maxHashtags: 5,
   supportedFormats: ['video'],
-  aspectRatios: ['9:16', '16:9'],
-  video: { minSeconds: 3, maxSeconds: 60, codecs: ['h264'] },
+  aspectRatios: ['9:16', '1:1', '16:9'],
+  /**
+   * The platform envelope, not the Shorts rule. §199.
+   *
+   * This said `maxSeconds: 60`, which was the Shorts cap until 15 October 2024
+   * and was never the YouTube cap. Stated platform-wide it did two things at
+   * once: rejected legitimate 90-second Shorts, and made long-form video
+   * impossible to express — the one constraint capped the entire platform at a
+   * minute. Per-variant limits live in `limitsFor`, enforced by
+   * `validateYouTubeUpload`, because they differ by an order of magnitude.
+   */
+  video: { minSeconds: 1, maxSeconds: YOUTUBE_LONG_FORM_MAX_SECONDS, codecs: ['h264'] },
   linkStrategy: 'description',
   linkNote: 'Description, first line, above the fold.',
   requiresReviewForPublicPosting: true,
@@ -56,7 +76,23 @@ export const YOUTUBE_CONSTRAINTS: PlatformConstraints = {
     privateUpload: true,
     apiScheduling: true,
     requiresCreatorCompletion: false,
-    note: 'videos.insert with status.privacyStatus=private is a real private video Halyard can later publish via videos.update. status.publishAt schedules it, and requires the video to be private and never published. There is no draft object.',
+    /**
+     * §199 corrected the second half of this note.
+     *
+     * It claimed a private upload could "later be published via videos.update".
+     * That method requires `youtube` or `youtube.force-ssl`, and Halyard
+     * requests neither — it holds `youtube.upload`, `youtube.readonly` and
+     * `yt-analytics.readonly`. So a private video stays private until a human
+     * opens Studio, and the note said otherwise for months.
+     *
+     * `status.publishAt` at insert *is* reachable on `youtube.upload`, which is
+     * what `apiScheduling: true` now honestly refers to.
+     */
+    note:
+      'videos.insert with status.privacyStatus=private is a real private video. status.publishAt schedules it at ' +
+      'upload time and requires privacyStatus=private. Flipping an existing private video public needs videos.update, ' +
+      'which requires the youtube or youtube.force-ssl scope — Halyard requests neither, so that is Studio work today. ' +
+      'There is no draft object.',
   },
 };
 
@@ -210,27 +246,84 @@ export class YouTubeAdapter implements PlatformAdapter {
     const audited = account.meta?.complianceAuditPassed === true;
     const privacyStatus = audited && account.capabilityState === 'live' ? 'public' : 'private';
 
-    // Shorts: vertical 9:16 under 60 seconds, with #Shorts in the title.
-    const isShort =
-      (asset.durationSeconds ?? 0) <= 60 &&
-      (asset.width ?? 0) > 0 &&
-      (asset.height ?? 1) > (asset.width ?? 0);
+    /**
+     * Shorts or long-form. §199.
+     *
+     * This used to be a boolean computed inline from the asset — vertical and
+     * under sixty seconds. That is close to YouTube's own rule but not it (the
+     * cap has been three minutes since October 2024, and square counts as
+     * vertical), and more importantly it left no way to *intend* long-form. The
+     * intent now travels on the item and is reconciled against what YouTube
+     * will actually do with the file.
+     */
+    const declared = (item.formatSubtype === 'long_form' ? 'long_form' : item.formatSubtype === 'short' ? 'short' : null) as
+      | YouTubeVariant
+      | null;
+    const resolution = resolveVariant(declared, asset);
+    const variant = resolution.actual;
 
-    const baseTitle = (item.title ?? item.body.split('\n')[0] ?? 'Untitled').slice(0, 90);
-    const title = isShort && !/#shorts/i.test(baseTitle) ? `${baseTitle} #Shorts` : baseTitle;
+    /*
+     * `#Shorts` stopped being a classifier in October 2024 — aspect ratio and
+     * duration decide it now. It stays on Shorts as a discovery signal, and is
+     * never appended to long-form, where it would be a lie about the format.
+     */
+    const room = variant === 'short' ? YOUTUBE_TITLE_MAX_CHARS - ' #Shorts'.length : YOUTUBE_TITLE_MAX_CHARS;
+    const baseTitle = (item.title ?? item.body.split('\n')[0] ?? 'Untitled').slice(0, room);
+    const title =
+      variant === 'short' && !/#shorts/i.test(baseTitle) ? `${baseTitle} #Shorts` : baseTitle;
 
-    const descriptionParts = [
-      item.finalLinkUrl ?? '',
-      item.body,
-      item.requiresAiLabel && item.disclosureText ? item.disclosureText : '',
-    ].filter(Boolean);
+    /*
+     * Long-form leads with the summary and puts the link lower; a Short leads
+     * with the link because almost nobody expands the description. The advice
+     * in `limitsFor` is what the copywriter is briefed with, and this is the
+     * assembly that matches it.
+     */
+    const disclosure = item.requiresAiLabel && item.disclosureText ? item.disclosureText : '';
+    const descriptionParts =
+      variant === 'long_form'
+        ? [item.body, item.finalLinkUrl ?? '', disclosure]
+        : [item.finalLinkUrl ?? '', item.body, disclosure];
+
+    const description = descriptionParts.filter(Boolean).join('\n\n').slice(0, YOUTUBE_DESCRIPTION_MAX_CHARS);
+    const tags = item.hashtags.slice(0, this.constraints.maxHashtags).map((t) => t.replace(/^#/, ''));
+
+    /*
+     * Scheduling, which the delivery contract has advertised since §156 and
+     * which nothing implemented. `status.publishAt` is accepted by
+     * `videos.insert` on the upload scope alone; it requires the video to be
+     * private, which every unaudited upload already is.
+     */
+    const publishAt =
+      item.scheduledAt && privacyStatus === 'private' && item.scheduledAt.getTime() > Date.now()
+        ? item.scheduledAt
+        : null;
+
+    const issues = validateYouTubeUpload({
+      variant,
+      asset,
+      title,
+      description,
+      tags,
+      publishAt,
+      privacyStatus,
+    });
+    const blocking = issues.filter((i) => i.severity === 'error');
+    if (blocking.length > 0) {
+      throw new PublishError(
+        blocking.map((i) => `${i.field}: ${i.message}`).join(' '),
+        'permanent',
+      );
+    }
 
     const metadata = {
       snippet: {
         title,
-        description: descriptionParts.join('\n\n').slice(0, this.constraints.maxChars),
-        tags: item.hashtags.slice(0, this.constraints.maxHashtags),
-        categoryId: '26', // Howto & Style
+        description,
+        tags,
+        // §199. Was hardcoded to Howto & Style for every upload, including
+        // founder posts about building the product.
+        categoryId: categoryIdFor(item.category),
+        ...(item.language ? { defaultLanguage: item.language } : {}),
       },
       status: {
         privacyStatus,
@@ -238,6 +331,7 @@ export class YouTubeAdapter implements PlatformAdapter {
         // v2 Part C / EU AI Act Article 50: declare synthetic content natively
         // where the platform offers a toggle.
         ...(item.requiresAiLabel ? { containsSyntheticMedia: true } : {}),
+        ...(publishAt ? { publishAt: publishAt.toISOString() } : {}),
       },
     };
 
@@ -257,8 +351,13 @@ export class YouTubeAdapter implements PlatformAdapter {
       mode: privacyStatus === 'public' ? 'direct' : 'private',
       platformPostId: videoId,
       permalink: `https://www.youtube.com/watch?v=${videoId}`,
+      /*
+       * A scheduled private video needs no human at all — YouTube flips it at
+       * `publishAt` on its own. Sending the operator to Studio for one would be
+       * asking them to finish something already finished.
+       */
       manualPublishUrl:
-        privacyStatus === 'private'
+        privacyStatus === 'private' && !publishAt
           ? `https://studio.youtube.com/video/${videoId}/edit`
           : undefined,
     };
