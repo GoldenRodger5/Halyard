@@ -415,3 +415,121 @@ describe('learning changes the next creative decision', () => {
     }
   });
 });
+
+/**
+ * §208. The portfolio's opinion, and how it stays distinguishable from
+ * performance.
+ *
+ * These are separate inputs on purpose: what worked and what the account has
+ * been doing are different facts, and a strong treatment can be both the best
+ * performer and overused. An operator reading the rationale should see both,
+ * not their sum.
+ */
+describe('portfolio balance steers the next treatment', () => {
+  const rich = artifact({
+    highlights: [swap(1, 'coconut oil'), swap(2), technique(1), technique(2), technique(3)],
+  });
+
+  it('penalises a treatment that has become the only output', async () => {
+    const { analysePortfolio } = await import('../social/portfolio.js');
+
+    const naive = selectCreativePlan(rich, input)!;
+    const dominant = naive.chosen.creativeType;
+
+    const report = analysePortfolio(
+      Array.from({ length: 8 }, (_, i) => ({
+        contentItemId: `c-${i}`,
+        publishedAt: new Date(2026, 7, 20 - i),
+        platform: 'tiktok',
+        dimensions: { treatment: dominant },
+      })),
+    );
+
+    const balanced = selectCreativePlan(rich, { ...input, portfolio: report })!;
+    expect(balanced.chosen.creativeType).not.toBe(dominant);
+
+    const penalised = balanced.considered.find((c) => c.plan.creativeType === dominant)!;
+    expect(penalised.portfolio).toBeLessThan(0);
+  });
+
+  it('credits a treatment the account declared it wants and has not used', async () => {
+    const { analysePortfolio } = await import('../social/portfolio.js');
+    const naive = selectCreativePlan(rich, input)!;
+    const dominant = naive.chosen.creativeType;
+    const wanted = naive.considered.map((c) => c.plan.creativeType).find((t) => t !== dominant)!;
+
+    const report = analysePortfolio(
+      Array.from({ length: 8 }, (_, i) => ({
+        contentItemId: `c-${i}`,
+        publishedAt: new Date(2026, 7, 20 - i),
+        platform: 'tiktok',
+        dimensions: { treatment: dominant },
+      })),
+      { expected: { treatment: [dominant, wanted] } },
+    );
+
+    const result = selectCreativePlan(rich, { ...input, portfolio: report })!;
+    const credited = result.considered.find((c) => c.plan.creativeType === wanted)!;
+    expect(credited.portfolio).toBeGreaterThan(0);
+    expect(result.chosen.rationale).toMatch(/under-covering/);
+  });
+
+  it('does nothing for an account with no published history', () => {
+    const result = selectCreativePlan(rich, input)!;
+    for (const c of result.considered) expect(c.portfolio).toBe(0);
+  });
+
+  /**
+   * The separation that matters. Performance and portfolio must remain legible
+   * as two different reasons, not one blended score.
+   */
+  it('keeps performance and portfolio as separate, named reasons', async () => {
+    const { analysePortfolio } = await import('../social/portfolio.js');
+    const { computeInsights } = await import('../learning/insights.js');
+
+    const naive = selectCreativePlan(rich, input)!;
+    const target = naive.considered.map((c) => c.plan.creativeType)[1]!;
+
+    const observations = Array.from({ length: 25 }, (_, i) => [
+      {
+        contentItemId: `w-${i}`,
+        platform: 'tiktok',
+        accountId: 'a',
+        publishedAt: new Date(2026, 5, 1 + i),
+        features: { creative_type: target },
+        score: 0.9,
+      },
+      {
+        contentItemId: `l-${i}`,
+        platform: 'tiktok',
+        accountId: 'a',
+        publishedAt: new Date(2026, 5, 1 + i),
+        features: { creative_type: naive.chosen.creativeType },
+        score: 0.3,
+      },
+    ]).flat();
+
+    const result = selectCreativePlan(rich, {
+      ...input,
+      insights: computeInsights(observations, 'account'),
+      portfolio: analysePortfolio(
+        Array.from({ length: 8 }, (_, i) => ({
+          contentItemId: `c-${i}`,
+          publishedAt: new Date(2026, 7, 20 - i),
+          platform: 'tiktok',
+          dimensions: { treatment: naive.chosen.creativeType },
+        })),
+      ),
+      now: new Date(2026, 6, 1),
+    })!;
+
+    const winner = result.considered.find((c) => c.plan.creativeType === result.chosen.creativeType)!;
+    // Both contributions are readable independently of the total.
+    expect(typeof winner.learned).toBe('number');
+    expect(typeof winner.portfolio).toBe('number');
+    expect(winner.score).toBeCloseTo(
+      winner.support - winner.penalty * 2 + winner.learned + winner.portfolio,
+      5,
+    );
+  });
+});

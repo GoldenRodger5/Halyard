@@ -33,6 +33,7 @@
  */
 import type { Highlight, ProductArtifact } from '../connectors/types.js';
 import { actionableInsights, type Insight } from '../learning/insights.js';
+import { portfolioPreferences, type PortfolioReport } from '../social/portfolio.js';
 import {
   planBeforeAfter,
   transformationsIn,
@@ -393,6 +394,15 @@ export interface TreatmentCandidate {
   learned: number;
   /** Which beliefs moved it, for the record. */
   learnedFrom: string[];
+  /**
+   * What the account's own mix costs or credits this treatment. §208.
+   *
+   * Distinct from `penalty`, which is recency alone. This is the portfolio
+   * judgement — a treatment that has become the account's only output is
+   * penalised even when it was not used *last*, and one the account has
+   * declared it wants covered and has not is credited.
+   */
+  portfolio: number;
   score: number;
 }
 
@@ -418,6 +428,16 @@ export interface SelectionInput extends PlanInput {
   insights?: Insight[];
   /** For freshness filtering. Defaults to now. */
   now?: Date;
+  /**
+   * The account's current content mix, from `account_intelligence`. §208.
+   *
+   * Kept separate from `insights` on purpose: performance says what *worked*
+   * and the portfolio says what the account has been *doing*, and collapsing
+   * them would hide which of the two moved a decision. A strong treatment can
+   * be both the best performer and overused, and an operator reading the
+   * rationale should see both facts rather than their sum.
+   */
+  portfolio?: PortfolioReport;
 }
 
 /**
@@ -507,13 +527,29 @@ export function selectCreativePlan(
       0,
     );
 
+    /*
+     * §208. The portfolio's opinion, bounded like learning's.
+     *
+     * Avoid outweighs prefer: an over-concentrated account has a demonstrated
+     * problem, where an uncovered value is only an intention. Neither can
+     * select a treatment the artifact does not support, because both are
+     * applied to candidates that already exist.
+     */
+    const prefs = input.portfolio
+      ? portfolioPreferences(input.portfolio, 'treatment')
+      : { avoid: [], prefer: [] };
+    const portfolio =
+      (prefs.avoid.includes(plan.creativeType) ? -1.5 : 0) +
+      (prefs.prefer.includes(plan.creativeType) ? 0.75 : 0);
+
     considered.push({
       plan,
       support,
       penalty,
       learned: Math.round(learned * 100) / 100,
       learnedFrom: applicable.map((i) => i.observation),
-      score: support - penalty * 2 + learned,
+      portfolio,
+      score: support - penalty * 2 + learned + portfolio,
     });
   }
 
@@ -537,7 +573,14 @@ export function selectCreativePlan(
        * evidence is indistinguishable from a decision nobody made. */
       (winner.learnedFrom.length > 0
         ? `. Measured performance argued for it: ${winner.learnedFrom.join(' ')}`
-        : '.'),
+        : '.') +
+      /* The portfolio is named separately from performance, so an operator can
+       * see which of the two moved the choice rather than only their sum. */
+      (winner.portfolio > 0
+        ? ' The account has been under-covering it.'
+        : winner.portfolio < 0
+          ? ' Chosen despite the account leaning on it.'
+          : ''),
   };
 
   return { chosen, considered };

@@ -117,6 +117,13 @@ export const JOB_KINDS = [
    * behind them, and the whole point is that a belief can be recomputed.
    */
   'learn_from_performance',
+  /**
+   * §208. Snapshot an account's own content mix, and detect where it has
+   * converged. Deterministic arithmetic over `content_items` — no model is
+   * asked whether a mix feels right, because the answer would be unauditable
+   * and would differ between runs on identical input.
+   */
+  'build_account_intelligence',
 ] as const;
 export type JobKind = (typeof JOB_KINDS)[number];
 
@@ -153,6 +160,8 @@ export const JOB_POLICY: Record<
    * wrong, and retrying identical arithmetic gets an identical answer.
    */
   learn_from_performance: { timeoutMs: 2 * 60_000, maxAttempts: 1, backoffSeconds: 60 },
+  /* §208. Also pure arithmetic over stored rows; retrying gets the same answer. */
+  build_account_intelligence: { timeoutMs: 2 * 60_000, maxAttempts: 1, backoffSeconds: 60 },
   /**
    * A real browser walking a real product flow. Generous, like `capture`, and
    * for the same reason: the thing being measured is someone's live app, and a

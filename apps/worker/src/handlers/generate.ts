@@ -807,6 +807,46 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
               }))
             : [];
 
+          /**
+           * §208. The account's own mix, as it was last measured.
+           *
+           * Read rather than recomputed: `build_account_intelligence` owns the
+           * arithmetic, and a second implementation here would be a second
+           * answer to the same question. Absent — a new account, or the job has
+           * not run — means no portfolio pressure at all, which is the honest
+           * state rather than a guessed one.
+           */
+          const portfolioRow = artifact
+            ? (
+                await ctx.pool.query<{
+                  window_size: number;
+                  slices: unknown;
+                  findings: unknown;
+                  gaps: unknown;
+                  exploration_share: string | null;
+                  summary: string;
+                }>(
+                  `select window_size, slices, findings, gaps, exploration_share, summary
+                     from account_intelligence
+                    where account_id = $1
+                    order by observed_at desc
+                    limit 1`,
+                  [account.id],
+                )
+              ).rows[0]
+            : undefined;
+
+          const portfolio = portfolioRow
+            ? {
+                window: portfolioRow.window_size,
+                slices: (portfolioRow.slices as never) ?? [],
+                findings: (portfolioRow.findings as never) ?? [],
+                gaps: (portfolioRow.gaps as never) ?? {},
+                explorationShare: Number(portfolioRow.exploration_share ?? 0),
+                summary: portfolioRow.summary,
+              }
+            : undefined;
+
           const selection = artifact
             ? selectCreativePlan(artifact, {
                 platform: account.platform,
@@ -814,6 +854,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                 targetSeconds: VO_TARGET_SECONDS,
                 recentTypes,
                 insights: learned,
+                ...(portfolio ? { portfolio } : {}),
                 ...(footage ? { footage } : {}),
               })
             : null;
@@ -826,6 +867,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
               recent: recentTypes,
               // Zero here is the honest state for an account nobody has measured.
               learnedFrom: learned.length,
+              portfolioWindow: portfolio?.window ?? 0,
             });
           } else if (artifact) {
             // No treatment fitted. Honest, and worth seeing: it means the
@@ -879,6 +921,10 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                       type: c.plan.creativeType,
                       support: c.support,
                       penalty: Number(c.penalty.toFixed(2)),
+                      /* §204, §208. Kept apart so "why this treatment" can name
+                       * performance and portfolio as separate reasons. */
+                      learned: c.learned,
+                      portfolio: c.portfolio,
                       score: Number(c.score.toFixed(2)),
                     })),
                   },
