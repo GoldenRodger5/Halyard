@@ -18,6 +18,7 @@ export * from './deliveryQC.js';
 export * from './retentionQC.js';
 export * from './destinationQC.js';
 export * from './coherence.js';
+export * from './creativeQC.js';
 
 import { slopFilter, slopSummary, type SlopFilterInput, type SlopFilterResult } from './slopFilter.js';
 import { verifyClaims, type Claim, type ClaimVerificationResult } from './claimVerifier.js';
@@ -44,7 +45,16 @@ export type GateName =
    * Does the opening earn the next three seconds? Measured from the rendered
    * file, so it runs in `review_media` beside `visual` rather than at copy time.
    */
-  | 'retention';
+  | 'retention'
+  /**
+   * Is it good creative, rather than merely legal creative? §205.
+   *
+   * Every other gate can pass on a stack of text cards that ignored a recording
+   * of the product. This one reads the plan rather than the pixels, because at
+   * the level of pixels a card changing and a product being used are the same
+   * event.
+   */
+  | 'creative';
 export type GateStatus = 'passed' | 'warning' | 'failed' | 'skipped';
 
 export interface GateResult {

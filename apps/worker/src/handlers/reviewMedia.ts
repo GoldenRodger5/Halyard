@@ -23,6 +23,7 @@ import path from 'node:path';
 import {
   OpenAiVisionClient,
   runCoherenceQC,
+  runCreativeQC,
   runRetentionQC,
   runVisualQC,
   type CoherenceIntent,
@@ -36,6 +37,9 @@ import { frameSampleTimes, probeVideo, sampleFrames } from '../video.js';
 import type { HandlerContext, Job } from '../poller.js';
 
 interface ItemRow {
+  account_id?: string;
+  /** §205. The recorded creative plan: type, beat count, evidence, rationale. */
+  creative?: { type?: string; beats?: number; evidence?: string[] } | null;
   id: string;
   product_id: string;
   platform: string;
@@ -136,7 +140,10 @@ export async function reviewMediaHandler(
 
   const { rows } = await ctx.pool.query<ItemRow>(
     `select id, product_id, platform, format, body, title, hashtags, category,
-            vo_script, qc_results, product_artifact, status
+            vo_script, qc_results, product_artifact, status,
+            account_id,
+            /* §205. The creative gate reads the plan, not the pixels. */
+            generation_meta -> 'creative' as creative
        from content_items where id = $1`,
     [contentItemId],
   );
@@ -184,6 +191,72 @@ export async function reviewMediaHandler(
       where ci.id = $1 and a.archived_at is null`,
     [contentItemId],
   );
+
+  /**
+   * The beats that were actually rendered, and whether footage was on offer.
+   * §205.
+   *
+   * `input_props.beats` is what `generate` wrote and what Remotion drew, so it
+   * is the artifact's own structure rather than a restatement of intent. The
+   * capture question is separate and is the one the gate turns on: a piece of
+   * card-only creative is only a defect when there was something better to
+   * show, and that fact lives in `capture_runs`, not in the plan.
+   */
+  const { rows: renderProps } = await ctx.pool.query<{ input_props: Record<string, unknown> }>(
+    `select r.input_props
+       from renders r
+      where r.content_item_id = $1 and r.status = 'done' and r.quality = 'final'
+      order by r.created_at desc
+      limit 1`,
+    [contentItemId],
+  );
+
+  const { rows: captureRows } = await ctx.pool.query<{ n: string }>(
+    /*
+     * Bounded by age for the same reason `generate` bounds it: footage of an
+     * interface two months of releases old is a claim about a product that no
+     * longer looks like that, so its absence is not a defect.
+     */
+    `select count(*)::text as n
+       from capture_runs
+      where product_id = $1 and ok = true and video_asset_id is not null
+        and started_at > now() - interval '30 days'`,
+    [item.product_id],
+  );
+  const footageAvailable = Number(captureRows[0]?.n ?? '0') > 0;
+
+  const { rows: recentCreative } = await ctx.pool.query<{ type: string }>(
+    `select generation_meta -> 'creative' ->> 'type' as type
+       from content_items
+      where account_id = $1 and id <> $2
+        and generation_meta -> 'creative' ->> 'type' is not null
+      order by created_at desc limit 4`,
+    [item.account_id ?? null, contentItemId],
+  );
+
+  const plannedBeats = Array.isArray(renderProps[0]?.input_props?.beats)
+    ? (renderProps[0]!.input_props.beats as Array<Record<string, unknown>>)
+    : [];
+
+  const creativeResult = runCreativeQC({
+    creativeType: item.creative?.type ?? 'unknown',
+    platform: item.platform,
+    footageAvailable,
+    recentTypes: recentCreative.map((r) => r.type),
+    beats: plannedBeats.map((b) => {
+      const content = (b.content ?? {}) as Record<string, unknown>;
+      const words = Object.values(content)
+        .filter((v): v is string => typeof v === 'string')
+        .join(' ')
+        .trim();
+      return {
+        role: String(b.role ?? ''),
+        emphasis: (b.emphasis as 'quick' | 'normal' | 'hold') ?? 'normal',
+        hasMedia: Boolean(b.media),
+        wordCount: words ? words.split(/\s+/).length : 0,
+      };
+    }),
+  });
 
   const video = assets.find((a) => a.mime_type.startsWith('video/'));
   if (!video) {
@@ -333,8 +406,44 @@ export async function reviewMediaHandler(
     const previous = item.qc_results?.gates ?? [];
     const merged: GateResult[] = [
       ...previous.filter(
-        (g) => g.gate !== 'coherence' && g.gate !== 'visual' && g.gate !== 'retention',
+        (g) =>
+          g.gate !== 'coherence' &&
+          g.gate !== 'visual' &&
+          g.gate !== 'retention' &&
+          g.gate !== 'creative',
       ),
+      /**
+       * §205. The creative gate, beside the technical ones.
+       *
+       * It runs here rather than at draft time because the question it answers
+       * — did this piece use the best material it had — needs the rendered
+       * beats, and because a defect it raises maps to a re-plan, which is a
+       * correction the existing controller already knows how to apply.
+       */
+      {
+        gate: 'creative' as const,
+        /*
+         * No beats is `skipped`, never `passed`. An item whose render carried
+         * no plan — an image post, or a video rendered before §203 — has not
+         * been examined by this gate, and reporting a tick would be the exact
+         * failure `examined` exists to prevent. `creativeResult.unmeasured`
+         * rides along in `detail` naming the individual rules that did not run.
+         */
+        status:
+          plannedBeats.length === 0
+            ? ('skipped' as const)
+            : creativeResult.passed
+              ? creativeResult.findings.length > 0
+                ? ('warning' as const)
+                : ('passed' as const)
+              : ('failed' as const),
+        summary:
+          plannedBeats.length === 0
+            ? 'No creative plan on this render; nothing examined.'
+            : creativeResult.summary,
+        detail: creativeResult,
+        examined: plannedBeats.length,
+      },
       {
         gate: 'visual',
         /**

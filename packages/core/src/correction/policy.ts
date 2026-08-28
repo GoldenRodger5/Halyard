@@ -40,6 +40,34 @@ export interface PolicyEntry {
  */
 const BY_RULE: Record<string, PolicyEntry> = {
   /*
+   * §205. A creative with no beats is not a badly planned piece — it is an
+   * artifact that carried nothing any planner recognised as a story. Planning
+   * again produces the same emptiness, so this escalates rather than looping.
+   * The same reasoning as the missing-evidence entries below.
+   */
+  'creative.no_beats': {
+    rootCause: 'The artifact carried nothing a creative planner could use.',
+    component: 'evidence',
+    action: 'escalate',
+    correctable: false,
+  },
+
+  /*
+   * Text density is the one creative finding that is genuinely about words.
+   * The beat text comes from the artifact, but what reaches the frame is a
+   * choice about how much of it to draw — and shortening an overlay is a copy
+   * revision, not a resequence. Routed accordingly so a correction changes the
+   * thing that is actually wrong.
+   */
+  'creative.text_density': {
+    rootCause: 'A beat carries more on-screen text than a viewer will read.',
+    component: 'copy',
+    action: 'revise_copy',
+    correctable: true,
+  },
+
+
+  /*
    * Pace and word-error are both `audio`, and they need opposite corrections.
    * Pacing is the *script* — 195 words per minute against a 140–175 window
    * means there are too many words for the runtime, and resynthesising the same
@@ -214,6 +242,24 @@ const BY_RULE: Record<string, PolicyEntry> = {
  * fixed by revising copy, and needs no entry here.
  */
 const BY_NAMESPACE: Record<string, PolicyEntry> = {
+  /*
+   * §205. Creative defects are plan defects.
+   *
+   * Every rule this gate raises is about *how the story was laid out* — which
+   * evidence was used, whether the beats vary, whether anything is held. None
+   * of them is fixed by writing different words, and all of them are fixed by
+   * planning again, so the namespace default is the plan.
+   *
+   * The two exceptions below are exceptions for opposite reasons: one is not a
+   * plan problem at all, and one has no plan left to fix.
+   */
+  creative: {
+    rootCause: 'The creative plan does not use the material well.',
+    component: 'creative_plan',
+    action: 'resequence_scenes',
+    correctable: true,
+  },
+
   // Every slop-filter namespace. All of them are the same defect — words that
   // should not have been written — and the same correction.
   construction: { rootCause: 'A banned construction reached the copy.', component: 'copy', action: 'revise_copy', correctable: true },
