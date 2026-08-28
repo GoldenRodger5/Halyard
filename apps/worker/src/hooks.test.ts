@@ -327,12 +327,42 @@ d('hook performance history', () => {
        returning id`,
       [input.platform, `@perf-${input.platform}`],
     );
+    /*
+     * §204. The TikTok panel, because a published TikTok row cannot exist
+     * without one.
+     *
+     * §179 added `content_items_tiktok_needs_choices`, which refuses an
+     * approved-or-later TikTok item whose Direct Post choices are absent —
+     * correctly, because those must be a person's choices. This fixture
+     * predates it and inserts a published TikTok item directly, so it has been
+     * failing since §179 shipped. Nobody saw it: these suites skip unless
+     * `TEST_DATABASE_URL` is set, and it was not.
+     *
+     * Supplied here rather than dodged by changing the platform, because
+     * `keeps each platform's numbers separate` is specifically about TikTok
+     * being one of them.
+     */
+    const tiktokPanel =
+      input.platform === 'tiktok'
+        ? JSON.stringify({
+            privacyLevel: 'SELF_ONLY',
+            allowComment: false,
+            allowDuet: false,
+            allowStitch: false,
+            commercialContent: false,
+            brandOrganic: false,
+            brandedContent: false,
+            musicConfirmedAt: new Date().toISOString(),
+            creatorInfoFetchedAt: new Date().toISOString(),
+          })
+        : null;
+
     const { rows: item } = await pool.query<{ id: string }>(
       `insert into content_items
-         (product_id, account_id, platform, persona, format, category, status, body)
-       values ('recipefix',$1,$2,'brand','video','education','published','body')
+         (product_id, account_id, platform, persona, format, category, status, body, tiktok_options)
+       values ('recipefix',$1,$2,'brand','video','education','published','body',$3::jsonb)
        returning id`,
-      [account[0]!.id, input.platform],
+      [account[0]!.id, input.platform, tiktokPanel],
     );
     await pool.query(
       `insert into hook_variants (content_item_id, hook_type, text_hook, selected)

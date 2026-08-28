@@ -32,6 +32,7 @@
  * for beats; it holds identically for the treatment above them.
  */
 import type { Highlight, ProductArtifact } from '../connectors/types.js';
+import { actionableInsights, type Insight } from '../learning/insights.js';
 import {
   planBeforeAfter,
   transformationsIn,
@@ -380,6 +381,18 @@ export interface TreatmentCandidate {
   support: number;
   /** What recent use costs it. */
   penalty: number;
+  /**
+   * What the account's own measured results add or subtract. §204.
+   *
+   * Zero when nothing has been learned about this treatment, which is the
+   * state every account starts in and stays in until enough posts have been
+   * measured. A learned belief is a thumb on the scale, never an override:
+   * evidence support still dominates, so learning cannot select a treatment
+   * the artifact does not carry.
+   */
+  learned: number;
+  /** Which beliefs moved it, for the record. */
+  learnedFrom: string[];
   score: number;
 }
 
@@ -393,6 +406,18 @@ export interface SelectionInput extends PlanInput {
   recentTypes?: CreativeType[];
   /** How far back recency counts. Beyond this a type is free again. */
   recencyWindow?: number;
+  /**
+   * What this account's measured performance has taught us. §204.
+   *
+   * This is the consumption half of the learning loop, and it is the half that
+   * is usually missing: a table of insights nobody reads is not learning. Only
+   * beliefs about `creative_type` apply here, and only those `actionableInsights`
+   * admits — `observed` notes and stale beliefs are filtered out before they
+   * can move anything.
+   */
+  insights?: Insight[];
+  /** For freshness filtering. Defaults to now. */
+  now?: Date;
 }
 
 /**
@@ -440,6 +465,16 @@ export function selectCreativePlan(
   const window = input.recencyWindow ?? DEFAULT_RECENCY_WINDOW;
   const recent = (input.recentTypes ?? []).slice(0, window);
 
+  /*
+   * §204. Only beliefs about which treatment to use, and only ones that have
+   * earned the right to be acted on. `actionableInsights` drops `observed`
+   * notes and anything past its review date, so a stale pattern cannot keep
+   * steering choices after the behaviour behind it has changed.
+   */
+  const usable = actionableInsights(input.insights ?? [], input.now ?? new Date()).filter(
+    (i) => i.feature === 'creative_type',
+  );
+
   const considered: TreatmentCandidate[] = [];
   for (const planner of planners) {
     const plan = planner(artifact, input);
@@ -455,7 +490,31 @@ export function selectCreativePlan(
       (sum, type, index) => (type === plan.creativeType ? sum + (window - index) / window : sum),
       0,
     );
-    considered.push({ plan, support, penalty, score: support - penalty * 2 });
+
+    /*
+     * Learning enters here, scaled by confidence and capped.
+     *
+     * `lift` is a relative difference, so a treatment that beat the baseline by
+     * a quarter with full confidence moves the score by about one point — the
+     * weight of a single piece of evidence, deliberately. Enough to break a tie
+     * or overcome one recent use; never enough to beat a treatment the artifact
+     * supports and this one does not. An unmeasured account learns nothing and
+     * this term is zero, which is the honest starting state.
+     */
+    const applicable = usable.filter((i) => i.featureValue === plan.creativeType);
+    const learned = applicable.reduce(
+      (sum, i) => sum + Math.max(-1.5, Math.min(1.5, i.lift * i.confidence * 4)),
+      0,
+    );
+
+    considered.push({
+      plan,
+      support,
+      penalty,
+      learned: Math.round(learned * 100) / 100,
+      learnedFrom: applicable.map((i) => i.observation),
+      score: support - penalty * 2 + learned,
+    });
   }
 
   if (considered.length === 0) return null;
@@ -470,10 +529,15 @@ export function selectCreativePlan(
       `${winner.plan.rationale} Chosen over ${alternatives} other ` +
       `treatment${alternatives === 1 ? '' : 's'} the artifact supported` +
       (winner.penalty > 0
-        ? `, despite recent use.`
+        ? `, despite recent use`
         : recent.includes(winner.plan.creativeType)
-          ? '.'
-          : `, and not used in the last ${recent.length}.`),
+          ? ''
+          : `, and not used in the last ${recent.length}`) +
+      /* Naming the belief is the point: a decision nobody can trace to its
+       * evidence is indistinguishable from a decision nobody made. */
+      (winner.learnedFrom.length > 0
+        ? `. Measured performance argued for it: ${winner.learnedFrom.join(' ')}`
+        : '.'),
   };
 
   return { chosen, considered };

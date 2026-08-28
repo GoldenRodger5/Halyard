@@ -32,6 +32,7 @@ import { clusterRejectionsHandler } from './clusterRejections.js';
 import { digestHandler } from './digest.js';
 import { purgeLogsHandler } from './purgeLogs.js';
 import { reviewMediaHandler } from './reviewMedia.js';
+import { learnFromPerformanceHandler } from './learn.js';
 import { correctContentHandler } from './correct.js';
 import { collectSignalsHandler } from './signals.js';
 import { ttsHandler } from './tts.js';
@@ -525,6 +526,8 @@ export const HANDLERS: Partial<Record<JobKind, JobHandler>> = {
   collect_comments: collectComments,
   collect_attribution: collectAttribution,
   score_performance: scorePerformance,
+  /** §204: measured performance becomes beliefs the next plan reads. */
+  learn_from_performance: learnFromPerformanceHandler,
   refresh_tokens: refreshTokens,
   review_media: reviewMediaHandler,
   /** §165: diagnose a failing verdict and apply the smallest correction. */

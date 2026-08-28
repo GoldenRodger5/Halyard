@@ -291,3 +291,127 @@ describe('the render package can draw every role a planner emits', () => {
     }
   });
 });
+
+/**
+ * §204. The closed loop, as a unit test.
+ *
+ * Specification §13: "Generate a later content plan. Verify the plan actually
+ * uses the learned insight." This is that check at the seam where it is
+ * provable — measured outcomes become a belief, and the belief changes which
+ * treatment a later plan picks. Without this the learning module is a table
+ * nobody reads.
+ */
+describe('learning changes the next creative decision', () => {
+  const rich = artifact({
+    highlights: [swap(1, 'coconut oil'), swap(2), technique(1), technique(2), technique(3)],
+  });
+  const DAY = 86_400_000;
+  const start = new Date('2026-06-01T00:00:00Z');
+
+  /** Observations where one treatment measurably beat the rest. */
+  function measured(winner: CreativeType, loser: CreativeType) {
+    const rows = [];
+    for (let i = 0; i < 25; i += 1) {
+      rows.push({
+        contentItemId: `w-${i}`,
+        platform: 'tiktok',
+        accountId: 'acct-1',
+        publishedAt: new Date(start.getTime() + i * DAY),
+        features: { creative_type: winner },
+        score: 0.9,
+      });
+      rows.push({
+        contentItemId: `l-${i}`,
+        platform: 'tiktok',
+        accountId: 'acct-1',
+        publishedAt: new Date(start.getTime() + i * DAY),
+        features: { creative_type: loser },
+        score: 0.3,
+      });
+    }
+    return rows;
+  }
+
+  it('picks a different treatment once results argue for one', async () => {
+    const { computeInsights } = await import('../learning/insights.js');
+
+    /* What it chooses knowing nothing. */
+    const naive = selectCreativePlan(rich, input)!;
+    const loser = naive.chosen.creativeType;
+
+    /* Something else measurably outperformed it on this account. */
+    const winner = naive.considered
+      .map((c) => c.plan.creativeType)
+      .find((t) => t !== loser)!;
+
+    const insights = computeInsights(measured(winner, loser), 'account');
+    const informed = selectCreativePlan(rich, {
+      ...input,
+      insights,
+      now: new Date(start.getTime() + 26 * DAY),
+    })!;
+
+    expect(informed.chosen.creativeType).toBe(winner);
+    expect(informed.chosen.creativeType).not.toBe(loser);
+  });
+
+  it('says which belief moved it, so the decision is traceable', async () => {
+    const { computeInsights } = await import('../learning/insights.js');
+    const naive = selectCreativePlan(rich, input)!;
+    const loser = naive.chosen.creativeType;
+    const winner = naive.considered.map((c) => c.plan.creativeType).find((t) => t !== loser)!;
+
+    const informed = selectCreativePlan(rich, {
+      ...input,
+      insights: computeInsights(measured(winner, loser), 'account'),
+      now: new Date(start.getTime() + 26 * DAY),
+    })!;
+
+    expect(informed.chosen.rationale).toMatch(/Measured performance argued for it/);
+    const chosenCandidate = informed.considered.find(
+      (c) => c.plan.creativeType === informed.chosen.creativeType,
+    )!;
+    expect(chosenCandidate.learned).toBeGreaterThan(0);
+    expect(chosenCandidate.learnedFrom.length).toBeGreaterThan(0);
+  });
+
+  it('ignores a belief that has gone stale', async () => {
+    const { computeInsights } = await import('../learning/insights.js');
+    const naive = selectCreativePlan(rich, input)!;
+    const loser = naive.chosen.creativeType;
+    const winner = naive.considered.map((c) => c.plan.creativeType).find((t) => t !== loser)!;
+    const insights = computeInsights(measured(winner, loser), 'account');
+
+    /* Long past every review date. */
+    const later = new Date(start.getTime() + 400 * DAY);
+    const informed = selectCreativePlan(rich, { ...input, insights, now: later })!;
+    const candidate = informed.considered.find((c) => c.plan.creativeType === winner)!;
+    expect(candidate.learned).toBe(0);
+  });
+
+  it('never lets a belief select a treatment the artifact cannot carry', async () => {
+    const { computeInsights } = await import('../learning/insights.js');
+    /* Overwhelming evidence for a treatment that needs footage nobody captured. */
+    const rows = measured('feature_demo' as CreativeType, 'listicle' as CreativeType);
+    const insights = computeInsights(rows, 'account');
+
+    const result = selectCreativePlan(rich, {
+      ...input, // no footage
+      insights,
+      now: new Date(start.getTime() + 26 * DAY),
+    })!;
+
+    // `planFeatureDemo` refused, so it was never a candidate — evidence still
+    // gates, and learning only ever reorders what the artifact supports.
+    expect(result.considered.map((c) => c.plan.creativeType)).not.toContain('feature_demo');
+    expect(result.chosen.creativeType).not.toBe('feature_demo');
+  });
+
+  it('does nothing at all for an account with no measured history', () => {
+    const result = selectCreativePlan(rich, { ...input, insights: [] })!;
+    for (const candidate of result.considered) {
+      expect(candidate.learned).toBe(0);
+      expect(candidate.learnedFrom).toEqual([]);
+    }
+  });
+});

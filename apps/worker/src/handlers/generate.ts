@@ -753,12 +753,66 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
               ).rows.map((r) => r.type as CreativeType)
             : [];
 
+          /**
+           * §204. What this account's own results have taught us.
+           *
+           * The consumption half of the learning loop, and the half that is
+           * usually missing — a table of insights nobody reads is not
+           * learning. Account scope only: a belief formed across accounts that
+           * behave differently is not evidence about this one, and the account
+           * cohort is where the specification says narrow evidence should
+           * dominate.
+           *
+           * Stale and merely-`observed` beliefs are filtered inside
+           * `selectCreativePlan` by `actionableInsights`, not here, so every
+           * caller gets the same freshness rule.
+           */
+          const learned = artifact
+            ? (
+                await ctx.pool.query(
+                  `select scope, platform, account_id, feature, feature_value,
+                          cohort_mean, baseline_mean, lift, sample_size, baseline_size,
+                          status, confidence, corroborations,
+                          supporting_content_ids, contradicting_content_ids,
+                          evidence_window_start, evidence_window_end,
+                          observation, recommendation, review_after
+                     from learned_insights
+                    where scope = 'account' and account_id = $1 and feature = 'creative_type'`,
+                  [account.id],
+                )
+              ).rows.map((r) => ({
+                scope: r.scope,
+                platform: r.platform,
+                accountId: r.account_id,
+                feature: r.feature,
+                featureValue: r.feature_value,
+                cohortMean: Number(r.cohort_mean),
+                baselineMean: Number(r.baseline_mean),
+                lift: Number(r.lift),
+                sampleSize: r.sample_size,
+                baselineSize: r.baseline_size,
+                status: r.status,
+                confidence: Number(r.confidence),
+                corroborations: r.corroborations,
+                evidence: {
+                  supporting: r.supporting_content_ids ?? [],
+                  contradicting: r.contradicting_content_ids ?? [],
+                  windowStart: new Date(r.evidence_window_start ?? 0),
+                  windowEnd: new Date(r.evidence_window_end ?? 0),
+                },
+                observation: r.observation,
+                recommendation: r.recommendation,
+                reviewAfter: new Date(r.review_after),
+              }))
+            : [];
+
           const selection = artifact
             ? selectCreativePlan(artifact, {
                 platform: account.platform,
                 format,
                 targetSeconds: VO_TARGET_SECONDS,
                 recentTypes,
+                insights: learned,
                 ...(footage ? { footage } : {}),
               })
             : null;
@@ -769,6 +823,8 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
               chosen: selection.chosen.creativeType,
               considered: selection.considered.map((c) => c.plan.creativeType),
               recent: recentTypes,
+              // Zero here is the honest state for an account nobody has measured.
+              learnedFrom: learned.length,
             });
           } else if (artifact) {
             // No treatment fitted. Honest, and worth seeing: it means the

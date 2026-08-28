@@ -108,6 +108,15 @@ export const JOB_KINDS = [
    * one, so this job decides and delegates; it renders nothing itself.
    */
   'correct_content',
+  /**
+   * §204. Turn measured performance into beliefs the next plan can act on.
+   *
+   * Deterministic: it reads `post_metrics` and `performance_scores`, computes
+   * cohorts, and writes `learned_insights`. No model is asked what worked —
+   * a model reading a dashboard produces confident sentences with nothing
+   * behind them, and the whole point is that a belief can be recomputed.
+   */
+  'learn_from_performance',
 ] as const;
 export type JobKind = (typeof JOB_KINDS)[number];
 
@@ -138,6 +147,12 @@ export const JOB_POLICY: Record<
    * strand an item mid-correction with no controller ever running again.
    */
   correct_content: { timeoutMs: 2 * 60_000, maxAttempts: 2, backoffSeconds: 30 },
+  /*
+   * §204. Arithmetic over rows already in the database — no provider, no model,
+   * no network. One attempt: a failure here means the query or the data is
+   * wrong, and retrying identical arithmetic gets an identical answer.
+   */
+  learn_from_performance: { timeoutMs: 2 * 60_000, maxAttempts: 1, backoffSeconds: 60 },
   /**
    * A real browser walking a real product flow. Generous, like `capture`, and
    * for the same reason: the thing being measured is someone's live app, and a
