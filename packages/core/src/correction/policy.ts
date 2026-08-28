@@ -259,6 +259,19 @@ const BY_RULE: Record<string, PolicyEntry> = {
  */
 const BY_NAMESPACE: Record<string, PolicyEntry> = {
   /*
+   * §214. Length and hashtag findings are all "the writing is fine, the
+   * container is wrong" — a caption carrying an essay, an opening that will be
+   * truncated, a hashtag count the platform does not reward. Every one is
+   * fixed by rewriting the copy, and none of them by re-planning the piece.
+   */
+  budget: {
+    rootCause: 'The copy does not fit the surface it is going to.',
+    component: 'copy',
+    action: 'revise_copy',
+    correctable: true,
+  },
+
+  /*
    * §205. Creative defects are plan defects.
    *
    * Every rule this gate raises is about *how the story was laid out* — which

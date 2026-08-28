@@ -5,6 +5,7 @@ export * from './creative/treatments.js';
 export * from './creative/presentation.js';
 export * from './imagery/types.js';
 export * from './imagery/openai.js';
+export * from './copy/budget.js';
 export * from './learning/insights.js';
 export * from './discovery/freshness.js';
 export * from './social/portfolio.js';

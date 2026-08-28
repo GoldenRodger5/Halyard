@@ -69,6 +69,8 @@ export type SlopPlatform =
   | 'threads'
   | 'bluesky';
 
+import { budgetFor, checkCopyBudget } from '../copy/budget.js';
+
 export interface SlopFilterInput {
   body: string;
   platform: SlopPlatform;
@@ -837,6 +839,36 @@ export function slopFilter(input: SlopFilterInput): SlopFilterResult {
         message: `${posted} of ${limit} characters on ${platform}.`,
         fix: 'Feeds truncate well before the ceiling. A caption that only reads correctly when expanded is one most people read wrong.',
       });
+    }
+
+    /**
+     * §214. The budget people actually read, not the ceiling the platform sets.
+     *
+     * The rule above fires at 80% of the platform limit, which on TikTok is
+     * 1,760 characters. Halyard's TikTok captions average 472 and reach 783 —
+     * comfortably inside, and comfortably past the ~90 characters TikTok shows
+     * before "more". So the existing rule was true and useless here: it was
+     * measuring the wrong ceiling.
+     *
+     * Warnings, not errors. Where the essay belongs is a judgement about
+     * engagement, and a judgement should not block a human who disagrees. The
+     * one thing that stays an error is the platform's own limit, above.
+     */
+    if (!longForm) {
+      for (const finding of checkCopyBudget(body, hashtags, budgetFor(platform))) {
+        if (finding.rule === 'budget.over_platform_limit') continue; // said above
+        push({
+          rule: finding.rule,
+          severity: finding.severity,
+          message: finding.message,
+          fix:
+            finding.rule === 'budget.caption_too_long'
+              ? 'The writing is not the problem; the container is. Keep the opening and move the rest.'
+              : finding.rule === 'budget.opening_truncated'
+                ? 'Lead with the shortest true sentence. Everything after the fold is opt-in.'
+                : 'Match the hashtag count to what the platform rewards.',
+        });
+      }
     }
   }
 

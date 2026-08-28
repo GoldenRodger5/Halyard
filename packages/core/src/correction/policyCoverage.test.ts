@@ -21,13 +21,25 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const QC_DIR = path.join(here, '..', 'qc');
 const PROOF = path.join(here, '..', 'proof', 'testimonials.ts');
 
+/**
+ * §214. The copy budget lives outside `qc/`, and the scan below did not see it.
+ *
+ * `checkCopyBudget` raises `budget.*` rules that reach the copy gate through
+ * `slopFilter`, and this test enumerates the *gate directory* — so four new
+ * rules were live, unmapped, and silently falling through to escalate. Exactly
+ * the drift this file exists to prevent, missed because a rule moved house.
+ *
+ * Scanned by path rather than by directory for the same reason `PROOF` is.
+ */
+const COPY_BUDGET = path.join(here, '..', 'copy', 'budget.ts');
+
 /** Every `rule: '...'` literal in the gate sources. */
 function declaredRules(): string[] {
   const files = [
     ...readdirSync(QC_DIR)
       .filter((f) => f.endsWith('.ts') && !f.includes('.test.'))
       .map((f) => path.join(QC_DIR, f)),
-    PROOF,
+    PROOF, COPY_BUDGET,
   ];
 
   const rules = new Set<string>();
