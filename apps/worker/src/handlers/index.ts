@@ -33,6 +33,7 @@ import { digestHandler } from './digest.js';
 import { purgeLogsHandler } from './purgeLogs.js';
 import { reviewMediaHandler } from './reviewMedia.js';
 import { buildAccountIntelligenceHandler } from './accountIntelligence.js';
+import { generateConceptsHandler } from './concepts.js';
 import { learnFromPerformanceHandler } from './learn.js';
 import { correctContentHandler } from './correct.js';
 import { collectSignalsHandler } from './signals.js';
@@ -531,6 +532,8 @@ export const HANDLERS: Partial<Record<JobKind, JobHandler>> = {
   learn_from_performance: learnFromPerformanceHandler,
   /** §208: snapshot the account's own content mix and where it has converged. */
   build_account_intelligence: buildAccountIntelligenceHandler,
+  /** §218: propose several creative directions and score them against the account. */
+  generate_concepts: generateConceptsHandler,
   refresh_tokens: refreshTokens,
   review_media: reviewMediaHandler,
   /** §165: diagnose a failing verdict and apply the smallest correction. */

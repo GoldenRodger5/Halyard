@@ -124,6 +124,13 @@ export const JOB_KINDS = [
    * and would differ between runs on identical input.
    */
   'build_account_intelligence',
+  /**
+   * §218. Propose several materially different creative directions for one
+   * subject, score them against what the account can build and what its results
+   * established, and keep the whole batch. The stage between "there is an idea"
+   * and "write the post", which did not exist.
+   */
+  'generate_concepts',
 ] as const;
 export type JobKind = (typeof JOB_KINDS)[number];
 
@@ -162,6 +169,12 @@ export const JOB_POLICY: Record<
   learn_from_performance: { timeoutMs: 2 * 60_000, maxAttempts: 1, backoffSeconds: 60 },
   /* §208. Also pure arithmetic over stored rows; retrying gets the same answer. */
   build_account_intelligence: { timeoutMs: 2 * 60_000, maxAttempts: 1, backoffSeconds: 60 },
+  /*
+   * One model call, strategy-grade. Two attempts because a provider hiccup is
+   * worth retrying and a malformed batch is not — the handler already drops
+   * what it cannot narrow onto the contract.
+   */
+  generate_concepts: { timeoutMs: 4 * 60_000, maxAttempts: 2, backoffSeconds: 120 },
   /**
    * A real browser walking a real product flow. Generous, like `capture`, and
    * for the same reason: the thing being measured is someone's live app, and a

@@ -449,6 +449,21 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
       continue;
     }
 
+    /**
+     * §218. Ask for creative directions before writing one.
+     *
+     * Enqueued rather than awaited: a concept batch is a strategy-grade model
+     * call, and blocking the draft on it would make one slow provider stall the
+     * whole run. The batch lands for the operator to choose from, and the next
+     * `generate` for this idea takes the highest-scoring buildable concept when
+     * nobody has. Deduped per idea so a retry does not buy a second batch.
+     */
+    await ctx.enqueue(
+      'generate_concepts',
+      { productId, ideaId: idea.id },
+      { dedupeKey: `concepts:${idea.id}`, priority: 40 },
+    );
+
     let artifact: ProductArtifact | null = null;
 
     if (connector) {
