@@ -30,6 +30,7 @@
     "pinterest-boards": "tsx scripts/pinterest-boards.ts",
     "capture": "tsx scripts/capture-flows.ts",
     "render-templates": "tsx scripts/render-templates.ts",
+    "creative-acceptance": "tsx scripts/creative-acceptance.ts",
     "audit-halyard": "tsx scripts/audit.ts",
     "demo:tiktok": "playwright test --config playwright.demo.config.ts; node scripts/encode-demo.mjs",
     "demo:login": "node scripts/demo-login.mjs",
