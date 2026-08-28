@@ -32,7 +32,8 @@
     "render-templates": "tsx scripts/render-templates.ts",
     "audit-halyard": "tsx scripts/audit.ts",
     "demo:tiktok": "playwright test --config playwright.demo.config.ts && node scripts/encode-demo.mjs",
-    "demo:login": "node scripts/demo-login.mjs"
+    "demo:login": "node scripts/demo-login.mjs",
+    "demo:screen": "node scripts/demo-screen.mjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",

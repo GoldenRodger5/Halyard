@@ -25,7 +25,25 @@ const OUT = '.demo-auth.json';
 const email = process.env.HALYARD_DEMO_EMAIL;
 const password = process.env.HALYARD_DEMO_PASSWORD;
 
-const browser = await chromium.launch({ headless: false });
+/*
+ * §194. Real Chrome, with the automation flag off.
+ *
+ * TikTok would not complete the QR handshake in Playwright's bundled Chromium:
+ * the code scanned, the phone confirmed, and the desktop page never moved.
+ * Bundled Chromium advertises itself — `navigator.webdriver`, a distinct build
+ * fingerprint — and TikTok declines to finish a login for it rather than
+ * failing visibly, which is why it looked like nothing happened.
+ *
+ * Driving the installed Chrome and dropping the AutomationControlled blink
+ * feature removes the obvious tells. It is not a guarantee against every
+ * detection, which is why `pnpm demo:screen` exists as a path with no
+ * automation in it at all.
+ */
+const browser = await chromium.launch({
+  headless: false,
+  channel: 'chrome',
+  args: ['--disable-blink-features=AutomationControlled'],
+});
 const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
 const page = await context.newPage();
 

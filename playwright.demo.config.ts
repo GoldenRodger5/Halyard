@@ -35,9 +35,14 @@ export default defineConfig({
     ...devices['Desktop Chrome'],
     /* Headed when a human has to authorize; headless for unattended re-records. */
     headless: process.env.DEMO_HEADED !== '1',
+    /*
+     * §194. The installed Chrome rather than bundled Chromium, so the session
+     * captured by `demo:login` is usable and TikTok does not treat the recording
+     * browser as a bot.
+     */
+    channel: 'chrome',
+    launchOptions: { args: ['--disable-blink-features=AutomationControlled'] },
     viewport: { width: 1280, height: 800 },
-    /* A visible cursor: reviewers need to see what is being clicked. */
-    launchOptions: { args: ['--force-prefers-reduced-motion'] },
     video: { mode: 'on', size: { width: 1280, height: 800 } },
   },
   outputDir: './docs/tiktok-review/raw',
