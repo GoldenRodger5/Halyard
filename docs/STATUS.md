@@ -1,5 +1,63 @@
 # Where Halyard is right now
 
+**2026-08-28 (later) — long-form is real, and discovery can now say no in four
+different ways.**
+
+*Long-form.* Asking the short-form planner for eight minutes stretched four
+beats to two minutes each. Five structures now produce **sections** with
+intended lengths, and the chapter rules shape the structure rather than being
+applied to it. It was then still a Short twice over — `defaultSubtypeFor
+('youtube')` returns `short`, so nothing could ask for long-form; and once it
+could, the render was 28 seconds because render length follows the voiceover and
+the voiceover was written to `VO_TARGET_SECONDS`. Then the script came back
+**sixty words** for an eleven-hundred-word ask: that is what one "write a
+voiceover" call produces however large the number in it. Each section is now its
+own writing task with its own brief. §249–251.
+
+*Two production failures fixed.* A render died on `Minified React error #31` —
+the connector returned a structured swap object where the planner expected a
+line of text, and every layer carried it because the type says `string` and
+nothing checked at runtime (§252). And capture died on an exact-match selector
+including a trailing arrow, against a UI that ships continuously — §159 learned
+this once and the fix had not spread; four more bare click steps now have
+fallbacks (§253).
+
+*Discovery decides what is worth making.* `freshness.ts` decayed signals and
+ranked them; nothing asked whether a signal was worth building. `opportunity.ts`
+refuses in four ways that are deliberately **not** interchangeable: `off_brand`
+is permanent, `covered` is a no for now, `unbuildable` is a no until the product
+ships something, `stale` fixes itself by being dropped. A signal with no source
+is refused *before* scoring — gotcha 9 applied to trends. §254.
+
+*The chain is tested end to end.* `packages/core/src/creative/pipeline.test.ts`
+carries one signal through opportunity → direction → typography → opening →
+motion → variants → voice → music → sound design → QC using the real production
+functions. It does not prove the content is good; nothing automated can. It
+proves each stage produces something the next can consume — the failure this
+codebase keeps finding is two stages that each work, joined by nothing. The
+assertion that catches it: QC reports nothing `unmeasured`. §255.
+
+**2611 tests, 153 files, all passing.** Lint, typecheck and `next build` clean.
+Deployed to Railway; the worker is rendering, reviewing media and scheduling on
+this commit.
+
+**A dead rule, found in production logs and closed.** `review_media` reported
+four retention checks `unmeasured` on a real render. One of them —
+`no_content_in_opening` — is unmeasured *by decision*: §73 measured that mean
+luminance cannot see Halyard's content and that sampling harder would fail every
+render on a signal that cannot see it. Sampling is already front-loaded
+(`0, 0.8, 2` plus three body frames); the deficiency is the signal, not the rate.
+
+The other three are a different thing entirely: `firstFrameWordCount`,
+`firstFrameContrast` and `loopSimilarity` are optional probe fields **with no
+writer anywhere in the codebase** — the same defect as `frameLuminance` (§71) and
+`frameDelta` (§74), which is now three for three. `loopSimilarity` is measured
+from the file as of §256, so `retention.not_loop_ready` runs for the first time
+on TikTok and Instagram, the two platforms where a loop ending is the point.
+Word count and text contrast remain unwritten and are named in `unmeasured`
+rather than passing.
+
+
 **2026-08-28 — the creative system is a system, and it has run against
 production.**
 

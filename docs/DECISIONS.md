@@ -6762,3 +6762,41 @@ QC — using the real production functions with fixed inputs. It does not prove
 the content is good; nothing automated can. It proves each stage produces
 something the next can consume, which is the failure this codebase keeps
 finding: two stages that each work, joined by nothing.
+
+## 256. Three optional probe fields, no writer, three for three
+
+`review_media` reported four retention checks `unmeasured` on a production
+render. One is unmeasured on purpose: §73 established that mean luminance cannot
+see a light card with a small region of changing text, and that sampling harder
+would fail every render on a signal that cannot see it. Sampling is already
+front-loaded — `0, 0.8, 2` plus three body frames — so the deficiency is the
+signal, not the rate. That one stays open, honestly named.
+
+The other three were not a decision. `firstFrameWordCount`, `firstFrameContrast`
+and `loopSimilarity` are optional fields on `RetentionProbe` that **nothing has
+ever written**. This is now the third instance of exactly that defect: §71
+(`frameLuminance` parsed from the wrong stream, always `[]`) and §74
+(`frameDelta` never supplied, so two rules ran on a signal that cannot see the
+content). An optional input with no writer reads, from the outside, precisely
+like a check that passes.
+
+`loopSimilarity` is measured now, so `retention.not_loop_ready` runs for the
+first time — on TikTok and Instagram, the two platforms where a loop ending is
+the entire point, and the rule most likely to change a render.
+
+**Why a 16×16 grid rather than the scalar signals §73 and §74 warn about.**
+Those decisions turn on a whole-frame *average* being blind to Halyard's
+content. 256 cells are not an average: text moving across the frame changes the
+cells it occupies even when the overall mean is flat. And a loop reads or fails
+to read at about this resolution — the question is whether the ending looks like
+the opening at a glance, which is what a viewer registers before replaying.
+
+The last frame is sampled 0.15s inside the end, because seeking exactly to
+`duration` lands past the final frame on most containers and returns nothing.
+Unreadable frames return `null`, never a default, so the rule reports
+`unmeasured` rather than a fabricated pass — gotcha 9.
+
+Word count and text contrast are still unwritten. They are named in `unmeasured`
+rather than quietly passing, and closing them honestly needs a text-region
+signal this probe does not have; a bimodal-histogram guess would be a fabricated
+measurement, which is worse than an absent one.
