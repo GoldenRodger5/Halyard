@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { POST_FORMATS, POST_FORMAT_CATALOG, requiresCitation } from '@halyard/core';
 import { Card, PageHeader, SectionTitle } from '@halyard/ui';
 import { AssetPicker } from '@/components/AssetPicker';
 import { query } from '@/lib/db';
@@ -36,7 +37,23 @@ export default async function ComposePage() {
       />
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
-        <ComposeClient productId={product?.id ?? 'recipefix'} />
+        <ComposeClient
+        /*
+         * §283. Resolved here so the client never imports `@halyard/core` —
+         * the barrel reaches `node:crypto`, and a client component that can see
+         * it fails the build (`clientBoundary.test.ts` exists for this).
+         */
+        formats={POST_FORMATS.map((id) => {
+          const f = POST_FORMAT_CATALOG[id];
+          return {
+            id: f.id,
+            name: f.name,
+            intent: f.intent,
+            platforms: f.platforms,
+            needsArtifact: f.needsArtifact,
+            needsCitation: requiresCitation(f),
+          };
+        })} productId={product?.id ?? 'recipefix'} />
 
         <aside className="space-y-6">
           <Card className="p-4">

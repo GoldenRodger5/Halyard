@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { formatById } from '@halyard/core';
 import {
   createLlmClient,
   HARD_RULES_BLOCK,
@@ -23,10 +24,21 @@ export const maxDuration = 60;
 export async function POST(request: NextRequest) {
   await requireOperator();
 
-  const { productId, messages } = (await request.json()) as {
+  const { productId, messages, postFormat } = (await request.json()) as {
     productId: string;
     messages: Array<{ role: 'user' | 'assistant'; content: string }>;
+    /** §283. The shape the operator picked, or null for "you choose". */
+    postFormat?: string | null;
   };
+
+  /*
+   * §283. A picked format is an instruction, not a hint.
+   *
+   * It reaches the co-pilot as a constraint on the system prompt and reaches
+   * the queued item as a column, so the same choice governs what is written now
+   * and what the recency rule sees next time.
+   */
+  const format = postFormat ? formatById(postFormat) : null;
 
   if (!process.env.ANTHROPIC_API_KEY) {
     return NextResponse.json(
@@ -46,6 +58,16 @@ export async function POST(request: NextRequest) {
   );
 
   const system = `You are the co-pilot inside Halyard, a social content system for ${product?.name ?? 'a product'}.
+${
+  format
+    ? `
+THE OPERATOR HAS ASKED FOR A SPECIFIC SHAPE: ${format.name} — ${format.intent}
+Write to that shape. It has these parts, in order:
+${format.slots.map((s) => `- ${s.key}${s.repeats && s.repeats > 1 ? ` (${s.repeats})` : ''}: ${s.brief}`).join('\n')}
+${format.factuality === 'sourced' ? 'Every factual claim needs a URL that a reader could open. The link is fetched and checked, so an invented one will be rejected.' : ''}
+`
+    : ''
+}
 
 You are talking to the founder. Be direct and specific. Offer two or three angles
 rather than one, say which is stronger and why, and ask before doing expensive

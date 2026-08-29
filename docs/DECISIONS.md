@@ -7503,3 +7503,30 @@ instead of reaching a reader.
 `fetchImpl` is injected so tests never touch the network: a test that reaches the
 internet fails when somebody else edits a page, and this is the one check that
 has to be reliable enough to refuse a piece.
+
+## 283. Naming the shape, beside the idea
+
+The composer took a free-text idea and inferred everything. Right for the common
+case, wrong for the one where an operator already knows: "make this a quiz"
+typed into a chat box is a hint the system was free to ignore.
+
+`FormatPicker` makes it an instruction. The chosen id travels as `postFormat` on
+the request, and `selectFormat` honours an operator's pick over its own choice.
+
+Threaded the whole way, because a picker that sets a field nothing reads is the
+defect this session keeps finding:
+
+- **The stream route** puts the format's slots into the co-pilot's system prompt,
+  so the shape governs what is written rather than being applied afterwards.
+- **The queue route** records `post_format` on the row. A composed piece that
+  does not record its shape is invisible to the recency rule, so the next
+  automatic run could repeat it — §281's problem at a second entry point.
+
+The catalogue is resolved on the **server** and passed down as plain data. A
+client component importing `@halyard/core` reaches `node:crypto` and fails the
+build; `clientBoundary.test.ts` exists because that once passed 2,524 tests and
+broke only at `next build`.
+
+The picker shows a format's constraints before the run rather than after a
+failure: a quiz that cannot cite is refused (§282), and an operator deserves to
+know that when choosing rather than when it is rejected.

@@ -17,7 +17,13 @@ export async function POST(request: NextRequest) {
   const form = await request.formData();
   const productId = String(form.get('productId') ?? 'recipefix');
 
-  let draft: { platform: SlopPlatform; body: string; hashtags?: string[] };
+  let draft: {
+    platform: SlopPlatform;
+    body: string;
+    hashtags?: string[];
+    /** §283. The shape the operator picked, carried from the stream. */
+    postFormat?: string | null;
+  };
   try {
     draft = JSON.parse(String(form.get('draft')));
   } catch {
@@ -62,9 +68,16 @@ export async function POST(request: NextRequest) {
   }
 
   const rows = await query<{ id: string }>(
+    /*
+     * §283. `post_format` recorded here too, not only on the worker's path.
+     * A composed piece that does not record its shape is invisible to the
+     * recency rule, so the next automatic run could repeat it — the same
+     * failure §281's migration exists to prevent, one entry point over.
+     */
     `insert into content_items (product_id, account_id, platform, persona, format, category,
-                                body, hashtags, status, qc_results, ai_components, generation_meta)
-     values ($1,$2,$3,$4,'text','founder_insight',$5,$6,'pending_approval',$7,array['copy'],$8)
+                                body, hashtags, status, qc_results, ai_components,
+                                generation_meta, post_format)
+     values ($1,$2,$3,$4,'text','founder_insight',$5,$6,'pending_approval',$7,array['copy'],$8,$9)
      returning id`,
     [
       productId,
@@ -75,6 +88,7 @@ export async function POST(request: NextRequest) {
       draft.hashtags ?? [],
       JSON.stringify(qc),
       { source: 'compose', prompt_version: 'copilot.v1' },
+      typeof draft.postFormat === 'string' ? draft.postFormat : null,
     ],
   );
 

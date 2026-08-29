@@ -8,6 +8,7 @@
  * Any turn can become a queued item.
  */
 import { useCallback, useRef, useState } from 'react';
+import { FormatPicker, type PickableFormat } from '@/components/FormatPicker';
 import { Card, GateLine, SectionTitle } from '@halyard/ui';
 
 interface Message {
@@ -23,12 +24,26 @@ interface DraftState {
   qc?: { gates: Array<{ gate: string; status: string; summary: string }> };
 }
 
-export function ComposeClient({ productId }: { productId: string }) {
+export function ComposeClient({
+  productId,
+  formats,
+}: {
+  productId: string;
+  /** §283. The catalogue, resolved on the server so the client stays dumb. */
+  formats: PickableFormat[];
+}) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [streaming, setStreaming] = useState(false);
   const [draft, setDraft] = useState<DraftState | null>(null);
   const [error, setError] = useState<string | null>(null);
+  /**
+   * §283. The shape the operator asked for, or null for "you choose".
+   *
+   * Sent on the request rather than typed into the prompt, so it is an
+   * instruction the selector honours rather than a hint it may ignore.
+   */
+  const [postFormat, setPostFormat] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const send = useCallback(async () => {
@@ -45,7 +60,7 @@ export function ComposeClient({ productId }: { productId: string }) {
       const response = await fetch('/api/compose/stream', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ productId, messages: next }),
+        body: JSON.stringify({ productId, messages: next, postFormat }),
       });
 
       if (!response.ok || !response.body) {
@@ -131,6 +146,14 @@ export function ComposeClient({ productId }: { productId: string }) {
         </div>
 
         <div className="border-t border-line p-3">
+          {/*
+            §283. The shape, above the idea. An operator who already knows they
+            want a quiz says so here rather than hoping the prompt is read as an
+            instruction.
+          */}
+          <div className="mb-3">
+            <FormatPicker formats={formats} value={postFormat} onChange={setPostFormat} />
+          </div>
           <div className="flex gap-2">
             <input
               value={input}
