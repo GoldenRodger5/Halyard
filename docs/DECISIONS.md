@@ -7273,3 +7273,48 @@ Three levels now, driven by what the line is doing — `hook` keeps the old
 treatment, `narration` is lighter and smaller and sits under the picture rather
 than competing with it, `aside` is quieter still. The typography systems already
 carried `body` and `label` at real weights and nothing used them for captions.
+
+## 275. The critic — why nothing caught the captions
+
+Every video Halyard made set its captions at 52px weight 600, on every line, and
+no gate flagged it. A person had to notice. That is an architectural hole rather
+than a missing rule, and naming it precisely matters:
+
+Halyard had a **describer** (`describeFrames` → `{atSeconds, describes,
+visibleText}`) and a **rule set** (banned phrases, contrast ratios, word counts,
+loudness). Both worked exactly as designed. But *"every caption is set the same
+way, and using the loudest treatment on every line reads as automated"* crosses
+no threshold and violates no rule. Every frame is individually fine; the **set**
+of them is the problem, and no per-frame rule can see a set.
+
+You cannot write a rule for "this is boring". You can put the judgement on the
+other side of the line this codebase already draws — **agents perceive, code
+decides**. The critic perceives; `critic.ts` decides what may be done with what
+it says.
+
+What it may not do, and why each limit exists:
+
+- **Never passes anything.** A model marking a model's work is the fabrication
+  case in a nicer hat. Silence from it means nothing at all.
+- **Never fails a piece.** Findings are `warning`. A critic with a veto will
+  eventually block a good post over taste, and taste is the operator's call.
+- **Never speaks without evidence.** A finding citing no frames, or citing a
+  timestamp it was not shown, is discarded whole — the second is hallucination,
+  and a critic that invents frames is worse than no critic.
+- **Never praises.** The prompt forbids it, because a critic that says nice
+  things gets read for the nice things.
+
+`parseCriticReply` fails closed in the one direction that matters: a malformed
+reply yields no findings, never an invented one.
+
+**Corrections split on whether the cause is mechanical.** Uniform type and flat
+emphasis name a specific lever — the caption treatment (§274) — so they are
+correctable. `reads_automated` and `interchangeable_frames` describe a piece that
+is *dull rather than broken*, and the fix is a different idea, which no
+correction can supply; those escalate. `policyCoverage.test` caught this
+immediately, which is the check working: a gate may not raise a rule nothing
+knows how to answer.
+
+The value is not any single warning. It is that the same warning arriving on
+piece after piece is a systemic signal — which is exactly how the caption problem
+would have surfaced weeks before a person noticed it.

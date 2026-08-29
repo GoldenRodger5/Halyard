@@ -140,6 +140,16 @@ const RULE_DIMENSIONS: Array<{ prefix: string; dimension: ScoreDimension }> = [
   { prefix: 'audio.', dimension: 'clarity' },
   { prefix: 'copy.', dimension: 'clarity' },
   { prefix: 'slop.', dimension: 'brand_fit' },
+  /*
+   * §275. The critic's craft findings. `reads_automated` and
+   * `uniform_treatment` are brand-fit problems: the piece does not look like
+   * the account made it. The rest are visual quality.
+   */
+  { prefix: 'critic.reads_automated', dimension: 'brand_fit' },
+  { prefix: 'critic.uniform_treatment', dimension: 'brand_fit' },
+  { prefix: 'critic.interchangeable_frames', dimension: 'novelty' },
+  { prefix: 'critic.weak_opening', dimension: 'hook' },
+  { prefix: 'critic.', dimension: 'visual_quality' },
   { prefix: 'creative.repeated_treatment', dimension: 'novelty' },
   { prefix: 'destination.', dimension: 'platform_fit' },
   { prefix: 'platform.', dimension: 'platform_fit' },

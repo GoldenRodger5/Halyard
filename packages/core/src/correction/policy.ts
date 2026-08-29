@@ -187,6 +187,66 @@ const BY_RULE: Record<string, PolicyEntry> = {
    * *synthesis* — the words were right and the voice said something else, which
    * is a pronunciation problem the lexicon exists for.
    */
+  /*
+   * §275. The critic's craft findings.
+   *
+   * Every one of these is a **judgement**, not a measurement, which changes
+   * what a correction may do with it. A threshold breach has one right answer;
+   * "this reads as automated" has several, and picking one automatically means
+   * spending a regeneration on a guess about taste.
+   *
+   * So the two that name a *specific, mechanical* cause are correctable —
+   * uniform type and a flat read are both fixed by varying the caption
+   * treatment, which is a real lever (§274) with a deterministic action behind
+   * it. The rest escalate: they describe a piece that is dull rather than
+   * broken, and the fix is a different idea, which no correction can supply.
+   *
+   * Escalating is not ignoring. The finding stays on the scorecard, and the
+   * same finding arriving on piece after piece is the systemic signal — which
+   * is exactly how the caption problem should have surfaced weeks earlier.
+   */
+  'critic.uniform_treatment': {
+    rootCause: 'One type treatment is used on every frame, so nothing carries more weight than anything else.',
+    component: 'caption_style',
+    action: 'adjust_caption_treatment',
+    correctable: true,
+  },
+  'critic.flat_emphasis': {
+    rootCause: 'The emphasis never changes, so the important line reads like the incidental one.',
+    component: 'caption_style',
+    action: 'adjust_caption_treatment',
+    correctable: true,
+  },
+  'critic.weak_opening': {
+    rootCause: 'The first frame does not say what the piece is about.',
+    component: 'composition',
+    action: 'resequence_scenes',
+    correctable: true,
+  },
+  'critic.accidental_space': {
+    rootCause: 'Empty space reads as a rendering accident rather than a composition.',
+    component: 'composition',
+    action: 'resequence_scenes',
+    correctable: true,
+  },
+  'critic.covered_by_ui': {
+    rootCause: 'Something important sits where the platform draws its own buttons.',
+    component: 'composition',
+    action: 'resequence_scenes',
+    correctable: true,
+  },
+  'critic.interchangeable_frames': {
+    rootCause: 'Two frames differ only in their words — the same layout refilled rather than a new idea.',
+    component: 'creative_plan',
+    action: 'escalate',
+    correctable: false,
+  },
+  'critic.reads_automated': {
+    rootCause: 'The piece looks like a system filled in a shape rather than something a person made.',
+    component: 'creative_plan',
+    action: 'escalate',
+    correctable: false,
+  },
   'audio.pacing': {
     rootCause: 'The script has more words than the runtime allows, so the voice reads it too fast.',
     component: 'vo_script',
