@@ -7,6 +7,7 @@
  * carry it, and a sourced format publishing a fact with nothing behind it.
  */
 import { describe, expect, it } from 'vitest';
+import { platformsForFormat } from '../channels/channels.js';
 import {
   POST_FORMATS,
   POST_FORMAT_CATALOG,
@@ -22,9 +23,10 @@ describe('the catalogue', () => {
   it('declares a platform list for every format, and only real platforms', () => {
     const real = new Set(['tiktok', 'instagram', 'youtube', 'x', 'threads', 'pinterest']);
     for (const id of POST_FORMATS) {
-      const f = POST_FORMAT_CATALOG[id];
-      expect(f.platforms.length, id).toBeGreaterThan(0);
-      for (const p of f.platforms) expect(real, `${id} -> ${p}`).toContain(p);
+      /* §295. Platforms are derived from the channel now, not listed. */
+      const platforms = platformsForFormat(id);
+      expect(platforms.length, id).toBeGreaterThan(0);
+      for (const p of platforms) expect(real, `${id} -> ${p}`).toContain(p);
     }
   });
 
@@ -70,7 +72,7 @@ describe('the catalogue', () => {
   });
 
   it('offers a platform only the formats it can carry', () => {
-    for (const f of formatsForPlatform('x')) expect(f.platforms).toContain('x');
+    for (const f of formatsForPlatform('x')) expect(platformsForFormat(f.id)).toContain('x');
     /* A full recipe is not an X post. */
     expect(formatsForPlatform('x').map((f) => f.id)).not.toContain('recipe');
   });
@@ -82,14 +84,19 @@ describe('the catalogue', () => {
 
 describe('choosing a format', () => {
   it('never picks one the platform cannot carry', () => {
-    for (const platform of ['tiktok', 'instagram', 'x', 'youtube', 'pinterest', 'threads']) {
+    /*
+     * §295. Pinterest and Facebook are deliberately not in a channel yet, so
+     * they are not in this list. `selectFormat` reports that as a gap rather
+     * than inventing a shape for them — asserted separately below.
+     */
+    for (const platform of ['tiktok', 'instagram', 'x', 'youtube', 'threads']) {
       const { format } = selectFormat({ platform, hasArtifact: true });
-      expect(format.platforms, `${platform} -> ${format.id}`).toContain(platform);
+      expect(platformsForFormat(format.id), `${platform} -> ${format.id}`).toContain(platform);
     }
   });
 
   it('never picks an artifact-dependent format when there is no artifact', () => {
-    for (const platform of ['instagram', 'pinterest', 'youtube']) {
+    for (const platform of ['instagram', 'youtube']) {
       const { format } = selectFormat({ platform, hasArtifact: false });
       expect(format.needsArtifact, `${platform} -> ${format.id}`).toBe(false);
     }
@@ -140,6 +147,16 @@ describe('choosing a format', () => {
       canCite: false,
     });
     expect(format.factuality).not.toBe('sourced');
+  });
+
+  it('says a platform nothing serves is a gap, rather than inventing a shape', () => {
+    /*
+     * Pinterest and Facebook are out of scope for now. The selector still has
+     * to return something, and it says plainly that this is a gap — silently
+     * picking a shape would make an unserved platform look served.
+     */
+    const { reason } = selectFormat({ platform: 'pinterest', hasArtifact: true });
+    expect(reason).toContain('gap');
   });
 
   it('explains the choice', () => {

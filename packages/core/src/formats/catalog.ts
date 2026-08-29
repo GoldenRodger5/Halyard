@@ -42,6 +42,8 @@
  * and the two are orthogonal. A quiz is a `PostFormat`; it can be rendered as
  * video or as a carousel, which is its `PostFormat`.
  */
+import { platformsForFormat, type ChannelId } from '../channels/channels.js';
+
 export const POST_FORMATS = [
   'quiz',
   'history',
@@ -85,8 +87,15 @@ export interface PostFormat {
   intent: string;
   pillar: Pillar;
   factuality: Factuality;
-  /** Platforms that can carry this shape at all. */
-  platforms: string[];
+  /**
+   * The briefs this shape suits. Platforms are **derived** from these.
+   *
+   * A hand-written platform list beside the channel's own platform list is the
+   * same relationship written twice, and gotcha 1 is the standing lesson about
+   * exactly that. A format says what kind of thing it is; the channel says
+   * which surfaces share that brief.
+   */
+  channels: ChannelId[];
   /** The structure, in order. */
   slots: FormatSlot[];
   /**
@@ -108,7 +117,7 @@ export const POST_FORMAT_CATALOG: Record<PostFormatId, PostFormat> = {
     intent: 'Five questions, thirty seconds. The viewer answers in the comments.',
     pillar: 'entertain',
     factuality: 'sourced',
-    platforms: ['tiktok', 'instagram', 'youtube'],
+    channels: ['short_video'],
     needsArtifact: false,
     targetSeconds: 30,
     slots: [
@@ -135,7 +144,7 @@ export const POST_FORMAT_CATALOG: Record<PostFormatId, PostFormat> = {
     intent: 'One surprising true thing, told as a story with a turn.',
     pillar: 'entertain',
     factuality: 'sourced',
-    platforms: ['tiktok', 'instagram', 'youtube', 'x', 'threads'],
+    channels: ['short_video', 'text_post', 'long_video'],
     needsArtifact: false,
     targetSeconds: 35,
     slots: [
@@ -153,7 +162,7 @@ export const POST_FORMAT_CATALOG: Record<PostFormatId, PostFormat> = {
     intent: 'Three to five things, numbered, each one line. The highest save rate.',
     pillar: 'teach',
     factuality: 'craft',
-    platforms: ['tiktok', 'instagram', 'x', 'pinterest', 'threads'],
+    channels: ['short_video', 'text_post', 'carousel'],
     needsArtifact: false,
     targetSeconds: 30,
     slots: [
@@ -169,7 +178,7 @@ export const POST_FORMAT_CATALOG: Record<PostFormatId, PostFormat> = {
     intent: 'Picture, ingredients, steps. The thing people came for, and the most saved.',
     pillar: 'teach',
     factuality: 'product',
-    platforms: ['instagram', 'pinterest', 'youtube'],
+    channels: ['carousel', 'long_video'],
     needsArtifact: true,
     targetSeconds: 45,
     slots: [
@@ -186,7 +195,7 @@ export const POST_FORMAT_CATALOG: Record<PostFormatId, PostFormat> = {
     intent: 'A thing people believe that is true but misleading, corrected carefully.',
     pillar: 'warn',
     factuality: 'sourced',
-    platforms: ['tiktok', 'instagram', 'x', 'threads'],
+    channels: ['short_video', 'text_post', 'carousel'],
     needsArtifact: false,
     targetSeconds: 25,
     slots: [
@@ -203,7 +212,7 @@ export const POST_FORMAT_CATALOG: Record<PostFormatId, PostFormat> = {
     intent: 'Two options, side by side, with the tradeoff named.',
     pillar: 'teach',
     factuality: 'craft',
-    platforms: ['instagram', 'pinterest', 'youtube', 'x'],
+    channels: ['text_post', 'carousel', 'long_video'],
     needsArtifact: false,
     targetSeconds: 30,
     slots: [
@@ -220,7 +229,7 @@ export const POST_FORMAT_CATALOG: Record<PostFormatId, PostFormat> = {
     intent: 'How a thing got to be the way it is. The widest net in the family.',
     pillar: 'entertain',
     factuality: 'sourced',
-    platforms: ['tiktok', 'instagram', 'youtube', 'threads'],
+    channels: ['short_video', 'long_video'],
     needsArtifact: false,
     targetSeconds: 40,
     slots: [
@@ -238,7 +247,7 @@ export const POST_FORMAT_CATALOG: Record<PostFormatId, PostFormat> = {
     intent: 'The product doing its job: before, the change, and what it costs.',
     pillar: 'demonstrate',
     factuality: 'product',
-    platforms: ['tiktok', 'instagram', 'youtube', 'x', 'threads', 'pinterest'],
+    channels: ['short_video', 'text_post', 'carousel'],
     needsArtifact: true,
     targetSeconds: 30,
     slots: [
@@ -254,11 +263,21 @@ export function formatById(id: string): PostFormat | null {
   return (POST_FORMAT_CATALOG as Record<string, PostFormat>)[id] ?? null;
 }
 
-/** The formats a platform can carry, for the composer's picker. */
+/**
+ * The formats a platform can carry, for the composer's picker.
+ *
+ * Derived through the channel rather than from a list on the format, so there
+ * is one place that says which platforms share a brief.
+ */
 export function formatsForPlatform(platform: string): PostFormat[] {
   return POST_FORMATS.map((id) => POST_FORMAT_CATALOG[id]).filter((f) =>
-    f.platforms.includes(platform),
+    platformsForFormat(f.id).includes(platform),
   );
+}
+
+/** Whether this shape can run on this platform at all. */
+export function formatCarries(format: PostFormat, platform: string): boolean {
+  return platformsForFormat(format.id).includes(platform);
 }
 
 /**

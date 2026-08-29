@@ -24,6 +24,7 @@ import {
   POST_FORMATS,
   POST_FORMAT_CATALOG,
   formatById,
+  formatCarries,
   type PostFormat,
   type PostFormatId,
   type Pillar,
@@ -72,7 +73,7 @@ export function selectFormat(input: FormatSelectionInput): FormatChoice {
   /* An operator's pick wins, if the platform can actually carry it. */
   if (input.requested) {
     const wanted = formatById(input.requested.trim());
-    if (wanted && wanted.platforms.includes(input.platform)) {
+    if (wanted && formatCarries(wanted, input.platform)) {
       return {
         format: wanted,
         reason: `Chosen by the operator.`,
@@ -89,7 +90,7 @@ export function selectFormat(input: FormatSelectionInput): FormatChoice {
   }
 
   const carried = POST_FORMATS.map((id) => POST_FORMAT_CATALOG[id]).filter((f) =>
-    f.platforms.includes(input.platform),
+    formatCarries(f, input.platform),
   );
 
   if (carried.length === 0) {

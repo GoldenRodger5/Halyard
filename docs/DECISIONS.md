@@ -7801,3 +7801,37 @@ legibility cannot be left to whatever came back from the model.
 Type scaled with it — the question from 76px to 104px, the title to 124px. On a
 1080×1920 frame the old sizes filled about a sixth of the canvas, which is
 unreadable at arm's length and is what made it read as a document.
+
+## 295. Channels — the brief, above the platform
+
+Halyard has had platforms since the beginning and a platform is the wrong unit
+for almost every creative decision. TikTok, Reels and Shorts are **one brief**: a
+vertical video that has to win in half a second. X and Threads are another: text
+that lives or dies on its first line. Treating them as six destinations means
+writing the same rule six times and getting it slightly different each time.
+
+Four channels — `short_video`, `text_post`, `carousel`, `long_video`. Each carries
+the things that are true of the brief rather than of the surface: the decision
+window and what the opening must do, whether it is spoken, whether motion is the
+medium, and what the viewer is being asked to do. A Reel asks for a save, a text
+post asks for a reply, a long video asks for the next video, and those differ
+more than the formats do.
+
+Instagram and YouTube each sit in **two** channels, because a Reel and a carousel
+are different briefs on one account, and a Short is not a long-form explainer.
+The media format decides; an unknown one defaults to the option that cannot
+silently produce a video nobody asked for.
+
+**Pinterest and Facebook return null**, deliberately. `selectFormat` reports that
+as a gap rather than inventing a shape, because a silent default makes an
+unserved platform look served.
+
+### Folded in, not bolted on
+
+The first version gave `Channel` a `formats` list beside `PostFormat.platforms`,
+which is the same relationship written twice — `JOB_KINDS` and `jobs_kind_check`
+exactly. Now a format declares its **channels** and everything else is derived:
+`formatsForChannel` filters the catalogue, `platformsForFormat` unions the
+channels' platforms, and the hand-written `platforms` array is gone. Four tests
+assert the two catalogues agree in both directions and that neither can name
+something the other does not have.
