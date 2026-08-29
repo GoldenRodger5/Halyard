@@ -26,6 +26,14 @@ export interface DraftRequest {
   persona: 'founder' | 'brand';
   idea: { title: string; angle: string };
   artifact?: ProductArtifact | null;
+  /**
+   * §291. Whether this piece's claims are about the artifact.
+   *
+   * True for a product demonstration, false for a format grounded elsewhere —
+   * a quiz, a history, a myth correction. Defaults to true so an existing
+   * caller keeps the behaviour it had.
+   */
+  verifyClaimsAgainstArtifact?: boolean;
   voice: {
     displayName: string;
     description: string;
@@ -254,7 +262,23 @@ export async function writeDraft(request: DraftRequest, llm: LlmClient): Promise
         forbiddenClaims: request.contentRules.forbiddenClaims,
         longForm: request.platform === 'youtube',
       },
-      ...(request.artifact ? { claims: { claims, artifact: request.artifact.raw } } : {}),
+      /*
+       * §291. Claims are checked against the artifact only when the piece is
+       * *about* the artifact.
+       *
+       * A quiz about the history of gluten is grounded in sources, not in a
+       * recipe, and verifying its caption against a recipe artifact is a
+       * category error — it fails claims the artifact was never going to
+       * contain. That is exactly how the first production quiz died:
+       * "claims: 4/5 verified against artifact", three times, on a post that
+       * was not making a claim about the recipe at all.
+       *
+       * The artifact still grounds the *writing* either way; this governs only
+       * whether its claims are checked against it.
+       */
+      ...(request.artifact && request.verifyClaimsAgainstArtifact !== false
+        ? { claims: { claims, artifact: request.artifact.raw } }
+        : {}),
     });
 
     lastQc = qc;

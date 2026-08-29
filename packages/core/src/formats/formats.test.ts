@@ -260,3 +260,31 @@ describe('writing to a format', () => {
     expect(check.missing.length).toBeGreaterThan(5);
   });
 });
+
+describe('§291 — whose claims a piece is making', () => {
+  it('marks only product-grounded formats as making claims about the artifact', async () => {
+    /*
+     * The first production quiz died three times on
+     * "claims: 4/5 verified against artifact". It was a quiz about the history
+     * of gluten; the recipe artifact was never going to contain those claims,
+     * so verifying against it was a category error rather than a strict gate.
+     */
+    const { POST_FORMAT_CATALOG } = await import('./catalog.js');
+    expect(POST_FORMAT_CATALOG.transformation.factuality).toBe('product');
+    expect(POST_FORMAT_CATALOG.recipe.factuality).toBe('product');
+
+    /* And the ones grounded elsewhere, which must not be checked that way. */
+    for (const id of ['quiz', 'history', 'myth_fact', 'origin'] as const) {
+      expect(POST_FORMAT_CATALOG[id].factuality, id).toBe('sourced');
+    }
+    for (const id of ['tips', 'comparison'] as const) {
+      expect(POST_FORMAT_CATALOG[id].factuality, id).toBe('craft');
+    }
+  });
+
+  it('leaves every format with a factuality, so the caller never has to guess', () => {
+    for (const id of POST_FORMATS) {
+      expect(['product', 'sourced', 'craft'], id).toContain(POST_FORMAT_CATALOG[id].factuality);
+    }
+  });
+});

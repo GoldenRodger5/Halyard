@@ -812,6 +812,33 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
         const format = chooseFormat(account.platform, account.supported_formats ?? []);
 
         // One call per platform. Never one call producing all platforms.
+        /**
+         * §291. The shape is decided **before** the copy is written.
+         *
+         * It used to be chosen 230 lines later, after the draft — so every
+         * caption was written and gated as a product demonstration whatever the
+         * piece turned out to be. A quiz about the history of gluten had its
+         * claims verified against a *recipe artifact*, failed 4 of 5, and was
+         * abandoned three times running. The artifact was never going to
+         * contain those claims; the check was a category error.
+         *
+         * The format is what the piece *is*, so nothing that depends on that
+         * can be decided before it.
+         */
+        const chosenFormat = selectFormat({
+          platform: account.platform,
+          hasArtifact: Boolean(artifact),
+          recentFormats: (await recentFormats(ctx, account.id)) as never,
+          requested: (job.payload.postFormat as string | undefined) ?? null,
+          canCite: true,
+        });
+        ctx.log('post format chosen', {
+          platform: account.platform,
+          format: chosenFormat.format.id,
+          because: chosenFormat.reason,
+          alternatives: chosenFormat.alternatives,
+        });
+
         const draft = await writeDraft(
           {
             platform: account.platform,
@@ -820,6 +847,12 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
             persona: account.persona,
             idea: { title: idea.title, angle: idea.angle },
             artifact,
+            /*
+             * §291. Only a product-grounded format makes claims about the
+             * artifact. A quiz or a history is grounded in its own sources,
+             * which §282 fetches and verifies separately.
+             */
+            verifyClaimsAgainstArtifact: chosenFormat.format.factuality === 'product',
             voice: {
               displayName: voiceRow.display_name,
               description: voiceRow.description,
@@ -1032,40 +1065,15 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
          * product attached to Halyard describes different things and gets
          * pictures of those. Nothing here knows what a recipe is.
          */
-        /**
-         * §281. Which editorial shape this piece is.
-         *
-         * Chosen before anything is written, because the format decides what
-         * the writer is asked for. Recorded on the item so the next run's
-         * recency rule can read it — a choice that is not persisted is a
-         * choice that repeats, which is what §265 found for typography.
-         *
-         * `requested` comes from the operator through the composer; unset
-         * lets the selector choose and the reason is logged either way.
+        /*
+         * §281/§291. The shape is decided before the draft (see above) and
+         * recorded here, once the row exists. Recency the selector cannot read
+         * is recency it cannot honour.
          */
-        const chosenFormat = selectFormat({
-          platform: account.platform,
-          hasArtifact: Boolean(artifact),
-          recentFormats: (await recentFormats(ctx, account.id)) as never,
-          requested: (job.payload.postFormat as string | undefined) ?? null,
-          /*
-           * §282. Sourced formats are available now that citations are
-           * actually verified: every cited slot's URL is fetched and checked
-           * for the claim's distinctive terms, so an invented link costs the
-           * writer an attempt instead of reaching a reader.
-           */
-          canCite: true,
-        });
         await ctx.pool.query('update content_items set post_format = $2 where id = $1', [
           contentItemId,
           chosenFormat.format.id,
         ]);
-        ctx.log('post format chosen', {
-          contentItemId,
-          format: chosenFormat.format.id,
-          because: chosenFormat.reason,
-          alternatives: chosenFormat.alternatives,
-        });
 
         const heroSubject = subjectForImage(artifact, idea.title);
         const hero =
