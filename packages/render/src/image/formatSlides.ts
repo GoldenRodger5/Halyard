@@ -257,7 +257,52 @@ function transformationSlides(slots: SlotValue[]): FormatSlide[] {
   return out;
 }
 
+/**
+ * §297. A poll: the question is the whole card.
+ *
+ * Both options on one card, because a poll a reader has to swipe to answer is
+ * not a poll. Deliberately the sparsest thing in this file — a story that looks
+ * produced loses the form.
+ */
+function pollSlides(slots: SlotValue[]): FormatSlide[] {
+  const question = pick(slots, 'question');
+  if (!question) return [];
+  const a = pick(slots, 'option_a');
+  const b = pick(slots, 'option_b');
+  return [
+    {
+      kicker: 'Which one',
+      headline: question,
+      bodyLines: [a, b].filter(Boolean) as string[],
+      layout: 'statement',
+      index: 0,
+      total: 0,
+    },
+  ];
+}
+
+/** §297. Behind it: one moment, one honest remark. */
+function behindSlides(slots: SlotValue[]): FormatSlide[] {
+  const moment = pick(slots, 'moment');
+  if (!moment) return [];
+  const aside = pick(slots, 'aside');
+  return [
+    {
+      kicker: 'Behind it',
+      /* `lead_emphasis` promotes bodyLines[0], so the remark leads and the
+         moment labels it — the inversion §280 records. */
+      headline: aside ? moment : moment,
+      bodyLines: aside ? [aside] : [],
+      layout: aside ? 'lead_emphasis' : 'statement',
+      index: 0,
+      total: 0,
+    },
+  ];
+}
+
 const BUILDERS: Record<string, (slots: SlotValue[]) => FormatSlide[]> = {
+  poll: pollSlides,
+  behind: behindSlides,
   quiz: quizSlides,
   history: (s) => narrativeSlides(s, ['', 'What everyone assumes', 'The turn', 'Why it still matters']),
   origin: (s) => narrativeSlides(s, ['', 'Before', 'What changed', 'What we have now']),

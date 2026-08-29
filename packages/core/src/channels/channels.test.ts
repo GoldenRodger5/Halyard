@@ -87,9 +87,20 @@ describe('the two catalogues cannot drift', () => {
     }
   });
 
-  it('gives every channel at least one format to run', () => {
-    /* A channel nothing can fill is a brief with no writers. */
+  it('gives every originating channel at least one format to run', () => {
+    /*
+     * A channel that plans posts and has no formats is a brief with no
+     * writers. `reply` is the exception and says so: it responds to a
+     * conversation rather than filling a shape, so "no formats" is the design
+     * rather than an omission — and declaring it is what lets this test tell
+     * the two apart.
+     */
     for (const id of CHANNELS) {
+      const channel = CHANNEL_CATALOG[id];
+      if (!channel.originates) {
+        expect(formatsForChannel(id), id).toHaveLength(0);
+        continue;
+      }
       expect(formatsForChannel(id).length, id).toBeGreaterThan(0);
     }
   });

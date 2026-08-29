@@ -2,6 +2,7 @@ export * from './qc/index.js';
 export * from './qc/creativeScore.js';
 export * from './qc/critic.js';
 export * from './channels/channels.js';
+export * from './creative/mediaDirector.js';
 export * from './formats/index.js';
 export * from './generation/spokenRepair.js';
 export * from './generation/critique.js';

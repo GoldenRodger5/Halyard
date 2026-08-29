@@ -31,7 +31,7 @@
  */
 import { POST_FORMATS, POST_FORMAT_CATALOG, type PostFormatId } from '../formats/catalog.js';
 
-export const CHANNELS = ['short_video', 'text_post', 'carousel', 'long_video'] as const;
+export const CHANNELS = ['short_video', 'text_post', 'carousel', 'long_video', 'story', 'reply'] as const;
 export type ChannelId = (typeof CHANNELS)[number];
 
 /** What the opening has to accomplish, in the time it has. */
@@ -62,11 +62,24 @@ export interface Channel {
    * reply, a long video asks for the next video.
    */
   primaryAction: string;
+  /**
+   * §297. Whether this channel *originates* a piece from a format.
+   *
+   * Everything else here plans a post from a shape. A reply does not: it is a
+   * response to something somebody else said, so it has no format to fill and
+   * no slot to plan — the input is the conversation, not the catalogue.
+   *
+   * Declared rather than inferred, because "no formats" otherwise reads
+   * identically to "somebody forgot to add formats", and the drift test cannot
+   * tell those apart.
+   */
+  originates: boolean;
 }
 
 export const CHANNEL_CATALOG: Record<ChannelId, Channel> = {
   short_video: {
     id: 'short_video',
+    originates: true,
     name: 'Short video',
     intent: 'Vertical video that has to win the first half second. TikTok, Reels, Shorts.',
     platforms: ['tiktok', 'instagram', 'youtube'],
@@ -87,6 +100,7 @@ export const CHANNEL_CATALOG: Record<ChannelId, Channel> = {
 
   text_post: {
     id: 'text_post',
+    originates: true,
     name: 'Text post',
     intent: 'A single idea that lives or dies on its first line. X and Threads.',
     platforms: ['x', 'threads'],
@@ -106,6 +120,7 @@ export const CHANNEL_CATALOG: Record<ChannelId, Channel> = {
 
   carousel: {
     id: 'carousel',
+    originates: true,
     name: 'Carousel',
     intent: 'A swipeable argument. Instagram, and the highest save rate available.',
     platforms: ['instagram'],
@@ -119,8 +134,65 @@ export const CHANNEL_CATALOG: Record<ChannelId, Channel> = {
     primaryAction: 'save it for later',
   },
 
+  /**
+   * §297. Disposable, interactive, and gone in a day.
+   *
+   * A story is not a short video with a shorter shelf life — the brief is
+   * different in a way that changes everything downstream. Nobody saves a
+   * story, so a save-oriented close is wasted on it; production value reads as
+   * *wrong* rather than good, because the form's whole signal is immediacy; and
+   * it is the only channel where asking a question outright is native rather
+   * than needy.
+   */
+  story: {
+    id: 'story',
+    originates: true,
+    name: 'Story',
+    intent: 'Disposable and interactive. A poll, a question, a look behind the thing.',
+    platforms: ['instagram'],
+    targetSeconds: { min: 5, max: 15 },
+    opening: {
+      decisionSeconds: 1,
+      rule: 'One idea, legible in a glance, tappable. Nobody watches a story twice.',
+    },
+    needsVoice: false,
+    /* Movement, but not production. A story that looks made loses the form. */
+    needsMotion: false,
+    primaryAction: 'tap the poll, or reply',
+  },
+
+  /**
+   * §297. The channel nobody builds because it does not look like content.
+   *
+   * Replies carry more algorithmic weight than likes and are the highest-
+   * leverage growth surface on X, and Halyard already has the parts — a comment
+   * system, a Reply Writer in the registry, an Engagement team in the spec.
+   * What it lacked was a *channel*, so replies were never planned, never
+   * scheduled and never counted as output.
+   *
+   * The brief is unlike any other here: it is a response to something somebody
+   * else said, so the opening rule is about earning the interruption rather
+   * than stopping a scroll.
+   */
+  reply: {
+    id: 'reply',
+    originates: false,
+    name: 'Reply',
+    intent: 'A response worth reading under someone else’s post. The cheapest reach there is.',
+    platforms: ['x', 'threads', 'instagram'],
+    targetSeconds: null,
+    opening: {
+      decisionSeconds: 0,
+      rule: 'Add something the original did not say. Never restate it, never sell.',
+    },
+    needsVoice: false,
+    needsMotion: false,
+    primaryAction: 'continue the conversation',
+  },
+
   long_video: {
     id: 'long_video',
+    originates: true,
     name: 'Long video',
     intent: 'A explainer with chapters and a real narrative. YouTube.',
     platforms: ['youtube'],

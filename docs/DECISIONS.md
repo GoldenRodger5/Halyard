@@ -7835,3 +7835,52 @@ exactly. Now a format declares its **channels** and everything else is derived:
 channels' platforms, and the hand-written `platforms` array is gone. Four tests
 assert the two catalogues agree in both directions and that neither can name
 something the other does not have.
+
+## 296. The media director — the missing row in the decision table
+
+`CREATIVE_SYSTEM.md` lists the decisions that make a piece: treatment, visual
+language, typography, opening, motion, voice, audio, variants. Every one is
+deterministic and every one explains itself. **Where the image comes from is not
+on that list**, and it is the decision a viewer notices first — a screen
+recording of the product, a photograph of the thing being discussed, and a
+typographic card are three different videos.
+
+The slots were already there. `PlannedBeat.media` takes real footage and §163 is
+explicit that there is no default and no placeholder. `PlannedBeat.image` carries
+provenance and licence *per beat*, because what a picture may **say** depends on
+where it came from. `EVIDENTIAL_ROLES` and `canEvidence()` already say which
+provenance may back which role. What was missing was the chooser.
+
+Five sources, ranked per beat role rather than globally, because the best source
+genuinely differs by what the beat is doing: a `demo` wants the product moving, a
+`hook` wants whatever stops a scroll and proves nothing, a `proof` wants the
+strongest evidence and nothing else.
+
+**The rule that outranks preference, and outranks the operator:** a beat whose
+job is to show the product doing something may only carry evidence. A generated
+photograph in a `proof` beat is a claim about software nobody observed. An
+operator asking for one gets type instead — not because their preference is
+overridden, but because no choice makes an unobserved claim true. A beat that
+cannot be evidenced falls back to type rather than to a picture that lies.
+
+Type is the floor, never a failure: there is always an answer.
+
+## 297. Two more channels — story, and the one nobody builds
+
+**`story`** is not a short video with a shorter shelf life. Nobody saves a story,
+so a save-oriented close is wasted on it; production value reads as *wrong*
+rather than good, because the form's whole signal is immediacy; and it is the
+only channel where asking a question outright is native rather than needy. Two
+formats of its own — `poll`, whose value is the response rather than the content,
+and `behind`, which exists to carry something unpolished on purpose.
+
+**`reply`** is the highest-leverage surface nobody builds because it does not look
+like content. Replies carry more algorithmic weight than likes, and Halyard
+already had the parts — a comment system, a Reply Writer in the registry, an
+Engagement team in the spec. What it lacked was a *channel*, so replies were
+never planned, never scheduled, and never counted as output.
+
+A reply **originates nothing**: it responds to what somebody else said, so it has
+no format to fill. That is declared as `originates: false` rather than inferred
+from an empty format list, because "no formats" otherwise reads identically to
+"somebody forgot to add formats" — and the drift test cannot tell those apart.

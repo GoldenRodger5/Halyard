@@ -53,6 +53,8 @@ export const POST_FORMATS = [
   'comparison',
   'origin',
   'transformation',
+  'poll',
+  'behind',
 ] as const;
 
 export type PostFormatId = (typeof POST_FORMATS)[number];
@@ -238,6 +240,50 @@ export const POST_FORMAT_CATALOG: Record<PostFormatId, PostFormat> = {
       { key: 'change', brief: 'What changed it, and who.', maxWords: 30 },
       { key: 'now', brief: 'The version we have now, and what was lost.', maxWords: 25 },
       { key: 'source', brief: 'Who established this. A real citation.', maxWords: 15 },
+    ],
+  },
+
+  /**
+   * §297. A story format: ask, do not tell.
+   *
+   * A poll is the only shape in the catalogue whose value is the *response*
+   * rather than the content. It is short because nobody watches a story twice,
+   * and it has no citation requirement because an opinion is not a claim.
+   */
+  poll: {
+    id: 'poll',
+    name: 'Poll',
+    intent: 'One question with two options. The answer is the point, not the post.',
+    pillar: 'entertain',
+    factuality: 'craft',
+    channels: ['story'],
+    needsArtifact: false,
+    targetSeconds: 8,
+    slots: [
+      { key: 'question', brief: 'A real either/or people disagree about. Not a quiz.', maxWords: 12 },
+      { key: 'option_a', brief: 'One side, in two or three words.', maxWords: 4 },
+      { key: 'option_b', brief: 'The other side, same length.', maxWords: 4 },
+    ],
+  },
+
+  /**
+   * §297. The one place production value is a liability.
+   *
+   * A story that looks made loses the form — the whole signal is immediacy, so
+   * this format exists to carry something unpolished on purpose.
+   */
+  behind: {
+    id: 'behind',
+    name: 'Behind it',
+    intent: 'An unpolished look at the thing being made, or the mistake that happened.',
+    pillar: 'entertain',
+    factuality: 'craft',
+    channels: ['story'],
+    needsArtifact: false,
+    targetSeconds: 12,
+    slots: [
+      { key: 'moment', brief: 'What is happening, said plainly. No setup.', maxWords: 14 },
+      { key: 'aside', brief: 'The honest remark a person would actually make.', maxWords: 18 },
     ],
   },
 
