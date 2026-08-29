@@ -7530,3 +7530,43 @@ broke only at `next build`.
 The picker shows a format's constraints before the run rather than after a
 failure: a quiz that cannot cite is refused (§282), and an operator deserves to
 know that when choosing rather than when it is rejected.
+
+## 284. Drawing on the screen, in time with the words
+
+The one thing NotebookLM-style video did that Halyard could not: marks that
+appear *as they are talked about*. An underline drawing under a phrase as the
+voice says it, a circle closing around the thing being discussed.
+
+It reads as "a person made this" for a precise reason — **the mark is evidence
+of intent**. A layout can be generated. A mark that lands on the right word at
+the right moment cannot be, unless something knew what the words were and when
+they were said.
+
+**Not a video model.** It is animated SVG over a still, and Remotion is exactly
+the right tool: `strokeDashoffset` interpolated across frames draws a path, and
+the frames come from the per-word caption timings §270 already carries. The same
+timings that made karaoke captions possible land an underline on the right
+syllable — cheap now, impossible before. A generated video cannot do this at
+all: it cannot hit a cue, and re-rendering gives a different result.
+
+**Hand-drawn, not geometric.** Every mark carries a deliberate wobble, because a
+geometrically perfect underline reads as a UI element and a slightly wrong one
+reads as a person with a pen. The imperfection is seeded from the mark's own
+text, so a re-render draws it identically — `Math.random()` would mean a
+corrected piece visibly differs from the one an operator approved.
+
+**Refuses rather than guesses.** A phrase not present in the cue returns null. A
+mark over the wrong words is worse than no mark: it is exactly what makes an
+annotation stop reading as intentional.
+
+Two errors found by rendering it and looking, both invisible in the tests that
+existed:
+
+- **Units.** `annotationForPhrase` returns fractions of the frame; `pathFor`
+  treated them as viewBox units, which drew every mark as a speck in the
+  top-left corner. Pinned by a test that boxes stay in 0..1.
+- **Position weighting.** Estimating a word's position by *word count* assumes
+  every word is the same width, and a circle asked for the last word of "Your
+  dusting flour is not gluten-free" landed over "en-free". Weighted by character
+  count now; the residual error is smaller than the wobble in the stroke, which
+  is where more precision stops being visible.
