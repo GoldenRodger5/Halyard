@@ -7592,3 +7592,30 @@ A test asserted this stuck state as correct — "keeps a claimed idea that did
 produce content", expecting `selected`. It was encoding the limbo rather than
 the intent. The guarantee that actually matters is *never re-proposed*, and that
 is what it asserts now.
+
+## 286. The product the system markets had no signal sources
+
+Generation stopped with "no proposed ideas to draft, and none could be proposed".
+The cause was not the idea engine: **`rss_sources` held eight rows and every one
+belonged to the `founder` product**, seeded by migration 0013 for an account
+about AI. RecipeFix had none — not none enabled, none at all.
+
+So `collect_signals` for recipefix read nothing, `proposeFromSignals` had nothing
+to propose from, and the product the entire system exists to market could not
+originate a single idea on its own. Every piece it had ever made came from an
+idea somebody put there by hand.
+
+Seven feeds seeded, and **every URL was fetched before being written**. 0013's own
+comment records the cost of skipping that: its seeded Anthropic feed 404'd from
+the day it was written. Four plausible candidates were rejected during the check —
+Serious Eats and Beyond Celiac return 403 to a non-browser agent, Food52
+rate-limits, and the FDA *food-safety* feed is a dead URL while the *recalls* one
+is live.
+
+Weighted by distance from the subject: a coeliac authority publishing a labelling
+change outranks a general food blog publishing a recipe, and both are worth
+having. FDA recalls are weighted low because the volume is mostly irrelevant —
+but an undeclared-gluten recall is the single most useful thing this account could
+post on the day it happens.
+
+First run: **7 sources, 0 failures, 100 items fetched, 19 stored, 5 promoted.**

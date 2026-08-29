@@ -1,5 +1,45 @@
 # Where Halyard is right now
 
+**2026-08-29 — the creative system can make things that are not product demos,
+and something finally looks at whether they are any good.**
+
+*A media review, by looking.* 21 real renders were downloaded and examined
+(`media-review/2026-08-29/`). Every gate had passed them. The video opened on a
+blank frame with `{"script":"` in the caption bar; carousel slides truncated
+mid-word with 60% of the canvas empty; a cooking product had published twenty-one
+assets and not one photograph of food. None of it was a rule violation — which is
+the finding, not an aside.
+
+*What that produced.* Typography and layout now reach the image path (§265, §267)
+— the Creative Director was choosing well and 90% of output could not see it,
+because Satori could not parse the bundled variable fonts and only two families
+were ever registered. Sixteen static cuts later, six systems and seven layouts
+render. Generated food photography (§268), the app-capture last hop (§273),
+karaoke captions (§270), and a caption hierarchy that is not 52px-bold on every
+line (§274).
+
+*The critic.* §275. Halyard had a describer and a rule set and no critic, so
+"every caption is set the same way" crossed no threshold and violated no rule.
+It perceives; code decides. It may never pass anything, never fail a piece, and
+never speak without citing frames it was shown. Its findings reach the scorecard
+(§269) and the correction loop.
+
+*The format family.* §277–282. Eight editorial shapes — quiz, history, tips, full
+recipe, myth/fact, comparison, origin, transformation — of which **six need no
+product artifact**, so an account can post on a day when nothing was converted.
+Sourced formats have their citations **fetched and read**: a URL that 404s or a
+page that never mentions the claim is rejected and rewritten.
+
+*Confirmed in production, not merely deployed.* §285's sweeper closed four ideas
+that had produced drafts and been stranded for a day (`closed=4` in the worker
+log). §258's disown fired on a real rejected voiceover with zero stranded renders.
+
+**2755 tests, 162 files.** Lint, typecheck and `next build` clean.
+
+**Waiting on you:** TikTok's refresh token is expired and needs an OAuth
+reconnect; `publishing_enabled` is false in production; licensed music and SFX;
+the YouTube compliance audit.
+
 **2026-08-28 (later) — long-form is real, and discovery can now say no in four
 different ways.**
 
