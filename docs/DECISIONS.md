@@ -6763,40 +6763,60 @@ the content is good; nothing automated can. It proves each stage produces
 something the next can consume, which is the failure this codebase keeps
 finding: two stages that each work, joined by nothing.
 
-## 256. Three optional probe fields, no writer, three for three
+## 256. Three optional probe fields with no writer — and why only two of them stay that way
 
 `review_media` reported four retention checks `unmeasured` on a production
 render. One is unmeasured on purpose: §73 established that mean luminance cannot
-see a light card with a small region of changing text, and that sampling harder
-would fail every render on a signal that cannot see it. Sampling is already
+see a light card with a small region of changing text. Sampling is already
 front-loaded — `0, 0.8, 2` plus three body frames — so the deficiency is the
-signal, not the rate. That one stays open, honestly named.
+signal, not the rate.
 
 The other three were not a decision. `firstFrameWordCount`, `firstFrameContrast`
 and `loopSimilarity` are optional fields on `RetentionProbe` that **nothing has
-ever written**. This is now the third instance of exactly that defect: §71
-(`frameLuminance` parsed from the wrong stream, always `[]`) and §74
-(`frameDelta` never supplied, so two rules ran on a signal that cannot see the
-content). An optional input with no writer reads, from the outside, precisely
-like a check that passes.
+ever written** — the third instance of that defect after §71 (`frameLuminance`
+parsed off the wrong stream, always `[]`) and §74 (`frameDelta` never supplied).
+An optional input with no writer reads, from outside, exactly like a check that
+passes.
 
-`loopSimilarity` is measured now, so `retention.not_loop_ready` runs for the
-first time — on TikTok and Instagram, the two platforms where a loop ending is
-the entire point, and the rule most likely to change a render.
+**`loopSimilarity` was implemented, measured, and reverted.** The plan was a
+16×16 greyscale average-hash of the first and last frames, on the argument that
+256 cells are not an average and so escape §73's objection. Against the four
+fixture renders it looked perfect: 0.990–0.994, comfortably past the 0.6
+threshold.
 
-**Why a 16×16 grid rather than the scalar signals §73 and §74 warn about.**
-Those decisions turn on a whole-frame *average* being blind to Halyard's
-content. 256 cells are not an average: text moving across the frame changes the
-cells it occupies even when the overall mean is flat. And a loop reads or fails
-to read at about this resolution — the question is whether the ending looks like
-the opening at a glance, which is what a viewer registers before replaying.
+That number is meaningless, and the check that showed it is the one worth
+keeping. Comparing frames from *entirely different scenes within the same
+render* gives:
 
-The last frame is sampled 0.15s inside the end, because seeking exactly to
-`duration` lands past the final frame on most containers and returns nothing.
-Unreadable frames return `null`, never a default, so the rule reports
-`unmeasured` rather than a fabricated pass — gotcha 9.
+| signal | different-scene pairs | the actual loop pair |
+|---|---|---|
+| 16×16 average-hash | 0.979 – 1.000 | 0.994 |
+| full-resolution MAD | 0.980 – 1.000 | 0.993 |
+| 16×16 **min**-pool (§74's YMIN signal) | 0.965 – 1.000 | 0.949 |
 
-Word count and text contrast are still unwritten. They are named in `unmeasured`
-rather than quietly passing, and closing them honestly needs a text-region
-signal this probe does not have; a bimodal-histogram guess would be a fabricated
-measurement, which is worse than an absent one.
+The loop pair sits *inside* the noise band of unrelated frames under every
+variant. No threshold can separate "the ending reads as the opening" from "the
+ending is a different scene", so the rule would have returned a measured pass on
+every render Halyard will ever produce.
+
+Min-pooling was the most promising variant, because §74 found that tonal range
+sees this content where the mean does not. It fails here too, and the reason
+generalises §73 rather than repeating it: **whole-frame comparison of any kind
+cannot see Halyard's content.** Every render is a light card with a small dark
+text region, so any two frames are ~98% identical by construction, whatever the
+pooling. §74's tonal range works because it asks a *within-frame* question
+(is there dark content anywhere); loop similarity is inherently
+*between-frame*, which is the axis where this content carries almost no signal.
+
+So the field stays unwritten and `retention.not_loop_ready` stays `unmeasured`.
+An honest gap is worth more than a green check that cannot fail — and a rule
+that passes everything is the one that gets trusted and then relied on.
+
+Closing it honestly needs a signal that survives the light-card problem:
+comparing the *text* rather than the picture, which means the frame descriptions
+`review_media` already gets from the vision model, or the render's own knowledge
+of what it drew. Both are real options; neither is a pixel comparison.
+
+The same reasoning applies to `firstFrameContrast`. A bimodal-histogram guess at
+"text against its background" would be a fabricated measurement, which is worse
+than an absent one.

@@ -8,24 +8,18 @@
  * The vision client is scripted — describing frames costs a model call, and the
  * question here is the wiring, not the describer.
  */
-import { execFile } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { mkdtemp, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import path from 'node:path';
-import { promisify } from 'node:util';
 import type pg from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createIsolatedPool, databaseAvailable } from '../../../packages/db/src/__tests__/testDb.js';
-import { LOOP_SIMILARITY_THRESHOLD, type FrameObservation, type GateResult, type VisionClient } from '@halyard/core';
+import type { FrameObservation, GateResult, VisionClient } from '@halyard/core';
 import { aspectRatioOf, keyTermsFor, reviewMediaHandler } from './handlers/reviewMedia.js';
-import { frameSampleTimes, measureLoopSimilarity, sampleFrames } from './video.js';
+import { frameSampleTimes, sampleFrames } from './video.js';
 import type { HandlerContext, Job } from './poller.js';
 
 const available = await databaseAvailable();
 const d = available ? describe : describe.skip;
 
-const execFileAsync = promisify(execFile);
 const VIDEO = '.render-output/video/SubstitutionExplainer.mp4';
 const hasVideo = existsSync(VIDEO);
 
@@ -739,75 +733,4 @@ d('stills attached to a video item', () => {
     expect(visual.status).not.toBe('passed');
     expect((visual.detail as { stills: { unexamined: string[] } }).stills.unexamined).toHaveLength(1);
   }, 60_000);
-});
-
-/**
- * §256. The loop rule, measured against video made for the purpose.
- *
- * Synthesised rather than fixtured: the two cases this rule exists to tell
- * apart are "the ending looks like the opening" and "it does not", and lavfi
- * can produce both exactly, so the test asserts on known truth rather than on
- * whatever a checked-in render happens to do.
- */
-describe('loop similarity, measured from real frames', () => {
-  let dir = '';
-  let ffmpeg = true;
-
-  const make = async (name: string, filter: string) => {
-    const out = path.join(dir, name);
-    await execFileAsync('ffmpeg', [
-      '-v', 'error', '-y',
-      '-f', 'lavfi', '-i', filter,
-      '-pix_fmt', 'yuv420p', out,
-    ]);
-    return out;
-  };
-
-  beforeAll(async () => {
-    try {
-      await execFileAsync('ffmpeg', ['-version']);
-    } catch {
-      ffmpeg = false;
-      return;
-    }
-    dir = await mkdtemp(path.join(tmpdir(), 'halyard-loop-'));
-  });
-
-  afterAll(async () => {
-    if (dir) await rm(dir, { recursive: true, force: true });
-  });
-
-  it.skipIf(!ffmpeg)('reads a still video as a near-perfect loop', async () => {
-    const file = await make('still.mp4', 'color=c=gray:s=64x64:r=30:d=3');
-    const similarity = await measureLoopSimilarity(file, 3);
-    expect(similarity).not.toBeNull();
-    expect(similarity!).toBeGreaterThan(0.95);
-  }, 30_000);
-
-  it.skipIf(!ffmpeg)('reads black-to-white as the opposite of a loop', async () => {
-    /* Ends nothing like it began: the case the rule is meant to warn about. */
-    const file = await make(
-      'fade.mp4',
-      'color=c=white:s=64x64:r=30:d=3,fade=t=in:st=0:d=2.9:color=black',
-    );
-    const similarity = await measureLoopSimilarity(file, 3);
-    expect(similarity).not.toBeNull();
-    expect(similarity!).toBeLessThan(0.4);
-    /* Below the threshold the gate actually uses, not merely low. */
-    expect(similarity!).toBeLessThan(LOOP_SIMILARITY_THRESHOLD);
-  }, 30_000);
-
-  it.skipIf(!ffmpeg)('returns null for a file it cannot read, never a default', async () => {
-    /*
-     * The distinction the whole probe turns on. A number here would be reported
-     * as a measured loop; null makes the rule say `unmeasured`. Gotcha 9.
-     */
-    expect(await measureLoopSimilarity(path.join(dir, 'nope.mp4'), 3)).toBeNull();
-  }, 30_000);
-
-  it.skipIf(!ffmpeg)('refuses a duration it cannot sample against', async () => {
-    const file = await make('still2.mp4', 'color=c=gray:s=64x64:r=30:d=2');
-    expect(await measureLoopSimilarity(file, 0)).toBeNull();
-    expect(await measureLoopSimilarity(file, Number.NaN)).toBeNull();
-  }, 30_000);
 });

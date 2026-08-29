@@ -34,7 +34,7 @@ import {
   type VisionClient,
   type VisualTarget,
 } from '@halyard/core';
-import { frameSampleTimes, measureLoopSimilarity, probeVideo, sampleFrames } from '../video.js';
+import { frameSampleTimes, probeVideo, sampleFrames } from '../video.js';
 import type { HandlerContext, Job } from '../poller.js';
 
 interface ItemRow {
@@ -440,15 +440,6 @@ export async function reviewMediaHandler(
      * `unmeasured` and drop the gate to `warning` rather than passing quietly,
      * because a skipped check is not a passed check.
      */
-    /*
-     * Only measured where the rule applies: two extra ffmpeg seeks are cheap,
-     * but not worth spending on a platform whose gate will ignore the answer.
-     */
-    const wantsLoop = item.platform === 'tiktok' || item.platform === 'instagram';
-    const loopSimilarity = wantsLoop
-      ? await measureLoopSimilarity(localPath, probe.durationSeconds)
-      : null;
-
     const retention = runRetentionQC(
       {
         fps: probe.fps ?? 30,
@@ -472,24 +463,12 @@ export async function reviewMediaHandler(
          * its own pipeline. See `DECISIONS.md` §74.
          */
         frameDelta: consecutiveDeltas(probe.frameContentRange),
-        /**
-         * Measured from the file, and left absent when it cannot be.
-         *
-         * `loopSimilarity` is the third optional probe field to have had no
-         * writer at all (after `frameLuminance` and `frameDelta`), so
-         * `retention.not_loop_ready` has never run on any render — on the two
-         * platforms where a loop ending is the point. `measureLoopSimilarity`
-         * returns null rather than a default when either frame is unreadable,
-         * which keeps the rule reporting `unmeasured` instead of a fabricated
-         * pass. Gotcha 9.
-         */
-        loopSimilarity: loopSimilarity ?? undefined,
       },
       {
         platform: item.platform,
         // TikTok and Reels reward replays. Declared so the loop rule reports as
         // unmeasured where it matters rather than being silently irrelevant.
-        loopReady: wantsLoop,
+        loopReady: item.platform === 'tiktok' || item.platform === 'instagram',
       },
     );
 

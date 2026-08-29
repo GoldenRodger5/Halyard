@@ -41,21 +41,23 @@ assertion that catches it: QC reports nothing `unmeasured`. §255.
 Deployed to Railway; the worker is rendering, reviewing media and scheduling on
 this commit.
 
-**A dead rule, found in production logs and closed.** `review_media` reported
-four retention checks `unmeasured` on a real render. One of them —
-`no_content_in_opening` — is unmeasured *by decision*: §73 measured that mean
-luminance cannot see Halyard's content and that sampling harder would fail every
-render on a signal that cannot see it. Sampling is already front-loaded
-(`0, 0.8, 2` plus three body frames); the deficiency is the signal, not the rate.
+**A dead rule, found in production logs — and left honestly dead.**
+`review_media` reported four retention checks `unmeasured` on a real render. One
+is unmeasured by decision (§73: mean luminance cannot see a light card with
+changing dark text; sampling is already front-loaded, so the deficiency is the
+signal). The other three — `firstFrameWordCount`, `firstFrameContrast`,
+`loopSimilarity` — are optional probe fields **with no writer anywhere**, the
+third instance after `frameLuminance` (§71) and `frameDelta` (§74).
 
-The other three are a different thing entirely: `firstFrameWordCount`,
-`firstFrameContrast` and `loopSimilarity` are optional probe fields **with no
-writer anywhere in the codebase** — the same defect as `frameLuminance` (§71) and
-`frameDelta` (§74), which is now three for three. `loopSimilarity` is measured
-from the file as of §256, so `retention.not_loop_ready` runs for the first time
-on TikTok and Instagram, the two platforms where a loop ending is the point.
-Word count and text contrast remain unwritten and are named in `unmeasured`
-rather than passing.
+`loopSimilarity` was implemented, then reverted. A 16×16 average-hash scored
+0.990–0.994 on the fixture renders, which looked like a pass until frames from
+*different scenes in the same video* scored 0.979–1.000 — the loop pair sits
+inside the noise band. Full-resolution and min-pooled variants fail the same
+way. The reason generalises §73: every render is a light card with a small dark
+text region, so any two frames are ~98% identical by construction, and
+whole-frame comparison of any kind is blind to this content. The rule stays
+`unmeasured` rather than returning a pass that cannot fail. §256.
+
 
 
 **2026-08-28 — the creative system is a system, and it has run against
