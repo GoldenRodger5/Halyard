@@ -1035,12 +1035,12 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
           recentFormats: (await recentFormats(ctx, account.id)) as never,
           requested: (job.payload.postFormat as string | undefined) ?? null,
           /*
-           * Sourced formats need citations and nothing here can supply them
-           * yet — a research step would. Declared false rather than left
-           * default, so the selector avoids them instead of the writer
-           * inventing sources to satisfy a gate it cannot pass.
+           * §282. Sourced formats are available now that citations are
+           * actually verified: every cited slot's URL is fetched and checked
+           * for the claim's distinctive terms, so an invented link costs the
+           * writer an attempt instead of reaching a reader.
            */
-          canCite: false,
+          canCite: true,
         });
         await ctx.pool.query('update content_items set post_format = $2 where id = $1', [
           contentItemId,

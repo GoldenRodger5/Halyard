@@ -8,6 +8,16 @@
 import { describe, expect, it, vi } from 'vitest';
 import { POST_FORMAT_CATALOG } from '@halyard/core';
 import { FormatRejectedError, MAX_FORMAT_ATTEMPTS, writeToFormat } from './formatWriter.js';
+
+/**
+ * A source that says whatever the test needs, without touching the network.
+ * §282 fetches every citation, and a test that reaches the internet fails when
+ * somebody else edits a page.
+ */
+const sourceSaying = (text: string) =>
+  (async () => new Response(`<html><body>${text}</body></html>`, { status: 200 })) as unknown as typeof fetch;
+
+const sourceMissing = (async () => new Response('nope', { status: 404 })) as unknown as typeof fetch;
 import type { HandlerContext } from './poller.js';
 
 function ctx(): HandlerContext & { logs: string[] } {
@@ -87,13 +97,78 @@ describe('writing to a format', () => {
     ).rejects.toThrow(/not filled/);
   });
 
-  it('accepts a sourced format when every claim is cited', async () => {
+  it('refuses a citation that is not a link, because nothing could be read', async () => {
+    /*
+     * §282. "Beccari, 1728" has the shape of a citation and cannot be checked.
+     * In a format that requires verification, unverifiable is a refusal.
+     */
+    const history = POST_FORMAT_CATALOG.history;
+    const named = history.slots.map((s) => ({
+      key: s.key,
+      index: 0,
+      text: 'Beccari isolated gluten in 1728.',
+      citation: 'Beccari, 1728',
+    }));
+    const complete = vi.fn().mockResolvedValue(reply(named));
+    await expect(
+      writeToFormat(
+        ctx(),
+        history,
+        { subject: 'gluten', audience: 'a', platform: 'x' },
+        { complete } as never,
+        sourceSaying('anything'),
+      ),
+    ).rejects.toThrow(/not filled/);
+  });
+
+  it('refuses a cited URL that does not resolve', async () => {
+    /* The dominant failure: a plausible, invented link. */
     const history = POST_FORMAT_CATALOG.history;
     const cited = history.slots.map((s) => ({
       key: s.key,
       index: 0,
-      text: 'Something asserted.',
-      citation: 'Beccari, 1728',
+      text: 'Beccari isolated gluten in 1728.',
+      citation: 'https://example.org/beccari',
+    }));
+    const complete = vi.fn().mockResolvedValue(reply(cited));
+    await expect(
+      writeToFormat(
+        ctx(),
+        history,
+        { subject: 'gluten', audience: 'a', platform: 'x' },
+        { complete } as never,
+        sourceMissing,
+      ),
+    ).rejects.toThrow(/not filled/);
+  });
+
+  it('refuses a real link that is about something else entirely', async () => {
+    const history = POST_FORMAT_CATALOG.history;
+    const cited = history.slots.map((s) => ({
+      key: s.key,
+      index: 0,
+      text: 'Beccari isolated gluten in 1728.',
+      citation: 'https://example.org/football',
+    }));
+    const complete = vi.fn().mockResolvedValue(reply(cited));
+    await expect(
+      writeToFormat(
+        ctx(),
+        history,
+        { subject: 'gluten', audience: 'a', platform: 'x' },
+        { complete } as never,
+        sourceSaying('A guide to choosing running shoes for beginners.'),
+      ),
+    ).rejects.toThrow(/not filled/);
+  });
+
+  it('accepts a sourced format when every link resolves and mentions the claim', async () => {
+    const history = POST_FORMAT_CATALOG.history;
+    const cited = history.slots.map((s) => ({
+      key: s.key,
+      index: 0,
+      text: 'Beccari isolated gluten in 1728.',
+      citation: 'https://example.org/beccari',
     }));
     const complete = vi.fn().mockResolvedValue(reply(cited));
     const result = await writeToFormat(
@@ -101,6 +176,7 @@ describe('writing to a format', () => {
       history,
       { subject: 'gluten', audience: 'a', platform: 'x' },
       { complete } as never,
+      sourceSaying('In 1728 Beccari isolated gluten from wheat flour.'),
     );
     expect(result.draft.slots).toHaveLength(history.slots.length);
   });

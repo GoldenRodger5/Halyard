@@ -170,7 +170,9 @@ describe('writing to a format', () => {
   it('demands citations in the brief for a sourced format', () => {
     const brief = briefFor(history, { subject: 'gluten', audience: 'bakers', platform: 'tiktok' });
     expect(brief).toContain('citation');
-    expect(brief).toContain('Do not invent a source');
+    /* §282 — the brief now demands a *link*, because the page gets fetched. */
+    expect(brief).toContain('must be a URL');
+    expect(brief).toContain('invented URL costs you the attempt');
   });
 
   it('does not demand citations for a craft format', () => {

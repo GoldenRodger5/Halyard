@@ -7459,3 +7459,47 @@ For an account whose entire pitch is knowing what is true, shipping that risk to
 save a research step is the wrong trade. The formats are built, tested and
 rendering; enabling them needs a step that fetches and verifies a source, and
 that is the next real piece of work rather than a flag to flip.
+
+## 282. Reading the source, not just checking a citation was offered
+
+§279's `looksCitable` asks whether a citation has the *shape* of one. That
+catches "studies show" and nothing else. The failure that actually damages an
+account is a confident, well-formed, **invented** citation — a plausible URL
+that does not exist, or a real URL about something else.
+
+So every cited slot is now fetched and read. Two things get established, and
+neither is "true":
+
+1. **The source resolves.** A hallucinated URL 404s.
+2. **It mentions the claim.** The claim's distinctive terms — a year, a
+   surname, a technical noun — appear in the page.
+
+A citation failing either is rejected and the slot is named, so the rewrite
+replaces that fact rather than starting over. `supported` is deliberately a
+weaker word than `true`: it means a real page exists and is about this, and the
+piece remains a person's judgement to approve.
+
+Distinctive terms rather than whole sentences, because matching sentences fails
+on paraphrase and paraphrase is what honest citation looks like. Half the terms
+is the threshold — enough to establish subject, low enough not to punish good
+writing.
+
+**Tested against the live web, and it corrected me twice.** I first asserted
+that Wikipedia's *Gluten* page supports "identified in 1728 by Beccari"; it does
+not mention Beccari or 1728 at all, and the verifier was right to refuse it. A
+unit test then encoded a paraphrase that dropped the word "gluten" and expected
+a pass — also correctly refused, since a page that never names the subject is
+not evidence about it. Both times the code was right and the expectation was
+wrong.
+
+Against real pages: the Beccari and coeliac-disease articles support their
+claims (5/6 and 5/5 terms), a football article does not (1/6), a non-existent
+page is unreachable, and a citation with no link is `not_a_url`.
+
+`canCite` is now **true**. The four sourced formats — quiz, history, myth/fact,
+origin — are available, because an invented link now costs the writer an attempt
+instead of reaching a reader.
+
+`fetchImpl` is injected so tests never touch the network: a test that reaches the
+internet fails when somebody else edits a page, and this is the one check that
+has to be reliable enough to refuse a piece.

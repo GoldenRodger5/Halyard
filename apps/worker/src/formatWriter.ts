@@ -22,12 +22,14 @@ import {
   briefFor,
   checkDraft,
   parseDraft,
+  requiresCitation,
   type FormatDraft,
   type PostFormat,
   type SlotProblem,
   type LlmClient,
 } from '@halyard/core';
 import type { HandlerContext } from './poller.js';
+import { checkCitation } from './citationCheck.js';
 
 export const FORMAT_PROMPT_VERSION = 'post_format.v1';
 
@@ -64,6 +66,14 @@ export async function writeToFormat(
   format: PostFormat,
   context: { subject: string; audience: string; platform: string },
   llm: LlmClient,
+  /**
+   * §282. Injected so tests can verify citations without the network.
+   *
+   * A test that reaches the internet is a test that fails when a page moves,
+   * and citation checking is the one thing here that must be reliable enough to
+   * refuse a piece.
+   */
+  fetchImpl: typeof fetch = fetch,
 ): Promise<FormatWriteResult> {
   const system = briefFor(format, context);
   let feedback = '';
@@ -100,6 +110,53 @@ export async function writeToFormat(
 
     const check = checkDraft(format, parsed);
     last = check.problems;
+
+    /**
+     * §282. For a sourced format, go and read what it cited.
+     *
+     * `checkDraft` establishes that a citation was offered and has the shape of
+     * one. That catches "studies show" and nothing else — the failure that
+     * damages an account is a confident, well-formed, **invented** citation.
+     *
+     * So every cited slot is fetched. A URL that 404s is a hallucinated source;
+     * a page that never mentions the claim's distinctive terms is a real URL
+     * attached to the wrong thing. Both are rejected, and the specific slot is
+     * named so the rewrite can replace that fact rather than starting over.
+     *
+     * Checked only once the draft is otherwise complete, because verifying the
+     * citations of a piece that is going to be rewritten anyway spends network
+     * calls to learn nothing.
+     */
+    if (check.ok && requiresCitation(format)) {
+      const unsupported: SlotProblem[] = [];
+      for (const slot of parsed.slots) {
+        if (!slot.citation) continue;
+        const verdict = await checkCitation(
+          ctx,
+          { claim: slot.text, citation: slot.citation },
+          fetchImpl,
+        );
+        if (verdict.verdict !== 'supported') {
+          unsupported.push({
+            rule: 'format.unverified_citation',
+            severity: 'error',
+            message: `${slot.key}: ${verdict.reason}`,
+            slot: slot.key,
+          });
+        }
+      }
+
+      if (unsupported.length > 0) {
+        last = [...check.problems, ...unsupported];
+        feedback = unsupported.map((p) => `- ${p.message}`).join('\n');
+        ctx.log('citations did not verify, asking again', {
+          format: format.id,
+          attempt,
+          unsupported: unsupported.length,
+        });
+        continue;
+      }
+    }
 
     if (check.ok) {
       ctx.log('format filled', {

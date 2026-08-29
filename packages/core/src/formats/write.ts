@@ -87,10 +87,15 @@ export function briefFor(
   if (requiresCitation(format)) {
     lines.push(
       '',
-      'EVERY factual claim needs a citation: a source name and a date, or a URL.',
-      'If you cannot cite it, do not assert it. Choose a different fact you can cite.',
-      'Do not invent a source. An uncited piece is discarded, so an invented',
-      'citation wastes the attempt and risks publishing something false.',
+      'EVERY factual claim needs a citation, and it must be a URL.',
+      'The page is fetched and read. A link that does not resolve, or that does',
+      'not mention the claim, is rejected and you will be asked again — so an',
+      'invented URL costs you the attempt and gains nothing.',
+      '',
+      'Prefer a stable, public page: an encyclopaedia entry, a university or',
+      'government page, a journal abstract, a standards body. Choose a fact you',
+      'can actually link, rather than the most interesting one you can recall.',
+      'If you cannot link it, choose a different fact.',
     );
   }
 
