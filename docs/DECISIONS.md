@@ -7359,3 +7359,56 @@ could not run has not endorsed anything.
 `critic.test.ts` walks a finding the whole way — gate → defect → policy → action
 — so a change that quietly disconnects any link fails there rather than in
 production, where the symptom is "the critic runs and nothing ever changes".
+
+## 277–280. The format family
+
+An account that only posts "here is a thing, converted" is a catalogue. The
+family is the other shapes — quiz, history, tips, full recipe, myth/fact,
+comparison, origin — and the point of it is that **six of the eight need no
+product artifact at all**, so an account can post on a day when nothing was
+converted.
+
+**A format is a structure with slots, not a topic.** That is what makes it
+work: slots map onto layouts that already exist, so it renders deterministically;
+gates check slots rather than prose, so it is gradeable; and nothing in the
+catalogue knows what a recipe is, so it holds for any product attached to
+Halyard.
+
+Named `PostFormat`, not `ContentFormat` — that name is taken by
+`generation/formatChoice.ts` for the *media* type (text, image, carousel,
+video). The two are orthogonal: a quiz is a `PostFormat` and can be rendered as
+either.
+
+### Citations are the hard part
+
+A product post's claims check against the artifact. A **history** post's claims
+are about the world and there is no artifact to check. That is the real risk
+this family introduces: an account whose pitch is "we know what is in your food"
+cannot be wrong about a date, and a wrong fact is the most screenshottable
+mistake available.
+
+So each format declares `factuality`, and `sourced` formats require a citation
+per claim — refused, not downgraded, because a plausible unsourced fact is
+indistinguishable from a true one until somebody checks. `looksCitable` is
+deliberately shallow: it cannot verify a source *says* what is claimed, only
+that something checkable was offered, and it rejects "studies show" and "experts
+say", which is the failure that actually happens.
+
+`selectFormat` will not pick a sourced format when the caller says nothing can
+cite — a duller post beats a confident invented one.
+
+### The inversion, found by looking at the card
+
+`lead_emphasis` promotes `bodyLines[0]` to 86px and draws the headline small as
+a label. The first quiz answer put the answer in the headline and the citation
+in the body, so the card read **"Source: Beccari, 1728"** in display type with
+the actual answer as a caption above it.
+
+Invisible in the data and obvious on the render. Fixed in three places — the
+quiz answer, the history source, the transformation cost — and pinned by a test,
+plus a second test that no promoting layout is used with an empty body, since
+that makes it an expensive `statement`.
+
+A quiz keeps question and answer on **separate cards**. A reader who can see the
+answer under the question has not been asked anything, and the pause is the
+entire format.
