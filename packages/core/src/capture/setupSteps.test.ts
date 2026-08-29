@@ -69,6 +69,15 @@ describe('setup steps', () => {
     // No flow should be mostly invisible; that would mean the flow is wrong,
     // not that the footage engine is clever.
     for (const flow of Object.values(FLOWS)) {
+      /*
+       * §299. A plumbing flow is entirely setup by design — signing in is not
+       * a demonstration. It declares that, so the rule stays strict for every
+       * flow that is meant to be seen.
+       */
+      if (flow.plumbing) {
+        expect(flow.steps.every((s) => s.setup), flow.id).toBe(true);
+        continue;
+      }
       const setup = flow.steps.filter((s) => s.setup).length;
       expect(setup, flow.id).toBeLessThan(flow.steps.length / 2);
     }
@@ -119,5 +128,52 @@ describe('every independent flow navigates itself', () => {
      */
     expect(FLOWS.swap_toggle.dependsOn).toBeUndefined();
     expect(FLOWS.swap_toggle.consumesCredit).toBe(false);
+  });
+});
+
+/**
+ * §299. Signing in, and the two relationships between flows.
+ */
+describe('the sign-in flow', () => {
+  it('is required by the flow that needs a real adaptation', () => {
+    /*
+     * The walkthrough render showed the demo card with a sign-in sheet over it:
+     * the adapt flow waits correctly for a real adaptation and the real
+     * adaptation needs an account, so every demonstration recorded the
+     * signed-out state.
+     */
+    expect(FLOWS.adapt_and_reveal.requires).toBe('sign_in');
+  });
+
+  it('keeps `requires` and `dependsOn` as different relationships', () => {
+    /*
+     * `dependsOn` means "reuses the parent's result, so spends no credit".
+     * `sign_in` produces no result to reuse, and an adaptation genuinely does
+     * spend a credit whether or not somebody signed in first. Conflating them
+     * broke that rule; two words keep both intact.
+     */
+    expect(FLOWS.adapt_and_reveal.dependsOn).toBeUndefined();
+    expect(FLOWS.adapt_and_reveal.consumesCredit).toBe(true);
+    expect(FLOWS.sign_in.consumesCredit).toBe(false);
+  });
+
+  it('never writes a credential into the flow definition', () => {
+    /*
+     * The whole reason `fillSecret` exists. A step names *which* secret it
+     * wants; the runner is the only thing that sees the value, so a credential
+     * cannot reach a log line, a job payload, or this file.
+     */
+    const serialised = JSON.stringify(FLOWS.sign_in);
+    expect(serialised).not.toMatch(/password["']?\s*:\s*["'][^"']{3,}/i);
+    for (const step of FLOWS.sign_in.steps) {
+      if (step.action === 'fillSecret') {
+        expect(['email', 'password'], step.name).toContain(step.value);
+      }
+    }
+  });
+
+  it('declares that it cannot run without credentials', () => {
+    /* Skipped rather than failed: an app with no login is a normal case. */
+    expect(FLOWS.sign_in.requiresCredentials).toBe(true);
   });
 });

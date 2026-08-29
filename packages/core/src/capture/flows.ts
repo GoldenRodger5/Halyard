@@ -19,7 +19,7 @@
  * while absent and become the durable hook the day RecipeFix adds them.
  */
 
-export type FlowId = 'adapt_and_reveal' | 'swap_toggle' | 'cook_mode_timer';
+export type FlowId = 'sign_in' | 'adapt_and_reveal' | 'swap_toggle' | 'cook_mode_timer';
 
 export interface FlowStep {
   /** Named so a failure reads "waited for the SWAPPED badge", not "step 7". */
@@ -33,7 +33,16 @@ export interface FlowStep {
     | 'waitForHidden'
     | 'wait'
     | 'still'
-    | 'scrollTo';
+    | 'scrollTo'
+    /**
+     * §299. Fill a field from the product's stored credentials.
+     *
+     * A separate action from `fill` so a credential can never be written into a
+     * flow definition, a log line, or a job payload — the step names *which*
+     * secret it wants and the runner is the only thing that ever sees the
+     * value. `value` here is a key (`email`, `password`), not a secret.
+     */
+    | 'fillSecret';
   /** Discovered selector. Omitted for goto/wait/still. */
   selector?: string;
   /**
@@ -146,6 +155,36 @@ export interface CaptureFlow {
    * captures instead of three credits producing three.
    */
   dependsOn?: FlowId;
+  /**
+   * §299. A flow that must run first to establish state, not to be reused.
+   *
+   * Distinct from `dependsOn`, which means "this reuses the result the parent
+   * produced, so it spends no credit". `sign_in` produces no result to reuse —
+   * it establishes a session — and conflating the two broke the rule that a
+   * dependent never spends a second credit, because an adaptation genuinely
+   * does spend one whether or not somebody signed in first.
+   *
+   * Two words for two relationships, so neither rule has to be weakened.
+   */
+  requires?: FlowId;
+  /**
+   * §299. This flow is plumbing, and is expected to be invisible.
+   *
+   * Every other flow is checked against "no flow should be mostly setup",
+   * because a mostly-invisible content flow means the flow is wrong. Signing in
+   * is *entirely* setup by design — a video of somebody typing a password is
+   * not a demonstration — so it declares that rather than quietly failing the
+   * rule or forcing the rule to be loosened for everyone.
+   */
+  plumbing?: boolean;
+  /**
+   * §299. This flow cannot run without the product's test credentials.
+   *
+   * Skipped rather than failed when they are absent: an app with no account
+   * requirement is a normal case, and a capture run should not dead-letter
+   * because a product does not have a login.
+   */
+  requiresCredentials?: boolean;
   steps: FlowStep[];
 }
 
@@ -154,8 +193,71 @@ export const SAMPLE_RECIPE_URL =
   'https://sallysbakingaddiction.com/homemade-artisan-bread/';
 
 export const FLOWS: Record<FlowId, CaptureFlow> = {
+  /**
+   * §299. Sign in, so everything after it records the real product.
+   *
+   * The walkthrough render showed the *demo* card with a "Sign in to save your
+   * recipes" sheet across it. The adapt flow waits correctly for a real
+   * adaptation, and the real adaptation needs an account — so every product
+   * demonstration Halyard has recorded has been of the signed-out state, which
+   * is the one part of the product nobody is trying to sell.
+   *
+   * Every step is `setup`: signing in is plumbing, and a video of somebody
+   * typing a password is not a demonstration. Nothing here is stilled.
+   *
+   * Skipped rather than failed when the product has no stored credentials — an
+   * app with no account requirement is a normal case, and a capture run should
+   * not dead-letter because a product has no login.
+   */
+  sign_in: {
+    id: 'sign_in',
+    title: 'Sign in with the test account',
+    why: 'Everything worth demonstrating is behind the sign-in.',
+    path: '/signin',
+    viewport: { width: 430, height: 932 },
+    expectedSeconds: [2, 20],
+    consumesCredit: false,
+    requiresCredentials: true,
+    plumbing: true,
+    steps: [
+      { name: 'open the sign-in page', action: 'goto', value: '/signin', setup: true },
+      {
+        name: 'enter the email',
+        action: 'fillSecret',
+        value: 'email',
+        selector: 'input[type="email"]',
+        fallbackSelectors: ['input[name="email"]', 'input[autocomplete="email"]'],
+        setup: true,
+      },
+      {
+        name: 'enter the password',
+        action: 'fillSecret',
+        value: 'password',
+        selector: 'input[type="password"]',
+        fallbackSelectors: ['input[name="password"]', 'input[autocomplete="current-password"]'],
+        setup: true,
+      },
+      {
+        name: 'submit the sign-in',
+        action: 'click',
+        selector: 'role=button[name=/^(sign in|log in|continue)/i]',
+        fallbackSelectors: ['button[type="submit"]'],
+        setup: true,
+      },
+      {
+        name: 'wait for the signed-in state',
+        action: 'waitForHidden',
+        selector: 'input[type="password"]',
+        timeoutMs: 30_000,
+        setup: true,
+      },
+    ],
+  },
+
   adapt_and_reveal: {
     id: 'adapt_and_reveal',
+    /* §299. Signed in first, so the adaptation is real rather than the demo. */
+    requires: 'sign_in',
     title: 'Paste a recipe, get it adapted',
     why:
       'The whole product in one shot: an arbitrary recipe URL goes in, a diet constraint is picked, and what comes back has substitutions with reasons attached.',
