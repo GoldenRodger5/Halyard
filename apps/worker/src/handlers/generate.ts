@@ -279,6 +279,28 @@ export async function disownPartialContentItem(
       where id = $1 and status = 'pending_approval'`,
     [itemId, JSON.stringify({ failed_because: why })],
   );
+  /**
+   * The render rows go with it, or they wait forever.
+   *
+   * `generate` inserts the Remotion render row but deliberately does not
+   * enqueue it — `tts` releases it once the audio exists, because rendering
+   * first would produce a silent video of the wrong duration. The `tts`
+   * enqueue is the *last* statement in the video block, so anything that
+   * throws between the two leaves a render sitting in `queued` with no job
+   * that will ever claim it and no error to explain it. Three of those were
+   * live, the oldest eleven hours old.
+   *
+   * Failed rather than released: releasing would render a video for a piece
+   * whose script was rejected, which is the silent-video case the contract
+   * exists to prevent.
+   */
+  await pool.query(
+    `update renders
+        set status = 'failed',
+            error = $2
+      where content_item_id = $1 and status = 'queued'`,
+    [itemId, `Abandoned with the item that owned it: ${why}`],
+  );
 }
 
 export async function generateHandler(job: Job, ctx: HandlerContext): Promise<void> {

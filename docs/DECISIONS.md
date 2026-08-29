@@ -6929,3 +6929,38 @@ those ratings are what give the mix any meaning at all.
 Scoped to calibration deliberately. The ordinary run still enforces 15%, which a
 test pins, because the alternative — treating an empty window as permissive
 everywhere — would let the first six posts on a new account all be product.
+
+## 261. Rows claimed by a stage that died
+
+Three defects, one shape, all live at once: a row marked in-progress by a stage
+that then aborted, with no job pointing at it and no error to explain it.
+
+- **Renders.** `generate` inserts the Remotion row and deliberately does *not*
+  enqueue it — `tts` releases it once the audio exists, because rendering first
+  produces a silent video of the wrong duration. That `tts` enqueue is the last
+  statement in the video block, so anything throwing in between leaves a render
+  in `queued` forever. Three were, the oldest eleven hours old, and the
+  contract's own comment predicted it: "without it a video item would sit in
+  `queued` forever with no error to explain it."
+- **Ideas.** `generate` claims an idea before spending anything on it (§78/§87)
+  and marks it `used` when the drafts land. A run that dies between the two
+  leaves it `selected` permanently: never drafted, never re-proposed. Five were.
+
+Fixed at the source — §258's disown now fails the item's queued renders too,
+because releasing them would render a video for a piece whose script was
+rejected, which is the exact silent-video case the contract exists to prevent.
+
+And a net in `reconcile_schedule` for what the source fix cannot see: a worker
+killed mid-run, a deploy during generation, a retry abandoning its first
+attempt's rows. Put there rather than in a new job kind on purpose — a new kind
+means `JOB_KINDS` *and* `jobs_kind_check` *and* a migration (gotcha 1), for a
+sweep that belongs on the cadence `reconcile` already runs.
+
+Deliberately conservative: it touches only rows with **no job referencing them
+at all**, and only after two hours. Anything still being worked on has a job, so
+it cannot race live work — four of the ten tests assert exactly what it must not
+touch.
+
+Reported per sweep rather than silently repaired. A steady trickle here means a
+bug upstream, and a sweeper that quietly tidies up after one is how the upstream
+bug stays invisible.

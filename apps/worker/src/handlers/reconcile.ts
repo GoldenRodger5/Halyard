@@ -7,8 +7,19 @@
 import { decideReschedule, resolveSlot, type ResolvedSlot } from '@halyard/core';
 import type { Job, HandlerContext } from '../poller.js';
 
+/**
+ * §261. How long a claimed row may sit before it is presumed abandoned.
+ *
+ * Long enough that nothing in flight is touched — the slowest render observed
+ * is 69 seconds and a long-form generate run is minutes, not hours — and short
+ * enough that an operator is not looking at a stuck queue the next morning.
+ */
+const ORPHAN_AFTER_HOURS = 2;
+
 export async function reconcileScheduleHandler(_job: Job, ctx: HandlerContext): Promise<void> {
   const now = new Date();
+
+  await sweepOrphans(ctx);
 
   const { rows } = await ctx.pool.query<{
     id: string;
@@ -98,5 +109,79 @@ export async function reconcileScheduleHandler(_job: Job, ctx: HandlerContext): 
       case 'wait':
         break;
     }
+  }
+}
+
+/**
+ * §261. Rows claimed by a step that died, which nothing else will ever move.
+ *
+ * Three of these were live at once and each had the same shape: a row marked
+ * as in-progress by a stage that then aborted, with no job left pointing at it
+ * and no error to explain it. §258 closed the source for the paths it could
+ * see; this is the net for the ones it cannot — a worker killed mid-run, a
+ * deploy during generation, a retry that abandoned its first attempt's rows.
+ *
+ * Deliberately conservative: it only touches rows with **no job referencing
+ * them at all**, and only after {@link ORPHAN_AFTER_HOURS}. A row something is
+ * still working on always has a job, so this cannot race live work.
+ *
+ * Reported per sweep rather than silently repaired. A steady trickle here is a
+ * bug upstream, and a sweeper that quietly cleans up after one is how the
+ * upstream bug stays invisible.
+ */
+async function sweepOrphans(ctx: HandlerContext): Promise<void> {
+  /*
+   * Renders wait on `tts` to release them (`generate` inserts them without a
+   * job on purpose, so a video is never rendered before its audio exists). A
+   * render with no job is therefore one whose releasing stage never ran.
+   */
+  const renders = await ctx.pool.query<{ id: string }>(
+    `update renders r
+        set status = 'failed',
+            error = 'Orphaned: queued with no render job, and the stage that releases it never ran.'
+      where r.status = 'queued'
+        and r.created_at < now() - ($1 || ' hours')::interval
+        and not exists (
+          select 1 from jobs j
+           where j.payload->>'renderId' = r.id::text
+             and j.status in ('queued','running')
+        )
+      returning r.id`,
+    [ORPHAN_AFTER_HOURS],
+  );
+
+  /*
+   * `generate` claims an idea before spending anything on it (§78/§87), and
+   * marks it `used` only once the drafts land. A run that dies in between
+   * leaves the idea `selected` forever, so it is never drafted and never
+   * re-proposed — the idea is simply lost.
+   *
+   * Returned to `proposed` rather than `used`: nothing was published from it,
+   * so it is still a real candidate. Only when it produced no content item at
+   * all, which is what distinguishes an abandoned claim from a completed one.
+   */
+  const ideas = await ctx.pool.query<{ id: string }>(
+    `update ideas i
+        set status = 'proposed'
+      where i.status = 'selected'
+        /* ideas has no updated_at column; age from creation is the
+           conservative reading, since an older row is safer to release. */
+        and i.created_at < now() - ($1 || ' hours')::interval
+        and not exists (select 1 from content_items ci where ci.idea_id = i.id)
+        and not exists (
+          select 1 from jobs j
+           where j.kind = 'generate' and j.status in ('queued','running')
+        )
+      returning i.id`,
+    [ORPHAN_AFTER_HOURS],
+  );
+
+  if (renders.rowCount || ideas.rowCount) {
+    ctx.log('swept orphaned rows', {
+      renders: renders.rowCount ?? 0,
+      ideas: ideas.rowCount ?? 0,
+      olderThanHours: ORPHAN_AFTER_HOURS,
+      note: 'each one is a stage that died without disowning its rows',
+    });
   }
 }
