@@ -244,6 +244,43 @@ export function beatsForRender(
   });
 }
 
+/**
+ * §258. Disown a half-built row instead of leaving it approvable.
+ *
+ * `content_items` is inserted as soon as the copy is written; the voiceover,
+ * the render and the beats all land on it afterwards. So an abort anywhere in
+ * that tail leaves a row that looks finished — status `pending_approval`,
+ * `ai_components` of `{copy}`, no audio, no render — a video with no video,
+ * sitting in the approval queue where an operator sees a piece rather than a
+ * failure.
+ *
+ * The rejected-voiceover path is the live case: the gate correctly refuses the
+ * script, the `continue` skips the render, and the log line read "nothing
+ * queued", which stopped being true the moment the insert moved ahead of the
+ * gates. Gotcha 6, one table over — a skipped step is not a passed step.
+ *
+ * Marked `failed` with the reason rather than deleted: why a piece did not get
+ * made is the part worth keeping.
+ *
+ * Conditional on `pending_approval` so it can only ever disown a row this run
+ * left half-built. A piece an operator has already approved, or one a later
+ * stage already failed for its own reason, is not overwritten.
+ */
+export async function disownPartialContentItem(
+  pool: HandlerContext['pool'],
+  itemId: string | null,
+  why: string,
+): Promise<void> {
+  if (!itemId) return;
+  await pool.query(
+    `update content_items
+        set status = 'failed',
+            generation_meta = coalesce(generation_meta, '{}'::jsonb) || $2::jsonb
+      where id = $1 and status = 'pending_approval'`,
+    [itemId, JSON.stringify({ failed_because: why })],
+  );
+}
+
 export async function generateHandler(job: Job, ctx: HandlerContext): Promise<void> {
   const productId = String(job.payload.productId ?? 'recipefix');
 
@@ -650,6 +687,24 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
     for (const account of accounts.rows) {
       if (account.persona !== 'brand') continue; // founder posts are composed, not generated
 
+      /**
+       * §258. The row exists long before the piece does.
+       *
+       * `content_items` is inserted as soon as the copy is written, and the
+       * voiceover, the render and the beats all land on it afterwards. So an
+       * abort anywhere in that tail leaves a row that looks finished: status
+       * `pending_approval`, `ai_components` of `{copy}`, no audio, no render —
+       * a video with no video, sitting in the approval queue.
+       *
+       * Hoisted out of the `try` so the handler below can reach it. Null means
+       * nothing was inserted for this account yet and there is nothing to
+       * disown.
+       */
+      let insertedItemId: string | null = null;
+
+      const disownPartialItem = (why: string) => disownPartialContentItem(ctx.pool, insertedItemId, why);
+
+
       try {
         /**
          * The format the account can actually take, rather than a guess.
@@ -825,6 +880,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
         );
 
         const contentItemId = inserted.rows[0]!.id;
+        insertedItemId = contentItemId;
 
         // The published link points at Halyard's router, not at the destination,
         // so the device decision happens at click time and the click is counted.
@@ -1833,13 +1889,23 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
         }
 
         ctx.log('drafted', { contentItemId, platform: account.platform, attempts: draft.attempts });
+
       } catch (err) {
         if (err instanceof DraftRejectedError) {
-          // Never queued. That is the point of the gates.
-          ctx.log('draft rejected by QC, nothing queued', {
+          /*
+           * The gate did its job. The row it left behind is the problem: the
+           * copy insert happens ~240 lines before the voiceover is written, so
+           * a script this rejects leaves an approvable video with no audio and
+           * no render. §258.
+           */
+          await disownPartialItem(
+            `The voiceover was rejected by QC after ${err.attempts} attempts, so no video was built.`,
+          );
+          ctx.log('draft rejected by QC', {
             platform: account.platform,
             idea: idea.id,
             attempts: err.attempts,
+            disowned: insertedItemId ?? 'nothing inserted yet',
           });
           continue;
         }
@@ -1861,6 +1927,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
            * whose capabilities are unknown, because a format guess is how
            * TikTok ended up with image drafts it could not publish.
            */
+          await disownPartialItem(`No usable format for this account: ${err.message}`);
           ctx.log('account cannot take any format Halyard produces, skipping it', {
             platform: account.platform,
             idea: idea.id,
@@ -1868,6 +1935,12 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
           });
           continue;
         }
+        /*
+         * Rethrown, so the job fails and retries — but the row is disowned
+         * first. A retry inserts a fresh one, and without this the queue
+         * accumulates a no-media item per attempt.
+         */
+        await disownPartialItem(`Generation threw before the piece was finished: ${(err as Error).message}`);
         throw err;
       }
     }

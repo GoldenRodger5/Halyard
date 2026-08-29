@@ -10,7 +10,7 @@ import type pg from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createIsolatedPool, databaseAvailable } from '../../../packages/db/src/__tests__/testDb.js';
 import { classifyHookType, extractHookPattern } from '@halyard/core';
-import { copywriterDontRules, generateHandler } from './handlers/generate.js';
+import { copywriterDontRules, disownPartialContentItem, generateHandler } from './handlers/generate.js';
 import type { HandlerContext, Job } from './poller.js';
 
 const available = await databaseAvailable();
@@ -805,5 +805,85 @@ d('an idea is claimed before anything is spent on it', () => {
 
     // Not re-selected at all: the pool query filters on 'proposed'.
     expect(await statusOf(id)).toBe('selected');
+  });
+});
+
+
+/**
+ * §258. The row that outlives the piece.
+ *
+ * `content_items` is inserted when the copy is written and the voiceover lands
+ * on it two hundred lines later, so every abort in between leaves an
+ * approvable row with no media. This was live: three YouTube long-form items
+ * reached `pending_approval` with `ai_components` of `{copy}`, no `vo_script`,
+ * no `vo_asset_id` and an empty `render_ids` — videos with no video — while the
+ * handler logged "nothing queued".
+ */
+d('a half-built item is disowned, not left in the approval queue', () => {
+  let accountId = '';
+
+  beforeEach(async () => {
+    const { rows } = await pool.query<{ id: string }>(
+      `insert into social_accounts (product_id, platform, persona, handle, capability_state)
+       values ('recipefix','youtube','brand','RecipeFix','draft_only')
+       on conflict (product_id, platform, persona)
+         do update set handle = excluded.handle
+       returning id`,
+    );
+    accountId = rows[0]!.id;
+  });
+
+  const seed = async (status: string) => {
+    const { rows } = await pool.query<{ id: string }>(
+      `insert into content_items
+         (product_id, account_id, platform, persona, format, category, body, status, ai_components)
+       values ('recipefix',$2,'youtube','brand','video','education','Body.',$1,'{copy}')
+       returning id`,
+      [status, accountId],
+    );
+    return rows[0]!.id;
+  };
+
+  it('fails the row and records why, so the queue cannot show it as a piece', async () => {
+    const id = await seed('pending_approval');
+    await disownPartialContentItem(pool, id, 'The voiceover was rejected by QC after 3 attempts.');
+
+    const { rows } = await pool.query<{ status: string; generation_meta: { failed_because?: string } }>(
+      'select status, generation_meta from content_items where id = $1',
+      [id],
+    );
+    expect(rows[0]!.status).toBe('failed');
+    expect(rows[0]!.generation_meta.failed_because).toContain('rejected by QC');
+  });
+
+  it('never touches a row an operator already approved', async () => {
+    /*
+     * The guard that makes this safe to call from a catch-all. A late throw
+     * must not be able to reach back and fail something a person signed off.
+     */
+    const id = await seed('approved');
+    await disownPartialContentItem(pool, id, 'should not apply');
+
+    const { rows } = await pool.query<{ status: string }>(
+      'select status from content_items where id = $1',
+      [id],
+    );
+    expect(rows[0]!.status).toBe('approved');
+  });
+
+  it('does not overwrite a failure that already has its own reason', async () => {
+    const id = await seed('failed');
+    await disownPartialContentItem(pool, id, 'a second, later reason');
+
+    const { rows } = await pool.query<{ generation_meta: { failed_because?: string } }>(
+      'select generation_meta from content_items where id = $1',
+      [id],
+    );
+    expect(rows[0]!.generation_meta?.failed_because).toBeUndefined();
+  });
+
+  it('does nothing when the abort happened before anything was inserted', async () => {
+    /* Null is the honest "there is no row to disown", not an error. */
+    await expect(disownPartialContentItem(pool, null, 'nothing to do')).resolves.toBeUndefined();
   });
 });

@@ -6820,3 +6820,73 @@ of what it drew. Both are real options; neither is a pixel comparison.
 The same reasoning applies to `firstFrameContrast`. A bimodal-histogram guess at
 "text against its background" would be a fabricated measurement, which is worse
 than an absent one.
+
+## 257. The database I was reading was not the one that runs
+
+Six days of "production" analysis came from `localhost:5432`. The repo-root
+`.env` points at the local development database; the Railway worker reads its
+own `DATABASE_URL`, which is Supabase. Gotcha 2 covers the *write* direction —
+credentials placed at the root are invisible to both apps — and this is the read
+direction of the same split, which is worse because nothing errors. Every query
+answered, with plausible, wrong data.
+
+What it produced: a report that long-form had never run, that `platform_variants`
+had no writer, that `concepts` and `creative_briefs` were empty, and that
+`publishing_enabled` was **true**. In production all four are the opposite —
+39 variants with real `skip` decisions, 44 concepts, 8 briefs, and publishing
+off. The local database was simply six days stale.
+
+Read production through `railway variables --service worker --kv`. A local
+`psql` says nothing about what the system is doing.
+
+## 258. A row that outlives the piece it was for
+
+Three YouTube long-form items sat in `pending_approval` with `ai_components` of
+`{copy}`, `vo_script` null, `vo_asset_id` null and `render_ids` empty — videos
+with no video, waiting for a human to approve them.
+
+`content_items` is inserted at line 781, when the copy is written. The voiceover
+lands at line 1022 and the render after that. Everything in between can abort,
+and the rejected-voiceover path does: `writeVoScript` throws
+`DraftRejectedError`, the handler catches it, logs **"draft rejected by QC,
+nothing queued"**, and `continue`s. The log was true when the gates ran before
+the insert. It has been false since the insert moved ahead of them, and the
+comment beside it — "Never queued. That is the point of the gates." — is the
+kind of comment that stops being read.
+
+So the gate worked perfectly and its refusal reached the operator as a finished
+piece. Gotcha 6 one table over: a skipped step is not a passed step.
+
+The row is now marked `failed` with the reason, on every exit from that loop
+including the rethrow. Conditional on `status = 'pending_approval'`, so it can
+only disown what this run left half-built — never something an operator already
+approved, never a later stage's own failure reason.
+
+**§251 made this reachable.** Writing long-form section by section means one
+`writeVoScript` call per section rather than one per piece, and any section
+being rejected now rejects the whole voiceover. Before it, long-form got a
+too-short script that failed honestly at the audio gate; after it, long-form
+silently got no script at all. A fix that turned a loud failure into a quiet
+one.
+
+## 259. wpm is not a property of the voice
+
+Three local scripts measured 177–179 wpm across a 13% spread in word count,
+which looked like proof that the synthesiser has a fixed rate and that the
+158-wpm word budget in `copywriter.ts` was therefore targeting a number it would
+never hit. I changed the constant to 178 on that basis.
+
+Production, same ElevenLabs voice id, same key: **131 and 134 wpm**. A 36% range
+on one voice, so the rate is not a voice constant and the change was a
+regression — it would have written ~35% too many words for long-form.
+
+The local sample was three scripts of the same *kind* — short-form continuous
+prose. Consistency within one style is not evidence of a constant across styles;
+long-form is stitched from sections with paragraph breaks, and the synthesiser
+pauses at them, which is exactly the lever `audio/voice.ts` documents as the
+only one available. Reverted.
+
+The real finding is that one constant cannot serve both styles: 158 writes ~11%
+short for continuous prose and ~20% long for stitched sections. Closing that
+honestly means measuring the delivered rate per style and feeding it back, not
+picking a better number.
