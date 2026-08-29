@@ -244,12 +244,44 @@ export const FLOWS: Record<FlowId, CaptureFlow> = {
          */
         name: 'submit',
         action: 'click',
-        selector: 'role=button[name="Adapt This Recipe →"]',
+        /*
+         * §292. The label moved again, and this time it is *dynamic*.
+         *
+         * It now reads "Make it gluten-free →" and changes with the diet the
+         * user picked — "Make it dairy-free →", "Make it vegan →". So the
+         * primary selector is a pattern on the stable half of the sentence,
+         * not a literal, because there is no literal that survives a diet
+         * change let alone a copy change.
+         *
+         * §253 widened the fallbacks after the last break and every one of them
+         * still assumed the word "adapt". Twenty-seven capture jobs dead-lettered
+         * against that assumption and the product's central action went
+         * unrecorded for a day, which is the second time this exact class of
+         * selector has stopped the capture system. The lesson §159 recorded is
+         * not "add fallbacks", it is **never anchor on the words a designer is
+         * free to change** — so the last resort is structural.
+         */
+        selector: 'role=button[name=/^make it /i]',
         fallbackSelectors: [
-          'role=button[name="Adapt This Recipe"]',
+          /* The previous wording, in case a deploy rolls back. */
           'role=button[name=/adapt this recipe/i]',
-          'role=button[name=/^adapt\\b/i]',
-          'form button[type="submit"]',
+          /*
+           * Any primary action, by the verb it starts with. Anchored to the
+           * start on purpose: a loose `/(gluten|dairy|vegan)/i` was tried and
+           * matched **five** elements on the live page, because the diet chips
+           * are named for diets too. A fallback that clicks the first of five
+           * is worse than one that fails — it would silently pick "Gluten-Free"
+           * and record a capture of the wrong action entirely.
+           */
+          'role=button[name=/^(make|adapt|convert|fix|get)\\b/i]',
+          /*
+           * Last resort, and it is the trailing arrow rather than a `<form>`.
+           * The page has no form element at all — the structural fallback §253
+           * added matched nothing on the live app, so the "always works" option
+           * never worked. The arrow is this product's convention for a primary
+           * action and outlives its wording.
+           */
+          'role=button[name=/→\\s*$/]',
         ],
       },
       {

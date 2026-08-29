@@ -7747,3 +7747,31 @@ retry asked for the same impossible thing again. It is a fact about *one piece*:
 the shape asked for something the writer could not produce with a source it could
 verify. The item is disowned with the reason and the account loop continues, which
 is exactly how `DraftRejectedError` and `NoUsableFormatError` already behave.
+
+## 292. The capture selector broke again, and the fallbacks shared its assumption
+
+Twenty-seven capture jobs dead-lettered and the last successful capture was a day
+old, which is the real reason no post has ever shown the actual product: the
+assets do not exist.
+
+The submit button now reads **"Make it gluten-free →"**, and it is *dynamic* —
+"Make it dairy-free →", "Make it vegan →". Every selector in the chain assumed
+the word "adapt", including all four fallbacks §253 added after the *last* break.
+Widening a chain does nothing when every branch shares the same wrong assumption.
+
+The lesson §159 recorded is not "add fallbacks". It is **never anchor on words a
+designer is free to change.** The primary is a pattern on the stable half of the
+sentence; the last resort is the trailing arrow, this product's convention for a
+primary action.
+
+Two things were caught by running the chain against the live page rather than
+reasoning about it:
+
+- A fallback of `/(gluten|dairy|vegan)/i` matched **five** elements, because the
+  diet chips are named for diets too. A fallback that clicks the first of five is
+  worse than one that fails — it would have silently selected "Gluten-Free" and
+  recorded a capture of the wrong action.
+- §253's structural fallback, `form button[type="submit"]`, matches **nothing**:
+  the page has no `<form>` at all. The "always works" option had never worked.
+
+Every branch now resolves to the correct button, verified against production.
