@@ -7169,3 +7169,24 @@ needed building.
 `payoffDelivered` is passed as null from `review_media` rather than assumed:
 the verdict is reached at draft time and never carried onto the item, so from
 there it is genuinely unknown — and unknown must not read as delivered.
+
+## 270. Karaoke captions
+
+Word-by-word highlighting is the dominant short-form caption style, and the
+reason is mechanical rather than fashionable: most viewers watch muted, and a
+static block of subtitle text gives the eye nothing to track, so a reader runs
+ahead of the audio and loses the thread. A moving highlight paces them.
+
+Halyard already had everything needed. `transcribeWords` returns
+`{text, startSeconds, endSeconds}` per word and `buildCaptionCues` groups them —
+then threw the individual timings away and kept only the joined string. The cue
+now carries its words.
+
+The whole cue stays on screen and only the emphasis moves. A caption that
+reveals one word at a time is unreadable at speed, which is the common mistake
+in this style.
+
+The highlight is **colour only, never weight**. Re-weighting reflows the line on
+every word and the caption visibly twitches; the brand accent carries it without
+moving anything. Cues built before words were carried fall back to the plain
+text, so nothing regresses.

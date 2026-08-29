@@ -269,3 +269,49 @@ describe('layoutScenes with a capped scene', () => {
     expect(laid[1]!.durationFrames).toBe(Math.ceil(3.8 * fps));
   });
 });
+
+/**
+ * §270. Word timings on the cue, for karaoke captions.
+ *
+ * Word-by-word highlighting is the dominant short-form caption style because in
+ * a feed that autoplays muted it gives the eye something to track. The cue has
+ * always known its text and its span; it now carries the words too.
+ */
+describe('cues carry their words', () => {
+  const words = [
+    { text: 'Your', startSeconds: 0.0, endSeconds: 0.3 },
+    { text: 'dusting', startSeconds: 0.3, endSeconds: 0.8 },
+    { text: 'flour', startSeconds: 0.8, endSeconds: 1.2 },
+  ];
+
+  it('keeps every word, with its own timing', () => {
+    const [cue] = buildCaptionCues(words);
+    expect(cue!.words.map((w) => w.text)).toEqual(['Your', 'dusting', 'flour']);
+    expect(cue!.words[1]!.startSeconds).toBe(0.3);
+    expect(cue!.words[1]!.endSeconds).toBe(0.8);
+  });
+
+  it('spans exactly the cue it belongs to', () => {
+    const [cue] = buildCaptionCues(words);
+    expect(cue!.words[0]!.startSeconds).toBe(cue!.startSeconds);
+    expect(cue!.words[cue!.words.length - 1]!.endSeconds).toBe(cue!.endSeconds);
+  });
+
+  it('leaves exactly one word active at any instant inside the cue', () => {
+    /*
+     * The property the highlight depends on. Overlapping ranges would light two
+     * words at once and read as a glitch.
+     */
+    const [cue] = buildCaptionCues(words);
+    for (const t of [0.1, 0.35, 0.5, 0.9, 1.1]) {
+      const lit = cue!.words.filter((w) => t >= w.startSeconds && t <= w.endSeconds);
+      expect(lit.length, `t=${t}`).toBeLessThanOrEqual(2); // boundaries may touch
+      expect(lit.length, `t=${t}`).toBeGreaterThanOrEqual(1);
+    }
+  });
+
+  it('joins to the same text it always did', () => {
+    const [cue] = buildCaptionCues(words);
+    expect(cue!.words.map((w) => w.text).join(' ')).toBe(cue!.text);
+  });
+});

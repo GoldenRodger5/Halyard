@@ -26,6 +26,19 @@ export interface CaptionCue {
   endSeconds: number;
   /** Index of the transcript word this cue opens on. Used to measure drift. */
   firstWordIndex: number;
+  /**
+   * §270. The individual words, with their own timings.
+   *
+   * Carried so the caption can highlight the word being spoken rather than
+   * showing a static block. Word-by-word captions are the dominant short-form
+   * style because in a feed that autoplays muted they give the eye something to
+   * track: a viewer follows the highlight instead of reading ahead and losing
+   * the thread.
+   *
+   * The whole cue is still rendered — only the emphasis moves. A caption that
+   * reveals one word at a time is unreadable at speed.
+   */
+  words: Array<{ text: string; startSeconds: number; endSeconds: number }>;
 }
 
 /**
@@ -76,6 +89,11 @@ export function buildCaptionCues(
     const last = current[current.length - 1]!;
     cues.push({
       text: current.map((w) => w.text).join(' ').replace(/\s+([.,!?])/g, '$1'),
+      words: current.map((w) => ({
+        text: w.text,
+        startSeconds: w.startSeconds,
+        endSeconds: w.endSeconds,
+      })),
       startSeconds: first.startSeconds,
       endSeconds: last.endSeconds,
       startFrame: Math.round(first.startSeconds * fps),

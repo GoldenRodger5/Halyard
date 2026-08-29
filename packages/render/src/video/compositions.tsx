@@ -143,6 +143,7 @@ export const Captions: React.FC<{
   backdrop?: CaptionBackdrop;
 }> = ({ cues, brand, backdrop }) => {
   const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
   const active = cues.find((cue) => frame >= cue.startFrame && frame <= cue.endFrame);
   if (!active) return null;
 
@@ -180,7 +181,41 @@ export const Captions: React.FC<{
           ...(style.textShadow ? { textShadow: style.textShadow } : {}),
         }}
       >
-        {active.text}
+        {/*
+          §270. The word being spoken carries the emphasis.
+
+          The whole cue stays on screen — a caption that reveals one word at a
+          time is unreadable at speed — and only the highlight moves. In a feed
+          that autoplays muted this is what gives the eye something to track:
+          the viewer follows the highlight instead of reading ahead and losing
+          the thread.
+
+          Falls back to the plain cue when a cue has no word timings, which is
+          every cue built before they were carried.
+        */}
+        {active.words && active.words.length > 0
+          ? active.words.map((word, i) => {
+              const seconds = frame / fps;
+              const spoken = seconds >= word.startSeconds && seconds <= word.endSeconds;
+              return (
+                <span
+                  key={`${word.startSeconds}-${i}`}
+                  style={{
+                    color: spoken ? brand.primary : style.color,
+                    /*
+                     * Colour alone, not weight. Re-weighting reflows the line
+                     * every word and the caption visibly twitches; the brand
+                     * accent already carries the emphasis.
+                     */
+                    transition: 'none',
+                  }}
+                >
+                  {word.text}
+                  {i < active.words.length - 1 ? ' ' : ''}
+                </span>
+              );
+            })
+          : active.text}
       </span>
     </div>
   );
