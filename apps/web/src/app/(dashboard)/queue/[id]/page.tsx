@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { PostPreview } from '@/components/PostPreview';
 import { notFound } from 'next/navigation';
 import {
   Badge,
@@ -114,23 +115,20 @@ export default async function QueueItemPage({ params }: { params: Promise<{ id: 
             <SectionTitle hint={`${item.render_done} of ${item.render_total} rendered`}>
               Preview
             </SectionTitle>
-            {media.length === 0 ? (
-              <p className="py-8 text-center text-sm text-muted">
-                No media yet. Rendered slides appear here once the render job finishes; you can also
-                attach a real screenshot or a photograph below.
-              </p>
-            ) : (
-              <div className="flex gap-3 overflow-x-auto pb-2">
-                {media.map((url, i) => (
-                    <img
-                    key={url}
-                    src={url}
-                    alt={item.alt_text ?? `Slide ${i + 1}`}
-                    className="max-h-[28rem] w-auto shrink-0 rounded-lg border border-line"
-                  />
-                ))}
-              </div>
-            )}
+            {/*
+              §272. Shown in the platform's own shape rather than as a strip of
+              files. A bare `<img>` renders nothing at all for an mp4, so video
+              was invisible here — an operator approving a TikTok was approving
+              a filename.
+            */}
+            <PostPreview
+              platform={item.platform}
+              media={media}
+              body={item.body}
+              hashtags={item.hashtags ?? []}
+              handle={item.account_handle ?? null}
+              altText={item.alt_text ?? null}
+            />
 
             <div className="mt-4 border-t border-line pt-4">
               <SectionTitle hint="captures of the live product, and photographs">

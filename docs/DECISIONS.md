@@ -7206,3 +7206,30 @@ Not a link. Instagram does not make one tappable from a carousel, and an
 unclickable URL rendered into an image is the detail that tells a reader nobody
 is paying attention. Saving is the action available on the surface the card is
 on.
+
+## 272. The post in the shape it will be seen in
+
+The queue rendered media as a horizontal strip of bare `<img>` tags, so video
+was **invisible** — an mp4 in an `<img>` draws nothing — and an operator
+approving a TikTok was approving a filename.
+
+`PostPreview` puts the media in the platform's own furniture: TikTok full-bleed
+with the caption block and action rail over it, Instagram with a header, swipe
+dots and the caption underneath, X as a text post with the media card below.
+Video gets a real player, not autoplaying, because an operator opening a queue
+card is reading.
+
+The reason this is a check and not a nicety: every platform draws its own UI
+*over* the media. The action rail eats the right edge, the caption block eats the
+bottom left, Instagram crops slides 2..n to slide one's shape. A frame that looks
+balanced in a strip can be half-covered in the feed, and the only way to catch
+that before publishing is to look at it in the right shape.
+
+Labelled "approximate — a safe-area check, not an exact preview", because an
+operator who trusts it for pixel accuracy will be wrong about something it
+cannot answer.
+
+The platform-furniture colours are inline rather than tokens. `designTokens.test`
+caught the first version using raw Tailwind palette classes, and it is right to:
+those greys and gradients are somebody else's brand being imitated, and putting
+them in Halyard's token space would let them be mistaken for Halyard's own.
