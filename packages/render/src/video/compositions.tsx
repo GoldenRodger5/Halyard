@@ -22,6 +22,14 @@ import { captionStyle, type CaptionBackdrop } from './captionStyle.js';
 import { BEFORE_AFTER_TREATMENTS, PlannedBeats, type RenderableBeat, type RenderPresentation } from './treatments.js';
 
 export interface VideoBaseProps {
+  /**
+   * §294. A photograph behind the whole piece, inlined by the render handler.
+   *
+   * On `VideoBaseProps` rather than on one composition, because the flat-cream
+   * problem was in the shared `Stage` and therefore in every video Halyard has
+   * made. A fix in one composition would have left the rest unchanged.
+   */
+  backgroundDataUri?: string;
   brand?: BrandTokens;
   captions?: CaptionCue[];
   audioSrc?: string | null;
@@ -93,19 +101,80 @@ const Scene: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   </AbsoluteFill>
 );
 
-const Stage: React.FC<{ brand: BrandTokens; children: React.ReactNode; wordmark?: string }> = ({
-  brand,
-  children,
-  wordmark,
-}) => (
+/**
+ * §294. The shell every composition sits in — and why it looked like a PDF.
+ *
+ * This was a flat fill of `brand.background`. Every video Halyard has ever made
+ * was therefore small dark type on beige, in the middle of an otherwise empty
+ * 1080×1920 frame, and it was not a quiz problem: it was **every** composition,
+ * because they all sit in here.
+ *
+ * A feed is a wall of photographs and video. A flat card loses to all of it
+ * before a word is read — not because the typography is bad, but because there
+ * is nothing to look at.
+ *
+ * So when a piece has a photograph, it goes **full bleed** with a scrim over it,
+ * and the type sits on the scrim. When it does not, the ground gets a soft
+ * vignette in the brand's own colours rather than staying perfectly flat, which
+ * is the difference between "designed" and "unstyled".
+ *
+ * The scrim is not optional and not tunable per composition. The photograph is
+ * generated per piece and nobody has checked its contrast, so legibility cannot
+ * be left to whatever came back from the model.
+ */
+const Stage: React.FC<{
+  brand: BrandTokens;
+  children: React.ReactNode;
+  wordmark?: string;
+  /** A photograph for the whole piece, already inlined as a data URI. */
+  backgroundDataUri?: string;
+}> = ({ brand, children, wordmark, backgroundDataUri }) => (
   <AbsoluteFill
     style={{
       backgroundColor: brand.background,
-      color: brand.ink,
+      color: backgroundDataUri ? '#FFFFFF' : brand.ink,
       fontFamily: brand.bodyFont,
     }}
   >
     <Fonts />
+
+    {backgroundDataUri ? (
+      <>
+        <img
+          src={backgroundDataUri}
+          alt=""
+          style={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+          }}
+        />
+        {/*
+          Heavy at the bottom where the type lives, lighter at the top so the
+          picture is still a picture. A flat 60% scrim kills the photograph and
+          leaves a grey card, which is the failure this is fixing.
+        */}
+        <AbsoluteFill
+          style={{
+            backgroundImage:
+              'linear-gradient(to bottom, rgba(0,0,0,0.30) 0%, rgba(0,0,0,0.55) 45%, rgba(0,0,0,0.86) 100%)',
+          }}
+        />
+      </>
+    ) : (
+      /*
+        No photograph: a vignette in the brand's own ink rather than a flat
+        fill. Barely visible and it stops the frame reading as a blank page.
+      */
+      <AbsoluteFill
+        style={{
+          backgroundImage: `radial-gradient(120% 80% at 50% 0%, ${brand.background} 0%, ${brand.background} 55%, ${brand.muted}22 100%)`,
+        }}
+      />
+    )}
+
     {children}
     {wordmark ? (
       <div
@@ -116,7 +185,8 @@ const Stage: React.FC<{ brand: BrandTokens; children: React.ReactNode; wordmark?
           fontSize: 26,
           letterSpacing: 3,
           textTransform: 'uppercase',
-          color: brand.muted,
+          /* Legible over a photograph as well as over the flat ground. */
+          color: backgroundDataUri ? 'rgba(255,255,255,0.75)' : brand.muted,
         }}
       >
         {wordmark}
@@ -329,7 +399,7 @@ export const TransformationDiffVideo: React.FC<TransformationDiffVideoProps> = (
       );
 
   return (
-    <Stage brand={brand} wordmark={props.wordmark}>
+    <Stage brand={brand} wordmark={props.wordmark} backgroundDataUri={props.backgroundDataUri}>
       {props.audioSrc ? <Audio src={props.audioSrc} /> : null}
 
       {planned ? (
@@ -441,7 +511,7 @@ export const SubstitutionExplainer: React.FC<SubstitutionExplainerProps> = (prop
   );
 
   return (
-    <Stage brand={brand} wordmark={props.wordmark}>
+    <Stage brand={brand} wordmark={props.wordmark} backgroundDataUri={props.backgroundDataUri}>
       {props.audioSrc ? <Audio src={props.audioSrc} /> : null}
 
       <Sequence from={scenes[0]!.startFrame} durationInFrames={scenes[0]!.durationFrames}>
@@ -493,7 +563,7 @@ export const ScalingMathVideo: React.FC<ScalingMathVideoProps> = (props) => {
   const { fps } = useVideoConfig();
 
   return (
-    <Stage brand={brand} wordmark={props.wordmark}>
+    <Stage brand={brand} wordmark={props.wordmark} backgroundDataUri={props.backgroundDataUri}>
       {props.audioSrc ? <Audio src={props.audioSrc} /> : null}
 
       <Scene>
@@ -546,7 +616,7 @@ export const ChefNoteCardVideo: React.FC<ChefNoteCardProps> = (props) => {
   const words = props.quote.split(' ');
 
   return (
-    <Stage brand={brand} wordmark={props.wordmark}>
+    <Stage brand={brand} wordmark={props.wordmark} backgroundDataUri={props.backgroundDataUri}>
       {props.audioSrc ? <Audio src={props.audioSrc} /> : null}
 
       <Scene>

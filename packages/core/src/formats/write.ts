@@ -22,6 +22,7 @@
  * which is indistinguishable from a true one until someone checks.
  */
 import { expandSlots, requiresCitation, type PostFormat } from './catalog.js';
+import { slopFilter } from '../qc/slopFilter.js';
 
 /** One filled slot. */
 export interface FilledSlot {
@@ -169,6 +170,30 @@ export function checkDraft(format: PostFormat, draft: FormatDraft): FormatCheck 
          */
         severity: 'warning',
         message: `${slot.key} runs ${words} words against a ${slot.maxWords} ceiling.`,
+        slot: slot.key,
+      });
+    }
+
+    /**
+     * §293. Slot text goes through the copy gate, like every other line.
+     *
+     * `checkDraft` counted words and checked citations and never ran
+     * `slopFilter`, so everything the format family writes — every quiz
+     * question, every history beat — bypassed the copy quality gate entirely.
+     * Em dashes are the visible consequence, and `punctuation.em_dash` calls
+     * itself "the single strongest LLM tell" while sitting in a gate this
+     * content never reached. Banned phrases and forbidden claims were skipped
+     * with it.
+     *
+     * Errors here fail the slot by name, so the rewrite replaces that line
+     * rather than the whole piece.
+     */
+    const slop = slopFilter({ body: got.text, platform: 'x', hashtags: [] });
+    for (const violation of slop.errors) {
+      problems.push({
+        rule: violation.rule,
+        severity: 'error',
+        message: `${slot.key}: ${violation.message}${violation.fix ? ` ${violation.fix}` : ''}`,
         slot: slot.key,
       });
     }

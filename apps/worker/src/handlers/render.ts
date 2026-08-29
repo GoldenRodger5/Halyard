@@ -211,11 +211,43 @@ async function renderVideoAsset(
   const silentPath = path.join(work, 'silent.mp4');
   const finalPath = path.join(work, 'final.mp4');
 
+  /**
+   * §294. The piece's own photograph, behind the video.
+   *
+   * Video renders had no background image path at all — the image path got one
+   * in §268 and the video path was left flat, which is why every video was type
+   * on cream while the carousels had photographs. Read from the item's attached
+   * assets rather than the render props, because the hero is attached to the
+   * *piece* and shared by every render it has.
+   */
+  let videoBackground: string | undefined;
+  if (render.content_item_id) {
+    const { rows } = await ctx.pool.query<{
+      storage_path: string | null;
+      public_url: string | null;
+      mime_type: string | null;
+    }>(
+      `select a.storage_path, a.public_url, a.mime_type
+         from content_items ci
+         join assets a on a.id = any(ci.attached_asset_ids)
+        where ci.id = $1 and a.source = 'generated'
+        order by a.created_at desc
+        limit 1`,
+      [render.content_item_id],
+    );
+    const asset = rows[0];
+    const bytes = asset ? await readAssetBytes(asset.storage_path, asset.public_url) : null;
+    if (bytes) {
+      videoBackground = `data:${asset?.mime_type ?? 'image/png'};base64,${bytes.toString('base64')}`;
+    }
+  }
+
   try {
     const result = await renderVideo({
       compositionId: render.template_id,
       props: {
         ...render.input_props,
+        ...(videoBackground ? { backgroundDataUri: videoBackground } : {}),
         ...(brandTokens ? { brand: brandTokens } : {}),
         // Captions are burned in from data. The audio is muxed afterwards
         // rather than played by the renderer, so the composition gets none.

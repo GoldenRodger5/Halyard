@@ -45,10 +45,34 @@ export interface QuizQuestion {
   answer: string;
   /** Fetched and verified upstream (§282). Shown small under the answer. */
   source?: string | null;
+  /**
+   * §294. Multiple choice, when the question has clean options.
+   *
+   * A free-form question asks a viewer to *recall*; multiple choice asks them
+   * to *choose*, which is a far lower bar and the reason the format works in a
+   * feed — a viewer who has picked B is committed, and commitment is what makes
+   * them stay for the reveal. Absent means free-form, which suits a question
+   * whose answer is a number or a name.
+   */
+  options?: string[];
+  /** Index into `options` of the right one. */
+  correctIndex?: number;
 }
 
 export interface QuizVideoProps {
   brand: BrandTokens;
+  /**
+   * §294. A photograph behind the whole piece, as a data URI.
+   *
+   * The first version was type on cream and read as a PDF rather than a Reel:
+   * the type filled about a sixth of the frame and the rest was empty. A feed
+   * is a wall of photographs and video, and a flat card loses to all of it
+   * before a word is read.
+   *
+   * Full-bleed with a heavy scrim, so the type stays legible over an image
+   * nobody has checked the contrast of.
+   */
+  backgroundDataUri?: string;
   typography?: RenderTypography;
   title: string;
   questions: QuizQuestion[];
@@ -152,8 +176,8 @@ const Countdown: React.FC<{
       <span
         style={{
           position: 'absolute',
-          fontSize: 96,
-          color: brand.ink,
+          fontSize: 128,
+          color: 'inherit',
           transform: `scale(${pulse})`,
           ...face(type, 'display'),
         }}
@@ -193,16 +217,16 @@ const QuestionBeat: React.FC<{
   return (
     <AbsoluteFill
       style={{
-        backgroundColor: brand.background,
-        color: brand.ink,
-        padding: '160px 84px',
+        /* Transparent when a photograph is behind the whole piece. */
+        backgroundColor: 'transparent',
+        padding: '120px 72px',
         flexDirection: 'column',
         justifyContent: 'center',
       }}
     >
       <span
         style={{
-          fontSize: 30,
+          fontSize: 34,
           textTransform: 'uppercase',
           letterSpacing: '0.12em',
           color: brand.primary,
@@ -215,8 +239,8 @@ const QuestionBeat: React.FC<{
 
       <span
         style={{
-          fontSize: 76,
-          lineHeight: 1.08,
+          fontSize: 104,
+          lineHeight: 1.02,
           opacity: rise,
           transform: `translateY(${(1 - rise) * 24}px)`,
           ...face(type, 'display'),
@@ -276,8 +300,8 @@ const Reveal: React.FC<{
       />
       <span
         style={{
-          fontSize: 60,
-          lineHeight: 1.14,
+          fontSize: 86,
+          lineHeight: 1.06,
           opacity: Math.min(1, enter * 1.4),
           transform: `translateY(${(1 - enter) * 18}px)`,
           ...face(type, 'display'),
@@ -311,14 +335,32 @@ export const QuizVideo: React.FC<QuizVideoProps> = ({
   revealSeconds = QUIZ_REVEAL_SECONDS,
   audioSrc,
   wordmark,
+  backgroundDataUri,
 }) => {
   const { fps } = useVideoConfig();
   const titleFrames = Math.round(QUIZ_TITLE_SECONDS * fps);
   const beatFrames = Math.round(secondsPerQuestion(countdownSeconds, revealSeconds) * fps);
 
   return (
-    <AbsoluteFill style={{ backgroundColor: brand.background }}>
+    <AbsoluteFill style={{ backgroundColor: brand.background, color: backgroundDataUri ? '#FFFFFF' : brand.ink }}>
       {audioSrc ? <Audio src={audioSrc} /> : null}
+
+      {/* §294. Same full-bleed treatment the shared Stage uses. */}
+      {backgroundDataUri ? (
+        <>
+          <img
+            src={backgroundDataUri}
+            alt=""
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+          />
+          <AbsoluteFill
+            style={{
+              backgroundImage:
+                'linear-gradient(to bottom, rgba(0,0,0,0.30) 0%, rgba(0,0,0,0.55) 45%, rgba(0,0,0,0.86) 100%)',
+            }}
+          />
+        </>
+      ) : null}
 
       {/*
         The title card is the hook and holds from frame 0 — §274's rule. An
@@ -346,7 +388,7 @@ export const QuizVideo: React.FC<QuizVideoProps> = ({
           >
             {questions.length} questions
           </span>
-          <span style={{ fontSize: 92, lineHeight: 1.05, ...face(typography, 'display') }}>
+          <span style={{ fontSize: 124, lineHeight: 0.98, ...face(typography, 'display') }}>
             {title}
           </span>
         </AbsoluteFill>

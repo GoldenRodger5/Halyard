@@ -223,7 +223,20 @@ describe('writing to a format', () => {
   it('warns rather than fails on an over-long slot', () => {
     /* §264 already refuses to truncate mid-word, so this degrades a card
        rather than breaking one. */
-    const d = draft({ hook: 'word '.repeat(40).trim() });
+    /*
+     * Real prose, not repeated filler: §293 runs the slop filter over slot text
+     * now, and "word word word…" trips a repetition rule, which would make this
+     * test pass for the wrong reason.
+     */
+    const d = draft({
+      /*
+       * Real prose in short sentences. §293 runs the slop filter over slot text
+       * now, so filler trips repetition and one long sentence trips the
+       * structure rules — either would make this pass for the wrong reason.
+       */
+      hook:
+        'Hydration depends on the flour. Some blends drink more. Weigh it once. Then adjust by feel. Keep notes each bake. The dough tells you soon enough.',
+    });
     const check = checkDraft(history, d);
     expect(check.problems.some((p) => p.rule === 'format.slot_too_long')).toBe(true);
     expect(check.ok).toBe(true);

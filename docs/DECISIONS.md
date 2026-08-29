@@ -7775,3 +7775,29 @@ reasoning about it:
   the page has no `<form>` at all. The "always works" option had never worked.
 
 Every branch now resolves to the correct button, verified against production.
+
+## 294. Every video was a beige card, and the fault was in the shared shell
+
+The quiz looked like a PDF. So did everything else, and that is the point: the
+flat cream ground was in `Stage`, which **every** composition sits inside, so
+fixing it in the quiz would have fixed one video and left the rest.
+
+A feed is a wall of photographs and video. A flat card loses to all of it before
+a word is read — not because the typography is bad but because there is nothing
+to look at. The image path got generated photography in §268 and the video path
+was simply never given one, which is why carousels had pictures and videos did
+not.
+
+Now: a piece with a photograph puts it **full bleed** with a gradient scrim, and
+the type sits on the scrim in white. Without one, the ground gets a soft vignette
+in the brand's own colours rather than staying perfectly flat.
+
+The scrim is heavy at the bottom where the type lives and light at the top so the
+picture is still a picture — a flat 60% overlay kills the photograph and leaves a
+grey card, which is the failure being fixed. It is not tunable per composition:
+the photograph is generated per piece and nobody has checked its contrast, so
+legibility cannot be left to whatever came back from the model.
+
+Type scaled with it — the question from 76px to 104px, the title to 124px. On a
+1080×1920 frame the old sizes filled about a sixth of the canvas, which is
+unreadable at arm's length and is what made it read as a document.
