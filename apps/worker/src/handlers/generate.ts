@@ -36,6 +36,7 @@ import {
 import {
   carouselProps,
   chooseLayout,
+  slidesForFormat,
   transformationDiffProps,
   type CarouselLayout,
   type SlideRole,
@@ -66,6 +67,7 @@ import {
   type VisualLanguage,
   LANGUAGE_FOR_TREATMENT,
   OpenAiImageClient,
+  selectFormat,
   renderTypography,
   selectTypography,
   aspectForRender,
@@ -95,6 +97,7 @@ import { PermanentJobFailure } from '../poller.js';
 import type { Job, HandlerContext } from '../poller.js';
 import { generateHeroImage } from '../heroImage.js';
 import { pickProductShot } from '../productShot.js';
+import { recentFormats, writeToFormat } from '../formatWriter.js';
 import { captureFootage } from '../capture/footage.js';
 import { routeToBoard } from './boards.js';
 import { notify } from './publish.js';
@@ -1015,6 +1018,41 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
          * product attached to Halyard describes different things and gets
          * pictures of those. Nothing here knows what a recipe is.
          */
+        /**
+         * §281. Which editorial shape this piece is.
+         *
+         * Chosen before anything is written, because the format decides what
+         * the writer is asked for. Recorded on the item so the next run's
+         * recency rule can read it — a choice that is not persisted is a
+         * choice that repeats, which is what §265 found for typography.
+         *
+         * `requested` comes from the operator through the composer; unset
+         * lets the selector choose and the reason is logged either way.
+         */
+        const chosenFormat = selectFormat({
+          platform: account.platform,
+          hasArtifact: Boolean(artifact),
+          recentFormats: (await recentFormats(ctx, account.id)) as never,
+          requested: (job.payload.postFormat as string | undefined) ?? null,
+          /*
+           * Sourced formats need citations and nothing here can supply them
+           * yet — a research step would. Declared false rather than left
+           * default, so the selector avoids them instead of the writer
+           * inventing sources to satisfy a gate it cannot pass.
+           */
+          canCite: false,
+        });
+        await ctx.pool.query('update content_items set post_format = $2 where id = $1', [
+          contentItemId,
+          chosenFormat.format.id,
+        ]);
+        ctx.log('post format chosen', {
+          contentItemId,
+          format: chosenFormat.format.id,
+          because: chosenFormat.reason,
+          alternatives: chosenFormat.alternatives,
+        });
+
         const heroSubject = subjectForImage(artifact, idea.title);
         const hero =
           heroSubject && imageClient
@@ -1048,7 +1086,65 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
           }
 
           if (account.platform === 'instagram' && enabledTemplates.includes('carousel_6')) {
-            const slides = carouselProps(artifact);
+            /**
+             * §281. The deck comes from the format when the format has one.
+             *
+             * `transformation` keeps the artifact-driven path: it *is* the
+             * product demonstration, `carouselProps` already builds it from the
+             * artifact's own swaps and notes, and that path is proven. Every
+             * other format is a structure the artifact cannot fill on its own,
+             * so it is written to its slots and rendered from them.
+             *
+             * A format that cannot be filled refuses the whole piece rather
+             * than falling back to the artifact deck. A quiz that quietly
+             * becomes a transformation post is a worse outcome than no post: it
+             * is the format system appearing to work while doing nothing.
+             */
+            let slides = carouselProps(artifact);
+            if (chosenFormat.format.id !== 'transformation') {
+              const written = await writeToFormat(
+                ctx,
+                chosenFormat.format,
+                {
+                  subject: subjectForImage(artifact, idea.title) ?? idea.title,
+                  /*
+                   * The brief summary is what the product says about itself,
+                   * and it is the closest thing to an audience description that
+                   * exists on the row. Falling back to a generic phrase rather
+                   * than inventing a segment nobody defined.
+                   */
+                  audience: product.brief_summary ?? 'the people this product is for',
+                  platform: account.platform,
+                },
+                llmFor(),
+              );
+              const built = slidesForFormat(
+                chosenFormat.format.id,
+                written.draft.slots.map((slot) => ({
+                  key: slot.key,
+                  index: slot.index,
+                  text: slot.text,
+                  citation: slot.citation ?? null,
+                })),
+              );
+              if (built.length === 0) {
+                /*
+                 * A catalogue entry with no renderer. Refused loudly rather
+                 * than silently substituted, because a plausible default is
+                 * how the gap would stay hidden.
+                 */
+                throw new Error(
+                  `${chosenFormat.format.id} filled its slots and has no slide builder.`,
+                );
+              }
+              slides = built as never;
+              ctx.log('deck built from format', {
+                contentItemId,
+                format: chosenFormat.format.id,
+                slides: built.length,
+                attempts: written.attempts,
+              });
+            }
             /*
              * §267. A composition per slide, not one for the deck.
              *
@@ -1095,13 +1191,22 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                * opener and typographic support behind it.
                */
               const slideHasImage = Boolean(hero) && slide.index === 1;
-              const { layout, reason } = chooseLayout({
-                role,
-                visualLanguage: undefined,
-                bodyLineCount: slide.bodyLines.length,
-                recentLayouts: usedLayouts,
-                hasImage: slideHasImage,
-              });
+              /*
+               * A format pins the layouts that carry its meaning — a quiz
+               * question must be the loud one and its answer the quiet one, or
+               * the contrast that *is* the format is gone. Only an
+               * artifact-driven deck leaves the choice open.
+               */
+              const pinned = (slide as { layout?: CarouselLayout }).layout;
+              const { layout, reason } = pinned
+                ? { layout: pinned, reason: `Pinned by the ${chosenFormat.format.id} format.` }
+                : chooseLayout({
+                    role,
+                    visualLanguage: undefined,
+                    bodyLineCount: slide.bodyLines.length,
+                    recentLayouts: usedLayouts,
+                    hasImage: slideHasImage,
+                  });
               usedLayouts.unshift(layout);
               ctx.log('carousel layout', { slide: slide.index, role, layout, because: reason });
               const render = await ctx.pool.query<{ id: string }>(

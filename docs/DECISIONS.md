@@ -7412,3 +7412,50 @@ that makes it an expensive `statement`.
 A quiz keeps question and answer on **separate cards**. A reader who can see the
 answer under the question has not been asked anything, and the pause is the
 entire format.
+
+## 281. The format family's last hop
+
+The catalogue, the selector, the slot checker and the slide builder all existed
+and connected to each other, and **nothing called any of them** — the same
+pattern this session has now found five times, committed by me twice. This is
+the hop.
+
+`selectFormat` runs before anything is written, because the format decides what
+the writer is asked for. The choice is persisted to `content_items.post_format`
+(migration 0058) for one reason: the selector breaks ties by what the account
+used least recently, and **recency it cannot read is recency it cannot honour**.
+That is exactly what §265 found for typography — a director choosing well and an
+output that could not show it.
+
+The column is deliberately not constrained to a list in Postgres. `jobs_kind_check`
+is the standing lesson (gotcha 1): a check constraint listing the same values as
+a TypeScript union is one list written twice.
+
+**`transformation` keeps the artifact-driven path** — it *is* the product
+demonstration, `carouselProps` already builds it from the artifact's own swaps,
+and that path is proven. Every other format is a structure the artifact cannot
+fill alone, so it is written to its slots and rendered from them.
+
+A format that cannot be filled **refuses the piece** rather than falling back to
+the artifact deck. A quiz that quietly becomes a transformation post is worse
+than no post: it is the format system appearing to work while doing nothing. The
+same reasoning applies to a catalogue entry with no slide builder, which throws
+rather than substituting a plausible default.
+
+A format's slides carry pinned layouts and those win over `chooseLayout`. A quiz
+question **must** be the loud card and its answer the quiet one, because the
+contrast between them is the format; only an artifact-driven deck leaves the
+choice open to recency.
+
+### The gap this leaves, stated plainly
+
+`canCite: false` is passed, so the selector will not choose `quiz`, `history`,
+`myth_fact` or `origin` in production — the four sourced formats. Nothing in the
+pipeline can supply a *verified* citation yet, and `looksCitable` checks the
+shape of one, not its truth. A model can produce "Beccari, 1728" that is correct,
+and can equally produce a plausible citation that is wrong.
+
+For an account whose entire pitch is knowing what is true, shipping that risk to
+save a research step is the wrong trade. The formats are built, tested and
+rendering; enabling them needs a step that fetches and verifies a source, and
+that is the next real piece of work rather than a flag to flip.
