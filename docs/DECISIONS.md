@@ -7619,3 +7619,46 @@ but an undeclared-gluten recall is the single most useful thing this account cou
 post on the day it happens.
 
 First run: **7 sources, 0 failures, 100 items fetched, 19 stored, 5 promoted.**
+
+## 287. Three identical failures, and why feedback could not win
+
+A YouTube piece failed its voiceover three times and was abandoned. All three
+failures were **the same two rules**: `spoken.unspoken_symbol` on "1/4" and a
+22-word sentence.
+
+The retry loop was working exactly as designed. `buildFeedback` named the rule,
+quoted the excerpt and supplied the fix, and it changed nothing, three times.
+The reason is in the prompt: the VO request opens with *"Post copy this
+narrates:"* followed by the body — and that body says "1/4 cup wheat flour". The
+model was anchored on the text it had just been told to read, so every rewrite
+faithfully reproduced the fraction the feedback had asked it to remove.
+**Feedback cannot win an argument against the prompt's own source material.**
+
+The rule this establishes: **a violation with one correct mechanical answer
+should never reach a model.** "1/4" becomes "a quarter". There is no judgement in
+that — no style, nothing a writer could improve — and spending an attempt on it
+is worse than pointless, because attempts are finite and two of this piece's
+three were spent on the same fraction.
+
+So the loop is now: repair what is mechanical, re-check, and ask the model only
+about what is genuinely left. A second failure then means something *different*
+from the first, which is the property the loop needed and did not have.
+
+The body is repaired **before** it enters the prompt as well, so the anchor is
+gone rather than merely corrected afterwards.
+
+**Sentence length is deliberately not repaired.** Splitting a sentence changes
+emphasis and rhythm, which is writing; a machine breaking at the nearest comma
+produces something worse than the model would. It still goes back — but now it
+goes back alone, with a whole attempt available for it.
+
+`MECHANICALLY_REPAIRABLE` is an explicit set rather than a guess, so a new
+spoken rule is not silently assumed fixable.
+
+### And a migration that broke every database test
+
+0059 seeded `recipefix` rss_sources unconditionally. A fresh database built from
+migrations alone has no such product — the test harness creates its own — so the
+foreign key failed and took **40 test files** down with it. Seeded conditionally
+now: `where exists (select 1 from products …)`, which is also what makes it
+idempotent against production, where it re-runs as `INSERT 0 0`.

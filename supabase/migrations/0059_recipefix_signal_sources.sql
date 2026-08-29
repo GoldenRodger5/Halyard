@@ -17,7 +17,13 @@
 -- Weighted by how close a source sits to the product's actual subject: a coeliac
 -- authority publishing a labelling change is worth more than a general food blog
 -- publishing a recipe, and both are worth having.
-insert into rss_sources (product_id, name, feed_url, why, weight) values
+-- Seeded only where the product exists. A fresh database built from migrations
+-- alone has no `recipefix` row — the test harness creates its products itself —
+-- and an unconditional insert fails the foreign key and takes every
+-- database-backed test file down with it, which is exactly what it did.
+insert into rss_sources (product_id, name, feed_url, why, weight)
+select v.product_id, v.name, v.feed_url, v.why, v.weight
+  from (values
   ('recipefix', 'Gluten Free Watchdog',
    'https://www.glutenfreewatchdog.org/news/feed/',
    'Independent testing of gluten-free labelling. The closest thing this niche has to a primary source, and the one most likely to carry something nobody else has.',
@@ -46,4 +52,9 @@ insert into rss_sources (product_id, name, feed_url, why, weight) values
    'https://www.thekitchn.com/main.rss',
    'General home cooking. Weighted lowest: broad, and useful mainly for what the wider audience is asking about this week.',
    0.7)
-on conflict do nothing;
+) as v(product_id, name, feed_url, why, weight)
+ where exists (select 1 from products p where p.id = v.product_id)
+   and not exists (
+     select 1 from rss_sources r
+      where r.product_id = v.product_id and r.feed_url = v.feed_url
+   );

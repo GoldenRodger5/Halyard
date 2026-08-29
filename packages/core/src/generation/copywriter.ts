@@ -16,6 +16,7 @@ import { slopFilter, type SlopPlatform } from '../qc/slopFilter.js';
 import type { Claim } from '../qc/claimVerifier.js';
 import type { ProductArtifact } from '../connectors/types.js';
 import { DRAFT_MODEL, extractJson, type LlmClient } from './llm.js';
+import { repairSpoken } from './spokenRepair.js';
 import { HARD_RULES_BLOCK, buildCopywriterPrompt, type CopywriterContext } from './prompts.js';
 
 export interface DraftRequest {
@@ -423,7 +424,7 @@ Reply with the script text only.`,
       messages: [
         {
           role: 'user',
-          content: `Post copy this narrates:\n${input.body}\n\n${
+          content: `Post copy this narrates:\n${repairSpoken(input.body).text}\n\n${
             /*
              * `highlights` is checked, not assumed. §165: a caller handed this
              * the *stored* artifact — the provider's raw JSON, which has no
@@ -451,7 +452,22 @@ Reply with the script text only.`,
      * §263. Unwrapped before anything reads it. A JSON envelope reaching this
      * point is spoken aloud and burned into the captions.
      */
-    const script = unwrapSpokenScript(response.text);
+    const unwrapped = unwrapSpokenScript(response.text);
+
+    /**
+     * §287. Repair what has one correct answer, before spending an attempt on it.
+     *
+     * A piece was abandoned after three identical failures on `1/4`. The loop
+     * named the rule and quoted the fix each time and changed nothing, because
+     * the prompt opens with the body it is narrating and that body says "1/4
+     * cup" — the model was anchored on the text it had been asked to read.
+     *
+     * "1/4" becomes "a quarter". There is no judgement in that, so it never
+     * goes to a model: it is fixed here, and the attempt is left for something
+     * a writer could actually improve.
+     */
+    const repaired = unwrapped === null ? null : repairSpoken(unwrapped);
+    const script = repaired?.text ?? null;
     if (script === null) {
       feedback =
         'Your last reply was JSON, or contained a JSON envelope. Return the spoken words only, as plain prose, with no braces, no field names and no quotes around the whole thing.';
