@@ -160,20 +160,6 @@ export function carouselProps(
    * Product-neutral — it names the thing from the artifact and knows nothing
    * about what a recipe is.
    */
-   *
-   * The deck used to end by repeating slide one's headline, so the last thing a
-   * reader saw was the thing they had already read — and the ending is where
-   * saves and shares are decided, which is what a carousel is actually
-   * optimising for. Roughly 5% of brand carousels carry an explicit ask.
-   *
-   * Deliberately not a link. Instagram does not make one tappable from a
-   * carousel, and an unclickable URL rendered into an image is the kind of
-   * detail that tells a reader nobody is paying attention. Saving is the action
-   * available on the surface the card is on.
-   *
-   * Product-neutral: it asks the reader to keep the thing, and names the thing
-   * from the artifact rather than from any knowledge of what a recipe is.
-   */
   slides.push({
     kicker: 'The result',
     headline: 'Save this for the next time you make it',
