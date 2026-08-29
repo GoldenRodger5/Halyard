@@ -54,7 +54,17 @@ export type GateName =
    * the level of pixels a card changing and a product being used are the same
    * event.
    */
-  | 'creative';
+  | 'creative'
+  /**
+   * Is it *well made*? §275.
+   *
+   * Every other gate checks a nameable defect — a banned phrase, a contrast
+   * ratio, a word count. None of them can see "every caption is set the same
+   * way, so the piece reads as automated", because each frame is individually
+   * fine and the *set* of them is the problem. This gate carries the critic's
+   * judgements, which are warnings and never failures.
+   */
+  | 'critic';
 export type GateStatus = 'passed' | 'warning' | 'failed' | 'skipped';
 
 export interface GateResult {

@@ -205,17 +205,34 @@ const BY_RULE: Record<string, PolicyEntry> = {
    * same finding arriving on piece after piece is the systemic signal — which
    * is exactly how the caption problem should have surfaced weeks earlier.
    */
+  /*
+   * These two escalate, and the reason is worth stating because the obvious
+   * mapping is wrong.
+   *
+   * `adjust_caption_treatment` raises the caption *backdrop* — surface to media
+   * plate — which is a **contrast** correction (§158). It cannot make one line
+   * heavier than another, so pointing uniformity at it would spend an iteration
+   * changing something unrelated and then report the defect as corrected.
+   *
+   * Emphasis now varies by construction: captions inside the hook beat are set
+   * as the hook and everything after is narration (§274), derived from the plan
+   * rather than passed in. So a critic still calling a piece uniform after that
+   * is seeing something the caption system cannot reach — a treatment repeated
+   * across *cards*, or a plan with no hook beat — and the answer is a different
+   * plan, which no correction supplies.
+   */
   'critic.uniform_treatment': {
-    rootCause: 'One type treatment is used on every frame, so nothing carries more weight than anything else.',
-    component: 'caption_style',
-    action: 'adjust_caption_treatment',
-    correctable: true,
+    rootCause:
+      'One type treatment is used on every frame, so nothing carries more weight than anything else.',
+    component: 'creative_plan',
+    action: 'escalate',
+    correctable: false,
   },
   'critic.flat_emphasis': {
     rootCause: 'The emphasis never changes, so the important line reads like the incidental one.',
-    component: 'caption_style',
-    action: 'adjust_caption_treatment',
-    correctable: true,
+    component: 'creative_plan',
+    action: 'escalate',
+    correctable: false,
   },
   'critic.weak_opening': {
     rootCause: 'The first frame does not say what the piece is about.',

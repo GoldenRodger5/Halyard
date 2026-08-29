@@ -22,6 +22,8 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import {
   scoreCreative,
+  OpenAiCriticClient,
+  type CriticClient,
   OpenAiVisionClient,
   runCoherenceQC,
   cutsPerMinuteFor,
@@ -138,6 +140,8 @@ export async function reviewMediaHandler(
   job: Job,
   ctx: HandlerContext,
   vision?: VisionClient,
+  /** §275. Injected in tests; the real one is built here when absent. */
+  critic?: CriticClient,
 ): Promise<void> {
   const contentItemId = String(job.payload.contentItemId ?? '');
   if (!contentItemId) throw new Error('review_media job has no contentItemId');
@@ -364,6 +368,37 @@ export async function reviewMediaHandler(
       frames = await client.describeFrames(sampled);
     }
 
+    /**
+     * §275. The critic looks at the same frames, for a different reason.
+     *
+     * A second client rather than a second question to the describer, because
+     * the describer is forbidden from judging and must stay that way — the
+     * coherence gate needs a witness, not a reviewer, and a describer that
+     * editorialises corrupts the evidence every other gate reads.
+     *
+     * The whole set goes in one call. The defects this exists to catch are
+     * properties of the *set* — sameness, flat emphasis, interchangeable
+     * layouts — and a per-frame critic would find every frame acceptable and
+     * miss all of them, which is exactly what the per-frame rules did.
+     *
+     * Never fatal: an outage returns no findings and the review proceeds. The
+     * critic improves a verdict, it does not gate one.
+     */
+    let criticVerdict = null as Awaited<ReturnType<CriticClient['critique']>> | null;
+    if (sampled.length > 0) {
+      try {
+        const criticClient = critic ?? new OpenAiCriticClient();
+        criticVerdict = await criticClient.critique(
+          sampled.map((frame, i) => ({ ...frame, visibleText: frames[i]?.visibleText ?? [] })),
+        );
+      } catch (err) {
+        ctx.log('critic unavailable, review continues without it', {
+          contentItemId,
+          reason: (err as Error).message,
+        });
+      }
+    }
+
     const { rows: productRows } = await ctx.pool.query<{ name: string }>(
       'select name from products where id = $1',
       [item.product_id],
@@ -477,12 +512,35 @@ export async function reviewMediaHandler(
     // and destination gates ran at draft time against inputs this job does not
     // have, and re-running them here would report `skipped` and lose them.
     const previous = item.qc_results?.gates ?? [];
+    /**
+     * §275. The critic's gate.
+     *
+     * `warning` when it raised something, `passed` when it looked and found
+     * nothing, `skipped` when it never ran — three distinct states, because a
+     * critic that could not run has not endorsed anything. It is never
+     * `failed`: craft is a judgement and the operator owns taste.
+     */
+    const criticGate: GateResult = {
+      gate: 'critic',
+      status:
+        criticVerdict === null || criticVerdict.examined === 0
+          ? 'skipped'
+          : criticVerdict.findings.length > 0
+            ? 'warning'
+            : 'passed',
+      summary: criticVerdict?.summary ?? 'The critic did not run.',
+      detail: { findings: criticVerdict?.findings ?? [] },
+      examined: criticVerdict?.examined ?? 0,
+    };
+
     const merged: GateResult[] = [
+      criticGate,
       ...previous.filter(
         (g) =>
           g.gate !== 'coherence' &&
           g.gate !== 'visual' &&
           g.gate !== 'retention' &&
+          g.gate !== 'critic' &&
           g.gate !== 'creative',
       ),
       /**
@@ -685,6 +743,7 @@ export async function reviewMediaHandler(
     ctx.log('media reviewed', {
       contentItemId,
       score: scorecard.summary,
+      critic: criticGate.summary,
       weakest: scorecard.dimensions
         .filter((d) => d.status === 'fail' || d.status === 'warn')
         .map((d) => d.dimension),

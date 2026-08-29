@@ -7318,3 +7318,44 @@ knows how to answer.
 The value is not any single warning. It is that the same warning arriving on
 piece after piece is a systemic signal — which is exactly how the caption problem
 would have surfaced weeks before a person noticed it.
+
+## 276. Closing the critic's loop, and two mistakes found doing it
+
+§275 built the critic and left it **unwired** — the module existed and nothing
+called it, which is the exact defect this session keeps finding, committed by me.
+Closing it turned up two more.
+
+**The critic is a separate client, not a second question to the describer.**
+`OpenAiVisionClient`'s instruction says "Do not judge the image. Do not comment
+on quality, style, composition or appeal", and that must stay true: the coherence
+gate needs a witness, and a describer that editorialises corrupts the evidence
+every other gate reads. `OpenAiCriticClient` looks at the same frames with a
+different instruction. Two jobs, two prompts.
+
+**All the frames go in one call.** The defects it exists to catch are properties
+of the *set* — sameness, flat emphasis, interchangeable layouts. A per-frame
+critic finds every frame acceptable and misses all of them, which is precisely
+what the per-frame rules already did.
+
+**Mistake one: the emphasis prop had no caller.** §274 added `hook | narration |
+aside` to the caption component and nothing set it, so every caption became
+uniform again one level down — the same pattern, one commit later. Emphasis is
+now *derived* from the plan: cues inside the hook beat are set as the hook,
+everything after is narration. Derived rather than passed, because a prop every
+caller must remember to set is the wiring that never happens.
+
+**Mistake two: the correction I mapped to could not do the job.**
+`critic.uniform_treatment` pointed at `adjust_caption_treatment`, which raises
+the caption *backdrop* for contrast (§158) and cannot make one line heavier than
+another. It would have spent an iteration changing something unrelated and then
+reported the defect as corrected — worse than not correcting, because the
+history would show a fix. Both judgement-only rules now escalate, and a test
+asserts they stay that way.
+
+The gate has three states, not two: `warning` when it raised something, `passed`
+when it looked and found nothing, `skipped` when it never ran. A critic that
+could not run has not endorsed anything.
+
+`critic.test.ts` walks a finding the whole way — gate → defect → policy → action
+— so a change that quietly disconnects any link fails there rather than in
+production, where the symptom is "the critic runs and nothing ever changes".

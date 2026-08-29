@@ -167,3 +167,83 @@ describe('critic findings reach the scorecard', () => {
     expect(card.dimensions.find((d) => d.dimension === 'brand_fit')!.status).toBe('warn');
   });
 });
+
+/**
+ * §275. The loop, end to end, with no model involved.
+ *
+ * The critic is only worth having if what it says reaches something that acts.
+ * This walks a finding the whole way — gate → defect → policy → action — so a
+ * future change that quietly disconnects any link fails here rather than in
+ * production, where the symptom is "the critic runs and nothing ever changes".
+ */
+describe('a critic finding travels the whole loop', () => {
+  it('becomes a defect the correction policy has an answer for', async () => {
+    const { defectsFrom } = await import('../correction/defects.js');
+    const { policyFor } = await import('../correction/policy.js');
+
+    const verdict = parseCriticReply(
+      {
+        findings: [
+          {
+            rule: 'critic.weak_opening',
+            message: 'The first frame carries no words at all.',
+            atSeconds: [0],
+          },
+        ],
+      },
+      frames,
+    );
+
+    /* The gate shape review_media writes. */
+    const gate = {
+      gate: 'critic' as const,
+      status: 'warning' as const,
+      summary: verdict.summary,
+      detail: { findings: verdict.findings },
+      examined: verdict.examined,
+    };
+
+    const defects = defectsFrom([gate], policyFor);
+    const found = defects.find((d) => d.rule === 'critic.weak_opening');
+    expect(found, 'the critic gate produced no defect').toBeDefined();
+    expect(found!.correctable).toBe(true);
+    expect(found!.action).toBe('resequence_scenes');
+  });
+
+  it('every question maps to a policy entry, so none is raised into a void', async () => {
+    const { policyFor } = await import('../correction/policy.js');
+    for (const q of CRITIC_QUESTIONS) {
+      const entry = policyFor(q.rule, 'critic');
+      expect(entry, `${q.rule} has no correction policy`).toBeDefined();
+      /* A rule falling through to a generic answer is the void this guards. */
+      expect(entry.rootCause.length, q.rule).toBeGreaterThan(10);
+    }
+  });
+
+  it('routes the judgement-only findings to escalation rather than a wrong fix', async () => {
+    const { policyFor } = await import('../correction/policy.js');
+    /*
+     * `adjust_caption_treatment` raises contrast, not emphasis. Pointing
+     * uniformity at it would spend an iteration on something unrelated and then
+     * report the defect as corrected.
+     */
+    for (const rule of ['critic.uniform_treatment', 'critic.flat_emphasis', 'critic.reads_automated']) {
+      expect(policyFor(rule, 'critic').correctable, rule).toBe(false);
+      expect(policyFor(rule, 'critic').action, rule).toBe('escalate');
+    }
+  });
+
+  it('a skipped critic produces no defects, because it judged nothing', async () => {
+    const { defectsFrom } = await import('../correction/defects.js');
+    const { policyFor } = await import('../correction/policy.js');
+    const gate = {
+      gate: 'critic' as const,
+      status: 'skipped' as const,
+      summary: 'The critic did not run.',
+      detail: { findings: [] },
+      examined: 0,
+    };
+    /* Not required, so a skip is an absence rather than a failure. */
+    expect(defectsFrom([gate], policyFor)).toHaveLength(0);
+  });
+});

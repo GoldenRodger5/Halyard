@@ -155,11 +155,32 @@ export const Captions: React.FC<{
    * `hook` keeps what the caption used to be, for the line that has to land.
    */
   emphasis?: 'hook' | 'narration' | 'aside';
-}> = ({ cues, brand, backdrop, emphasis = 'narration' }) => {
+  /**
+   * §274. How long the opening beat runs, in seconds.
+   *
+   * Captions inside it are set as the hook; everything after is narration. This
+   * is derived rather than passed per cue because the alternative — a caller
+   * tagging every cue — is the wiring that never gets done, and an emphasis
+   * prop nothing sets is how every caption ended up identical in the first
+   * place. Absent means the whole piece is narration, which is the safe read.
+   */
+  hookEndsAtSeconds?: number;
+}> = ({ cues, brand, backdrop, emphasis, hookEndsAtSeconds }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const active = cues.find((cue) => frame >= cue.startFrame && frame <= cue.endFrame);
   if (!active) return null;
+
+  /*
+   * An explicit emphasis always wins; otherwise it follows the beat. A cue that
+   * opens inside the hook window is the line that has to land, and every line
+   * after it is support.
+   */
+  const resolvedEmphasis: 'hook' | 'narration' | 'aside' =
+    emphasis ??
+    (hookEndsAtSeconds !== undefined && active.startSeconds < hookEndsAtSeconds
+      ? 'hook'
+      : 'narration');
 
   const style = captionStyle(brand, backdrop ?? { kind: 'surface', color: brand.background });
 
@@ -183,10 +204,11 @@ export const Captions: React.FC<{
            * §274. Sized and weighted for what this line is doing. The hook is
            * the only one that gets the full display treatment.
            */
-          fontSize: emphasis === 'hook' ? 56 : emphasis === 'aside' ? 30 : 38,
+          fontSize: resolvedEmphasis === 'hook' ? 56 : resolvedEmphasis === 'aside' ? 30 : 38,
           lineHeight: 1.3,
-          fontWeight: emphasis === 'hook' ? style.fontWeight : emphasis === 'aside' ? 400 : 500,
-          opacity: emphasis === 'aside' ? 0.82 : 1,
+          fontWeight:
+            resolvedEmphasis === 'hook' ? style.fontWeight : resolvedEmphasis === 'aside' ? 400 : 500,
+          opacity: resolvedEmphasis === 'aside' ? 0.82 : 1,
           color: style.color,
           ...(style.scrim
             ? {
@@ -275,6 +297,26 @@ export const TransformationDiffVideo: React.FC<TransformationDiffVideoProps> = (
   const planned = props.beats && props.beats.length > 0 ? props.beats : null;
   const hasCaptions = Boolean(props.captions && props.captions.length > 0);
 
+  /**
+   * §274. Where the hook stops, so the captions know which line has to land.
+   *
+   * Derived from the plan the render already has rather than passed in. An
+   * emphasis prop that every caller has to remember to set is the wiring that
+   * never happens — which is how every caption in every video ended up
+   * identical in the first place.
+   *
+   * Null when there is no plan: without beats there is no hook to be inside, so
+   * every line is narration, which is the honest default.
+   */
+  const hookEndsAtSeconds = planned
+    ? (() => {
+        const hook = planned.find((b) => b.role === 'hook');
+        if (!hook) return undefined;
+        /* The plan's own minimum for the beat is the window it was written for. */
+        return Math.max(hook.minSeconds, 1.2);
+      })()
+    : undefined;
+
   const legacyScenes = planned
     ? []
     : layoutScenes(
@@ -324,6 +366,7 @@ export const TransformationDiffVideo: React.FC<TransformationDiffVideoProps> = (
         <Captions
           cues={props.captions}
           brand={brand}
+          hookEndsAtSeconds={hookEndsAtSeconds}
           backdrop={
             props.captionBackdrop === 'media'
               ? { kind: 'media' }
