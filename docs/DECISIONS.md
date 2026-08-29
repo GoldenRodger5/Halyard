@@ -7190,3 +7190,19 @@ The highlight is **colour only, never weight**. Re-weighting reflows the line on
 every word and the caption visibly twitches; the brand accent carries it without
 moving anything. Cues built before words were carried fall back to the plain
 text, so nothing regresses.
+
+## 271. The last slide asks for something
+
+The deck ended by repeating slide one's headline, so the final thing a reader
+saw was the thing they had already read. The ending is where saves and shares
+are decided — which is the whole point of a carousel — and roughly 5% of brand
+carousels carry an explicit ask.
+
+It **replaces** the result slide rather than following it. The template is
+`carousel_6` and Instagram crops slides 2..n to match slide 1, so a seventh card
+is a different post shape; the result slide was the weakest of the six anyway.
+
+Not a link. Instagram does not make one tappable from a carousel, and an
+unclickable URL rendered into an image is the detail that tells a reader nobody
+is paying attention. Saving is the action available on the surface the card is
+on.
