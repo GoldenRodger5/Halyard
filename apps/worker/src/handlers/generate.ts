@@ -573,6 +573,13 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
       // Milestone 44: a running campaign lifts the product ceiling for its
       // window and lets it revert on its own.
       productCeiling: mixOverride.ceiling,
+      /*
+       * §260. A calibration batch is drafts for review, not posts. The mix
+       * ceiling governs publishing, and at cold start it rejects every product
+       * idea — the first one projects to 50% against a 15% cap — so the batch
+       * that exists to start the account cannot contain the product.
+       */
+      calibration,
     },
   );
 

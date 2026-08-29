@@ -6890,3 +6890,42 @@ The real finding is that one constant cannot serve both styles: 158 writes ~11%
 short for continuous prose and ~20% long for stitched sections. Closing that
 honestly means measuring the delivered rate per style and feeding it back, not
 picking a better number.
+
+## 260. The mix ceiling is unsatisfiable on an account that has published nothing
+
+The first real generation run after §258 was refused twice. The first refusal
+was the onboarding gate, which is working as designed: Halyard will not generate
+at scale until an operator has rated twenty calibration drafts. The intended
+bypass is a `calibration: true` job, and batch size still comes from `limit`, so
+a calibration run can be one piece per format rather than twenty.
+
+The second refusal was the content-mix guard, and it is a deadlock:
+
+```
+idea not selected — "Product content is at 0% over 14 days; the hard cap is 15%."
+```
+
+The message names the *current* share while the rejection is computed from the
+*projected* one:
+
+```js
+wouldBeShare = (productShare14d * projectedTotal + 1) / (projectedTotal + 1)
+```
+
+`projectedTotal` is floored at 1, so the first product idea against an empty
+history projects to `1/2` — 50% against a 15% ceiling. Product content stays
+unreachable until roughly six non-product posts exist in the fourteen-day
+window, and those come from `publications`, which is empty and stays empty
+because publishing is off pre-launch by design. So the guard cannot be satisfied
+on the account it is guarding, and the stated reason ("at 0%") reads to an
+operator as nonsense, which is why it sat there.
+
+This is the same deadlock Milestone 51 fixed one guard earlier: a calibration
+batch refused by a condition that calibration is what satisfies. Fixed the same
+way — the ceiling governs *publishing* over fourteen days, and a calibration
+batch is never published. It is the spread of drafts an operator rates, and
+those ratings are what give the mix any meaning at all.
+
+Scoped to calibration deliberately. The ordinary run still enforces 15%, which a
+test pins, because the alternative — treating an empty window as permissive
+everywhere — would let the first six posts on a new account all be product.

@@ -486,6 +486,53 @@ describe('idea engine — v2 Part G', () => {
     expect(rejected[0]?.blockedReason).toContain(`${PRODUCT_CONTENT_CEILING * 100}%`);
   });
 
+  it('cannot admit any product idea before anything has been published', () => {
+    /*
+     * §260. The deadlock, pinned so it cannot come back quietly.
+     *
+     * `projectedTotal` is floored at 1, so the *first* product idea against an
+     * empty history projects to 1/2 — 50% against a 15% cap. Product content is
+     * therefore unreachable until roughly six non-product posts exist in the
+     * window, and pre-launch, with publishing off, none ever will.
+     *
+     * This asserts the behaviour is real rather than arguing about it: an empty
+     * account rejects product content on a ratio nobody could satisfy.
+     */
+    const empty: MixState = { ...mix, productShare14d: 0, postsPerCategory: {} };
+    const { selected, rejected } = selectIdeas(
+      [candidate({ id: 'promo', category: 'product' })],
+      empty,
+    );
+    expect(selected).toHaveLength(0);
+    expect(rejected[0]?.blockedReason).toContain('15%');
+  });
+
+  it('lets a calibration batch carry product content, since that is what it is for', () => {
+    /*
+     * The ceiling governs publishing over fourteen days. A calibration batch is
+     * never published — it is the spread of drafts an operator rates, and those
+     * ratings are what give the mix any meaning. Milestone 51 fixed this exact
+     * deadlock one guard earlier, for the onboarding gate.
+     */
+    const empty: MixState = { ...mix, productShare14d: 0, postsPerCategory: {} };
+    const { selected } = selectIdeas(
+      [candidate({ id: 'promo', category: 'product' })],
+      empty,
+      { calibration: true },
+    );
+    expect(selected.map((x) => x.id)).toContain('promo');
+  });
+
+  it('still enforces the ceiling for an ordinary run on a saturated account', () => {
+    /* The bypass is scoped to calibration and does not leak into normal runs. */
+    const saturated: MixState = { ...mix, productShare14d: 0.5, postsPerCategory: { product: 10 } };
+    const { selected } = selectIdeas(
+      [candidate({ id: 'promo', category: 'product' })],
+      saturated,
+    );
+    expect(selected).toHaveLength(0);
+  });
+
   it('allows product content when the trailing window has room', () => {
     const roomy: MixState = { ...mix, productShare14d: 0.02, postsPerCategory: { product: 1, education: 40 } };
     const { selected } = selectIdeas([candidate({ id: 'promo', category: 'product' })], roomy);

@@ -217,6 +217,25 @@ export interface SelectionOptions {
    * for the duration of a campaign window; omit it for the normal 15%.
    */
   productCeiling?: number;
+  /**
+   * §260. This selection is a calibration batch, so the mix ceiling does not
+   * apply to it.
+   *
+   * The ceiling governs what an account *publishes* over fourteen days.
+   * A calibration batch is not published: it exists so an operator can rate a
+   * spread of drafts before anything goes out, and the ratings are what make
+   * the mix meaningful in the first place.
+   *
+   * Without this the guard is unsatisfiable at cold start. `projectedTotal` is
+   * floored at 1, so the first product idea projects to `1/2` — 50%, over the
+   * 15% cap — and product content stays unreachable until roughly six
+   * non-product posts exist in the window. Pre-launch there are no published
+   * posts at all, so that condition can never arrive.
+   *
+   * This is the same deadlock Milestone 51 fixed one guard earlier: a
+   * calibration batch refused by a check that calibration is what satisfies.
+   */
+  calibration?: boolean;
 }
 
 export function scoreIdeas(
@@ -343,7 +362,7 @@ export function selectIdeas(
       continue;
     }
 
-    if (idea.category === 'product') {
+    if (idea.category === 'product' && !options.calibration) {
       const ceiling = options.productCeiling ?? PRODUCT_CONTENT_CEILING;
       const wouldBeShare =
         (mix.productShare14d * projectedTotal + 1) / (projectedTotal + 1);
