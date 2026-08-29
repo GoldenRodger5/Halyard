@@ -1,0 +1,48 @@
+/**
+ * §288. The button page.
+ *
+ * The catalogue and the account states resolve here, on the server, and cross
+ * to the client as plain data. A client component importing `@halyard/core`
+ * reaches `node:crypto` and fails `next build` — `clientBoundary.test.ts` exists
+ * because that once passed the whole suite and broke only there.
+ */
+import { POST_FORMATS, POST_FORMAT_CATALOG, requiresCitation } from '@halyard/core';
+import { requireOperator } from '@/lib/auth';
+import { query } from '@/lib/db';
+import { MakeClient } from './MakeClient';
+
+export const dynamic = 'force-dynamic';
+
+export default async function MakePage() {
+  await requireOperator();
+  const productId = 'recipefix';
+
+  const accounts = await query<{ platform: string; capability_state: string }>(
+    'select platform, capability_state from social_accounts where product_id = $1',
+    [productId],
+  );
+  const connected = Object.fromEntries(accounts.map((a) => [a.platform, a.capability_state]));
+
+  const formats = POST_FORMATS.map((id) => {
+    const f = POST_FORMAT_CATALOG[id];
+    return {
+      id: f.id,
+      name: f.name,
+      intent: f.intent,
+      platforms: f.platforms,
+      needsArtifact: f.needsArtifact,
+      needsCitation: requiresCitation(f),
+    };
+  });
+
+  return (
+    <main className="mx-auto max-w-3xl px-6 py-10">
+      <h1 className="text-2xl font-semibold">Make something</h1>
+      <p className="mb-8 mt-1 text-sm text-muted">
+        Pick where it goes and what shape it is. Everything after that is the same pipeline the
+        scheduler runs.
+      </p>
+      <MakeClient productId={productId} formats={formats} connected={connected} />
+    </main>
+  );
+}

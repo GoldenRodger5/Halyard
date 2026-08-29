@@ -656,13 +656,27 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
     persona: 'brand' | 'founder';
     supported_formats: string[];
   }>(
+    /*
+     * §288. `onlyPlatform` narrows the run to one account.
+     *
+     * The Make page asks for one piece on one platform, and without this it
+     * would draft for every connected account — five pieces from a button that
+     * says "make it", four of them unasked for. Absent means every account,
+     * which is what the scheduler wants.
+     */
     `select id, platform, persona, supported_formats from social_accounts
-      where product_id = $1 and capability_state in ('live','draft_only')`,
-    [productId],
+      where product_id = $1 and capability_state in ('live','draft_only')
+        and ($2::text is null or platform = $2)`,
+    [productId, (job.payload.onlyPlatform as string | undefined) ?? null],
   );
 
   if (accounts.rows.length === 0) {
-    ctx.log('no connected accounts, nothing to draft', { productId });
+    ctx.log('no connected accounts, nothing to draft', {
+      productId,
+      /* Named, because "nothing to draft" reads very differently when a
+         platform filter is what emptied the list. */
+      onlyPlatform: (job.payload.onlyPlatform as string | undefined) ?? null,
+    });
     return;
   }
 
@@ -1106,7 +1120,18 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                 ctx,
                 chosenFormat.format,
                 {
-                  subject: subjectForImage(artifact, idea.title) ?? idea.title,
+                  /*
+                   * §288. An operator's subject wins over the artifact's own.
+                   *
+                   * The Make page offers a one-line "about what", and a field
+                   * nothing reads is worse than no field — it looks like it
+                   * worked. Absent falls back to the artifact headline, which
+                   * is what an unattended run uses.
+                   */
+                  subject:
+                    (job.payload.subject as string | undefined)?.trim() ||
+                    subjectForImage(artifact, idea.title) ||
+                    idea.title,
                   /*
                    * The brief summary is what the product says about itself,
                    * and it is the closest thing to an audience description that

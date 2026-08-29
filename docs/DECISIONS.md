@@ -7662,3 +7662,33 @@ migrations alone has no such product — the test harness creates its own — so
 foreign key failed and took **40 test files** down with it. Seeded conditionally
 now: `where exists (select 1 from products …)`, which is also what makes it
 idempotent against production, where it re-runs as `INSERT 0 0`.
+
+## 288. Two buttons and a make
+
+The composer is a chat box. That is the right tool when the *idea* is the
+uncertain part and the wrong one when it is not: "a quiz, for TikTok" is two
+choices and a click, and typing it is a worse interface for the same request.
+
+`/make` is platform buttons, format buttons, and one action. It enqueues the
+same `generate` job the scheduler runs — **not a second pipeline**. The shape
+reaches `selectFormat` through `postFormat`, which honours an operator's pick
+over its own choice, and the writer, citation check, critic and correction loop
+are all unchanged. A button that took a different path would be a button that
+tests something nobody ships.
+
+Formats **grey out** rather than disappear when the platform cannot carry them,
+with the reason on hover. Hiding them leaves an operator wondering where the quiz
+went; a disabled button answers the question before it is asked. Picking a
+platform also clears an incompatible shape rather than leaving it selected and
+silently ignored at submit.
+
+Platforms show their account state on the button — `reconnect` for TikTok's
+expired token, `pending auth`, `not set up` — because the most common reason a
+piece never appears is an account nobody remembered was dead.
+
+Two payload fields were wired at the same time, because a field nothing reads is
+worse than no field — it looks like it worked:
+
+- **`onlyPlatform`** narrows the run to one account. Without it, a button saying
+  "make it" drafts for every connected account: five pieces, four unasked for.
+- **`subject`** overrides the artifact's own headline in the format brief.

@@ -49,6 +49,12 @@ export const NAV: Array<{ href: string; label: string }> = [
    * out with the co-pilot. Both are "creating", and they are different jobs —
    * one picks a concept and a direction, the other is a conversation.
    */
+  /*
+   * §288. Two buttons and a make. `/studio` picks a concept and a direction,
+   * `/compose` is a conversation — this is for when the operator already knows
+   * both and typing it is a worse interface for the same request.
+   */
+  { href: '/make', label: 'Make' },
   { href: '/studio', label: 'Create' },
   { href: '/compose', label: 'Co-pilot' },
   { href: '/queue', label: 'Content' },
