@@ -15,6 +15,7 @@
 import React from 'react';
 import { Composition } from 'remotion';
 import { QuizVideo, quizDurationSeconds } from './quiz.js';
+import { Walkthrough } from './walkthrough.js';
 import { DEFAULT_BRAND } from '../brand.js';
 import { LANDSCAPE_SUFFIX } from './geometry.js';
 import {
@@ -43,6 +44,32 @@ export const RemotionRoot: React.FC = () => (
       air, and both read as a bug rather than an edit. The worker overrides this
       per render with the real question count.
     */}
+    {/*
+      §298. Spec §12's "animated UI demonstrations" — the one media type on that
+      list with nothing behind it. A screenshot says a screen exists; a recording
+      inside a device, with the thing being explained pointed at as it happens,
+      says what using it is like.
+    */}
+    <Composition
+      id="Walkthrough"
+      component={Walkthrough as unknown as React.FC<Record<string, unknown>>}
+      durationInFrames={VIDEO_FPS * 20}
+      fps={VIDEO_FPS}
+      width={VIDEO_WIDTH}
+      height={VIDEO_HEIGHT}
+      defaultProps={{
+        brand: DEFAULT_BRAND,
+        screenSrc: '',
+        headline: 'Paste a recipe. Get it adapted.',
+        wordmark: 'recipefix',
+        callouts: [
+          { atSeconds: 1.2, text: 'Paste any recipe link', at: { x: 0.5, y: 0.34 } },
+          { atSeconds: 5.0, text: 'Pick what you need to avoid', at: { x: 0.5, y: 0.56 } },
+          { atSeconds: 9.5, text: 'Every swap says why', at: { x: 0.5, y: 0.45 } },
+        ],
+      }}
+    />
+
     <Composition
       id="Quiz"
       component={QuizVideo as unknown as React.FC<Record<string, unknown>>}

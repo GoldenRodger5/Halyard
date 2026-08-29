@@ -7884,3 +7884,39 @@ A reply **originates nothing**: it responds to what somebody else said, so it ha
 no format to fill. That is declared as `originates: false` rather than inferred
 from an empty format list, because "no formats" otherwise reads identically to
 "somebody forgot to add formats" — and the drift test cannot tell those apart.
+
+## 298. The walkthrough — spec §12's one unbuilt media type
+
+An audit of the spec against the code found three gaps. One was already there and
+my grep was wrong (`draftReply` lives in the web inbox, not core). One is
+`hook_experiments` — a table with zero rows and no code, still unwired. The third
+was real: **"animated UI demonstrations"**, the only media type in §12 with
+nothing behind it.
+
+Halyard could record the product (§292) and put a screenshot on a card (§273),
+and had no way to show somebody *using* it. That gap matters more than it sounds:
+a screenshot says "this screen exists"; a recording inside a device, with the
+thing being explained pointed at as it happens, says "this is what using it is
+like" — which is the only claim a product demonstration is really making.
+
+**The phone is drawn, not photographed.** A photographed hand holding a device
+dates instantly, ties the piece to one model, and cannot be re-rendered when the
+app changes. A drawn frame is a few rounded rectangles, re-renders free, and never
+becomes last year's hardware. The screen inside is the only part that has to be
+real, and it is, because it is a capture.
+
+**What is real and what is decoration.** The recording is `captured` provenance
+and may evidence a claim. The drifting ground, the frame and the rings are
+decoration and may not. This composition only ever points at pixels the capture
+actually contains — it never draws a control, which is §296's line held one level
+down.
+
+**Callouts are derived, not written.** `calloutsFromSteps` takes the capture's own
+step labels and timings, so a callout cannot point at a moment the recording does
+not contain. A hand-written one points at a moment somebody imagined. The first
+render made the case for this by accident: hardcoded demo callouts said "Paste any
+recipe link" while pointing at the Cook button of a finished recipe, which looks
+deliberate and is therefore worse than no callout at all.
+
+The ground is blurred hard and dimmed. A sharp photograph behind a phone competes
+with the screen, which is the one thing the viewer is meant to be reading.
