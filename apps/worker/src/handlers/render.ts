@@ -55,6 +55,33 @@ async function renderImageAsset(
    * text form, which is what every card did before there were photographs.
    */
   const props = { ...render.input_props };
+
+  /**
+   * §273. Inline a real screenshot of the product, if this slide carries one.
+   *
+   * Same mechanism as the hero image and for the same reason — Satori cannot
+   * fetch a URL, and the props hold an id rather than a megabyte of base64 that
+   * would be written to Postgres and read back on every retry.
+   */
+  const shotAssetId = props.screenshotAssetId as string | undefined;
+  if (shotAssetId) {
+    const { rows } = await ctx.pool.query<{
+      storage_path: string | null;
+      public_url: string | null;
+      mime_type: string | null;
+    }>('select storage_path, public_url, mime_type from assets where id = $1', [shotAssetId]);
+    const shot = rows[0];
+    const bytes = shot ? await readAssetBytes(shot.storage_path, shot.public_url) : null;
+    if (bytes) {
+      props.screenshotDataUri = `data:${shot?.mime_type ?? 'image/png'};base64,${bytes.toString('base64')}`;
+    } else {
+      ctx.log('product screenshot could not be read, rendering without it', {
+        renderId: render.id,
+        assetId: shotAssetId,
+      });
+    }
+  }
+
   const imageAssetId = props.imageAssetId as string | undefined;
   if (imageAssetId) {
     const { rows } = await ctx.pool.query<{

@@ -94,6 +94,7 @@ const VO_TARGET_SECONDS = 22;
 import { PermanentJobFailure } from '../poller.js';
 import type { Job, HandlerContext } from '../poller.js';
 import { generateHeroImage } from '../heroImage.js';
+import { pickProductShot } from '../productShot.js';
 import { captureFootage } from '../capture/footage.js';
 import { routeToBoard } from './boards.js';
 import { notify } from './publish.js';
@@ -1057,6 +1058,27 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
              * actually notices, and it is what the first production carousel
              * did.
              */
+            /**
+             * §273. A real screenshot of the product, on the slide that
+             * explains how it works.
+             *
+             * Captured, not generated — which is the whole point. A screenshot
+             * is the only image in the deck that may evidence a claim about the
+             * software, because `captured` is in `EVIDENTIAL_PROVENANCE` and
+             * `generated` is not. The hero photograph sets the scene; this
+             * shows the thing actually happening.
+             *
+             * Placed on the mechanism slide (`Why`) rather than the opener: the
+             * first slide has to stop a scroll and a UI screenshot does not,
+             * but by slide three or four a reader has asked "how" and a picture
+             * of the answer is worth more than another sentence.
+             */
+            const shot = await pickProductShot(ctx, {
+              productId,
+              preferFlow: 'adapt_and_reveal',
+            });
+            const shotSlideIndex = slides.findIndex((s) => s.kicker === 'Why');
+
             const usedLayouts: CarouselLayout[] = [];
             for (const slide of slides) {
               const role: SlideRole =
@@ -1092,6 +1114,12 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                     typography: cardType,
                     layout,
                     ...(slideHasImage ? { imageAssetId: hero!.assetId } : {}),
+                    ...(shot && shotSlideIndex >= 0 && slide.index - 1 === shotSlideIndex
+                      ? {
+                          screenshotAssetId: shot.assetId,
+                          screenshotCaption: shot.caption ?? undefined,
+                        }
+                      : {}),
                   },
                   slide.index - 1,
                 ],

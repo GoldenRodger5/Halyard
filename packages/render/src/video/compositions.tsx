@@ -141,7 +141,21 @@ export const Captions: React.FC<{
    * across a frame that changes thirty times a second.
    */
   backdrop?: CaptionBackdrop;
-}> = ({ cues, brand, backdrop }) => {
+  /**
+   * §274. How loudly this caption should speak.
+   *
+   * Every caption was 52px at weight 600, everywhere, for every line — and
+   * using the loudest setting on every sentence is itself the tell. Real
+   * accounts vary emphasis because not every sentence is the most important
+   * one; a wall of identical bold text reads as a template, and it flattens the
+   * hook, which is the one line that genuinely needs the weight.
+   *
+   * `narration` is the default for a body cue: lighter, smaller, and lower in
+   * the frame, sitting under the picture rather than competing with it.
+   * `hook` keeps what the caption used to be, for the line that has to land.
+   */
+  emphasis?: 'hook' | 'narration' | 'aside';
+}> = ({ cues, brand, backdrop, emphasis = 'narration' }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const active = cues.find((cue) => frame >= cue.startFrame && frame <= cue.endFrame);
@@ -165,9 +179,14 @@ export const Captions: React.FC<{
     >
       <span
         style={{
-          fontSize: 52,
-          lineHeight: 1.25,
-          fontWeight: style.fontWeight,
+          /*
+           * §274. Sized and weighted for what this line is doing. The hook is
+           * the only one that gets the full display treatment.
+           */
+          fontSize: emphasis === 'hook' ? 56 : emphasis === 'aside' ? 30 : 38,
+          lineHeight: 1.3,
+          fontWeight: emphasis === 'hook' ? style.fontWeight : emphasis === 'aside' ? 400 : 500,
+          opacity: emphasis === 'aside' ? 0.82 : 1,
           color: style.color,
           ...(style.scrim
             ? {

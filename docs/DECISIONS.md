@@ -7233,3 +7233,43 @@ The platform-furniture colours are inline rather than tokens. `designTokens.test
 caught the first version using raw Tailwind palette classes, and it is right to:
 those greys and gradients are somebody else's brand being imitated, and putting
 them in Halyard's token space would let them be mistaken for Halyard's own.
+
+## 273. The capture system's last hop
+
+Halyard has captured the product since the capture flows were written: three
+Playwright flows on a schedule, nine assets in production, each tagged with its
+flow and step and captioned in plain words. The card templates take a
+`screenshotDataUri`.
+
+**Nothing ever connected them.** `screenshotDataUri` had no caller anywhere, so
+every capture ever taken sat unused while the posts described the product in
+words. That is the fourth instance this session of a complete feature missing
+one hop — after the image client, the layouts and the typography systems.
+
+It matters more than any generated picture, because a screenshot is the only
+image in a post that may **evidence** a claim about the software:
+`imagery/types.ts` puts `captured` in `EVIDENTIAL_PROVENANCE` and leaves
+`generated` out. The hero photograph sets a scene; this shows the thing
+happening.
+
+Placed on the mechanism slide rather than the opener. A UI screenshot does not
+stop a scroll, so it is wasted on slide one — but by slide three a reader has
+asked *how*, and a picture of the answer beats another sentence.
+
+Only unarchived assets are selected. A screenshot of a build that no longer
+exists shows an interface the reader will not find, which is a false claim about
+the product made in pictures rather than in words. `mark_stale_assets` already
+archives those.
+
+## 274. Not every line is the hook
+
+Every caption was 52px at weight 600, on every line of every video. Using the
+loudest setting everywhere is itself the tell: real accounts vary emphasis
+because not every sentence is the most important one, and a wall of identical
+bold text both reads as a template and flattens the one line that genuinely
+needs the weight.
+
+Three levels now, driven by what the line is doing — `hook` keeps the old
+treatment, `narration` is lighter and smaller and sits under the picture rather
+than competing with it, `aside` is quieter still. The typography systems already
+carried `body` and `label` at real weights and nothing used them for captions.
