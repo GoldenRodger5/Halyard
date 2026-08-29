@@ -125,7 +125,7 @@ export function carouselProps(
     slides.push({
       kicker: 'Why',
       headline: 'The mechanism',
-      bodyLines: swaps.slice(0, 3).map((s) => trim(s.reason ?? '', 130)),
+      bodyLines: swaps.slice(0, 3).map((s) => trim(s.reason ?? '', CAROUSEL_BODY_CHARS)),
     });
   }
 
@@ -134,8 +134,8 @@ export function carouselProps(
       kicker: 'Chef notes',
       headline: techniques[0]?.title ?? 'What to watch',
       bodyLines: [
-        ...techniques.slice(0, 2).map((t) => trim(t.note ?? '', 130)),
-        ...notes.slice(0, 1).map((n) => trim(n.text ?? '', 130)),
+        ...techniques.slice(0, 2).map((t) => trim(t.note ?? '', CAROUSEL_BODY_CHARS)),
+        ...notes.slice(0, 1).map((n) => trim(n.text ?? '', CAROUSEL_BODY_CHARS)),
       ].filter(Boolean),
     });
   }
@@ -143,7 +143,7 @@ export function carouselProps(
   slides.push({
     kicker: 'The result',
     headline: artifact.headline,
-    bodyLines: notes.slice(0, 2).map((n) => trim(n.text ?? '', 130)),
+    bodyLines: notes.slice(0, 2).map((n) => trim(n.text ?? '', CAROUSEL_BODY_CHARS)),
   });
 
   const total = slides.length;
@@ -152,13 +152,57 @@ export function carouselProps(
 
 // ── helpers ────────────────────────────────────────────────────────────────
 
-function trim(value: string, max: number): string {
+/**
+ * §264. Shorten to a boundary a reader would recognise, never mid-word.
+ *
+ * This cut at `max` characters and appended `...` to whatever was left, so a
+ * production carousel slide read *"keeps the graham flavor and the classic
+ * crisp t..."* — stopped inside a word, with a quarter of the canvas empty
+ * beneath it. Two faults at once: the budget is a character count that knows
+ * nothing about the box, and the fallback cut wherever it happened to land.
+ *
+ * Now: a sentence end if there is one, else a clause, else a **word** boundary.
+ * Never inside a word, because that is the thing that reads as broken software
+ * rather than as an abbreviation.
+ *
+ * The ellipsis is the single character `…`, not three dots — the slop filter
+ * looks for `…` when deciding whether copy trails off, and `...` slipped past
+ * it.
+ */
+export function trim(value: string, max: number): string {
   const clean = value.replace(/\s+/g, ' ').trim();
   if (clean.length <= max) return clean;
+
   const cut = clean.slice(0, max);
-  const lastStop = Math.max(cut.lastIndexOf('. '), cut.lastIndexOf(', '));
-  return (lastStop > max * 0.6 ? cut.slice(0, lastStop) : cut.trimEnd()) + '...';
+
+  /* A sentence that ends inside the budget is the best possible stop. */
+  const sentence = Math.max(cut.lastIndexOf('. '), cut.lastIndexOf('? '), cut.lastIndexOf('! '));
+  if (sentence > max * 0.5) return cut.slice(0, sentence + 1);
+
+  /* Then a clause, which still reads as a deliberate stop. */
+  const clause = Math.max(cut.lastIndexOf(', '), cut.lastIndexOf('; '));
+  if (clause > max * 0.5) return cut.slice(0, clause) + '…';
+
+  /* Otherwise the last whole word. Never a partial one. */
+  const word = cut.lastIndexOf(' ');
+  const safe = word > 0 ? cut.slice(0, word) : cut;
+  return safe.replace(/[\s,;:—-]+$/, '') + '…';
 }
+
+/**
+ * §264. How much body copy one carousel slide can actually hold.
+ *
+ * Derived from the box rather than picked: a 4:5 slide is 1080×1350 with 84px
+ * side padding, so body sets across ~912px. At 36px with a 1.4 line height that
+ * is roughly 46 characters a line and about 50px of height per line, and the
+ * slide has ~750px of vertical room once the kicker, headline and wordmark are
+ * placed — about fifteen lines, shared between at most three paragraphs.
+ *
+ * The old budget was 130 characters, which is under three lines of the fifteen
+ * available. That is why slides truncated mid-word while most of the canvas sat
+ * empty: the limit had nothing to do with the space.
+ */
+const CAROUSEL_BODY_CHARS = 230;
 
 function firstSentence(value: string): string {
   const match = /^[^.!?]+[.!?]/.exec(value.trim());

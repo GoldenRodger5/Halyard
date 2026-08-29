@@ -7005,3 +7005,71 @@ those refuses. A script nobody can read aloud is not a script.
 Found by rendering a frame and looking at it. No gate in the system would have
 caught it, and the loudness, duration, dimensions and word-error-rate were all
 within tolerance on that same file.
+
+## 264. Truncation that stopped inside a word
+
+A production carousel slide read *"keeps the graham flavor and the classic crisp
+t…"* — cut mid-word, with a quarter of the canvas empty beneath it. Another
+stopped at *"oat flour keeps…"* with 60% of the slide unused.
+
+Two faults compounding. The budget was a flat 130 characters that knew nothing
+about the box: a 4:5 slide sets body across ~912px at 36px, roughly fifteen
+lines, and 130 characters is under three of them. And the fallback cut wherever
+it landed — a sentence or clause boundary was tried, but only past 60% of the
+budget, so anything shorter got a raw slice.
+
+Now: a sentence end if there is one, else a clause, else the last **whole word**.
+Never inside a word, because that is what reads as broken software rather than
+as an abbreviation. The budget is 230 characters, derived from the measure and
+the line height rather than picked.
+
+The ellipsis is now the single character `…` rather than `...`, because
+`slopFilter` searches for `…` when deciding whether copy trails off, and three
+dots walked straight past it.
+
+## 265. Nineteen of twenty-one renders could not see the Creative Director
+
+The review of 2026-08-29 called the output "one template". The first diagnosis —
+that the director had not run — was wrong, and worth recording as wrong:
+`generation_meta` carries no `visualLanguage` because it is the *copywriter's*
+metadata, written 570 lines before the director is called. The director runs and
+chooses well; `creative_briefs.visual_direction` holds eight visual languages and
+five typography systems across ten briefs.
+
+The direction reached the **Remotion video path only**. Satori image templates
+were handed `bodyLines, headline, index, kicker, total` and drew with one fixed
+`props.brand` pair. Nineteen of twenty-one renders in that run were images. The
+variety machine worked and 90% of the output could not see it.
+
+**Why it had never been wired.** Not an oversight — Satori *could not render the
+fonts*. Its parser throws `Cannot read properties of undefined (reading '256')`
+on all five bundled variable families, and 256/257/264 are **nameIDs**: it parses
+the variable-font `fvar` table against `font.names` and cannot resolve the axis
+records. So only Inter and Instrument Serif were ever registered.
+
+The fix is a font change, not a loader change. Each family is instanced to
+static cuts with **every axis pinned**, which removes `fvar` entirely. Pinning
+`wght` alone is not enough — Fraunces carries `opsz/SOFT/WONK`, Bricolage
+`opsz/wdth` — and an unpinned axis keeps the table and the parse still fails.
+`scripts/build-static-fonts.py` regenerates the sixteen cuts.
+
+Remotion renders the variable originals perfectly, because a browser does not
+use this parser. That asymmetry is precisely why the gap survived: the video
+path was standing proof that the fonts were fine.
+
+The system crosses into `@halyard/render` as **plain data** via
+`renderTypography()`, never as an id it would have to look up — gotcha 10, and
+the reason `renderTypography` exists at all.
+
+Image-only accounts get a typography choice of their own now, from the same
+recency window, because the director sits inside the `needsVideo` branch and
+Instagram — whose carousel is the most-rendered template in the system — never
+reached it.
+
+## 266. A headline sized for the canvas it is read at
+
+Carousel headlines were 66px on a 1080×1350 slide: inside the 60–90px range that
+works and at the bottom of it, which read as a small block of type marooned in a
+tall canvas — the "empty top third" in the review. 78px is the middle of the
+range and fills the measure. A slide is looked at around a third of its size in
+feed, so this is the dimension least safe to eyeball at full size.

@@ -6,6 +6,7 @@
  * visual look. They are not committed.
  */
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { trim } from './artifactProps.js';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
@@ -394,4 +395,55 @@ describe('required props are declared correctly', () => {
       ).rejects.toThrow(new RegExp(required[0]!));
     }, 60_000);
   }
+});
+
+/**
+ * §264. The truncation that shipped.
+ *
+ * A production carousel slide read "keeps the graham flavor and the classic
+ * crisp t..." — stopped inside a word, with a quarter of the canvas empty
+ * below it. `media-review/2026-08-29/carousel/*_05.png`.
+ */
+describe('shortening copy for a slide', () => {
+  const long =
+    'Using a mix of certified gluten free oat flour and a gluten free all-purpose blend keeps the graham flavor and the classic crisp texture that makes these work as a base for anything else you build on them later on.';
+
+  it('never stops inside a word', () => {
+    for (const max of [40, 60, 90, 130, 180, 230]) {
+      const out = trim(long, max);
+      if (out === long) continue;
+      const stem = out.replace(/…$/, '').trimEnd();
+      /* The last word kept must be a whole word from the source. */
+      const lastWord = stem.split(' ').pop()!;
+      expect(long.split(/\s+/), `max=${max} produced "${lastWord}"`).toContain(
+        lastWord.replace(/[.,;:!?]$/, ''),
+      );
+    }
+  });
+
+  it('prefers a sentence end over an ellipsis', () => {
+    const two = 'Whisk the dry mix well. Then rest the dough for twenty minutes before rolling it.';
+    const out = trim(two, 40);
+    expect(out).toBe('Whisk the dry mix well.');
+    expect(out).not.toContain('…');
+  });
+
+  it('uses the single ellipsis character the slop filter looks for', () => {
+    /* `...` as three dots slipped past the trailing-off check entirely. */
+    const out = trim(long, 60);
+    expect(out).not.toContain('...');
+    expect(out.endsWith('…')).toBe(true);
+  });
+
+  it('leaves copy that already fits completely alone', () => {
+    expect(trim('Short enough.', 230)).toBe('Short enough.');
+  });
+
+  it('does not leave a dangling comma or dash before the ellipsis', () => {
+    expect(trim('One thing, another thing, a third thing here', 20)).not.toMatch(/[,;:—-]…$/);
+  });
+
+  it('collapses whitespace the way the renderer needs', () => {
+    expect(trim('  spaced   out\n\ntext  ', 230)).toBe('spaced out text');
+  });
 });

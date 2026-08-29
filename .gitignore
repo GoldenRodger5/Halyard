@@ -50,3 +50,6 @@ supabase/.temp/
 # Google OAuth client downloads. They contain a live client_secret and land in
 # the repo root by default from the Cloud console. §192.
 client_secret_*.apps.googleusercontent.com.json
+
+# Downloaded production media for human review. Regenerable; not source.
+media-review/

@@ -18,6 +18,60 @@ export interface TemplateBase {
   aspectRatio: string;
   /** Small footer mark. Never a logo lockup; this is a feed, not a billboard. */
   wordmark?: string;
+  /**
+   * §265. The type this card is set in, as plain data.
+   *
+   * The Creative Director already chooses a typography system per piece and
+   * records it on the brief. Until now only the Remotion path read it, so the
+   * image templates — nineteen of twenty-one renders in a production run — drew
+   * every card in the same two fonts while `creative_briefs` recorded five
+   * different systems. The variety existed and the output could not show it.
+   *
+   * Passed as a **resolved spec, not an id**, because this package must not
+   * import `@halyard/core` for values it can be handed instead (gotcha 10: the
+   * barrel reaches `node:crypto`, and anything Remotion webpacks that can see
+   * it dies at render time with `UnhandledSchemeError`). `renderTypography()`
+   * in core exists to hand a system across this boundary as plain data; this
+   * is its consumer.
+   *
+   * Absent means the brand fonts, which is what every card did before.
+   */
+  typography?: RenderTypography;
+}
+
+/** One role's type spec. Mirrors `TypeRole` in `@halyard/core`, as plain data. */
+export interface TypeRoleSpec {
+  family: string;
+  weight: number;
+  tracking: number;
+  scale: number;
+  case: 'none' | 'upper';
+}
+
+/** The shape `renderTypography()` produces. */
+export interface RenderTypography {
+  id: string;
+  display: TypeRoleSpec;
+  heading: TypeRoleSpec;
+  body: TypeRoleSpec;
+  label: TypeRoleSpec;
+}
+
+/**
+ * §265. The type spec a card draws with.
+ *
+ * Falls back to the brand fonts when none is supplied, so a caller that has not
+ * been taught to pass one keeps exactly the behaviour it had.
+ */
+export function typeFor(props: TemplateBase): RenderTypography {
+  if (props.typography) return props.typography;
+  return {
+    id: 'brand_default',
+    display: { family: props.brand.headingFont, weight: 400, tracking: -0.005, scale: 1, case: 'none' },
+    heading: { family: props.brand.headingFont, weight: 400, tracking: -0.005, scale: 0.72, case: 'none' },
+    body: { family: props.brand.bodyFont, weight: 400, tracking: 0, scale: 0.34, case: 'none' },
+    label: { family: props.brand.bodyFont, weight: 600, tracking: 0.12, scale: 0.2, case: 'upper' },
+  };
 }
 
 export interface TransformationDiffProps extends TemplateBase {
@@ -301,28 +355,56 @@ export function pinterestTall(props: PinterestTallProps): SatoriElement {
  * Instagram crops slides 2..n to match slide 1 (v2 A.3).
  */
 export function carouselSlide(props: CarouselSlideProps): SatoriElement {
+  const type = typeFor(props);
+  /*
+   * §266. Sized for the slide, and for the size it is actually read at.
+   *
+   * A carousel slide is 1080×1350 and is looked at around a third of that in
+   * feed. The old headline was 66px — inside the 60–90px range but at the
+   * bottom of it — and the result read as a small block of type marooned in a
+   * tall canvas, which was the "empty top third" in the review. 78px is the
+   * middle of the range and fills the measure without crowding.
+   */
+  const headlineSize = 78;
   return frame(
     props,
     box(
       { justifyContent: 'space-between', marginBottom: 32 },
       text(props.kicker, {
+        fontFamily: type.label.family,
+        fontWeight: type.label.weight,
         fontSize: 26,
-        letterSpacing: 3,
-        textTransform: 'uppercase',
+        letterSpacing: type.label.tracking * 26 + 2,
+        textTransform: type.label.case === 'upper' ? 'uppercase' : 'none',
         color: props.brand.primary,
       }),
-      text(`${props.index} / ${props.total}`, { fontSize: 26, color: props.brand.muted }),
+      text(`${props.index} / ${props.total}`, {
+        fontFamily: type.label.family,
+        fontSize: 26,
+        color: props.brand.muted,
+      }),
     ),
     text(props.headline, {
-      fontFamily: props.brand.headingFont,
-      fontSize: 66,
+      fontFamily: type.display.family,
+      fontWeight: type.display.weight,
+      fontSize: headlineSize,
+      letterSpacing: type.display.tracking * headlineSize,
+      textTransform: type.display.case === 'upper' ? 'uppercase' : 'none',
       lineHeight: 1.08,
       marginBottom: 36,
     }),
     box(
       { flexDirection: 'column' },
       ...props.bodyLines.slice(0, props.screenshotDataUri ? 2 : 5).map((line) =>
-        text(line, { fontSize: 36, lineHeight: 1.4, marginBottom: 18, color: props.brand.ink }),
+        text(line, {
+          fontFamily: type.body.family,
+          fontWeight: type.body.weight,
+          fontSize: 36,
+          letterSpacing: type.body.tracking * 36,
+          lineHeight: 1.4,
+          marginBottom: 18,
+          color: props.brand.ink,
+        }),
       ),
     ),
     props.screenshotDataUri

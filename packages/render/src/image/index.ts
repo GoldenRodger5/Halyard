@@ -27,21 +27,81 @@ let fontCache: SatoriOptions['fonts'] | null = null;
 
 /**
  * Fonts are read once and reused. v2 D.3 suggests subsetting for render speed;
- * the two Inter weights here are already latin-subset from fontsource, and
- * Instrument Serif is small enough to ship whole.
+ * the two Inter weights here are already latin-subset from fontsource, and the
+ * rest are variable files small enough to ship whole.
+ *
+ * §265. **All seven families, not three — and why it took a font conversion.**
+ *
+ * The package has bundled Archivo, Bricolage, DM Sans, Fraunces and Sora since
+ * the typography systems were written, and this loader read only Inter and
+ * Instrument Serif. So the six systems the Creative Director chooses between
+ * could be *selected* on the image path and never *drawn*: nineteen renders in
+ * one production run came out in identical type while `creative_briefs`
+ * recorded five different systems.
+ *
+ * The five were not loaded because Satori could not read them. Its parser
+ * (`@shuding/opentype.js`) throws `Cannot read properties of undefined
+ * (reading '256')` on every one — and 256, 257, 264 are **nameIDs**, not glyph
+ * indices. It parses the variable-font `fvar` table against `font.names`, and
+ * these files reference axis-name records it does not resolve.
+ *
+ * So the fix is not a loader change, it is a **font** change: each family is
+ * instanced to static cuts with *every* axis pinned, which removes `fvar`
+ * altogether. Pinning `wght` alone is not enough — Fraunces carries
+ * `opsz/SOFT/WONK` and Bricolage `opsz/wdth`, so an unpinned axis keeps the
+ * table and the parse still fails. `assets/fonts/static/` holds the result and
+ * `scripts/build-static-fonts.py` regenerates it.
+ *
+ * Remotion renders the variable originals fine, because a browser does not use
+ * this parser. That asymmetry is the whole reason the gap survived: the video
+ * path proved the fonts worked.
  */
+const STATIC_CUTS: Array<{ name: string; file: string; weight: number }> = [
+  { name: 'Archivo', file: 'Archivo-500.ttf', weight: 500 },
+  { name: 'Archivo', file: 'Archivo-700.ttf', weight: 700 },
+  { name: 'Archivo', file: 'Archivo-800.ttf', weight: 800 },
+  { name: 'Bricolage Grotesque', file: 'Bricolage-600.ttf', weight: 600 },
+  { name: 'Bricolage Grotesque', file: 'Bricolage-700.ttf', weight: 700 },
+  { name: 'Bricolage Grotesque', file: 'Bricolage-800.ttf', weight: 800 },
+  { name: 'DM Sans', file: 'DMSans-400.ttf', weight: 400 },
+  { name: 'DM Sans', file: 'DMSans-500.ttf', weight: 500 },
+  { name: 'DM Sans', file: 'DMSans-700.ttf', weight: 700 },
+  { name: 'Fraunces', file: 'Fraunces-400.ttf', weight: 400 },
+  { name: 'Fraunces', file: 'Fraunces-600.ttf', weight: 600 },
+  { name: 'Fraunces', file: 'Fraunces-700.ttf', weight: 700 },
+  { name: 'Sora', file: 'Sora-400.ttf', weight: 400 },
+  { name: 'Sora', file: 'Sora-600.ttf', weight: 600 },
+  { name: 'Sora', file: 'Sora-700.ttf', weight: 700 },
+  { name: 'Sora', file: 'Sora-800.ttf', weight: 800 },
+];
+
 export async function loadFonts(): Promise<SatoriOptions['fonts']> {
   if (fontCache) return fontCache;
-  const [interRegular, interSemiBold, instrumentSerif] = await Promise.all([
+  const [interRegular, interSemiBold, instrumentSerif, ...cuts] = await Promise.all([
     readFile(path.join(FONT_DIR, 'Inter-Regular.woff')),
     readFile(path.join(FONT_DIR, 'Inter-SemiBold.woff')),
     readFile(path.join(FONT_DIR, 'InstrumentSerif-Regular.ttf')),
+    ...STATIC_CUTS.map((c) => readFile(path.join(FONT_DIR, 'static', c.file))),
   ]);
 
   fontCache = [
     { name: 'Inter', data: interRegular, weight: 400, style: 'normal' },
     { name: 'Inter', data: interSemiBold, weight: 600, style: 'normal' },
+    /*
+     * Two systems ask Inter for 500 and 700 and there is no such cut bundled.
+     * Registered against the nearest real weight rather than left out: Satori
+     * does not synthesise, and an unregistered weight silently falls back to a
+     * different *family*, which is the failure this whole section is fixing.
+     */
+    { name: 'Inter', data: interSemiBold, weight: 500, style: 'normal' },
+    { name: 'Inter', data: interSemiBold, weight: 700, style: 'normal' },
     { name: 'Instrument Serif', data: instrumentSerif, weight: 400, style: 'normal' },
+    ...STATIC_CUTS.map((cut, i) => ({
+      name: cut.name,
+      data: cuts[i]!,
+      weight: cut.weight as 400 | 500 | 600 | 700 | 800,
+      style: 'normal' as const,
+    })),
   ];
   return fontCache;
 }

@@ -918,6 +918,42 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
           routerUrlFor(publicBaseUrl(), contentItemId),
         ]);
 
+        /**
+         * §265. The type these cards are set in.
+         *
+         * The full Creative Director runs later and only inside the video
+         * branch, so an image-only account — Instagram, whose carousel is the
+         * most-rendered template in the system — never reached a direction at
+         * all. Its cards were drawn in the brand fonts every time.
+         *
+         * Typography is chosen here from the same recency window the director
+         * uses, so a feed rotates through systems instead of repeating one.
+         * When a video *also* runs on this item the director's own choice is
+         * authoritative for the video; the still card is a companion asset and
+         * agreeing with it exactly matters less than not being identical to
+         * yesterday's.
+         */
+        const recentType = await ctx.pool.query<{ typography: string }>(
+          `select b.visual_direction ->> 'typography' as typography
+             from creative_briefs b
+            where b.account_id = $1
+            order by b.created_at desc
+            limit 6`,
+          [account.id],
+        );
+        const cardType = renderTypography(
+          selectTypography({
+            /*
+             * No language is decided yet on this path — the treatment is chosen
+             * after the copy. Passing a language nothing declares makes
+             * `selectTypography` consider every system rather than inventing a
+             * default, which is exactly the behaviour wanted here.
+             */
+            visualLanguage: 'unset',
+            recentSystemIds: recentType.rows.map((r) => r.typography).filter(Boolean),
+          }).system,
+        );
+
         // Enqueue renders from the artifact, if it supports the template.
         if (artifact) {
           const props = transformationDiffProps(artifact);
@@ -925,7 +961,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
             const render = await ctx.pool.query<{ id: string }>(
               `insert into renders (content_item_id, template_id, renderer, input_props, quality)
                values ($1, 'transformation_diff_4x5', 'satori', $2, 'final') returning id`,
-              [contentItemId, { ...props, alt_text: draft.altText }],
+              [contentItemId, { ...props, alt_text: draft.altText, typography: cardType }],
             );
             await ctx.enqueue('render', { renderId: render.rows[0]!.id }, { priority: 50 });
           }
@@ -935,7 +971,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
               const render = await ctx.pool.query<{ id: string }>(
                 `insert into renders (content_item_id, template_id, renderer, input_props, slide_index, quality)
                  values ($1, 'carousel_6', 'satori', $2, $3, 'final') returning id`,
-                [contentItemId, slide, slide.index - 1],
+                [contentItemId, { ...slide, typography: cardType }, slide.index - 1],
               );
               await ctx.enqueue('render', { renderId: render.rows[0]!.id }, { priority: 50 });
             }
