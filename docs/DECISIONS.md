@@ -6964,3 +6964,44 @@ touch.
 Reported per sweep rather than silently repaired. A steady trickle here means a
 bug upstream, and a sweeper that quietly tidies up after one is how the upstream
 bug stays invisible.
+
+## 262. Which gate refused, not merely that one did
+
+`DraftRejectedError` has carried `lastQc` since it was written and nothing ever
+read it. A rejection reached the operator as "rejected by QC after 3 attempts"
+with no way to learn why — the copywriter's own comment calls that "the failure
+recorded somewhere nobody reads", and it was in fact recorded nowhere.
+
+The failing gates now travel into the disown reason and the log line. Three
+consecutive attempts failing the same rule is the signal worth having: it means
+the brief and the gate disagree, and no number of retries will settle that.
+
+## 263. The envelope that got spoken
+
+The first real end-to-end run produced a 1080×1920 video whose opening frame
+carries this, in the caption bar, on screen:
+
+```
+{"script":"Phone locked mid-recipe?
+```
+
+`writeVoScript` asks for prose and took `response.text.trim()` verbatim, while
+`writeDraft` twenty lines away runs `extractJson`. When the model wrapped its
+answer anyway the whole envelope became the script — synthesised by TTS,
+transcribed into captions, and passed by **every gate**, because the gates read
+a script for slop, banned phrases and forbidden claims, and not one of them asks
+whether it is a script at all.
+
+Same family as §252: a structure travelling through layers that each type it as
+`string`. It survived because every one of those layers was individually
+correct.
+
+`unwrapSpokenScript` takes the prose out of an envelope, including a truncated
+one — `maxTokens` cutting the reply before its closing quote is the common
+shape, and the words are all there. When nothing spoken can be recovered it
+returns null, the attempt retries with feedback naming the problem, and a run of
+those refuses. A script nobody can read aloud is not a script.
+
+Found by rendering a frame and looking at it. No gate in the system would have
+caught it, and the loudness, duration, dimensions and word-error-rate were all
+within tolerance on that same file.

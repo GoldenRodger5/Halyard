@@ -7,6 +7,7 @@ import {
   describeShapeProblem,
   writeDraft,
   writeVoScript,
+  unwrapSpokenScript,
 } from './copywriter.js';
 import {
   AnthropicLlmClient,
@@ -711,5 +712,71 @@ describe('past conversion feeding idea scoring', () => {
     // allowed to say so — that is the point of measuring.
     const [scored] = scoreIdeas([candidate({ historicalConversion: 0 })], mix);
     expect(scored!.breakdown.historical).toBe(0);
+  });
+});
+
+
+/**
+ * §263. The envelope that got spoken.
+ *
+ * A production render carries `{"script":"` across its opening frame: the model
+ * wrapped its answer, `writeVoScript` took `response.text` verbatim, and the
+ * envelope was synthesised, captioned and passed by every gate — because the
+ * gates read a script for slop and claims, and none of them asks whether it is
+ * a script at all.
+ */
+describe('a spoken script is prose, or it is refused', () => {
+  it('takes plain prose unchanged, which is the normal case', () => {
+    const prose = 'Your phone locks right when your hands are covered.';
+    expect(unwrapSpokenScript(prose)).toBe(prose);
+  });
+
+  it('unwraps the envelope the model actually returned', () => {
+    expect(unwrapSpokenScript('{"script":"Phone locked mid-recipe? Bake them."}')).toBe(
+      'Phone locked mid-recipe? Bake them.',
+    );
+  });
+
+  it('recovers a script from an envelope cut off by the token limit', () => {
+    /*
+     * The common shape: `maxTokens` ends the reply before the closing quote,
+     * so the text is both unparseable and structured. The words are all there.
+     */
+    const truncated = '{"script":"Phone locked mid-recipe? That is rough with lentil meat';
+    expect(unwrapSpokenScript(truncated)).toBe(
+      'Phone locked mid-recipe? That is rough with lentil meat',
+    );
+  });
+
+  it('accepts the other field names a scriptwriter reaches for', () => {
+    expect(unwrapSpokenScript('{"voiceover":"Say this."}')).toBe('Say this.');
+    expect(unwrapSpokenScript('{"text":"Say this."}')).toBe('Say this.');
+  });
+
+  it('unescapes what JSON escaped, so quotes are not spoken as backslashes', () => {
+    expect(unwrapSpokenScript('{"script":"She said \\"stop\\" once."}')).toBe(
+      'She said "stop" once.',
+    );
+  });
+
+  it('refuses an envelope with no spoken field, rather than reading the JSON aloud', () => {
+    expect(unwrapSpokenScript('{"title":"A title","hashtags":[]}')).toBeNull();
+    expect(unwrapSpokenScript('[]')).toBeNull();
+    expect(unwrapSpokenScript('')).toBeNull();
+  });
+
+  it('refuses prose with an envelope buried in it', () => {
+    /*
+     * The failure is the envelope reaching the screen, wherever it starts. A
+     * reply that opens with a sentence and then emits JSON is not salvageable
+     * by taking the first half.
+     */
+    expect(unwrapSpokenScript('Here is the script: {"script":"Bake them."}')).toBeNull();
+  });
+
+  it('leaves ordinary punctuation alone', () => {
+    /* Braces are not the test; a JSON *envelope* is. */
+    const s = 'Set it to 450 degrees {not 400} and wait.';
+    expect(unwrapSpokenScript(s)).toBe(s);
   });
 });

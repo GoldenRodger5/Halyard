@@ -73,6 +73,67 @@ export interface Draft {
   };
 }
 
+/**
+ * §263. A spoken script that is really a JSON envelope.
+ *
+ * `writeVoScript` asks for prose and took `response.text` verbatim, while
+ * `writeDraft` next to it runs `extractJson`. When the model wrapped its answer
+ * anyway — `{"script":"Phone locked mid-recipe? ..."}` — the whole envelope
+ * became the script. It was then synthesised, burned into the captions, and
+ * passed every gate, because the gates read a script for slop and claims and
+ * none of them asks whether it is a script at all. A production render carries
+ * `{"script":"` across the opening frame, which is the first thing a viewer
+ * sees.
+ *
+ * Same family as §252: a structure travelling through layers that all type it
+ * as `string`.
+ *
+ * Returns the prose, or null when the text is JSON-shaped and no spoken field
+ * can be recovered from it — null makes the caller retry with feedback and
+ * ultimately refuse, which is right, because a script nobody can read aloud is
+ * not a script.
+ */
+export function unwrapSpokenScript(raw: string): string | null {
+  const text = raw.trim();
+  if (!text) return null;
+
+  const looksStructured = text.startsWith('{') || text.startsWith('[');
+  if (!looksStructured) {
+    /* Prose, as asked for. Reject an envelope that starts mid-line, though. */
+    return text.includes('{"script"') || text.includes('{"text"') ? null : text;
+  }
+
+  /* The fields a scriptwriter's envelope actually uses, in order of intent. */
+  const FIELDS = ['script', 'voiceover', 'vo_script', 'text', 'body'];
+  try {
+    const parsed = JSON.parse(text) as unknown;
+    if (typeof parsed === 'string') return parsed.trim() || null;
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      for (const field of FIELDS) {
+        const value = (parsed as Record<string, unknown>)[field];
+        if (typeof value === 'string' && value.trim()) return value.trim();
+      }
+    }
+  } catch {
+    /*
+     * Truncated JSON is the common case: `maxTokens` cuts the envelope before
+     * its closing quote, so the text is unparseable *and* structured. The
+     * opening field is still recoverable, and recovering it is better than
+     * discarding a script that is otherwise complete.
+     */
+    const m = text.match(/"(?:script|voiceover|vo_script|text|body)"\s*:\s*"((?:[^"\\]|\\.)*)/);
+    if (m?.[1]) {
+      const unescaped = m[1]
+        .replace(/\\n/g, ' ')
+        .replace(/\\"/g, '"')
+        .replace(/\\\\/g, '\\')
+        .trim();
+      if (unescaped) return unescaped;
+    }
+  }
+  return null;
+}
+
 export class DraftRejectedError extends Error {
   constructor(
     message: string,
@@ -385,7 +446,17 @@ Reply with the script text only.`,
     });
 
     totalCost += response.costUsd;
-    const script = response.text.trim();
+
+    /*
+     * §263. Unwrapped before anything reads it. A JSON envelope reaching this
+     * point is spoken aloud and burned into the captions.
+     */
+    const script = unwrapSpokenScript(response.text);
+    if (script === null) {
+      feedback =
+        'Your last reply was JSON, or contained a JSON envelope. Return the spoken words only, as plain prose, with no braces, no field names and no quotes around the whole thing.';
+      continue;
+    }
 
     /**
      * The same two gates the body gets, with the spoken rules switched on.

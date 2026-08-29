@@ -1927,13 +1927,32 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
            * a script this rejects leaves an approvable video with no audio and
            * no render. §258.
            */
-          await disownPartialItem(
-            `The voiceover was rejected by QC after ${err.attempts} attempts, so no video was built.`,
-          );
+          /**
+           * §262. Say which gate refused, not merely that one did.
+           *
+           * `DraftRejectedError` has carried `lastQc` since it was written and
+           * nothing has ever read it, so a rejection reached the operator as
+           * "rejected by QC after 3 attempts" with no way to find out why. The
+           * copywriter's own comment calls that "the failure recorded somewhere
+           * nobody reads"; it was in fact recorded nowhere.
+           *
+           * Three consecutive attempts failing the same rule is the signal
+           * worth having — it means the brief and the gate disagree, which no
+           * number of retries will settle.
+           */
+          const refusedBy = err.lastQc.gates
+            .filter((g) => g.status === 'failed')
+            .map((g) => `${g.gate}: ${g.summary}`);
+          const why = refusedBy.length
+            ? `The voiceover was rejected by QC after ${err.attempts} attempts (${refusedBy.join('; ')}), so no video was built.`
+            : `The voiceover was rejected by QC after ${err.attempts} attempts, so no video was built.`;
+
+          await disownPartialItem(why);
           ctx.log('draft rejected by QC', {
             platform: account.platform,
             idea: idea.id,
             attempts: err.attempts,
+            refusedBy: refusedBy.length ? refusedBy : ['no gate reported failed'],
             disowned: insertedItemId ?? 'nothing inserted yet',
           });
           continue;
