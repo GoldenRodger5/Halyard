@@ -213,14 +213,29 @@ export const FLOWS: Record<FlowId, CaptureFlow> = {
     id: 'sign_in',
     title: 'Sign in with the test account',
     why: 'Everything worth demonstrating is behind the sign-in.',
-    path: '/signin',
+    path: '/account',
     viewport: { width: 430, height: 932 },
     expectedSeconds: [2, 20],
     consumesCredit: false,
     requiresCredentials: true,
     plumbing: true,
     steps: [
-      { name: 'open the sign-in page', action: 'goto', value: '/signin', setup: true },
+      /*
+       * §299. `/account`, not `/signin`.
+       *
+       * Verified against the live app: `/signin`, `/login` and `/sign-in` all
+       * render the marketing shell with **zero inputs**. The form is on
+       * `/account` and only after a click — so a flow that went straight to a
+       * sign-in path would have timed out on a field that was never there.
+       */
+      { name: 'open the account page', action: 'goto', value: '/account', setup: true },
+      {
+        name: 'open the sign-in form',
+        action: 'click',
+        selector: 'role=button[name=/^sign in$/i]',
+        fallbackSelectors: ['role=button[name=/sign in|log in/i]'],
+        setup: true,
+      },
       {
         name: 'enter the email',
         action: 'fillSecret',
@@ -240,8 +255,13 @@ export const FLOWS: Record<FlowId, CaptureFlow> = {
       {
         name: 'submit the sign-in',
         action: 'click',
-        selector: 'role=button[name=/^(sign in|log in|continue)/i]',
-        fallbackSelectors: ['button[type="submit"]'],
+        /*
+         * The *last* matching control. The page carries several "Sign In"
+         * buttons — the header, the card, and the form's own submit — and the
+         * first one re-opens the form rather than submitting it.
+         */
+        selector: 'role=button[name=/^sign in$/i] >> nth=-1',
+        fallbackSelectors: ['button[type="submit"]', 'role=button[name=/^(log in|continue)$/i]'],
         setup: true,
       },
       {

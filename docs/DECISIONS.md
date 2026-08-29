@@ -7920,3 +7920,56 @@ deliberate and is therefore worse than no callout at all.
 
 The ground is blurred hard and dimmed. A sharp photograph behind a phone competes
 with the screen, which is the one thing the viewer is meant to be reading.
+
+## 299. RecipeFix has a sign-in form, and it is not where a sign-in form goes
+
+The walkthrough recorded the demo card because a real adaptation needs an
+account. Adding a sign-in flow turned up two things worth writing down, both
+found by driving the live app rather than reasoning about it:
+
+**`/signin`, `/login` and `/sign-in` all return 200 with zero inputs.** They
+render the marketing shell. The form is on `/account`, and only after a click.
+A flow that went to a sign-in path would have timed out waiting for a field that
+was never there — and it would have looked like a broken selector rather than a
+wrong page.
+
+**The page carries four "Sign In" buttons.** The header, the card, the modal
+trigger and the form's own submit. Clicking the first re-opens the form instead
+of submitting it, so the submit selector takes the *last* match. This is §292's
+lesson again: the first thing that matches is not the thing you meant.
+
+Credentials live in `products.capture_credentials` because a *user* supplies this
+when they connect their app, and an env var is not something a user can set.
+`fillSecret` is a separate action from `fill` so a credential can never be
+written into a flow definition — the step names which secret it wants and the
+runner is the only thing that sees the value.
+
+## 300. A good question, asked the wrong way
+
+The first production quiz asked **"What year was gluten first identified?"** as a
+free-form question. It is a good question and a bad free-form one: almost nobody
+produces "1728" from memory, so the honest reaction is "no idea" — and a viewer
+who cannot play does not stay for the answer.
+
+The same fact as multiple choice is a *good* question, because 1728 against 1928
+and 1608 is a real decision. Nothing about the fact changed; the asking changed.
+
+So how to ask is a decision, and it follows from one property of the answer:
+**can an ordinary person produce it, or only recognise it?** A year, a name or a
+number is recognisable and not producible — multiple choice. A belief people
+already hold is true-or-false, because "True or False" is a game people
+recognise while "A or B" reads as a multiple choice that ran out of ideas. A
+technique somebody uses every week is producible, so it can be asked open.
+
+**Three options, never four.** A fourth is nearly always obviously wrong, and an
+obviously wrong option makes a question feel easier rather than harder.
+
+**Difficulty is a curve.** Easy first, hard last, never getting easier. A quiz
+that opens hard loses the people who would have stayed, and one that ends easy
+gives nobody a reason to say how they did — which is what a comment is.
+
+`checkQuestion` verifies what makes a quiz *playable* rather than true (§282
+handles truth): that the revealed answer is actually among its own options, that
+no two options are identical, that a true-or-false has True and False. An answer
+missing from its own options is the mistake a model makes and the one a viewer
+screenshots.
