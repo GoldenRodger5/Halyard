@@ -7570,3 +7570,25 @@ existed:
   dusting flour is not gluten-free" landed over "en-free". Weighted by character
   count now; the residual error is smaller than the wobble in the stroke, which
   is where more precision stops being visible.
+
+## 285. Ideas that produced content and were never closed
+
+`generate` marks an idea `used` only after its whole account loop finishes, so a
+run that dies partway — §258's rethrow path, a worker killed mid-loop — leaves it
+`selected` with drafts already made.
+
+§261's sweep deliberately will not touch those: it only releases claims that
+produced *nothing*, because re-proposing an idea that already produced drafts
+would draft it a second time. Correct, and it left a second state uncovered.
+Four ideas sat in it, each with one to three content items: never re-proposed,
+never drafted again, simply gone. With four ideas stranded and nothing
+proposing, an account can run out of things to post while its backlog is
+technically full.
+
+Closed as `used`, not `proposed`. The idea did its job; only the bookkeeping is
+missing.
+
+A test asserted this stuck state as correct — "keeps a claimed idea that did
+produce content", expecting `selected`. It was encoding the limbo rather than
+the intent. The guarantee that actually matters is *never re-proposed*, and that
+is what it asserts now.

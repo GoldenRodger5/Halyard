@@ -176,10 +176,38 @@ async function sweepOrphans(ctx: HandlerContext): Promise<void> {
     [ORPHAN_AFTER_HOURS],
   );
 
-  if (renders.rowCount || ideas.rowCount) {
+  /*
+   * §285. An idea that produced content and was never closed.
+   *
+   * `generate` marks an idea `used` only after its whole account loop finishes.
+   * A run that dies partway — §258's rethrow path, a worker killed mid-loop —
+   * leaves it `selected` with drafts already made. The sweep above deliberately
+   * will not touch those, because it only releases claims that produced
+   * nothing, so they sat in limbo: never re-proposed, never drafted again,
+   * simply gone. Four were.
+   *
+   * Marked `used`, not `proposed`. It did its job; only the bookkeeping is
+   * missing, and re-proposing it would draft the same idea a second time.
+   */
+  const closed = await ctx.pool.query<{ id: string }>(
+    `update ideas i
+        set status = 'used'
+      where i.status = 'selected'
+        and i.created_at < now() - ($1 || ' hours')::interval
+        and exists (select 1 from content_items ci where ci.idea_id = i.id)
+        and not exists (
+          select 1 from jobs j
+           where j.kind = 'generate' and j.status in ('queued','running')
+        )
+      returning i.id`,
+    [ORPHAN_AFTER_HOURS],
+  );
+
+  if (renders.rowCount || ideas.rowCount || closed.rowCount) {
     ctx.log('swept orphaned rows', {
       renders: renders.rowCount ?? 0,
       ideas: ideas.rowCount ?? 0,
+      closed: closed.rowCount ?? 0,
       olderThanHours: ORPHAN_AFTER_HOURS,
       note: 'each one is a stage that died without disowning its rows',
     });

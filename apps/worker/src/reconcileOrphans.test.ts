@@ -163,8 +163,12 @@ d('ideas abandoned mid-claim', () => {
     expect(await ideaStatus(id)).toBe('proposed');
   });
 
-  it('keeps a claimed idea that did produce content', async () => {
-    /* It was drafted; the claim was honoured. Re-proposing would draft twice. */
+  it('never re-proposes a claimed idea that did produce content', async () => {
+    /*
+     * It was drafted; re-proposing would draft the same idea twice. §285 closes
+     * it as `used` rather than leaving it `selected` forever — this asserted
+     * `selected`, which was the limbo state, not the intent.
+     */
     const id = await seedIdea('selected', 5);
     await pool.query(
       `insert into content_items (product_id, account_id, idea_id, platform, persona, format, category, body, status)
@@ -172,7 +176,7 @@ d('ideas abandoned mid-claim', () => {
       [accountId, id],
     );
     await reconcileScheduleHandler(job(), context());
-    expect(await ideaStatus(id)).toBe('selected');
+    expect(await ideaStatus(id)).not.toBe('proposed');
   });
 
   it('does not release a claim while a generate job is still running', async () => {
@@ -186,5 +190,57 @@ d('ideas abandoned mid-claim', () => {
     const id = await seedIdea('used', 5);
     await reconcileScheduleHandler(job(), context());
     expect(await ideaStatus(id)).toBe('used');
+  });
+});
+
+d('ideas that produced content but were never closed', () => {
+  const seedIdea = async (status: string, ageHours: number) => {
+    const { rows } = await pool.query<{ id: string }>(
+      `insert into ideas (product_id, title, angle, category, status, created_at)
+       values ('recipefix','An idea','An angle','education',$1,
+               now() - ($2 || ' hours')::interval)
+       returning id`,
+      [status, ageHours],
+    );
+    return rows[0]!.id;
+  };
+  const ideaStatus = async (id: string) =>
+    (await pool.query<{ status: string }>('select status from ideas where id = $1', [id])).rows[0]!
+      .status;
+
+  it('closes an old claim that did produce drafts', async () => {
+    /*
+     * §285. `generate` marks an idea used only after its whole loop finishes,
+     * so a run that dies partway leaves it `selected` with drafts already made.
+     * The release sweep will not touch those — it only frees claims that
+     * produced nothing — so they sat in limbo: never re-proposed, never drafted
+     * again. Four were.
+     */
+    const id = await seedIdea('selected', 5);
+    await pool.query(
+      `insert into content_items (product_id, account_id, idea_id, platform, persona, format, category, body, status)
+       values ('recipefix',$1,$2,'tiktok','brand','video','education','B.','pending_approval')`,
+      [accountId, id],
+    );
+    await reconcileScheduleHandler(job(), context());
+    /* Used, not proposed: re-proposing would draft the same idea twice. */
+    expect(await ideaStatus(id)).toBe('used');
+  });
+
+  it('still releases an old claim that produced nothing', async () => {
+    const id = await seedIdea('selected', 5);
+    await reconcileScheduleHandler(job(), context());
+    expect(await ideaStatus(id)).toBe('proposed');
+  });
+
+  it('leaves a fresh claim alone whether or not it produced anything', async () => {
+    const young = await seedIdea('selected', 0);
+    await pool.query(
+      `insert into content_items (product_id, account_id, idea_id, platform, persona, format, category, body, status)
+       values ('recipefix',$1,$2,'tiktok','brand','video','education','B.','pending_approval')`,
+      [accountId, young],
+    );
+    await reconcileScheduleHandler(job(), context());
+    expect(await ideaStatus(young)).toBe('selected');
   });
 });
