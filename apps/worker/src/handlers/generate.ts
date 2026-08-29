@@ -33,7 +33,13 @@ import {
   extractHookPattern,
   type SlopPlatform,
 } from '@halyard/core';
-import { carouselProps, transformationDiffProps } from '@halyard/render';
+import {
+  carouselProps,
+  chooseLayout,
+  transformationDiffProps,
+  type CarouselLayout,
+  type SlideRole,
+} from '@halyard/render';
 import {
   NoUsableFormatError,
   beatsToScenes,
@@ -59,6 +65,7 @@ import {
   directCreative,
   type VisualLanguage,
   LANGUAGE_FOR_TREATMENT,
+  OpenAiImageClient,
   renderTypography,
   selectTypography,
   aspectForRender,
@@ -86,6 +93,7 @@ import { regateHookedBody, runHookStage } from '../hooks.js';
 const VO_TARGET_SECONDS = 22;
 import { PermanentJobFailure } from '../poller.js';
 import type { Job, HandlerContext } from '../poller.js';
+import { generateHeroImage } from '../heroImage.js';
 import { captureFootage } from '../capture/footage.js';
 import { routeToBoard } from './boards.js';
 import { notify } from './publish.js';
@@ -301,6 +309,25 @@ export async function disownPartialContentItem(
       where content_item_id = $1 and status = 'queued'`,
     [itemId, `Abandoned with the item that owned it: ${why}`],
   );
+}
+
+/**
+ * §268. What the photograph should be of, in the product's own words.
+ *
+ * Reads the artifact's headline and nothing else, so this stays true for any
+ * product attached to Halyard: whatever the connector says the piece is about
+ * is what gets photographed. Returns null when there is no usable subject
+ * rather than inventing one — a generic stock-looking prompt is worse than no
+ * picture, because it is the thing that reads as generated.
+ */
+export function subjectForImage(
+  artifact: { headline?: string | null } | null,
+  fallbackTitle: string | null,
+): string | null {
+  const raw = (artifact?.headline ?? fallbackTitle ?? '').trim();
+  if (raw.length < 8) return null;
+  /* Strip a trailing full stop so the prompt reads as a noun phrase. */
+  return raw.replace(/[.!?]+$/, '');
 }
 
 export async function generateHandler(job: Job, ctx: HandlerContext): Promise<void> {
@@ -637,6 +664,27 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
 
   const connector = createConnector(product);
 
+  /**
+
+   * §268. The image client, built once for the run.
+
+   *
+
+   * Null when no key is configured, which is a supported state: the piece is
+
+   * built without a photograph rather than failing. Illustration is an
+
+   * upgrade, never a dependency.
+
+   */
+
+  const imageClient = process.env.OPENAI_API_KEY
+
+    ? new OpenAiImageClient({ apiKey: process.env.OPENAI_API_KEY })
+
+    : null;
+
+
   for (const idea of selected) {
     /**
      * Claim the idea *before* spending anything on it.
@@ -954,6 +1002,38 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
           }).system,
         );
 
+        /**
+         * §268. A photograph of what is being talked about.
+         *
+         * Generated once per piece and shared by every card, so a six-slide
+         * carousel costs one image rather than six. Illustration only — it
+         * never appears in an evidential role, which is what
+         * `EVIDENTIAL_ROLES` exists to police.
+         *
+         * The subject comes from the artifact's own headline, so a different
+         * product attached to Halyard describes different things and gets
+         * pictures of those. Nothing here knows what a recipe is.
+         */
+        const heroSubject = subjectForImage(artifact, idea.title);
+        const hero =
+          heroSubject && imageClient
+            ? await generateHeroImage(ctx, imageClient, {
+                subject: heroSubject,
+                visualLanguage: undefined,
+                aspectRatio: account.platform === 'instagram' ? '4:5' : '9:16',
+                contentItemId,
+              })
+            : null;
+        if (hero) {
+          await ctx.pool.query(
+            `update content_items
+                set attached_asset_ids = array_append(attached_asset_ids, $2),
+                    ai_components = array_append(ai_components, 'image')
+              where id = $1`,
+            [contentItemId, hero.assetId],
+          );
+        }
+
         // Enqueue renders from the artifact, if it supports the template.
         if (artifact) {
           const props = transformationDiffProps(artifact);
@@ -967,11 +1047,54 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
           }
 
           if (account.platform === 'instagram' && enabledTemplates.includes('carousel_6')) {
-            for (const slide of carouselProps(artifact)) {
+            const slides = carouselProps(artifact);
+            /*
+             * §267. A composition per slide, not one for the deck.
+             *
+             * `usedLayouts` accumulates as the deck is built, so the recency
+             * rule runs *within* the carousel as well as across the account:
+             * six consecutive slides in one shape is the thing a viewer
+             * actually notices, and it is what the first production carousel
+             * did.
+             */
+            const usedLayouts: CarouselLayout[] = [];
+            for (const slide of slides) {
+              const role: SlideRole =
+                slide.index === 1
+                  ? 'hook'
+                  : slide.index === slides.length
+                    ? 'close'
+                    : slide.index === 2
+                      ? 'problem'
+                      : 'detail';
+              /*
+               * Only the opening slide gets the photograph. A carousel where
+               * every card is the same picture is worse than one with a strong
+               * opener and typographic support behind it.
+               */
+              const slideHasImage = Boolean(hero) && slide.index === 1;
+              const { layout, reason } = chooseLayout({
+                role,
+                visualLanguage: undefined,
+                bodyLineCount: slide.bodyLines.length,
+                recentLayouts: usedLayouts,
+                hasImage: slideHasImage,
+              });
+              usedLayouts.unshift(layout);
+              ctx.log('carousel layout', { slide: slide.index, role, layout, because: reason });
               const render = await ctx.pool.query<{ id: string }>(
                 `insert into renders (content_item_id, template_id, renderer, input_props, slide_index, quality)
                  values ($1, 'carousel_6', 'satori', $2, $3, 'final') returning id`,
-                [contentItemId, { ...slide, typography: cardType }, slide.index - 1],
+                [
+                  contentItemId,
+                  {
+                    ...slide,
+                    typography: cardType,
+                    layout,
+                    ...(slideHasImage ? { imageAssetId: hero!.assetId } : {}),
+                  },
+                  slide.index - 1,
+                ],
               );
               await ctx.enqueue('render', { renderId: render.rows[0]!.id }, { priority: 50 });
             }

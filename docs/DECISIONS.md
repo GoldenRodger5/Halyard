@@ -7073,3 +7073,61 @@ works and at the bottom of it, which read as a small block of type marooned in a
 tall canvas — the "empty top third" in the review. 78px is the middle of the
 range and fills the measure. A slide is looked at around a third of its size in
 feed, so this is the dimension least safe to eyeball at full size.
+
+## 267. Layouts, because type alone is not variety
+
+§265 gave the image path six typography systems and every slide still had one
+composition. At feed size the eye reads *position* before it reads a typeface,
+so six fonts in one layout still looks like one template.
+
+`layouts.ts` holds five typographic compositions and two photographic ones, and
+none of them knows what a recipe is: a layout is a **shape for an argument** —
+a claim alone, a claim with support, a number carrying the point, a hinge
+between problem and fix. Every product attached to Halyard has those.
+
+Chosen, not cycled. The content decides what is *possible* before the brand
+decides what is preferred: a statement layout given four sentences has to shrink
+them past legibility, and an editorial column given no body renders an empty
+well. Then the visual language narrows it, and recency breaks the tie — within
+the deck as well as across the account, because six consecutive slides in one
+shape is what a viewer actually notices.
+
+## 268. A cooking product with no picture of food
+
+The review found it plainly: twenty-one assets, not one photograph of anything
+edible. Type on cream every time. That is the gap between reading as a brand and
+reading as a script, and no amount of typography closes it.
+
+**Everything needed already existed and none of it was connected.**
+`imagery/types.ts` has provenance, licence, attribution and `canEvidence()`.
+`connectors/recipefix.ts` extracts a `sourceImage`. There is an OpenAI image
+client. `attached_asset_ids` is read by `publish` and `review_media`. And
+`attached_asset_ids` was empty on every item ever made.
+
+The client had never worked. It sent `response_format: 'b64_json'` — a DALL·E
+parameter that `gpt-image-1` rejects outright with `HTTP 400 Unknown parameter`.
+So the first call ever made to it failed, and nothing had called it since.
+
+**Where a generated picture is allowed.** `generated` means illustration only.
+A photograph of finished food in a *hook* is atmosphere; the same picture
+captioned "here is your result" is a claim about an outcome nobody measured,
+which is gotcha 9 in a nicer coat. `EVIDENTIAL_ROLES` already named those beats,
+so hero images are generated for the opening frame and nowhere else, and the
+asset records `provenance: 'generated'` for every gate downstream.
+
+**Not the publisher's photo.** The connector does surface `sourceImage`, and the
+catalogue states those are the publisher's own `og:image`, usable only as
+attribution-linked references. A brand posting someone else's food photography
+as its own is a rights problem, not a design decision. They stay available for
+attributed use; this does not reach for them.
+
+One image per piece, shared by every card — a six-slide carousel costs one
+generation, not six. The subject comes from the artifact's own headline, so a
+different product gets pictures of what *it* is about. Null when there is no
+usable subject: a generic stock-looking prompt is worse than no picture, because
+being generic is the thing that reads as generated.
+
+The asset id travels in `input_props`, not the bytes. `render` inlines it at
+draw time because Satori cannot fetch a URL — and a megabyte of base64 per slide
+would otherwise be written to Postgres six times a carousel and read back on
+every retry.

@@ -43,9 +43,40 @@ async function renderImageAsset(
     wordmark: string | undefined;
   },
 ): Promise<UploadedAsset> {
+  /**
+   * §268. Inline the photograph, if this slide has one.
+   *
+   * Satori cannot fetch a URL, so an image has to arrive as bytes. The props
+   * carry an **asset id** rather than a data URI because `input_props` is
+   * stored on the row and a megabyte of base64 per slide would be written to
+   * Postgres six times per carousel and read back on every retry.
+   *
+   * A missing or unreadable asset is not fatal: the layout falls back to its
+   * text form, which is what every card did before there were photographs.
+   */
+  const props = { ...render.input_props };
+  const imageAssetId = props.imageAssetId as string | undefined;
+  if (imageAssetId) {
+    const { rows } = await ctx.pool.query<{
+      storage_path: string | null;
+      public_url: string | null;
+      mime_type: string | null;
+    }>('select storage_path, public_url, mime_type from assets where id = $1', [imageAssetId]);
+    const asset = rows[0];
+    const bytes = asset ? await readAssetBytes(asset.storage_path, asset.public_url) : null;
+    if (bytes) {
+      props.imageDataUri = `data:${asset?.mime_type ?? 'image/png'};base64,${bytes.toString('base64')}`;
+    } else {
+      ctx.log('slide image could not be read, rendering without it', {
+        renderId: render.id,
+        assetId: imageAssetId,
+      });
+    }
+  }
+
   const result = await renderTemplate({
     templateId: render.template_id as TemplateId,
-    props: render.input_props,
+    props,
     brandTokens: options.brandTokens,
     aspectRatio: options.aspectRatio,
     quality: render.quality,

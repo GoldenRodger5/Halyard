@@ -1,4 +1,5 @@
 import { DURATION_BADGE, THUMBNAIL_HEIGHT, THUMBNAIL_WIDTH } from '@halyard/core';
+import { LAYOUT_RENDERERS, type CarouselLayout } from './layouts.js';
 /**
  * Satori image templates. v1 §5.1.
  *
@@ -108,6 +109,16 @@ export interface PinterestTallProps extends TemplateBase {
 }
 
 export interface CarouselSlideProps extends TemplateBase {
+  /**
+   * §267. Which composition this slide uses.
+   *
+   * Type variety alone does not read as variety at feed size — the eye reads
+   * position before it reads a typeface. Absent means `editorial`, the layout
+   * every slide had before.
+   */
+  layout?: CarouselLayout;
+  /** §268. A photograph for this slide, inlined by the render handler. */
+  imageDataUri?: string;
   index: number;
   total: number;
   kicker: string;
@@ -356,62 +367,12 @@ export function pinterestTall(props: PinterestTallProps): SatoriElement {
  */
 export function carouselSlide(props: CarouselSlideProps): SatoriElement {
   const type = typeFor(props);
-  /*
-   * §266. Sized for the slide, and for the size it is actually read at.
-   *
-   * A carousel slide is 1080×1350 and is looked at around a third of that in
-   * feed. The old headline was 66px — inside the 60–90px range but at the
-   * bottom of it — and the result read as a small block of type marooned in a
-   * tall canvas, which was the "empty top third" in the review. 78px is the
-   * middle of the range and fills the measure without crowding.
-   */
-  const headlineSize = 78;
-  return frame(
-    props,
-    box(
-      { justifyContent: 'space-between', marginBottom: 32 },
-      text(props.kicker, {
-        fontFamily: type.label.family,
-        fontWeight: type.label.weight,
-        fontSize: 26,
-        letterSpacing: type.label.tracking * 26 + 2,
-        textTransform: type.label.case === 'upper' ? 'uppercase' : 'none',
-        color: props.brand.primary,
-      }),
-      text(`${props.index} / ${props.total}`, {
-        fontFamily: type.label.family,
-        fontSize: 26,
-        color: props.brand.muted,
-      }),
-    ),
-    text(props.headline, {
-      fontFamily: type.display.family,
-      fontWeight: type.display.weight,
-      fontSize: headlineSize,
-      letterSpacing: type.display.tracking * headlineSize,
-      textTransform: type.display.case === 'upper' ? 'uppercase' : 'none',
-      lineHeight: 1.08,
-      marginBottom: 36,
-    }),
-    box(
-      { flexDirection: 'column' },
-      ...props.bodyLines.slice(0, props.screenshotDataUri ? 2 : 5).map((line) =>
-        text(line, {
-          fontFamily: type.body.family,
-          fontWeight: type.body.weight,
-          fontSize: 36,
-          letterSpacing: type.body.tracking * 36,
-          lineHeight: 1.4,
-          marginBottom: 18,
-          color: props.brand.ink,
-        }),
-      ),
-    ),
-    props.screenshotDataUri
-      ? box(
+  const extra = props.screenshotDataUri
+    ? box(
+        { flexDirection: 'column', marginTop: 24 },
+        box(
           {
             flexDirection: 'column',
-            marginTop: 24,
             borderRadius: 24,
             overflow: 'hidden',
             // A screenshot on a bare background reads as a bug report. The
@@ -419,16 +380,38 @@ export function carouselSlide(props: CarouselSlideProps): SatoriElement {
             border: `2px solid ${props.brand.muted}`,
           },
           screenshot(props.screenshotDataUri),
-        )
-      : box({ height: 0 }),
-    props.screenshotCaption
-      ? text(props.screenshotCaption, {
-          fontSize: 26,
-          marginTop: 16,
-          color: props.brand.muted,
-        })
-      : box({ height: 0 }),
-  );
+        ),
+        props.screenshotCaption
+          ? text(props.screenshotCaption, {
+              fontFamily: type.body.family,
+              fontSize: 26,
+              marginTop: 16,
+              color: props.brand.muted,
+            })
+          : box({ height: 0 }),
+      )
+    : undefined;
+
+  /*
+   * A screenshot needs the room a full-bleed composition does not leave, so a
+   * slide carrying one falls back to the editorial column regardless of what
+   * was chosen. The picture is the point on that slide.
+   */
+  const layout: CarouselLayout = props.screenshotDataUri ? 'editorial' : (props.layout ?? 'editorial');
+
+  return LAYOUT_RENDERERS[layout]({
+    imageDataUri: props.imageDataUri,
+    brand: props.brand,
+    type,
+    aspectRatio: props.aspectRatio,
+    kicker: props.kicker,
+    headline: props.headline,
+    bodyLines: props.bodyLines,
+    index: props.index,
+    total: props.total,
+    wordmark: props.wordmark,
+    extra,
+  });
 }
 
 /**

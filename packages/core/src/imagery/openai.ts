@@ -62,11 +62,18 @@ export class OpenAiImageClient implements ImageClient {
         size,
         n: 1,
         /*
-         * Bytes, not a URL. A provider-hosted URL expires, and Remotion fetches
-         * the image during the render — the same trap that makes signed asset
-         * URLs fail for Meta. Halyard stores what it will draw.
+         * §268. `response_format` is **not** sent, and that is deliberate.
+         *
+         * It is a DALL·E parameter. `gpt-image-1` rejects it outright —
+         * `HTTP 400 Unknown parameter: 'response_format'` — and always returns
+         * base64 regardless, which is what this wants anyway: bytes, not a URL.
+         * A provider-hosted URL expires, and Remotion fetches the image during
+         * the render, the same trap that makes signed asset URLs fail for Meta.
+         * Halyard stores what it will draw.
+         *
+         * Sending it meant this client had never generated a single image. The
+         * first call ever made to it failed on the parameter.
          */
-        response_format: 'b64_json',
       }),
     });
 

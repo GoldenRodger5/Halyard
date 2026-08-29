@@ -14,6 +14,7 @@ import type { SatoriElement } from './elements.js';
 import { TEMPLATE_REGISTRY, TEMPLATE_REQUIRED_PROPS, type TemplateId } from './templates.js';
 
 export * from './templates.js';
+export * from './layouts.js';
 export * from './elements.js';
 export * from './artifactProps.js';
 export * from './profileArt.js';
