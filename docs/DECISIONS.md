@@ -7131,3 +7131,41 @@ The asset id travels in `input_props`, not the bytes. `render` inlines it at
 draw time because Satori cannot fetch a URL — and a megabyte of base64 per slide
 would otherwise be written to Postgres six times a carousel and read back on
 every retry.
+
+## 269. A scorecard, because ticks are not a verdict
+
+Spec §14.5 asks for a multi-dimensional creative score and states the rule it
+has to obey: **no single aggregate score may hide a hard failure.**
+
+Halyard had the gates and no reading of them. The copy gate knows about slop,
+retention about openings, audio about pacing, coherence about frames — and an
+operator gets a row of green ticks with no sense of whether the piece is good.
+The 2026-08-29 review found a video that passed every gate while opening on a
+blank frame with raw JSON in its caption.
+
+So `scoreCreative` is a **scorecard, not a score**. Ten dimensions, each with
+its own verdict and its own evidence. `passed` is a conjunction, never a
+threshold. There is a `rankingScore`, and its doc comment says what it is for —
+ordering two pieces that both passed — and that thresholding on it reintroduces
+exactly the failure §14.5 forbids.
+
+Deterministic throughout: it calls no model and reads only findings other gates
+produced. A model wrote the copy; it does not get to mark its own work.
+
+`unmeasured` is not `pass`, one layer up from gotcha 6. A dimension with no
+inputs scores `null` rather than 0 — 0 would mean "measured, bad" — and a caller
+declares `requires` for the dimensions its format genuinely demands, where an
+unmeasured one fails rather than being skipped. An empty finding list reports
+ten unmeasured dimensions, not ten passes, because nothing running is not the
+same as nothing being wrong.
+
+Two corrections to my own reading while building this. **The Payoff Verifier is
+wired** — `verifyPayoff` runs in `apps/worker/src/hooks.ts` and demotes a hook
+whose promise the body does not deliver; I had grepped in a way that excluded
+both files named `hooks.ts`. And the **regeneration loop already exists** as the
+§165 correction controller, which implements §14.6's shape exactly. Neither
+needed building.
+
+`payoffDelivered` is passed as null from `review_media` rather than assumed:
+the verdict is reached at draft time and never carried onto the item, so from
+there it is genuinely unknown — and unknown must not read as delivered.

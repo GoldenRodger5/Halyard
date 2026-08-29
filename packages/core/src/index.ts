@@ -1,4 +1,5 @@
 export * from './qc/index.js';
+export * from './qc/creativeScore.js';
 export * from './connectors/index.js';
 export * from './creative/plan.js';
 export * from './creative/treatments.js';

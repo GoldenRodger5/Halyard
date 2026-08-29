@@ -21,6 +21,7 @@ import { readFile, unlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import {
+  scoreCreative,
   OpenAiVisionClient,
   runCoherenceQC,
   cutsPerMinuteFor,
@@ -628,6 +629,40 @@ export async function reviewMediaHandler(
      * asset nothing else would flag. §119 fixed the gate list this way and left
      * the object around it still being overwritten.
      */
+    /**
+     * §269. The scorecard, assembled from what the gates already found.
+     *
+     * Spec §14.5. Every gate reports on its own subject and nothing reads them
+     * as one verdict, so an operator sees a row of ticks and no sense of
+     * whether the piece is any good. This groups the findings by the dimension
+     * an operator would act on and keeps each one's verdict separate, because
+     * "no single aggregate score may hide a hard failure".
+     *
+     * Stored beside the gates rather than replacing them: the gates are the
+     * evidence and this is the reading of it.
+     */
+    const scorecard = scoreCreative({
+      findings: merged.flatMap((gate) =>
+        ((gate.detail as { findings?: Array<{ rule?: string; severity?: string; message?: string }> })
+          ?.findings ?? [])
+          .filter((f) => typeof f.rule === 'string')
+          .map((f) => ({
+            rule: f.rule!,
+            severity: f.severity === 'error' ? ('error' as const) : ('warning' as const),
+            message: f.message ?? '',
+          })),
+      ),
+      unmeasuredRules: retention.unmeasured,
+      /*
+       * Left null rather than guessed. `verifyPayoff` runs at draft time on the
+       * hook stage and its verdict is not carried onto the item, so from here
+       * it is genuinely unknown — and unknown must not read as delivered.
+       */
+      payoffDelivered: null,
+      hasCta: null,
+      novelty: null,
+    });
+
     await ctx.pool.query(
       `update content_items
           set qc_results = coalesce(qc_results, '{}'::jsonb) || $2::jsonb,
@@ -636,7 +671,12 @@ export async function reviewMediaHandler(
         where id = $1`,
       [
         contentItemId,
-        JSON.stringify({ passed, gates: merged, ranAt: new Date().toISOString() }),
+        JSON.stringify({
+          passed,
+          gates: merged,
+          scorecard,
+          ranAt: new Date().toISOString(),
+        }),
         JSON.stringify({ frames, sampledAt: times, durationSeconds: probe.durationSeconds }),
         passed,
       ],
@@ -644,6 +684,10 @@ export async function reviewMediaHandler(
 
     ctx.log('media reviewed', {
       contentItemId,
+      score: scorecard.summary,
+      weakest: scorecard.dimensions
+        .filter((d) => d.status === 'fail' || d.status === 'warn')
+        .map((d) => d.dimension),
       frames: frames.length,
       coherence: coherence.summary,
       retention: retention.summary,
