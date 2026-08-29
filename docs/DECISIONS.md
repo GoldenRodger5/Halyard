@@ -7726,3 +7726,24 @@ still being read, then held an **empty ring** through the actual pause — a dea
 beat at exactly the moment the format is tightest. It takes its start offset
 explicitly now, and the numeral clamps to 1 rather than blanking, because a blank
 numeral inside a visible ring reads as broken rather than as "time is up".
+
+## 290. Naming why a format refused, and failing only the piece
+
+The first production quiz failed three times and the log said
+`format not filled, asking again — missing=[]`. An empty missing list with a
+failure means every slot *was* filled and something else refused it — an uncited
+claim, a citation that would not verify, a line over its ceiling — and none of
+that reached the log. §262 taught this exact lesson for the copy gate and it
+arrived one module late here.
+
+The log now names the failing rules and the first reason, and
+`FormatRejectedError` carries them into its message, so the reason survives on
+the row rather than only in a line somebody has to go and find.
+
+**And the error was failing the wrong thing.** `FormatRejectedError` reached the
+generic rethrow, which fails the whole `generate` job and retries it — so one
+unfillable quiz took down the drafts for every other account in the run, and the
+retry asked for the same impossible thing again. It is a fact about *one piece*:
+the shape asked for something the writer could not produce with a source it could
+verify. The item is disowned with the reason and the account loop continues, which
+is exactly how `DraftRejectedError` and `NoUsableFormatError` already behave.

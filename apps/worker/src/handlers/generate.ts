@@ -97,7 +97,7 @@ import { PermanentJobFailure } from '../poller.js';
 import type { Job, HandlerContext } from '../poller.js';
 import { generateHeroImage } from '../heroImage.js';
 import { pickProductShot } from '../productShot.js';
-import { recentFormats, writeToFormat } from '../formatWriter.js';
+import { FormatRejectedError, recentFormats, writeToFormat } from '../formatWriter.js';
 import { captureFootage } from '../capture/footage.js';
 import { routeToBoard } from './boards.js';
 import { notify } from './publish.js';
@@ -2274,6 +2274,32 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
           });
           continue;
         }
+        /**
+         * §290. A format that could not be filled fails this piece, not the job.
+         *
+         * `FormatRejectedError` was reaching the generic rethrow, which fails
+         * the whole `generate` job and retries it — so one unfillable quiz took
+         * down the drafts for every other account in the run, and the retry
+         * asked for the same impossible thing again.
+         *
+         * It is a fact about *this* piece: the shape asked for something the
+         * writer could not produce with a source it could verify. The item is
+         * disowned with the reason, the account loop continues, and the reason
+         * survives on the row instead of only in a log line.
+         */
+        if (err instanceof FormatRejectedError) {
+          await disownPartialItem(err.message);
+          ctx.log('format could not be filled, piece abandoned', {
+            platform: account.platform,
+            idea: idea.id,
+            attempts: err.attempts,
+            refusedBy: err.problems
+              .filter((p) => p.severity === 'error')
+              .map((p) => `${p.rule}${p.slot ? ` (${p.slot})` : ''}`),
+          });
+          continue;
+        }
+
         if (err instanceof NoUsableFormatError) {
           /**
            * One account's capabilities are unknown. That is a fact about that

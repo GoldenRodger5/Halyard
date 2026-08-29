@@ -173,10 +173,23 @@ export async function writeToFormat(
       .map((p) => `- ${p.message}`)
       .join('\n');
 
+    /*
+     * §290. Say which rule refused, not only which slots were empty.
+     *
+     * This logged `missing` alone, so a draft that filled every slot and failed
+     * on something else — an uncited claim, an over-long line — reported
+     * `missing=[]` and gave no way to tell what had actually happened. Three
+     * quiz attempts failed that way and the reason was invisible, which is
+     * §262's lesson arriving one module late.
+     */
     ctx.log('format not filled, asking again', {
       format: format.id,
       attempt,
       missing: check.missing,
+      refusedBy: check.problems
+        .filter((p) => p.severity === 'error')
+        .map((p) => `${p.rule}${p.slot ? ` (${p.slot})` : ''}`),
+      firstReason: check.problems.find((p) => p.severity === 'error')?.message ?? null,
     });
   }
 
@@ -185,8 +198,13 @@ export async function writeToFormat(
    * questions is not a shorter quiz; it is a post that promises five and
    * delivers three, which is worse than not posting.
    */
+  const why = last
+    .filter((p) => p.severity === 'error')
+    .map((p) => p.message)
+    .slice(0, 3)
+    .join(' ');
   throw new FormatRejectedError(
-    `The ${format.name.toLowerCase()} format was not filled after ${MAX_FORMAT_ATTEMPTS} attempts.`,
+    `The ${format.name.toLowerCase()} format was not filled after ${MAX_FORMAT_ATTEMPTS} attempts.${why ? ` ${why}` : ''}`,
     last,
     MAX_FORMAT_ATTEMPTS,
   );
