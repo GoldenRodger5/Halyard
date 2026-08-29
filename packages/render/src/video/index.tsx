@@ -5,5 +5,6 @@
 export * from './timing.js';
 export * from './compositions.js';
 export * from './annotate.js';
+export * from './quiz.js';
 export * from './root.js';
 export * from './fonts.js';

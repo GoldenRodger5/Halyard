@@ -7692,3 +7692,37 @@ worse than no field — it looks like it worked:
 - **`onlyPlatform`** narrows the run to one account. Without it, a button saying
   "make it" drafts for every connected account: five pieces, four unasked for.
 - **`subject`** overrides the artifact's own headline in the format brief.
+
+## 289. The quiz as a video — question, countdown, reveal
+
+A quiz rendered as a carousel is a list of questions with the answers on the next
+card. That works and it is not what makes the format land. What makes it land is
+**the pause**: a question, a beat where the viewer commits to an answer, then the
+reveal. A carousel cannot enforce a pause because the reader controls the swipe.
+A video can, because it controls time. The format's mechanism is temporal, so the
+render has to be — that is the whole argument for a composition rather than reuse.
+
+Three seconds of countdown. Short enough to keep pace, long enough to think, and
+a visible commitment device: a viewer who has silently answered is invested in
+seeing whether they were right, which is the open loop that carries them into the
+next question.
+
+A **ring** rather than a bare numeral, because a draining arc is readable in
+peripheral vision — a viewer reading the question does not have to look away to
+know how long is left, which is the only reason to show a timer at all.
+
+The countdown occupies the space the answer will fill, so the reveal replaces it
+in place. A layout that jumps at the moment of payoff undercuts the payoff. The
+answer arrives on a spring rather than a fade: a fade reads as a transition, a
+spring reads as an arrival, and a reveal is an arrival.
+
+The source line sits under the answer, small. §282 fetched and verified it, and a
+citation nobody can see is a citation that did no work.
+
+**The bug the first render had**, found by extracting frames and looking:
+`Countdown` called `useCurrentFrame()`, which inside a `Sequence` counts from the
+*sequence*, not from the component. So it burned 3-2-1 while the question was
+still being read, then held an **empty ring** through the actual pause — a dead
+beat at exactly the moment the format is tightest. It takes its start offset
+explicitly now, and the numeral clamps to 1 rather than blanking, because a blank
+numeral inside a visible ring reads as broken rather than as "time is up".

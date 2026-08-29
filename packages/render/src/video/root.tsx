@@ -14,6 +14,7 @@
  */
 import React from 'react';
 import { Composition } from 'remotion';
+import { QuizVideo, quizDurationSeconds } from './quiz.js';
 import { DEFAULT_BRAND } from '../brand.js';
 import { LANDSCAPE_SUFFIX } from './geometry.js';
 import {
@@ -35,6 +36,44 @@ export const LANDSCAPE_HEIGHT = 1080;
 
 export const RemotionRoot: React.FC = () => (
   <>
+    {/*
+      §289. The quiz. Its length is a function of how many questions it has, so
+      `durationInFrames` is computed rather than fixed — a composition whose
+      length does not match its content clips the last answer or ends on dead
+      air, and both read as a bug rather than an edit. The worker overrides this
+      per render with the real question count.
+    */}
+    <Composition
+      id="Quiz"
+      component={QuizVideo as unknown as React.FC<Record<string, unknown>>}
+      durationInFrames={Math.round(VIDEO_FPS * quizDurationSeconds(3))}
+      fps={VIDEO_FPS}
+      width={VIDEO_WIDTH}
+      height={VIDEO_HEIGHT}
+      defaultProps={{
+        brand: DEFAULT_BRAND,
+        title: 'Five gluten questions in thirty seconds',
+        wordmark: 'recipefix',
+        questions: [
+          {
+            question: 'What year was gluten first identified?',
+            answer: '1728 — by Jacopo Beccari, separating wheat into starch and a stretchy residue.',
+            source: 'en.wikipedia.org/wiki/Jacopo_Bartolomeo_Beccari',
+          },
+          {
+            question: 'Are oats naturally gluten free?',
+            answer: 'Yes — but most are milled beside wheat, so only certified oats are safe.',
+            source: 'celiac.org',
+          },
+          {
+            question: 'What does gluten actually do in bread?',
+            answer: 'It forms the elastic network that traps gas, which is why loaves hold their shape.',
+            source: 'kingarthurbaking.com',
+          },
+        ],
+      }}
+    />
+
     <Composition
       id="TransformationDiff"
       component={TransformationDiffVideo as unknown as React.FC<Record<string, unknown>>}
