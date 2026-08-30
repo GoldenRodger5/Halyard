@@ -19,7 +19,7 @@ import { extractJson, STRATEGY_MODEL } from '../generation/llm.js';
 import type { LlmClient } from '../generation/llm.js';
 import { FACT_CATEGORIES, type FactCategory, type ProposedFact } from './model.js';
 
-export const PRODUCT_DISCOVERY_PROMPT_VERSION = 'product_discovery.v1';
+export const PRODUCT_DISCOVERY_PROMPT_VERSION = 'product_discovery.v2';
 export const STORE_LISTING_PROMPT_VERSION = 'store_listing.v1';
 export const CODE_INTELLIGENCE_PROMPT_VERSION = 'code_intelligence.v1';
 export const VISUAL_BRAND_PROMPT_VERSION = 'visual_brand.v1';
@@ -222,6 +222,17 @@ export const PRODUCT_DISCOVERY_CATEGORIES = [
   'jobs_to_be_done',
   'differentiators',
   'pricing',
+  /*
+   * §328. `monetization` and `competitors` were reachable only from the
+   * store-listing agent, which runs on an App Store page. Kinolog is
+   * web-only, so it could never have a fact in either — while its site
+   * carried a full pricing page and a post titled "Letterboxd alternatives".
+   * A website reveals both, and requiring a store listing to learn them meant
+   * every web-only product had two permanent holes in its Brain.
+   */
+  'monetization',
+  'competitors',
+  'brand_voice',
   'content_pillars',
   'conversion_funnel',
 ] as const satisfies readonly FactCategory[];
@@ -246,13 +257,113 @@ export async function discoverProductFacts(
     prompt: buildProposalPrompt({
       productName: input.productName,
       role: 'reading the public website of a product to work out what it is and who it serves',
-      guidance:
+      guidance: [
         'Distinguish what the product does from what it claims about outcomes. "Adapts recipes to dietary restrictions" is an identity fact; "saves users hours every week" is a marketing claim and belongs in the claims category if it appears at all.',
+        '',
+        'MISSION is the change the product wants in someone\'s life, not its pricing policy and not its business model. "The diary is free" is a pricing fact wearing a mission costume. Ask instead: what is a user able to do afterwards that they could not do before, and what does the product believe is wrong with how they do it today? A product that says "never recommends back what you have seen" is telling you its mission is trustworthy recommendation, not that it has a de-duplication feature.',
+        '',
+        'USERS come in tiers and you should name them separately, using the keys `primary_audience`, `secondary_audience` and `tertiary_audience`.',
+        '  - primary: the person the product is built for, who would miss it if it vanished.',
+        '  - secondary: a person it also serves well, who arrived for a different reason. Migrators from a competitor are almost always this.',
+        '  - tertiary: a person who benefits occasionally or incidentally.',
+        'If the evidence only supports one, record one. Do not invent a hierarchy to fill the shape.',
+        '',
+        'COMPETITORS are the products a reader would otherwise use. Name them when the evidence names them, including in passing — a comparison page, an import feature, a blog post about alternatives. An import-from-X feature is strong evidence that X is the incumbent.',
+        '',
+        'MONETIZATION is how money is made and what is gated: the plans, the prices, the free-tier limits, and specifically which capability sits behind payment. A limit is a fact — "500 films on the free tier", "10 asks a month" — and those numbers matter more than the price.',
+        '',
+        'DIFFERENTIATORS are what this does that the alternatives do not, stated as a difference rather than as a virtue. "Private by default" is a virtue; "no public profiles, unlike the social alternatives" is a difference.',
+        '',
+        'Use the product\'s own vocabulary in the value. If it calls them "asks" rather than "queries", or "vibes" rather than "tags", record its word — the writing downstream has to sound like the product, and a fact rephrased into generic language throws that away.',
+      ].join('\n'),
       categories: PRODUCT_DISCOVERY_CATEGORIES,
       evidence: input.evidence,
     }),
     promptVersion: PRODUCT_DISCOVERY_PROMPT_VERSION,
     categories: PRODUCT_DISCOVERY_CATEGORIES,
+  });
+}
+
+// ── Inference ──────────────────────────────────────────────────────────────
+
+export const INFERENCE_CATEGORIES = [
+  'personas',
+  'jobs_to_be_done',
+  'competitors',
+  'differentiators',
+  'content_pillars',
+  'brand_voice',
+] as const satisfies readonly FactCategory[];
+
+export const INFERENCE_PROMPT_VERSION = 'product_inference.v1';
+
+/**
+ * §328. What follows from what the product says, marked as reasoning.
+ *
+ * The Brain reported "nothing learned about" personas, jobs-to-be-done and
+ * competitors for a product whose website implies all three on every page. Every
+ * other agent may record only what a page *states*, which is the right rule for
+ * a claim and too strict for an understanding: that a movie-diary product
+ * competes with Letterboxd is nowhere stated on its site and is obvious to
+ * anyone who reads it.
+ *
+ * ## Why this reasons over facts rather than over pages
+ *
+ * It is given the Brain's **established facts**, not the evidence. Reasoning
+ * from raw pages is how a model ends up paraphrasing marketing copy back as
+ * insight; reasoning from facts that have already survived the evidence rules
+ * means every inference has something checkable underneath it, and the chain
+ * from page → fact → inference stays visible.
+ *
+ * ## The line it must not cross
+ *
+ * Its output is stored as `inferred` and `EVIDENTIAL_STATUSES` excludes that, so
+ * nothing published can cite it. An inference may shape *how* a piece is
+ * written — which audience it addresses, what it positions against — and may
+ * never be asserted as something the product said. The operator's instruction
+ * was exact: think harder, and do not put words in the product's mouth.
+ */
+export async function inferProductFacts(
+  input: {
+    productName: string;
+    /** Facts already established, rendered as lines. Not raw evidence. */
+    facts: Array<{ category: string; key: string; value: string }>;
+  },
+  llm: LlmClient,
+): Promise<ProposalResult> {
+  const established = input.facts
+    .map((f) => `- [${f.category}] ${f.key}: ${f.value}`)
+    .join('\n');
+
+  return propose(llm, {
+    system:
+      'You reason about a product from facts already established about it. Reply with JSON only.',
+    model: STRATEGY_MODEL,
+    prompt: [
+      `Product: ${input.productName}`,
+      '',
+      'These facts are established from the product\'s own public surfaces:',
+      established,
+      '',
+      'Your job is to say what *follows* from them that nobody has written down.',
+      '',
+      'Rules:',
+      '- Reason from the facts above. Never introduce a feature, a price or a claim that is not implied by them.',
+      '- A competitor is a product a reader would otherwise use. An import-from-X feature makes X the incumbent; a "private, no public profiles" stance names the thing it is reacting against. Name them.',
+      '- A persona is a specific person with a situation, not a demographic. "Someone rebuilding a decade of viewing history after leaving a social platform" is a persona; "film fans aged 18-34" is not.',
+      '- A job-to-be-done is what someone hires the product to accomplish, phrased in their words and their moment: "decide what to watch tonight without scrolling for forty minutes".',
+      '- Content pillars are the recurring subjects an account could post about forever. Derive them from what the product knows and cares about, not from generic marketing categories.',
+      '- Brand voice: describe how the product talks, quoting its own phrasing as evidence. If it writes in short declaratives and refuses superlatives, say so and show the phrase.',
+      '- Never state something as though the product said it. You are concluding, not quoting.',
+      '- If a category does not follow from these facts, omit it. An empty answer is better than a plausible invention.',
+      '',
+      'Reply with JSON only:',
+      '{"facts":[{"category":"one of the categories below","key":"slug","value":"the inference","detail":"which established facts it follows from"}]}',
+      '',
+      `Categories: ${INFERENCE_CATEGORIES.join(', ')}`,
+    ].join('\n'),
+    promptVersion: INFERENCE_PROMPT_VERSION,
+    categories: INFERENCE_CATEGORIES,
   });
 }
 

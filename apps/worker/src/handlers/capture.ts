@@ -14,6 +14,8 @@ import { mkdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { chromium } from 'playwright';
 import {
+  diagnoseAuth,
+  diagnoseCapture,
   FLOWS,
   assetStaleness,
   footageDurationMs,
@@ -89,6 +91,10 @@ export async function captureHandler(job: Job, ctx: HandlerContext): Promise<voi
       mode: 'verify',
       browser,
       ...(secrets ? { secrets } : {}),
+      /* §329. A retry's substituted input, chosen from the flow's own list. */
+      ...(typeof job.payload.inputOverride === 'string'
+        ? { inputOverride: job.payload.inputOverride }
+        : {}),
     });
 
     for (const result of verification) {
@@ -142,7 +148,70 @@ export async function captureHandler(job: Job, ctx: HandlerContext): Promise<voi
           `flow_broken:${rootFailed.flow}:${new Date().toISOString().slice(0, 10)}`,
         ],
       );
-      throw new FlowVerificationFailed(rootFailed.flow, rootFailed.summary);
+      /**
+       * §329. Diagnose it, write it down, and try the obvious thing.
+       *
+       * The error string names the symptom — a selector that did not resolve —
+       * and three unrelated causes produced that same string on 2026-08-29. A
+       * person told them apart by reading step timings; nobody will be reading
+       * step timings when this runs unattended, so the reading happens here and
+       * is recorded whether or not anyone looks.
+       */
+      const diagnosis =
+        diagnoseAuth(rootFailed.steps as never[]) ??
+        diagnoseCapture({
+          steps: rootFailed.steps as never[],
+          totalSeconds: rootFailed.totalSeconds,
+        });
+
+      let retried: { step: string; value: string } | null = null;
+      if (diagnosis?.automatic && diagnosis.recovery === 'retry_with_different_input') {
+        /*
+         * The flow declares its own alternatives, so nothing here knows what a
+         * recipe is. `attempt` walks the list across retries rather than always
+         * trying the first one, which would loop on a value that already failed.
+         */
+        const step = flow.steps.find((s) => (s.alternatives?.length ?? 0) > 0);
+        const attempt = Number(job.payload.inputAttempt ?? 0);
+        const next = step?.alternatives?.[attempt];
+        if (step && next) {
+          retried = { step: step.name, value: next };
+          await ctx.enqueue(
+            'capture',
+            { ...job.payload, inputOverride: next, inputAttempt: attempt + 1 },
+            { priority: 4 },
+          );
+        }
+      }
+
+      await ctx.pool.query(
+        `insert into capture_audit
+           (product_id, flow_id, kind, finding, recovery, acted, action_taken)
+         values ($1,$2,$3,$4,$5,$6,$7)`,
+        [
+          productId,
+          rootFailed.flow,
+          diagnosis?.kind ?? 'unknown',
+          diagnosis?.finding ?? rootFailed.summary,
+          diagnosis?.recovery ?? 'escalate',
+          retried !== null,
+          retried ? JSON.stringify(retried) : null,
+        ],
+      );
+
+      ctx.log('capture diagnosed', {
+        flow: rootFailed.flow,
+        kind: diagnosis?.kind,
+        recovery: diagnosis?.recovery,
+        finding: diagnosis?.finding,
+        retriedWith: retried?.value,
+      });
+
+      throw new FlowVerificationFailed(
+        rootFailed.flow,
+        /* The finding, not the symptom — this string is what reaches the UI. */
+        diagnosis ? `${diagnosis.finding}${retried ? ` Retrying with a different input.` : ''}` : rootFailed.summary,
+      );
     }
 
     const appVersion = await detectAppVersion(baseUrl);
@@ -171,6 +240,9 @@ export async function captureHandler(job: Job, ctx: HandlerContext): Promise<voi
       mode: 'capture',
       browser,
       ...(secrets ? { secrets } : {}),
+      ...(typeof job.payload.inputOverride === 'string'
+        ? { inputOverride: job.payload.inputOverride }
+        : {}),
     });
 
     let videoAssetId: string | null = null;

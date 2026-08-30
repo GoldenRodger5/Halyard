@@ -169,6 +169,15 @@ export interface RunFlowOptions {
    * form and reporting success.
    */
   secrets?: Record<string, string>;
+  /**
+   * §329. A value substituted into the step that declares alternatives.
+   *
+   * Set by a retry the diagnosis asked for. The runner does not choose it and
+   * does not know what it means — the flow declared the alternatives and the
+   * handler picked the next one, which is what keeps the recovery
+   * product-agnostic.
+   */
+  inputOverride?: string;
   onStep?: (result: StepResult) => void;
 }
 
@@ -334,6 +343,7 @@ export async function runFlow(
         stills,
         options.secrets,
         options.mode,
+        options.inputOverride,
       );
       if (outcome.fallbackDepth !== undefined) result.fallbackDepth = outcome.fallbackDepth;
       /* §303. Where the tap landed, for a callout that points at it. */
@@ -413,13 +423,20 @@ async function executeStep(
   stills: Record<string, string>,
   secrets: Record<string, string> | undefined,
   mode: 'verify' | 'capture',
+  inputOverride: string | undefined,
 ): Promise<{
   fallbackDepth?: number;
   at?: { x: number; y: number; width: number; height: number };
 }> {
   const timeout = step.timeoutMs ?? 15_000;
-  /* §309. The recorded pass may need a different input; see `captureValue`. */
-  const value = (mode === 'capture' ? step.captureValue : undefined) ?? step.value;
+  /*
+   * §309/§329. The value this step uses: a retry's substitute first, then a
+   * capture-only value, then the step's own.
+   */
+  const value =
+    (inputOverride && (step.alternatives?.length ?? 0) > 0 ? inputOverride : undefined) ??
+    (mode === 'capture' ? step.captureValue : undefined) ??
+    step.value;
 
   /**
    * §159. Every selector-driven action resolves through the candidate chain,

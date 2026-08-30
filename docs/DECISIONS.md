@@ -8598,3 +8598,74 @@ measured cause. A cache hit is a good outcome for a demonstration — the result
 appears quickly rather than after a ninety-second wait. `captureValue` stays
 because it is implemented and tested, and is named in the code as having no
 caller, rather than being left to be rediscovered as one of these.
+
+## 328. The Brain understood the pages and not the product
+
+Reviewing Kinolog's Brain honestly, with the operator: the mission facts were
+all about *pricing* — "logging a movie life should not sit behind a paywall" —
+which is a pricing policy wearing a mission costume. The real mission is on
+every page: help someone see their own taste and get recommendations they can
+trust. `users` was one flat list. `competitors` and `personas` were empty on a
+site with a post titled "Letterboxd alternatives".
+
+**Two categories were structurally unreachable.** `competitors` and
+`monetization` existed only in the store-listing agent's remit, which runs on an
+App Store page. Kinolog is web-only, so it could never hold a fact in either —
+while its own site carried a full pricing page and a competitor comparison.
+Every web-only product had two permanent holes.
+
+**The guidance was one sentence.** It now says what a mission is and is not,
+asks for `primary_audience`, `secondary_audience` and `tertiary_audience` by
+name, defines a competitor to include one named in passing (an import-from-X
+feature makes X the incumbent), and asks for limits as facts — "500 films",
+"10 asks a month" — because a limit matters more than a price. And it requires
+the product's own vocabulary: a fact rephrased from "asks" to "queries" throws
+away the thing that makes writing sound like the product.
+
+**Inference, marked as inference.** "Nothing learned about" was the honest
+report of a rule that is right for a claim and too strict for an understanding.
+`inferProductFacts` reasons over *established facts* rather than raw pages — so
+every inference has something checkable underneath it — and stores as
+`inferred`, which `EVIDENTIAL_STATUSES` excludes. An inference may shape how a
+piece is written and may never be asserted. The instruction was exact: think
+harder, and do not put words in the product's mouth.
+
+**Paraphrases are one fact.** `export` was recorded three times in three
+wordings because comparison was exact-match, so a rewording read as a competing
+value and both were written for a contradiction pass that correctly saw no
+contradiction. It made 23 identity facts out of about twelve, and fed a writer
+the same point repeatedly.
+
+Its own test caught the danger: overlap alone merges *"Plus costs $2.99"* with
+*"Plus costs $4.99"*, hiding a real contradiction and picking a price
+arbitrarily. **Numbers are checked first** — a rewording changes the words and
+never the figures.
+
+## 329. Automation nobody is watching has to explain itself
+
+Three capture failures on one evening, three unrelated causes, one identical
+message: `"wait for the adaptation" failed. Selector button:has-text("SWAPPED")
+did not resolve.` A person told them apart by reading step timings out of the
+database and calling the product's API by hand.
+
+  1. `fillSecret` had no implementation, so the form was submitted empty.
+  2. The chosen recipe exceeded the 90-second budget.
+  3. A High-Protein constraint made the product return a correct refusal.
+
+`diagnoseCapture` separates them from structure alone, and nothing in it knows
+what a recipe is: did earlier steps run, did they take a plausible time, did the
+failure happen while *waiting* or while *acting*. A `fill` reporting **0ms** is
+not a fast step, it is a step that never ran — the signature of the missing
+implementation. A long wait after successful steps means the interface is intact
+and the inputs were accepted, so the *request* was probably unanswerable, and a
+different input is the first thing to try.
+
+**`capture_audit` records the diagnosis**, the finding in a sentence, what was
+tried next, and whether it worked. `capture_runs` says what happened; this says
+what was made of it. And the finding, not the symptom, is what now reaches the
+UI.
+
+**The retry is declared by the flow.** `FlowStep.alternatives` lists other
+values to try, so RecipeFix supplies recipe URLs and a film product would supply
+titles. The runner knows only that a step has alternatives and that a diagnosis
+asked for a different one.

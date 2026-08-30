@@ -52,6 +52,20 @@ export interface FlowStep {
    * step is unaffected and nothing has to opt out.
    */
   captureValue?: string;
+  /**
+   * §329. Other values to try when the run fails on a later step.
+   *
+   * Declared by the flow, so the recovery is product-agnostic: RecipeFix
+   * supplies alternative recipe URLs, and a film product would supply film
+   * titles. The runner knows only that a step has alternatives and that a
+   * diagnosis asked for a different input.
+   *
+   * The failure this exists for is the subtle one: every step succeeds, the
+   * product is asked for something it cannot produce, and the flow waits for a
+   * success state that is never coming. No selector is wrong and no code is
+   * broken — the *request* was unanswerable, and the fix is a different one.
+   */
+  alternatives?: string[];
   /** Discovered selector. Omitted for goto/wait/still. */
   selector?: string;
   /**
@@ -375,6 +389,15 @@ export const FLOWS: Record<FlowId, CaptureFlow> = {
         action: 'fill',
         selector: '[placeholder="https://www.anyrecipesite.com/recipe..."]',
         value: SAMPLE_RECIPE_URL,
+        /*
+         * §329. Each verified to adapt inside the budget before being written
+         * here — a URL that returns 200 says nothing about whether the product
+         * can adapt it, which §316 learned by filming a 90-second timeout.
+         */
+        alternatives: [
+          'https://sallysbakingaddiction.com/chewy-chocolate-chip-cookies/',
+          'https://www.simplyrecipes.com/recipes/banana_bread/',
+        ],
       },
       {
         name: 'choose gluten-free',

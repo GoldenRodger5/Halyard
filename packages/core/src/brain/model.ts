@@ -104,7 +104,32 @@ export type EvidenceKind = (typeof EVIDENCE_KINDS)[number];
  * second enum meaning almost the same thing is how two parts of a codebase end
  * up disagreeing about what `verified` costs.
  */
-export type FactStatus = 'unverified' | 'verified' | 'refuted' | 'unverifiable';
+/**
+ * §328. `inferred` — a reasoned conclusion, marked as one.
+ *
+ * The Brain reported "nothing learned about" for competitors, personas and
+ * jobs-to-be-done on a product whose site plainly implies all three, because
+ * every agent may only record what a page states. That rule is right for a
+ * *claim* and too strict for an *understanding*: a movie-diary product
+ * competing with Letterboxd is not stated anywhere on its site and is obvious
+ * to anybody who reads it.
+ *
+ * So inference is allowed and is given a status of its own, never `verified`.
+ * Nothing published may cite an inferred fact — it exists to make the system
+ * *understand* a product, not to put words in its mouth. `EVIDENTIAL_STATUSES`
+ * is the list that may back a public claim, and this is deliberately not in it.
+ */
+export type FactStatus = 'unverified' | 'verified' | 'refuted' | 'unverifiable' | 'inferred';
+
+/**
+ * §328. Statuses that may back something a product says in public.
+ *
+ * An inferred fact may shape *how* a piece is written — which audience it
+ * addresses, what it positions against — and may never be *asserted*. The
+ * distinction is the same one gotcha 9 draws for metrics: reasoning about
+ * something is not the same as observing it.
+ */
+export const EVIDENTIAL_STATUSES: readonly FactStatus[] = ['verified', 'unverified'];
 
 export interface EvidenceRef {
   id: string;
@@ -259,7 +284,91 @@ export interface StoredFact {
 export function sameValue(a: string, b: string): boolean {
   const norm = (s: string) =>
     s.trim().toLowerCase().replace(/[.,;:!?]+$/g, '').replace(/\s+/g, ' ');
-  return norm(a) === norm(b);
+  if (norm(a) === norm(b)) return true;
+  /*
+   * §328. Paraphrases of one fact are one fact.
+   *
+   * Kinolog's Brain recorded `export` three times — "Kinolog lets users export
+   * their data", "Users can export their Kinolog data", "Users can export their
+   * Kinolog data" — because exact-match comparison treats a rewording as a
+   * competing value, and the code that follows then writes both and expects the
+   * contradiction pass to sort it out. A paraphrase is not a contradiction, so
+   * nothing ever did.
+   *
+   * The effect is worse than untidy. It makes a Brain look richer than it is —
+   * 23 identity facts of which about half were the same sentence — and it feeds
+   * the same point to a writer several times, which is how a piece ends up
+   * repeating itself.
+   */
+  /*
+   * §328. Numbers decide, before any similarity is considered.
+   *
+   * Caught by its own test: "Plus costs $2.99 a month" and "Plus costs $4.99 a
+   * month" share every content word and would have merged into one fact —
+   * hiding a contradiction the reconciler exists to surface, and picking one of
+   * two prices arbitrarily. The same holds for "500 films" against "100 films".
+   *
+   * A rewording changes the words and never the figures. So two statements
+   * carrying different numbers are different facts however similar they read,
+   * and this is checked first because getting it wrong publishes a wrong price.
+   */
+  if (!sameNumbers(a, b)) return false;
+  return contentOverlap(a, b) >= 0.8;
+}
+
+/** The figures in a statement, which a paraphrase never alters. */
+function sameNumbers(a: string, b: string): boolean {
+  const numbers = (s: string) =>
+    (s.match(/\d+(?:[.,]\d+)?/g) ?? []).map((n) => n.replace(/,/g, ''));
+  const left = numbers(a);
+  const right = numbers(b);
+  /* One statement carrying detail the other omits is still the same fact. */
+  if (left.length === 0 || right.length === 0) return true;
+  const shorter = left.length <= right.length ? left : right;
+  const longer = left.length <= right.length ? right : left;
+  return shorter.every((n) => longer.includes(n));
+}
+
+/** Words that carry no meaning of their own, for the comparison below. */
+const STOP_WORDS = new Set([
+  'a', 'an', 'the', 'is', 'are', 'was', 'were', 'be', 'been', 'can', 'could',
+  'will', 'would', 'may', 'might', 'to', 'of', 'in', 'on', 'for', 'with',
+  'from', 'their', 'they', 'them', 'it', 'its', 'this', 'that', 'and', 'or',
+  'as', 'at', 'by', 'own', 'any', 'all', 'you', 'your', 'users', 'user',
+]);
+
+/**
+ * How much two statements say the same thing, 0..1.
+ *
+ * Content words only, so "Kinolog lets users export their data" and "Users can
+ * export their Kinolog data" reduce to {kinolog, lets, export, data} against
+ * {export, kinolog, data} and overlap almost completely — which is correct,
+ * because they *are* the same fact.
+ *
+ * Measured against the **shorter** statement, so a short fact that is entirely
+ * contained in a longer one counts as the same fact rather than a different
+ * one. "Kinolog imports Letterboxd history" is not a separate fact from
+ * "Kinolog imports Letterboxd history, including ratings and watch dates" — the
+ * longer one is the same claim with detail, and keeping both records the claim
+ * twice while making the detailed one look like a competing variant.
+ */
+export function contentOverlap(a: string, b: string): number {
+  const words = (s: string) =>
+    new Set(
+      s
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .split(/\s+/)
+        .filter((w) => w.length > 1 && !STOP_WORDS.has(w)),
+    );
+
+  const left = words(a);
+  const right = words(b);
+  if (left.size === 0 || right.size === 0) return 0;
+
+  let shared = 0;
+  for (const word of left) if (right.has(word)) shared += 1;
+  return shared / Math.min(left.size, right.size);
 }
 
 export interface Contradiction {
