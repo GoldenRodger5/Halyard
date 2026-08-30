@@ -18,21 +18,41 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = path.join(ROOT, 'media-review/2026-08-29-quiz-templates');
 mkdirSync(OUT, { recursive: true });
 
+/*
+ * Arguments rather than environment variables. `envDocumented.test.ts` requires
+ * every variable shipped code reads to be named in `.env.example`, and these are
+ * knobs for a preview script — putting them there would suggest a deployment
+ * needs them set, which is the opposite of true.
+ *
+ *   pnpm exec tsx scripts/render-quiz-preview.ts [background.png] [luminance] \
+ *     [--composition Narrative] [--props narrative.json]
+ */
+const argv = process.argv.slice(2);
+const flag = (name: string): string | undefined => {
+  const at = argv.indexOf(`--${name}`);
+  return at === -1 ? undefined : argv[at + 1];
+};
+
+const composition = flag('composition') ?? 'Quiz';
 const props: Record<string, unknown> = JSON.parse(
-  readFileSync(path.join(OUT, 'props.json'), 'utf8'),
+  readFileSync(path.join(OUT, flag('props') ?? 'props.json'), 'utf8'),
 );
 
-const background = process.argv[2];
+const positional = argv.filter((a) => !a.startsWith('--') && !argv[argv.indexOf(a) - 1]?.startsWith('--'));
+const background = positional[0];
 if (background) {
   props.backgroundDataUri = `data:image/png;base64,${readFileSync(background).toString('base64')}`;
-  props.backgroundLuminance = Number(process.argv[3] ?? 0.5);
+  props.backgroundLuminance = Number(positional[1] ?? 0.5);
 }
 
 /* Wrapped: tsx transpiles these to CJS, which has no top-level await. */
 async function main() {
   const started = Date.now();
-  const output = path.join(OUT, background ? 'quiz-photo.mp4' : 'quiz-flat.mp4');
-  await renderVideo({ compositionId: 'Quiz', props, outputPath: output });
+  const output = path.join(
+    OUT,
+    `${composition.toLowerCase()}-${background ? 'photo' : 'flat'}.mp4`,
+  );
+  await renderVideo({ compositionId: composition, props, outputPath: output });
   console.log(`${output} — ${((Date.now() - started) / 1000).toFixed(1)}s`);
 }
 

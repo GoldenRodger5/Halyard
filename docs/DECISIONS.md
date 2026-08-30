@@ -8227,3 +8227,43 @@ account rather than the demo card.
 Still open: `cook_mode_timer`'s "Start Cooking" control no longer resolves. §163's
 per-flow gate means that no longer blocks recording the root, which is the
 behaviour it was written for and this is the first time it has mattered.
+
+## 308. The other four short-video formats had no composition
+
+**Chosen:** one `Narrative` composition with beat *roles*, and a mapping per
+format — not four bespoke compositions.
+
+`quiz` got one in §289. `history`, `tips`, `myth_fact` and `origin` all declare
+`short_video` and had none, so they rendered as cards. That is what "the videos
+look like slideshows" meant, and it was true.
+
+Four compositions would be four places for the same timing bug and would do
+nothing for the fifth format somebody adds. A narrative format is a **sequence
+of beats**, and the formats differ in what their beats *mean* rather than in how
+a beat is drawn: a history is hook → setup → turn → why; an origin is
+hook → before → change → now. Both are "say a thing, hold it, say the next", and
+in each the turn has to land hardest. So the composition takes roles and the
+format decides which slot becomes which role — `slidesForFormat`'s pattern.
+
+**Variety is structural.** Each beat picks a treatment by fit then recency, so a
+five-beat piece cycles through five compositions rather than showing the same
+card five times with different words in it. `FITS` is a fit rule and not a
+preference: a close set at hook weight reads as the piece starting again.
+
+**Beat length is derived from the read.** A fixed beat makes a four-word hook
+drag and cuts a twenty-word setup off mid-sentence — and the narration is placed
+on this same clock (§306), so a wrong estimate here puts the voice out of step
+with the picture rather than merely producing an odd rhythm.
+
+**The label is a safety property, not decoration.** `myth_fact` sets "Myth"
+above the claim on the beat that states it. A myth stated without being labelled
+as one is a myth post spreading the myth.
+
+**Corrected here:** §302's `legibleAccent` lifted a failing accent toward white
+*unconditionally*. That is right over a dark scrim and exactly backwards on a
+light ground — RecipeFix's rust on cream resolved to near-white, so the eyebrow
+and the rail's rule rendered invisible on the brand ground. It shipped because
+it was only ever looked at over a photograph. It now moves toward `fg`, which
+`quizPalette` has already measured as legible against that ground, and the test
+asserts it on both kinds of brand **and** both grounds — the version that only
+checked the scrim is what let this through.

@@ -214,19 +214,27 @@ function mix(hex: string, toward: string, amount: number): string {
 }
 
 /**
- * Lift a colour toward white until it is legible on the ground it sits on.
+ * Move a colour toward the type colour until it is legible on its ground.
+ *
+ * **Toward `fg`, not toward white.** The first version lifted toward white
+ * unconditionally, which is right over a dark scrim and exactly backwards on a
+ * light one: RecipeFix's rust on cream ended up near-white, so the eyebrow and
+ * the rail's rule rendered invisible on the brand ground. It was written while
+ * looking at a photograph and shipped without being looked at on the flat one.
+ *
+ * `fg` is already known legible against this ground — `quizPalette` measured it
+ * — so it is the only safe direction, and on either kind of brand.
  *
  * Steps rather than solving, because the steps are what an operator can check:
  * the result is one of ten known colours and the reason is "it took four steps
- * to clear 4.5:1", not a number out of a formula nobody can reproduce.
+ * to clear 4.5:1", not a number from a formula nobody can reproduce.
  */
-function legibleAccent(colour: string, against: string): string {
-  let out = colour;
+function legibleAccent(colour: string, against: string, toward: string): string {
   for (let step = 0; step <= 10; step += 1) {
+    const out = mix(colour, toward, step / 10);
     if (contrastRatio(out, against) >= 4.5) return out;
-    out = mix(colour, '#FFFFFF', step / 10);
   }
-  return out;
+  return toward;
 }
 
 export function quizPalette(brand: BrandTokens, overPhoto: boolean): QuizPalette {
@@ -248,7 +256,7 @@ export function quizPalette(brand: BrandTokens, overPhoto: boolean): QuizPalette
      * The scrim's dark end is what an accent over a photograph is really read
      * against; on the brand ground it is the ground itself.
      */
-    accent: legibleAccent(brand.primary, overPhoto ? '#1a1512' : brand.background),
+    accent: legibleAccent(brand.primary, overPhoto ? '#1a1512' : brand.background, fg),
     /*
      * Over a photograph the plate has to be a plate. A 11% white wash over a
      * busy image is not a container — the bars stopped reading as options and

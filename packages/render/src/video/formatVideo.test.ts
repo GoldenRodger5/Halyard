@@ -9,6 +9,7 @@
 import { describe, it, expect } from 'vitest';
 import { VIDEO_FORMATS, videoForFormat } from './formatVideo.js';
 import type { SlotValue } from '../image/formatSlides.js';
+import { treatmentsForBeats } from './narrative.js';
 
 const slot = (key: string, index: number, text: string, citation?: string): SlotValue => ({
   key,
@@ -19,7 +20,8 @@ const slot = (key: string, index: number, text: string, citation?: string): Slot
 
 describe('videoForFormat', () => {
   it('returns null for a format with no video builder', () => {
-    expect(videoForFormat('history', [slot('hook', 0, 'Anything')])).toBeNull();
+    /* `recipe` runs on carousel and long_video; it has no short-video shape. */
+    expect(videoForFormat('recipe', [slot('title', 0, 'Anything')])).toBeNull();
   });
 
   it('returns null for a quiz with no questions', () => {
@@ -129,5 +131,90 @@ describe('videoForFormat', () => {
       slot('answer', 0, '1728'),
     ]);
     expect(out!.compositionId).toBe('Quiz');
+  });
+});
+
+
+describe('the narrative formats', () => {
+  it('gives every short-video format a composition', () => {
+    /*
+     * §308. Four formats declared `short_video` and had no composition, so they
+     * rendered as cards — which is what "the videos look like slideshows"
+     * meant. A format that names a channel it cannot render for is a promise
+     * the catalogue does not keep.
+     */
+    for (const id of ['quiz', 'history', 'tips', 'myth_fact', 'origin']) {
+      expect(VIDEO_FORMATS, `${id} has no video builder`).toContain(id);
+    }
+  });
+
+  it('builds a history as hook, setup, turn, payoff', () => {
+    const out = videoForFormat('history', [
+      slot('hook', 0, 'Bread was an accident.'),
+      slot('setup', 0, 'Flour and water left out catches wild yeast.'),
+      slot('turn', 0, 'Somebody baked it anyway.'),
+      slot('why_it_matters', 0, 'Every loaf since repeats that accident on purpose.'),
+      slot('source', 0, 'Wikipedia: History of bread'),
+    ]);
+    expect(out!.compositionId).toBe('Narrative');
+    const beats = out!.props.beats as Array<{ role: string; source: string | null }>;
+    expect(beats.map((b) => b.role)).toEqual(['hook', 'setup', 'turn', 'payoff']);
+    /* The citation rides the beat that makes the claim, not the hook. */
+    expect(beats[3]!.source).toContain('Wikipedia');
+  });
+
+  it('numbers the tips, because the number is what keeps a viewer’s place', () => {
+    const out = videoForFormat('tips', [
+      slot('title', 0, 'Four things about flour'),
+      slot('tip', 0, 'Weigh it.'),
+      slot('tip', 1, 'Sift it.'),
+      slot('close', 0, 'Which one surprised you?'),
+    ]);
+    const beats = out!.props.beats as Array<{ kicker: string | null; role: string }>;
+    expect(beats.map((b) => b.kicker)).toEqual([null, '1', '2', null]);
+    expect(beats[beats.length - 1]!.role).toBe('close');
+  });
+
+  it('labels a myth as a myth on the beat that states it', () => {
+    /*
+     * Stating a myth without labelling it is how a myth post spreads the myth.
+     * The kicker is not decoration here — it is the whole safety property.
+     */
+    const out = videoForFormat('myth_fact', [
+      slot('myth', 0, 'Oats contain gluten.'),
+      slot('correction', 0, 'They do not. They are milled beside wheat.'),
+    ]);
+    const beats = out!.props.beats as Array<{ kicker: string | null; text: string }>;
+    expect(beats[0]!.kicker).toBe('Myth');
+    expect(beats[beats.length - 1]!.kicker).toBe('Actually');
+  });
+
+  it('speaks each line while its own beat is on screen', () => {
+    const out = videoForFormat('history', [
+      slot('hook', 0, 'Bread was an accident.'),
+      slot('setup', 0, 'Flour and water left out catches wild yeast.'),
+      slot('turn', 0, 'Somebody baked it anyway.'),
+      slot('why_it_matters', 0, 'Every loaf repeats it on purpose.'),
+    ]);
+    const beats = out!.props.beats as Array<{ seconds: number; text: string }>;
+    let start = 0;
+    beats.forEach((beat, i) => {
+      const line = out!.narration[i]!;
+      expect(line.text).toBe(beat.text);
+      /* Spoken after its beat begins and before that beat ends. */
+      expect(line.atSeconds).toBeGreaterThanOrEqual(start);
+      expect(line.atSeconds).toBeLessThan(start + beat.seconds);
+      start += beat.seconds;
+    });
+  });
+
+  it('varies the treatment rather than repeating one', () => {
+    /* Five identical cards with different words in them is the slideshow. */
+    const treatments = treatmentsForBeats(['hook', 'detail', 'detail', 'detail', 'close']);
+    expect(new Set(treatments.slice(1, 4)).size).toBeGreaterThan(1);
+  });
+
+  it('refuses a format whose slots are all empty', () => {
+    expect(videoForFormat('history', [slot('hook', 0, '   ')])).toBeNull();
   });
 });

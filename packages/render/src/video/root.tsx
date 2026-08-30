@@ -16,6 +16,7 @@ import React from 'react';
 import { Composition } from 'remotion';
 import { QuizVideo, quizDurationSeconds } from './quiz.js';
 import { Walkthrough } from './walkthrough.js';
+import { Narrative, narrativeDurationSeconds } from './narrative.js';
 import { DEFAULT_BRAND } from '../brand.js';
 import { LANDSCAPE_SUFFIX } from './geometry.js';
 import {
@@ -82,6 +83,44 @@ export const RemotionRoot: React.FC = () => (
           { atSeconds: 1.2, text: 'Paste any recipe link', at: { x: 0.5, y: 0.34 } },
           { atSeconds: 5.0, text: 'Pick what you need to avoid', at: { x: 0.5, y: 0.56 } },
           { atSeconds: 9.5, text: 'Every swap says why', at: { x: 0.5, y: 0.45 } },
+        ],
+      }}
+    />
+
+    {/*
+      §308. The composition the other four short-video formats run through.
+      `history`, `tips`, `myth_fact` and `origin` had none and rendered as
+      cards, which is why they looked like slideshows. They differ in what
+      their beats *mean*, not in how a beat is drawn.
+    */}
+    <Composition
+      id="Narrative"
+      component={Narrative as unknown as React.FC<Record<string, unknown>>}
+      calculateMetadata={({ props }) => {
+        const beats = (props as { beats?: Array<{ seconds: number }> }).beats ?? [];
+        return {
+          durationInFrames: Math.max(
+            1,
+            Math.round(VIDEO_FPS * (beats.length > 0 ? narrativeDurationSeconds(beats) : 20)),
+          ),
+        };
+      }}
+      durationInFrames={VIDEO_FPS * 20}
+      fps={VIDEO_FPS}
+      width={VIDEO_WIDTH}
+      height={VIDEO_HEIGHT}
+      defaultProps={{
+        brand: DEFAULT_BRAND,
+        wordmark: 'recipefix',
+        beats: [
+          { role: 'hook', text: 'Bread was accidental.', seconds: 3 },
+          { role: 'setup', text: 'Flour and water left out long enough catches wild yeast.', seconds: 4.2 },
+          { role: 'turn', text: 'Somebody baked it anyway.', kicker: 'And then', seconds: 3.4 },
+          {
+            role: 'payoff',
+            text: 'Every loaf since is that same accident, repeated on purpose.',
+            seconds: 4.6,
+          },
         ],
       }}
     />

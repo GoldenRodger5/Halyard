@@ -23,6 +23,7 @@
  * Gotcha 10: this package is webpacked for the browser by Remotion.
  */
 import type { SlotValue } from '../image/formatSlides.js';
+import type { BeatRole, NarrativeBeat } from './narrative.js';
 import {
   QUIZ_COUNTDOWN_SECONDS,
   QUIZ_QUESTION_SECONDS,
@@ -121,6 +122,61 @@ function optionsFor(
   return { options, correctIndex };
 }
 
+
+/**
+ * §308. How long a line needs to be read aloud.
+ *
+ * Speech runs about 2.6 words a second at the pace short-form is read at, plus
+ * a beat to land. Derived rather than fixed, because a fixed beat length makes
+ * a four-word hook drag and cuts a twenty-word setup off mid-sentence — and the
+ * narration is placed on this same clock, so a wrong estimate here is a voice
+ * out of step with the picture rather than merely an odd rhythm.
+ *
+ * Floored at 2.2s: below that a beat reads as a flicker however few words it
+ * has, and a viewer who cannot finish reading a line has not received it.
+ */
+function secondsToRead(text: string): number {
+  const words = text.trim().split(/\s+/).filter(Boolean).length;
+  return Math.max(2.2, Number((words / 2.6 + 0.9).toFixed(2)));
+}
+
+/**
+ * Beats and the read, from one list of lines.
+ *
+ * Built together so they cannot disagree. The narration timestamps are the
+ * running sum of the beat durations — the same numbers the composition lays out
+ * with — so a line is spoken exactly while its own beat is on screen.
+ */
+function narrativeFrom(
+  lines: Array<{ role: BeatRole; text: string; kicker?: string | null; source?: string | null }>,
+): FormatVideo | null {
+  const usable = lines.filter((l) => l.text.trim().length > 0);
+  if (usable.length === 0) return null;
+
+  const beats: NarrativeBeat[] = [];
+  const narration: NarrationLine[] = [];
+  let at = 0;
+  for (const line of usable) {
+    const seconds = secondsToRead(line.text);
+    beats.push({
+      role: line.role,
+      text: line.text.trim(),
+      kicker: line.kicker ?? null,
+      source: line.source ?? null,
+      seconds,
+    });
+    /*
+     * A short lead-in so the line is on screen before it is spoken. A narrator
+     * who starts on the same frame the type appears reads as a caption being
+     * dictated; a beat behind reads as someone talking over a picture.
+     */
+    narration.push({ atSeconds: Number((at + 0.25).toFixed(2)), text: line.text.trim() });
+    at += seconds;
+  }
+
+  return { compositionId: 'Narrative', props: { beats }, narration };
+}
+
 const BUILDERS: Record<string, (slots: SlotValue[]) => FormatVideo | null> = {
   quiz(slots) {
     const questions = all(slots, 'question');
@@ -202,6 +258,65 @@ const BUILDERS: Record<string, (slots: SlotValue[]) => FormatVideo | null> = {
       props: { title, questions: items },
       narration,
     };
+  },
+
+
+  /**
+   * A story with a turn. The turn is the beat the whole piece exists for, so it
+   * gets a treatment that lands and the beats around it stay out of its way.
+   */
+  history(slots) {
+    const source = pick(slots, 'source');
+    return narrativeFrom([
+      { role: 'hook', text: pick(slots, 'hook') ?? '' },
+      { role: 'setup', text: pick(slots, 'setup') ?? '' },
+      { role: 'turn', text: pick(slots, 'turn') ?? '', kicker: 'And then' },
+      { role: 'payoff', text: pick(slots, 'why_it_matters') ?? '', source },
+    ]);
+  },
+
+  /**
+   * A numbered list. The number *is* the kicker, which is why `label_lead`
+   * exists — a tip whose number is set small throws away the thing a viewer
+   * uses to keep their place.
+   */
+  tips(slots) {
+    const tips = all(slots, 'tip');
+    return narrativeFrom([
+      { role: 'hook', text: pick(slots, 'title') ?? '' },
+      ...tips.map((tip, i) => ({
+        role: 'detail' as BeatRole,
+        text: tip.text,
+        kicker: String(i + 1),
+      })),
+      { role: 'close', text: pick(slots, 'close') ?? '' },
+    ]);
+  },
+
+  /**
+   * The correction is the payoff and the myth is the setup, and stating the
+   * myth without immediately labelling it as one is how a myth post spreads the
+   * myth. So the kicker does the work: "Myth" before the claim, every time.
+   */
+  myth_fact(slots) {
+    const source = pick(slots, 'source');
+    const partly = pick(slots, 'partly_true');
+    return narrativeFrom([
+      { role: 'hook', text: pick(slots, 'myth') ?? '', kicker: 'Myth' },
+      ...(partly ? [{ role: 'setup' as BeatRole, text: partly, kicker: 'Partly true' }] : []),
+      { role: 'turn', text: pick(slots, 'correction') ?? '', kicker: 'Actually', source },
+    ]);
+  },
+
+  /** Where a thing came from, what changed, where it is now. */
+  origin(slots) {
+    const source = pick(slots, 'source');
+    return narrativeFrom([
+      { role: 'hook', text: pick(slots, 'hook') ?? '' },
+      { role: 'setup', text: pick(slots, 'before') ?? '', kicker: 'Before' },
+      { role: 'turn', text: pick(slots, 'change') ?? '', kicker: 'What changed' },
+      { role: 'payoff', text: pick(slots, 'now') ?? '', kicker: 'Now', source },
+    ]);
   },
 };
 

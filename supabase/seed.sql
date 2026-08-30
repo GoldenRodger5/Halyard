@@ -179,6 +179,8 @@ insert into templates (id, product_id, renderer, format, aspect_ratio, descripti
   -- account could select them and the quiz format could not produce a piece.
   ('Quiz',                     'recipefix', 'remotion',  'video',    '9:16', 'Five questions, a countdown, and a reveal that fills the right option'),
   ('Walkthrough',              'recipefix', 'remotion',  'video',    '9:16', 'A screen recording inside a drawn phone, with callouts on the taps'),
+  -- §308. history, tips, myth_fact and origin all run through this one.
+  ('Narrative',                'recipefix', 'remotion',  'video',    '9:16', 'Beats with roles, each drawn by a treatment that has not been used lately'),
   -- §222. Landscape twins, so YouTube long-form has a canvas to render on.
   -- Same compositions; `geometry.ts` resolves the layout from the frame, so
   -- there is one implementation rather than two to keep in step.

@@ -99,10 +99,30 @@ describe('quizPalette', () => {
     expect(contrastRatio(over.accent, '#1a1512')).toBeGreaterThanOrEqual(4.5);
   });
 
+  it('never rescues an accent by moving it toward the ground it sits on', () => {
+    /*
+     * §308. The first version lifted toward white unconditionally. On a light
+     * brand that is the wrong direction — it made the eyebrow and the rail rule
+     * invisible on cream, which shipped because it was only ever looked at over
+     * a photograph. Asserted on both kinds of brand and on both grounds.
+     */
+    for (const brand of [recipefix, dark]) {
+      for (const overPhoto of [false, true]) {
+        const p = quizPalette(brand, overPhoto);
+        const ground = overPhoto ? '#1a1512' : (brand as unknown as { background: string }).background;
+        expect(
+          contrastRatio(p.accent, ground),
+          `accent ${p.accent} is illegible on ${ground}`,
+        ).toBeGreaterThanOrEqual(4.5);
+      }
+    }
+  });
+
   it('leaves an accent alone when it already passes', () => {
     /* Rust on cream clears 4.5:1, so the brand keeps its own colour. */
     const onBrand = quizPalette(recipefix, false);
-    expect(onBrand.accent).toBe('#B5502A');
+    /* Case-insensitive: the step-0 pass normalises the hex. */
+    expect(onBrand.accent.toUpperCase()).toBe('#B5502A');
   });
 
   it('gives options a real plate over a photograph', () => {
