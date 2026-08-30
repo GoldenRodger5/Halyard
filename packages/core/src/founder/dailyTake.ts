@@ -358,6 +358,21 @@ export type TakeStage =
       verification: VerificationResult;
       reinforcement: Reinforcement;
       draft: TakeDraft;
+      /**
+       * §377. How much of what you said survived into the draft.
+       *
+       * `opinionPreserved` was written to catch a draft that "sanded the
+       * opinion off" and was called by nothing, so a Take could come back as a
+       * fluent, verified, entirely generic paragraph and nothing would say so.
+       * That is the one failure this whole path exists to prevent: the point of
+       * a Daily Take is that it is *yours*.
+       *
+       * Reported rather than refused. A low overlap is a reason to look, not
+       * proof of a problem — a short input rephrased well can score low
+       * honestly, and refusing on it would block the good case to catch the bad
+       * one.
+       */
+      opinion: { preserved: boolean; overlap: number; note: string };
     };
 
 export interface RunTakeInput {
@@ -418,7 +433,14 @@ export async function runTakeLoop(
     llm,
   );
 
-  return { stage: 'drafted', verification, reinforcement, draft };
+  return {
+    stage: 'drafted',
+    verification,
+    reinforcement,
+    draft,
+    /* §377. Computed here so no caller can forget to ask. */
+    opinion: opinionPreserved(input.rawInput, draft.body),
+  };
 }
 
 /**

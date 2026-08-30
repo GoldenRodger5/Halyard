@@ -70,7 +70,9 @@ export async function submitTake(formData: FormData): Promise<void> {
         `update takes
             set status = 'drafted', fact_check = $2, fact_check_ok = true, story_verified = true,
                 supporting = $3, strongest_counter = $4, risk_flags = $5,
-                draft = $6, likely_pushback = $7
+                draft = $6, likely_pushback = $7,
+                -- §377. How much of what you said is still in it.
+                opinion_overlap = $8, opinion_note = $9
           where id = $1`,
         [
           takeId,
@@ -80,6 +82,8 @@ export async function submitTake(formData: FormData): Promise<void> {
           JSON.stringify(result.reinforcement.riskFlags),
           result.draft.body,
           JSON.stringify(result.draft.likelyPushback),
+          result.opinion.overlap,
+          result.opinion.note,
         ],
       );
     }

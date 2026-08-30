@@ -46,11 +46,15 @@ export default async function TakePage() {
     strongest_counter: string | null;
     risk_flags: Array<{ kind: string; detail: string }>;
     likely_pushback: string[];
+    /** §377. How much of the raw input survived into the draft, 0..1. */
+    opinion_overlap: string | null;
+    opinion_note: string | null;
     story_title: string | null;
     created_at: string;
   }>(
     `select t.id, t.raw_input, t.status, t.draft, t.fact_check, t.strongest_counter,
-            t.risk_flags, t.likely_pushback, i.title as story_title, t.created_at
+            t.risk_flags, t.likely_pushback, t.opinion_overlap, t.opinion_note,
+            i.title as story_title, t.created_at
        from takes t
        left join rss_items i on i.id = t.rss_item_id
       where t.status not in ('discarded','approved')
@@ -227,6 +231,23 @@ export default async function TakePage() {
                     <p className="rounded-lg border border-line bg-surface p-3 text-sm leading-relaxed text-ink">
                       {take.draft}
                     </p>
+                    {/*
+                      §377. Whether the draft still carries what you said.
+
+                      A Take that comes back fluent, verified and entirely
+                      generic is the one failure this whole path exists to
+                      prevent — a laundered opinion is worse than no post,
+                      because it publishes under your name. Shown only when it
+                      is low: a healthy overlap needs no comment, and a line
+                      that appears on every draft stops being read.
+                    */}
+                    {take.opinion_overlap !== null && Number(take.opinion_overlap) < 0.3 ? (
+                      <p className="mt-1.5 text-xs text-warn-ink">
+                        {take.opinion_note ??
+                          'The draft shares little vocabulary with what you said.'}{' '}
+                        ({Math.round(Number(take.opinion_overlap) * 100)}% of your words survived.)
+                      </p>
+                    ) : null}
                   </div>
                 ) : null}
 
