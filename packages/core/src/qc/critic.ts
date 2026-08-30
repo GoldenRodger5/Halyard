@@ -104,13 +104,42 @@ export const CRITIC_QUESTIONS: Array<{ rule: string; question: string }> = [
       'Is anything important close enough to an edge that the platform’s own buttons or caption bar would cover it?',
   },
   {
+    /*
+     * §317. The hero was generated from an unrelated artifact headline (§313),
+     * so a quiz about the history of gluten sat on a photograph of whatever
+     * recipe was adapted that morning. No deterministic check can see that —
+     * the frame is well-composed, legible, correctly sized and about the wrong
+     * thing. It took an operator saying "the quiz and narrative used the same
+     * pic which we don't want".
+     */
+    rule: 'critic.unrelated_imagery',
+    question:
+      'Does the photograph have anything to do with what the words say? Name the frame where it does not, and say what it shows instead.',
+  },
+  {
+    /*
+     * §317. The second half of the same complaint: two pieces from one account
+     * carrying the same picture. A frame cannot see the account, but it can see
+     * whether the image is generic enough to have been used for anything.
+     */
+    rule: 'critic.stock_imagery',
+    question:
+      'Could this photograph illustrate any post on this account rather than this one? A picture that fits everything was chosen for nothing.',
+  },
+  {
     rule: 'critic.reads_automated',
     question:
       'Does this look like a person made it, or like a system filled in a shape? Say which frames give it away.',
   },
 ];
 
-export const CRITIC_PROMPT_VERSION = 'creative_critic.v1';
+/*
+ * §317. v2 adds the two imagery questions. Bumped rather than edited in place:
+ * a finding recorded under v1 was produced by a critic that was never asked
+ * about the picture, and comparing the two as if they were the same reviewer
+ * would make the imagery problem look newly introduced.
+ */
+export const CRITIC_PROMPT_VERSION = 'creative_critic.v2';
 
 export function criticSystemPrompt(): string {
   return `You are a demanding art director reviewing frames from one short social video.

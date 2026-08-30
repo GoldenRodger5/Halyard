@@ -18,13 +18,14 @@ import {
 import { renderTemplate, type TemplateId } from '@halyard/render';
 import { calloutsFromSteps } from '@halyard/render/video';
 import {
+  runMediaIntegrity,
   calloutSourceFromCapture,
   footageSpansFor,
   type CapturedStep,
 } from '@halyard/core';
 import { stageFootage } from '../footage.js';
 import { durationInFrames, type CaptionCue } from '@halyard/render/timing';
-import { muxAudioIntoVideo } from '../audio.js';
+import { meanVolumeDb, muxAudioIntoVideo } from '../audio.js';
 import { PermanentJobFailure } from '../poller.js';
 import type { Job, HandlerContext } from '../poller.js';
 import { readAssetBytes, uploadAsset, type UploadedAsset } from '../storage.js';
@@ -322,6 +323,42 @@ async function renderVideoAsset(
       await writeFile(path.join(work, 'mix.mp3'), audio.bytes);
       await muxAudioIntoVideo(silentPath, path.join(work, 'mix.mp3'), finalPath);
       output = finalPath;
+    }
+
+    /**
+     * §317. The checks that would have caught 2026-08-29, run on every video.
+     *
+     * `runVisualQC` asks about frames — aspect, resolution, safe area,
+     * contrast. Every defect found that day was a property of the *piece*: a
+     * quiz ending on "Question 3 of 4", four files with a silent audio track,
+     * a narrator still speaking over the next card. All arithmetic, none of it
+     * checked, and a person was the thing that found them.
+     *
+     * Failures are recorded and logged rather than thrown. A render that
+     * produced a file is worth keeping — an operator can look at it — and the
+     * approval gate is where a defective piece should be stopped, not here.
+     */
+    const integrity = runMediaIntegrity({
+      durationSeconds: audio?.durationSeconds ?? result.durationInFrames / result.fps,
+      meanVolumeDb: await meanVolumeDb(output),
+      hasNarration: Boolean(audio),
+      ...(typeof render.input_props.requiredSeconds === 'number'
+        ? { requiredSeconds: render.input_props.requiredSeconds }
+        : {}),
+    });
+    if (!integrity.passed) {
+      ctx.log('media integrity failed', {
+        renderId: render.id,
+        findings: integrity.findings.map((f) => `${f.rule}: ${f.message}`),
+      });
+    }
+    if (render.content_item_id) {
+      await ctx.pool.query(
+        `update content_items
+            set qc_results = coalesce(qc_results, '{}'::jsonb) || jsonb_build_object('media', $2::jsonb)
+          where id = $1`,
+        [render.content_item_id, JSON.stringify(integrity)],
+      );
     }
 
     return await uploadAsset(ctx, {

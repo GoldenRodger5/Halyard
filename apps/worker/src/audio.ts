@@ -114,6 +114,30 @@ function parseLoudnessNumber(raw: unknown): number {
  * as pumping. Measuring first and applying a fixed correction second is slower
  * and is what keeps the mix sounding like the mix.
  */
+/**
+ * §317. Mean volume of a finished file, in dBFS.
+ *
+ * Distinguishes "no audio" from "silent audio", which every other check here
+ * conflates — and the second is the dangerous one, because a silent stream
+ * looks like sound to every player and to every `hasAudio` test. Four rendered
+ * files carried one before this existed.
+ *
+ * Returns null when there is no audio stream at all, which is a legitimate
+ * state for a caption-led cut.
+ */
+export async function meanVolumeDb(filePath: string): Promise<number | null> {
+  const { stderr } = await execFileAsync('ffmpeg', [
+    '-v', 'info',
+    '-i', filePath,
+    '-af', 'volumedetect',
+    '-f', 'null', '-',
+  ]).catch((err: { stderr?: string }) => ({ stderr: err.stderr ?? '' }));
+
+  if (!/Stream #\d+:\d+.*Audio:/.test(stderr)) return null;
+  const match = stderr.match(/mean_volume:\s*(-?[0-9.]+) dB/);
+  return match ? Number(match[1]) : null;
+}
+
 export async function measureLoudness(filePath: string): Promise<LoudnessMeasurement> {
   const { stderr } = await execFileAsync(
     'ffmpeg',
