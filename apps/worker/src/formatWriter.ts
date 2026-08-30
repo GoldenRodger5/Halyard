@@ -32,12 +32,67 @@ import {
   type LlmClient,
 } from '@halyard/core';
 import type { HandlerContext } from './poller.js';
-import { checkCitation } from './citationCheck.js';
+import { checkCitation, newSourceCache } from './citationCheck.js';
 
 export const FORMAT_PROMPT_VERSION = 'post_format.v1';
 
 /** How many times a draft may be rewritten before the piece is abandoned. */
 export const MAX_FORMAT_ATTEMPTS = 3;
+
+/**
+ * §360. How long the whole write may take.
+ *
+ * The handler's own budget is 300s. The first real quiz generation spent all of
+ * it inside this loop — three attempts, each re-fetching every cited source at
+ * up to eight seconds — and was killed mid-verification, which produces the
+ * worst possible outcome: a dead job, no piece, and no statement of why.
+ *
+ * Below the handler's limit on purpose. A loop that gives up with thirty
+ * seconds to spare can say what it found; one that is killed cannot.
+ */
+export const FORMAT_WRITE_BUDGET_MS = 240_000;
+
+/**
+ * §360. Whether a slot's claim is the fact research already verified.
+ *
+ * Research (§344) fetches each source and confirms the page says the thing,
+ * before a word is written. The writer then turns that fact into a quiz
+ * question — *"In what year was gluten first identified?"* — and §282 re-reads
+ * the page and term-matches **the question**, which shares almost nothing with
+ * it. The source is fine. The claim is fine. The comparison is wrong.
+ *
+ * So a slot citing a researched URL is judged against the researched *fact*
+ * rather than against the page again. The page was read; reading it twice to
+ * compare it with a paraphrase only measures how much the writer rewrote.
+ *
+ * The misattribution hole this could open — a verified URL pinned to an
+ * unrelated claim — is what the overlap test closes. Both strings are short and
+ * about one thing, so the comparison is fair in a way page-matching is not.
+ */
+function matchesResearchedFact(
+  slotText: string,
+  factClaim: string,
+): boolean {
+  const words = (text: string) =>
+    new Set(
+      text
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .split(/\s+/)
+        .filter((w) => w.length > 3),
+    );
+  const claim = words(factClaim);
+  if (claim.size === 0) return false;
+  const slot = words(slotText);
+  let shared = 0;
+  for (const word of claim) if (slot.has(word)) shared += 1;
+  /*
+   * A third. A question built from a fact keeps its subject and its numbers and
+   * discards its grammar, so demanding half would refuse good writing — which
+   * is the mistake being fixed, made again with a different number.
+   */
+  return shared / claim.size >= 0.34;
+}
 
 export interface FormatWriteResult {
   draft: FormatDraft;
@@ -99,6 +154,10 @@ export async function writeToFormat(
    * was before, and the gate still refuses what it invents.
    */
   let researched = '';
+  /* §360. Kept as data, because verification needs the facts and not the prose. */
+  let facts: { claim: string; sourceUrl: string }[] = [];
+  const sources = newSourceCache();
+  const startedAt = Date.now();
   if (requiresCitation(format)) {
     const found = await research(
       {
@@ -120,6 +179,7 @@ export async function writeToFormat(
     });
     totalCost += found.costUsd;
 
+    facts = found.facts.map((f) => ({ claim: f.claim, sourceUrl: f.sourceUrl }));
     if (found.facts.length > 0) {
       researched = [
         '',
@@ -204,10 +264,36 @@ export async function writeToFormat(
       const unsupported: SlotProblem[] = [];
       for (const slot of parsed.slots) {
         if (!slot.citation) continue;
+
+        /*
+         * §360. Already read, during research. The page was fetched and
+         * confirmed to say this before a word was written, so the only question
+         * left is whether the writer kept the fact it was given.
+         */
+        const fromResearch = facts.find((f) => slot.citation?.includes(f.sourceUrl));
+        if (fromResearch) {
+          if (matchesResearchedFact(slot.text, fromResearch.claim)) {
+            ctx.log('citation checked', {
+              url: fromResearch.sourceUrl,
+              verdict: 'supported',
+              because: 'verified during research, and the slot still says that fact',
+            });
+            continue;
+          }
+          unsupported.push({
+            rule: 'format.unverified_citation',
+            severity: 'error',
+            message: `${slot.key}: this cites a checked source but no longer says what that source supports — write the fact it was given, or cite something else.`,
+            slot: slot.key,
+          });
+          continue;
+        }
+
         const verdict = await checkCitation(
           ctx,
           { claim: slot.text, citation: slot.citation },
           fetchImpl,
+          sources,
         );
         if (verdict.verdict !== 'supported') {
           unsupported.push({
@@ -227,6 +313,19 @@ export async function writeToFormat(
           attempt,
           unsupported: unsupported.length,
         });
+        if (Date.now() - startedAt > FORMAT_WRITE_BUDGET_MS) {
+          /*
+           * §360. Out of time, and saying so is the point. Being killed by the
+           * handler timeout mid-fetch produces a dead job with no explanation;
+           * this produces a refusal that names what failed.
+           */
+          ctx.log('format write out of time', {
+            format: format.id,
+            attempt,
+            ms: Date.now() - startedAt,
+          });
+          break;
+        }
         continue;
       }
     }

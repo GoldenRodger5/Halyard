@@ -74,7 +74,24 @@ export interface CitationEvidence {
   missing: string[];
 }
 
-export type CitationVerdict = 'supported' | 'unsupported' | 'unreachable' | 'not_a_url';
+export type CitationVerdict =
+  | 'supported'
+  | 'unsupported'
+  | 'unreachable'
+  | 'not_a_url'
+  /**
+   * §360. The source resolves and this cannot read it.
+   *
+   * A PDF answers 200 and `textFromHtml` finds nothing in it, so the term match
+   * scores zero and the old code reported *"the source does not mention this
+   * claim"* — which is a statement about the page, and it is false. The page may
+   * say exactly that. What is true is that the checker cannot see inside it.
+   *
+   * Kept apart from `unsupported` because the two ask the writer for different
+   * things: `unsupported` means find a different fact, `unreadable` means cite
+   * the same fact from a page that can be read.
+   */
+  | 'unreadable';
 
 export interface CitationCheck {
   verdict: CitationVerdict;
@@ -117,6 +134,8 @@ export function judgeCitation(input: {
   status: number | null;
   /** The source's text, already stripped of markup. Null when unreachable. */
   sourceText: string | null;
+  /** The `content-type` the source answered with, when there was one. */
+  contentType?: string | null;
 }): CitationCheck {
   const terms = distinctiveTerms(input.claim);
 
@@ -136,6 +155,22 @@ export function judgeCitation(input: {
       verdict: 'unreachable',
       evidence: { resolved: false, status: input.status, matched: [], missing: terms },
       reason: `The source returned HTTP ${input.status}, so it does not exist as cited.`,
+    };
+  }
+
+  /*
+   * §360. Before the term match, because a format this cannot read scores zero
+   * matches and would otherwise be reported as a page that is about something
+   * else. HTML and plain text are readable; a PDF, an image or an office
+   * document is not, and saying so is the honest answer.
+   */
+  const type = (input.contentType ?? '').toLowerCase();
+  const readable = !type || type.includes('html') || type.includes('text/plain') || type.includes('xml');
+  if (!readable) {
+    return {
+      verdict: 'unreadable',
+      evidence: { resolved: true, status: input.status, matched: [], missing: terms },
+      reason: `The source resolves but is ${type.split(';')[0]}, which cannot be read here — cite a page rather than a file.`,
     };
   }
 

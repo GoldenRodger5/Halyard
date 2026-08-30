@@ -50,7 +50,9 @@ await page.waitForTimeout(600);
 await shot('05-format-quiz');
 
 // 4 · How it should be made — leave the look on auto, ask for a voice.
-await page.getByRole('button', { name: 'Spoken', exact: true }).click();
+const voice = page.getByRole('button', { name: 'Spoken', exact: true });
+if ((await voice.count()) === 0) throw new Error('no Spoken control — the voice option did not render');
+await voice.click();
 await page.waitForTimeout(400);
 await shot('06-options');
 
