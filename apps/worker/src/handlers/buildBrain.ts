@@ -19,6 +19,7 @@
  * consumption reports every working agent as partial forever.
  */
 import {
+  inferProductFacts,
   discoverImplementationFacts,
   discoverListingFacts,
   discoverProductFacts,
@@ -255,6 +256,60 @@ export async function buildBrainHandler(
   );
 
   const writes = planFactWrites({ proposals, evidenceById });
+
+  /**
+   * §328. What follows from what was found, run after the evidence agents.
+   *
+   * Given the facts they established rather than the pages they read: reasoning
+   * from raw pages is how a model paraphrases marketing copy back as insight,
+   * and reasoning from facts that already survived the evidence rules keeps the
+   * chain page → fact → inference visible.
+   *
+   * Written with status `inferred`, which `EVIDENTIAL_STATUSES` excludes, so
+   * nothing published can cite one. It exists to make the system *understand* a
+   * product — which audience to address, what to position against — not to put
+   * words in its mouth.
+   */
+  if (writes.length > 0) {
+    const inferred = await inferProductFacts(
+      {
+        productName: product.name,
+        facts: writes.map((w) => ({ category: w.category, key: w.key, value: w.value })),
+      },
+      llm,
+    );
+    cost += inferred.costUsd;
+    for (const fact of inferred.accepted) {
+      await ctx.pool.query(
+        `insert into product_facts
+           (product_id, category, key, value, detail, status, confidence, evidence_ids,
+            agent_id, agent_version, prompt_version, last_verified_at, updated_at)
+         values ($1,$2,$3,$4,$5,'inferred',$6,'{}',$7,'1.0',$8, now(), now())
+         on conflict (product_id, category, key, value) where superseded_by is null
+         do update set detail = excluded.detail, updated_at = now()`,
+        [
+          productId,
+          fact.category,
+          fact.key,
+          fact.value,
+          fact.detail ?? null,
+          /*
+           * Deliberately below every evidenced status. An inference that scored
+           * like a verified fact would sort alongside one in any list an
+           * operator reads, which is the whole thing this is trying not to do.
+           */
+          0.35,
+          'product-inference',
+          'product_inference.v1',
+        ],
+      );
+    }
+    ctx.log('inferences recorded', {
+      productId,
+      count: inferred.accepted.length,
+      rejected: inferred.rejected.length,
+    });
+  }
 
   for (const write of writes) {
     await ctx.pool.query(
