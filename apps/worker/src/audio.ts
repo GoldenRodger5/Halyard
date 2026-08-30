@@ -18,7 +18,7 @@
  * why it can be tested end to end against synthesised tones rather than mocks.
  */
 import { execFile } from 'node:child_process';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, rm, open } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
@@ -136,6 +136,35 @@ export async function meanVolumeDb(filePath: string): Promise<number | null> {
   if (!/Stream #\d+:\d+.*Audio:/.test(stderr)) return null;
   const match = stderr.match(/mean_volume:\s*(-?[0-9.]+) dB/);
   return match ? Number(match[1]) : null;
+}
+
+/**
+ * §320. Whether an MP4's index precedes its media data.
+ *
+ * Reads the box headers directly rather than shelling out: it is four bytes of
+ * structure at the front of the file, and ffprobe does not report it.
+ */
+export async function hasFaststart(filePath: string): Promise<boolean | null> {
+  try {
+    const handle = await open(filePath, 'r');
+    try {
+      /* The first megabyte is more than enough to see which box comes first. */
+      const buffer = Buffer.alloc(1024 * 1024);
+      const { bytesRead } = await handle.read(buffer, 0, buffer.length, 0);
+      const head = buffer.subarray(0, bytesRead);
+      const moov = head.indexOf('moov');
+      const mdat = head.indexOf('mdat');
+      if (moov === -1 && mdat === -1) return null;
+      /* `moov` not in the first megabyte while `mdat` is means it is at the end. */
+      if (moov === -1) return false;
+      if (mdat === -1) return true;
+      return moov < mdat;
+    } finally {
+      await handle.close();
+    }
+  } catch {
+    return null;
+  }
 }
 
 export async function measureLoudness(filePath: string): Promise<LoudnessMeasurement> {
@@ -609,6 +638,31 @@ export async function muxAudioIntoVideo(
       'aac',
       '-b:a',
       '192k',
+      /*
+       * §320. 44.1 kHz, stereo, and the index at the front.
+       *
+       * The mix is produced at 48 kHz and muxed as-is, and the result played
+       * in ffmpeg and measured correctly while an operator heard nothing on a
+       * normal player. Three things were wrong with that file for playback, all
+       * of them free to fix:
+       *
+       * - `moov` sat at the end, so a player has to read the whole file before
+       *   it knows there is audio. Fine for ffmpeg, wrong for anything that
+       *   streams — and every platform Halyard publishes to streams.
+       * - 48 kHz is correct and 44.1 kHz is what consumer playback paths are
+       *   built around.
+       * - The channel layout was never stated, so a decoder had to infer it.
+       *
+       * None of these is detectable by measuring the file, which is exactly why
+       * it survived being checked. `runMediaIntegrity` reads levels; levels
+       * were fine.
+       */
+      '-ar',
+      '44100',
+      '-ac',
+      '2',
+      '-movflags',
+      '+faststart',
       '-shortest',
       outputPath,
     ],

@@ -53,6 +53,20 @@ export interface MediaIntegrityInput {
    * how long its own content takes.
    */
   requiredSeconds?: number;
+  /**
+   * §320. Whether the index sits before the media data.
+   *
+   * An MP4 with `moov` after `mdat` requires a player to read the whole file
+   * before it knows there is an audio track. ffmpeg does; a normal player
+   * streaming the file may present it as silent — which is exactly what
+   * happened: the mix measured -19 dB, played correctly in ffmpeg, and an
+   * operator heard nothing. Extracting the same audio to an MP3 played fine,
+   * which is what identified the container rather than the audio.
+   *
+   * Invisible to every level measurement, so it has to be asked separately.
+   * Null when it could not be determined.
+   */
+  moovBeforeMdat?: boolean | null;
   /** The timed read, with each line's measured length. */
   narration?: Array<{ atSeconds: number; durationSeconds: number; text: string }>;
 }
@@ -93,6 +107,18 @@ export function runMediaIntegrity(input: MediaIntegrityInput): MediaIntegrityRes
           'so it looks like the viewer’s problem rather than ours.',
       });
     }
+  }
+
+  /* ── An index a player cannot reach until it has read everything ───────── */
+  if (input.moovBeforeMdat === false) {
+    findings.push({
+      rule: 'media.no_faststart',
+      severity: 'error',
+      message: 'The MP4 index sits after the media data, so a player must read the whole file to find the audio.',
+      detail:
+        'Mux with `-movflags +faststart`. Every platform Halyard publishes to streams, and a streaming ' +
+        'player can present this as a silent video while the audio measures perfectly.',
+    });
   }
 
   /* ── A video that ends before its content does ─────────────────────────── */

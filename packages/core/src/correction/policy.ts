@@ -242,6 +242,13 @@ const BY_RULE: Record<string, PolicyEntry> = {
     action: 'escalate',
     correctable: false,
   },
+  'media.no_faststart': {
+    rootCause:
+      'The MP4 index sits after the media data, so a streaming player can present the video as silent.',
+    component: 'render',
+    action: 'escalate',
+    correctable: false,
+  },
   'media.truncated': {
     rootCause:
       'The composition was sized for different content than it was given, so the last beat is cut off mid-way.',

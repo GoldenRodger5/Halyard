@@ -79,3 +79,44 @@ describe('runMediaIntegrity', () => {
     expect(result.passed).toBe(true);
   });
 });
+
+describe('§320. the container, not the audio', () => {
+  it('catches an index that sits after the media data', () => {
+    /*
+     * The mix measured -19 dB and played correctly in ffmpeg while an operator
+     * heard nothing. Extracting the same audio to an MP3 played fine, which is
+     * what pointed at the container. No level measurement can see this.
+     */
+    const result = runMediaIntegrity({
+      durationSeconds: 42.6,
+      meanVolumeDb: -19.1,
+      hasNarration: true,
+      moovBeforeMdat: false,
+    });
+    expect(result.passed).toBe(false);
+    expect(result.findings.map((f) => f.rule)).toContain('media.no_faststart');
+  });
+
+  it('passes a file whose index is at the front', () => {
+    expect(
+      runMediaIntegrity({
+        durationSeconds: 42.6,
+        meanVolumeDb: -19.1,
+        hasNarration: true,
+        moovBeforeMdat: true,
+      }).passed,
+    ).toBe(true);
+  });
+
+  it('does not fail a file it could not inspect', () => {
+    /* Unknown is not broken — gotcha 9's rule, applied to a container. */
+    expect(
+      runMediaIntegrity({
+        durationSeconds: 42.6,
+        meanVolumeDb: -19.1,
+        hasNarration: true,
+        moovBeforeMdat: null,
+      }).passed,
+    ).toBe(true);
+  });
+});

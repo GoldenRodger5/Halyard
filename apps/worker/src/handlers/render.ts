@@ -25,7 +25,7 @@ import {
 } from '@halyard/core';
 import { stageFootage } from '../footage.js';
 import { durationInFrames, type CaptionCue } from '@halyard/render/timing';
-import { meanVolumeDb, muxAudioIntoVideo } from '../audio.js';
+import { hasFaststart, meanVolumeDb, muxAudioIntoVideo } from '../audio.js';
 import { PermanentJobFailure } from '../poller.js';
 import type { Job, HandlerContext } from '../poller.js';
 import { readAssetBytes, uploadAsset, type UploadedAsset } from '../storage.js';
@@ -341,6 +341,8 @@ async function renderVideoAsset(
     const integrity = runMediaIntegrity({
       durationSeconds: audio?.durationSeconds ?? result.durationInFrames / result.fps,
       meanVolumeDb: await meanVolumeDb(output),
+      /* §320. Invisible to level measurement; asked separately. */
+      moovBeforeMdat: await hasFaststart(output),
       hasNarration: Boolean(audio),
       ...(typeof render.input_props.requiredSeconds === 'number'
         ? { requiredSeconds: render.input_props.requiredSeconds }
