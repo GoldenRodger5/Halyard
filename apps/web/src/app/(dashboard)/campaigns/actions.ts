@@ -182,7 +182,14 @@ export async function generateCampaign(formData: FormData): Promise<void> {
        values ('generate', $1, 30, $2)
        on conflict do nothing`,
       [
-        { productId: campaign.product_id, contentItemId: slot.id, campaignId: id },
+        /*
+         * §375. No `campaignId`. It was sent and read by nothing:
+         * `fillCampaignSlot` dispatches on `contentItemId` and takes the
+         * campaign from `slot.campaign_id`, which is the row it is already
+         * holding. A second copy in the payload is a promise to the handler
+         * that the handler does not keep.
+         */
+        { productId: campaign.product_id, contentItemId: slot.id },
         `campaign_generate:${slot.id}`,
       ],
     );

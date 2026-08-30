@@ -266,24 +266,48 @@ export async function editItem(formData: FormData): Promise<void> {
 }
 
 /** Regenerate with a note. Blind retry is a wasted call (v1 §8). */
+/**
+ * §375. Regenerate, which used to regenerate nothing in particular.
+ *
+ * It set `status = 'draft'` — which removes the item from every queue filter,
+ * so the piece vanished — and enqueued a `generate` job carrying
+ * `regenerateContentItemId` and `note`. **Neither key was read by anything.**
+ * The generate handler ran its ordinary path and drafted a *new* piece for
+ * every account, so pressing Regenerate made the item disappear and an
+ * unrelated one appear. Found by `payloadCoverage.test.ts`, which exists
+ * because this is the third time a key has been written and never read.
+ *
+ * It now goes through the correction loop as what it always meant: revise the
+ * copy, against this note, on this item. §373 built that path for the
+ * adjustment buttons and Regenerate is the same request with the note doing
+ * all the work.
+ */
 export async function regenerateItem(formData: FormData): Promise<void> {
   await requireOperator();
   const id = String(formData.get('id'));
   const note = String(formData.get('note') ?? '').trim();
 
   await query(
-    `update content_items
-        set status = 'draft', regen_notes = array_append(regen_notes, $2)
-      where id = $1`,
+    `update content_items set regen_notes = array_append(regen_notes, $2) where id = $1`,
     [id, note || 'no note given'],
   );
   await query(
     `insert into jobs (kind, payload, priority, dedupe_key)
-     values ('generate', $1, 40, $2) on conflict do nothing`,
-    [{ regenerateContentItemId: id, note }, `regen:${id}`],
+     values ('correct_content', $1, 40, $2) on conflict do nothing`,
+    [
+      {
+        contentItemId: id,
+        component: 'copy',
+        action: 'revise_copy',
+        label: 'Regenerate',
+        note,
+      },
+      `regen:${id}`,
+    ],
   );
   await audit('regenerate', id, { note });
 
+  revalidatePath(`/queue/${id}`);
   revalidatePath('/queue');
 }
 
@@ -475,11 +499,14 @@ export async function adjustItem(formData: FormData): Promise<void> {
     throw new Error(`There is no "${adjustmentId}" adjustment.`);
   }
 
+  /*
+   * The note is recorded and the status is left alone. Setting `status =
+   * 'draft'` takes the item out of every queue filter, so an operator who asks
+   * for a change watches the piece disappear — which is what `regenerateItem`
+   * has always done and is why regeneration looked broken.
+   */
   await query(
-    `update content_items
-        set status = 'draft',
-            regen_notes = array_append(regen_notes, $2)
-      where id = $1`,
+    `update content_items set regen_notes = array_append(regen_notes, $2) where id = $1`,
     [id, note ? `${adjustment.label}: ${note}` : adjustment.label],
   );
 
@@ -492,7 +519,6 @@ export async function adjustItem(formData: FormData): Promise<void> {
         /* The loop's own vocabulary, so nothing has to interpret a label. */
         component: adjustment.component,
         action: adjustment.action,
-        requestedBy: 'operator',
         /* The button's own words, so the recorded reason reads as a sentence. */
         label: adjustment.label,
         note,
