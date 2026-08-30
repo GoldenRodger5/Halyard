@@ -83,3 +83,25 @@ describe('formats with no special rules', () => {
     ).toEqual([]);
   });
 });
+
+describe('§348. a slot is a fragment, not a post', () => {
+  it('does not judge a slot by rules that describe a whole post', async () => {
+    /*
+     * Three separate attempts of a real Kinolog quiz were refused by three
+     * post-shaped rules — an opening-line ceiling on an *answer*, a question
+     * density on a format made of questions, a citation on a title that
+     * asserts nothing. Each correct about a caption; none applicable here.
+     */
+    const { isPostShaped } = await import('../qc/slopFilter.js');
+    expect(isPostShaped('structure.opening_line')).toBe(true);
+    expect(isPostShaped('structure.question_density')).toBe(true);
+  });
+
+  it('still judges a slot by the language rules', async () => {
+    /* An em dash is an em dash wherever it appears. */
+    const { isPostShaped } = await import('../qc/slopFilter.js');
+    expect(isPostShaped('punctuation.em_dash')).toBe(false);
+    expect(isPostShaped('punctuation.curly_quotes')).toBe(false);
+    expect(isPostShaped('structure.sentence_too_long')).toBe(false);
+  });
+});

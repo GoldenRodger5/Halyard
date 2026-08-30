@@ -154,3 +154,39 @@ describe('printScreenplay', () => {
     expect(text).toContain('score: enter');
   });
 });
+
+describe('§347. cutting to the ceiling', () => {
+  it('drops an aside before a support, and never a lead', () => {
+    const fit = fitScreenplay(
+      play([
+        scene({ id: 'lead', weight: 'lead', seconds: 20 }),
+        scene({ id: 'support', weight: 'support', seconds: 20 }),
+        scene({ id: 'aside', weight: 'aside', seconds: 20 }),
+      ]),
+      45,
+    );
+    const ids = fit.screenplay.scenes.map((s) => s.id);
+    expect(ids).toContain('lead');
+    expect(ids).not.toContain('aside');
+  });
+
+  it('leaves a piece inside the ceiling alone', () => {
+    const fit = fitScreenplay(play([scene({ seconds: 20 }), scene({ id: 's2', weight: 'aside', seconds: 10 })]), 45);
+    expect(fit.screenplay.scenes).toHaveLength(2);
+  });
+
+  it('refuses rather than cutting a lead, leaving a real refusal to the check', () => {
+    /* A piece cut down to nothing but leads has been edited; one that lost its
+       lead is a different piece. */
+    const fit = fitScreenplay(play([scene({ id: 'a', weight: 'lead', seconds: 40 }), scene({ id: 'b', weight: 'lead', seconds: 40 })]), 45);
+    expect(fit.screenplay.scenes).toHaveLength(2);
+  });
+
+  it('says which scene it cut and why', () => {
+    const fit = fitScreenplay(
+      play([scene({ seconds: 40 }), scene({ id: 'x', weight: 'aside', seconds: 20 })]),
+      45,
+    );
+    expect(fit.adjustments.some((a) => a.because.includes('ceiling'))).toBe(true);
+  });
+});

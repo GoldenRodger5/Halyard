@@ -21,7 +21,9 @@
 import {
   briefFor,
   checkDraft,
+  expandSlots,
   repairDraft,
+  research,
   parseDraft,
   requiresCitation,
   type FormatDraft,
@@ -77,8 +79,59 @@ export async function writeToFormat(
   fetchImpl: typeof fetch = fetch,
 ): Promise<FormatWriteResult> {
   const system = briefFor(format, context);
-  let feedback = '';
   let totalCost = 0;
+
+  /**
+   * §344/§346. Research before writing, for a format that has to cite.
+   *
+   * Every sourced format asked the writer to cite what it said and nothing ever
+   * gave it a source, so it invented URLs — reliably, because producing a
+   * plausible link is easier than admitting it has none. The Kinolog quiz
+   * failed this way on all three attempts, on 404s.
+   *
+   * The facts handed over here have already been fetched and read (§344), so a
+   * writer citing one is citing a page that exists and says what it is claimed
+   * to say. The citation gate below stays: a writer can still attach a real
+   * source to the wrong claim, and defence in depth is cheap.
+   *
+   * Research failing is not fatal. It returns fewer facts, or none, and the
+   * writer falls back to citing from memory — which is exactly as good as it
+   * was before, and the gate still refuses what it invents.
+   */
+  let researched = '';
+  if (requiresCitation(format)) {
+    const found = await research(
+      {
+        subject: context.subject,
+        productContext: context.audience,
+        want: Math.max(3, expandSlots(format).filter((slot) => slot.asserts !== false).length),
+      },
+      llm,
+      fetchImpl,
+    ).catch((error: Error) => {
+      ctx.log('research failed, writer will cite from memory', { error: error.message });
+      return { facts: [], rejected: [], costUsd: 0 };
+    });
+
+    ctx.log('research', {
+      format: format.id,
+      kept: found.facts.length,
+      rejected: found.rejected.map((r) => `${r.url} — ${r.because}`),
+    });
+    totalCost += found.costUsd;
+
+    if (found.facts.length > 0) {
+      researched = [
+        '',
+        'These facts have been checked. Each URL was fetched and the page says what is claimed.',
+        'Cite only from this list. Do not write a URL that is not here.',
+        '',
+        ...found.facts.map((f) => `- ${f.claim}\n  source: ${f.sourceUrl}\n  the page says: ${f.support}`),
+      ].join('\n');
+    }
+  }
+
+  let feedback = '';
   let last: SlotProblem[] = [];
 
   for (let attempt = 1; attempt <= MAX_FORMAT_ATTEMPTS; attempt += 1) {
@@ -88,7 +141,7 @@ export async function writeToFormat(
         {
           role: 'user',
           content: feedback
-            ? `Your previous reply did not fill the format.\n\n${feedback}\n\nWrite it again, fixing exactly those problems.`
+            ? `Your previous reply did not fill the format.\n\n${feedback}\n\nWrite it again, fixing exactly those problems.${researched}`
             : `Write it now, about: ${context.subject}`,
         },
       ],

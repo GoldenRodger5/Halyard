@@ -467,7 +467,18 @@ export interface ScreenplayFit {
   adjustments: Array<{ scene: string; from: number; to: number; because: string }>;
 }
 
-export function fitScreenplay(screenplay: Screenplay): ScreenplayFit {
+export function fitScreenplay(
+  screenplay: Screenplay,
+  /**
+   * §347. The channel's ceiling, when the caller wants it enforced.
+   *
+   * Omitted, only the per-scene timing is repaired. Supplied, a piece that runs
+   * over is *cut* — which is what an editor does and what the alternative
+   * cannot be: shortening every scene to fit would put every line back over its
+   * own beat, which is the fault this function exists to fix.
+   */
+  ceilingSeconds?: number,
+): ScreenplayFit {
   const adjustments: ScreenplayFit['adjustments'] = [];
 
   const scenes = screenplay.scenes.map((scene) => {
@@ -492,5 +503,51 @@ export function fitScreenplay(screenplay: Screenplay): ScreenplayFit {
     return { ...scene, seconds: needs };
   });
 
-  return { screenplay: { ...screenplay, scenes }, adjustments };
+  if (ceilingSeconds === undefined) {
+    return { screenplay: { ...screenplay, scenes }, adjustments };
+  }
+
+  /*
+   * §347. Over the ceiling: cut, do not squeeze.
+   *
+   * A Kinolog quiz came in at 46.5s against a 45s ceiling — a genuine refusal
+   * under §335 and a bad place to stop, because the fix an editor makes is
+   * obvious: drop the least important scene.
+   *
+   * Asides first, then supports, and **never a lead**. A piece that has been
+   * cut down to nothing but its leads is a piece that has been edited; a piece
+   * that lost its lead is a different piece. If cutting every non-lead scene
+   * still leaves it over, that is a real refusal — there is more here than the
+   * channel can carry, and the answer is a shorter script.
+   */
+  const kept = [...scenes];
+  const dropped: typeof adjustments = [];
+  const total = () => kept.reduce((sum, scene) => sum + scene.seconds, 0);
+
+  for (const weight of ['aside', 'support'] as const) {
+    while (total() > ceilingSeconds) {
+      /* The longest of that weight: cutting the biggest thing costs fewest cuts. */
+      const candidates = kept
+        .map((scene, index) => ({ scene, index }))
+        .filter((entry) => entry.scene.weight === weight)
+        .sort((a, b) => b.scene.seconds - a.scene.seconds);
+      if (candidates.length === 0) break;
+
+      const victim = candidates[0]!;
+      kept.splice(victim.index, 1);
+      dropped.push({
+        scene: victim.scene.id,
+        from: victim.scene.seconds,
+        to: 0,
+        because:
+          `the piece ran ${(total() + victim.scene.seconds).toFixed(1)}s against a ` +
+          `${ceilingSeconds}s ceiling, and this was the longest ${weight} scene`,
+      });
+    }
+  }
+
+  return {
+    screenplay: { ...screenplay, scenes: kept },
+    adjustments: [...adjustments, ...dropped],
+  };
 }

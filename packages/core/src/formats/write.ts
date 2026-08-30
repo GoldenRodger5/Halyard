@@ -22,7 +22,7 @@
  * which is indistinguishable from a true one until someone checks.
  */
 import { expandSlots, requiresCitation, type PostFormat } from './catalog.js';
-import { slopFilter } from '../qc/slopFilter.js';
+import { isPostShaped, slopFilter } from '../qc/slopFilter.js';
 
 /** One filled slot. */
 export interface FilledSlot {
@@ -191,13 +191,21 @@ export function checkDraft(format: PostFormat, draft: FormatDraft): FormatCheck 
     const slop = slopFilter({ body: got.text, platform: 'x', hashtags: [] });
     for (const violation of slop.errors) {
       /*
-       * §341. A quiz question is a question. `structure.question_density` is a
-       * caption rule — a post made of questions reads as engagement bait — and
-       * it fired on every slot of a format whose whole shape is questions.
-       * A copy gate written for one shape, applied to another where the shape
-       * is the point.
+       * §348. A slot is a fragment, not a post.
+       *
+       * `slopFilter` judges a caption: its opening line, its rhythm across
+       * sentences, its question density. A quiz answer has no opening line
+       * because it is not an opening, and a quiz is *made* of questions.
+       *
+       * Three separate rules refused a Kinolog quiz on three separate attempts
+       * — `opening_line` on an answer, `question_density` on the questions,
+       * `uncited_claim` on the title — each correct about a post and none
+       * applicable to the thing being judged, each costing an attempt the piece
+       * needed for its content.
+       *
+       * The language rules still apply: an em dash is an em dash anywhere.
        */
-      if (slot.isQuestion && violation.rule === 'structure.question_density') continue;
+      if (isPostShaped(violation.rule)) continue;
       problems.push({
         rule: violation.rule,
         severity: 'error',

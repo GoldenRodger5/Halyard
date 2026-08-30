@@ -108,7 +108,10 @@ async function main(): Promise<void> {
   );
 
   /* §338. Repair the arithmetic before judging the writing. */
-  const fitted = fitScreenplay(screenplay);
+  const fitted = fitScreenplay(
+    screenplay,
+    (channel.targetSeconds ?? { min: 15, max: 45 }).max,
+  );
   for (const adjustment of fitted.adjustments) {
     console.log(
       `# fit: ${adjustment.scene} ${adjustment.from}s → ${adjustment.to}s — ${adjustment.because}`,

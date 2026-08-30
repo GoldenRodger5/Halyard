@@ -940,3 +940,34 @@ export function slopSummary(result: SlopFilterResult): string {
   if (result.passed) return `passed (${result.warnings.length} warning${result.warnings.length === 1 ? '' : 's'})`;
   return `failed (${result.errors.length} violation${result.errors.length === 1 ? '' : 's'})`;
 }
+
+/**
+ * §348. Rules that describe a **post**, not a line.
+ *
+ * `slopFilter` was written for a caption — a whole post, with an opening line,
+ * a rhythm across sentences, and a question density. §293 pointed it at format
+ * slots, which was right for the language rules and wrong for these: a slot is
+ * a fragment on a card, and it has no opening line because it is not an opening.
+ *
+ * The cost was not theoretical. A Kinolog quiz was refused three times in a row
+ * for `structure.opening_line` on an **answer** slot, then for
+ * `structure.question_density` on its **questions**, then for
+ * `format.uncited_claim` on its **title**. Three separate rules, all correct
+ * about a post and none applicable to the thing they were judging, each
+ * consuming an attempt the piece needed for its actual content.
+ *
+ * The language rules still apply everywhere, because an em dash is an em dash
+ * wherever it appears.
+ */
+export const POST_SHAPED_RULES: readonly string[] = [
+  'structure.opening_line',
+  'structure.question_density',
+  'structure.uniform_rhythm',
+  'structure.anaphora',
+  'structure.rule_of_three',
+];
+
+/** Whether a rule is about the shape of a whole post rather than its language. */
+export function isPostShaped(rule: string): boolean {
+  return POST_SHAPED_RULES.includes(rule);
+}

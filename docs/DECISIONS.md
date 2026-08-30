@@ -8856,3 +8856,56 @@ expected film.
 citations that return 404 — invented sources, caught by fetching them. That is
 the gate working. It also names the real gap: **the writer is asked to cite and
 has no research step**, so it invents URLs because nothing gave it real ones.
+
+## 344–348. Research first, and stop judging fragments as posts
+
+The Kinolog quiz could not be produced at all. Three attempts, then abandoned,
+every time on citations that returned 404.
+
+**§344. The researcher.** Nothing ever gave the writer a source, so it invented
+URLs — reliably, because producing a plausible link is easier than admitting it
+has none. No amount of retrying fixes an agent asked to remember something it
+was never told.
+
+The order was inverted: write → cite → verify → refuse becomes find → verify →
+**then** write from what survived. A writer handed verified facts cannot cite a
+sixth that does not exist. The downstream gate stays, because a writer can still
+attach a real source to the wrong claim.
+
+Verification separates two failures that mean different things: a page that does
+not resolve is an **invented** source; a page that resolves without supporting
+the claim is a **misattributed** one. On the real run it rejected both — a 404
+on metacritic, and a Wikipedia page carrying 40% of the claim's terms.
+
+It also screens before fetching: a search results page is a model saying "look
+it up" and returns 200, a home page cannot support a specific claim, and
+`example.com` is what a model reaches for when it has nothing.
+
+**§348. A slot is a fragment, not a post.** Three separate rules refused the
+quiz on three separate attempts — `structure.opening_line` on an *answer*,
+`structure.question_density` on a format made of questions,
+`format.uncited_claim` on a *title* that asserts nothing. Each is correct about
+a caption and none applies to the thing it was judging, and each consumed an
+attempt the piece needed for its content.
+
+`slopFilter` was written for a whole post. Its **language** rules apply
+everywhere — an em dash is an em dash — and its **post-shape** rules do not
+apply to a fragment.
+
+**§347. Cut, do not squeeze.** A screenplay 1.5s over the channel ceiling is a
+refusal under §335 and a bad place to stop: the fix an editor makes is to drop
+the least important scene. Asides first, then supports, never a lead — a piece
+cut down to its leads has been edited; one that lost its lead is a different
+piece.
+
+**§345. Not one pipeline.** An X post with a caption, one with an image and one
+with a video are three productions sharing a destination. `planProduction`
+declares which stages run and **why each one does not**, because "it did not
+happen" and "it was not needed" look identical in a log. `canStart` refuses a
+stage whose input has not run — which is precisely how a voiceover came to be
+written from a caption.
+
+**Result.** The same quiz that could not be produced now fills 12 slots in **one
+attempt** and yields a producible 41.1s screenplay, with questions like *"Which
+contest offered $1M to improve Netflix recommendations by 10%?"* — a real
+question, a real answer, a verified source.
