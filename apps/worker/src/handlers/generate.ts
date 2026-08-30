@@ -109,6 +109,7 @@ import type { Job, HandlerContext } from '../poller.js';
 import { generateHeroImage } from '../heroImage.js';
 import { pickProductShot } from '../productShot.js';
 import { FormatRejectedError, recentFormats, writeToFormat } from '../formatWriter.js';
+import { stagePiece } from '../screenplayStage.js';
 import { captureFootage } from '../capture/footage.js';
 import { routeToBoard } from './boards.js';
 import { notify } from './publish.js';
@@ -484,6 +485,8 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
     connector_type: 'mcp' | 'rest' | 'none';
     connector_config: Record<string, unknown>;
     destinations: ProductDestinations;
+    /* §372. The motif pack a screenplay's gestures are drawn from. */
+    brand_tokens: Record<string, unknown> | null;
   }>('select * from products where id = $1', [productId]);
 
   const product = productRows.rows[0];
@@ -1020,6 +1023,47 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
               )
             : null;
 
+        /**
+         * §372. The piece is staged, once it is written.
+         *
+         * `writeScreenplay` has existed since §335 and ran only from a script,
+         * so every screenplay this system produced was written by hand for a
+         * preview and thrown away — and §371's mechanism for the directors to
+         * honour one had nothing to honour.
+         *
+         * After the format writer, because a screenplay stages what was written
+         * and a screenwriter given no slots invents its own content (§340) —
+         * three quiz questions with no answers and no citations, bypassing every
+         * gate the writing went through.
+         *
+         * Only for a moving channel. A caption has no scenes, which
+         * `planProduction` already says, and `stagePiece` is not asked what a
+         * still image should do with stage directions.
+         */
+        const staged =
+          written && production.stages.some((stage) => stage.stage === 'screenplay')
+            ? await stagePiece(
+                ctx.as('screenplay'),
+                {
+                  productId,
+                  format: chosenFormat.format,
+                  channel: resolvedType.postType.channel,
+                  subject:
+                    (job.payload.subject as string | undefined)?.trim() ||
+                    subjectForImage(artifact, idea.title) ||
+                    idea.title,
+                  brandTokens: (product.brand_tokens ?? null) as Record<string, unknown> | null,
+                  slots: written.draft.slots.map((slot) => ({
+                    key: slot.key,
+                    index: slot.index,
+                    text: slot.text,
+                  })),
+                },
+                llmFor(),
+              )
+            : null;
+        if (staged) completed.push('screenplay');
+
         const draft = await writeDraft(
           {
             platform: account.platform,
@@ -1161,9 +1205,12 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
               /* §250. Which variant of the format this is. The YouTube adapter
                  reads it to decide Short vs long-form, and without it a
                  long-form piece publishes as a Short. */
-              format_subtype)
+              format_subtype,
+              /* §372. What this piece was staged from, so the mix, the render
+                 and the review screen can all read the same document. */
+              screenplay)
            values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,'pending_approval',$16,
-                   $17,$18,$19,$20,$21,$22,$23,$24)
+                   $17,$18,$19,$20,$21,$22,$23,$24,$25)
            returning id`,
           [
             productId,
@@ -1192,6 +1239,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
             draft.overflow ?? null,
             draft.overflow ? budgetFor(account.platform).overflowHome : null,
             subtype,
+            staged ? JSON.stringify(staged.screenplay) : null,
 ],
         );
 

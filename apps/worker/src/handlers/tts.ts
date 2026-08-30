@@ -84,6 +84,8 @@ interface ItemRow {
   emotional_angle: string | null;
   target_seconds: string | null;
   beats: unknown[] | null;
+  /** §372. What this piece was staged from, when it was staged at all. */
+  screenplay: { bedMood?: string } | null;
 }
 
 /**
@@ -115,6 +117,7 @@ export async function ttsHandler(job: Job, ctx: HandlerContext, deps: TtsDeps = 
             ci.qc_results,
             ci.generation_meta -> 'creative' ->> 'type' as treatment,
             ci.account_id,
+            ci.screenplay,
             c.emotional_angle,
             b.target_seconds,
             b.beats
@@ -232,6 +235,16 @@ export async function ttsHandler(job: Job, ctx: HandlerContext, deps: TtsDeps = 
     contentItemId,
     platform: item.platform,
     emotionalAngle: item.emotional_angle,
+    /*
+     * §371. The mood the screenplay staged for this piece.
+     *
+     * The most specific signal available: written for this piece by something
+     * that read the whole of it. `moodFor` takes it only when the bed
+     * vocabulary actually has that word — a screenwriter writes prose, and
+     * coercing "wistful" to the nearest entry would be a guess.
+     */
+    stagedMood:
+      (item.screenplay as { bedMood?: string } | null)?.bedMood ?? null,
     visualLanguage: item.treatment ? (LANGUAGE_FOR_TREATMENT[item.treatment] ?? null) : null,
     targetSeconds: briefSeconds && briefSeconds > 0 ? briefSeconds : 30,
     cutsPerMinute:

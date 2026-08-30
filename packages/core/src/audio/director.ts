@@ -128,6 +128,16 @@ export interface AudioBrief {
 
   /* ── §239. The rest of what the choice should turn on ──────────────────── */
 
+  /**
+   * §371. The mood the screenplay staged for the bed.
+   *
+   * Honoured over the director's own reading, and the disagreement recorded —
+   * the screenplay knows what the piece is *for*, and the director knows what
+   * is in the library. A staged mood no bed can satisfy falls back rather than
+   * producing silence, because the screenplay is a brief and not a constraint
+   * on the shelf.
+   */
+  stagedMood?: string | null;
   /** The treatment, so a transformation and a tutorial do not sound alike. */
   treatment?: string | null;
   /** The account, so repetition is judged in the feed a viewer actually sees. */
@@ -159,6 +169,18 @@ export interface AudioBrief {
  * because a documentary cut and a kinetic cut genuinely want different beds.
  */
 export function moodFor(brief: AudioBrief): BedMood {
+  /*
+   * §371. The screenplay first, when it staged a mood this vocabulary has.
+   *
+   * It is the most specific signal there is: written for this piece, by
+   * something that read the whole of it, before anybody knew what was on the
+   * shelf. A staged mood the vocabulary does not contain falls through rather
+   * than being coerced — `bedMood` is free text and inventing a match for
+   * "wistful" would be a guess wearing a decision's clothes.
+   */
+  const staged = (brief.stagedMood ?? '').trim().toLowerCase();
+  if ((BED_MOODS as readonly string[]).includes(staged)) return staged as BedMood;
+
   const angle = (brief.emotionalAngle ?? '').toLowerCase();
   if (angle.includes('surprise') || angle.includes('delight')) return 'playful';
   if (angle.includes('relief') || angle.includes('calm')) return 'calm';

@@ -19,6 +19,7 @@ import {
 } from '@halyard/core';
 import { AssetPicker } from '@/components/AssetPicker';
 import { PieceAccountPanel } from '@/components/PieceAccountPanel';
+import { ScreenplayPanel } from '@/components/ScreenplayPanel';
 import { ManualPublish } from '@/components/ManualPublish';
 import {
   getItemArtifact,
@@ -425,6 +426,9 @@ export default async function QueueItemPage({ params }: { params: Promise<{ id: 
               </p>
             </Card>
           ) : null}
+
+          {/* §372. What it was meant to be, next to what it became. */}
+          <ScreenplayPanel screenplay={item.screenplay} />
 
           {/* §369. The account of the piece, beside the gates that judged it. */}
           <PieceAccountPanel contentItemId={id} />

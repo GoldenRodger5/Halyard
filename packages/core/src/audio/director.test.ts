@@ -354,3 +354,42 @@ describe('selection uses more than mood and recency', () => {
     for (const reason of r.chosen!.reasons) expect(reason.length).toBeGreaterThan(4);
   });
 });
+
+/**
+ * §371. The screenplay stages a mood for the bed, and the music director reads
+ * it. These are about the two ways that can go wrong: ignoring it, and
+ * coercing free text into the vocabulary.
+ */
+describe('the bed mood the screenplay staged', () => {
+  const brief = {
+    platform: 'tiktok',
+    targetSeconds: 30,
+    hasVoiceover: true,
+    emotionalAngle: 'relief',
+    visualLanguage: 'documentary',
+  } as const;
+
+  it('wins over the angle and the visual language', () => {
+    /*
+     * The most specific signal there is: written for this piece, by something
+     * that read the whole of it, before anybody knew what was on the shelf.
+     */
+    expect(moodFor({ ...brief })).toBe('calm');
+    expect(moodFor({ ...brief, stagedMood: 'tense' })).toBe('tense');
+  });
+
+  it('falls through when the staged mood is not one this vocabulary has', () => {
+    /*
+     * `bedMood` is free text a screenwriter wrote. Coercing "wistful" to the
+     * nearest entry would be a guess wearing a decision's clothes, and the
+     * director's own reading is a real answer.
+     */
+    expect(moodFor({ ...brief, stagedMood: 'wistful' })).toBe('calm');
+    expect(moodFor({ ...brief, stagedMood: '' })).toBe('calm');
+    expect(moodFor({ ...brief, stagedMood: null })).toBe('calm');
+  });
+
+  it('is not case- or whitespace-sensitive, because a screenwriter is writing prose', () => {
+    expect(moodFor({ ...brief, stagedMood: '  Playful ' })).toBe('playful');
+  });
+});

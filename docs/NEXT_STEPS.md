@@ -54,9 +54,19 @@ closest honest reading.
 there is nothing yet for the directors to honour. The mechanism is ready and
 tested; wiring it needs item 4 first.
 
-### 4. The screenplay is not in `generate.ts`
-It runs through `scripts/write-screenplay.ts`. It has to become the thing
-`videoForFormat` is built from rather than a parallel description.
+### 4. ✅ Mostly done — the screenplay is produced during generation
+§372. `stagePiece` in `apps/worker/src/screenplayStage.ts` — a module rather
+than ninety more lines of `generate.ts`. Runs after the format writer, because
+a screenwriter given no slots invents its own content (§340). Persisted on
+`content_items.screenplay`, so the mix, the render and the review screen read
+one document.
+
+Wired so far: the music director takes `bedMood` through `AudioBrief.stagedMood`
+(§371), and the review screen prints the script beside the finished piece.
+
+**Still to do:** `videoForFormat` builds compositions from slots rather than
+from scenes. Making the screenplay the thing it is built from is the last hop,
+and it is a real change to the composition builders rather than a wiring one.
 
 ### 5. Per-scene assets
 `generateHeroImage` produces one image per piece. A screenplay implies one per

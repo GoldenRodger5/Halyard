@@ -3,6 +3,7 @@
  * layout concern and nothing else.
  */
 import 'server-only';
+import type { Screenplay } from '@halyard/core';
 import {
   computeBestTimes,
   describeFunnel,
@@ -251,6 +252,8 @@ export interface QueueItem {
   failed_because: string | null;
   /** §362. The line written when this was rejected, which trains the voice. */
   reject_reason: string | null;
+  /** §372. The screenplay, or null when the piece was never staged. */
+  screenplay: Screenplay | null;
   destination_type: string | null;
   destination_url: string | null;
   destination_reason: string | null;
@@ -283,6 +286,9 @@ const QUEUE_SELECT = `
          -- to the person who wrote it.
          ci.generation_meta ->> 'failed_because' as failed_because,
          ci.reject_reason,
+         -- §372. What this piece was staged from, so the review screen can show
+         -- what it was meant to be beside what it became.
+         ci.screenplay,
          ci.board_id, ci.board_reason, ci.media_observations,
          sa.transport,
          sa.handle as account_handle,
