@@ -7,5 +7,6 @@ export * from './compositions.js';
 export * from './annotate.js';
 export * from './quiz.js';
 export * from './walkthrough.js';
+export * from './formatVideo.js';
 export * from './root.js';
 export * from './fonts.js';

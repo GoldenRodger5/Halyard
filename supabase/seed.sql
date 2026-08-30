@@ -175,6 +175,10 @@ insert into templates (id, product_id, renderer, format, aspect_ratio, descripti
   ('ScalingMath',              'recipefix', 'remotion',  'video',    '9:16', 'Non-linear scaling, visualised'),
   ('ChefNoteCard',             'recipefix', 'remotion',  'video',    '9:16', 'Kinetic typography over b-roll'),
   ('FeatureDemo',              'recipefix', 'playwright','video',    '9:16', 'Playwright capture, long wait cut, captioned with the measured time'),
+  -- §304. Registered in root.tsx since §289/§298 and never seeded here, so no
+  -- account could select them and the quiz format could not produce a piece.
+  ('Quiz',                     'recipefix', 'remotion',  'video',    '9:16', 'Five questions, a countdown, and a reveal that fills the right option'),
+  ('Walkthrough',              'recipefix', 'remotion',  'video',    '9:16', 'A screen recording inside a drawn phone, with callouts on the taps'),
   -- §222. Landscape twins, so YouTube long-form has a canvas to render on.
   -- Same compositions; `geometry.ts` resolves the layout from the frame, so
   -- there is one implementation rather than two to keep in step.

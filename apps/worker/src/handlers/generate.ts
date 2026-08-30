@@ -82,6 +82,7 @@ import {
   writeVoScript,
 } from '@halyard/core';
 import { chooseVideoComposition } from '@halyard/render/video-props';
+import { VIDEO_FORMATS, videoForFormat } from '@halyard/render/video';
 import { regateHookedBody, runHookStage } from '../hooks.js';
 
 /**
@@ -1283,11 +1284,89 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
            * long-form is 9:16, which is what every render before this was.
            */
           const renderAspect = aspectForRender(account.platform, subtype);
-          const composition = chooseVideoComposition(
-            artifact,
-            enabledTemplates,
-            renderAspect,
-          );
+
+          /**
+           * §304. The video comes from the format when the format has one.
+           *
+           * The carousel path has done this since §281 and the video path never
+           * did — it went straight to `chooseVideoComposition`, which picks
+           * from three compositions all derived from the product artifact. So
+           * every Remotion render in production is a `TransformationDiff`, and
+           * `quiz` — whose only channel is `short_video` — has never produced a
+           * single piece despite having a catalogue entry, a writer, a question
+           * planner (§300) and five treatments (§302).
+           *
+           * `transformation` keeps the artifact path for the same reason it
+           * does in the deck: it *is* the product demonstration, and that path
+           * is proven. Everything else is a structure the artifact cannot fill.
+           *
+           * A format with a video builder that cannot fill it refuses the piece
+           * rather than falling back. A quiz that quietly becomes a
+           * transformation post is the format system appearing to work while
+           * doing nothing.
+           */
+          let composition: { id: string; props: Record<string, unknown> } | null = null;
+          if (
+            chosenFormat.format.id !== 'transformation' &&
+            VIDEO_FORMATS.includes(chosenFormat.format.id)
+          ) {
+            const written = await writeToFormat(
+              ctx,
+              chosenFormat.format,
+              {
+                subject:
+                  (job.payload.subject as string | undefined)?.trim() ||
+                  subjectForImage(artifact, idea.title) ||
+                  idea.title,
+                audience: product.brief_summary ?? 'the people this product is for',
+                platform: account.platform,
+              },
+              llmFor(),
+            );
+            const built = videoForFormat(
+              chosenFormat.format.id,
+              written.draft.slots.map((slot) => ({
+                key: slot.key,
+                index: slot.index,
+                text: slot.text,
+                citation: slot.citation ?? null,
+              })),
+            );
+            if (!built) {
+              throw new Error(
+                `${chosenFormat.format.id} has a video builder and filled no usable slots. ` +
+                  'Refused rather than rendered as a transformation, which would look like it worked.',
+              );
+            }
+            /*
+             * §222. Portrait only. A quiz is a `short_video` format and its
+             * composition is registered 9:16; rendering it into a 16:9 slot
+             * would produce a Short where a long-form video was asked for,
+             * which is the mismatch `resolveVariant` exists to report.
+             */
+            if (renderAspect === '16:9') {
+              ctx.log('format video is portrait-only', {
+                format: chosenFormat.format.id,
+                aspect: renderAspect,
+              });
+            } else if (enabledTemplates.includes(built.compositionId)) {
+              composition = { id: built.compositionId, props: built.props };
+              ctx.log('video built from format', {
+                contentItemId,
+                format: chosenFormat.format.id,
+                composition: built.compositionId,
+                attempts: written.attempts,
+              });
+            } else {
+              ctx.log('format composition not enabled for this account', {
+                format: chosenFormat.format.id,
+                composition: built.compositionId,
+                enabled: enabledTemplates,
+              });
+            }
+          }
+
+          composition ??= chooseVideoComposition(artifact, enabledTemplates, renderAspect);
           if (!composition) {
             // No enabled Remotion template can carry this. Refused, not queued:
             // a video item with no render never becomes publishable.

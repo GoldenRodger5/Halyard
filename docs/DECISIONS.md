@@ -8086,3 +8086,49 @@ context, which is what the field's own comment always claimed.
 **Rejected:** storing callouts on the footage asset. `capture_runs.steps` is
 already the record of what happened; a copy on the asset would be a second
 source that could disagree with the first, which is gotcha 1 in a new place.
+
+## 304. The format family reached carousels and stopped
+
+**Chosen:** `videoForFormat` — the video twin of §280's `slidesForFormat` — plus
+`templates` rows for `Quiz` and `Walkthrough`, plus a test that fails when a
+composition has neither.
+
+Three things were true at once and each hid the next.
+
+**The video path never consulted the format.** §281 gave the *carousel* path a
+format-driven deck and the video path went straight to
+`chooseVideoComposition(artifact, …)`, which picks from three compositions all
+derived from a product artifact. Every Remotion render in production is a
+`TransformationDiff`.
+
+**`quiz` declares `channels: ['short_video']` and nothing else.** So it could
+never be reached by the carousel path either. The catalogue entry, the writer,
+the question planner (§300) and the five treatments (§302) have **never produced
+a single piece**. Everything connected to the next thing and the chain was not
+attached to anything.
+
+**`Quiz` and `Walkthrough` had no `templates` row.** Registered in `root.tsx`
+since §289 and §298, renderable from a script, and invisible to every selector —
+all of which filter by the account's enabled templates. Even after the video path
+started consulting formats, nothing could have asked for them.
+
+That last one is **gotcha 1 in a second place**: `root.tsx`'s compositions and
+the `templates` table are the same list written twice, and adding to one
+typechecks cleanly. `videoTemplateCoverage.test.ts` is what catches the next one.
+It reads `seed.sql` *and* the migrations, because a fresh database is built by
+one and a live one is patched by the other, and a row in only one of them is
+still a gap.
+
+**A format that cannot fill its video refuses the piece.** Null is not a
+fallback. Substituting the artifact path is how a quiz quietly becomes a
+transformation post — the format system appearing to work while doing nothing,
+which is the exact failure this family was built to make impossible. Options
+whose answer is not among them are dropped rather than shown, because two right
+answers on screen is worse than none.
+
+**Also fixed:** the sign-in submit was selected by position (`nth=-1`) and the
+recorded tap landed at y=0.94 — a footer link, not the form's button. Scoped to
+`form:has(input[type="password"]) button[type="submit"]`, which resolves to
+exactly one control at y=0.893 on the live page. Position is a guess about
+layout; the form holding the password is a structural fact. The capture refused
+rather than recording a signed-out product, which is §303 working.

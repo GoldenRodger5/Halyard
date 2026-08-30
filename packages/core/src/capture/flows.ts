@@ -256,12 +256,24 @@ export const FLOWS: Record<FlowId, CaptureFlow> = {
         name: 'submit the sign-in',
         action: 'click',
         /*
-         * The *last* matching control. The page carries several "Sign In"
-         * buttons — the header, the card, and the form's own submit — and the
-         * first one re-opens the form rather than submitting it.
+         * §304. Scoped to the form that holds the password, not `nth=-1`.
+         *
+         * The page carries several "Sign In" controls — the header, the card,
+         * the form's own submit, and a footer link — and picking by position
+         * picked the footer: the recorded tap landed at y=0.94 of a 932px
+         * viewport, the form stayed open, and the capture correctly refused
+         * rather than recording a signed-out product.
+         *
+         * Position is a guess about layout and layout moves. The form
+         * containing the password field is the *only* form whose submit can
+         * sign anything in, which is a structural fact rather than a guess.
          */
-        selector: 'role=button[name=/^sign in$/i] >> nth=-1',
-        fallbackSelectors: ['button[type="submit"]', 'role=button[name=/^(log in|continue)$/i]'],
+        selector: 'form:has(input[type="password"]) button[type="submit"]',
+        fallbackSelectors: [
+          'form:has(input[type="password"]) >> role=button[name=/^(sign in|log in|continue)$/i]',
+          'button[type="submit"]',
+          'role=button[name=/^sign in$/i] >> nth=-1',
+        ],
         setup: true,
       },
       {
