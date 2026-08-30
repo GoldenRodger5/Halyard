@@ -11,6 +11,7 @@ export * from './creative/screenplay.js';
 export * from './creative/productionPlan.js';
 export * from './creative/stageAgents.js';
 export * from './creative/explain.js';
+export * from './creative/honour.js';
 export * from './generation/screenwriter.js';
 export * from './generation/researcher.js';
 export * from './generation/timeScript.js';

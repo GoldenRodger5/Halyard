@@ -38,10 +38,21 @@ Checked at publish against the destination it is going to, recorded to
 `qc_results`. Records rather than blocks, because every rule is about quality
 on that surface rather than capability.
 
-### 3. The directors do not read the screenplay
-`writeScreenplay` produces scenes with `move`, `score` and `gestures`. The
-motion, music and annotation directors still decide independently. Until they
-read it, the screenplay describes a piece nobody makes.
+### 3. Directors can now read the screenplay — the mechanism landed
+§371. `honour()` is the bargain: **the screenplay wins, and the disagreement is
+recorded**, the same deal the Studio already strikes with a pinned direction.
+The director still runs, because the objection is the valuable part — a motion
+director that would refuse a slow push on a two-second scene is telling you the
+screenplay is wrong, and the only way to hear it is to ask.
+
+`cameraForStagedMove` translates the screenwriter's vocabulary into the
+renderer's. Two of the five do not map: a `cut` is an edit between scenes rather
+than a movement inside one, and `settle` has no camera word — a pull is the
+closest honest reading.
+
+**Still to do:** the screenplay is not produced during generation (item 4), so
+there is nothing yet for the directors to honour. The mechanism is ready and
+tested; wiring it needs item 4 first.
 
 ### 4. The screenplay is not in `generate.ts`
 It runs through `scripts/write-screenplay.ts`. It has to become the thing
