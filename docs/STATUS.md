@@ -33,6 +33,12 @@ into the test, where it costs nothing.
 **Rooms live:** `/call`, `/gallery` (+ Scheduled · On air · Stock · piece),
 `/floor` and `/floor/live`. All checked by screenshot at 1440×900 and 390×844.
 
+*Twenty-one test files were bypassing §367's `testContext`.* Writing the helper
+was never the missing half — the assertion that nothing bypasses it was.
+`testContextUse.test.ts` now fails if any worker test casts to `HandlerContext`,
+and the narrow cast that is still honest (a stub pool genuinely is not a
+`pg.Pool`) is left where it belongs, on the pool. Decision 77.
+
 Next: step 7 — Rundown, Wires and Numbers, which are re-skins of screens that
 already work; then Master Control; then step 9 deletes `(dashboard)`.
 

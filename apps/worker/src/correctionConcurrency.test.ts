@@ -16,6 +16,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createIsolatedPool, databaseAvailable } from '../../../packages/db/src/__tests__/testDb.js';
 import { correctContentHandler } from './handlers/correct.js';
 import type { HandlerContext, Job } from './poller.js';
+import { testContext } from './testContext.js';
 
 const available = await databaseAvailable();
 const d = available ? describe : describe.skip;
@@ -57,14 +58,14 @@ beforeEach(async () => {
 });
 
 function context(): HandlerContext {
-  return {
+  return testContext({
     pool,
     workerId: 'concurrency',
     log: () => undefined,
     enqueue: async (kind: string) => {
       enqueued.push(kind);
     },
-  } as unknown as HandlerContext;
+  });
 }
 
 function job(contentItemId: string): Job {

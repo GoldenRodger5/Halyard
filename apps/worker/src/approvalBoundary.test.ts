@@ -18,6 +18,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { sealToken } from '../../../packages/core/src/crypto/tokenCrypto.js';
 import { createIsolatedPool, databaseAvailable } from '../../../packages/db/src/__tests__/testDb.js';
 import { DuplicatePublishAbort, publishHandler } from './handlers/publish.js';
+import { testContext } from './testContext.js';
 import { PermanentJobFailure, type HandlerContext, type Job } from './poller.js';
 
 const available = await databaseAvailable();
@@ -120,17 +121,21 @@ beforeEach(async () => {
 });
 
 function context(): HandlerContext {
-  return {
-    pool,
+  /*
+   * A real enqueue, because this suite is about what actually reaches the jobs
+   * table. Passed as an override so the rest of the context stays the factory's
+   * — which is what keeps it satisfying the interface after the next field.
+   */
+  return testContext({
     workerId: 'adversary',
-    log: () => undefined,
-    enqueue: async (kind: string, payload: Record<string, unknown>, options?: { dedupeKey?: string }) => {
+    pool,
+    enqueue: async (kind, payload, options) => {
       await pool.query(
         `insert into jobs (kind, payload, dedupe_key) values ($1,$2,$3) on conflict do nothing`,
         [kind, payload, options?.dedupeKey ?? null],
       );
     },
-  } as unknown as HandlerContext;
+  });
 }
 
 function job(contentItemId: string, attempts = 1, fetchImpl: typeof fetch = countingFetch): Job {

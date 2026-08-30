@@ -9,7 +9,8 @@ import type pg from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createIsolatedPool, databaseAvailable } from '../../../packages/db/src/__tests__/testDb.js';
 import { applyHookToBody, loadHookHistory, regateHookedBody, runHookStage } from './hooks.js';
-import type { HandlerContext } from './poller.js';
+
+import { testContext, type TestContext } from './testContext.js';
 
 const available = await databaseAvailable();
 const d = available ? describe : describe.skip;
@@ -41,15 +42,8 @@ beforeEach(async () => {
   await pool.query('delete from content_items');
 });
 
-function context(): HandlerContext & { logs: Array<[string, unknown]> } {
-  const logs: Array<[string, unknown]> = [];
-  return {
-    pool,
-    workerId: 'test',
-    logs,
-    log: (m: string, det?: unknown) => logs.push([m, det]),
-    enqueue: async () => undefined,
-  } as unknown as HandlerContext & { logs: Array<[string, unknown]> };
+function context(): TestContext {
+  return testContext({ pool });
 }
 
 async function seedItem(): Promise<string> {
@@ -284,7 +278,7 @@ d('runHookStage', () => {
     );
 
     expect(result.applied).toBeNull();
-    expect(ctx.logs.map(([m]) => m)).toContain('hook stage failed; keeping the copywriter opening');
+    expect(ctx.logs).toContain('hook stage failed; keeping the copywriter opening');
   }, 60_000);
 
   it('reports no measured performance rather than inventing a number', async () => {
@@ -302,7 +296,7 @@ d('runHookStage', () => {
     const history = await loadHookHistory(ctx, 'recipefix', 'tiktok');
     expect(history.performance).toEqual([]);
     expect(history.recentTypes).toEqual([]);
-    expect(ctx.logs.map(([m]) => m)).not.toContain('hook performance history unavailable');
+    expect(ctx.logs).not.toContain('hook performance history unavailable');
   }, 60_000);
 });
 
@@ -403,7 +397,7 @@ d('hook performance history', () => {
     const ctx = context();
     const history = await loadHookHistory(ctx, 'recipefix', 'tiktok');
 
-    expect(ctx.logs.map(([m]) => m)).not.toContain('hook performance history unavailable');
+    expect(ctx.logs).not.toContain('hook performance history unavailable');
     expect(history.performance).toHaveLength(1);
     expect(history.performance[0]!.platform).toBe('tiktok');
     expect(history.performance[0]!.viewThroughRate).toBeCloseTo(0.7);

@@ -11,6 +11,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createIsolatedPool, databaseAvailable } from '../../../packages/db/src/__tests__/testDb.js';
 import { verifyCapabilityHandler, type ProbeRunner } from './handlers/verifyCapability.js';
 import type { HandlerContext, Job } from './poller.js';
+import { testContext } from './testContext.js';
 
 const available = await databaseAvailable();
 const d = available ? describe : describe.skip;
@@ -33,7 +34,7 @@ beforeEach(async () => {
 });
 
 function context(): HandlerContext {
-  return { pool, workerId: 'test', log: () => undefined, enqueue: async () => undefined } as unknown as HandlerContext;
+  return testContext({ pool, workerId: 'test', log: () => undefined, enqueue: async () => undefined });
 }
 
 const job = (id = '22222222-2222-2222-2222-222222222222'): Job =>

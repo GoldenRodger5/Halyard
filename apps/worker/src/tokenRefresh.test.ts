@@ -12,6 +12,7 @@ import { getAdapter, sealToken } from '@halyard/core';
 import { createIsolatedPool, databaseAvailable } from '../../../packages/db/src/__tests__/testDb.js';
 import { HANDLERS } from './handlers/index.js';
 import type { HandlerContext, Job } from './poller.js';
+import { testContext } from './testContext.js';
 
 // The same fixed test key the other suites use; sealing needs one present.
 process.env.TOKEN_ENCRYPTION_KEY ??= Buffer.alloc(32, 7).toString('base64');
@@ -43,12 +44,12 @@ beforeEach(async () => {
 });
 
 function ctx(): HandlerContext {
-  return {
+  return testContext({
     pool,
     workerId: 'test',
     log: (message: string, detail?: Record<string, unknown>) => logs.push({ message, detail }),
     enqueue: async () => undefined,
-  } as unknown as HandlerContext;
+  });
 }
 
 const job = { id: 'job-1', kind: 'refresh_tokens', payload: {} } as unknown as Job;

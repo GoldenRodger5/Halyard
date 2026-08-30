@@ -15,7 +15,8 @@ import { createIsolatedPool, databaseAvailable } from '../../../packages/db/src/
 import type { FrameObservation, GateResult, VisionClient } from '@halyard/core';
 import { aspectRatioOf, keyTermsFor, reviewMediaHandler } from './handlers/reviewMedia.js';
 import { frameSampleTimes, sampleFrames } from './video.js';
-import type { HandlerContext, Job } from './poller.js';
+import type { Job } from './poller.js';
+import { testContext, type TestContext } from './testContext.js';
 
 const available = await databaseAvailable();
 const d = available ? describe : describe.skip;
@@ -61,19 +62,8 @@ beforeEach(async () => {
   await pool.query('delete from jobs');
 });
 
-function context(): HandlerContext & { logs: string[]; enqueued: string[] } {
-  const logs: string[] = [];
-  const enqueued: string[] = [];
-  return {
-    pool,
-    workerId: 'test',
-    logs,
-    enqueued,
-    log: (message: string) => logs.push(message),
-    enqueue: async (kind: string) => {
-      enqueued.push(kind);
-    },
-  } as unknown as HandlerContext & { logs: string[]; enqueued: string[] };
+function context(): TestContext {
+  return testContext({ pool });
 }
 
 const job = (contentItemId: string): Job =>
@@ -474,7 +464,6 @@ d('the retention gate', () => {
     expect(retention.status).not.toBe('passed');
   }, 60_000);
 });
-
 
 /**
  * The gate against Halyard's own output, which is the only test that could have

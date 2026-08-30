@@ -10,7 +10,8 @@ import type pg from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createIsolatedPool, databaseAvailable } from '../../../packages/db/src/__tests__/testDb.js';
 import { HANDLERS } from './handlers/index.js';
-import type { HandlerContext, Job } from './poller.js';
+import type { Job } from './poller.js';
+import { testContext, type TestContext } from './testContext.js';
 
 const available = await databaseAvailable();
 const d = available ? describe : describe.skip;
@@ -45,12 +46,8 @@ beforeEach(async () => {
   await pool.query('delete from content_items');
 });
 
-function ctx() {
-  const logs: Array<{ message: string }> = [];
-  return Object.assign(
-    { pool, log: (m: string) => logs.push({ message: m }), enqueue: async () => undefined },
-    { logs },
-  ) as unknown as HandlerContext & { logs: Array<{ message: string }> };
+function ctx(): TestContext {
+  return testContext({ pool });
 }
 
 const job = { id: 'j', kind: 'draft_newsletter', payload: {} } as unknown as Job;
@@ -85,7 +82,7 @@ d('draft_newsletter', () => {
     await HANDLERS.draft_newsletter!(job, c);
 
     expect((await pool.query('select 1 from newsletters')).rows).toHaveLength(0);
-    expect(c.logs.some((l) => l.message.includes('no confirmed subscribers'))).toBe(true);
+    expect(c.logs.some((l) => l.includes('no confirmed subscribers'))).toBe(true);
   });
 
   it('does not count an unconfirmed subscriber as an audience', async () => {

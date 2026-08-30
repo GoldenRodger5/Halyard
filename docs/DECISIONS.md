@@ -9318,3 +9318,33 @@ floating above it, because there is nowhere above a full-width card to float.
 
 **Rejected.** Scaling the room down. The desks are 158px because the longest
 team name is 158px; below that the labels clip, which is where this started.
+
+## 77 · Writing the helper is not the same as everything using it
+
+**Chosen.** Every worker test builds its context with `testContext()`. Twenty-one
+files converted, and `testContextUse.test.ts` fails if any test casts to
+`HandlerContext` again.
+
+**Why.** §367 wrote `testContext.ts` for exactly this reason, and its own
+docstring says so: twenty test files each built `{ log } as unknown as
+HandlerContext`, that cast is a promise the compiler cannot check, and adding
+`as` to the interface typechecked everywhere and failed at runtime.
+
+The helper was written. Two files adopted it. Nineteen kept their own, and the
+bill came due the moment `openStage` started calling `ctx.as` — seventeen tests
+failed with *"ctx.as is not a function"*, none of them about the thing that had
+changed, and none about text-to-speech or rendering either.
+
+So the missing half of §367 was never the helper; it was the assertion that
+nothing bypasses it. Decision 71's method again — assert the shape, not the
+instance.
+
+**A narrow cast is still fine where it is true.** `footage.test.ts` stubs a pool
+with one method, and `as unknown as pg.Pool` on *that object* is honest: a stub
+genuinely is not a `Pool`. What is not fine is casting the whole context, which
+hides whether it satisfies the interface at all — which is the thing that broke.
+
+**Rejected.** Widening `testContext` to accept `Partial<TestContext>` so files
+could keep their own `logs` arrays. It would have made the conversion a
+one-liner per file and left every assertion reading a private array instead of
+the context's own — two ways to ask the same question, which is how they drift.

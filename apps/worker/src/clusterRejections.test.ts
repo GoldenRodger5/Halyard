@@ -10,6 +10,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createIsolatedPool, databaseAvailable } from '../../../packages/db/src/__tests__/testDb.js';
 import { HANDLERS } from './handlers/index.js';
 import type { HandlerContext, Job } from './poller.js';
+import { testContext } from './testContext.js';
 
 const available = await databaseAvailable();
 const d = available ? describe : describe.skip;
@@ -42,11 +43,11 @@ beforeEach(async () => {
 });
 
 function ctx(): HandlerContext {
-  return {
+  return testContext({
     pool,
     log: () => undefined,
     enqueue: async () => undefined,
-  } as unknown as HandlerContext;
+  });
 }
 
 const job = { id: 'j1', kind: 'cluster_rejections', payload: {} } as unknown as Job;

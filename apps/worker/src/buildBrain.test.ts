@@ -15,6 +15,7 @@ import { createIsolatedPool, databaseAvailable } from '../../../packages/db/src/
 import { buildBrainHandler } from './handlers/buildBrain.js';
 import { upsertEvidence } from './handlers/collectEvidence.js';
 import type { HandlerContext, Job } from './poller.js';
+import { testContext } from './testContext.js';
 
 const available = await databaseAvailable();
 const d = available ? describe : describe.skip;
@@ -45,14 +46,14 @@ beforeEach(async () => {
 const enqueued: Array<{ kind: string; payload: Record<string, unknown> }> = [];
 
 function context(): HandlerContext {
-  return {
+  return testContext({
     pool,
     workerId: 'test',
     log: () => undefined,
     enqueue: async (kind: string, payload: Record<string, unknown>) => {
       enqueued.push({ kind, payload });
     },
-  } as unknown as HandlerContext;
+  });
 }
 
 function job(id = '11111111-1111-1111-1111-111111111111'): Job {

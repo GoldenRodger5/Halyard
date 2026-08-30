@@ -24,6 +24,7 @@ import { createIsolatedPool, databaseAvailable } from '../../../packages/db/src/
 import { classifyObservationFailure, recordAccountObservation } from './observations.js';
 import { HANDLERS } from './handlers/index.js';
 import type { HandlerContext, Job } from './poller.js';
+import { testContext } from './testContext.js';
 
 process.env.TOKEN_ENCRYPTION_KEY ??= Buffer.alloc(32, 7).toString('base64');
 
@@ -78,14 +79,14 @@ const logs: Array<{ message: string; detail?: Record<string, unknown> }> = [];
 const enqueued: Array<{ kind: string; payload: Record<string, unknown> }> = [];
 
 function ctx(): HandlerContext {
-  return {
+  return testContext({
     pool,
     workerId: 'test',
     log: (message: string, detail?: Record<string, unknown>) => logs.push({ message, detail }),
     enqueue: async (kind: string, payload: Record<string, unknown>) => {
       enqueued.push({ kind, payload });
     },
-  } as unknown as HandlerContext;
+  });
 }
 
 async function publication(postId: string): Promise<string> {

@@ -7,9 +7,9 @@
 import { describe, it, expect } from 'vitest';
 import { judgeCitation } from '@halyard/core';
 import { checkCitation, newSourceCache } from './citationCheck.js';
-import type { HandlerContext } from './poller.js';
+import { testContext } from './testContext.js';
 
-const ctx = { log: () => {} } as unknown as HandlerContext;
+const ctx = testContext();
 
 describe('a source is read once per run', () => {
   it('fetches one URL once however many claims cite it', async () => {

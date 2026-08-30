@@ -12,7 +12,8 @@ import type pg from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createIsolatedPool, databaseAvailable } from '../../../packages/db/src/__tests__/testDb.js';
 import { reconcileScheduleHandler } from './handlers/reconcile.js';
-import type { HandlerContext, Job } from './poller.js';
+import type { Job } from './poller.js';
+import { testContext, type TestContext } from './testContext.js';
 
 const available = await databaseAvailable();
 const d = available ? describe : describe.skip;
@@ -51,15 +52,8 @@ beforeEach(async () => {
   await pool.query('delete from ideas');
 });
 
-function context(): HandlerContext & { logs: Array<{ message: string }> } {
-  const logs: Array<{ message: string }> = [];
-  return {
-    pool,
-    workerId: 'test',
-    logs,
-    log: (message: string) => logs.push({ message }),
-    enqueue: async () => undefined,
-  } as unknown as HandlerContext & { logs: Array<{ message: string }> };
+function context(): TestContext {
+  return testContext({ pool });
 }
 
 const job = () => ({ id: 'j1', kind: 'reconcile_schedule', payload: {} }) as unknown as Job;

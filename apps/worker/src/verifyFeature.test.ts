@@ -10,7 +10,8 @@ import type pg from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createIsolatedPool, databaseAvailable } from '../../../packages/db/src/__tests__/testDb.js';
 import { replay, verifyFeatureHandler } from './handlers/verifyFeature.js';
-import type { HandlerContext, Job } from './poller.js';
+import type { Job } from './poller.js';
+import { testContext, type TestContext } from './testContext.js';
 
 const available = await databaseAvailable();
 const d = available ? describe : describe.skip;
@@ -40,15 +41,8 @@ beforeEach(async () => {
   await pool.query('delete from feature_claims');
 });
 
-function context(): HandlerContext & { logs: Array<[string, unknown]> } {
-  const logs: Array<[string, unknown]> = [];
-  return {
-    pool,
-    workerId: 'test',
-    logs,
-    log: (m: string, det?: unknown) => logs.push([m, det]),
-    enqueue: async () => undefined,
-  } as unknown as HandlerContext & { logs: Array<[string, unknown]> };
+function context(): TestContext {
+  return testContext({ pool });
 }
 
 async function seedClaim(steps: unknown[], name = 'Adapt a recipe'): Promise<string> {
@@ -158,7 +152,7 @@ d('verifyFeatureHandler', () => {
     );
     expect(rows[0]!.status).toBe('unverifiable');
     expect(rows[0]!.last_verdict).toMatch(/Refused before running/);
-    expect(ctx.logs.map(([m]) => m)).toContain('feature claim refused by safety check');
+    expect(ctx.logs).toContain('feature claim refused by safety check');
   }, 60_000);
 
   it('never moves verified_at on anything but a pass', async () => {
@@ -233,7 +227,7 @@ d('verifyFeatureHandler', () => {
       { id: 'j', kind: 'verify_feature', payload: {}, attempts: 1, max_attempts: 2 } as unknown as Job,
       ctx,
     );
-    expect(ctx.logs.map(([m]) => m)).toContain('no feature claims are due for re-verification');
+    expect(ctx.logs).toContain('no feature claims are due for re-verification');
   }, 60_000);
 
   it('will not replay a product with nowhere to replay against', async () => {

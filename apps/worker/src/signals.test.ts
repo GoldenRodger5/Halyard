@@ -6,7 +6,8 @@ import type pg from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createIsolatedPool, databaseAvailable } from '../../../packages/db/src/__tests__/testDb.js';
 import { collectSignalsHandler, relevanceOf, STORY_TTL_HOURS } from './handlers/signals.js';
-import type { HandlerContext, Job } from './poller.js';
+import type { Job } from './poller.js';
+import { testContext, type TestContext } from './testContext.js';
 
 const available = await databaseAvailable();
 const d = available ? describe : describe.skip;
@@ -48,15 +49,8 @@ beforeEach(async () => {
   await pool.query(`delete from products where id = 'founder'`);
 });
 
-function context(): HandlerContext & { logs: Array<[string, unknown]> } {
-  const logs: Array<[string, unknown]> = [];
-  return {
-    pool,
-    workerId: 'test',
-    logs,
-    log: (m: string, d?: unknown) => logs.push([m, d]),
-    enqueue: async () => undefined,
-  } as unknown as HandlerContext & { logs: Array<[string, unknown]> };
+function context(): TestContext {
+  return testContext({ pool });
 }
 
 const job = (): Job =>
@@ -163,7 +157,7 @@ d('collectSignalsHandler', () => {
   it('says so when there are no sources rather than looking successful', async () => {
     const ctx = context();
     await collectSignalsHandler(job(), ctx);
-    expect(ctx.logs.map(([m]) => m)).toContain('no products have rss sources');
+    expect(ctx.logs).toContain('no products have rss sources');
   });
 
   it('stores what it fetched', async () => {

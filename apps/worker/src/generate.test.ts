@@ -11,7 +11,8 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createIsolatedPool, databaseAvailable } from '../../../packages/db/src/__tests__/testDb.js';
 import { classifyHookType, extractHookPattern } from '@halyard/core';
 import { copywriterDontRules, disownPartialContentItem, generateHandler } from './handlers/generate.js';
-import type { HandlerContext, Job } from './poller.js';
+import type { Job } from './poller.js';
+import { testContext, type TestContext } from './testContext.js';
 
 const available = await databaseAvailable();
 const d = available ? describe : describe.skip;
@@ -36,15 +37,8 @@ beforeEach(async () => {
   await pool.query('delete from notifications');
 });
 
-function context(): HandlerContext & { logs: Array<{ message: string }> } {
-  const logs: Array<{ message: string }> = [];
-  return {
-    pool,
-    workerId: 'test',
-    logs,
-    log: (message: string) => logs.push({ message }),
-    enqueue: async () => undefined,
-  } as unknown as HandlerContext & { logs: Array<{ message: string }> };
+function context(): TestContext {
+  return testContext({ pool });
 }
 
 const job = (payload: Record<string, unknown>): Job =>
@@ -62,7 +56,7 @@ d('the calibration batch is not blocked by calibration', () => {
   it('refuses an ordinary run until calibration is done', async () => {
     const ctx = context();
     await generateHandler(job({ productId: 'recipefix' }), ctx);
-    expect(ctx.logs.some((l) => l.message.includes('wizard incomplete'))).toBe(true);
+    expect(ctx.logs.some((l) => l.includes('wizard incomplete'))).toBe(true);
   });
 
   it('lets the calibration batch through, since it is what makes calibration possible', async () => {
@@ -72,7 +66,7 @@ d('the calibration batch is not blocked by calibration', () => {
     // and nothing said so.
     const ctx = context();
     await generateHandler(job({ productId: 'recipefix', calibration: true, limit: 20 }), ctx);
-    expect(ctx.logs.some((l) => l.message.includes('wizard incomplete'))).toBe(false);
+    expect(ctx.logs.some((l) => l.includes('wizard incomplete'))).toBe(false);
   });
 
   it('still requires a voice, which a calibration run genuinely needs', async () => {
@@ -81,7 +75,7 @@ d('the calibration batch is not blocked by calibration', () => {
     ]);
     const ctx = context();
     await generateHandler(job({ productId: 'recipefix', calibration: true }), ctx);
-    expect(ctx.logs.some((l) => l.message.includes('wizard incomplete'))).toBe(true);
+    expect(ctx.logs.some((l) => l.includes('wizard incomplete'))).toBe(true);
   });
 });
 
@@ -692,7 +686,7 @@ d('an account that can take no format does not stop the rest', () => {
     // No throw: the guard still refuses that account, but the job survives.
     await expect(generateHandler(job({ productId: PRODUCT }), ctx)).resolves.toBeUndefined();
     expect(
-      ctx.logs.some((l) => l.message.includes('cannot take any format')),
+      ctx.logs.some((l) => l.includes('cannot take any format')),
       'the skip must be logged, not silent',
     ).toBe(true);
   });
@@ -793,7 +787,7 @@ d('an idea is claimed before anything is spent on it', () => {
 
     expect(await statusOf(id)).toBe(afterFirst);
     // Nothing selectable is left, so the second attempt never reaches a spend.
-    expect(second.logs.some((l) => l.message.includes('no proposed ideas'))).toBe(true);
+    expect(second.logs.some((l) => l.includes('no proposed ideas'))).toBe(true);
   });
 
   it('leaves an idea alone that another attempt already claimed', async () => {
@@ -807,7 +801,6 @@ d('an idea is claimed before anything is spent on it', () => {
     expect(await statusOf(id)).toBe('selected');
   });
 });
-
 
 /**
  * §258. The row that outlives the piece.

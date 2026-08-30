@@ -23,6 +23,7 @@ import {
   type Job,
 } from './poller.js';
 import { DuplicatePublishAbort, PublishingDisabled, notify, publishHandler } from './handlers/publish.js';
+import { testContext } from './testContext.js';
 
 const available = await databaseAvailable();
 const d = available ? describe : describe.skip;
@@ -710,7 +711,7 @@ d('a credential cannot reach jobs.last_error', () => {
  */
 d('notifications cannot carry a credential', () => {
   function ctx() {
-    return { pool, log: () => undefined, enqueue: async () => undefined } as unknown as HandlerContext;
+    return testContext({ pool });
   }
 
   beforeEach(async () => {

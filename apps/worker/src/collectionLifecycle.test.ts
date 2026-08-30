@@ -13,6 +13,7 @@ import type pg from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createIsolatedPool, databaseAvailable } from '../../../packages/db/src/__tests__/testDb.js';
 import { HANDLERS } from './handlers/index.js';
+import { testContext } from './testContext.js';
 import type { HandlerContext, Job } from './poller.js';
 
 process.env.TOKEN_ENCRYPTION_KEY ??= Buffer.alloc(32, 7).toString('base64');
@@ -124,12 +125,7 @@ d('a failed publication produces no collectible success', () => {
     const i = await item();
     const p = await publication(i, null);
 
-    const ctx = {
-      pool,
-      workerId: 'test',
-      log: () => undefined,
-      enqueue: async () => undefined,
-    } as unknown as HandlerContext;
+    const ctx = testContext({ pool });
     const job = { id: 'j', kind: 'collect_metrics', payload: { publicationId: p } } as unknown as Job;
 
     // Must return before loading the account or calling any adapter. If it
@@ -264,13 +260,8 @@ d('an archived item is not publishable', () => {
        on conflict (id) do update set publishing_enabled = true`,
     );
 
-    const logs: string[] = [];
-    const ctx = {
-      pool,
-      workerId: 'test',
-      log: (m: string) => logs.push(m),
-      enqueue: async () => undefined,
-    } as unknown as HandlerContext;
+    const ctx = testContext({ pool });
+    const logs = ctx.logs;
     const job = { id: 'j', kind: 'publish', payload: { contentItemId: i } } as unknown as Job;
 
     await HANDLERS.publish!(job, ctx);
@@ -315,12 +306,10 @@ d('a score is a claim, so it needs a measurement', () => {
   const logs: Array<{ message: string; detail?: Record<string, unknown> }> = [];
 
   function ctx(): HandlerContext {
-    return {
+    return testContext({
       pool,
-      workerId: 'test',
-      log: (message: string, detail?: Record<string, unknown>) => logs.push({ message, detail }),
-      enqueue: async () => undefined,
-    } as unknown as HandlerContext;
+      log: (message, detail) => logs.push({ message, detail }),
+    });
   }
 
   beforeEach(async () => {
@@ -416,12 +405,7 @@ d('conversion score reaches the database honestly', () => {
   const job = { id: 'j-conv', kind: 'score_performance', payload: {} } as unknown as Job;
 
   function ctx(): HandlerContext {
-    return {
-      pool,
-      workerId: 'test',
-      log: () => undefined,
-      enqueue: async () => undefined,
-    } as unknown as HandlerContext;
+    return testContext({ pool });
   }
 
   beforeEach(async () => {

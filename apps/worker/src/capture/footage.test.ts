@@ -7,20 +7,26 @@
  * asserted.
  */
 import { describe, expect, it } from 'vitest';
+import type pg from 'pg';
 import { FOOTAGE_MAX_AGE_DAYS, FOOTAGE_TAG, captureFootage } from './footage.js';
-import type { HandlerContext } from '../poller.js';
+import { testContext } from '../testContext.js';
 
 /** A context that records the query it was asked to run. */
 function ctxReturning(rows: Array<{ tag: string; age_days: number }>) {
   const seen: Array<{ sql: string; params: unknown[] }> = [];
-  const ctx = {
+  /*
+   * The cast is on the *pool*, not on the context. A stub pool genuinely is not
+   * a `pg.Pool` and saying so is honest; casting the whole context would hide
+   * whether it satisfies `HandlerContext`, which is the thing that broke.
+   */
+  const ctx = testContext({
     pool: {
       query: async (sql: string, params: unknown[]) => {
         seen.push({ sql, params });
         return { rows };
       },
-    },
-  } as unknown as HandlerContext;
+    } as unknown as pg.Pool,
+  });
   return { ctx, seen };
 }
 
