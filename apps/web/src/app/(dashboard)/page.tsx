@@ -11,7 +11,7 @@ import {
   StatChip,
 } from '@halyard/ui';
 import { accountBadge } from '@/lib/accountBadge';
-import { findOpportunities, learningStatus } from '@halyard/core';
+import { findOpportunities, learningStatus, whatNeedsMe } from '@halyard/core';
 import {
   getAccounts,
   getAnalytics,
@@ -44,7 +44,7 @@ export default async function DashboardPage() {
     );
   }
 
-  const [counts, settings, accounts, mix, targets, analytics, onboarding, clusters] = await Promise.all([
+  const [counts, settings, accounts, mix, targets, analytics, onboarding, clusters, tempo] = await Promise.all([
     getNavCounts(),
     getSettings(),
     getAccounts(product.id),
@@ -69,7 +69,59 @@ export default async function DashboardPage() {
         order by occurrences desc limit 3`,
       [product.id],
     ),
+    /*
+      §365. The two facts the next-action ladder needs that nothing else on this
+      page reads: how long the oldest waiting piece has waited, and whether the
+      next seven days have anything in them. Both asked here rather than derived
+      from the counters, because "pending > 0" cannot tell a fresh queue from
+      one that has been ignored for a week.
+    */
+    query<{ oldest_days: string | null; scheduled_next7: string; ever_published: string }>(
+      `select
+         (select floor(extract(epoch from (now() - min(created_at))) / 86400)::text
+            from content_items
+           where product_id = $1 and status = 'pending_approval')            as oldest_days,
+         (select count(*)::text from content_items
+           where product_id = $1
+             and status in ('approved','scheduled')
+             and scheduled_at between now() and now() + interval '7 days')   as scheduled_next7,
+         (select count(*)::text from content_items
+           where product_id = $1 and status = 'published')                   as ever_published`,
+      [product.id],
+    ),
   ]);
+
+  /**
+   * §365. What to do next, resolved in code and displayed here.
+   *
+   * The badge helper is the same one the accounts screen and the health screen
+   * use, so "connected" means here exactly what it means there — gotcha 5's
+   * whole point is that `capability_state` is a record of a decision rather
+   * than a statement that the account works.
+   */
+  const badges = accounts.map((account) => accountBadge(account));
+  const action = whatNeedsMe({
+    hasProduct: true,
+    setupIncomplete: [
+      !onboarding?.step_ingest_done && 'the brief',
+      !onboarding?.step_voice_done && 'the voice',
+      !onboarding?.step_calibration_done && 'the calibration batch',
+      !onboarding?.step_templates_done && 'the template review',
+      !onboarding?.step_accounts_done && 'connecting accounts',
+    ].filter((s): s is string => typeof s === 'string'),
+    publishingEnabled: settings.publishing_enabled,
+    connectedAccounts: badges.filter((b) => b.tone === 'good').length,
+    brokenAccounts: badges.filter((b) => b.tone === 'bad').length,
+    failed: counts.failed,
+    pendingApproval: counts.pendingApproval,
+    oldestPendingDays:
+      tempo[0]?.oldest_days === null || tempo[0]?.oldest_days === undefined
+        ? null
+        : Number(tempo[0].oldest_days),
+    inboxWaiting: counts.inboxPending,
+    scheduledNext7: Number(tempo[0]?.scheduled_next7 ?? 0),
+    hasEverPublished: Number(tempo[0]?.ever_published ?? 0) > 0,
+  });
 
   const wizardSteps = [
     ['Ingest brief', onboarding?.step_ingest_done],
@@ -78,7 +130,6 @@ export default async function DashboardPage() {
     ['Template preview', onboarding?.step_templates_done],
     ['Connect accounts', onboarding?.step_accounts_done],
   ] as const;
-  const wizardIncomplete = wizardSteps.filter(([, done]) => !done);
 
   const actualByCategory = Object.fromEntries(mix.map((m) => [m.category, Number(m.share)]));
   const postsByCategory = Object.fromEntries(mix.map((m) => [m.category, m.published]));
@@ -107,27 +158,46 @@ export default async function DashboardPage() {
 
   return (
     <>
+      {/*
+        The product, not the word "Dashboard". A title that names the screen
+        type tells an operator with one product nothing they did not know from
+        clicking Home; the product and its line are what orient somebody who
+        runs two.
+      */}
       <PageHeader
-        title="Dashboard"
+        title={product.name}
         subtitle={
           <>
-            {product.name}
-            {product.tagline ? ` — ${product.tagline}` : ''}. Times shown in{' '}
+            {product.tagline ? `${product.tagline}. ` : ''}Times shown in{' '}
             {product.operator_timezone}; slots resolve against {product.audience_timezone}.
           </>
         }
       />
 
-      {wizardIncomplete.length > 0 ? (
-        <Card className="mb-6 border-warn/40 bg-warn/10 p-5">
-          <p className="text-sm font-semibold text-ink">
-            First-run calibration is not finished, so daily generation will not run.
-          </p>
-          <p className="mt-1 text-sm leading-relaxed text-muted">
-            Twenty drafts you review and reject with reasons, before any of it goes live. It takes
-            about thirty minutes and it is what separates a system trained on your taste from one
-            trained on the average of the internet.
-          </p>
+      {/*
+        §365. One thing, at the top, before anything that has to be interpreted.
+        The panels below are all still here and all still true; this says which
+        of them is today's.
+      */}
+      <Card
+        className={`mb-6 p-5 ${
+          action.tone === 'blocked'
+            ? 'border-warn/40 bg-warn/10'
+            : action.tone === 'waiting'
+              ? 'border-primary/30 bg-primary/5'
+              : ''
+        }`}
+      >
+        <p className="font-serif text-2xl leading-tight text-ink">{action.title}</p>
+        <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-muted">{action.because}</p>
+
+        {/*
+          The checklist belongs to the band rather than beside it. It lived in a
+          second card that repeated the same sentence in different words, so the
+          first thing on the screen was two paragraphs arguing about which of
+          them was the announcement.
+        */}
+        {action.rung === 'setup' ? (
           <ol className="mt-4 space-y-1.5">
             {wizardSteps.map(([label, done]) => (
               <li key={label} className="flex items-center gap-2 text-sm">
@@ -136,14 +206,19 @@ export default async function DashboardPage() {
               </li>
             ))}
           </ol>
-          <Link
-            href="/onboarding"
-            className="mt-4 inline-flex rounded-lg bg-primary px-3 py-2 text-sm font-medium text-white hover:bg-primary-dark"
-          >
-            Continue setup
-          </Link>
-        </Card>
-      ) : null}
+        ) : null}
+
+        <Link
+          href={action.href}
+          className={`mt-4 inline-flex rounded-lg px-3.5 py-2 text-sm font-medium ${
+            action.tone === 'calm'
+              ? 'border border-line text-ink hover:bg-sunk'
+              : 'bg-primary text-white hover:bg-primary-dark'
+          }`}
+        >
+          {action.cta}
+        </Link>
+      </Card>
 
       {/* Action strip — v1 §8, each one a link */}
       <div className="mb-8 flex flex-wrap gap-3">

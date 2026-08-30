@@ -29,6 +29,7 @@ export * from './imagery/types.js';
 export * from './imagery/openai.js';
 export * from './copy/budget.js';
 export * from './learning/insights.js';
+export * from './operating/whatNeedsMe.js';
 export * from './discovery/freshness.js';
 export * from './discovery/opportunity.js';
 export * from './social/portfolio.js';
