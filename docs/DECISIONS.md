@@ -8428,3 +8428,32 @@ and that immediately found two more unkept claims: `recipe` and `comparison`
 both declared `long_video` with nothing able to render one. Both channels were
 removed rather than filled with the short-form composition, which would produce
 a twenty-second video for a slot asking for eight minutes.
+
+## 319. The one composition built around a video could not load one
+
+`walkthrough.tsx` passed `screenSrc` straight to `OffthreadVideo`. Every other
+composition here wraps a bundle path in `staticFile()`, and a bundle-relative
+path — which is exactly what `stageFootage` produces and what the render
+handler stores — resolves against the bundle root rather than `public/` and
+404s. §298 built the composition, §303 built the callouts, and the file could
+never have been read.
+
+**A ring holds for 0.8s, not for the length of its sentence.** A tap position is
+measured in the viewport *at the instant of the tap* and is true only then: the
+page scrolls, a result renders, the layout moves. Holding it for the label's
+2.6s left the first real walkthrough's ring sitting over an ingredient row that
+had never been pressed. That is not cosmetic — a ring is a claim that *this* was
+pressed, and a claim that drifts off its subject is false. §296's rule about
+pointing only at what the recording contains, applied in time as well as space.
+
+**Two callouts closer than 1.6s: drop the second, never shift it.** The capture
+recorded a tab switch and a diet choice 76ms apart, so two rings drew at once in
+different places, which points at neither. Shifting one later is the obvious fix
+and the wrong one: its position was measured at its own instant, so a moved ring
+points at coordinates that were true a second ago. A dropped callout costs a
+sentence; a shifted one tells a lie.
+
+**Confirmed against the real product.** The walkthrough now shows a signed-in
+capture adapting a live recipe, ending on *4-Ingredient Gluten-Free High-Protein
+Artisan Bread* with its `SWAPPED` and `SCALED` badges. Nothing on that screen is
+drawn.

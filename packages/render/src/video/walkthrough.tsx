@@ -33,6 +33,7 @@ import {
   AbsoluteFill,
   Audio,
   OffthreadVideo,
+  staticFile,
   interpolate,
   spring,
   useCurrentFrame,
@@ -40,6 +41,24 @@ import {
 } from 'remotion';
 import type { BrandTokens } from '../brand.js';
 import type { RenderTypography } from '../image/templates.js';
+
+/**
+ * §319. How long a ring may claim a position.
+ *
+ * Short, because a tap position is only true at the instant it was measured.
+ * Long enough to be seen — under about half a second a ring reads as a flicker
+ * rather than as a pointer.
+ */
+export const RING_HOLD_SECONDS = 0.8;
+
+/**
+ * §319. The closest two callouts may be before one of them is dropped.
+ *
+ * The first real walkthrough recorded a tab switch and a diet choice 76ms
+ * apart, so two rings drew simultaneously in different places. Two rings at
+ * once point at neither.
+ */
+export const MIN_CALLOUT_GAP_SECONDS = 1.6;
 
 /** A thing said about the screen, at the moment it is true on the screen. */
 export interface WalkthroughCallout {
@@ -149,6 +168,23 @@ const Callout: React.FC<{
   const since = seconds - callout.atSeconds;
   if (since < 0 || since > hold) return null;
 
+  /**
+   * §319. The ring holds for a moment; the words hold for the sentence.
+   *
+   * A tap position is measured in the viewport **at the instant of the tap**,
+   * and it is true only for that instant — the page scrolls, a result renders,
+   * the layout moves. Holding the ring for the same 2.6 seconds as its label
+   * left it sitting over whatever happened to be at those coordinates a moment
+   * later, which in the first real walkthrough was an ingredient row rather
+   * than the diet chip that was actually pressed.
+   *
+   * That is not a cosmetic problem. A ring is a claim that *this* was pressed,
+   * and a claim that drifts off its subject is a false one — §296's rule about
+   * pointing only at things the recording contains, applied in time as well as
+   * in space.
+   */
+  const ringVisible = since <= RING_HOLD_SECONDS;
+
   const enter = spring({
     frame: Math.round(since * fps),
     fps,
@@ -163,7 +199,7 @@ const Callout: React.FC<{
 
   return (
     <>
-      {callout.at ? (
+      {callout.at && ringVisible ? (
         /*
          * The ring points at pixels the capture actually contains. It is a
          * pointer at something real, never a drawn control — §296's line.
@@ -303,7 +339,23 @@ export const Walkthrough: React.FC<WalkthroughProps> = ({
           }}
         >
           <PhoneFrame width={phoneWidth} brand={brand}>
-            <OffthreadVideo src={screenSrc} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <OffthreadVideo
+              /*
+               * §319. `staticFile`, like every other composition here.
+               *
+               * This passed `screenSrc` straight through, so a bundle-relative
+               * path — which is exactly what `stageFootage` produces and what
+               * the render handler stores — resolved against the bundle root
+               * instead of `public/` and 404'd. The one composition built
+               * around a video file could not load one.
+               *
+               * A data URI or an absolute URL is left alone: `staticFile` is
+               * for paths inside the bundle, and wrapping either of those
+               * would corrupt it.
+               */
+              src={/^(https?:|data:|blob:|file:)/.test(screenSrc) ? screenSrc : staticFile(screenSrc)}
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            />
             {/* Callouts that point at the screen live inside the frame. */}
             {callouts
               .filter((c) => c.at)
@@ -355,13 +407,28 @@ export function calloutsFromSteps(
   options: { maxCallouts?: number } = {},
 ): WalkthroughCallout[] {
   const max = options.maxCallouts ?? 4;
-  return steps
-    .filter((s) => s.label.trim().length > 0)
-    .slice(0, max)
-    .map((s) => ({
-      atSeconds: s.atSeconds,
-      text: s.label.trim(),
-      at: s.at ?? null,
-      holdSeconds: 2.4,
-    }));
+
+  /*
+   * §319. Dropped, never shifted.
+   *
+   * Two callouts closer together than a viewer can read are two rings drawn at
+   * once in different places, which points at neither. Moving the second one
+   * later would be the obvious fix and the wrong one: its position was measured
+   * at its own instant, so a shifted ring points at coordinates that were true
+   * a second ago. Keeping the first is arbitrary but consistent, and a dropped
+   * callout costs a sentence rather than telling a lie.
+   */
+  const spaced: Array<{ label: string; atSeconds: number; at?: { x: number; y: number } | null }> = [];
+  for (const step of steps.filter((s) => s.label.trim().length > 0)) {
+    const previous = spaced[spaced.length - 1];
+    if (previous && step.atSeconds - previous.atSeconds < MIN_CALLOUT_GAP_SECONDS) continue;
+    spaced.push(step);
+  }
+
+  return spaced.slice(0, max).map((s) => ({
+    atSeconds: s.atSeconds,
+    text: s.label.trim(),
+    at: s.at ?? null,
+    holdSeconds: 2.4,
+  }));
 }
