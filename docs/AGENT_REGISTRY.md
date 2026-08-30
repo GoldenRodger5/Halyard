@@ -46,12 +46,19 @@ social account's platform capability (`pending_auth` / `draft_only` / `live` /
 
 ## 3. The registry, as of P0
 
-Twenty-two agents. Observed states come from `pnpm audit-halyard`; this table
+**Forty agents.** Observed states come from `pnpm audit-halyard`; this table
 records the *contract*.
+
+> **This table is a copy and it went stale.** It listed twenty-two agents while
+> the registry held thirty-seven, and it named `copywriter.v1` while the source
+> had moved to v2. That is the same class of drift the registry exists to catch,
+> committed by the document describing it. `registry.ts` is authoritative;
+> anything below that disagrees with it is wrong, and the Auditor is what says
+> so. §381.
 
 | Agent | Team | Prompt version | Declared | Note |
 |---|---|---|---|---|
-| `copywriter` | content | `copywriter.v1` | partial | Wired and tested; no production run |
+| `copywriter` | content | `copywriter.v2` | partial | Wired and tested; no production run |
 | `vo-scriptwriter` | content | `vo_script.v2` | partial | Wired and tested; no production run |
 | `hook-generator` | content | `hooks.v1` | partial | Wired and tested; no production run |
 | `copilot` | content | `copilot.v1` | partial | Reachable; route not covered by a test |
@@ -73,6 +80,29 @@ records the *contract*.
 | `code-intelligence` | product_intelligence | `code_intelligence.v1` | partial | P1; reads the connector's tool surface |
 | `visual-brand` | product_intelligence | `visual_brand.v1` | partial | P1; runs only with described screenshots |
 | `product-reconciler` | product_intelligence | `product_reconciler.v1` | partial | P1; explains, never decides |
+
+### §381 — three agents that were running with no contract
+
+The Auditor's `agent.unregistered` rule catches a prompt version the source
+emits that no contract claims. It found five, and three of them were whole
+agents nobody had written up:
+
+| Agent | Prompt | Why it mattered |
+|---|---|---|
+| `format-writer` | `post_format.v1` | Writes **every** quiz, history, tips and myth piece. The largest thing the audit was missing. |
+| `concept-generator` | `concept_generator.v1` | Proposes the directions `/studio` offers. Part of how a batch scoring 4.50 apiece went unexamined. |
+| `creative-critic-model` | `creative_critic.v2` | **There are two critics.** `creative-critic` is a rule set — pacing, motion density, loudness. This one judges the craft problem no rule can express, which is the entire reason §275 built it, and it was itself unnoticed. |
+
+The other two were version drift — `copywriter.v2` and `product_discovery.v2`
+emitted while the contracts said v1. The Auditor checks both directions
+deliberately: a claimed version nothing emits is a contract describing something
+that cannot run, and either half alone looks fine.
+
+One of those had a cause worth naming: `buildBrain.ts` carried a hardcoded
+`'product_discovery.v1'` beside a call that sends v2, so every fact discovered
+that way recorded provenance naming a prompt that had not been used. It uses the
+exported constants now — and so do the three beside it that happen to be correct
+today, because "correct today" is what the stale one was.
 
 **Registering an orphan is the point.** An orphan absent from the registry is
 invisible; an orphan present is a tracked defect with a name and a reason.

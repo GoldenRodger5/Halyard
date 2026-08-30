@@ -85,5 +85,8 @@ Landmines learned the hard way. Each one cost real time.
 - `docs/STATUS.md` — where we are right now. Update when a meaningful piece of work finishes, and checkpoint before stopping or when context grows long.
 - `docs/DECISIONS.md` — append a numbered entry for every real decision: what was chosen, **why**, and what was rejected. 63 entries and counting; the highest-value document here.
 - `docs/<feature>.md` — one file per non-trivial feature or investigation.
+- `docs/DESIGN_SYSTEM.md` — the palette, the type, and the reasoning behind each
+  value. Every colour was solved against measured contrast; that reasoning lived
+  only in CSS comments until §381.
 
 Keep them tight: living summaries, not logs. Prune what is stale. Reference code by path rather than pasting it. Capture the *why*, never what the code already says.
