@@ -48,6 +48,18 @@ export interface DraftRequest {
   hooks?: string[];
   /** v2 I.3 — fill a slot in a series rather than inventing a new shape. */
   series?: { name: string; nextSequence: number } | null;
+  /**
+   * §370. The piece this caption sits under, once it exists.
+   *
+   * The caption used to be written two hundred and fifty lines before the piece
+   * itself, from an idea title and an angle, so a quiz caption was written by a
+   * copywriter who had never seen the questions. It read as a plausible
+   * description of *a* quiz rather than an introduction to this one.
+   *
+   * Passed as the filled slots in the format's own order. Absent for a
+   * transformation, which genuinely is about the artifact and has no slots.
+   */
+  piece?: Array<{ key: string; text: string }> | null;
   /** Operator note from the Regenerate dialog. Blind retry is a wasted call. */
   regenNote?: string;
   maxAttempts?: number;

@@ -52,6 +52,13 @@ export interface CopywriterContext {
   category: string;
   persona: 'founder' | 'brand';
   idea: { title: string; angle: string };
+  /**
+   * §370. The piece this caption goes under, once it exists.
+   *
+   * Absent for a transformation, which is about the artifact and has no slots,
+   * and absent wherever the caption genuinely is the whole post.
+   */
+  piece?: Array<{ key: string; text: string }> | null;
   artifact?: ProductArtifact | null;
   voice: {
     displayName: string;
@@ -221,10 +228,30 @@ complete one nobody expands.`,
         .join('\n')}\n\nFull JSON:\n${JSON.stringify(context.artifact.raw, null, 2).slice(0, 6000)}`
     : '\n## No artifact\nThis post is not built from product output. Make no factual claims about a transformation.';
 
+  /**
+   * §370. The piece itself, when there is one.
+   *
+   * A caption introduces something. Written from the idea alone it can only
+   * describe what the piece was *meant* to be, which is how captions ended up
+   * reading as plausible summaries of a video nobody had made yet. Given the
+   * actual lines, it can point at them.
+   *
+   * Explicitly told not to repeat them: a caption that restates the first card
+   * spends the one line a scroller reads on something they are about to see
+   * anyway.
+   */
+  const pieceBlock =
+    context.piece && context.piece.length > 0
+      ? `\n## The piece this caption goes under\nThese are its actual lines, in order:\n${context.piece
+          .map((slot) => `- ${slot.key}: ${slot.text}`)
+          .join('\n')}\n\nWrite a caption that earns the watch. Do not restate the first line — the reader is about to see it.`
+      : '';
+
   const user = [
     `## Product\n${context.productBrief.slice(0, 2000)}`,
     `\n## The idea\n${context.idea.title}\n${context.idea.angle}`,
     `\n## This post\nPlatform: ${context.platform}. Format: ${context.format}. Category: ${context.category}.`,
+    pieceBlock,
     seriesBlock,
     hookBlock,
     exampleBlock,

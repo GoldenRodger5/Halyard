@@ -980,6 +980,46 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
           alternatives: chosenFormat.alternatives,
         });
 
+        /**
+         * §370. The piece is written before the caption that describes it.
+         *
+         * `planProduction` has said since §345 that `caption` is the last
+         * stage, and the code ran it fourth: `writeDraft` at line 983,
+         * `writeToFormat` two hundred and fifty lines later. So the caption for
+         * a quiz was written by a copywriter who had never seen the questions,
+         * from an idea title and an angle — which is why captions read as
+         * plausible descriptions of a piece that does not exist rather than as
+         * an introduction to this one.
+         *
+         * Moving the format write up rather than moving the caption down: the
+         * `content_items` insert needs a body, so the caption cannot simply be
+         * deferred without restructuring the row's creation. The format write
+         * depends on nothing computed between here and where it used to be, so
+         * it can come first, and then the caption has the piece in front of it.
+         */
+        const written =
+          chosenFormat.format.id !== 'transformation'
+            ? await writeToFormat(
+                /*
+                  §367. Everything the writer and its researcher log lands in
+                  their own lanes, without either module knowing there is such
+                  a thing as a lane. `formatWriter` re-scopes to `research`
+                  around the research call for the same reason.
+                */
+                ctx.as('write'),
+                chosenFormat.format,
+                {
+                  subject:
+                    (job.payload.subject as string | undefined)?.trim() ||
+                    subjectForImage(artifact, idea.title) ||
+                    idea.title,
+                  audience: product.brief_summary ?? 'the people this product is for',
+                  platform: account.platform,
+                },
+                llmFor(),
+              )
+            : null;
+
         const draft = await writeDraft(
           {
             platform: account.platform,
@@ -994,6 +1034,13 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
              * which §282 fetches and verifies separately.
              */
             verifyClaimsAgainstArtifact: chosenFormat.format.factuality === 'product',
+            /*
+             * §370. The piece, so the caption introduces this one rather than
+             * describing a plausible version of it.
+             */
+            piece: written
+              ? written.draft.slots.map((slot) => ({ key: slot.key, text: slot.text }))
+              : null,
             voice: {
               displayName: voiceRow.display_name,
               description: voiceRow.description,
@@ -1233,29 +1280,6 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
          * content did not exist yet.
          */
         /* §345. `write` is the stage the screenplay, assets and voice depend on. */
-        const written =
-          chosenFormat.format.id !== 'transformation'
-            ? await writeToFormat(
-                /*
-                  §367. Everything the writer and its researcher log lands in
-                  their own lanes, without either module knowing there is such
-                  a thing as a lane. `formatWriter` re-scopes to `research`
-                  around the research call for the same reason.
-                */
-                ctx.as('write'),
-                chosenFormat.format,
-                {
-                  subject:
-                    (job.payload.subject as string | undefined)?.trim() ||
-                    subjectForImage(artifact, idea.title) ||
-                    idea.title,
-                  audience: product.brief_summary ?? 'the people this product is for',
-                  platform: account.platform,
-                },
-                llmFor(),
-              )
-            : null;
-
         /**
          * §313. What the picture is *of*, from what the piece actually says.
          *

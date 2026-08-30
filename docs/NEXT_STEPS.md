@@ -23,14 +23,15 @@ rather than starting a new one.
 
 ## Open, in priority order
 
-### 1. The caption is still written first
-`writeDraft` is at line ~955, `writeToFormat` at ~1208. The stage plan says
-`caption` is last and the code has not moved.
+### 1. ✅ Done — the caption knows what it is captioning
+§370. `writeToFormat` moved *above* `writeDraft` rather than the caption moving
+below the insert, because the `content_items` row needs a body and deferring
+the caption would have meant restructuring the row's creation. The format write
+depends on nothing computed in between, so it simply goes first.
 
-**Why it is hard:** the `content_items` insert needs `body`, so the row cannot
-be written without a caption. **The fix:** insert with the format's own title,
-then write the caption after the piece exists as a revision informed by it.
-Not a reorder — a second, better-informed pass.
+`DraftRequest.piece` carries the filled slots, and the prompt names them and
+says not to restate the first line. A quiz caption is now written by somebody
+who has read the questions.
 
 ### 2. ✅ Done — `platformFinish` is wired
 Checked at publish against the destination it is going to, recorded to
