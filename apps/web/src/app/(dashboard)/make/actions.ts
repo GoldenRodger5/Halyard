@@ -18,7 +18,7 @@
 import { revalidatePath } from 'next/cache';
 import { requireOperator } from '@/lib/auth';
 import { query } from '@/lib/db';
-import { formatById } from '@halyard/core';
+import { formatById, platformsForFormat } from '@halyard/core';
 
 export interface MakeResult {
   ok: boolean;
@@ -45,10 +45,12 @@ export async function makePiece(formData: FormData): Promise<MakeResult> {
   if (postFormat) {
     const format = formatById(postFormat);
     if (!format) return { ok: false, message: `There is no ${postFormat} format.` };
-    if (!format.platforms.includes(platform)) {
+    /* §295. Derived from the format's channels; there is no second list. */
+    const carries = platformsForFormat(format.id);
+    if (!carries.includes(platform)) {
       return {
         ok: false,
-        message: `${format.name} cannot run on ${platform}. It carries: ${format.platforms.join(', ')}.`,
+        message: `${format.name} cannot run on ${platform}. It carries: ${carries.join(', ')}.`,
       };
     }
   }

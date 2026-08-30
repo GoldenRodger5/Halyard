@@ -6,7 +6,12 @@
  * reaches `node:crypto` and fails `next build` — `clientBoundary.test.ts` exists
  * because that once passed the whole suite and broke only there.
  */
-import { POST_FORMATS, POST_FORMAT_CATALOG, requiresCitation } from '@halyard/core';
+import {
+  POST_FORMATS,
+  POST_FORMAT_CATALOG,
+  platformsForFormat,
+  requiresCitation,
+} from '@halyard/core';
 import { requireOperator } from '@/lib/auth';
 import { query } from '@/lib/db';
 import { MakeClient } from './MakeClient';
@@ -29,7 +34,8 @@ export default async function MakePage() {
       id: f.id,
       name: f.name,
       intent: f.intent,
-      platforms: f.platforms,
+      /* §295. Derived from channels — the format carries no second list. */
+      platforms: platformsForFormat(f.id),
       needsArtifact: f.needsArtifact,
       needsCitation: requiresCitation(f),
     };

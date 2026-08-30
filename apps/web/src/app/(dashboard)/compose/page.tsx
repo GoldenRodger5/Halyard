@@ -1,5 +1,10 @@
 import Link from 'next/link';
-import { POST_FORMATS, POST_FORMAT_CATALOG, requiresCitation } from '@halyard/core';
+import {
+  POST_FORMATS,
+  POST_FORMAT_CATALOG,
+  platformsForFormat,
+  requiresCitation,
+} from '@halyard/core';
 import { Card, PageHeader, SectionTitle } from '@halyard/ui';
 import { AssetPicker } from '@/components/AssetPicker';
 import { query } from '@/lib/db';
@@ -49,7 +54,14 @@ export default async function ComposePage() {
             id: f.id,
             name: f.name,
             intent: f.intent,
-            platforms: f.platforms,
+            /*
+             * §295 replaced the hand-written `platforms` list with a derived
+             * one, and this page kept reading the field — so the web build has
+             * been failing since. Derived is the point: a format declares its
+             * channels and the platforms follow, rather than a second list that
+             * can claim a platform its channel does not serve.
+             */
+            platforms: platformsForFormat(f.id),
             needsArtifact: f.needsArtifact,
             needsCitation: requiresCitation(f),
           };
