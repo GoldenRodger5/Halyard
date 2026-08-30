@@ -165,22 +165,62 @@ export async function captureHandler(job: Job, ctx: HandlerContext): Promise<voi
         });
 
       let retried: { step: string; value: string } | null = null;
+      /**
+       * §357. Retry once the poller has finished retrying, not alongside it.
+       *
+       * The first version enqueued a new capture from inside a handler the
+       * poller was itself about to retry, so every failure produced two chains:
+       * the poller's retry of *this* job, and a new job with the next input.
+       * Each of those failed and did the same. It ran 34 times in two hours and
+       * left 23 dead jobs, and it saturated the worker so a queued `generate`
+       * never started.
+       *
+       * That is a retry storm, and it is the classic shape of one: two layers
+       * retrying the same failure without knowing about each other.
+       *
+       * `maxAttempts` for a capture is 2, so acting only on the final attempt
+       * means the alternative-input retry *replaces* the exhausted retries
+       * rather than multiplying them. The dedupe key is the second guard: two
+       * jobs that reach this at once collapse to one.
+       */
+      const CAPTURE_MAX_ATTEMPTS = 2;
+      const lastAttempt = job.attempts >= CAPTURE_MAX_ATTEMPTS;
+
       if (diagnosis?.automatic && diagnosis.recovery === 'retry_with_different_input') {
         /*
          * The flow declares its own alternatives, so nothing here knows what a
-         * recipe is. `attempt` walks the list across retries rather than always
-         * trying the first one, which would loop on a value that already failed.
+         * recipe is. `attempt` walks the list rather than always trying the
+         * first, which would loop on a value that already failed.
          */
         const step = flow.steps.find((s) => (s.alternatives?.length ?? 0) > 0);
         const attempt = Number(job.payload.inputAttempt ?? 0);
         const next = step?.alternatives?.[attempt];
-        if (step && next) {
+
+        if (!lastAttempt) {
+          ctx.log('holding the input retry until this job stops retrying', {
+            flow: rootFailed.flow,
+            attempt: job.attempts,
+          });
+        } else if (step && next) {
           retried = { step: step.name, value: next };
           await ctx.enqueue(
             'capture',
             { ...job.payload, inputOverride: next, inputAttempt: attempt + 1 },
-            { priority: 4 },
+            {
+              priority: 4,
+              /*
+               * One retry chain per flow per input, however many jobs reach
+               * this conclusion at once.
+               */
+              dedupeKey: `capture-retry:${flowId}:${attempt + 1}`,
+            },
           );
+        } else if (step) {
+          ctx.log('every alternative input has been tried', {
+            flow: rootFailed.flow,
+            tried: attempt,
+            of: step.alternatives?.length ?? 0,
+          });
         }
       }
 

@@ -9011,3 +9011,30 @@ making an operator read JSON.
 
 Caught by a guard on the way: `designTokens.test.ts` refused `bg-warn-bg`, a
 class I invented that has no token behind it.
+
+## 357. A retry storm, from the retry I added
+
+§329 gave a failed capture an automatic retry with a different input. It
+enqueued that retry **from inside a handler the poller was itself about to
+retry**, so every failure produced two chains: the poller retrying *this* job,
+and a new job carrying the next input. Each of those failed and did the same.
+
+34 diagnoses, 28 enqueued retries and 23 dead jobs in two hours — and the
+worker was busy enough that a queued `generate` never started, which is how it
+was noticed.
+
+That is the classic shape of a retry storm: **two layers retrying one failure
+without knowing about each other.** The diagnosis was right every time and the
+recovery was right; the *level* it acted at was wrong.
+
+`maxAttempts` for a capture is 2, so acting only on the final attempt makes the
+input retry **replace** the exhausted retries rather than multiply them. A
+dedupe key is the second guard, for jobs that reach the conclusion at once.
+
+**Found by its own audit trail.** `capture_audit` was built in §329 for exactly
+this — *"if the RecipeFix failure ran for real automation, we could've been
+blind to why"* — and the first thing it explained was the bug in the feature it
+shipped with. The finding was in one query.
+
+`captureRetry.test.ts` asserts the chain **terminates**, which is the property a
+storm violates and the one a memory of this incident would not enforce.
