@@ -63,6 +63,69 @@
   --color-warn-ink: #876312;
   --color-danger: #a8433a;
 
+  /* ════════════════════════════════════════════════════════════════
+   * §382. The Studio palette — Halyard's own.
+   *
+   * A halyard is the line you haul to raise a sail. The room is deep water at
+   * night and the light in it is brass. This belongs to Halyard and does not
+   * move when a product is attached: RecipeFix's terracotta and Kinolog's
+   * whatever appear inside the previews, on the work, and nowhere else.
+   *
+   * The rule that makes it work: **brass is wayfinding and never a state.**
+   * The mark, the active room, a live wire. Red is the tally lamp and means one
+   * thing — on air. A colour that means "primary button" cannot also mean "this
+   * is published", and the moment it does, the one signal that matters stops
+   * being a signal.
+   *
+   * Declared beside the old tokens rather than replacing them, so every screen
+   * that has not moved yet keeps working. `docs/STUDIO_BUILD_PLAN.md` step 9
+   * deletes the old set with the last of the old routes.
+   * ════════════════════════════════════════════════════════════════ */
+
+  /* Dark — the studio itself. */
+  --color-deep: #08110f;
+  --color-hull: #0c1917;
+  --color-berth: #12211f;
+  --color-raised: #182b28;
+  --color-lift: #1f3532;
+  --color-hair: #26403c;
+  --color-hair2: #325450;
+  --color-dink: #edf5f2;
+  --color-dmut: #92aaa5;
+  --color-faint: #5f7975;
+
+  /* Brass. Wayfinding only. */
+  --color-brass: #d9a441;
+  --color-brass-dark: #a87c2c;
+
+  /* State, on the dark ground. Deliberately not the brand. */
+  --color-tally: #ff5c46;
+  --color-clear: #45b98a;
+  --color-holding: #7fa8d9;
+
+  /* Light — the rooms. Warm paper on a cool ground, so a card lifts. */
+  --color-screen: #e7ecea;
+  --color-sheet: #fcfcfa;
+  --color-sheet2: #f4f5f2;
+  --color-rule: #d6dcda;
+  --color-rule2: #c3ccc9;
+  --color-sink: #0f1716;
+  --color-quiet: #5f6e6b;
+
+  /*
+   * State again, solved for the light ground rather than reused from the dark
+   * one — §174's lesson, that contrast is a property of a pair. Each of these
+   * clears 4.5:1 as text on `screen`, on `sheet`, and on its own 10% tint.
+   */
+  --color-lit: #9a6e15;
+  --color-onair: #b33a2a;
+  --color-passed: #2e6b4f;
+  --color-parked: #3e6a93;
+
+  --font-display: 'Bricolage Grotesque', 'Helvetica Neue', Arial, sans-serif;
+  --font-body: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-data: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
   --font-serif: 'Instrument Serif', 'Iowan Old Style', Georgia, serif;
   --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: ui-monospace, 'SF Mono', Menlo, monospace;
@@ -96,5 +159,32 @@
 @layer utilities {
   .pb-tabbar {
     padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
+  }
+
+  /*
+   * §382. The grid the whole studio shares.
+   *
+   * The floor is drawn on it and every light room picks it up, so the rooms are
+   * visibly in the same building as the floor rather than being pages that
+   * happen to sit beside it.
+   */
+  .studio-grid {
+    background-color: var(--color-screen);
+    background-image:
+      linear-gradient(rgba(15, 23, 22, 0.038) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(15, 23, 22, 0.038) 1px, transparent 1px);
+    background-size: 26px 26px;
+  }
+
+  /* Fine grain, so a flat fill reads as material rather than as a swatch. */
+  .studio-grain::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    pointer-events: none;
+    opacity: 0.5;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='.32'/%3E%3C/svg%3E");
   }
 }

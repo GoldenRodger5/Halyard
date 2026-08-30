@@ -1,5 +1,49 @@
 # Where Halyard is right now
 
+**2026-08-30 — the studio has three rooms, and they run on real data.**
+
+The console replacement is under way. `docs/STUDIO_BUILD_PLAN.md` is the plan;
+steps 1–5 have landed and `(dashboard)` is untouched beside it, because every
+room has a new path (`/queue` → `/gallery`, `/make` → `/floor`, `/calendar` →
+`/rundown`) so nothing collides until step 9 deletes the old group.
+
+*The Gallery is a wall.* §386. Seventeen pieces holding, shown as a bank of
+monitors rather than a list — triage needs the batch on one screen, which a row
+cannot give you. Failures stay on the wall, unlit and hatched, because filtering
+them out of the default view is how a system quietly stops producing. The piece
+view answers four questions: how it got here, what the gates said, why it came
+out this way, and what to do about it.
+
+*Three defects the screens found by being looked at.* A gate map keyed `warned`
+against gates that emit `warning`, so every warning gate drew as one that never
+ran — now `Record<GateStatus, …>`, which makes it a compile error. A route strip
+that counted an all-skipped gate run as checked (gotcha 6, in the least visible
+place). And a `<img>` whose file was gone rendering its alt text as prose across
+the monitor.
+
+*The plan was wrong about the route map.* It claimed the strip was derivable
+from `job_events.stage`. `job_events.job_id` points at a job and nothing on
+`content_items` points back, so it would have been empty for every row. Built
+from the item's own record instead — claims, renders, gates, status are real
+evidence and work today. Decision 72.
+
+*Thirteen tests were going dark under load.* `createIsolatedPool` builds a
+database and applies every migration; twelve suites had each independently set a
+120s hook timeout by hand, eight had not and were inheriting 60s, and
+`schema.test.ts` had settled on 90s — which is the one that tripped. The timeout
+now belongs to the operation. Decision 73, and §70 from the other side.
+
+**Suite: 207 files, 3,194 tests passing, none skipped. Lint and typecheck clean.** Rooms live at `/call`
+and `/gallery` (Holding · Scheduled · On air · Stock) plus `/gallery/[id]`,
+checked by screenshot at 1440×900 and 390×844.
+
+Next: step 6, the Floor — Brief and Live, which is where the new backend is
+(stage transitions for the lit wire, the crew voice map, a `planProduction`
+preview). Still blocked on both model providers being out of credits, so no live
+generation run has been made against the new UI.
+
+---
+
 **2026-08-29 (evening) — the short-video channel, made by looking at it.**
 
 *The quiz can be played.* §302. `QuizQuestion` has carried `options` and

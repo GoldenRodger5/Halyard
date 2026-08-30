@@ -33,7 +33,19 @@ const NON_COLOUR = new Set([
   'left','center','right','justify','start','end','top','bottom','wrap','nowrap','balance','pretty',
   'clip','ellipsis','none','solid','dashed','dotted','double','hidden','dark','light',
   'inherit','auto','current','transparent','px','0','1','2','3','4','8',
+  // `border-collapse` is a table model; `outline-offset-2` is a length.
+  'collapse','separate','offset','offset-2','offset-4',
 ]);
+
+/**
+ * §382. Utilities where the value after the prefix is a *shape*, not a hue.
+ *
+ * `bg-gradient-to-b` names a direction, and the colours arrive separately as
+ * `from-` and `to-`, which this scan already checks. Matched as a family rather
+ * than by enumerating every direction, because the failure of an enumeration is
+ * that the next direction somebody uses is reported as an undeclared colour.
+ */
+const SHAPE_NOT_COLOUR = /^(gradient|linear|radial|conic)(-|$)/;
 
 /** Edge and axis selectors that may precede a colour: `border-l-danger`. */
 const EDGE = new Set(['t', 'b', 'l', 'r', 'x', 'y', 's', 'e']);
@@ -107,7 +119,23 @@ describe('colour utilities resolve to declared tokens', () => {
        * trap in the SQL validator.
        */
       const text = [...stripComments(source).matchAll(/`([^`]*)`|'([^']*)'|"([^"]*)"/g)]
-        .map((m) => (m[1] ?? m[2] ?? m[3] ?? '').replace(/\$\{[^}]*\}/g, ' '))
+        .map((m) =>
+          (m[1] ?? m[2] ?? m[3] ?? '')
+            .replace(/\$\{[^}]*\}/g, ' ')
+            /*
+             * §386. Blank arbitrary values.
+             *
+             * `[text-shadow:0_1px_6px_rgba(0,0,0,.75)]` is a literal CSS
+             * declaration Tailwind emits verbatim. It cannot reference a token
+             * by construction, so scanning inside it only reports CSS property
+             * names — `text-shadow`, `box-shadow` — as undeclared colours.
+             *
+             * The colours *in* an arbitrary value are literals, which is a
+             * different question from the one this scan asks. Where a literal
+             * is wrong, contrast is what catches it — §174.
+             */
+            .replace(/\[[^\]]*\]/g, ' '),
+        )
         .filter((literal) => !/[;{}<>]/.test(literal))
         .join(' ');
       for (const m of text.matchAll(pattern)) {
@@ -118,7 +146,7 @@ describe('colour utilities resolve to declared tokens', () => {
         const parts = base.split('-');
         if (EDGE.has(parts[0]!) && parts.length > 1) base = parts.slice(1).join('-');
         else if (EDGE.has(base)) continue;
-        if (NON_COLOUR.has(base) || BUILTIN.has(base)) continue;
+        if (NON_COLOUR.has(base) || BUILTIN.has(base) || SHAPE_NOT_COLOUR.test(base)) continue;
         // numeric values are widths or Tailwind's own scales, not this palette
         if (/^\d/.test(base)) continue;
         if (declared.has(base)) continue;

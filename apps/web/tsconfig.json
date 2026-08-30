@@ -14,7 +14,8 @@
       "@halyard/core/*": ["../../packages/core/src/*"],
       "@halyard/db": ["../../packages/db/src/index.ts"],
       "@halyard/render": ["../../packages/render/src/index.ts"],
-      "@halyard/ui": ["../../packages/ui/src/index.tsx"]
+      "@halyard/ui": ["../../packages/ui/src/index.tsx"],
+      "@halyard/ui/studio": ["../../packages/ui/src/studio/index.tsx"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],

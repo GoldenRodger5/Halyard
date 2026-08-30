@@ -9186,3 +9186,59 @@ test earns its keep.
 **Rejected.** Failing on a key *read* but never written. A handler reading
 `job.payload.limit` with a default is legitimate; a written key nobody reads is a
 promise to the caller that is not kept.
+
+## 72 · The Gallery is a wall, and the route strip reads the piece
+
+**Chosen.** Room 3 renders everything holding as a bank of monitors rather than
+a list, and the piece view's "how it got here" strip is derived from the content
+item's own record — not from `job_events`.
+
+**Why the wall.** §362 replaced a stack of 25,000px cards with rows, which fixed
+the *height*. It did not fix the *comparison*. Triage asks "what is here, and
+which of these do I want", and that question needs the batch on one screen. A
+row shows you a piece; a wall shows you seventeen. Failures stay on the wall,
+unlit and hatched, because filtering them out of the default view is how a
+system quietly stops producing and nobody notices for a week.
+
+**Why the strip reads the item.** The build plan said the route map was "already
+derivable from `job_events.stage` — no new storage, just a reader". That was
+wrong when written. `job_events.job_id` points at a job; nothing on
+`content_items` points back, and no job payload carries a content id. The strip
+would have been empty for every row that exists.
+
+What the item itself records is real evidence and covers all six stops: sourced
+claims mean research ran, a finished render means it was made, a gate result
+means it was checked, the status says what the human and the platform did. Six
+stops rather than eleven stages because eleven dots is a diagram; the six are
+the kinds of work an operator recognises, and `CONDENSE` is asserted total
+against `STAGE_ORDER` so a twelfth stage cannot vanish from the strip silently.
+
+**Rejected.** Adding `content_items.job_id` first. It is the right link and the
+Floor will want it, but it backfills to nothing — every row today would still
+show an empty strip. A card that works for zero rows is not a card.
+
+**Rejected.** Approving from the wall. Approving a description of an asset is
+not approval (v1), so the decision belongs on the piece where the render and the
+gates are visible. The slate therefore advertises `↵ OPEN` and not `A APPROVE` —
+and a test now asserts that a tab only names `J / K` when it is a list.
+
+## 73 · A timeout belongs to the operation, not to each caller
+
+**Chosen.** `hookTimeout` is 120s globally. `schema.test.ts` no longer overrides
+it downwards.
+
+**Why.** Twenty-one suites open an isolated pool in `beforeAll`, and
+`createIsolatedPool` builds a database and applies every migration into it.
+Under a full parallel run that legitimately exceeds a minute — slow work, not
+hung work. Twelve suites had already discovered this and each set `}, 120_000)`
+by hand. Eight had not and were inheriting 60s, passing only when the scheduler
+put them on a quiet machine. `schema.test.ts` had settled on 90s, and that is
+the one that tripped: thirteen tests went dark in a single run.
+
+This is §70 again from the other side. The suite reported the *file* as failed,
+which is honest, but the thirteen tests inside it simply did not run — and a
+number every caller has to remember is a rule that will be wrong at some of the
+sites.
+
+**Rejected.** Bumping the one file that failed. It would have left the eight
+untimed suites on 60s, which is below the number already proven insufficient.

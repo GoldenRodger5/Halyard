@@ -21,7 +21,8 @@ beforeAll(async () => {
   if (!available) return;
   pool = await createIsolatedPool('schema', 8);
   ids = await seedMinimal(pool);
-}, 90_000);
+  /* No timeout override: `hookTimeout` in vitest.config.ts is the number. §386. */
+});
 
 afterAll(async () => {
   if (pool) await pool.end();

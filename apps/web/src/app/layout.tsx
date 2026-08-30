@@ -16,11 +16,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <head>
-        {/* Instrument Serif and Inter, the same faces the render templates use. */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+        {/*
+          §382. Two families in one request while the migration runs.
+
+          Bricolage Grotesque, IBM Plex Sans and JetBrains Mono are the studio.
+          Instrument Serif and Inter stay until the last old route is deleted —
+          the render templates also use them, so Instrument Serif outlives the
+          console either way.
+        */}
         <link
-          href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap"
           rel="stylesheet"
         />
       </head>

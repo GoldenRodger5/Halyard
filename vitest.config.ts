@@ -18,7 +18,25 @@ export default defineConfig({
     ],
     exclude: ['**/node_modules/**', '**/.next/**', '**/dist/**'],
     testTimeout: 30_000,
-    hookTimeout: 60_000,
+    /*
+     * §386. Long enough to build a database.
+     *
+     * Twenty-one suites open an isolated pool in `beforeAll`, and
+     * `createIsolatedPool` creates a database and applies every migration into
+     * it. Under a full parallel run that legitimately exceeds a minute — it is
+     * slow work, not hung work.
+     *
+     * Twelve of those suites had already discovered this and set `}, 120_000)`
+     * on the hook individually. Eight had not, and were inheriting 60s; they
+     * passed only when the scheduler happened to put them on a quiet machine.
+     * `schema.test.ts` had settled on 90s, which is what actually tripped:
+     * thirteen tests went dark in one run.
+     *
+     * A timeout that every caller has to remember is a rule that will be wrong
+     * at some of the sites, so it belongs to the operation rather than to each
+     * caller. This is the operation's number.
+     */
+    hookTimeout: 120_000,
   },
   resolve: {
     alias: {
@@ -34,6 +52,7 @@ export default defineConfig({
       '@halyard/core': path.resolve(root, 'packages/core/src'),
       '@halyard/db': path.resolve(root, 'packages/db/src'),
       '@halyard/render': path.resolve(root, 'packages/render/src'),
+      '@halyard/ui/studio': path.resolve(root, 'packages/ui/src/studio/index.tsx'),
       '@halyard/ui': path.resolve(root, 'packages/ui/src'),
     },
   },

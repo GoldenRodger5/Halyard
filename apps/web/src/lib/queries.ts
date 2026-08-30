@@ -379,6 +379,72 @@ export async function getQueueItem(id: string): Promise<QueueItem | null> {
 }
 
 /**
+ * §386. What has published, and what the platform reported about it.
+ *
+ * ## Nothing is coalesced
+ *
+ * `getAnalytics` wraps every sum in `coalesce(…, 0)`, which is right for a
+ * total — the sum of no rows is genuinely zero. It is wrong here. Per gotcha 9,
+ * `null` means nobody has collected metrics for this post yet and `0` means the
+ * platform was asked and reported nothing, and a piece that has never been
+ * measured showing "0 impressions" is a fabricated observation.
+ *
+ * So these columns are nullable all the way to the screen, and the screen
+ * prints a dash for null.
+ */
+export interface OnAirItem {
+  id: string;
+  platform: string;
+  format: string;
+  title: string | null;
+  artifact_headline: string | null;
+  body: string;
+  status: string;
+  preview_urls: string[];
+  published_at: string | null;
+  permalink: string | null;
+  /** Null until a collection job has actually run against this post. */
+  impressions: number | null;
+  link_clicks: number | null;
+  collected_at: string | null;
+}
+
+export async function getOnAir(limit = 60): Promise<OnAirItem[]> {
+  return query<OnAirItem>(
+    `select ci.id, ci.platform, ci.format, ci.title, ci.body, ci.status,
+            -- Derived, not stored. Same expression as QUEUE_SELECT.
+            ci.product_artifact ->> 'recipeName' as artifact_headline,
+            coalesce(r.urls, '{}') as preview_urls,
+            p.published_at,
+            p.permalink,
+            m.impressions,
+            m.link_clicks,
+            m.collected_at
+       from content_items ci
+       join publications p on p.content_item_id = ci.id
+       -- The rendered file lives on assets.public_url, reached through
+       -- renders.output_asset_id; renders has no url of its own. The same join
+       -- QUEUE_SELECT uses, kept identical rather than re-derived.
+       left join lateral (
+         select array_remove(array_agg(a.public_url order by rr.slide_index), null) as urls
+           from renders rr
+           left join assets a on a.id = rr.output_asset_id
+          where rr.content_item_id = ci.id and rr.quality = 'final'
+       ) r on true
+       left join lateral (
+         select * from post_metrics pm
+          where pm.publication_id = p.id
+          order by pm.collected_at desc
+          limit 1
+       ) m on true
+      where ci.status in ('published', 'awaiting_manual_publish')
+      order by p.published_at desc nulls last
+      limit $1`,
+    [limit],
+  );
+}
+
+/**
  * Everything the TikTok panel needs, for one item.
  *
  * §179. A separate read rather than three more columns on `QUEUE_SELECT`, which
