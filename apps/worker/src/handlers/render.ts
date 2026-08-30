@@ -15,9 +15,10 @@ import {
   checkThumbnail,
   thumbnailPasses,
 } from '@halyard/core';
-import { renderTemplate, type TemplateId } from '@halyard/render';
-import { calloutsFromSteps } from '@halyard/render/video';
+import { renderTemplate, resolveBrand, type TemplateId } from '@halyard/render';
+import { calloutsFromSteps, motifFor } from '@halyard/render/video';
 import {
+  planAnnotations,
   runMediaIntegrity,
   calloutSourceFromCapture,
   footageSpansFor,
@@ -290,11 +291,72 @@ async function renderVideoAsset(
     const steps = runRows[0]?.steps ?? [];
     if (steps.length > 0) {
       const source = calloutSourceFromCapture(steps, footageSpansFor(steps));
-      /*
-       * Four at most. A callout is a pointer, and a walkthrough that annotates
-       * every step is a subtitle track — the viewer stops reading either way.
+
+      /**
+       * §331. The director decides which of these earn a mark.
+       *
+       * `calloutsFromSteps` produced one callout per step and capped the count,
+       * which is a *quota* rather than a decision — it kept the first four
+       * whether or not anybody was talking about them, and gave a chip and a
+       * full-width row the same treatment.
+       *
+       * The director requires both halves: a line being spoken, and a region
+       * the frame can locate *at that moment*. Its mark vocabulary comes from
+       * the product's own pack (§330), derived from the brand, so RecipeFix and
+       * Kinolog do not share a pen.
        */
-      walkthroughCallouts = calloutsFromSteps(source, { maxCallouts: 4 });
+      /* §323. The product's own tokens where it has them, resolved to a full set. */
+      const motif = motifFor(resolveBrand(brandTokens));
+      const durationSeconds =
+        (render.input_props.footageSeconds as number | undefined) ??
+        source[source.length - 1]?.atSeconds ??
+        20;
+
+      const plan = planAnnotations({
+        narration: source.map((s) => ({
+          atSeconds: s.atSeconds,
+          text: s.label,
+          targetLabel: s.label,
+        })),
+        targets: source
+          .filter((s) => s.at)
+          .map((s) => ({
+            label: s.label,
+            box: {
+              x: s.at!.x - s.at!.width / 2,
+              y: s.at!.y - s.at!.height / 2,
+              width: s.at!.width,
+              height: s.at!.height,
+            },
+            atSeconds: s.atSeconds,
+            /* §319. A tap position is true at the instant it was measured. */
+            validForSeconds: 1.2,
+          })),
+        marks: motif.marks.filter(
+          (m): m is 'arrow' | 'circle' | 'box' | 'underline' =>
+            m === 'arrow' || m === 'circle' || m === 'box' || m === 'underline',
+        ),
+        durationSeconds,
+      });
+
+      ctx.log('annotations planned', {
+        renderId: render.id,
+        register: motif.register,
+        because: motif.reason,
+        marks: plan.marks.map((m) => `${m.kind} on ${m.target.label}: ${m.reason}`),
+        skipped: plan.skipped.map((s) => `${s.label} — ${s.because}`),
+      });
+
+      /*
+       * A callout survives when the director marked its region, plus any with
+       * no position at all — a remark about the whole step is still worth
+       * saying and simply has nothing to point at.
+       */
+      const marked = new Set(plan.marks.map((m) => m.target.label));
+      walkthroughCallouts = calloutsFromSteps(
+        source.filter((s) => !s.at || marked.has(s.label)),
+        { maxCallouts: 4 },
+      );
     }
   }
 

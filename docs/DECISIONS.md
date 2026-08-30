@@ -8669,3 +8669,56 @@ UI.
 values to try, so RecipeFix supplies recipe URLs and a film product would supply
 titles. The runner knows only that a step has alternatives and that a diagnosis
 asked for a different one.
+
+## 330. RecipeFix and Kinolog should not share a pen
+
+§284 gave Halyard hand-drawn marks — circles, arrows, underlines, with a seeded
+wobble so they read as a person with a pen. Two things were missing.
+
+**They pointed at nothing in particular.** An `Annotation` takes a box and draws
+inside it. Nothing computed where an arrow should start, which way it should
+approach, or where its head should land, so every mark had to be placed by hand
+— which cannot happen for content nobody is authoring by hand. `arrowTo` lands
+the head on the target's *edge*: inside it covers the thing being indicated,
+short of it points at nothing. The approach is chosen by where there is room,
+because an arrow crossing the frame to reach a control it could have approached
+from the near side passes over content on the way.
+
+**They were the same marks for every product.** A wobbling circle suits a warm
+editorial recipe brand and looks like graffiti on a dark, precisely-set film
+product. A pack is derived from the brand §323 reads out of the product's own
+stylesheet: a serif on a light ground is an editorial register and gets a drawn
+mark; a grotesque on near-black is a precise register and gets a geometric one.
+A third product attached tomorrow gets a coherent pack without anybody choosing
+it.
+
+A pack is a **restriction**, not a menu. An account that circles some things,
+boxes others and underlines the rest looks like three people made it.
+
+## 331. Nothing decided where to point
+
+Every creative decision here has a director — treatment, typography, opening,
+motion, voice, audio, media source. Annotation had a renderer (§284), a style
+(§330) and geometry (§330), and **no decision**.
+
+**A mark is earned when the voice refers to something the frame can locate.**
+Both halves, and each rules out a real failure: voice without a location is an
+arrow in the corner that reads as decoration; a location without voice makes a
+viewer hunt for a significance that is not there.
+
+Mostly deterministic, because the connection is already recorded: a flow step
+carries both its narration and the box of the element it tapped (§324), so the
+line *is* about that element by construction. The kind follows from the region's
+shape — a full-width row is underlined, a pill-shaped chip is boxed, a compact
+icon is ringed — within the product's vocabulary. Perception is needed only for
+a line written separately from the capture, and that is left to a caller that
+can see the frame.
+
+**It replaced a quota with a decision.** `calloutsFromSteps` kept the first four
+callouts whether or not anybody was talking about them. Marks are now capped as
+a *proportion* of runtime, because marking a third of a video is not three times
+as emphatic as marking a tenth — it is a video with no emphasis and a lot of ink
+on it.
+
+The Auditor caught it as an orphan while it was declared and unwired, which is
+exactly what that check exists for.
