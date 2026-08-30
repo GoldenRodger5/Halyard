@@ -8722,3 +8722,17 @@ on it.
 
 The Auditor caught it as an orphan while it was declared and unwired, which is
 exactly what that check exists for.
+
+## 333. Gotcha 1, in a place the gotcha does not name
+
+`FactStatus` in TypeScript and `product_facts_status_check` in Postgres are the
+same list written twice. Adding `inferred` to the union typechecked cleanly,
+passed 2,483 tests, deployed, and died on the first insert.
+
+That is the exact sequence `CLAUDE.md` describes for `JOB_KINDS` and
+`jobs_kind_check` — and the standing lesson was learned so specifically about
+job kinds that the same shape elsewhere went unrecognised. Migrations 0024, 0028
+and 0031 exist because of the job-kinds version; this is 0065.
+
+**Every enum shared between the two languages has this problem.** The list in
+the gotcha should be read as a class, not an instance.
