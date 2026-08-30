@@ -8291,3 +8291,79 @@ were checked for a 200 before being written down.
 **`captureValue` may never appear on a `fillSecret` step**, and there is a test
 for it: it is a plain string in a flow definition, which is exactly what §299
 built `fillSecret` to prevent a credential from being.
+
+## 311. The music library was six test tones
+
+Every bed carried `[TEST] … synthesised test fixture, not licensed music`. §221's
+selector, the ducking and the mix all worked — against fixtures. So "music is
+wired" was true of the code and false of the account: any video that shipped
+with a bed would have shipped with a test tone.
+
+**Openverse, CC0 only.** No API key, a real commercial-use filter, and it indexes
+Freesound and Jamendo rather than hosting, so the licence on a result is the one
+the uploader granted. CC-BY is free and legal and requires attribution *on every
+use* — which for social video means a credit line in a caption written by a
+copywriter that does not know it is there, on a platform that truncates
+captions. A licence obligation that depends on a caption surviving will be
+breached. CC0 is public domain: nothing to carry, nothing to truncate.
+
+Seven real beds imported, one per mood. The manifest goes through the existing
+`import-music.ts`, so the duration probe, the loudness measurement and the
+licence validation are unchanged.
+
+**Found by importing for the first time:** `moodFor` returns `driving` for a
+kinetic piece and `confident` for an editorial cut, and `IMPORTABLE_MOODS`
+excluded both — so no bed of either mood could exist, and every such piece
+scored a mood mismatch against the whole library. Two settings on the music
+director that nothing could satisfy. `moodCoverage.test.ts` now asserts both
+directions: every mood the director can want is importable, and nothing
+importable is unreachable.
+
+**Queries were tuned against the live index**, not written from intuition:
+"warm acoustic instrumental loop" returned nothing over 30 seconds and
+"acoustic guitar instrumental" returns a usable set. A search term nobody has
+run is a guess, and a mood that silently finds nothing gets filled by the
+selector with a bed that does not suit the piece.
+
+## 312. The narrator was still talking over the next card
+
+§306 placed each line at the second its visual appears. Rendering it with real
+synthesis and measuring the clips showed the placement was right and the
+**sizing** was wrong: question one's aside was still being spoken 1.9 seconds
+into question two.
+
+**A beat must be as long as what is said over it.** `QUIZ_REVEAL_SECONDS` was a
+flat 2.6s, correct when a reveal was one word and wrong once §306 added the fact
+that makes an answer worth repeating. Each reveal is now sized from its own
+content, the title card from its own line, and the composition from the sum —
+not a count times an average, which ends mid-sentence on the long ones.
+
+**The floor is the part that mattered.** Words-per-second said "1728" takes
+0.4s; ElevenLabs says "seventeen twenty-eight" in **1.49s**. Any short line — a
+year, a name, "True" — is slower per word than a sentence. `spokenSeconds` is
+one model with a measured floor, shared by everything that sizes a beat, so the
+picture and the read cannot disagree about how long a sentence is.
+
+Measured against real synthesis rather than assumed, which is the only way this
+was ever going to be found: it is inaudible in a waveform and invisible in a
+frame.
+
+## 313. The picture had nothing to do with the video
+
+The hero photograph was generated from the **artifact's** headline, before the
+format had written a word. So a quiz about the history of gluten was illustrated
+with whatever recipe was adapted that morning. A picture unrelated to its video
+is worse than none: it reads as stock, and stock is what makes an account look
+automated.
+
+`subjectFromFormat` takes the piece's own opening slot — a quiz's `title`, a
+history's `hook`, a myth's `myth`. It is a line written *for this piece*, which
+is what a picture of it should come from. `transformation` keeps the artifact,
+because it genuinely is about the adapted recipe.
+
+**And a bug of my own:** §304 added a `writeToFormat` call in the video path
+while §281's was still in the carousel path — two model calls producing two
+different drafts for one piece, and on an Instagram account both branches can
+run. The draft is written once now, above both, which is also what makes the
+picture possible: the content has to exist before anything can be a picture of
+it.

@@ -27,9 +27,10 @@ import type { BeatRole, NarrativeBeat } from './narrative.js';
 import {
   QUIZ_COUNTDOWN_SECONDS,
   QUIZ_QUESTION_SECONDS,
-  QUIZ_REVEAL_SECONDS,
-  QUIZ_TITLE_SECONDS,
-  secondsPerQuestion,
+  ASIDE_GAP_SECONDS,
+  revealSecondsFor,
+  spokenSeconds,
+  titleSecondsFor,
 } from './quiz.js';
 
 export interface FormatVideo {
@@ -136,8 +137,8 @@ function optionsFor(
  * has, and a viewer who cannot finish reading a line has not received it.
  */
 function secondsToRead(text: string): number {
-  const words = text.trim().split(/\s+/).filter(Boolean).length;
-  return Math.max(2.2, Number((words / 2.6 + 0.9).toFixed(2)));
+  /* §312. The same speech model the quiz uses, plus a moment to land. */
+  return Math.max(2.2, Number((spokenSeconds(text) + 0.5).toFixed(2)));
 }
 
 /**
@@ -229,28 +230,37 @@ const BUILDERS: Record<string, (slots: SlotValue[]) => FormatVideo | null> = {
      * cannot drift — a voice track written against a guessed timeline is a
      * voice track that goes out of sync the first time a beat changes.
      */
-    const perQuestion = secondsPerQuestion();
     const narration: NarrationLine[] = [{ atSeconds: 0.2, text: title }];
-    items.forEach((item, i) => {
-      const beat = QUIZ_TITLE_SECONDS + i * perQuestion;
-      narration.push({ atSeconds: beat + 0.15, text: item.question });
+    /*
+     * §312. The running clock, not a fixed grid. Each reveal is as long as its
+     * own content needs, so a beat begins where the previous one ended — and
+     * the read is placed on exactly the numbers the composition lays out with.
+     * A grid here is what put question one's aside 1.9 seconds into question
+     * two: the words were still being spoken over a card that had changed.
+     */
+    let beat = titleSecondsFor(title);
+    items.forEach((item) => {
+      narration.push({ atSeconds: Number((beat + 0.15).toFixed(2)), text: item.question });
       const revealAt = beat + QUIZ_QUESTION_SECONDS + QUIZ_COUNTDOWN_SECONDS;
-      narration.push({ atSeconds: revealAt + 0.1, text: item.answer });
+      narration.push({ atSeconds: Number((revealAt + 0.1).toFixed(2)), text: item.answer });
+      const reveal = revealSecondsFor(item);
       if (item.aside) {
         /*
-         * Late enough that the answer has landed, early enough to finish
-         * before the next question starts.
+         * After the answer has landed. `revealSecondsFor` sized this beat to
+         * fit both, so there is room rather than a hope that there is.
          */
-        narration.push({ atSeconds: revealAt + 0.9, text: item.aside });
+        narration.push({
+          atSeconds: Number((revealAt + 0.1 + ASIDE_GAP_SECONDS).toFixed(2)),
+          text: item.aside,
+        });
       }
+      beat = revealAt + reveal;
     });
 
     const close = pick(slots, 'close');
     if (close) {
-      narration.push({
-        atSeconds: QUIZ_TITLE_SECONDS + items.length * perQuestion - QUIZ_REVEAL_SECONDS * 0.35,
-        text: close,
-      });
+      /* Over the tail of the last reveal, which is where a sign-off belongs. */
+      narration.push({ atSeconds: Number((beat - 0.9).toFixed(2)), text: close });
     }
 
     return {

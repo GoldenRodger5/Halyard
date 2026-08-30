@@ -98,8 +98,12 @@ export interface QuizVideoProps {
   questions: QuizQuestion[];
   /** How long a viewer gets to commit. Three seconds is the format. */
   countdownSeconds?: number;
-  /** How long the answer holds. Long enough to read and screenshot. */
-  revealSeconds?: number;
+  /**
+   * §312. Removed as a prop: each reveal is now as long as its own content
+   * needs. A single value for the whole piece could not hold both a one-word
+   * answer and an answer plus the fact that follows it, and the piece was sized
+   * by whichever the caller guessed.
+   */
   audioSrc?: string;
   wordmark?: string;
 }
@@ -118,6 +122,71 @@ export function secondsPerQuestion(
 }
 
 /**
+ * §312. How long *this* question's reveal needs to hold.
+ *
+ * A flat 2.6s was right when the reveal was one word. §306 added the aside —
+ * the fact that makes an answer worth repeating — and a fact takes about four
+ * seconds to say. The narration is placed on this clock, so the aside for
+ * question one was still being spoken 1.9s into question two: two voices'
+ * worth of words over a card that had already changed.
+ *
+ * Derived from what the reveal actually contains, the same way §308 derives a
+ * narrative beat. Speech runs about 2.6 words a second at this pace, plus a
+ * moment to land before the next question starts.
+ *
+ * The floor is the old constant, so a bare answer is paced exactly as before
+ * and nothing that already worked changes length.
+ */
+/**
+ * §312. How long a line takes to say aloud.
+ *
+ * One model, shared by everything that sizes a beat, so the picture and the
+ * read cannot disagree about how long a sentence is.
+ *
+ * **The floor is the part that matters.** Words-per-second alone said "1728"
+ * would take 0.4s; ElevenLabs says "seventeen twenty-eight" in 1.49s, and the
+ * aside placed 0.9s later began while the answer was still being spoken. Any
+ * short line — a year, a name, "True" — is slower per word than a sentence,
+ * because the pace is set by syllables and by the pause a reader leaves after
+ * a fragment. Measured against real synthesis rather than assumed.
+ */
+export function spokenSeconds(text: string): number {
+  const words = text.trim().split(/\s+/).filter(Boolean).length;
+  if (words === 0) return 0;
+  return Math.max(1.55, Number((words / 2.6 + 0.55).toFixed(2)));
+}
+
+export function titleSecondsFor(title: string): number {
+  /*
+   * §312. The opening card holds for as long as its own line takes to say.
+   * `QUIZ_TITLE_SECONDS` was 1.8s and "How well do you know gluten?" takes
+   * about 2.5s, so the title was still being spoken over the first question.
+   * The constant is the floor, so a two-word title is paced as before.
+   */
+  return Math.max(QUIZ_TITLE_SECONDS, Number((spokenSeconds(title) + 0.35).toFixed(2)));
+}
+
+export function revealSecondsFor(item: { answer: string; aside?: string | null }): number {
+  /*
+   * The answer, then the gap before the aside, then the aside, then a moment
+   * to land. Summed as separate lines rather than as one long one, because two
+   * short lines are slower than one line of the same total length — which is
+   * exactly the floor `spokenSeconds` exists to model.
+   */
+  const answer = spokenSeconds(item.answer);
+  const aside = item.aside ? ASIDE_GAP_SECONDS + spokenSeconds(item.aside) : 0;
+  return Math.max(QUIZ_REVEAL_SECONDS, Number((answer + aside + 0.6).toFixed(2)));
+}
+
+/**
+ * §312. The gap between the answer and the fact that follows it.
+ *
+ * Long enough that the answer has finished — a short answer still takes about
+ * 1.5s — and short enough that the two read as one thought rather than two.
+ */
+export const ASIDE_GAP_SECONDS = 1.7;
+
+/**
  * Total runtime for a quiz.
  *
  * Exported because the render row's `durationInFrames` is decided before the
@@ -131,6 +200,25 @@ export function quizDurationSeconds(
   reveal = QUIZ_REVEAL_SECONDS,
 ): number {
   return QUIZ_TITLE_SECONDS + questionCount * secondsPerQuestion(countdown, reveal);
+}
+
+/**
+ * §312. The runtime of a specific quiz, where each reveal is as long as it needs.
+ *
+ * `quizDurationSeconds` multiplies one length by a count, which is only right
+ * when every question holds for the same time. Once a reveal carries a fact
+ * they do not, and a composition sized by the average ends mid-sentence on the
+ * long ones.
+ */
+export function quizDurationFor(
+  questions: Array<{ answer: string; aside?: string | null }>,
+  countdown = QUIZ_COUNTDOWN_SECONDS,
+  title = '',
+): number {
+  return questions.reduce(
+    (total, q) => total + QUIZ_QUESTION_SECONDS + countdown + revealSecondsFor(q),
+    titleSecondsFor(title),
+  );
 }
 
 const face = (t: RenderTypography | undefined, role: 'display' | 'body' | 'label') =>
@@ -453,7 +541,6 @@ export const QuizVideo: React.FC<QuizVideoProps> = ({
   title,
   questions,
   countdownSeconds = QUIZ_COUNTDOWN_SECONDS,
-  revealSeconds = QUIZ_REVEAL_SECONDS,
   audioSrc,
   wordmark,
   backgroundDataUri,
@@ -493,8 +580,7 @@ export const QuizVideo: React.FC<QuizVideoProps> = ({
     });
   }, [questions]);
 
-  const titleFrames = Math.round(QUIZ_TITLE_SECONDS * fps);
-  const beatFrames = Math.round(secondsPerQuestion(countdownSeconds, revealSeconds) * fps);
+  const titleFrames = Math.round(titleSecondsFor(title) * fps);
 
   return (
     <AbsoluteFill style={{ backgroundColor: brand.background, color: backgroundDataUri ? '#FFFFFF' : brand.ink }}>
@@ -555,11 +641,31 @@ export const QuizVideo: React.FC<QuizVideoProps> = ({
         </AbsoluteFill>
       </Sequence>
 
-      {questions.map((item, i) => (
+      {questions.map((item, i) => {
+        /*
+         * §312. Each question is as long as its own reveal needs, so a beat
+         * begins where the previous one ended rather than on a fixed grid.
+         */
+        const reveal = revealSecondsFor(item);
+        const from =
+          titleFrames +
+          Math.round(
+            fps *
+              questions
+                .slice(0, i)
+                .reduce(
+                  (t, q) => t + QUIZ_QUESTION_SECONDS + countdownSeconds + revealSecondsFor(q),
+                  0,
+                ),
+          );
+        const durationInFrames = Math.round(
+          fps * (QUIZ_QUESTION_SECONDS + countdownSeconds + reveal),
+        );
+        return (
         <Sequence
           key={`${item.question}-${i}`}
-          from={titleFrames + i * beatFrames}
-          durationInFrames={beatFrames}
+          from={from}
+          durationInFrames={durationInFrames}
         >
           <QuestionBeat
             item={item}
@@ -568,12 +674,13 @@ export const QuizVideo: React.FC<QuizVideoProps> = ({
             brand={brand}
             type={typography}
             countdownSeconds={countdownSeconds}
-            revealSeconds={revealSeconds}
             template={templates[i]!}
             palette={palette}
+            revealSeconds={reveal}
           />
         </Sequence>
-      ))}
+        );
+      })}
 
       {wordmark ? (
         <AbsoluteFill style={{ justifyContent: 'flex-end', padding: 64, pointerEvents: 'none' }}>

@@ -10,6 +10,7 @@ import { describe, it, expect } from 'vitest';
 import { VIDEO_FORMATS, videoForFormat } from './formatVideo.js';
 import type { SlotValue } from '../image/formatSlides.js';
 import { treatmentsForBeats } from './narrative.js';
+import { spokenSeconds } from './quiz.js';
 
 const slot = (key: string, index: number, text: string, citation?: string): SlotValue => ({
   key,
@@ -216,5 +217,79 @@ describe('the narrative formats', () => {
 
   it('refuses a format whose slots are all empty', () => {
     expect(videoForFormat('history', [slot('hook', 0, '   ')])).toBeNull();
+  });
+});
+
+describe('§312. the read fits the beat it was written for', () => {
+  /* The same rate `revealSecondsFor` and `secondsToRead` size beats with. */
+  /* §312. The model the beats are sized with, so the test checks the real rule. */
+  const spoken = (text: string) => spokenSeconds(text);
+
+  it('never starts a quiz line before the previous one can have finished', () => {
+    /*
+     * Question one's aside was still being spoken 1.9s into question two —
+     * two lines at once, over a card that had already changed. Caught by
+     * listening, which is the only thing that catches it.
+     */
+    const out = videoForFormat('quiz', [
+      { key: 'title', index: 0, text: 'How well do you know gluten?', citation: null },
+      { key: 'question', index: 0, text: 'What year was gluten first identified?', citation: null },
+      {
+        key: 'answer',
+        index: 0,
+        text: '1728. Beccari separated wheat into starch and a stretchy residue.',
+        citation: null,
+      },
+      { key: 'question', index: 1, text: 'Which flour needs the most liquid?', citation: null },
+      { key: 'answer', index: 1, text: 'Coconut. It drinks four times its weight.', citation: null },
+    ])!;
+
+    for (let i = 0; i < out.narration.length - 1; i += 1) {
+      const line = out.narration[i]!;
+      const next = out.narration[i + 1]!;
+      const ends = line.atSeconds + spoken(line.text);
+      expect(
+        ends,
+        `"${line.text.slice(0, 40)}" runs ${(ends - next.atSeconds).toFixed(2)}s into the next line`,
+      ).toBeLessThanOrEqual(next.atSeconds + 0.35);
+    }
+  });
+
+  it('gives a reveal carrying a fact more time than a bare one', () => {
+    const bare = videoForFormat('quiz', [
+      { key: 'question', index: 0, text: 'What year?', citation: null },
+      { key: 'answer', index: 0, text: '1728', citation: null },
+    ])!;
+    const withFact = videoForFormat('quiz', [
+      { key: 'question', index: 0, text: 'What year?', citation: null },
+      {
+        key: 'answer',
+        index: 0,
+        text: '1728. Beccari separated wheat into starch and a stretchy residue.',
+        citation: null,
+      },
+    ])!;
+    /* Both have one question, so any difference is the reveal's own length. */
+    expect(withFact.narration.length).toBeGreaterThan(bare.narration.length);
+  });
+
+  it('keeps every narrative line inside its own beat', () => {
+    const out = videoForFormat('history', [
+      { key: 'hook', index: 0, text: 'Bread was an accident.', citation: null },
+      {
+        key: 'setup',
+        index: 0,
+        text: 'Flour and water left out long enough catches wild yeast from the air.',
+        citation: null,
+      },
+      { key: 'turn', index: 0, text: 'Somebody baked it anyway.', citation: null },
+      { key: 'why_it_matters', index: 0, text: 'Every loaf repeats it on purpose.', citation: null },
+    ])!;
+    const beats = out.props.beats as Array<{ seconds: number }>;
+    out.narration.forEach((line, i) => {
+      let start = 0;
+      for (let j = 0; j < i; j += 1) start += beats[j]!.seconds;
+      expect(line.atSeconds + spoken(line.text)).toBeLessThanOrEqual(start + beats[i]!.seconds + 0.35);
+    });
   });
 });

@@ -57,7 +57,32 @@ export interface ImportVerdict {
 }
 
 /** Moods the director can score against. Anything else is unreachable. */
-export const IMPORTABLE_MOODS = ['calm', 'warm', 'bright', 'playful', 'tense'] as const;
+/**
+ * §311. The moods a bed may be imported as.
+ *
+ * Must be **every mood `moodFor` can return**, and it was not: a `kinetic`
+ * piece asks for `driving` and an `editorial_cut` asks for `confident`, and
+ * neither could be imported — so no bed of that mood could exist, and every
+ * such piece scored a mood mismatch against the whole library. The music
+ * director had two settings nothing could ever satisfy.
+ *
+ * Found by importing real music for the first time (§311): three of eight
+ * tracks were refused, which is the validator working and the list being wrong.
+ *
+ * `melancholy` is deliberately absent. It is in `BedMood` and `moodFor` never
+ * returns it, so a melancholy bed would sit in the library unselectable —
+ * importing one would be filing a file, not adding a capability.
+ * `moodCoverage.test.ts` asserts both halves of this.
+ */
+export const IMPORTABLE_MOODS = [
+  'calm',
+  'warm',
+  'bright',
+  'playful',
+  'tense',
+  'driving',
+  'confident',
+] as const;
 
 /**
  * Licences that permit commercial use in marketing without a per-use fee.

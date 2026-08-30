@@ -335,6 +335,36 @@ export function subjectForImage(
   return raw.replace(/[.!?]+$/, '');
 }
 
+/**
+ * §313. What a piece is *about*, from what it actually says.
+ *
+ * The hero photograph was generated from the artifact's headline before the
+ * format had written a word, so a quiz about the history of gluten was
+ * illustrated with whatever recipe was adapted that morning. A picture that has
+ * nothing to do with the video is worse than no picture: it reads as stock, and
+ * stock is the thing that makes an account look automated.
+ *
+ * The opening slot is the subject. Every format in the catalogue puts its
+ * subject there — a quiz's `title`, a history's `hook`, a myth's `myth` — and
+ * it is a line written *for this piece*, which is exactly what a picture of it
+ * should be generated from.
+ *
+ * Returns null when there is nothing usable, so the caller falls back to the
+ * artifact rather than generating a picture of an empty string.
+ */
+export function subjectFromFormat(
+  slots: Array<{ key: string; index: number; text: string }>,
+): string | null {
+  const opening = ['title', 'hook', 'myth', 'question'];
+  for (const key of opening) {
+    const slot = slots.find((s) => s.key === key && s.index === 0);
+    const text = slot?.text?.trim().replace(/[.!?]+$/, '');
+    /* Long enough to describe something; a three-word slot is not a subject. */
+    if (text && text.length >= 12) return text;
+  }
+  return null;
+}
+
 export async function generateHandler(job: Job, ctx: HandlerContext): Promise<void> {
   const productId = String(job.payload.productId ?? 'recipefix');
 
@@ -1076,7 +1106,51 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
           chosenFormat.format.id,
         ]);
 
-        const heroSubject = subjectForImage(artifact, idea.title);
+        /**
+         * §313. The format is written once, here, before anything uses it.
+         *
+         * It was written inside the carousel branch (§281) and again inside the
+         * video branch (§304) — two model calls producing two different sets of
+         * copy for one piece, and on an Instagram account both branches can
+         * run. One piece, one draft.
+         *
+         * Hoisting it also fixes the picture. `subjectForImage` took the
+         * *artifact's* headline, and the hero was generated before the format
+         * had written anything — so a quiz about the history of gluten got a
+         * photograph of whatever recipe happened to be adapted that morning.
+         * The operator's words: the background "should always be something to
+         * do with the content of the video". It could not be, because the
+         * content did not exist yet.
+         */
+        const written =
+          chosenFormat.format.id !== 'transformation'
+            ? await writeToFormat(
+                ctx,
+                chosenFormat.format,
+                {
+                  subject:
+                    (job.payload.subject as string | undefined)?.trim() ||
+                    subjectForImage(artifact, idea.title) ||
+                    idea.title,
+                  audience: product.brief_summary ?? 'the people this product is for',
+                  platform: account.platform,
+                },
+                llmFor(),
+              )
+            : null;
+
+        /**
+         * §313. What the picture is *of*, from what the piece actually says.
+         *
+         * A format's own opening line describes its subject far better than the
+         * artifact headline does — "Bread was an accident" gets bread, where
+         * the artifact headline would have got a gluten-free brownie. Falls
+         * back to the artifact for `transformation`, which genuinely is about
+         * the adapted recipe.
+         */
+        const heroSubject = written
+          ? subjectFromFormat(written.draft.slots) ?? subjectForImage(artifact, idea.title)
+          : subjectForImage(artifact, idea.title);
         const hero =
           heroSubject && imageClient
             ? await generateHeroImage(ctx, imageClient, {
@@ -1124,34 +1198,8 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
              * is the format system appearing to work while doing nothing.
              */
             let slides = carouselProps(artifact);
-            if (chosenFormat.format.id !== 'transformation') {
-              const written = await writeToFormat(
-                ctx,
-                chosenFormat.format,
-                {
-                  /*
-                   * §288. An operator's subject wins over the artifact's own.
-                   *
-                   * The Make page offers a one-line "about what", and a field
-                   * nothing reads is worse than no field — it looks like it
-                   * worked. Absent falls back to the artifact headline, which
-                   * is what an unattended run uses.
-                   */
-                  subject:
-                    (job.payload.subject as string | undefined)?.trim() ||
-                    subjectForImage(artifact, idea.title) ||
-                    idea.title,
-                  /*
-                   * The brief summary is what the product says about itself,
-                   * and it is the closest thing to an audience description that
-                   * exists on the row. Falling back to a generic phrase rather
-                   * than inventing a segment nobody defined.
-                   */
-                  audience: product.brief_summary ?? 'the people this product is for',
-                  platform: account.platform,
-                },
-                llmFor(),
-              );
+            if (written) {
+              /* §313. The draft written once above, not a second call. */
               const built = slidesForFormat(
                 chosenFormat.format.id,
                 written.draft.slots.map((slot) => ({
@@ -1307,23 +1355,8 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
            */
           let composition: { id: string; props: Record<string, unknown> } | null = null;
           let formatNarration: Array<{ atSeconds: number; text: string }> | null = null;
-          if (
-            chosenFormat.format.id !== 'transformation' &&
-            VIDEO_FORMATS.includes(chosenFormat.format.id)
-          ) {
-            const written = await writeToFormat(
-              ctx,
-              chosenFormat.format,
-              {
-                subject:
-                  (job.payload.subject as string | undefined)?.trim() ||
-                  subjectForImage(artifact, idea.title) ||
-                  idea.title,
-                audience: product.brief_summary ?? 'the people this product is for',
-                platform: account.platform,
-              },
-              llmFor(),
-            );
+          if (written && VIDEO_FORMATS.includes(chosenFormat.format.id)) {
+            /* §313. The draft written once above, not a second call. */
             const built = videoForFormat(
               chosenFormat.format.id,
               written.draft.slots.map((slot) => ({

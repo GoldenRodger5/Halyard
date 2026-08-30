@@ -14,7 +14,7 @@
  */
 import React from 'react';
 import { Composition } from 'remotion';
-import { QuizVideo, quizDurationSeconds } from './quiz.js';
+import { QuizVideo, quizDurationFor, quizDurationSeconds } from './quiz.js';
 import { Walkthrough } from './walkthrough.js';
 import { Narrative, narrativeDurationSeconds } from './narrative.js';
 import { DEFAULT_BRAND } from '../brand.js';
@@ -144,13 +144,21 @@ export const RemotionRoot: React.FC = () => (
        * piece that is not the default size.
        */
       calculateMetadata={({ props }) => {
-        const questions = (props as { questions?: unknown[] }).questions ?? [];
+        /*
+         * §312. Sized from the questions themselves, because a reveal that
+         * carries a fact holds longer than one that does not — a composition
+         * sized by the average ends mid-sentence on the long ones.
+         */
+        const questions =
+          (props as { questions?: Array<{ answer: string; aside?: string | null }> }).questions ??
+          [];
         const countdown = (props as { countdownSeconds?: number }).countdownSeconds;
-        const reveal = (props as { revealSeconds?: number }).revealSeconds;
         return {
           durationInFrames: Math.round(
             VIDEO_FPS *
-              quizDurationSeconds(Math.max(1, questions.length), countdown, reveal),
+              (questions.length > 0
+                ? quizDurationFor(questions, countdown, (props as { title?: string }).title ?? '')
+                : quizDurationSeconds(1)),
           ),
         };
       }}

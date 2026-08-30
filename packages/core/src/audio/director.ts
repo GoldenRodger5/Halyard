@@ -31,15 +31,25 @@
  * carries a reason that distinguishes the two.
  */
 
-export type BedMood =
-  | 'warm'
-  | 'bright'
-  | 'calm'
-  | 'driving'
-  | 'playful'
-  | 'tense'
-  | 'melancholy'
-  | 'confident';
+/**
+ * §311. The moods, as a value rather than only a type.
+ *
+ * A type cannot be iterated, so anything that has to cover every mood — the
+ * music import, its test — had to copy the list, and a copied list drifts. This
+ * is the same shape as gotcha 1 and it is cheaper to prevent here.
+ */
+export const BED_MOODS = [
+  'warm',
+  'bright',
+  'calm',
+  'driving',
+  'playful',
+  'tense',
+  'melancholy',
+  'confident',
+] as const;
+
+export type BedMood = (typeof BED_MOODS)[number];
 
 export interface MusicBed {
   id: string;
