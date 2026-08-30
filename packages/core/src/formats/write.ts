@@ -22,6 +22,7 @@
  * which is indistinguishable from a true one until someone checks.
  */
 import { expandSlots, requiresCitation, type PostFormat } from './catalog.js';
+import { checkQuestion, planQuestion } from './quiz.js';
 import { isPostShaped, slopFilter } from '../qc/slopFilter.js';
 
 /** One filled slot. */
@@ -350,6 +351,79 @@ const FORMAT_CHECKS: Record<string, (draft: FormatDraft) => SlotProblem[]> = {
             `question[${question.index}] asks for an opinion, which has no answer to reveal: ` +
             `"${question.text.slice(0, 48)}".`,
           slot: 'question',
+        });
+      }
+    }
+
+    /**
+     * §376. §300's checks, actually running.
+     *
+     * `planQuestion`, `checkQuestion` and `difficultyCurve` were written,
+     * tested and called by nothing outside their own test file. So the rules
+     * that catch the failure which would genuinely embarrass an account — the
+     * revealed answer not being among the options the viewer was given — were
+     * enforced nowhere.
+     *
+     * They were half-enforced at *render* time: `optionsFor` drops the options
+     * when the answer is not one of them, and draws the question bare. That is
+     * an honest fallback and it is the wrong place. It happens after the
+     * writing is finished, silently, and the writer is never told — so the same
+     * mistake comes back on the next piece. Here it is a writing problem, and
+     * the writing loop already knows how to hand a problem back and ask again.
+     *
+     * Only questions that actually carry options are checked. Most do not: the
+     * catalogue's slot asks for a question and not for a list, and a question
+     * with no options is legitimately drawn as a spotlight.
+     */
+    const optionSlots = new Map(
+      draft.slots.filter((s) => s.key === 'options').map((s) => [s.index, s]),
+    );
+    for (const question of questions) {
+      const answer = answers.get(question.index);
+      const raw = optionSlots.get(question.index)?.text;
+      if (!answer || !raw) continue;
+
+      const options = raw
+        .split('|')
+        .map((o) => o.trim())
+        .filter((o) => o.length > 0);
+      if (options.length < 2) continue;
+
+      /*
+       * The plan is derived from what was written rather than chosen in
+       * advance, because nothing in this pipeline yet decides an answer's
+       * shape before the writing. True/false is recognised from the options
+       * themselves; everything else is judged as a multiple choice of the
+       * length the writer produced.
+       */
+      const isTrueFalse =
+        options.length === 2 &&
+        options.every((o) => /^(true|false)$/i.test(o));
+
+      const correctIndex = options.findIndex((o) => {
+        const option = o.trim().toLowerCase();
+        const wanted = answer.text.trim().toLowerCase();
+        return option === wanted || option.includes(wanted) || wanted.includes(option);
+      });
+
+      const verdict = checkQuestion({
+        plan: planQuestion({
+          answerShape: isTrueFalse ? 'yes_no' : 'name',
+          difficulty: 'medium',
+          isMisconception: isTrueFalse,
+        }),
+        question: question.text,
+        answer: answer.text,
+        options,
+        correctIndex: correctIndex === -1 ? undefined : correctIndex,
+      });
+
+      for (const problem of verdict.problems) {
+        problems.push({
+          rule: 'quiz.unplayable',
+          severity: 'error',
+          message: `question[${question.index}]: ${problem}`,
+          slot: 'options',
         });
       }
     }

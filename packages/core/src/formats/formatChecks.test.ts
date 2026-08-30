@@ -105,3 +105,88 @@ describe('§348. a slot is a fragment, not a post', () => {
     expect(isPostShaped('structure.sentence_too_long')).toBe(false);
   });
 });
+
+/**
+ * §376. §300's playability checks, now actually running.
+ *
+ * `planQuestion`, `checkQuestion` and `difficultyCurve` were written, tested
+ * and called by nothing outside their own test file, so the rule that catches
+ * the failure which would genuinely embarrass an account — the revealed answer
+ * not being among the options the viewer was shown — was enforced nowhere.
+ */
+describe('a quiz that cannot be played', () => {
+  const quizFormat = POST_FORMAT_CATALOG.quiz;
+  const withOptions = (question: string, answer: string, options: string) =>
+    ({
+      slots: [
+        slot('title', 0, 'How well do you know gluten?'),
+        slot('question', 0, question),
+        slot('options', 0, options),
+        slot('answer', 0, answer),
+      ],
+    }) as never;
+
+  it('refuses a question whose answer is not one of its options', () => {
+    /*
+     * The one that matters. The card offers three years, the reveal names a
+     * fourth, and a viewer screenshots it. Until now this was noticed only at
+     * render time, where the options were silently dropped and the writer was
+     * never told — so the same mistake came back on the next piece.
+     */
+    const problems = checkFormatSpecific(
+      quizFormat,
+      withOptions('What year was gluten first identified?', '1728', '1901 | 1834 | 1955'),
+    );
+    expect(problems.some((p) => p.rule === 'quiz.unplayable')).toBe(true);
+    expect(problems.find((p) => p.rule === 'quiz.unplayable')!.message).toContain('correct option');
+  });
+
+  it('refuses two options that are the same, so one of them cannot be wrong', () => {
+    const problems = checkFormatSpecific(
+      quizFormat,
+      withOptions('What year was gluten first identified?', '1728', '1728 | 1901 | 1901'),
+    );
+    expect(problems.some((p) => p.message.includes('Two options are the same'))).toBe(true);
+  });
+
+  it('accepts a question whose answer is among its options', () => {
+    const problems = checkFormatSpecific(
+      quizFormat,
+      withOptions('What year was gluten first identified?', '1728', '1728 | 1901 | 1834'),
+    );
+    expect(problems.filter((p) => p.rule === 'quiz.unplayable')).toEqual([]);
+  });
+
+  it('accepts a true-or-false question', () => {
+    const problems = checkFormatSpecific(
+      quizFormat,
+      withOptions('Do oats always contain gluten?', 'False', 'True | False'),
+    );
+    expect(problems.filter((p) => p.rule === 'quiz.unplayable')).toEqual([]);
+  });
+
+  it('leaves a question with no options alone', () => {
+    /*
+     * Most quizzes arrive without any: the catalogue's slot asks for a question
+     * and not for a list, and a question with no options is legitimately drawn
+     * as a spotlight. Demanding them here would refuse every quiz this system
+     * currently writes.
+     */
+    const problems = checkFormatSpecific(quizFormat, {
+      slots: [
+        slot('title', 0, 'How well do you know gluten?'),
+        slot('question', 0, 'What year was gluten first identified?'),
+        slot('answer', 0, '1728, by Jacopo Beccari.'),
+      ],
+    } as never);
+    expect(problems.filter((p) => p.rule === 'quiz.unplayable')).toEqual([]);
+  });
+
+  it('leaves a single option alone rather than calling it a broken list', () => {
+    const problems = checkFormatSpecific(
+      quizFormat,
+      withOptions('What year was gluten first identified?', '1728', '1728'),
+    );
+    expect(problems.filter((p) => p.rule === 'quiz.unplayable')).toEqual([]);
+  });
+});
