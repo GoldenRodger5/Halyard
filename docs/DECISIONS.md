@@ -8555,3 +8555,46 @@ lists the claims marked `unverifiable`, so the discipline is visible rather than
 buried in a status column.
 
 `docs/brain-kinolog.md` is the first one.
+
+## 326. A screen recording has no cursor
+
+Playwright clicks and the UI responds, so a viewer sees a result with no cause.
+The difference between "the screen changed" and "someone pressed that" is the
+difference between a slideshow and a demonstration, and every app demo worth
+watching shows the touch.
+
+Drawn from the element's own centre, measured at the instant of the tap (§324),
+so it lands exactly where the press happened — and a beat *before* the ring: a
+ring with no touch says "look here", a touch then a ring says "this was pressed,
+and here is why". Nothing in it knows what was pressed, which is what makes it
+work for any product attached.
+
+## 327. Ask the product for something it can do
+
+The walkthrough was given a second constraint — High-Protein alongside
+Gluten-Free — and the capture waited the full 90 seconds and failed.
+
+Measured directly through RecipeFix's own API rather than guessed: the
+adaptation **ran in 22.8 seconds** and returned
+`_dietTargets: { state: 'FAIL' }`, because a loaf of bread reaches 4g of protein
+per slice against a 20g target and the product correctly refused to pretend
+otherwise. The UI then renders the shortfall rather than the swap badges the
+flow waits for.
+
+**The product was right and the demonstration was wrong.** An *avoidance*
+constraint — "no dairy" — can always be satisfied by substitution. A *target* —
+"20g of protein" — may honestly be missed. A demonstration must ask for
+something the product can do, and this distinction holds for any product, not
+just this one.
+
+Changed to Dairy-Free, verified through the API first: `dietCompliance: PASS`,
+17.1 seconds. That verification also caught that the banana-bread URL introduced
+minutes earlier returns an **Edge Function error** — it would have broken the
+verify pass on the next run.
+
+**§309's separate capture URL is gone.** It was added on a theory about caching
+that never survived contact: every recorded failure since has had a different,
+measured cause. A cache hit is a good outcome for a demonstration — the result
+appears quickly rather than after a ninety-second wait. `captureValue` stays
+because it is implemented and tested, and is named in the code as having no
+caller, rather than being left to be rediscovered as one of these.

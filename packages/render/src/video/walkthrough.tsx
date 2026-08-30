@@ -171,6 +171,75 @@ const PhoneFrame: React.FC<{
 };
 
 /**
+ * §326. The tap itself — a ripple where a finger would have landed.
+ *
+ * A screen recording has no cursor: Playwright clicks and the UI simply
+ * responds, so a viewer sees a result with no cause. Every app demo worth
+ * watching shows the touch, because the difference between "the screen changed"
+ * and "someone pressed that" is the difference between a screenshot slideshow
+ * and a demonstration.
+ *
+ * Drawn from the element's own centre, measured at the instant of the tap
+ * (§324), so it lands exactly where the press happened. Nothing here knows what
+ * was pressed — a chip, a submit button, a row — which is what makes it work
+ * for any product attached.
+ *
+ * It expands and fades over 0.45s, which is roughly how long a material ripple
+ * runs and, more importantly, short enough that it reads as an event rather
+ * than as an animation playing.
+ */
+const TapRipple: React.FC<{
+  at: { x: number; y: number };
+  atSeconds: number;
+  brand: BrandTokens;
+}> = ({ at, atSeconds, brand }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const since = frame / fps - atSeconds;
+  if (since < 0 || since > 0.45) return null;
+
+  const progress = since / 0.45;
+  /* Fast out, slow in: a press is sudden and its echo is not. */
+  const eased = 1 - (1 - progress) ** 3;
+  const size = 40 + eased * 130;
+
+  return (
+    <>
+      {/* The contact point: solid, small, gone almost immediately. */}
+      <div
+        style={{
+          position: 'absolute',
+          left: `${at.x * 100}%`,
+          top: `${at.y * 100}%`,
+          width: 34,
+          height: 34,
+          marginLeft: -17,
+          marginTop: -17,
+          borderRadius: 999,
+          backgroundColor: brand.primary,
+          opacity: Math.max(0, 0.55 - progress * 0.55),
+        }}
+      />
+      {/* The ripple leaving it. */}
+      <div
+        style={{
+          position: 'absolute',
+          left: `${at.x * 100}%`,
+          top: `${at.y * 100}%`,
+          width: size,
+          height: size,
+          marginLeft: -size / 2,
+          marginTop: -size / 2,
+          borderRadius: 999,
+          border: `3px solid ${brand.primary}`,
+          opacity: Math.max(0, 0.6 - eased * 0.6),
+        }}
+      />
+    </>
+  );
+};
+
+/**
  * A callout: a ring on the screen and a line of text beside it.
  *
  * It arrives on a spring and leaves on a fade. Arriving is an event and worth
@@ -485,6 +554,21 @@ export const Walkthrough: React.FC<WalkthroughProps> = ({
               .filter((c) => c.at)
               .map((c, i) => (
                 <Callout key={`in-${i}`} callout={c} brand={brand} type={typography} />
+              ))}
+            {/*
+              §326. The press, drawn a beat *before* the ring.
+              A ring that appears with no touch says "look here"; a touch
+              followed by a ring says "this was pressed, and here is why".
+            */}
+            {callouts
+              .filter((c) => c.at)
+              .map((c, i) => (
+                <TapRipple
+                  key={`tap-${i}`}
+                  at={c.at!}
+                  atSeconds={Math.max(0, c.atSeconds - 0.12)}
+                  brand={brand}
+                />
               ))}
           </PhoneFrame>
         </div>

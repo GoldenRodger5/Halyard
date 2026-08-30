@@ -202,29 +202,24 @@ export const SAMPLE_RECIPE_URL =
   'https://sallysbakingaddiction.com/homemade-artisan-bread/';
 
 /**
- * §309. A second URL, for the pass that is actually recorded.
+ * §327. There is no separate capture URL any more.
  *
- * A capture runs the flow twice — verify, then record — and both used this same
- * URL. RecipeFix caches an adaptation, so the recorded pass was always a *cache
- * hit*: it came back in a shape the flow's selectors did not match, and the
- * recording failed on `wait for the adaptation` every time while verify passed
- * moments earlier on the same steps.
+ * §309 added one on the theory that the recorded pass was failing because
+ * RecipeFix cached the verify pass's adaptation and returned it in a shape the
+ * selectors did not match. That theory never survived contact: every recorded
+ * failure since has had a different, measured cause — `fillSecret` was never
+ * implemented (§305), the chosen alternate URL exceeded the 90-second timeout
+ * (§316), and a High-Protein constraint made the product return a correct
+ * `FAIL` that the flow waited on as if it were success (§327).
  *
- * Different URLs make the recorded pass a cold adaptation, which is both what
- * the selectors were written against and the more honest demonstration — the
- * footage shows the product doing the work rather than reading back something
- * it did thirty seconds ago.
+ * A cache hit is now a *good* outcome: it means the recording shows the result
+ * appearing quickly, which is a better demonstration than a ninety-second wait.
  *
- * §316. The URL matters as much as the fact that it differs. The first choice
- * was a cookie recipe, and the recorded adaptation **hit the 90-second timeout
- * and never produced a result** — so the capture recorded three seconds of
- * typing and nothing else, while the verify pass on the other URL had finished
- * in 33. Both return 200; only one of them adapts inside the budget, and the
- * page returning 200 says nothing about that. Changed to a recipe measured to
- * complete, and any replacement has to be measured the same way.
+ * `FlowStep.captureValue` stays — it is implemented, tested, and the situation
+ * it exists for is real. Nothing uses it, and a mechanism with no user is
+ * exactly what this codebase keeps finding, so it is named here rather than
+ * left to be rediscovered.
  */
-export const CAPTURE_RECIPE_URL =
-  'https://sallysbakingaddiction.com/best-banana-bread-recipe/';
 
 export const FLOWS: Record<FlowId, CaptureFlow> = {
   /**
@@ -380,8 +375,6 @@ export const FLOWS: Record<FlowId, CaptureFlow> = {
         action: 'fill',
         selector: '[placeholder="https://www.anyrecipesite.com/recipe..."]',
         value: SAMPLE_RECIPE_URL,
-        /* §309. A cold adaptation for the take that is kept. */
-        captureValue: CAPTURE_RECIPE_URL,
       },
       {
         name: 'choose gluten-free',
@@ -406,18 +399,37 @@ export const FLOWS: Record<FlowId, CaptureFlow> = {
          * something a single chip cannot: that the constraints compose rather
          * than the second replacing the first.
          *
+         * §327. An **avoidance** constraint, not a target.
+         *
+         * The first attempt used High-Protein and the capture failed: the
+         * adaptation ran fine — 22.8 seconds, measured directly through the
+         * product's own API — and came back `_dietTargets.state: "FAIL"`,
+         * because bread cannot reach a 20g protein target and RecipeFix
+         * correctly refused to pretend otherwise. The UI then renders the
+         * shortfall rather than the swap badges the flow waits for, so the
+         * recording sat for 90 seconds waiting for a success state that was
+         * never coming.
+         *
+         * The distinction matters for any product, not just this one: "avoid
+         * dairy" is a constraint the product can always satisfy by
+         * substitution, and "reach 20g of protein" is a target it may honestly
+         * miss. **A demonstration must ask for something the product can do.**
+         * Recording it failing is honest and is not what a walkthrough is for —
+         * and the failure here was a *correct* answer being filmed as if it
+         * were a broken one.
+         *
          * Optional, because a product's chip list is a product decision and a
          * missing one must not stop the recording of everything around it.
          */
         name: 'add a second constraint',
         action: 'click',
-        selector: 'role=button[name="High-Protein"]',
+        selector: 'role=button[name="Dairy-Free"]',
         fallbackSelectors: [
-          'role=button[name=/high[- ]?protein/i]',
-          'button:has-text("High-Protein")',
+          'role=button[name=/dairy[- ]?free/i]',
+          'button:has-text("Dairy-Free")',
         ],
         optional: true,
-        narration: 'And high-protein. They stack.',
+        narration: 'And dairy-free. They stack.',
       },
       {
         /*

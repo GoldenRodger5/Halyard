@@ -178,18 +178,38 @@ describe('the sign-in flow', () => {
   });
 });
 
-describe('§309. the recorded pass is a cold adaptation', () => {
-  it('gives the URL-filling step a different value for capture than for verify', () => {
+describe('§327. the recorded pass', () => {
+  it('uses one URL for both passes, because the cache theory did not hold', () => {
     /*
-     * A capture runs verify then record, and RecipeFix caches an adaptation.
-     * With one URL the recorded pass was always a cache hit, in a shape the
-     * selectors did not match — verify passed and the recording failed on the
-     * same steps, seconds apart, every time.
+     * §309 gave the recorded pass its own URL on the theory that a cached
+     * adaptation came back in a shape the selectors did not match. Every
+     * recorded failure since has had a different, measured cause. A cache hit
+     * is a *good* outcome for a demonstration — the result appears quickly
+     * instead of after a ninety-second wait.
      */
     const step = FLOWS.adapt_and_reveal.steps.find((s) => s.name === 'paste the recipe URL');
     expect(step?.value).toBeTruthy();
-    expect(step?.captureValue).toBeTruthy();
-    expect(step?.captureValue).not.toBe(step?.value);
+    expect(step?.captureValue).toBeUndefined();
+  });
+
+  it('asks only for constraints the product can satisfy', () => {
+    /*
+     * §327. A High-Protein chip made RecipeFix return a correct
+     * `_dietTargets: FAIL` — bread cannot reach 20g of protein — and the flow
+     * waited 90 seconds for a success state that was never coming. An
+     * avoidance constraint can always be met by substitution; a numeric target
+     * may honestly be missed, and filming a correct refusal as if it were a
+     * broken product is the wrong demonstration.
+     */
+    const chips = FLOWS.adapt_and_reveal.steps
+      .filter((s) => /constraint|gluten|dairy|vegan/i.test(s.name))
+      .map((s) => s.selector ?? '');
+    expect(chips.length).toBeGreaterThan(0);
+    for (const selector of chips) {
+      expect(selector, `${selector} looks like a numeric target, not an avoidance`).not.toMatch(
+        /high-protein|low-carb|low-calorie|keto/i,
+      );
+    }
   });
 
   it('never gives a secret step a captureValue, which would be a literal', () => {
