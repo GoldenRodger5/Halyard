@@ -23,11 +23,39 @@
  * Gotcha 10: this package is webpacked for the browser by Remotion.
  */
 import type { SlotValue } from '../image/formatSlides.js';
+import {
+  QUIZ_COUNTDOWN_SECONDS,
+  QUIZ_QUESTION_SECONDS,
+  QUIZ_REVEAL_SECONDS,
+  QUIZ_TITLE_SECONDS,
+  secondsPerQuestion,
+} from './quiz.js';
 
 export interface FormatVideo {
   /** A composition id registered in `video/root.tsx`. */
   compositionId: string;
   props: Record<string, unknown>;
+  /**
+   * §306. What is said, and when, in the piece's own timeline.
+   *
+   * A quiz had no voice, and the obvious fix — send the caption to
+   * `writeVoScript` — is the wrong one: the caption is written for a feed and
+   * the video is a quiz, so the narrator would be talking about something other
+   * than what is on screen. That is worse than silence.
+   *
+   * So the read is assembled from the **same slots the video is built from**.
+   * The words are already written and already gated (§282); turning them into a
+   * read is mechanical, and mechanical is where this system does the work
+   * itself rather than asking a model. It also makes a whole class of mistake
+   * impossible: the voice cannot say "1928" while the screen fills "1728".
+   */
+  narration: NarrationLine[];
+}
+
+/** One thing said, at the second the composition puts it on screen. */
+export interface NarrationLine {
+  atSeconds: number;
+  text: string;
 }
 
 function pick(slots: SlotValue[], key: string, index = 0): string | null {
@@ -109,11 +137,19 @@ const BUILDERS: Record<string, (slots: SlotValue[]) => FormatVideo | null> = {
           question: question.text,
           answer,
           /*
-           * The citation the writer fetched and read (§282), shown small under
-           * the reveal. Null rather than absent, so a question with no source
-           * is visibly unsourced rather than quietly indistinguishable.
+           * §306. The citation and the extra fact are different things and were
+           * briefly the same field. The answer slot asks for "the answer, then
+           * one clause of why it is interesting", and that clause was being put
+           * into `source` — so a genuinely interesting fact rendered as
+           * "Source: Beccari separated it from wheat flour", which is not a
+           * citation and reads as a mistake.
+           *
+           * `source` is the citation the writer fetched and read (§282).
+           * `aside` is the payoff after the payoff: the answer lands, then one
+           * more line that makes it worth having watched.
            */
-          source: question.citation ?? answerSlot.citation ?? aside ?? null,
+          source: question.citation ?? answerSlot.citation ?? null,
+          aside,
           ...(choice ? { options: choice.options, correctIndex: choice.correctIndex } : {}),
         };
       })
@@ -121,12 +157,50 @@ const BUILDERS: Record<string, (slots: SlotValue[]) => FormatVideo | null> = {
 
     if (items.length === 0) return null;
 
+    const title = pick(slots, 'title') ?? 'How well do you know this?';
+
+    /*
+     * §306. The read, on the composition's own clock.
+     *
+     * Each question occupies `QUIZ_QUESTION_SECONDS` of reading time, then the
+     * countdown, then the reveal. The question is spoken as it appears; the
+     * answer is spoken *as the reveal lands*, not before, because a narrator
+     * who answers during the countdown has removed the only thing the viewer
+     * was doing. The aside follows a beat later, which is the same rhythm the
+     * screen uses.
+     *
+     * Derived from the same constants the composition lays out with, so the two
+     * cannot drift — a voice track written against a guessed timeline is a
+     * voice track that goes out of sync the first time a beat changes.
+     */
+    const perQuestion = secondsPerQuestion();
+    const narration: NarrationLine[] = [{ atSeconds: 0.2, text: title }];
+    items.forEach((item, i) => {
+      const beat = QUIZ_TITLE_SECONDS + i * perQuestion;
+      narration.push({ atSeconds: beat + 0.15, text: item.question });
+      const revealAt = beat + QUIZ_QUESTION_SECONDS + QUIZ_COUNTDOWN_SECONDS;
+      narration.push({ atSeconds: revealAt + 0.1, text: item.answer });
+      if (item.aside) {
+        /*
+         * Late enough that the answer has landed, early enough to finish
+         * before the next question starts.
+         */
+        narration.push({ atSeconds: revealAt + 0.9, text: item.aside });
+      }
+    });
+
+    const close = pick(slots, 'close');
+    if (close) {
+      narration.push({
+        atSeconds: QUIZ_TITLE_SECONDS + items.length * perQuestion - QUIZ_REVEAL_SECONDS * 0.35,
+        text: close,
+      });
+    }
+
     return {
       compositionId: 'Quiz',
-      props: {
-        title: pick(slots, 'title') ?? 'How well do you know this?',
-        questions: items,
-      },
+      props: { title, questions: items },
+      narration,
     };
   },
 };

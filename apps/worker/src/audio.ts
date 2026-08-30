@@ -280,6 +280,83 @@ export const DEFAULT_TAIL_SECONDS = 0.6;
  * Two passes: measure, then correct by a fixed amount. See `measureLoudness`
  * for why the one-pass version pumps.
  */
+/**
+ * §306. One narration track from lines that each land at a fixed second.
+ *
+ * A quiz cannot be narrated by reading a script straight through. The screen
+ * holds a three-second countdown and a narrator reading continuously answers
+ * during it — which removes the only thing the viewer was doing, and the pause
+ * is the entire format. The words have to arrive when the visual does.
+ *
+ * Built the same way §242 places sound effects: each clip is its own delayed
+ * input rather than arithmetic on buffers, because `adelay` does it exactly.
+ * The result is a single file, so `mixAudio` needs no new input and the
+ * ducking, loudness and true-peak work is unchanged.
+ *
+ * Overlap is possible and deliberately not prevented here: a line that runs
+ * long into the next one is a *writing* problem, and silently truncating it
+ * would hide it. `narrationOverlaps` reports it so the caller can fail loudly.
+ */
+export async function assembleTimedNarration(
+  clips: Array<{ path: string; atSeconds: number }>,
+  outputPath: string,
+): Promise<{ outputPath: string; durationSeconds: number }> {
+  if (clips.length === 0) throw new Error('assembleTimedNarration was given no clips.');
+
+  const ordered = [...clips].sort((a, b) => a.atSeconds - b.atSeconds);
+  const inputs = ordered.flatMap((clip) => ['-i', clip.path]);
+  const delays = ordered
+    .map((clip, i) => {
+      const ms = Math.max(0, Math.round(clip.atSeconds * 1000));
+      return `[${i}:a]adelay=${ms}|${ms}[n${i}]`;
+    })
+    .join(';');
+  const mixLabels = ordered.map((_, i) => `[n${i}]`).join('');
+
+  /*
+   * `amix` with `normalize=0`: normalising would duck every line in proportion
+   * to how many inputs exist, so a five-question quiz would be quieter than a
+   * three-question one for no reason a listener could explain.
+   */
+  const filter = `${delays};${mixLabels}amix=inputs=${ordered.length}:normalize=0:dropout_transition=0[out]`;
+
+  await execFileAsync('ffmpeg', [
+    '-v', 'error',
+    ...inputs,
+    '-filter_complex', filter,
+    '-map', '[out]',
+    '-c:a', 'libmp3lame', '-q:a', '2',
+    outputPath,
+    '-y',
+  ]);
+
+  return { outputPath, durationSeconds: await audioDuration(outputPath) };
+}
+
+/**
+ * Lines that run into the one after them.
+ *
+ * Reported rather than fixed. A line that overruns is a script that needs a
+ * shorter sentence, and shifting it later would put the words out of step with
+ * the picture they were written for — which is the problem this whole path
+ * exists to solve.
+ */
+export function narrationOverlaps(
+  lines: Array<{ atSeconds: number; durationSeconds: number; text: string }>,
+): Array<{ text: string; overlapSeconds: number }> {
+  const ordered = [...lines].sort((a, b) => a.atSeconds - b.atSeconds);
+  const out: Array<{ text: string; overlapSeconds: number }> = [];
+  for (let i = 0; i < ordered.length - 1; i += 1) {
+    const line = ordered[i]!;
+    const next = ordered[i + 1]!;
+    const ends = line.atSeconds + line.durationSeconds;
+    if (ends > next.atSeconds) {
+      out.push({ text: line.text, overlapSeconds: Number((ends - next.atSeconds).toFixed(2)) });
+    }
+  }
+  return out;
+}
+
 export async function mixAudio(input: MixInput): Promise<MixResult> {
   const targetLufs = input.targetLufs ?? TARGET_LUFS;
   const tail = input.tailSeconds ?? DEFAULT_TAIL_SECONDS;

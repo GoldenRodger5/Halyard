@@ -68,6 +68,8 @@ export interface WalkthroughProps {
   callouts?: WalkthroughCallout[];
   audioSrc?: string;
   wordmark?: string;
+  /** §306. How long the capture is, so the piece is exactly that long. */
+  footageSeconds?: number;
 }
 
 const face = (t: RenderTypography | undefined, role: 'display' | 'body' | 'label') =>

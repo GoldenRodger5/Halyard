@@ -8170,3 +8170,60 @@ recorded tap at y=0.9399 was the *post-scroll* position of the correct button �
 before and after the change. The selector was never the fault. The form-scoped
 selector is kept because it is structurally sound rather than positional, but it
 fixed nothing on its own.
+
+## 306. A quiz that ends mid-question, and a narrator talking over the countdown
+
+**Chosen:** compositions derive their own length from their props; the read is
+assembled from the same slots as the picture and placed line by line.
+
+**"Question 3 of 4" on the final frame.** `Quiz` was registered with
+`durationInFrames={quizDurationSeconds(3)}` and a comment saying the worker
+overrides it per render. The worker passes `durationInFrames` **only when there
+is a voiceover**, so every silent quiz ran for exactly three questions' worth of
+frames and a four-question quiz ended in the middle of question three. Remotion's
+`calculateMetadata` makes the composition describe its own length, so no caller
+has to remember. `Walkthrough` had the same bug in the other direction — a flat
+twenty seconds, holding a frozen frame against a twelve-second capture.
+
+**The narration could not simply be the caption.** Every other video sends its
+caption to `writeVoScript`. For a quiz that would have the narrator talking about
+something other than what is on screen, because the caption is written for a feed
+and the video is a quiz — worse than silence.
+
+So the read is assembled from **the same slots the video is built from**. The
+words are already written and already gated (§282); turning them into a read is
+mechanical, which is where this system does the work itself rather than asking a
+model. It also makes a class of mistake impossible: the voice cannot say 1928
+while the screen fills 1728.
+
+**Placed, not read straight through.** The screen holds a three-second countdown
+and a continuous read answers during it — which removes the only thing the viewer
+was doing. The pause *is* the format, so a continuous read is not a lesser
+version of this, it is the format broken. Each line is synthesised on its own and
+placed with `adelay`, the same way §242 places sound effects. The character count
+is unchanged, so this costs what one call would have: more requests, not more
+money.
+
+**Overruns are reported, never shifted.** A line that runs into the next one is a
+script that needs a shorter sentence. Moving it later would put the words out of
+step with the picture they were written for, which is the problem this exists to
+solve.
+
+**The fact and the citation are different fields.** §304 put the answer's "one
+clause of why it is interesting" into `source`, so a genuinely good line rendered
+as "Source: Beccari separated it from wheat flour" — not a citation, and reads as
+a mistake. `aside` now lands a beat after the answer, on screen and in the read:
+the answer is the payoff and the aside is the reason anyone repeats it, which is
+what gets a quiz shared.
+
+## 307. `fillSecret` fixed the sign-in, and the capture is real
+
+**Confirmed in production, not merely deployed.** `sign_in` — all 6 steps in
+3.1s, the credential fills taking 13ms and 11ms where they had recorded `ms: 0`
+since §299. `adapt_and_reveal` — all 13 steps in 11.2s, **signed in**, with five
+tap positions recorded. That is the first capture of a real adaptation on a real
+account rather than the demo card.
+
+Still open: `cook_mode_timer`'s "Start Cooking" control no longer resolves. §163's
+per-flow gate means that no longer blocks recording the root, which is the
+behaviour it was written for and this is the first time it has mattered.

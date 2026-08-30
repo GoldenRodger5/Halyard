@@ -53,6 +53,22 @@ export const RemotionRoot: React.FC = () => (
     <Composition
       id="Walkthrough"
       component={Walkthrough as unknown as React.FC<Record<string, unknown>>}
+      /*
+       * §306. As long as the recording, not a flat twenty seconds.
+       *
+       * The same bug the quiz had: a fixed length for a composition whose
+       * content decides it. Twenty seconds against a twelve-second capture
+       * holds a frozen last frame for eight; against a thirty-second one it
+       * cuts the payoff. `footageSeconds` is measured by the worker (`footageMs`
+       * in the capture handler) and passed through, so the video is exactly as
+       * long as the thing it shows.
+       */
+      calculateMetadata={({ props }) => {
+        const seconds = (props as { footageSeconds?: number }).footageSeconds;
+        return {
+          durationInFrames: Math.round(VIDEO_FPS * (seconds && seconds > 0 ? seconds : 20)),
+        };
+      }}
       durationInFrames={VIDEO_FPS * 20}
       fps={VIDEO_FPS}
       width={VIDEO_WIDTH}
@@ -73,6 +89,32 @@ export const RemotionRoot: React.FC = () => (
     <Composition
       id="Quiz"
       component={QuizVideo as unknown as React.FC<Record<string, unknown>>}
+      /*
+       * §306. Derived from the props, not fixed at three questions.
+       *
+       * This was `quizDurationSeconds(3)` with a comment saying the worker
+       * overrides it per render. The worker passes `durationInFrames` **only
+       * when there is a voiceover**, so every quiz without one ran for exactly
+       * three questions' worth of frames — a four-question quiz ended in the
+       * middle of question three, on screen, reading "Question 3 of 4". Which
+       * is what an operator saw.
+       *
+       * `calculateMetadata` makes the composition describe its own length, so
+       * no caller has to remember. A composition whose duration depends on its
+       * content and is declared as a constant is a bug waiting for the first
+       * piece that is not the default size.
+       */
+      calculateMetadata={({ props }) => {
+        const questions = (props as { questions?: unknown[] }).questions ?? [];
+        const countdown = (props as { countdownSeconds?: number }).countdownSeconds;
+        const reveal = (props as { revealSeconds?: number }).revealSeconds;
+        return {
+          durationInFrames: Math.round(
+            VIDEO_FPS *
+              quizDurationSeconds(Math.max(1, questions.length), countdown, reveal),
+          ),
+        };
+      }}
       durationInFrames={Math.round(VIDEO_FPS * quizDurationSeconds(3))}
       fps={VIDEO_FPS}
       width={VIDEO_WIDTH}

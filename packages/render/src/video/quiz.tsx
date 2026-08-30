@@ -65,6 +65,18 @@ export interface QuizQuestion {
   options?: string[];
   /** Index into `options` of the right one. */
   correctIndex?: number;
+  /**
+   * §306. One more line, after the answer has landed.
+   *
+   * "1728" is the answer; "Beccari separated wheat into starch and a stretchy
+   * residue" is the reason anyone remembers it. A quiz that only reveals the
+   * answer gives a viewer nothing to repeat, and repeating it is the whole
+   * reason a quiz gets shared.
+   *
+   * Arrives *after* the answer rather than with it, so the reveal is still a
+   * single beat and the fact is a second one.
+   */
+  aside?: string | null;
 }
 
 export interface QuizVideoProps {
@@ -341,21 +353,44 @@ const Reveal: React.FC<{
    * that is left to add is the citation, small and under it.
    */
   if (answerAlreadyShown) {
-    return item.source ? (
-      <div style={{ minHeight: 80, display: 'flex', alignItems: 'center', marginTop: 24 }}>
-        <span
-          style={{
-            fontSize: 26,
-            color: palette.dimmed,
-            opacity: Math.min(1, enter * 1.2),
-            ...face(type, 'body'),
-          }}
-        >
-          Source: {item.source}
-        </span>
+    return (
+      <div
+        style={{
+          minHeight: 120,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          gap: 12,
+          marginTop: 20,
+        }}
+      >
+        {item.aside ? (
+          <span
+            style={{
+              fontSize: 38,
+              lineHeight: 1.2,
+              color: palette.fg,
+              /* A beat behind the fill, so it reads as a second thought. */
+              opacity: Math.min(1, Math.max(0, enter * 1.6 - 0.6)),
+              ...face(type, 'body'),
+            }}
+          >
+            {item.aside}
+          </span>
+        ) : null}
+        {item.source ? (
+          <span
+            style={{
+              fontSize: 24,
+              color: palette.dimmed,
+              opacity: Math.min(1, enter * 1.2),
+              ...face(type, 'body'),
+            }}
+          >
+            {item.source}
+          </span>
+        ) : null}
       </div>
-    ) : (
-      <div style={{ minHeight: 80 }} />
     );
   }
 
@@ -381,17 +416,31 @@ const Reveal: React.FC<{
       >
         {item.answer}
       </span>
+      {item.aside ? (
+        <span
+          style={{
+            fontSize: 36,
+            marginTop: 20,
+            lineHeight: 1.2,
+            color: palette.fg,
+            opacity: Math.min(1, Math.max(0, enter * 1.6 - 0.6)),
+            ...face(type, 'body'),
+          }}
+        >
+          {item.aside}
+        </span>
+      ) : null}
       {item.source ? (
         <span
           style={{
-            fontSize: 26,
-            marginTop: 22,
+            fontSize: 24,
+            marginTop: 14,
             color: palette.dimmed,
             opacity: Math.min(1, Math.max(0, enter * 1.2 - 0.3)),
             ...face(type, 'body'),
           }}
         >
-          Source: {item.source}
+          {item.source}
         </span>
       ) : null}
     </div>

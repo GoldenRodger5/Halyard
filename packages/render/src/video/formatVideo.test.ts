@@ -37,14 +37,56 @@ describe('videoForFormat', () => {
     expect((out!.props.questions as unknown[])).toHaveLength(1);
   });
 
-  it('splits the answer from its clause', () => {
+  it('splits the answer from the clause that makes it worth repeating', () => {
     const out = videoForFormat('quiz', [
       slot('question', 0, 'What year was gluten identified?'),
       slot('answer', 0, '1728. Beccari separated it from wheat flour.'),
     ]);
-    const q = (out!.props.questions as Array<{ answer: string; source: string | null }>)[0]!;
+    const q = (out!.props.questions as Array<{ answer: string; aside: string | null; source: string | null }>)[0]!;
     expect(q.answer).toBe('1728');
-    expect(q.source).toContain('Beccari');
+    /*
+     * §306. The clause is a *fact*, not a citation. It was briefly written into
+     * `source`, so a genuinely interesting line rendered as
+     * "Source: Beccari separated it from wheat flour" — which is not a citation
+     * and reads as a mistake on screen.
+     */
+    expect(q.aside).toContain('Beccari');
+    expect(q.source).toBeNull();
+  });
+
+  it('narrates the answer as the reveal lands, never during the countdown', () => {
+    /*
+     * A narrator who answers while the countdown is running has removed the
+     * only thing the viewer was doing. The whole format depends on that pause.
+     */
+    const out = videoForFormat('quiz', [
+      slot('title', 0, 'Three questions'),
+      slot('question', 0, 'What year?'),
+      slot('answer', 0, '1728. Beccari separated it.'),
+    ]);
+    const lines = out!.narration;
+    const question = lines.find((l) => l.text === 'What year?')!;
+    const answer = lines.find((l) => l.text === '1728')!;
+    const aside = lines.find((l) => l.text.includes('Beccari'))!;
+
+    /* Question, then a gap at least as long as the countdown, then the answer. */
+    expect(answer.atSeconds - question.atSeconds).toBeGreaterThanOrEqual(3);
+    expect(aside.atSeconds).toBeGreaterThan(answer.atSeconds);
+  });
+
+  it('says the same words the screen shows', () => {
+    /*
+     * The point of deriving the read from the slots rather than the caption:
+     * the voice cannot say 1928 while the screen fills 1728.
+     */
+    const out = videoForFormat('quiz', [
+      slot('question', 0, 'What year?'),
+      slot('answer', 0, '1728'),
+    ]);
+    const spoken = out!.narration.map((l) => l.text);
+    const shown = (out!.props.questions as Array<{ question: string; answer: string }>)[0]!;
+    expect(spoken).toContain(shown.question);
+    expect(spoken).toContain(shown.answer);
   });
 
   it('keeps a one-clause answer whole rather than guessing at a split', () => {

@@ -53,7 +53,13 @@ import {
 // them. The worker has no use for a component tree.
 import { buildCaptionCues, durationInFrames } from '@halyard/render/timing';
 import { alignToScript } from '../captions.js';
-import { audioDuration, measureEdgeSilence, mixAudio } from '../audio.js';
+import {
+  assembleTimedNarration,
+  audioDuration,
+  measureEdgeSilence,
+  mixAudio,
+  narrationOverlaps,
+} from '../audio.js';
 import type { HandlerContext, Job } from '../poller.js';
 import { LibraryBedClient } from '../bed.js';
 import { resolveSfx } from '../sfx.js';
@@ -65,6 +71,8 @@ interface ItemRow {
   product_id: string;
   platform: string;
   vo_script: string | null;
+  /** §306. Timed lines, when the composition has beats. */
+  vo_lines: Array<{ atSeconds: number; text: string }> | null;
   audio_mode: string;
   format: string;
   /** Read so the audio verdict can be merged into the existing gate list. */
@@ -103,7 +111,7 @@ export async function ttsHandler(job: Job, ctx: HandlerContext, deps: TtsDeps = 
      * what the piece is. Left-joined: an item generated before concepts
      * existed has neither, and still needs a voiceover.
      */
-    `select ci.id, ci.product_id, ci.platform, ci.vo_script, ci.audio_mode, ci.format,
+    `select ci.id, ci.product_id, ci.platform, ci.vo_script, ci.vo_lines, ci.audio_mode, ci.format,
             ci.qc_results,
             ci.generation_meta -> 'creative' ->> 'type' as treatment,
             ci.account_id,
@@ -240,16 +248,65 @@ export async function ttsHandler(job: Job, ctx: HandlerContext, deps: TtsDeps = 
   const narrationPath = path.join(work, 'narration.mp3');
   const mixPath = path.join(work, 'mix.mp3');
 
+  const voiceSettings = {
+    /* §232. The directed performance, not the default one. */
+    stability: voice.stability,
+    similarityBoost: voice.similarityBoost,
+    ...(voice.voiceId ? { voiceId: voice.voiceId } : {}),
+  };
+
   try {
-    await writeFile(
-      narrationPath,
-      await speech.synthesize(script, {
-        /* §232. The directed performance, not the default one. */
-        stability: voice.stability,
-        similarityBoost: voice.similarityBoost,
-        ...(voice.voiceId ? { voiceId: voice.voiceId } : {}),
-      }),
-    );
+    /**
+     * §306. A read that lands on the beat, when the piece has beats.
+     *
+     * `vo_lines` carries each line with the second the composition puts its
+     * visual on screen. Reading the same words straight through would have the
+     * narrator answering during the quiz's three-second countdown — and that
+     * pause is the entire format, so a continuous read is not a lesser version
+     * of this, it is the format broken.
+     *
+     * Each line is synthesised on its own and placed with `adelay`. The
+     * character count is the same, so this costs what one call would have; it
+     * is more requests, not more money.
+     */
+    if (Array.isArray(item.vo_lines) && item.vo_lines.length > 0) {
+      const lines = item.vo_lines as Array<{ atSeconds: number; text: string }>;
+      const clips: Array<{ path: string; atSeconds: number }> = [];
+      const measured: Array<{ atSeconds: number; durationSeconds: number; text: string }> = [];
+
+      for (const [i, line] of lines.entries()) {
+        const clipPath = path.join(work, `line-${i}.mp3`);
+        await writeFile(
+          clipPath,
+          await speech.synthesize(normaliseForSpeech(line.text, lexicon), voiceSettings),
+        );
+        clips.push({ path: clipPath, atSeconds: line.atSeconds });
+        measured.push({
+          atSeconds: line.atSeconds,
+          durationSeconds: await audioDuration(clipPath),
+          text: line.text,
+        });
+      }
+
+      /*
+       * Overruns are reported, never silently shifted. Moving a line later
+       * would put the words out of step with the picture they were written
+       * for, which is the problem this path exists to solve. It is a signal to
+       * write a shorter sentence, so it is logged rather than thrown — the
+       * audio is still better than none, and the operator can see it.
+       */
+      const overlaps = narrationOverlaps(measured);
+      if (overlaps.length > 0) {
+        ctx.log('narration lines overrun their beat', {
+          contentItemId,
+          lines: overlaps.map((o) => `${o.overlapSeconds}s: ${o.text.slice(0, 60)}`),
+        });
+      }
+
+      await assembleTimedNarration(clips, narrationPath);
+    } else {
+      await writeFile(narrationPath, await speech.synthesize(script, voiceSettings));
+    }
     const narrationSeconds = await audioDuration(narrationPath);
 
     /**

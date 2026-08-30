@@ -1306,6 +1306,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
            * doing nothing.
            */
           let composition: { id: string; props: Record<string, unknown> } | null = null;
+          let formatNarration: Array<{ atSeconds: number; text: string }> | null = null;
           if (
             chosenFormat.format.id !== 'transformation' &&
             VIDEO_FORMATS.includes(chosenFormat.format.id)
@@ -1351,6 +1352,20 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
               });
             } else if (enabledTemplates.includes(built.compositionId)) {
               composition = { id: built.compositionId, props: built.props };
+              /*
+               * §306. The read comes from the same slots as the picture.
+               *
+               * Sending the caption to `writeVoScript` — the path every other
+               * video takes — would have the narrator talking about something
+               * other than what is on screen, because the caption is written
+               * for a feed and this is a quiz. Worse than silence.
+               *
+               * Written here rather than in the voiceover stage below, which
+               * runs `writeVoScript` unconditionally; `vo_lines` being present
+               * is what tells `tts` to place the lines rather than read a
+               * block of prose.
+               */
+              formatNarration = built.narration;
               ctx.log('video built from format', {
                 contentItemId,
                 format: chosenFormat.format.id,
@@ -1508,10 +1523,20 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
 
           await ctx.pool.query(
             `update content_items
-                set vo_script = $2, audio_mode = 'founder_cloned',
+                set vo_script = $2, vo_lines = $3, audio_mode = 'founder_cloned',
                     ai_components = array_append(ai_components, 'voiceover')
               where id = $1`,
-            [contentItemId, vo.script],
+            [
+              contentItemId,
+              /*
+               * §306. When the format wrote the read, that is the script. The
+               * prose version is kept as the plain text of the same lines so
+               * every consumer that reads `vo_script` — the gates, the lexicon
+               * check, the caption aligner — still has something true to read.
+               */
+              formatNarration ? formatNarration.map((l) => l.text).join(' ') : vo.script,
+              formatNarration ? JSON.stringify(formatNarration) : null,
+            ],
           );
 
           /**
