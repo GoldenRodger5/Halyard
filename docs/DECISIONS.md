@@ -9064,3 +9064,91 @@ a driver written from the source of `options.ts` rather than from the screen
 clicked nothing and reported success, because `if (await button.count())` treats
 a missing control as "not applicable". Absence must be an error in a driver, not
 a skip.
+
+## 65 · A section holds its own tools
+
+**Chosen.** Seven sidebar entries, and every tool lives inside the section it
+belongs to, shown only while you are standing in it. No "More".
+
+**Why.** §172 cut twenty-nine links to seven plus a collapsed More, and stopped
+half way — More still held twenty-one links, so the sidebar was a short list
+with a long list folded under it. Two things were wrong and neither was the
+count. Make, Create and Co-pilot were three destinations for one job, so
+choosing between them required knowing how Halyard is built. And a list you open
+to find a list is not progressive disclosure.
+
+Each section carries the question it answers, rendered rather than filed here. A
+section that cannot be written as one question is two sections, and writing the
+line is how that gets noticed.
+
+**Rejected.** Renaming the routes to match. `/studio` is still `/studio`,
+labelled *Concepts*: the label is what an operator reads and the URL is what a
+bookmark keeps.
+
+## 66 · An empty panel says which kind of empty it is
+
+**Chosen.** Every surface built for an unmeasured subsystem distinguishes
+"nothing has happened yet" from "it ran and found nothing", and names what has
+to happen first.
+
+**Why.** Gotcha 9 is about metrics; it turns out to be about screens. "0
+insights" beside a chart implies Halyard looked and found nothing. It has not
+looked, because nothing has published. The learning surface, the sound library
+and the concept scorer all hit the same wall within a day of each other.
+
+The sound library is the sharpest case: every bed is a test fixture, the guards
+correctly refuse all six for a post, so a real video comes out **silent** — and
+that fact appeared nowhere but a worker log. The screen now answers *0 of 6 beds
+may be used on a post* before anything else.
+
+## 67 · The account of a piece is collected, never narrated
+
+**Chosen.** `explainPiece` assembles why a piece came out as it did from the
+reasons each decision recorded. It cannot produce a sentence nobody logged.
+
+**Why.** The obvious build is a model that reads the finished video and writes a
+paragraph — and it would infer the reasons. It sees a photograph of bread and a
+stacked-bar layout and writes confidently about why those were chosen, and the
+sentence is a guess. Every director already returns a `reason`; the explanation
+needed collecting, not writing.
+
+Where the record is silent it says so, because a decision that recorded nothing
+is a hole in the pipeline's accounting rather than in the reading of it. Two
+were found and closed the day it shipped.
+
+**Rejected.** Treating an operator's wizard override as a rationale. "It is the
+rail layout because you asked for the rail layout" explains nothing Halyard did,
+and reporting it as one lets a preference launder itself into a reason.
+
+## 68 · The screenplay wins, and the disagreement survives
+
+**Chosen.** `honour()` — a director's own judgement runs, the screenplay's
+staging is used, and the difference is recorded.
+
+**Why.** Simply using what the screenplay says discards the director silently,
+and the director knows things the screenplay cannot: the ground's measured
+luminance, the account's recent treatments, what the last four pieces looked
+like. Simply letting the director win makes the screenplay a document about a
+video nobody made.
+
+Same bargain the Studio already strikes with a pinned direction. The director
+still runs, because the objection is the valuable part — one that would refuse a
+slow push on a two-second scene is telling you the screenplay is wrong.
+
+## 69 · An operator's request names the component, not just the words
+
+**Chosen.** Named adjustments carrying a component and an action, alongside free
+text.
+
+**Why.** "The picture is wrong" reached the copywriter as `regenNote`, rewrote
+the words, and the picture came back identical. A button is not a shorter way of
+typing: it carries which part to rebuild, which free text cannot — a model
+reading "make it slower" has to infer scene timings versus voice versus cuts,
+and will sometimes rewrite something that was fine.
+
+Free text still travels, because only a sentence carries the *reason*, and the
+reason is what makes the second attempt different from another roll of the dice.
+
+An operator request is not a defect. Nothing failed; a person wanted it
+different. A fabricated defect would enter the history the regression check reads
+and be protected forever afterwards.

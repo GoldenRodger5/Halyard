@@ -1311,3 +1311,64 @@ file at a time, treating "already exists" as already applied. It brought this
 machine forward 39 migrations, including `job_events`, `capture_credentials`
 and the Quiz/Walkthrough/Narrative template rows — without which the quiz
 composition cannot render at all.
+
+## 2026-08-30 (overnight) — the UI redone, and eight subsystems wired to it
+
+### The navigation
+
+Seven sections, each holding its own tools as tabs (§361). No "More": §172's
+collapsed list had grown back to twenty-one links, and three of the seven
+primary destinations — Make, Create, Co-pilot — were one job. Every route is
+unchanged and the frozen baseline test still passes. `sectionFor` resolves a
+drill-down to its parent, so `/settings/readiness` highlights Setup rather than
+Home.
+
+### Screens that could not be read
+
+| Screen | Was | Now | What was wrong |
+|---|---|---|---|
+| Review (queue) | 25,000px | 4,519px | A full card per item; triage and inspection are different jobs |
+| Accounts | 8,084px | 3,184px | Reference material inline, a card per unconnected platform, a breakdown open on accounts that never worked |
+
+Neither lost anything. `/queue/[id]` already rendered the full card in 587 lines
+nobody had a reason to visit; `/accounts/platforms` holds the capability matrix.
+
+### Backend that had no window
+
+A sweep found seventeen tables the web app never reads. Four were live:
+
+- **Sound** (§363) — every bed is a test fixture, so every video comes out
+  silent, and that appeared nowhere but a worker log.
+- **Learned** (§364) — `learned_insights`, `strategy_decisions` and
+  `account_intelligence`, all steering what gets made, none with a screen.
+- **`failed_because`** (§362) — written by `generate.ts` since forever, read by
+  nothing. Every failed piece showed a red badge and no reason.
+- **`reject_reason`** — used to train the voice, never shown to the person who
+  wrote it.
+
+### Features
+
+- §365 `whatNeedsMe` — Home answers one question instead of presenting nine
+- §366 a batch of eleven concepts all scoring 4.50 is a tie, not a ranking
+- §367 run events carry their stage, so the run view is agent lanes
+- §369 `explainPiece` — why a piece came out this way, collected not narrated
+- §370 the caption is written *after* the piece, and is given it
+- §371 `honour()` — directors read the screenplay and disagree out loud
+- §372 `stagePiece` — screenplays are produced during generation and persisted
+- §373 named adjustments — an operator says which part to rebuild
+- §374 gate names are a list, so their column can be checked
+
+### Still blocked
+
+**Both model providers are out of credits.** Anthropic returns *credit balance
+is too low*; OpenAI returns *429 no credits remaining*. Nothing generates. Every
+change above is verified by test, by typecheck, and by rendering the real UI
+against real data — none of it by a live generation.
+
+### Standing risks, updated
+
+- `generate.ts` is 3,135 lines. §372 went into its own module rather than into
+  it, which is the pattern the rest of the decomposition should follow.
+- `videoForFormat` still builds from slots rather than from screenplay scenes.
+  That is the last hop of the screenplay work and a real change to the
+  composition builders.
