@@ -390,36 +390,76 @@ export function MakeClient({
           <div className="space-y-5">
             {formatOptions.map((option) => {
               const chosen = options[option.key] ?? 'auto';
-              const preview = option.choices.find((c) => c.value === chosen)?.preview;
+              const pick = (value: string) =>
+                setOptions((prev) => ({ ...prev, [option.key]: value }));
+              /*
+                An option whose choices are *looks* is shown as a gallery, not
+                as chips with one diagram underneath. The first version put the
+                diagram below the row, so `auto` — the default, and therefore
+                what everyone sees first — showed nothing at all, and choosing
+                between five treatments meant clicking each one to find out what
+                it was. The whole reason the diagrams exist is to be compared.
+              */
+              const visual = option.choices.some((c) => c.preview);
               return (
                 <div key={option.key}>
                   <p className="text-sm">{option.label}</p>
                   <p className="mb-2 text-xs text-muted">{option.help}</p>
-                  <div className="flex flex-wrap gap-2">
-                    {option.choices.map((choice) => (
-                      <button
-                        key={choice.value}
-                        type="button"
-                        onClick={() =>
-                          setOptions((prev) => ({ ...prev, [option.key]: choice.value }))
-                        }
-                        aria-pressed={chosen === choice.value}
-                        title={choice.help}
-                        className={chip(chosen === choice.value, true)}
-                      >
-                        {choice.label}
-                      </button>
-                    ))}
-                  </div>
-                  {/*
-                    The diagram for whatever is selected. "grid" and "rail" mean
-                    nothing until seen, and an operator should not have to
-                    render a video to find out.
-                  */}
-                  {preview ? (
-                    <pre className="mt-2 w-fit rounded-lg border border-line bg-sunk px-3 py-2 text-[11px] leading-tight text-muted">
-                      {preview}
-                    </pre>
+                  {visual ? (
+                    <div className="flex flex-wrap items-stretch gap-2">
+                      {option.choices.map((choice) => (
+                        <button
+                          key={choice.value}
+                          type="button"
+                          onClick={() => pick(choice.value)}
+                          aria-pressed={chosen === choice.value}
+                          title={choice.help}
+                          className={`flex flex-col items-center gap-1.5 rounded-lg border px-3 py-2 transition ${
+                            chosen === choice.value
+                              ? 'border-primary bg-primary/10'
+                              : 'border-line hover:border-primary'
+                          }`}
+                        >
+                          {choice.preview ? (
+                            <pre className="text-[10px] leading-tight text-muted">
+                              {choice.preview}
+                            </pre>
+                          ) : (
+                            /*
+                              Auto has no single look, and saying so is more
+                              honest than drawing one of the five and implying
+                              it is what you will get.
+                            */
+                            <span className="flex h-[4.5rem] w-[8.5rem] items-center justify-center text-center text-[10px] leading-tight text-muted">
+                              varies across
+                              <br />
+                              the piece
+                            </span>
+                          )}
+                          <span className="text-xs">{choice.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {option.choices.map((choice) => (
+                        <button
+                          key={choice.value}
+                          type="button"
+                          onClick={() => pick(choice.value)}
+                          aria-pressed={chosen === choice.value}
+                          title={choice.help}
+                          className={chip(chosen === choice.value, true)}
+                        >
+                          {choice.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {option.choices.find((c) => c.value === chosen)?.help ? (
+                    <p className="mt-1.5 text-xs text-muted">
+                      {option.choices.find((c) => c.value === chosen)!.help}
+                    </p>
                   ) : null}
                 </div>
               );
