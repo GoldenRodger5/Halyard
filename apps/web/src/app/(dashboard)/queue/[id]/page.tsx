@@ -18,6 +18,7 @@ import {
   type PlatformId,
 } from '@halyard/core';
 import { AssetPicker } from '@/components/AssetPicker';
+import { PieceAccountPanel } from '@/components/PieceAccountPanel';
 import { ManualPublish } from '@/components/ManualPublish';
 import {
   getItemArtifact,
@@ -424,6 +425,9 @@ export default async function QueueItemPage({ params }: { params: Promise<{ id: 
               </p>
             </Card>
           ) : null}
+
+          {/* §369. The account of the piece, beside the gates that judged it. */}
+          <PieceAccountPanel contentItemId={id} />
 
           <Card className="p-4">
             <SectionTitle>QC</SectionTitle>

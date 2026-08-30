@@ -2775,6 +2775,17 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
             refusedBy: err.problems
               .filter((p) => p.severity === 'error')
               .map((p) => `${p.rule}${p.slot ? ` (${p.slot})` : ''}`),
+            /*
+             * §369. The reason, in a sentence. `refusedBy` names the rules,
+             * which is what a developer needs; `because` says what actually
+             * went wrong, which is what the account of the piece shows an
+             * operator.
+             */
+            because:
+              `The format was refused after ${err.attempts} ` +
+              `${err.attempts === 1 ? 'attempt' : 'attempts'}. ` +
+              (err.problems.find((p) => p.severity === 'error')?.message ??
+                'No error was recorded, which is itself a gap.'),
           });
           continue;
         }
