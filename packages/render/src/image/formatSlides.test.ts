@@ -129,15 +129,51 @@ describe('a format becomes slides', () => {
     expect(slides[0]!.headline).toContain('1728');
   });
 
-  it('can render every format the catalogue declares', async () => {
+  it('can render every format on every channel it claims', async () => {
     /*
-     * The two lists are the same set written twice — exactly the shape of
-     * gotcha 1. This is the test that catches a format added to one and not
-     * the other.
+     * §318. Per channel, not globally.
+     *
+     * This used to require a *slide* builder for every format in the
+     * catalogue, which was right when carousels were the only renderer and
+     * became wrong twice over. It passed while `quiz`, `history`, `tips`,
+     * `myth_fact` and `origin` all declared `short_video` with no video
+     * builder at all — the gap §304 and §308 fixed — because they happened to
+     * have slide builders. And it fails on `walkthrough`, which is short-video
+     * only and for which a slide builder would be meaningless.
+     *
+     * A format that names a channel is promising it can be made for that
+     * channel. This checks the promise it actually made.
      */
-    const { POST_FORMATS } = await import('@halyard/core');
+    const { POST_FORMATS, POST_FORMAT_CATALOG } = await import('@halyard/core');
+    const { VIDEO_FORMATS } = await import('../video/formatVideo.js');
+
+    /*
+     * §318. The one format rendered from the artifact rather than from slots.
+     *
+     * `transformation` *is* the product demonstration: `chooseVideoComposition`
+     * builds it from the artifact's own swaps, and that path predates the
+     * format family and is proven. It has a video renderer — a different one —
+     * so it is named here rather than the check being loosened for everybody.
+     */
+    const ARTIFACT_RENDERED: string[] = ['transformation'];
+
     for (const id of POST_FORMATS) {
-      expect(RENDERABLE_FORMATS, `${id} is in the catalogue with no renderer`).toContain(id);
+      const format = POST_FORMAT_CATALOG[id];
+      const wantsSlides = format.channels.some((c) => c === 'carousel' || c === 'story');
+      const wantsVideo = format.channels.some((c) => c === 'short_video' || c === 'long_video');
+
+      if (wantsSlides) {
+        expect(
+          RENDERABLE_FORMATS,
+          `${id} claims a slide channel (${format.channels.join(', ')}) and has no slide builder`,
+        ).toContain(id);
+      }
+      if (wantsVideo && !ARTIFACT_RENDERED.includes(id)) {
+        expect(
+          VIDEO_FORMATS,
+          `${id} claims a video channel (${format.channels.join(', ')}) and has no video builder`,
+        ).toContain(id);
+      }
     }
   });
 });

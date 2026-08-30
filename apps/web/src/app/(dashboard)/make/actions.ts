@@ -33,6 +33,8 @@ export async function makePiece(formData: FormData): Promise<MakeResult> {
   const platform = String(formData.get('platform') ?? '').trim();
   const postFormat = String(formData.get('postFormat') ?? '').trim();
   const subject = String(formData.get('subject') ?? '').trim();
+  /* §318. Which product flow to record, for a capture-backed format. */
+  const flowId = String(formData.get('flowId') ?? '').trim();
 
   if (!platform) return { ok: false, message: 'Pick a platform first.' };
 
@@ -55,6 +57,38 @@ export async function makePiece(formData: FormData): Promise<MakeResult> {
     }
   }
 
+  /**
+   * §318. A capture-backed format records first, then writes.
+   *
+   * The recording is the piece's content, so generating before it exists would
+   * produce a walkthrough with nothing to walk through. The capture job runs
+   * the flow against the live product signed in to the test account, and the
+   * generate job is queued behind it at a lower priority so the poller takes
+   * them in that order.
+   *
+   * The flow is required rather than defaulted. "Record something" is not a
+   * request anybody can fill, and a default would quietly make a video of the
+   * wrong screen — which is exactly the class of mistake this page's buttons
+   * exist to prevent.
+   */
+  let captureJobId: string | undefined;
+  const format = postFormat ? formatById(postFormat) : null;
+  if (format?.needsCapture) {
+    if (!flowId) {
+      return {
+        ok: false,
+        message: `${format.name} is built from a recording, so it needs to know which part of the app to record.`,
+      };
+    }
+    const capture = await query<{ id: string }>(
+      `insert into jobs (kind, payload, status, priority)
+       values ('capture', $1::jsonb, 'queued', 4)
+       returning id`,
+      [JSON.stringify({ productId, flowId })],
+    );
+    captureJobId = capture[0]?.id;
+  }
+
   /*
    * Calibration mode, deliberately. Ordinary generation is gated until an
    * operator has rated twenty drafts (§260), and a button that silently did
@@ -72,6 +106,8 @@ export async function makePiece(formData: FormData): Promise<MakeResult> {
         onlyPlatform: platform,
         ...(postFormat ? { postFormat } : {}),
         ...(subject ? { subject } : {}),
+        /* §318. Which recording this piece is about, for a capture-backed format. */
+        ...(flowId ? { flowId } : {}),
       }),
     ],
   );
@@ -79,10 +115,13 @@ export async function makePiece(formData: FormData): Promise<MakeResult> {
   revalidatePath('/make');
   revalidatePath('/queue');
 
-  const shape = postFormat ? formatById(postFormat)?.name ?? postFormat : 'a shape it chooses';
+  const shape = format?.name ?? postFormat ?? 'a shape it chooses';
   return {
     ok: true,
     jobId: rows[0]?.id,
-    message: `Making ${shape} for ${platform}. It appears in the queue when the render finishes.`,
+    message: captureJobId
+      ? `Recording ${flowId} against the live product, then making ${shape} for ${platform}. ` +
+        'A capture takes a couple of minutes; it appears in the queue when the render finishes.'
+      : `Making ${shape} for ${platform}. It appears in the queue when the render finishes.`,
   };
 }

@@ -318,6 +318,40 @@ const BUILDERS: Record<string, (slots: SlotValue[]) => FormatVideo | null> = {
     ]);
   },
 
+  /**
+   * §318. The product being used, with the words as a frame around it.
+   *
+   * `props.screenSrc` and `props.callouts` are filled by the worker from the
+   * capture (§303) — this cannot know what was recorded, and inventing a
+   * `screenSrc` here would produce a composition confidently referencing
+   * footage that does not exist.
+   *
+   * The read is short by design. The recording is the claim; a narrator
+   * explaining a demonstration that already speaks for itself is the thing
+   * that makes a product video feel like an ad.
+   */
+  walkthrough(slots) {
+    const title = pick(slots, 'title');
+    if (!title) return null;
+
+    const why = pick(slots, 'why');
+    const close = pick(slots, 'close');
+
+    const narration: NarrationLine[] = [{ atSeconds: 0.4, text: title }];
+    if (why) narration.push({ atSeconds: 0.4 + spokenSeconds(title) + 0.4, text: why });
+
+    return {
+      compositionId: 'Walkthrough',
+      props: { headline: title },
+      /*
+       * The close is placed by the worker, which is the only thing that knows
+       * how long the footage runs — a sign-off at a guessed second lands in the
+       * middle of the demonstration.
+       */
+      narration: close ? [...narration, { atSeconds: -1, text: close }] : narration,
+    };
+  },
+
   /** Where a thing came from, what changed, where it is now. */
   origin(slots) {
     const source = pick(slots, 'source');

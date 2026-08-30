@@ -35,6 +35,15 @@ export type Component =
   | 'creative_plan'
   | 'caption_style'
   | 'composition'
+  /**
+   * §318. The rendered file itself, as distinct from the plan that produced it.
+   *
+   * A silent audio track and a video sized for the wrong number of questions
+   * are not defects in the copy, the plan or the caption style — the writing
+   * was fine and the file is wrong. There was no component for that, because
+   * until §317 nothing checked the file.
+   */
+  | 'render'
   /** Not a component of the artifact — a statement that the artifact is not the problem. */
   | 'evidence'
   | 'measurement';

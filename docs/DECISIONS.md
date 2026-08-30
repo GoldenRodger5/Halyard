@@ -8367,3 +8367,64 @@ different drafts for one piece, and on an Instagram account both branches can
 run. The draft is written once now, above both, which is also what makes the
 picture possible: the content has to exist before anything can be a picture of
 it.
+
+## 317. A person was the only thing checking the videos
+
+Every defect found on 2026-08-29 was found by rendering a file and looking at
+it, or playing it and hearing nothing. None tripped a gate, and none could
+have: `runVisualQC` asks about **frames** — aspect ratio, resolution, safe area,
+contrast — and all three defects were properties of the **piece**.
+
+`runMediaIntegrity` checks the three, and every case in its test is a real one
+with its measured numbers:
+
+- the quiz that ended on "Question 3 of 4" — 23.4s of file for 30.6s of content;
+- four rendered files carrying a **-91 dB** audio track;
+- the aside still being spoken 1.9s into the next question.
+
+All arithmetic. None needs a model.
+
+**A silent stream is treated as worse than no stream.** Every player shows an
+audio track for it and plays nothing, so the failure looks like the viewer's
+problem rather than ours — which is exactly how it went unnoticed until an
+operator said they could not hear anything.
+
+**The critic gets the questions no arithmetic can answer**: whether the
+photograph has anything to do with the words, and whether it is generic enough
+to have illustrated any post on the account. §313's bug produced a frame that
+was well-composed, legible, correctly sized and about the wrong thing — every
+deterministic check passes that frame. Prompt version bumped to v2 rather than
+edited, so v1 findings are not compared against a reviewer that was never asked.
+
+**A gate needs a correction policy or it is a dead end.** `policyCoverage`
+caught seven new rules with no entries — after I had already committed and
+deployed, which was the second time that day I shipped on a red suite.
+
+## 318. From "I want a walkthrough" to a walkthrough
+
+§298 built the composition — a drawn phone, a real recording inside, rings on
+the taps. Nothing could ask for one. There was no format, so no operator button,
+no planner entry, and no path from wanting one to having one.
+
+`walkthrough` is a format with `needsCapture`, which is a different thing from
+`needsArtifact`: an artifact is a *result* the product produced and can be
+written from; a capture is **a recording of somebody using the software**, and
+no amount of writing substitutes for it. Choosing it on the Make page reveals a
+flow picker — buttons, so an operator cannot ask for a flow that does not exist
+— and queues the capture ahead of the generate.
+
+**The flow is required, never defaulted.** "Record something" is not a request
+anybody can fill, and a default would quietly make a video of the wrong screen.
+
+**No footage means no piece.** A walkthrough rendered with an empty screen is a
+drawn phone showing nothing, which reads as the product failing to load — worse
+than refusing.
+
+**The coverage test was wrong in a way that hid two gaps.** It required a
+*slide* builder for every format, which passed while five formats declared
+`short_video` with no video builder at all — they happened to have slide
+builders. Now it checks each format against the channels it actually claims,
+and that immediately found two more unkept claims: `recipe` and `comparison`
+both declared `long_video` with nothing able to render one. Both channels were
+removed rather than filled with the short-form composition, which would produce
+a twenty-second video for a slot asking for eight minutes.

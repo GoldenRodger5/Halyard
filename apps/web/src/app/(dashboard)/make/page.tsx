@@ -9,6 +9,7 @@
 import {
   POST_FORMATS,
   POST_FORMAT_CATALOG,
+  allFlows,
   platformsForFormat,
   requiresCitation,
 } from '@halyard/core';
@@ -38,8 +39,23 @@ export default async function MakePage() {
       platforms: platformsForFormat(f.id),
       needsArtifact: f.needsArtifact,
       needsCitation: requiresCitation(f),
+      /* §318. Whether this shape asks which part of the app to record. */
+      needsCapture: f.needsCapture === true,
     };
   });
+
+  /**
+   * §318. The flows an operator can ask to have recorded.
+   *
+   * Only the ones that start a session of their own. A flow with `dependsOn`
+   * acts on a result another flow produced and is captured as part of its
+   * chain, so offering it as a choice would be offering something that cannot
+   * be run — and `plumbing` flows are sign-in and setup, which nobody wants a
+   * video of.
+   */
+  const flows = allFlows()
+    .filter((f) => !f.dependsOn && !f.plumbing)
+    .map((f) => ({ id: f.id, title: f.title, why: f.why }));
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-10">
@@ -48,7 +64,7 @@ export default async function MakePage() {
         Pick where it goes and what shape it is. Everything after that is the same pipeline the
         scheduler runs.
       </p>
-      <MakeClient productId={productId} formats={formats} connected={connected} />
+      <MakeClient productId={productId} formats={formats} flows={flows} connected={connected} />
     </main>
   );
 }

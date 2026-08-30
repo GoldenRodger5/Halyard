@@ -23,6 +23,21 @@ export interface MakeFormat {
   platforms: string[];
   needsArtifact: boolean;
   needsCitation: boolean;
+  /** §318. Built around a recording, so it asks which flow to record. */
+  needsCapture: boolean;
+}
+
+/**
+ * §318. The flows a walkthrough can be built from.
+ *
+ * Buttons, not a text box. An operator choosing "cook mode" from two options
+ * cannot ask for a flow that does not exist, and the system never has to guess
+ * what they meant — which is the whole reason this page is buttons.
+ */
+export interface MakeFlow {
+  id: string;
+  title: string;
+  why: string;
 }
 
 const PLATFORMS: Array<{ id: string; label: string }> = [
@@ -37,16 +52,20 @@ const PLATFORMS: Array<{ id: string; label: string }> = [
 export function MakeClient({
   productId,
   formats,
+  flows,
   connected,
 }: {
   productId: string;
   formats: MakeFormat[];
+  /** §318. Recordable product flows, for the formats built around one. */
+  flows: MakeFlow[];
   /** Platforms with a usable account, so a dead one is visibly dead. */
   connected: Record<string, string>;
 }) {
   const [platform, setPlatform] = useState<string | null>(null);
   const [format, setFormat] = useState<string | null>(null);
   const [subject, setSubject] = useState('');
+  const [flowId, setFlowId] = useState<string | null>(null);
   const [result, setResult] = useState<MakeResult | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -58,6 +77,8 @@ export function MakeClient({
     data.set('platform', platform ?? '');
     data.set('postFormat', format ?? '');
     data.set('subject', subject);
+    /* §318. Only meaningful for a capture-backed format; ignored otherwise. */
+    data.set('flowId', flowId ?? '');
     startTransition(async () => setResult(await makePiece(data)));
   };
 
@@ -122,7 +143,15 @@ export function MakeClient({
               key={f.id}
               type="button"
               disabled={!carries(f)}
-              onClick={() => setFormat(f.id === format ? null : f.id)}
+              onClick={() => {
+                const next = f.id === format ? null : f.id;
+                setFormat(next);
+                /*
+                 * A flow chosen for a walkthrough is meaningless on a quiz, and
+                 * leaving it set would submit it silently.
+                 */
+                if (!next || !formats.find((x) => x.id === next)?.needsCapture) setFlowId(null);
+              }}
               aria-pressed={format === f.id}
               title={
                 carries(f)
@@ -160,9 +189,45 @@ export function MakeClient({
         )}
       </section>
 
+      {/*
+        §318. Only for a format built around a recording. It appears rather than
+        greying out, because a flow picker on a quiz is not a disabled choice —
+        it is a question that does not apply.
+      */}
+      {formats.find((f) => f.id === format)?.needsCapture ? (
+        <section>
+          <h2 className="mb-2 text-xs uppercase tracking-[0.1em] text-muted">
+            3 · Which part of the app
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {flows.map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                onClick={() => setFlowId(f.id === flowId ? null : f.id)}
+                aria-pressed={flowId === f.id}
+                title={f.why}
+                className={`rounded-lg border px-3.5 py-2 text-sm transition ${
+                  flowId === f.id
+                    ? 'border-primary bg-primary text-paper'
+                    : 'border-line hover:border-primary'
+                }`}
+              >
+                {f.title}
+              </button>
+            ))}
+          </div>
+          <p className="mt-2 text-xs text-muted">
+            Halyard records this flow against the live product, signed in to the test account,
+            and builds the video from the recording. Nothing is drawn or simulated.
+          </p>
+        </section>
+      ) : null}
+
       <section>
         <h2 className="mb-2 text-xs uppercase tracking-[0.1em] text-muted">
-          3 · About what <span className="normal-case tracking-normal">(optional)</span>
+          {formats.find((f) => f.id === format)?.needsCapture ? '4' : '3'} · About what{' '}
+          <span className="normal-case tracking-normal">(optional)</span>
         </h2>
         <input
           value={subject}

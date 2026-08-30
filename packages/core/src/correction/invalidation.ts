@@ -71,6 +71,17 @@ const INVALIDATES: Record<Component, GateName[]> = {
   composition: ['visual', 'coherence', 'retention'],
 
   /**
+   * §318. Re-rendering the file re-runs everything measured *on* the file.
+   *
+   * A new render can change its own duration, its audio and every frame, so
+   * every gate that reads the media is reachable. It cannot change the copy or
+   * the claims — those are inputs to the render, not outputs of it — which is
+   * the whole reason this is a component of its own rather than folded into
+   * `composition`.
+   */
+  render: ['visual', 'audio', 'coherence', 'retention'],
+
+  /**
    * Evidence is not part of the artifact, but a claim is checked against it, so
    * new evidence can change a claims verdict without a word changing.
    */

@@ -1411,7 +1411,44 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                 aspect: renderAspect,
               });
             } else if (enabledTemplates.includes(built.compositionId)) {
-              composition = { id: built.compositionId, props: built.props };
+              /**
+               * §318. A walkthrough gets the recording the operator asked for.
+               *
+               * `videoForFormat` cannot know what was captured — inventing a
+               * `screenSrc` there would produce a composition confidently
+               * referencing footage that does not exist. So the props it
+               * returns are the words, and the footage is attached here, from
+               * the capture run this piece was queued behind.
+               *
+               * No footage means no piece. Rendering a walkthrough with an
+               * empty screen is a video of a drawn phone showing nothing,
+               * which is worse than refusing: it looks like the product
+               * failed to load.
+               */
+              let props = built.props;
+              if (chosenFormat.format.needsCapture) {
+                const flowId = String(job.payload.flowId ?? 'adapt_and_reveal');
+                const { rows: footage } = await ctx.pool.query<{ tag: string }>(
+                  `select t as tag
+                     from assets a, unnest(a.tags) t
+                    where 'capture_cut' = any(a.tags) and t like 'capture/%'
+                      and t like '%' || $1 || '%'
+                    order by a.created_at desc
+                    limit 1`,
+                  [flowId],
+                );
+                const file = footage[0]?.tag;
+                if (!file) {
+                  throw new Error(
+                    `${chosenFormat.format.id} needs footage of ${flowId} and none is stored. ` +
+                      'Run a capture for that flow first; a walkthrough with an empty screen ' +
+                      'looks like the product failed to load.',
+                  );
+                }
+                props = { ...props, screenSrc: file, flowId };
+                ctx.log('walkthrough footage attached', { contentItemId, flowId, file });
+              }
+              composition = { id: built.compositionId, props };
               /*
                * §306. The read comes from the same slots as the picture.
                *

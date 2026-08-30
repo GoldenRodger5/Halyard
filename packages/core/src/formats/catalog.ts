@@ -53,6 +53,8 @@ export const POST_FORMATS = [
   'comparison',
   'origin',
   'transformation',
+  /* §318. Built around a recording rather than around writing. */
+  'walkthrough',
   'poll',
   'behind',
 ] as const;
@@ -108,6 +110,20 @@ export interface PostFormat {
    * keeps an account posting.
    */
   needsArtifact: boolean;
+  /**
+   * §318. Whether this format is built around a recording of the product.
+   *
+   * Different from `needsArtifact`. An artifact is a *result* the product
+   * produced — an adapted recipe — and a format that needs one can be written
+   * from it without anybody watching. A capture is a **recording of somebody
+   * using the software**, and no amount of writing substitutes for it: this is
+   * the one format family where the footage is the claim.
+   *
+   * Declared here so the Make page can offer it and the generator knows to
+   * check for fresh footage before it starts, rather than discovering halfway
+   * through that there is nothing to render into.
+   */
+  needsCapture?: boolean;
   /** Roughly, for a vertical video. Carousels ignore it. */
   targetSeconds: number;
 }
@@ -180,7 +196,19 @@ export const POST_FORMAT_CATALOG: Record<PostFormatId, PostFormat> = {
     intent: 'Picture, ingredients, steps. The thing people came for, and the most saved.',
     pillar: 'teach',
     factuality: 'product',
-    channels: ['carousel', 'long_video'],
+    /*
+     * §318. Carousel only, for now.
+     *
+     * It declared `long_video` and nothing could render one — a full recipe
+     * read aloud is a four-to-ten minute piece and no composition exists for
+     * that shape. `formatSlides.test.ts` now checks each format against the
+     * channels it *claims*, and this was the claim that was not kept.
+     *
+     * Removed rather than papered over with the short-form composition, which
+     * would have produced a twenty-second video for a slot asking for eight
+     * minutes. It comes back when there is something to render it into.
+     */
+    channels: ['carousel'],
     needsArtifact: true,
     targetSeconds: 45,
     slots: [
@@ -214,7 +242,12 @@ export const POST_FORMAT_CATALOG: Record<PostFormatId, PostFormat> = {
     intent: 'Two options, side by side, with the tradeoff named.',
     pillar: 'teach',
     factuality: 'craft',
-    channels: ['text_post', 'carousel', 'long_video'],
+    /*
+     * §318. Same as `recipe`: `long_video` was a claim nothing could keep. A
+     * comparison is a strong long-form shape and there is no composition for
+     * one, so the channel comes back with the composition rather than before.
+     */
+    channels: ['text_post', 'carousel'],
     needsArtifact: false,
     targetSeconds: 30,
     slots: [
@@ -284,6 +317,41 @@ export const POST_FORMAT_CATALOG: Record<PostFormatId, PostFormat> = {
     slots: [
       { key: 'moment', brief: 'What is happening, said plainly. No setup.', maxWords: 14 },
       { key: 'aside', brief: 'The honest remark a person would actually make.', maxWords: 18 },
+    ],
+  },
+
+  /**
+   * §318. The product, in a phone, with the thing being explained pointed at.
+   *
+   * Spec §12 asked for "animated UI demonstrations" and §298 built the
+   * composition for it — a drawn phone, a real screen recording inside, rings
+   * on the taps. Nothing could ever ask for one: there was no format, so no
+   * operator button, no planner entry, and no path from "I want a walkthrough"
+   * to a video.
+   *
+   * The slots are short on purpose. A walkthrough's content is the recording;
+   * the words are a frame around it, and a format that asked for five
+   * paragraphs would produce a narrator talking over a demonstration that
+   * already speaks for itself.
+   */
+  walkthrough: {
+    id: 'walkthrough',
+    name: 'Walkthrough',
+    intent: 'A screen recording of the product being used, with the important moments pointed at.',
+    pillar: 'demonstrate',
+    factuality: 'product',
+    channels: ['short_video'],
+    needsArtifact: false,
+    needsCapture: true,
+    targetSeconds: 25,
+    slots: [
+      { key: 'title', brief: 'What is about to happen, in the viewer’s words.', maxWords: 10 },
+      {
+        key: 'why',
+        brief: 'Why anybody would want this. One line, no feature list.',
+        maxWords: 16,
+      },
+      { key: 'close', brief: 'What to do next. No hard sell.', maxWords: 10 },
     ],
   },
 
