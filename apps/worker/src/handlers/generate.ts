@@ -1565,7 +1565,17 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                 props = { ...props, screenSrc: file, flowId };
                 ctx.log('walkthrough footage attached', { contentItemId, flowId, file });
               }
-              composition = { id: built.compositionId, props };
+              /*
+               * §358. An operator's look, passed to the composition. Absent
+               * means `chooseQuizTemplate` runs, which varies the treatment
+               * across a piece so two questions never look alike — the reason
+               * auto is the default rather than a placeholder.
+               */
+              const look = (job.payload.options as Record<string, string> | undefined)?.template;
+              composition = {
+                id: built.compositionId,
+                props: look && look !== 'auto' ? { ...props, forceTemplate: look } : props,
+              };
               /*
                * §306. The read comes from the same slots as the picture.
                *
@@ -1645,13 +1655,29 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
            * voice stage whenever its own conditions happened to pass, spending
            * a synthesis on audio nothing would ever play.
            */
-          const wantsVoice = production.stages.some((stage) => stage.stage === 'voice');
+          /**
+           * §358. The operator's choice, above the plan's.
+           *
+           * `planProduction` decides whether a *kind of piece* has a voice; an
+           * operator deciding this one should not is a different question, and
+           * a silent caption-led cut is a real style rather than a broken
+           * video. An absent override means auto, which is the plan.
+           */
+          const overrides = (job.payload.options ?? {}) as Record<string, string>;
+          const wantsVoice =
+            overrides.voice === 'off'
+              ? false
+              : overrides.voice === 'on'
+                ? true
+                : production.stages.some((stage) => stage.stage === 'voice');
           if (!wantsVoice) {
             ctx.log('voice skipped', {
               contentItemId,
               because:
-                production.skipped.find((stage) => stage.stage === 'voice')?.because ??
-                'this production has no voice stage',
+                overrides.voice === 'off'
+                  ? 'the operator asked for a silent, caption-led cut'
+                  : (production.skipped.find((stage) => stage.stage === 'voice')?.because ??
+                    'this production has no voice stage'),
             });
           }
 

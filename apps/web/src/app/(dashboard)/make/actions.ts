@@ -47,6 +47,20 @@ export async function makePiece(formData: FormData): Promise<MakeResult> {
   if (single && platforms.length === 0) platforms.push(single);
   const postType = String(formData.get('postType') ?? '').trim();
   const together = String(formData.get('together') ?? '') === '1';
+  /**
+   * §358. The operator's overrides, if any.
+   *
+   * Only what was actually chosen: an option left on auto is absent, so the
+   * pipeline's own decision runs rather than being handed a value that happens
+   * to match it — which would read as a choice in the log and be indistinguish-
+   * able from one.
+   */
+  const options: Record<string, string> = {};
+  for (const [key, value] of formData.entries()) {
+    if (key.startsWith('option.') && typeof value === 'string' && value) {
+      options[key.slice('option.'.length)] = value;
+    }
+  }
   const postFormat = String(formData.get('postFormat') ?? '').trim();
   const subject = String(formData.get('subject') ?? '').trim();
   /* §318. Which product flow to record, for a capture-backed format. */
@@ -148,6 +162,8 @@ export async function makePiece(formData: FormData): Promise<MakeResult> {
           ...(flowId ? { flowId } : {}),
           /* §355. Recorded so a piece knows it was meant to match its siblings. */
           ...(together && platforms.length > 1 ? { together: true } : {}),
+          /* §358. Overrides, so a stage can honour one instead of deciding. */
+          ...(Object.keys(options).length > 0 ? { options } : {}),
         }),
       ],
     );

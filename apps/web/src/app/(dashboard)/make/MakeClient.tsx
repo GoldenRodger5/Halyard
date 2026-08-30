@@ -42,6 +42,22 @@ export interface MakeFlow {
   why: string;
 }
 
+export interface OptionChoice {
+  value: string;
+  label: string;
+  help?: string;
+  /** A small text diagram, for choices whose meaning is visual. */
+  preview?: string;
+}
+
+export interface FormatOption {
+  key: string;
+  label: string;
+  help: string;
+  choices: OptionChoice[];
+  defaultValue: string;
+}
+
 export interface Carriage {
   id: string;
   name: string;
@@ -74,6 +90,7 @@ export function MakeClient({
   platforms,
   carriage,
   formats,
+  optionsByFormat,
   flows,
   connected,
 }: {
@@ -81,6 +98,8 @@ export function MakeClient({
   platforms: string[];
   carriage: Carriage[];
   formats: MakeFormat[];
+  /** Keyed `formatId:media`, from `optionsFor`. */
+  optionsByFormat: Record<string, FormatOption[]>;
   flows: MakeFlow[];
   connected: Record<string, string>;
 }) {
@@ -90,6 +109,8 @@ export function MakeClient({
   const [format, setFormat] = useState<string | null>(null);
   const [flowId, setFlowId] = useState<string | null>(null);
   const [subject, setSubject] = useState('');
+  /** §358. Overrides, keyed by option. Absent means auto, which is the default. */
+  const [options, setOptions] = useState<Record<string, string>>({});
   const [result, setResult] = useState<MakeResult | null>(null);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
@@ -126,6 +147,19 @@ export function MakeClient({
 
   const chosenFormat = availableFormats.find((f) => f.id === format) ?? null;
 
+  /**
+   * §358. The questions this format asks, for this kind of post.
+   *
+   * Rendered from data, so a new format's options appear without touching this
+   * component — the same discipline the platform narrowing follows.
+   */
+  const formatOptions = useMemo(() => {
+    if (!chosenType) return [];
+    const media = chosenType.media;
+    /* A format with no options of its own still gets the universal ones. */
+    return optionsByFormat[`${format ?? 'quiz'}:${media}`] ?? [];
+  }, [optionsByFormat, format, chosenType]);
+
   const submit = () => {
     const data = new FormData();
     data.set('productId', productId);
@@ -136,6 +170,14 @@ export function MakeClient({
     data.set('subject', subject);
     data.set('flowId', flowId ?? '');
     data.set('together', together ? '1' : '');
+    /*
+     * §358. Only the overrides. An option left on `auto` is not sent at all,
+     * so the pipeline's own decision runs rather than being handed a value that
+     * happens to match it — which would look like a choice in the log.
+     */
+    for (const [key, value] of Object.entries(options)) {
+      if (value && value !== 'auto') data.set(`option.${key}`, value);
+    }
     startTransition(async () => {
       const outcome = await makePiece(data);
       setResult(outcome);
@@ -337,9 +379,60 @@ export function MakeClient({
         </section>
       ) : null}
 
+      {/* ── Options the chosen format declares ────────────────────────── */}
+      {formatOptions.length > 0 ? (
+        <section>
+          {step(
+            (chosenPlatforms.length > 1 ? 5 : 4) + (chosenFormat?.needsCapture ? 1 : 0),
+            'How it should be made',
+            'every one defaults to auto',
+          )}
+          <div className="space-y-5">
+            {formatOptions.map((option) => {
+              const chosen = options[option.key] ?? 'auto';
+              const preview = option.choices.find((c) => c.value === chosen)?.preview;
+              return (
+                <div key={option.key}>
+                  <p className="text-sm">{option.label}</p>
+                  <p className="mb-2 text-xs text-muted">{option.help}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {option.choices.map((choice) => (
+                      <button
+                        key={choice.value}
+                        type="button"
+                        onClick={() =>
+                          setOptions((prev) => ({ ...prev, [option.key]: choice.value }))
+                        }
+                        aria-pressed={chosen === choice.value}
+                        title={choice.help}
+                        className={chip(chosen === choice.value, true)}
+                      >
+                        {choice.label}
+                      </button>
+                    ))}
+                  </div>
+                  {/*
+                    The diagram for whatever is selected. "grid" and "rail" mean
+                    nothing until seen, and an operator should not have to
+                    render a video to find out.
+                  */}
+                  {preview ? (
+                    <pre className="mt-2 w-fit rounded-lg border border-line bg-sunk px-3 py-2 text-[11px] leading-tight text-muted">
+                      {preview}
+                    </pre>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
+
       <section>
         {step(
-          (chosenPlatforms.length > 1 ? 5 : 4) + (chosenFormat?.needsCapture ? 1 : 0),
+          (chosenPlatforms.length > 1 ? 5 : 4) +
+            (chosenFormat?.needsCapture ? 1 : 0) +
+            (formatOptions.length > 0 ? 1 : 0),
           'About what',
           'optional',
         )}

@@ -101,6 +101,14 @@ export interface QuizVideoProps {
    * bottom is measured against a ground it is never on.
    */
   backgroundLuminance?: number;
+  /**
+   * §358. One treatment for every question, when an operator chose one.
+   *
+   * Absent, `chooseQuizTemplate` runs and varies the look across the piece so
+   * two questions never look alike — which is why auto is the default rather
+   * than a placeholder. Present, the operator asked for a house style.
+   */
+  forceTemplate?: QuizTemplateId;
   typography?: RenderTypography;
   title: string;
   questions: QuizQuestion[];
@@ -563,6 +571,7 @@ export const QuizVideo: React.FC<QuizVideoProps> = ({
   wordmark,
   backgroundDataUri,
   backgroundLuminance,
+  forceTemplate,
 }) => {
   const { fps } = useVideoConfig();
 
@@ -589,15 +598,13 @@ export const QuizVideo: React.FC<QuizVideoProps> = ({
       const isTrueFalse =
         options.length === 2 &&
         options.every((o) => ['true', 'false'].includes(o.trim().toLowerCase()));
-      const { template } = chooseQuizTemplate({
-        optionCount: options.length,
-        isTrueFalse,
-        recent: used,
-      });
+      const { template } = forceTemplate
+        ? { template: forceTemplate }
+        : chooseQuizTemplate({ optionCount: options.length, isTrueFalse, recent: used });
       used.unshift(template);
       return template;
     });
-  }, [questions]);
+  }, [questions, forceTemplate]);
 
   const titleFrames = Math.round(titleSecondsFor(title) * fps);
 

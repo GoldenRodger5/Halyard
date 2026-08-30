@@ -21,6 +21,7 @@ import {
   canCarry,
   getAdapter,
   platformsForFormat,
+  optionsFor,
   requiresCitation,
   supportFromConstraints,
   type PlatformSupport,
@@ -80,6 +81,22 @@ export default async function MakePage() {
     };
   });
 
+  /**
+   * §358. What each format lets an operator choose, as data.
+   *
+   * Sent whole rather than fetched per selection: the catalogue is small, it
+   * does not change per session, and a round trip on every click would make the
+   * wizard feel like a form rather than a decision.
+   */
+  const optionsByFormat = Object.fromEntries(
+    POST_FORMATS.flatMap((id) =>
+      (['video', 'text', 'carousel', 'image'] as const).map((media) => [
+        `${id}:${media}`,
+        optionsFor(id, media),
+      ]),
+    ),
+  );
+
   const formats = POST_FORMATS.map((id) => {
     const f = POST_FORMAT_CATALOG[id];
     return {
@@ -114,6 +131,7 @@ export default async function MakePage() {
         platforms={[...PLATFORMS]}
         carriage={carriage}
         formats={formats}
+        optionsByFormat={optionsByFormat}
         flows={flows}
         connected={connected}
       />
