@@ -177,3 +177,27 @@ describe('the sign-in flow', () => {
     expect(FLOWS.sign_in.requiresCredentials).toBe(true);
   });
 });
+
+describe('§309. the recorded pass is a cold adaptation', () => {
+  it('gives the URL-filling step a different value for capture than for verify', () => {
+    /*
+     * A capture runs verify then record, and RecipeFix caches an adaptation.
+     * With one URL the recorded pass was always a cache hit, in a shape the
+     * selectors did not match — verify passed and the recording failed on the
+     * same steps, seconds apart, every time.
+     */
+    const step = FLOWS.adapt_and_reveal.steps.find((s) => s.name === 'paste the recipe URL');
+    expect(step?.value).toBeTruthy();
+    expect(step?.captureValue).toBeTruthy();
+    expect(step?.captureValue).not.toBe(step?.value);
+  });
+
+  it('never gives a secret step a captureValue, which would be a literal', () => {
+    /* `captureValue` is a plain string. A credential must never be one. */
+    for (const flow of Object.values(FLOWS)) {
+      for (const step of flow.steps) {
+        if (step.action === 'fillSecret') expect(step.captureValue).toBeUndefined();
+      }
+    }
+  });
+});

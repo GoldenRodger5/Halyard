@@ -43,6 +43,15 @@ export interface FlowStep {
      * value. `value` here is a key (`email`, `password`), not a secret.
      */
     | 'fillSecret';
+  /**
+   * §309. The value to use when *recording*, where it must differ from verify.
+   *
+   * Only `adapt_and_reveal` needs this, and only because the product caches:
+   * running the same input twice makes the second run a cache hit in a shape
+   * the flow was not written against. Falls back to `value`, so every other
+   * step is unaffected and nothing has to opt out.
+   */
+  captureValue?: string;
   /** Discovered selector. Omitted for goto/wait/still. */
   selector?: string;
   /**
@@ -191,6 +200,23 @@ export interface CaptureFlow {
 /** A recipe URL that is public, stable, and unambiguously wheat-and-dairy. */
 export const SAMPLE_RECIPE_URL =
   'https://sallysbakingaddiction.com/homemade-artisan-bread/';
+
+/**
+ * §309. A second URL, for the pass that is actually recorded.
+ *
+ * A capture runs the flow twice — verify, then record — and both used this same
+ * URL. RecipeFix caches an adaptation, so the recorded pass was always a *cache
+ * hit*: it came back in a shape the flow's selectors did not match, and the
+ * recording failed on `wait for the adaptation` every time while verify passed
+ * moments earlier on the same steps.
+ *
+ * Different URLs make the recorded pass a cold adaptation, which is both what
+ * the selectors were written against and the more honest demonstration — the
+ * footage shows the product doing the work rather than reading back something
+ * it did thirty seconds ago. Verified to return 200 alongside the first.
+ */
+export const CAPTURE_RECIPE_URL =
+  'https://sallysbakingaddiction.com/chewy-chocolate-chip-cookies/';
 
 export const FLOWS: Record<FlowId, CaptureFlow> = {
   /**
@@ -346,6 +372,8 @@ export const FLOWS: Record<FlowId, CaptureFlow> = {
         action: 'fill',
         selector: '[placeholder="https://www.anyrecipesite.com/recipe..."]',
         value: SAMPLE_RECIPE_URL,
+        /* §309. A cold adaptation for the take that is kept. */
+        captureValue: CAPTURE_RECIPE_URL,
       },
       {
         name: 'choose gluten-free',

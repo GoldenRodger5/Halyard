@@ -8267,3 +8267,27 @@ it was only ever looked at over a photograph. It now moves toward `fg`, which
 `quizPalette` has already measured as legible against that ground, and the test
 asserts it on both kinds of brand **and** both grounds — the version that only
 checked the scrim is what let this through.
+
+## 309. The recorded pass was always a cache hit
+
+**Chosen:** `FlowStep.captureValue` — a different input for the pass that is
+kept.
+
+A capture runs the flow twice: verify, then record. Both used the same recipe
+URL, and RecipeFix caches an adaptation. So the recorded pass was always reading
+back what the verify pass had just produced, in a shape the flow's selectors were
+not written against — `adapt_and_reveal` verified in 8.6s and the recording
+failed on `wait for the adaptation` **thirty seconds later, on identical steps**.
+
+That signature is worth naming: *verify passes and record fails on the same
+selector* means the two passes are not seeing the same thing, and the difference
+is almost always state the first pass created.
+
+Different URLs make the recorded pass a cold adaptation, which is what the
+selectors were written against and also the more honest footage — the product
+doing the work, not reading back something it did thirty seconds ago. Both URLs
+were checked for a 200 before being written down.
+
+**`captureValue` may never appear on a `fillSecret` step**, and there is a test
+for it: it is a plain string in a flow definition, which is exactly what §299
+built `fillSecret` to prevent a credential from being.

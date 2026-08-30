@@ -293,7 +293,15 @@ export async function runFlow(
     };
 
     try {
-      const outcome = await executeStep(page, step, options.baseUrl, outDir, stills, options.secrets);
+      const outcome = await executeStep(
+        page,
+        step,
+        options.baseUrl,
+        outDir,
+        stills,
+        options.secrets,
+        options.mode,
+      );
       if (outcome.fallbackDepth !== undefined) result.fallbackDepth = outcome.fallbackDepth;
       /* §303. Where the tap landed, for a callout that points at it. */
       if (outcome.at) result.at = outcome.at;
@@ -371,8 +379,11 @@ async function executeStep(
   outDir: string,
   stills: Record<string, string>,
   secrets: Record<string, string> | undefined,
+  mode: 'verify' | 'capture',
 ): Promise<{ fallbackDepth?: number; at?: { x: number; y: number } }> {
   const timeout = step.timeoutMs ?? 15_000;
+  /* §309. The recorded pass may need a different input; see `captureValue`. */
+  const value = (mode === 'capture' ? step.captureValue : undefined) ?? step.value;
 
   /**
    * §159. Every selector-driven action resolves through the candidate chain,
@@ -461,7 +472,7 @@ async function executeStep(
     case 'fill': {
       const { locator, fallbackDepth } = await resolve();
       await locator.waitFor({ state: 'visible', timeout });
-      await locator.fill(step.value ?? '', { timeout });
+      await locator.fill(value ?? '', { timeout });
       return { fallbackDepth };
     }
 
