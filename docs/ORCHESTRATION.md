@@ -151,6 +151,13 @@ screenplay is not the thing they read.
 4. **The directors do not read the screenplay yet.** Motion, annotation and
    music still decide independently.
 
+## Post types
+
+See `POST_TYPES.md`. The short version: post type decides which stages run,
+platform is a destination derived from adapter capability, and a short video for
+TikTok/Reels/Shorts is one production with three finishes rather than three
+productions.
+
 ## Honest status
 
 - `writeScreenplay` runs, is checked, and produces producible screenplays for

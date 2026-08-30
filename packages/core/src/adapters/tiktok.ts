@@ -48,9 +48,25 @@ const API = 'https://open.tiktokapis.com/v2';
 export const TIKTOK_CONSTRAINTS: PlatformConstraints = {
   maxChars: 2200,
   maxHashtags: 5,
-  supportedFormats: ['video'],
+  /**
+   * §349. TikTok carries photo carousels, and this said video only.
+   *
+   * Verified against TikTok's own Content Posting API reference rather than
+   * assumed: photo posts go to `/v2/post/publish/content/init/` with
+   * `media_type: "PHOTO"` and take *"an array containing up to 35 photo content
+   * URLs"*.
+   *
+   * The consequence of the old line was not a missing feature but a missing
+   * *option*: `platformsForPostType` derives from this, so every carousel
+   * Halyard could have made for TikTok was silently unavailable — and photo
+   * carousels are among the best-performing formats on the platform.
+   */
+  supportedFormats: ['video', 'carousel'],
   aspectRatios: ['9:16'],
   video: { minSeconds: 3, maxSeconds: 600, codecs: ['h264'] },
+  /* Up to 35 per the photo-post reference; two is the point at which it is a
+     carousel rather than an image. */
+  carousel: { min: 2, max: 35 },
   linkStrategy: 'bio_only',
   linkNote: 'Bio only, until the account is eligible for in-video links.',
   requiresReviewForPublicPosting: true,
