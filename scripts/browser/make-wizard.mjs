@@ -1,7 +1,20 @@
 /**
- * The wizard, driven the way an operator drives it: sign in, click through,
- * press Generate, and watch the run page. Nothing is inserted into the
- * database by hand — the only writes are the ones the UI makes.
+ * §359. The Make wizard, driven the way an operator drives it.
+ *
+ * Click through, press Generate, watch the run page. Nothing is inserted into
+ * the database by hand — the only writes are the ones the UI makes, which is
+ * the whole point: a test that seeds a job payload proves the worker works and
+ * proves nothing about the screen that is supposed to produce it.
+ *
+ * Two defects surfaced on its first run that every test in the suite had
+ * missed, because both were about what the screen *looked like* rather than
+ * what it contained: the template diagrams were invisible in the default state,
+ * and the voice override is labelled `Spoken` rather than `Voice over`.
+ *
+ *   BASE=http://localhost:3200 OUT=media-review/quiz-run node scripts/browser/make-wizard.mjs
+ *
+ * `FILM=1` records a video of the run. It is off by default because a long run
+ * writes a very large webm.
  */
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
@@ -44,7 +57,7 @@ await shot('06-options');
 await page.getByRole('button', { name: 'Generate' }).click();
 await page.waitForURL(/\/make\/run\//, { timeout: 60_000 });
 const jobId = page.url().split('/').pop();
-console.log('JOB', jobId);
+console.warn('JOB', jobId);
 
 // Watch the theatre. Screenshot as the feed grows.
 let last = 0;
@@ -61,4 +74,4 @@ for (let i = 0; i < 150; i += 1) {
 await shot('99-run-final');
 await context.close();
 await browser.close();
-console.log('DONE', jobId);
+console.warn('DONE', jobId);

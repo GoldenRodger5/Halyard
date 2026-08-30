@@ -9038,3 +9038,29 @@ shipped with. The finding was in one query.
 
 `captureRetry.test.ts` asserts the chain **terminates**, which is the property a
 storm violates and the one a memory of this incident would not enforce.
+
+## 64 · The wizard is tested by driving it, not by calling its action
+
+**Chosen.** A browser script (`scripts/browser/make-wizard.mjs`) clicks through
+the Make wizard and presses Generate. Nothing is written to the database except
+what the UI writes.
+
+**Why.** Every option in §358 was declared correctly, typechecked, unit-tested,
+and rendered wrong: the template diagrams only appeared for a *selected* choice,
+and the selected choice on arrival is `auto`, which has no diagram — so the
+default state of the screen showed none of the five treatments it exists to let
+an operator compare. A server-action test would have passed. The suite did pass:
+2,618 green.
+
+This is the same lesson as the video work, one level up. **Rendering and looking
+finds what gates cannot.** A gate can assert that an option carries a preview; it
+cannot notice that nobody can see it.
+
+**Rejected.** Calling `makePiece(formData)` directly in a test. It proves the
+payload shape, which was never the part that was broken.
+
+**Also found by it.** The voice override is labelled `Spoken`, not `Voice over` —
+a driver written from the source of `options.ts` rather than from the screen
+clicked nothing and reported success, because `if (await button.count())` treats
+a missing control as "not applicable". Absence must be an error in a driver, not
+a skip.
