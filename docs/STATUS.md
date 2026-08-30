@@ -1,5 +1,44 @@
 # Where Halyard is right now
 
+**2026-08-29 (evening) — the short-video channel, made by looking at it.**
+
+*The quiz can be played.* §302. `QuizQuestion` has carried `options` and
+`correctIndex` since §294 and the composition **never drew one**, so every
+multiple choice reached the viewer as a free-form question. Five treatments now
+draw them — `stack`, `rail`, `grid`, `spotlight`, `versus` — chosen per question
+by fit and then recency, so a four-question quiz cycles rather than repeating.
+The palette is *measured* from the brand (`quizPalette`), so a dark-ground
+product gets legible type with nothing configured for it.
+
+*The scrim is scaled to the photograph.* §301. Every video since §294 sat under
+the same three-stop gradient, tuned against one image. `measureLowerLuminance`
+probes the band where the type sits; a failed probe stays `null` and keeps the
+fixed scrim, because an unmeasured background is not a mid-grey one.
+
+*Captures were running signed out.* §303. `requires` was declared on
+`adapt_and_reveal` in §299 and nothing read it, so every capture recorded the
+demo card rather than a real adaptation. Fixed, along with the two other missing
+hops between a capture and a callout — the runner now records where a tap landed
+and `calloutSourceFromCapture` maps it into **cut** time. Found on the way: every
+result in a chain gets the same whole-chain video while each flow measured
+offsets from its own start, so `cook_mode_timer`'s cut has been taking the wrong
+stretch of footage.
+
+*Method.* Every visual defect here was found by rendering a frame and looking at
+it, not by a gate and not by reading the code: white type invisible on cream, the
+question stranded in the middle 40% of the frame, the rail's rule running the
+full height. All of them typechecked and passed their tests.
+
+**Suite: 170 files, 2839 tests — 2386 passing, 453 skipped (DB-backed, locally).
+Lint and typecheck clean.** Output to look at: `media-review/2026-08-29-quiz-templates/`
+(`quiz-flat.mp4` on the brand ground, `quiz-photo.mp4` over a photograph).
+
+Open, in order: voice (`audioSrc` filled by nothing), music (`selectBed` exists,
+nothing mixes it), Ken Burns and cuts, the logo mark, the UI source picker. See
+`docs/SHORT_VIDEO_PLAN.md`.
+
+---
+
 **2026-08-29 — the creative system can make things that are not product demos,
 and something finally looks at whether they are any good.**
 

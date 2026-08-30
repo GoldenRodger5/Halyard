@@ -32,14 +32,14 @@ Every slot is a prop, so swapping is a data change and never a new composition:
 
 ## Open work, in order
 
-1. **Real recipes, not the demo card.** §299 added a `sign_in` flow and
-   `products.capture_credentials`, because the adaptation the capture waits for
-   needs an account. **Done in code; needs credentials entered and a capture run
-   to prove it.**
-2. **Touch points land where the tap happens.** Callouts derive from capture
-   steps (§298), and the steps do not yet record *where* on screen they clicked.
-   Until they do, a ring is positioned by hand and can point at the wrong
-   control — which the first render did.
+1. ~~**Real recipes, not the demo card.**~~ §303. `requires` was declared and
+   never read, so every capture ran signed out. It runs the sign-in first now,
+   in the same context, and refuses the capture if the sign-in fails rather than
+   filing signed-out footage as evidence of the signed-in product.
+2. ~~**Touch points land where the tap happens.**~~ §303. The runner records the
+   clicked element's centre as a fraction of the viewport, and
+   `calloutSourceFromCapture` maps it into **cut** time — the raw offset would
+   have pointed at the right control at the wrong moment.
 3. **Voice.** `audioSrc` is a prop on every composition and nothing fills it for
    quiz or walkthrough. TTS already works; it is a wiring job.
 4. **Music.** Six licensed beds and a selector exist (`selectBed`). Nothing
@@ -55,7 +55,7 @@ Every slot is a prop, so swapping is a data change and never a new composition:
 
 ## The formats this channel runs
 
-`quiz` **done** · `history` · `tips` · `myth_fact` · `origin` · `transformation`
+`quiz` **done** (five treatments, §302) · `history` · `tips` · `myth_fact` · `origin` · `transformation`
 
 Only `quiz` has its own composition (§289). The rest render as cards today, which
 is why they look like slideshows — each needs a composition or a shared one that
