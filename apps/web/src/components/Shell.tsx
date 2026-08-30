@@ -115,9 +115,15 @@ export const SECTIONS: NavSection[] = [
     tabs: [
       { href: '/queue', label: 'Waiting', hint: 'Everything holding for approval' },
       { href: '/library', label: 'Published', hint: 'What has already gone out' },
-      { href: '/assets', label: 'Assets', hint: 'Images, video and audio Halyard holds' },
+      { href: '/assets', label: 'Assets', hint: 'Images, video and sound Halyard holds' },
       { href: '/submissions', label: 'Submissions', hint: 'What people sent in' },
     ],
+    deeper: {
+      '/assets': [
+        { href: '/assets', label: 'Media' },
+        { href: '/assets/audio', label: 'Sound' },
+      ],
+    },
   },
   {
     href: '/calendar',
@@ -145,8 +151,15 @@ export const SECTIONS: NavSection[] = [
   {
     href: '/analytics',
     label: 'Analytics',
-    question: 'How is it doing?',
-    tabs: [],
+    question: 'How is it doing, and what has it learned?',
+    tabs: [
+      { href: '/analytics', label: 'Performance', hint: 'What the platforms reported' },
+      {
+        href: '/analytics/learning',
+        label: 'Learned',
+        hint: 'Beliefs computed from measured performance, and the decisions they informed',
+      },
+    ],
   },
   {
     href: '/accounts',
