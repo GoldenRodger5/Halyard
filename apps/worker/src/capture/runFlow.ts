@@ -123,6 +123,19 @@ export interface RunFlowOptions {
    * recording's start.
    */
   anchorMs?: number;
+  /**
+   * §305. The credentials a `fillSecret` step names, by key.
+   *
+   * Never a value in a flow definition, a log line or a job payload — that is
+   * the whole reason `fillSecret` exists (§299) and why migration 0060 says so
+   * on the column. The step names *which* secret it wants; only this reaches
+   * the value, and it is read from `products.capture_credentials` at run time.
+   *
+   * Absent for a flow with no secrets, and a `fillSecret` with no matching key
+   * fails the step by name rather than typing an empty string into a login
+   * form and reporting success.
+   */
+  secrets?: Record<string, string>;
   onStep?: (result: StepResult) => void;
 }
 
@@ -280,7 +293,7 @@ export async function runFlow(
     };
 
     try {
-      const outcome = await executeStep(page, step, options.baseUrl, outDir, stills);
+      const outcome = await executeStep(page, step, options.baseUrl, outDir, stills, options.secrets);
       if (outcome.fallbackDepth !== undefined) result.fallbackDepth = outcome.fallbackDepth;
       /* §303. Where the tap landed, for a callout that points at it. */
       if (outcome.at) result.at = outcome.at;
@@ -357,6 +370,7 @@ async function executeStep(
   baseUrl: string,
   outDir: string,
   stills: Record<string, string>,
+  secrets: Record<string, string> | undefined,
 ): Promise<{ fallbackDepth?: number; at?: { x: number; y: number } }> {
   const timeout = step.timeoutMs ?? 15_000;
 
@@ -414,6 +428,34 @@ async function executeStep(
 
       await locator.click({ timeout });
       return { fallbackDepth, ...(at ? { at } : {}) };
+    }
+
+    /**
+     * §305. A secret, named rather than written.
+     *
+     * `fillSecret` has been in the action union since §299, is used by both of
+     * the sign-in's credential steps, and had **no case here** — so the switch
+     * fell through to `return {}` and both fields stayed empty. The form was
+     * submitted blank, the password field never went away, and the capture
+     * failed on the wait 30 seconds later, which is a very long way from the
+     * actual mistake. Both steps recorded `ms: 0`, which is what gave it away.
+     *
+     * The value never appears in an error. A step that names a secret nobody
+     * supplied says which key was missing, because the key is not the secret.
+     */
+    case 'fillSecret': {
+      const key = step.value ?? '';
+      const secret = secrets?.[key];
+      if (!secret) {
+        throw new Error(
+          `No credential named '${key}' is configured for this product, ` +
+            'so the form would be submitted empty. Set products.capture_credentials.',
+        );
+      }
+      const { locator, fallbackDepth } = await resolve();
+      await locator.waitFor({ state: 'visible', timeout });
+      await locator.fill(secret, { timeout });
+      return { fallbackDepth };
     }
 
     case 'fill': {

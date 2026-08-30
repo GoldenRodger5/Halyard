@@ -8132,3 +8132,41 @@ recorded tap landed at y=0.94 — a footer link, not the form's button. Scoped t
 exactly one control at y=0.893 on the live page. Position is a guess about
 layout; the form holding the password is a structural fact. The capture refused
 rather than recording a signed-out product, which is §303 working.
+
+## 305. `fillSecret` had no implementation
+
+**Chosen:** implement it, pass `products.capture_credentials` to the runner, and
+add `actionCoverage.test.ts` so an unhandled action fails a test instead of
+doing nothing.
+
+§299 added `fillSecret` to the flow action union so a credential could never be
+written into a flow definition, a log line or a job payload. Both of the
+sign-in's credential steps use it. **`executeStep` had no case for it.** The
+switch fell through to `return {}`, both fields stayed empty, the form was
+submitted blank, and the run failed 30 seconds later on `waitForHidden` — a very
+long way from the actual mistake.
+
+The tell was `ms: 0` on both fill steps, which is only visible because §303
+started recording per-step timings into `capture_runs`. Two earlier attempts at
+this bug went after the submit selector, because the tap position was the
+obvious suspect and the fill was invisible.
+
+**TypeScript cannot catch this.** The switch has no throwing `default` and the
+function returns after it, so an unhandled action is exhaustive as far as the
+compiler is concerned — it simply does nothing and reports success. That is
+gotcha 1's shape exactly: two lists in two files with nothing tying them
+together. The test reads both and fails on the difference; it was verified by
+removing the case and watching it fail before being trusted.
+
+**The value never appears in an error.** A step naming a secret nobody supplied
+reports *which key* was missing, because the key is not the secret. And it
+throws rather than filling an empty string — a login form submitted blank
+reports success at the fill and fails somewhere unrelated, which is how this
+took three attempts to find.
+
+**Also corrected here:** two previous decisions blamed the submit selector. The
+recorded tap at y=0.9399 was the *post-scroll* position of the correct button —
+`fallbackDepth: 0` said the preferred selector resolved, and that was true both
+before and after the change. The selector was never the fault. The form-scoped
+selector is kept because it is structurally sound rather than positional, but it
+fixed nothing on its own.

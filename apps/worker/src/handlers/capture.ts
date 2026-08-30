@@ -53,7 +53,21 @@ export async function captureHandler(job: Job, ctx: HandlerContext): Promise<voi
   const { rows: productRows } = await ctx.pool.query<{
     destinations: { web?: string };
     website_url: string | null;
-  }>('select destinations, website_url from products where id = $1', [productId]);
+    capture_credentials: Record<string, string> | null;
+  }>(
+    'select destinations, website_url, capture_credentials from products where id = $1',
+    [productId],
+  );
+
+  /**
+   * §305. The credentials a `fillSecret` step names.
+   *
+   * Read here and passed straight to the runner. They are never logged, never
+   * put in a job payload and never returned — migration 0060 says so on the
+   * column, and `fillSecret` exists so that a flow definition can name a secret
+   * without containing one.
+   */
+  const secrets = productRows[0]?.capture_credentials ?? undefined;
   const baseUrl =
     process.env.RECIPEFIX_WEB_URL ??
     productRows[0]?.destinations?.web ??
@@ -74,6 +88,7 @@ export async function captureHandler(job: Job, ctx: HandlerContext): Promise<voi
       outDir: `${outDir}/verify`,
       mode: 'verify',
       browser,
+      ...(secrets ? { secrets } : {}),
     });
 
     for (const result of verification) {
@@ -155,6 +170,7 @@ export async function captureHandler(job: Job, ctx: HandlerContext): Promise<voi
       outDir: `${outDir}/capture`,
       mode: 'capture',
       browser,
+      ...(secrets ? { secrets } : {}),
     });
 
     let videoAssetId: string | null = null;
