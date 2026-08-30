@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { adjustmentById } from '@halyard/core';
 import { query, one } from '@/lib/db';
 import { fromDatetimeLocalValue } from '@/lib/format';
 import { requireOperator } from '@/lib/auth';
@@ -440,4 +441,72 @@ export async function markManuallyPublished(formData: FormData): Promise<void> {
 
   revalidatePath('/queue');
   revalidatePath(`/queue/${id}`);
+}
+
+/**
+ * §373. An adjustment: what to rebuild, and why.
+ *
+ * `regenerateItem` sends a free-text note and rebuilds everything from the
+ * copy down, which is right when the words are wrong and wasteful when they
+ * are not — and it is the only route an operator has had. "The picture is
+ * wrong" reached the copywriter and rewrote the words.
+ *
+ * This names the component instead. The correction loop already knows what a
+ * change to `creative_plan` invalidates and what it does not, so asking for a
+ * different picture rebuilds the ground and leaves the writing alone.
+ *
+ * The note travels too. A button says what to rebuild; only a sentence says
+ * why, and the reason is what makes the second attempt different from the
+ * first rather than another roll of the same dice.
+ */
+export async function adjustItem(formData: FormData): Promise<void> {
+  await requireOperator();
+  const id = String(formData.get('id'));
+  const adjustmentId = String(formData.get('adjustment') ?? '').trim();
+  const note = String(formData.get('note') ?? '').trim();
+
+  const adjustment = adjustmentById(adjustmentId);
+  if (!adjustment) {
+    /*
+     * Refused rather than falling back to a full regenerate. An unknown
+     * adjustment silently becoming "rewrite everything" is how a button ends
+     * up doing something nobody asked for.
+     */
+    throw new Error(`There is no "${adjustmentId}" adjustment.`);
+  }
+
+  await query(
+    `update content_items
+        set status = 'draft',
+            regen_notes = array_append(regen_notes, $2)
+      where id = $1`,
+    [id, note ? `${adjustment.label}: ${note}` : adjustment.label],
+  );
+
+  await query(
+    `insert into jobs (kind, payload, priority, dedupe_key)
+     values ('correct_content', $1, 40, $2) on conflict do nothing`,
+    [
+      {
+        contentItemId: id,
+        /* The loop's own vocabulary, so nothing has to interpret a label. */
+        component: adjustment.component,
+        action: adjustment.action,
+        requestedBy: 'operator',
+        /* The button's own words, so the recorded reason reads as a sentence. */
+        label: adjustment.label,
+        note,
+      },
+      /*
+       * Keyed on the adjustment as well as the item: asking for a different
+       * picture and then for a slower cut are two requests, and deduping them
+       * together would silently drop the second.
+       */
+      `adjust:${id}:${adjustment.id}`,
+    ],
+  );
+
+  await audit('adjust', id, { adjustment: adjustment.id, component: adjustment.component, note });
+  revalidatePath(`/queue/${id}`);
+  revalidatePath('/queue');
 }

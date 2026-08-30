@@ -68,6 +68,7 @@ export * from './brain/index.js';
 export * from './platform/index.js';
 export * from './agents/index.js';
 export * from './correction/index.js';
+export * from './correction/adjustments.js';
 export * from './db/pooler.js';
 export * from './tiktok/directPost.js';
 export * from './youtube/chapters.js';

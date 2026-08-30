@@ -38,6 +38,7 @@ export {
   acceptCorrection,
   bestIteration,
   decide,
+  operatorDecision,
   type ControllerState,
   type Decision,
   type IterationRecord,

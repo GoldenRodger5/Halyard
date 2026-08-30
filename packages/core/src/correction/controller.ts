@@ -336,3 +336,86 @@ export function acceptCorrection(
   );
   return regressions.length === 0 ? { ok: true } : { ok: false, regressions };
 }
+
+/**
+ * §373. What the operator asked for, as a decision the loop can run.
+ *
+ * `decide` chooses from the gates and nothing else, which is right — the gates
+ * are the deterministic stopping condition and the whole reason this loop is
+ * not "regenerate until a model says it is good". But it means an operator's
+ * request had no way in: the correction handler read only `contentItemId`, so
+ * a named adjustment in the payload would have been read by nothing at all.
+ *
+ * An operator request is not a defect. Nothing failed; a person looked at a
+ * passing piece and wanted it different. So it does not join the defect list —
+ * inventing a defect would corrupt the history the regression check reads, and
+ * a later iteration would try to "fix" a gate that never failed.
+ *
+ * It is a decision, made by a person instead of by the gates, and it obeys the
+ * same budget: an operator can ask for changes, and not for unlimited ones.
+ */
+export function operatorDecision(input: {
+  action: CorrectionAction;
+  /** The part being rebuilt, which decides what is invalidated. */
+  component: Component;
+  /** Why they asked, in their own words. Empty when they only pressed a button. */
+  note: string;
+  /** What the button was called, so the reason reads as a sentence. */
+  label: string;
+  history: IterationRecord[];
+  maxCorrections?: number;
+  maxSpendUsd?: number;
+}): Decision {
+  const spent = input.history.reduce((total, record) => total + record.costUsd, 0);
+  const corrections = input.history.filter((record) => record.action !== null).length;
+  const maxCorrections = input.maxCorrections ?? MAX_CORRECTIONS;
+  const maxSpend = input.maxSpendUsd ?? MAX_CORRECTION_SPEND_USD;
+  const latest = input.history[input.history.length - 1];
+
+  if (corrections >= maxCorrections) {
+    return {
+      kind: 'escalate',
+      iteration: latest?.iteration ?? 0,
+      defects: [],
+      reason: `This piece has already been corrected ${corrections} times, which is the budget.`,
+      unresolved: [
+        `You asked for "${input.label}" and the correction budget for this piece is spent. Regenerate it, or edit it directly.`,
+      ],
+    };
+  }
+
+  if (spent >= maxSpend) {
+    return {
+      kind: 'escalate',
+      iteration: latest?.iteration ?? 0,
+      defects: [],
+      reason: `This piece has cost $${spent.toFixed(2)} to correct, which is the ceiling.`,
+      unresolved: [
+        `You asked for "${input.label}" and the spend ceiling for this piece is reached. Regenerate it, or edit it directly.`,
+      ],
+    };
+  }
+
+  return {
+    kind: 'correct',
+    action: input.action,
+    /*
+     * Empty, deliberately. Nothing failed a gate, and writing a fabricated
+     * defect here would put a rule in the history that the regression check
+     * would later try to protect.
+     */
+    defects: [],
+    doNotRegress: latest ? latest.defects : [],
+    /*
+     * From the component, not from the action. The invalidation rules are about
+     * what *changed*, and two actions on one component invalidate the same
+     * gates — passing the action here would have been a type error that
+     * happened to compile if the vocabularies had overlapped.
+     */
+    invalidates: gatesInvalidatedBy([input.component]),
+    rebuild: rebuildFrom([input.component]),
+    reason: input.note
+      ? `You asked for "${input.label}" — ${input.note}`
+      : `You asked for "${input.label}".`,
+  };
+}

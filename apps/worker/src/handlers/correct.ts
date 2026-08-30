@@ -48,6 +48,8 @@ import {
   assertScope,
   bestIteration,
   decide,
+  operatorDecision,
+  type CorrectionAction,
   defectsFrom,
   gatesInvalidatedBy,
   invalidateGates,
@@ -353,14 +355,52 @@ async function correctClaimed(
     }
   }
 
-  const decision = decide({
-    history: [...toRecords(historyRows), current],
-    requires: requiredGates(item.format),
-    maxCorrections: MAX_CORRECTIONS,
-    maxSpendUsd: MAX_CORRECTION_SPEND_USD,
-  });
+  /**
+   * §373. An operator asked for something specific.
+   *
+   * `decide` chooses from the gates and nothing else, which is right — they are
+   * the deterministic stopping condition and the reason this is not a loop that
+   * regenerates until a model approves. It also meant a named adjustment in the
+   * payload would have been read by nothing at all: this handler took
+   * `contentItemId` and ignored the rest of the payload entirely.
+   *
+   * A person's request is a decision made by a person instead of by the gates.
+   * It obeys the same budget, and it does not become a defect — nothing failed,
+   * and a fabricated defect would enter the history the regression check reads
+   * and be protected forever afterwards.
+   */
+  const requestedAction = job.payload.action as CorrectionAction | undefined;
+  const requestedComponent = job.payload.component as Component | undefined;
+  const history = [...toRecords(historyRows), current];
 
-  await route(ctx, job, [...toRecords(historyRows), current], item, current, previous?.iteration ?? null, decision);
+  const decision =
+    requestedAction && requestedComponent
+      ? operatorDecision({
+          action: requestedAction,
+          component: requestedComponent,
+          note: String(job.payload.note ?? ''),
+          label: String(job.payload.label ?? requestedAction.replace(/_/g, ' ')),
+          history,
+          maxCorrections: MAX_CORRECTIONS,
+          maxSpendUsd: MAX_CORRECTION_SPEND_USD,
+        })
+      : decide({
+          history,
+          requires: requiredGates(item.format),
+          maxCorrections: MAX_CORRECTIONS,
+          maxSpendUsd: MAX_CORRECTION_SPEND_USD,
+        });
+
+  if (requestedAction) {
+    ctx.log('correction requested by operator', {
+      contentItemId,
+      action: requestedAction,
+      component: requestedComponent,
+      because: decision.reason,
+    });
+  }
+
+  await route(ctx, job, history, item, current, previous?.iteration ?? null, decision);
 }
 
 function toRecord(row: IterationRow): IterationRecord {

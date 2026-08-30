@@ -14,7 +14,8 @@ import { policyFor } from './policy.js';
 import { assertScope } from './policy.js';
 import { gatesInvalidatedBy, invalidateGates, rebuildFrom } from './invalidation.js';
 import { regressionsBetween, type IterationSnapshot } from './regression.js';
-import { acceptCorrection, bestIteration, decide, type IterationRecord } from './controller.js';
+import { acceptCorrection, bestIteration, decide,
+  operatorDecision, type IterationRecord } from './controller.js';
 
 const REQUIRES: GateName[] = ['copy', 'audio', 'visual', 'coherence'];
 
@@ -512,5 +513,125 @@ describe('best iteration', () => {
       REQUIRES,
     );
     expect(best!.iteration).toBe(1);
+  });
+});
+
+/**
+ * §373. An operator's request is a decision made by a person instead of by the
+ * gates. These are about the two things that must not happen: it must not
+ * invent a defect, and it must not escape the budget.
+ */
+describe('a change the operator asked for', () => {
+  const iteration = (n: number, cost: number, action: string | null = null) => ({
+    iteration: n,
+    gates: [],
+    defects: [],
+    changed: [],
+    action,
+    costUsd: cost,
+  }) as unknown as IterationRecord;
+
+  it('runs the action the operator named, not one derived from gates', () => {
+    const decision = operatorDecision({
+      action: 'adjust_scene_timing',
+      component: 'composition',
+      note: 'the answer card is gone before I can read it',
+      label: 'Slower',
+      history: [iteration(0, 0)],
+    });
+    expect(decision.kind).toBe('correct');
+    if (decision.kind !== 'correct') throw new Error('unreachable');
+    expect(decision.action).toBe('adjust_scene_timing');
+    expect(decision.reason).toContain('Slower');
+    expect(decision.reason).toContain('before I can read it');
+  });
+
+  it('invents no defect, because nothing failed', () => {
+    /*
+     * The important one. A fabricated defect enters the history the regression
+     * check reads, and every later iteration would try to protect a rule that
+     * never failed in the first place.
+     */
+    const decision = operatorDecision({
+      action: 'revise_copy',
+      component: 'copy',
+      note: '',
+      label: 'Say it differently',
+      history: [iteration(0, 0)],
+    });
+    if (decision.kind !== 'correct') throw new Error('unreachable');
+    expect(decision.defects).toEqual([]);
+  });
+
+  it('invalidates from the component rather than the action', () => {
+    const decision = operatorDecision({
+      action: 'resynthesise_voiceover',
+      component: 'voiceover',
+      note: '',
+      label: 'Read it again',
+      history: [iteration(0, 0)],
+    });
+    if (decision.kind !== 'correct') throw new Error('unreachable');
+    /* Speech changes need a new render and a new review, in that order. */
+    expect(decision.rebuild).toBe('tts');
+  });
+
+  it('obeys the correction budget the gates obey', () => {
+    const spentAttempts = [
+      iteration(0, 0),
+      iteration(1, 0.1, 'revise_copy'),
+      iteration(2, 0.1, 'revise_copy'),
+      iteration(3, 0.1, 'revise_copy'),
+    ];
+    const decision = operatorDecision({
+      action: 'revise_copy',
+      component: 'copy',
+      note: '',
+      label: 'Say it differently',
+      history: spentAttempts,
+    });
+    expect(decision.kind).toBe('escalate');
+    if (decision.kind !== 'escalate') throw new Error('unreachable');
+    expect(decision.unresolved[0]).toContain('correction budget for this piece is spent');
+  });
+
+  it('obeys the spend ceiling too, which is a different limit', () => {
+    /*
+     * Three corrections of a text post is pennies; three of a captured video
+     * with a re-synthesis each time is not. Whichever binds first stops it.
+     */
+    const expensive = [iteration(0, 0), iteration(1, 2.5, 'resynthesise_voiceover')];
+    const decision = operatorDecision({
+      action: 'revise_copy',
+      component: 'copy',
+      note: '',
+      label: 'Say it differently',
+      history: expensive,
+    });
+    expect(decision.kind).toBe('escalate');
+    if (decision.kind !== 'escalate') throw new Error('unreachable');
+    expect(decision.unresolved[0]).toContain('spend ceiling');
+  });
+
+  it('carries forward what must not regress', () => {
+    const withDefects = [
+      {
+        iteration: 0,
+        gates: [],
+        defects: [{ gate: 'claims', rule: 'unsupported', correctable: true, action: 'reground_claims' }],
+        changed: [],
+        action: null,
+        costUsd: 0,
+      } as unknown as IterationRecord,
+    ];
+    const decision = operatorDecision({
+      action: 'revise_copy',
+      component: 'copy',
+      note: '',
+      label: 'Say it differently',
+      history: withDefects,
+    });
+    if (decision.kind !== 'correct') throw new Error('unreachable');
+    expect(decision.doNotRegress).toHaveLength(1);
   });
 });

@@ -20,6 +20,7 @@ import {
 import { AssetPicker } from '@/components/AssetPicker';
 import { PieceAccountPanel } from '@/components/PieceAccountPanel';
 import { ScreenplayPanel } from '@/components/ScreenplayPanel';
+import { AdjustPanel } from '@/components/AdjustPanel';
 import { ManualPublish } from '@/components/ManualPublish';
 import {
   getItemArtifact,
@@ -426,6 +427,21 @@ export default async function QueueItemPage({ params }: { params: Promise<{ id: 
               </p>
             </Card>
           ) : null}
+
+          {/*
+            §373. The review step's decision half: ask for a change, and say
+            which part. The shape is read from the piece rather than from the
+            platform — a silent video and a spoken one take different
+            adjustments, and both are TikTok.
+          */}
+          <AdjustPanel
+            id={id}
+            shape={{
+              hasScenes: Boolean(item.screenplay?.scenes?.length) || item.format === 'video',
+              hasVoice: item.audio_mode !== 'silent' && item.ai_components.includes('voiceover'),
+              hasImage: item.ai_components.includes('image') || item.preview_urls.length > 0,
+            }}
+          />
 
           {/* §372. What it was meant to be, next to what it became. */}
           <ScreenplayPanel screenplay={item.screenplay} />
