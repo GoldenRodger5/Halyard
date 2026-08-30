@@ -629,3 +629,71 @@ export function calloutSourceFromCapture(
 
   return out;
 }
+
+
+/**
+ * §316. The cut a *walkthrough* needs, which is not the cut a beat needs.
+ *
+ * `footageSpansFor` keeps the stretches where something happens and drops
+ * everything else, which is right for a demo beat: a two-second clip of the
+ * result appearing is exactly what that beat wants. Run against the real
+ * adapt-and-reveal capture it kept **3.2 seconds of 98**, because a click takes
+ * about a hundred milliseconds and the cut is a sum of step durations.
+ *
+ * A walkthrough is a different claim. Its subject is *using the product*, so
+ * the time between the actions is the content — the pause where a person reads
+ * the screen, the moment the diet chips appear. Cut to the actions alone it
+ * becomes a flicker of unrelated frames, which shows nothing and looks broken.
+ *
+ * So this keeps one continuous run from the first visible step to the last, and
+ * removes only the waits long enough to be dead air. Same recording, same
+ * honesty about what was on screen — a different question asked of it.
+ *
+ * §166 still holds: setup steps get no screen time. What changes is that the
+ * *gaps* between shown steps are kept rather than discarded.
+ */
+export function walkthroughSpans(
+  steps: CapturedStep[],
+  options: { deadAirMs?: number } = {},
+): FootageSpan[] {
+  /*
+   * Two seconds. Below that a pause reads as someone thinking, which is what
+   * using software looks like; above it, nothing is happening and the viewer
+   * knows it.
+   */
+  const deadAirMs = options.deadAirMs ?? 2000;
+
+  const ordered = [...steps]
+    .filter((s) => s.ok && s.startMs !== undefined && s.endMs !== undefined)
+    .sort((a, b) => (a.startMs ?? 0) - (b.startMs ?? 0));
+
+  const shown = ordered.filter((s) => !s.setup);
+  if (shown.length === 0) return [];
+
+  const spans: FootageSpan[] = [];
+  let from = shown[0]!.startMs!;
+  let covered: string[] = [];
+
+  for (const step of shown) {
+    /*
+     * A long wait ends the current span and starts the next one after it. The
+     * wait itself is dropped: it is the adaptation running, which is real work
+     * and not something anybody watches.
+     */
+    const duration = step.endMs! - step.startMs!;
+    if (step.elide && duration >= deadAirMs) {
+      if (step.startMs! > from) {
+        spans.push({ startMs: from, endMs: step.startMs!, steps: covered });
+      }
+      from = step.endMs!;
+      covered = [];
+      continue;
+    }
+    covered.push(step.step);
+  }
+
+  const last = shown[shown.length - 1]!;
+  if (last.endMs! > from) spans.push({ startMs: from, endMs: last.endMs!, steps: covered });
+
+  return spans;
+}

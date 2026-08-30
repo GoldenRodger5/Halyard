@@ -213,10 +213,18 @@ export const SAMPLE_RECIPE_URL =
  * Different URLs make the recorded pass a cold adaptation, which is both what
  * the selectors were written against and the more honest demonstration — the
  * footage shows the product doing the work rather than reading back something
- * it did thirty seconds ago. Verified to return 200 alongside the first.
+ * it did thirty seconds ago.
+ *
+ * §316. The URL matters as much as the fact that it differs. The first choice
+ * was a cookie recipe, and the recorded adaptation **hit the 90-second timeout
+ * and never produced a result** — so the capture recorded three seconds of
+ * typing and nothing else, while the verify pass on the other URL had finished
+ * in 33. Both return 200; only one of them adapts inside the budget, and the
+ * page returning 200 says nothing about that. Changed to a recipe measured to
+ * complete, and any replacement has to be measured the same way.
  */
 export const CAPTURE_RECIPE_URL =
-  'https://sallysbakingaddiction.com/chewy-chocolate-chip-cookies/';
+  'https://sallysbakingaddiction.com/best-banana-bread-recipe/';
 
 export const FLOWS: Record<FlowId, CaptureFlow> = {
   /**
