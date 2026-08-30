@@ -23,7 +23,7 @@ const supports: PlatformSupport[] = PLATFORMS.map((platform) =>
 const support = (platform: string) => supports.find((s) => s.platform === platform)!;
 
 /** The wizard's rule: a type is offered when *every* chosen platform carries it. */
-function offered(chosen: string[]): string[] {
+function offered(chosen: string[]): Array<(typeof POST_TYPES)[number]> {
   return POST_TYPES.filter((id) =>
     chosen.every((platform) => canCarry(POST_TYPE_CATALOG[id], support(platform)).ok),
   );

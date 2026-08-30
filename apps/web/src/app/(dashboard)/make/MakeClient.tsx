@@ -22,6 +22,7 @@
  * the system never has to guess what they meant.
  */
 import { useMemo, useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { makePiece, type MakeResult } from './actions';
 
 export interface MakeFormat {
@@ -91,6 +92,7 @@ export function MakeClient({
   const [subject, setSubject] = useState('');
   const [result, setResult] = useState<MakeResult | null>(null);
   const [pending, startTransition] = useTransition();
+  const router = useRouter();
 
   /**
    * A post type is offered when **every** chosen platform can carry it.
@@ -134,7 +136,16 @@ export function MakeClient({
     data.set('subject', subject);
     data.set('flowId', flowId ?? '');
     data.set('together', together ? '1' : '');
-    startTransition(async () => setResult(await makePiece(data)));
+    startTransition(async () => {
+      const outcome = await makePiece(data);
+      setResult(outcome);
+      /*
+       * §356. Straight to the run. The several minutes a piece takes used to
+       * be silent, and a message saying "it appears in the queue" is an
+       * instruction to go and wait somewhere else.
+       */
+      if (outcome.ok && outcome.jobId) router.push(`/make/run/${outcome.jobId}`);
+    });
   };
 
   const step = (n: number, title: string, hint?: string) => (

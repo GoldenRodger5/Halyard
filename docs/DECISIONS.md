@@ -8977,3 +8977,37 @@ step that wastes attention.
 platforms" — so a multi-platform request is several jobs. `together` is recorded
 rather than acted on: it changes what §352's finish does at publish, and making
 it literally share a render belongs in the handler.
+
+## 356. Watching a run
+
+Pressing Generate showed a queue and nothing else, so the several minutes a
+piece takes were silent. The messages that explain a run were already written —
+"post format chosen", "research", "annotations planned", each carrying the
+decision and its reason — and went to the container's stdout, where no operator
+can read them.
+
+`job_events` is the feed. Deliberately narrow: a job id, a message, a detail
+blob, a time. No levels and no categories, because the messages are already
+written and already good, and a taxonomy over them would be a second thing to
+keep in step.
+
+**`agent_runs` is not this.** It records a row *after* an agent finishes, with
+its cost and duration — an audit trail. The wizard needs to know what is
+happening *now*.
+
+**Written without awaiting, failures swallowed.** A log line is bookkeeping: a
+job must never fail because its progress could not be recorded, and a slow
+insert must never pace the work.
+
+**Polling, not a websocket, and that is the right call for now.** The part that
+did not exist is the feed; the transport is an implementation detail and a
+websocket replaces the route without the page changing. Two seconds, because
+the poller itself ticks at two seconds and asking faster than the work moves is
+just load.
+
+The run view surfaces the **decision** from each message — every director
+returns a `reason` or a `because`, which is the standing rule here — rather than
+making an operator read JSON.
+
+Caught by a guard on the way: `designTokens.test.ts` refused `bg-warn-bg`, a
+class I invented that has no token behind it.

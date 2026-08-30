@@ -106,6 +106,18 @@ export class Poller {
     this.pollIntervalMs = options.pollIntervalMs ?? 2000;
     this.heartbeatIntervalMs = options.heartbeatIntervalMs ?? 60_000;
     this.reapIntervalMs = options.reapIntervalMs ?? 5 * 60_000;
+    /**
+     * §356. Logs reach the operator, not only stdout.
+     *
+     * `ctx.log` wrote JSON to the container's stdout, which is right for a
+     * worker and invisible to the UI — so pressing Generate showed nothing
+     * until a render appeared minutes later. The messages were already there
+     * and already good; they had nowhere to go.
+     *
+     * Written **without awaiting**, and failures are swallowed. A log line is
+     * bookkeeping: a job must never fail because its progress could not be
+     * recorded, and a slow insert must never pace the work.
+     */
     this.log =
       options.log ??
       ((message, detail) =>
@@ -197,7 +209,24 @@ export class Poller {
         handler(job, {
           pool: this.pool,
           workerId: this.workerId,
-          log: this.log,
+          /*
+           * §356. The job's own logger: still stdout, and also `job_events`,
+           * so an operator can watch this run rather than wait for its output.
+           * Bound per job because that is the only place the id is known.
+           */
+          log: (message, detail) => {
+            this.log(message, { ...detail, jobId: job.id });
+            void this.pool
+              .query(
+                `insert into job_events (job_id, message, detail) values ($1, $2, $3)`,
+                [job.id, message, detail ? JSON.stringify(detail) : null],
+              )
+              /*
+               * Swallowed. A log line is bookkeeping and a job must never fail
+               * because its progress could not be recorded.
+               */
+              .catch(() => undefined);
+          },
           enqueue: (kind, payload, options) => this.enqueue(kind, payload, options),
         }),
         policy.timeoutMs,
