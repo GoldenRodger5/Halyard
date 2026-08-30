@@ -22,7 +22,7 @@
  * without the founder's own opinion, and a handler that pre-judged the stories
  * would be putting words in their mouth.
  */
-import { clusterItems, fetchFeed, type RssItem } from '@halyard/core';
+import { clusterItems, fetchFeed, rankStories, type RssItem } from '@halyard/core';
 import type { HandlerContext, Job } from '../poller.js';
 
 interface SourceRow {
@@ -193,6 +193,46 @@ async function collectForProduct(productId: string, ctx: HandlerContext): Promis
     fetched.map((f) => ({ ...f.item, sourceName: f.source.name })),
   );
 
+  /**
+   * §378. Ranked against what the founder actually works on, with the reason.
+   *
+   * `relevanceOf` weights a story by which outlets carried it, which is
+   * *convergence* and is one of four inputs — and it was the only one being
+   * used, because `rankStories` was written, tested, and called by nothing. So
+   * the Take screen's "five stories, ranked" was ranked by how many feeds
+   * picked something up, with no regard for whether it touches the founder's
+   * work, how old it is, or whether they already posted about it. And
+   * `rank_reason` — a column since migration 0013 — had never been written, in
+   * a file whose own comment says a ranked list without a reason is one you
+   * stop trusting after a week. 1,030 rows, 1,030 relevances, zero reasons.
+   */
+  const { rows: interestRows } = await ctx.pool.query<{ value: string }>(
+    `select value from product_facts
+      where product_id = $1 and superseded_by is null and category in ('product', 'audience')
+      order by confidence desc limit 20`,
+    [productId],
+  );
+  const { rows: recentRows } = await ctx.pool.query<{ title: string }>(
+    `select title from rss_items
+      where product_id = $1 and status = 'used'
+      order by fetched_at desc limit 40`,
+    [productId],
+  );
+  /*
+   * Every cluster is ranked, not the top five: the limit is what the *screen*
+   * shows, and a row stored with no relevance can never be surfaced later.
+   */
+  const ranked = new Map(
+    rankStories(
+      clusters,
+      {
+        interests: interestRows.map((r) => r.value),
+        recentTitles: recentRows.map((r) => r.title),
+      },
+      clusters.length,
+    ).map((story) => [story.guid, story]),
+  );
+
   let stored = 0;
   let stale = 0;
   for (const cluster of clusters) {
@@ -206,9 +246,9 @@ async function collectForProduct(productId: string, ctx: HandlerContext): Promis
     const { rowCount } = await ctx.pool.query(
       `insert into rss_items
          (source_id, product_id, guid, url, title, summary, author, published_at,
-          fetched_at, cluster_key, feed_count, expires_at, relevance, status)
+          fetched_at, cluster_key, feed_count, expires_at, relevance, rank_reason, status)
        values ($1,$2,$3,$4,$5,$6,$7,$8, now(), $9, $10,
-               coalesce($8::timestamptz, now()) + ($11 || ' hours')::interval, $12, 'new')
+               coalesce($8::timestamptz, now()) + ($11 || ' hours')::interval, $12, $13, 'new')
        on conflict (product_id, guid) do nothing`,
       [
         origin.id,
@@ -232,9 +272,19 @@ async function collectForProduct(productId: string, ctx: HandlerContext): Promis
         // what `sourceNames` actually measures.
         cluster.sourceNames.length,
         String(STORY_TTL_HOURS),
-        relevanceOf(
-          cluster.sourceNames.map((n) => sources.find((s) => s.name === n)?.weight ?? 1),
-        ),
+        /*
+         * §378. The full ranking when there is one, and the outlet weighting
+         * as the floor. `rankStories` drops a story it scores at zero — one
+         * already covered — and that is a real answer rather than a missing
+         * one, so it is stored as zero rather than falling back to a number
+         * that would outrank fresh stories forever.
+         */
+        ranked.has(cluster.guid)
+          ? ranked.get(cluster.guid)!.relevance
+          : relevanceOf(
+              cluster.sourceNames.map((n) => sources.find((s) => s.name === n)?.weight ?? 1),
+            ),
+        ranked.get(cluster.guid)?.rankReason ?? null,
       ],
     );
     stored += rowCount ?? 0;

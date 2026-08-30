@@ -358,3 +358,45 @@ d('collectSignalsHandler', () => {
     vi.unstubAllGlobals();
   });
 });
+
+/**
+ * §378. Every stored story carries the reason it was ranked where it was.
+ *
+ * `rank_reason` has been a column since migration 0013 and had never been
+ * written: 1,030 rows, 1,030 relevances, zero reasons. `rankStories` — which
+ * produces both, and ranks on the founder's actual interests, freshness and
+ * prior coverage rather than on outlet count alone — was written, tested, and
+ * called by nothing.
+ */
+d('stories are ranked with their reason', () => {
+  it('writes a reason for every story it stores', async () => {
+    await addSource('A feed', 'https://ranked.test/rss', 1);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response(
+            feed([
+              { guid: 'r1', title: 'A thing broke in production today' },
+              { guid: 'r2', title: 'Another unrelated announcement' },
+            ]),
+          ),
+      ),
+    );
+
+    await collectSignalsHandler(job(), context());
+    const { rows } = await pool.query<{ relevance: string | null; rank_reason: string | null }>(
+      "select relevance, rank_reason from rss_items where guid in ('r1','r2')",
+    );
+    expect(rows.length).toBeGreaterThan(0);
+    /*
+     * The reason is the point. A ranked list without one is, in this file's own
+     * words, a list you stop trusting after a week.
+     */
+    for (const row of rows) {
+      expect(row.rank_reason).not.toBeNull();
+      expect(row.rank_reason!.length).toBeGreaterThan(5);
+    }
+    vi.unstubAllGlobals();
+  });
+});
