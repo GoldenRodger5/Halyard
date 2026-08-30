@@ -15,6 +15,12 @@ rather than starting a new one.
 | §351 | VO script no longer written then discarded | skipped when the format wrote it |
 | §352 | `platformFinish` — one production, several finishes | 10 tests |
 
+## Built since this was written
+
+- ✅ §353 `platformFinish` wired into publish
+- ✅ §355 the generation wizard — `/make`, steps 1–5, all derived
+- ✅ §356 `job_events` + `/make/run/[jobId]` — watching a run as it happens
+
 ## Open, in priority order
 
 ### 1. The caption is still written first
@@ -26,10 +32,10 @@ be written without a caption. **The fix:** insert with the format's own title,
 then write the caption after the piece exists as a revision informed by it.
 Not a reorder — a second, better-informed pass.
 
-### 2. `platformFinish` is not called
-Built and tested; `publish.ts` still sends the identical file to every
-destination. Wire it into the publish path so a piece is checked per
-destination, and record the finish it was checked against.
+### 2. ✅ Done — `platformFinish` is wired
+Checked at publish against the destination it is going to, recorded to
+`qc_results`. Records rather than blocks, because every rule is about quality
+on that surface rather than capability.
 
 ### 3. The directors do not read the screenplay
 `writeScreenplay` produces scenes with `move`, `score` and `gestures`. The
@@ -81,6 +87,17 @@ UI will be redesigned later; this is about the flow, not the visual design.
 Everything steps 1–5 needs already exists: `postTypesForPlatform`, `canCarry`,
 `POST_FORMAT_CATALOG`, `allFlows`. Step 6 needs a websocket and an agent event
 stream that does not exist yet.
+
+### 8. Messages do not name their agent
+`ctx.log('research', …)` is the researcher and nothing says so, so the run view
+is chronological rather than grouped by agent. A small mechanical change — each
+`ctx.log` carrying an agent id — and the lane layout in the UI spec becomes
+possible.
+
+### 9. Timed lines for the artifact path
+Blocked on beats carrying durations. `CreativeBeat` has none and the allocation
+happens at render. The fix is to share the allocator rather than duplicate it,
+which is a deliberate change rather than one to make in passing.
 
 ## Standing risks
 

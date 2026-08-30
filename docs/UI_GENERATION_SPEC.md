@@ -255,14 +255,28 @@ action, which `correct.ts` already knows how to run.
 
 ## Build order
 
-1. **Steps 1–5** — pure derivation, everything needed exists. This is the
-   scoping win: the option space becomes real and the gaps become visible.
-2. **Step 8** — scheduling and publishing already work; the screens do not.
-3. **Step 7** — review without the feedback loop first: play it, show the
-   screenplay, show the critic.
-4. **Step 6** — the agent theatre. Needs the event stream and the websocket,
-   which is the largest genuinely new piece of work here.
+1. ✅ **Steps 1–5** — built 2026-08-30. `/make` is the wizard: platforms →
+   post type → together? → format → specifics. Every narrowing derived,
+   10 tests on the narrowing logic.
+2. ✅ **Step 6, first version** — built 2026-08-30. `job_events` is the feed,
+   `/make/run/[jobId]` is the view, polling every two seconds. Generate goes
+   straight there.
+3. **Step 7** — review: play it, show the screenplay, show the critic. Next.
+4. **Step 8** — scheduling and publishing work; the screens do not.
 5. **Feedback → corrections** — the loop that makes review worth doing.
+6. **Websocket** — replaces the polling route without the page changing. Worth
+   doing when polling is visibly the constraint, not before.
+
+### What step 6 has and does not
+
+**Has:** every decision the worker makes, in the words it wrote them, as it
+happens. The agents that ran, with duration and cost. What stopped a run.
+
+**Does not have:** the lane-and-card layout in this spec's sketch. The feed is
+chronological rather than grouped by team, because grouping needs each message
+mapped to an agent and the messages do not name one — `ctx.log('research', …)`
+is the researcher, and nothing says so. Mapping them is the next improvement and
+is a small, mechanical change once each `ctx.log` carries its agent id.
 
 ---
 
