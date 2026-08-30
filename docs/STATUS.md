@@ -1,5 +1,34 @@
 # Where Halyard is right now
 
+**2026-08-30 (night, later) — deployed, and put through a design pass.**
+
+Live at `halyard-87mphvnfn-isaac-mineos-projects.vercel.app` (behind Vercel's
+deployment protection). Six commits pushed.
+
+*What made it look generated was composition, not type.* Three fixes, no new
+colours and no font changes (decision 85):
+
+- **The accent rail is gone.** A coloured bar down the left edge of a rounded
+  card is the most recognisable tell of a machine-made layout, and it had
+  stopped working anyway — six rails on one screen read as decoration. A card
+  that matters now carries a warmer ground and its own border colour.
+- **The four-box counter row is one panel.** Four equal cards each holding a
+  two-digit number is what every dashboard template ships with. One strip with
+  rules between the segments is denser and quieter; the count that needs
+  attention takes a hairline instead of a box.
+- **Cards are the shape of their contents.** "Finish the first run" was a
+  paragraph in a card sixty per cent empty; it now carries the outstanding
+  checks themselves. The rig was the opposite — six identical not-connected
+  cards repeating one sentence over 1,800px, now one list and two real cards for
+  the accounts that differ. It reads at 975px.
+
+Dead space and uniform repetition turned out to be the same defect from either
+end: a layout that is not the shape of what it holds.
+
+**Suite: 214 files, 3,209 tests, none skipped. Lint and typecheck clean.**
+
+---
+
 **2026-08-30 (night) — walked the new console page by page, and it was hiding
 two broken things.**
 

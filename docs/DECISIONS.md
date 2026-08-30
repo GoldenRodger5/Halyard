@@ -9509,3 +9509,41 @@ bug was present — once because the file declaring the field also mentioned
 `FormData` and so vouched for its own name. A test that cannot be shown to fail
 on the defect it was written for is a false assurance, which is the exact thing
 this codebase keeps finding. It is asserted against the real mutation now.
+
+## 85 · What made it look generated, and what fixed it
+
+**Chosen.** Three changes to how the console is composed, not to its palette or
+its type. The fonts were never the problem.
+
+**1. The accent rail is gone.** A coloured bar down the left edge of a rounded
+card is the single most recognisable tell of a generated layout — it is on the
+short list of things that read as machine-made whatever else is right. It had
+also stopped *working* here: once more than one card on a screen carried a
+state, six rails read as decoration rather than as emphasis. A card that matters
+now carries a warmer ground and a border in its own colour, and the lamp beside
+its heading already names the state, so the surface only has to agree rather
+than announce.
+
+**2. The four-box counter row became one panel.** Four equal cards each holding
+a two-digit number is the shape every dashboard template ships with, and it
+spends four borders and four shadows saying nothing. A gallery reads its counts
+off one strip with rules between them. The count that needs attention takes a
+hairline along its top edge instead of a box of its own.
+
+**3. Cards are the shape of their contents.** "Finish the first run" was a
+paragraph and a button in a card eleven hundred pixels wide — sixty per cent
+air, which is what unfinished looks like. It now carries the outstanding checks
+themselves, from the same `assessReadiness` the First run tab reads. The rig
+did the opposite: six accounts in the identical not-connected state produced six
+identical cards repeating one sentence over eighteen hundred pixels. The
+repetition is real, so the *screen* says it once and spends its space on the two
+accounts that differ.
+
+**The principle.** Dead space and uniform repetition are the same defect seen
+from either end: a layout that is not the shape of what it holds. Fixing that is
+what separates a product from a template, and neither fix required a new colour.
+
+**Rejected.** Changing the typefaces. Bricolage Grotesque, IBM Plex Sans and
+JetBrains Mono are distinctive, legible and appropriate — the composition was
+doing the damage. Two faces the old console used were dropped from the font
+request, which is a saving rather than a design change.

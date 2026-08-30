@@ -71,18 +71,27 @@ export function Sheet({
   className?: string;
   children: ReactNode;
 }) {
+  /*
+   * §392. The tint carries the state, not a coloured bar down the left edge.
+   *
+   * The inset stripe is the single most recognisable tell of a generated
+   * layout — an accent rail on a rounded card, applied to every card that
+   * means anything. It also stopped working here the moment more than one card
+   * on a screen had a state, because six rails read as decoration rather than
+   * as emphasis.
+   *
+   * A card that matters now carries a *warmer ground* and a stronger border in
+   * its own colour. The lamp beside its heading already names the state, so the
+   * surface only has to agree with it rather than announce it again.
+   */
   const tones: Record<SheetTone, string> = {
     plain: 'bg-gradient-to-b from-white to-sheet border-rule',
-    lit: 'bg-gradient-to-b from-white to-sheet border-rule shadow-[inset_3px_0_0_var(--color-lit),inset_0_1px_0_rgba(255,255,255,0.9),0_8px_20px_-10px_rgba(154,110,21,0.35)]',
-    onair:
-      'bg-gradient-to-b from-white to-sheet border-rule shadow-[inset_3px_0_0_var(--color-onair),inset_0_1px_0_rgba(255,255,255,0.9),0_8px_20px_-10px_rgba(179,58,42,0.3)]',
+    lit: 'border-lit/30 bg-gradient-to-b from-[#FEFBF4] to-[#F9F2E4]',
+    onair: 'border-onair/30 bg-gradient-to-b from-[#FEF8F7] to-[#FBEDEA]',
     cool: 'bg-gradient-to-b from-[#f2f6f5] to-[#e9efee] border-rule2',
     dark: 'bg-[#0d1413] border-hair text-dink',
   };
-  const lift =
-    tone === 'lit' || tone === 'onair'
-      ? ''
-      : 'shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_6px_16px_-10px_rgba(15,23,22,0.3)]';
+  const lift = 'shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_6px_16px_-10px_rgba(15,23,22,0.28)]';
   return (
     <div className={cx('rounded-[11px] border p-4', tones[tone], lift, className)}>{children}</div>
   );

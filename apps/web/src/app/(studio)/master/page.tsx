@@ -36,6 +36,14 @@ const TONE_TO_LAMP = {
 export default async function TheRig() {
   const [accounts, settings] = await Promise.all([getAllAccounts(), getSettings()]);
 
+  /*
+   * "Quiet" is the ordinary not-yet-connected state: no credential and nothing
+   * gone wrong. Everything else earns a card — connected, awaiting a review, or
+   * broken.
+   */
+  const quiet = accounts.filter((a) => !a.has_token && !a.last_error);
+  const needsAttention = accounts.filter((a) => a.has_token || a.last_error);
+
   return (
     <div className="flex flex-col gap-3.5">
       <p className="max-w-[74ch] text-sm leading-relaxed text-quiet">
@@ -58,6 +66,14 @@ export default async function TheRig() {
         </Sheet>
       ) : null}
 
+      {/*
+        §392. Full cards for what needs attention; a list for what does not.
+
+        Six accounts with no credential produced six identical cards repeating
+        the same sentence over eighteen hundred pixels. The repetition is real —
+        they genuinely are all in the same state — so the *screen* should say it
+        once, and spend its space on the account that is different.
+      */}
       {accounts.length === 0 ? (
         <Sheet tone="lit">
           <Label>Nothing connected</Label>
@@ -67,7 +83,7 @@ export default async function TheRig() {
           </p>
         </Sheet>
       ) : (
-        accounts.map((account) => {
+        needsAttention.map((account) => {
           const badge = accountBadge(account);
           const adapter = getAdapter(account.platform as never);
           const gate = REVIEW_GATES[account.platform as keyof typeof REVIEW_GATES];
@@ -169,6 +185,43 @@ export default async function TheRig() {
           );
         })
       )}
+
+      {quiet.length > 0 ? (
+        <Sheet>
+          <Label>{quiet.length} not connected yet</Label>
+          <p className="mb-2.5 max-w-[74ch] text-[12.5px] leading-relaxed text-quiet">
+            Set up in Halyard with no working credential, so nothing can be read or published.
+            Connecting one completes its setup.
+          </p>
+          <ul className="flex flex-col">
+            {quiet.map((account) => {
+              const gate = REVIEW_GATES[account.platform as keyof typeof REVIEW_GATES];
+              return (
+                <li
+                  key={account.id}
+                  className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 border-t border-rule2 py-2 first:border-t-0 first:pt-0"
+                >
+                  <Tally state="dark" on="light" size={7} />
+                  <span className="text-[13px] font-semibold">
+                    {PLATFORM_LABELS[account.platform] ?? account.platform}
+                  </span>
+                  <span className="min-w-0 flex-1 text-[12.5px] text-quiet">{account.handle}</span>
+                  <span className="shrink-0 font-data text-[10px] uppercase tracking-[0.06em] text-quiet">
+                    {/*
+                      `howLong` returns a whole phrase, because TikTok's value
+                      is prose — "assume rejection for an internal tool" — and
+                      wrapping it in "then … of review" produced "then assume
+                      rejection for an internal tool of review".
+                    */}
+                    {gate && gate.review !== 'None' ? reviewWait(gate.typicalWeeks) : 'no review needed'}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </Sheet>
+      ) : null}
+
       <Deeper
         links={[
           { href: '/master/platforms', label: 'Platform capabilities' },
@@ -187,6 +240,20 @@ export default async function TheRig() {
  * nor omitting it is right for all of them. The unit goes after the *number*,
  * where it belongs: "2–4 weeks per submission", not "2–4 per submission weeks".
  */
+/**
+ * The wait, as a complete phrase.
+ *
+ * The label goes *first*. Every value here carries its own qualifier —
+ * "2–4 weeks per submission", "2–6 weeks, no guaranteed timeline" — so any
+ * suffix lands after it and reads as nonsense: "2–6 weeks, no guaranteed
+ * timeline of review". A prefix has nothing to trip over, and prose that is
+ * already a sentence about the review stands alone.
+ */
+function reviewWait(typicalWeeks: string | undefined): string {
+  const said = howLong(typicalWeeks);
+  return /^\d/.test(said) ? `review: ${said}` : said;
+}
+
 function howLong(typicalWeeks: string | undefined): string {
   if (!typicalWeeks) return 'an unknown time';
   if (typicalWeeks === '0') return 'no wait';
