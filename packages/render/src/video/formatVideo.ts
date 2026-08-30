@@ -27,7 +27,7 @@ import type { BeatRole, NarrativeBeat } from './narrative.js';
 import {
   QUIZ_COUNTDOWN_SECONDS,
   QUIZ_QUESTION_SECONDS,
-  ASIDE_GAP_SECONDS,
+  asideGapFor,
   revealSecondsFor,
   spokenSeconds,
   titleSecondsFor,
@@ -250,7 +250,7 @@ const BUILDERS: Record<string, (slots: SlotValue[]) => FormatVideo | null> = {
          * fit both, so there is room rather than a hope that there is.
          */
         narration.push({
-          atSeconds: Number((revealAt + 0.1 + ASIDE_GAP_SECONDS).toFixed(2)),
+          atSeconds: Number((revealAt + 0.1 + asideGapFor(item.answer)).toFixed(2)),
           text: item.aside,
         });
       }

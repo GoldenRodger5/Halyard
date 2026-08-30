@@ -29,6 +29,7 @@ export * from './concepts/score.js';
 export * from './concepts/generate.js';
 export * from './audio/director.js';
 export * from './audio/openverse.js';
+export * from './imagery/subject.js';
 export * from './audio/import.js';
 export * from './audio/publishGate.js';
 export * from './audio/sfx.js';

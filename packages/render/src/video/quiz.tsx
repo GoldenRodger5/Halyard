@@ -93,6 +93,14 @@ export interface QuizVideoProps {
    * nobody has checked the contrast of.
    */
   backgroundDataUri?: string;
+  /**
+   * §301/§315. How bright that photograph is where the type sits, 0..1.
+   *
+   * Scales the scrim, and decides the accent colour: a bright photograph shows
+   * through a mid-frame scrim, so an accent measured against the scrim's dark
+   * bottom is measured against a ground it is never on.
+   */
+  backgroundLuminance?: number;
   typography?: RenderTypography;
   title: string;
   questions: QuizQuestion[];
@@ -153,7 +161,13 @@ export function secondsPerQuestion(
 export function spokenSeconds(text: string): number {
   const words = text.trim().split(/\s+/).filter(Boolean).length;
   if (words === 0) return 0;
-  return Math.max(1.55, Number((words / 2.6 + 0.55).toFixed(2)));
+  /*
+   * The floor carries headroom because synthesis is not deterministic: the same
+   * four digits measured 1.49s on one run and 1.85s on the next. A model tuned
+   * to the shorter measurement overruns on the longer one, and an overrun is
+   * two voices at once — far worse than a beat that holds a moment too long.
+   */
+  return Math.max(2.0, Number((words / 2.6 + 0.55).toFixed(2)));
 }
 
 export function titleSecondsFor(title: string): number {
@@ -174,17 +188,21 @@ export function revealSecondsFor(item: { answer: string; aside?: string | null }
    * exactly the floor `spokenSeconds` exists to model.
    */
   const answer = spokenSeconds(item.answer);
-  const aside = item.aside ? ASIDE_GAP_SECONDS + spokenSeconds(item.aside) : 0;
+  const aside = item.aside ? asideGapFor(item.answer) + spokenSeconds(item.aside) : 0;
   return Math.max(QUIZ_REVEAL_SECONDS, Number((answer + aside + 0.6).toFixed(2)));
 }
 
 /**
- * §312. The gap between the answer and the fact that follows it.
+ * §312. When the fact that follows an answer may start.
  *
- * Long enough that the answer has finished — a short answer still takes about
- * 1.5s — and short enough that the two read as one thought rather than two.
+ * Derived from the answer rather than a constant: a one-word answer and a
+ * twelve-word one do not finish at the same time, and a fixed gap has to be
+ * wrong for one of them. Plus a short beat, so the two read as one thought
+ * arriving in two parts rather than as two separate statements.
  */
-export const ASIDE_GAP_SECONDS = 1.7;
+export function asideGapFor(answer: string): number {
+  return Number((spokenSeconds(answer) + 0.3).toFixed(2));
+}
 
 /**
  * Total runtime for a quiz.
@@ -544,6 +562,7 @@ export const QuizVideo: React.FC<QuizVideoProps> = ({
   audioSrc,
   wordmark,
   backgroundDataUri,
+  backgroundLuminance,
 }) => {
   const { fps } = useVideoConfig();
 
@@ -597,7 +616,19 @@ export const QuizVideo: React.FC<QuizVideoProps> = ({
           <AbsoluteFill
             style={{
               backgroundImage:
-                'linear-gradient(to bottom, rgba(0,0,0,0.30) 0%, rgba(0,0,0,0.55) 45%, rgba(0,0,0,0.86) 100%)',
+                /*
+                 * §301/§315. Scaled to this photograph. The quiz kept its own
+                 * hardcoded three stops — §301 changed `Stage`, which the quiz
+                 * does not use — so a bright picture and a dark one got the
+                 * same scrim here long after that was fixed everywhere else.
+                 */
+                (() => {
+                  const lum = backgroundLuminance ?? 0.5;
+                  const bottom = Math.min(0.92, Math.max(0.6, 0.55 + lum * 0.5));
+                  const middle = Math.min(0.7, Math.max(0.3, bottom - 0.28));
+                  const top = Math.min(0.45, Math.max(0.12, bottom - 0.52));
+                  return `linear-gradient(to bottom, rgba(0,0,0,${top}) 0%, rgba(0,0,0,${middle}) 45%, rgba(0,0,0,${bottom}) 100%)`;
+                })(),
             }}
           />
         </>

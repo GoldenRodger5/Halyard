@@ -196,6 +196,22 @@ export interface QuizPalette {
   border: string;
   /** How much a wrong option drops back once the answer is out. */
   dimmed: string;
+  /** The brand colour, for rules and fills — never for small type on a photo. */
+  rule: string;
+  /**
+   * §315. A plate for small type, or null on the brand ground.
+   *
+   * A measured mean cannot save a 30px label. The lower band of the bread
+   * photograph measures 0.31 and the kicker happens to sit on the crust, which
+   * is nearly white — so an accent computed from the average was legible
+   * against a ground it was never actually on, and "AND THEN" disappeared.
+   *
+   * Small type over a photograph gets its own dark plate instead. It does not
+   * depend on knowing what is behind it, which is the only property that
+   * survives a photograph nobody has looked at — the same reason §294 put a
+   * scrim over the whole frame rather than tinting per piece.
+   */
+  plate: string | null;
 }
 
 /** Step a hex colour toward another. Used only to rescue a failing accent. */
@@ -256,7 +272,24 @@ export function quizPalette(brand: BrandTokens, overPhoto: boolean): QuizPalette
      * The scrim's dark end is what an accent over a photograph is really read
      * against; on the brand ground it is the ground itself.
      */
-    accent: legibleAccent(brand.primary, overPhoto ? '#1a1512' : brand.background, fg),
+    /*
+     * §315. Over a photograph the accent is the *rule and the fills*, and small
+     * type is white on a plate instead.
+     *
+     * There is no brand-coloured tint that is safe on an unknown photograph:
+     * a 30px label sits wherever the layout puts it, which may be the one
+     * highlight in the frame, and rust that measures 4.5:1 against the average
+     * measures 1.8:1 against a sunlit crust. Attempting it produced a label
+     * that was legible in the test and invisible on screen.
+     *
+     * White on a 78% plate is legible over *any* photograph, including a white
+     * one, without knowing anything about it — and the brand still reads,
+     * because the rule under the label and the fill on the right answer are
+     * both `brand.primary` at full strength.
+     */
+    accent: overPhoto ? '#FFFFFF' : legibleAccent(brand.primary, brand.background, fg),
+    /** The brand colour itself, for rules and fills that are not type. */
+    rule: brand.primary,
     /*
      * Over a photograph the plate has to be a plate. A 11% white wash over a
      * busy image is not a container — the bars stopped reading as options and
@@ -266,6 +299,12 @@ export function quizPalette(brand: BrandTokens, overPhoto: boolean): QuizPalette
     surface: overPhoto ? 'rgba(0,0,0,0.46)' : light ? 'rgba(255,255,255,0.11)' : 'rgba(0,0,0,0.055)',
     border: overPhoto ? 'rgba(255,255,255,0.34)' : light ? 'rgba(255,255,255,0.26)' : 'rgba(0,0,0,0.14)',
     dimmed: light ? 'rgba(255,255,255,0.72)' : 'rgba(0,0,0,0.45)',
+    /*
+     * 78%: over a white photograph this composites to about 0.2 luminance,
+     * where white type clears 4.5:1. Chosen from the worst case rather than
+     * from how it looks over one picture somebody happened to try.
+     */
+    plate: overPhoto ? 'rgba(0,0,0,0.78)' : null,
   };
 }
 
@@ -303,15 +342,25 @@ function optionState(i: number, correctIndex: number | undefined, reveal: number
 const Eyebrow: React.FC<{
   index: number;
   total: number;
-  accent: string;
+  palette: QuizPalette;
   type?: RenderTypography;
-}> = ({ index, total, accent, type }) => (
+}> = ({ index, total, palette, type }) => (
   <span
     style={{
+      /*
+       * §315. Its own plate over a photograph, nothing on the brand ground.
+       * An accent computed from the frame's average was legible against a
+       * ground this label was never actually on — it sits wherever the layout
+       * puts it, which may be the one bright highlight in the picture.
+       */
+      alignSelf: 'flex-start',
       fontSize: 32,
       textTransform: 'uppercase',
       letterSpacing: '0.12em',
-      color: accent,
+      color: palette.accent,
+      ...(palette.plate
+        ? { backgroundColor: palette.plate, padding: '10px 16px', borderRadius: 8 }
+        : {}),
       ...face(type, 'label'),
     }}
   >
@@ -322,7 +371,7 @@ const Eyebrow: React.FC<{
 /** Stacked bars: the most legible treatment, and the one to fall back on. */
 export const StackTemplate: React.FC<QuizTemplateProps> = (p) => (
   <div style={{ display: 'flex', flexDirection: 'column', gap: 28, width: '100%' }}>
-    <Eyebrow index={p.index} total={p.total} accent={p.palette.accent} type={p.type} />
+    <Eyebrow index={p.index} total={p.total} palette={p.palette} type={p.type} />
     <span
       style={{
         fontSize: 94,
@@ -403,7 +452,7 @@ export const StackTemplate: React.FC<QuizTemplateProps> = (p) => (
 export const RailTemplate: React.FC<QuizTemplateProps> = (p) => (
   <div style={{ display: 'flex', gap: 40, width: '100%', alignItems: 'flex-start' }}>
     <div style={{ width: '40%', display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <Eyebrow index={p.index} total={p.total} accent={p.palette.accent} type={p.type} />
+      <Eyebrow index={p.index} total={p.total} palette={p.palette} type={p.type} />
       <span
         style={{
           fontSize: 62,
@@ -426,7 +475,7 @@ export const RailTemplate: React.FC<QuizTemplateProps> = (p) => (
         style={{
           width: 6,
           height: 96,
-          backgroundColor: p.palette.accent,
+          backgroundColor: p.palette.rule,
           transform: `scaleY(${p.rise})`,
           transformOrigin: 'top',
         }}
@@ -469,7 +518,7 @@ export const RailTemplate: React.FC<QuizTemplateProps> = (p) => (
 /** Tiles. Reads as a game rather than a document — good for a light question. */
 export const GridTemplate: React.FC<QuizTemplateProps> = (p) => (
   <div style={{ display: 'flex', flexDirection: 'column', gap: 32, width: '100%' }}>
-    <Eyebrow index={p.index} total={p.total} accent={p.palette.accent} type={p.type} />
+    <Eyebrow index={p.index} total={p.total} palette={p.palette} type={p.type} />
     <span
       style={{
         fontSize: 78,
@@ -520,7 +569,7 @@ export const GridTemplate: React.FC<QuizTemplateProps> = (p) => (
 /** Two panels. True on one side, false on the other, and the frame picks a side. */
 export const VersusTemplate: React.FC<QuizTemplateProps> = (p) => (
   <div style={{ display: 'flex', flexDirection: 'column', gap: 36, width: '100%' }}>
-    <Eyebrow index={p.index} total={p.total} accent={p.palette.accent} type={p.type} />
+    <Eyebrow index={p.index} total={p.total} palette={p.palette} type={p.type} />
     <span
       style={{
         fontSize: 82,
@@ -573,7 +622,7 @@ export const VersusTemplate: React.FC<QuizTemplateProps> = (p) => (
 /** No options. The question, at the size it deserves when it stands alone. */
 export const SpotlightTemplate: React.FC<QuizTemplateProps> = (p) => (
   <div style={{ display: 'flex', flexDirection: 'column', gap: 34, width: '100%' }}>
-    <Eyebrow index={p.index} total={p.total} accent={p.palette.accent} type={p.type} />
+    <Eyebrow index={p.index} total={p.total} palette={p.palette} type={p.type} />
     <span
       style={{
         fontSize: 118,

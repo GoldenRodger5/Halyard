@@ -94,9 +94,32 @@ describe('quizPalette', () => {
     expect(quizPalette(dark, true).fg).toBe('#FFFFFF');
   });
 
-  it('lifts an accent that would fail against the scrim', () => {
+  it('sets small type white on a plate over a photograph, not in brand colour', () => {
+    /*
+     * §315. There is no brand tint that is safe on an unknown photograph. A
+     * 30px label sits wherever the layout puts it, which may be the brightest
+     * patch in the frame — rust measuring 4.5:1 against the average measures
+     * 1.8:1 against a sunlit crust, which is how a label that passed its test
+     * came out invisible on screen.
+     */
     const over = quizPalette(recipefix, true);
-    expect(contrastRatio(over.accent, '#1a1512')).toBeGreaterThanOrEqual(4.5);
+    expect(over.accent).toBe('#FFFFFF');
+    expect(over.plate).toBeTruthy();
+    /* The brand still reads: the rule and the fills are the primary itself. */
+    expect(over.rule).toBe('#B5502A');
+  });
+
+  it('keeps white legible on the plate over even a white photograph', () => {
+    /*
+     * The worst case, which is the only one worth designing for: a plate that
+     * only works over dark pictures is a plate that fails unpredictably.
+     */
+    const over = quizPalette(recipefix, true);
+    const alpha = Number(/rgba\(0,0,0,([0-9.]+)\)/.exec(over.plate!)![1]);
+    /* The plate composited over pure white, as a grey of that brightness. */
+    const value = Math.round(255 * (1 - alpha));
+    const hex = value.toString(16).padStart(2, '0');
+    expect(contrastRatio('#FFFFFF', `#${hex}${hex}${hex}`)).toBeGreaterThanOrEqual(4.5);
   });
 
   it('never rescues an accent by moving it toward the ground it sits on', () => {
@@ -104,17 +127,15 @@ describe('quizPalette', () => {
      * §308. The first version lifted toward white unconditionally. On a light
      * brand that is the wrong direction — it made the eyebrow and the rail rule
      * invisible on cream, which shipped because it was only ever looked at over
-     * a photograph. Asserted on both kinds of brand and on both grounds.
+     * a photograph. Checked on both kinds of brand.
      */
     for (const brand of [recipefix, dark]) {
-      for (const overPhoto of [false, true]) {
-        const p = quizPalette(brand, overPhoto);
-        const ground = overPhoto ? '#1a1512' : (brand as unknown as { background: string }).background;
-        expect(
-          contrastRatio(p.accent, ground),
-          `accent ${p.accent} is illegible on ${ground}`,
-        ).toBeGreaterThanOrEqual(4.5);
-      }
+      const p = quizPalette(brand, false);
+      const ground = (brand as unknown as { background: string }).background;
+      expect(
+        contrastRatio(p.accent, ground),
+        `accent ${p.accent} is illegible on ${ground}`,
+      ).toBeGreaterThanOrEqual(4.5);
     }
   });
 

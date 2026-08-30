@@ -32,6 +32,7 @@ import {
   classifyHookType,
   extractHookPattern,
   type SlopPlatform,
+  photographicSubject,
 } from '@halyard/core';
 import {
   carouselProps,
@@ -1148,9 +1149,35 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
          * back to the artifact for `transformation`, which genuinely is about
          * the adapted recipe.
          */
-        const heroSubject = written
-          ? subjectFromFormat(written.draft.slots) ?? subjectForImage(artifact, idea.title)
-          : subjectForImage(artifact, idea.title);
+        /**
+         * §314. What to photograph, not what the piece says.
+         *
+         * `heroPrompt` writes `A photograph of ${subject}`, so a subject that
+         * is a sentence produces "A photograph of Bread was an accident of wild
+         * yeast" — which is not English and asks a generator to photograph a
+         * proposition. The line is the right *source* and the wrong *shape*.
+         *
+         * Naming the physical thing a line is about is perception ("How well do
+         * you know gluten?" is about bread and dough, not about knowledge), so
+         * a model does it and `checkSubject` decides whether the answer can be
+         * photographed at all. A refusal falls back to the artifact, which is
+         * worse but is at least a noun.
+         */
+        const formatLine = written ? subjectFromFormat(written.draft.slots) : null;
+        let heroSubject = subjectForImage(artifact, idea.title);
+        if (formatLine) {
+          const verdict = await photographicSubject(
+            { line: formatLine, productContext: product.brief_summary ?? undefined },
+            llmFor(),
+          ).catch(() => ({ subject: null, reason: 'the subject agent failed' }));
+          ctx.log('photographic subject', {
+            contentItemId,
+            from: formatLine,
+            subject: verdict.subject,
+            because: verdict.reason,
+          });
+          if (verdict.subject) heroSubject = verdict.subject;
+        }
         const hero =
           heroSubject && imageClient
             ? await generateHeroImage(ctx, imageClient, {

@@ -122,11 +122,21 @@ const Kicker: React.FC<{ text: string; palette: QuizPalette; type?: RenderTypogr
 }) => (
   <span
     style={{
+      /*
+       * §315. A plate over a photograph. "AND THEN" sat on the bright crust of
+       * a loaf and vanished, while measuring as legible against the frame's
+       * average — an average cannot save 30px of type sitting on the one
+       * highlight it happens to cross.
+       */
+      alignSelf: 'flex-start',
       fontSize: 32,
       textTransform: 'uppercase',
       letterSpacing: '0.14em',
       color: palette.accent,
       marginBottom: 22,
+      ...(palette.plate
+        ? { backgroundColor: palette.plate, padding: '10px 16px', borderRadius: 8 }
+        : {}),
       ...face(type, 'label'),
     }}
   >
@@ -139,7 +149,19 @@ const Source: React.FC<{ text: string; palette: QuizPalette; type?: RenderTypogr
   palette,
   type,
 }) => (
-  <span style={{ fontSize: 24, marginTop: 26, color: palette.dimmed, ...face(type, 'body') }}>
+  <span
+    style={{
+      alignSelf: 'flex-start',
+      fontSize: 24,
+      marginTop: 26,
+      color: palette.dimmed,
+      /* §315. Same reason as the kicker: a citation is the smallest type here. */
+      ...(palette.plate
+        ? { backgroundColor: palette.plate, padding: '8px 14px', borderRadius: 6 }
+        : {}),
+      ...face(type, 'body'),
+    }}
+  >
     {text}
   </span>
 );
@@ -240,7 +262,7 @@ const Beat: React.FC<{
               fontSize: 156,
               lineHeight: 0.94,
               letterSpacing: '-0.03em',
-              color: palette.accent,
+              color: palette.plate ? '#FFFFFF' : palette.rule,
               marginBottom: 26,
               transform: `translateY(${(1 - rise) * 20}px)`,
               ...face(type, 'display'),
