@@ -34,6 +34,7 @@ import {
   type FactCategory,
   type StoredFact,
   type ProposalResult,
+  selectEvidence,
 } from '@halyard/core';
 import type { LlmClient } from '@halyard/core';
 import type { HandlerContext, Job } from '../poller.js';
@@ -126,8 +127,43 @@ export async function buildBrainHandler(
     return;
   }
 
-  const byKind = (kind: EvidenceKind): EvidenceForPrompt[] =>
-    toPrompt(evidence.filter((e) => e.kind === kind).slice(0, MAX_EVIDENCE_PER_AGENT));
+  /**
+   * §322. Chosen by what is in them, not by when they were fetched.
+   *
+   * This was `.slice(0, MAX_EVIDENCE_PER_AGENT)` over a `collected_at desc`
+   * ordering, so with eight pages and six slots two were dropped for a reason
+   * unrelated to their contents. Kinolog's `/pricing` — 6,027 characters of
+   * plans and limits — lost to a 326-character login form and a landing page
+   * that had already been counted twice under two URLs.
+   *
+   * The reasons are logged, so "why did it not know the price" has an answer.
+   */
+  const byKind = (kind: EvidenceKind): EvidenceForPrompt[] => {
+    const chosen = selectEvidence(
+      evidence
+        .filter((e) => e.kind === kind)
+        .map((e) => ({
+          id: e.id,
+          sourceUrl: e.source_url,
+          title: e.title,
+          body: e.body,
+          collectedAt: new Date(e.collected_at),
+        })),
+      MAX_EVIDENCE_PER_AGENT,
+    );
+    if (chosen.length > 0) {
+      ctx.log('evidence chosen', {
+        kind,
+        pages: chosen.map((c) => `${c.candidate.sourceUrl} (${c.why})`),
+      });
+    }
+    return toPrompt(
+      chosen.map(
+        (c) =>
+          evidence.find((e) => e.id === c.candidate.id) as EvidenceRow,
+      ),
+    );
+  };
 
   const llm: LlmClient =
     deps.llm ??

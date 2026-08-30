@@ -8457,3 +8457,37 @@ sentence; a shifted one tells a lie.
 capture adapting a live recipe, ending on *4-Ingredient Gluten-Free High-Protein
 Artisan Bread* with its `SWAPPED` and `SCALED` badges. Nothing on that screen is
 drawn.
+
+## 322. The brain never saw the pricing page
+
+Kinolog was attached as the second product — the first real test of whether any
+of this is product-agnostic — and the agents did well: 35 facts, including
+features nobody mentioned to them (a Movie night mode, a no-account taste trial,
+one-time email sign-in), and `mission` claims correctly marked **unverifiable**,
+because a company saying "we do not sell your data" on its own site is not
+evidence that it does not.
+
+And **no pricing facts at all**, from a site with a `/pricing` page carrying
+6,027 characters of plans, prices and limits.
+
+`MAX_EVIDENCE_PER_AGENT` is 6, eight pages were collected, and the slice was
+over `collected_at desc` — so two pages were dropped for a reason that has
+nothing to do with what is in them. One of the six survivors was a
+326-character login form. Another was the landing page counted **twice**, as
+`https://kinolog.app` and `https://kinolog.app/`, because nothing normalised the
+URL. A duplicate does not merely waste a slot; it displaces a page that had
+something new in it.
+
+**Ranked, not recent.** A page's worth to a product-understanding agent is
+knowable without reading it. Pricing ranks first because it is the one thing a
+marketing system must never guess — a wrong price is a wrong claim on a public
+post. Login forms and legal text are excluded outright rather than ranked low:
+they are structurally incapable of contributing a product fact, and a "fact"
+drawn from a privacy policy is a compliance claim no post should make.
+
+**Every choice is logged with its reason**, so "why did it not know the price"
+has an answer rather than a shrug.
+
+Found only by attaching a second product. Against RecipeFix, six pages was
+enough and nothing was ever dropped — the defect needed a site with more
+surface than the cap.
