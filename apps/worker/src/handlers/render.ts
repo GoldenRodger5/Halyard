@@ -22,7 +22,7 @@ import { muxAudioIntoVideo } from '../audio.js';
 import { PermanentJobFailure } from '../poller.js';
 import type { Job, HandlerContext } from '../poller.js';
 import { readAssetBytes, uploadAsset, type UploadedAsset } from '../storage.js';
-import { renderVideo } from '../video.js';
+import { measureLowerLuminance, renderVideo } from '../video.js';
 
 interface RenderRow {
   id: string;
@@ -221,6 +221,7 @@ async function renderVideoAsset(
    * *piece* and shared by every render it has.
    */
   let videoBackground: string | undefined;
+  let videoBackgroundLuminance: number | null = null;
   if (render.content_item_id) {
     const { rows } = await ctx.pool.query<{
       storage_path: string | null;
@@ -239,6 +240,18 @@ async function renderVideoAsset(
     const bytes = asset ? await readAssetBytes(asset.storage_path, asset.public_url) : null;
     if (bytes) {
       videoBackground = `data:${asset?.mime_type ?? 'image/png'};base64,${bytes.toString('base64')}`;
+
+      /*
+       * §301. Ask how bright it is where the type will sit, so the scrim can be
+       * scaled to this photograph rather than to an average one. Written to a
+       * file first because ffmpeg reads paths, not data URIs; measured over the
+       * lower band only, because a whole-image mean says nothing about the part
+       * a headline crosses. A failure here leaves it null and the composition
+       * keeps its fixed scrim — unmeasured is not mid-grey.
+       */
+      const probePath = path.join(work, `bg-probe.${(asset?.mime_type ?? 'image/png').includes('jpeg') ? 'jpg' : 'png'}`);
+      await writeFile(probePath, bytes);
+      videoBackgroundLuminance = await measureLowerLuminance(probePath);
     }
   }
 
@@ -248,6 +261,9 @@ async function renderVideoAsset(
       props: {
         ...render.input_props,
         ...(videoBackground ? { backgroundDataUri: videoBackground } : {}),
+        ...(videoBackgroundLuminance !== null
+          ? { backgroundLuminance: videoBackgroundLuminance }
+          : {}),
         ...(brandTokens ? { brand: brandTokens } : {}),
         // Captions are burned in from data. The audio is muxed afterwards
         // rather than played by the renderer, so the composition gets none.

@@ -7973,3 +7973,73 @@ handles truth): that the revealed answer is actually among its own options, that
 no two options are identical, that a true-or-false has True and False. An answer
 missing from its own options is the mistake a model makes and the one a viewer
 screenshots.
+
+## 301. A fixed scrim cannot be right for a photograph nobody has looked at
+
+**Chosen:** measure the background's brightness in the band where the type sits,
+and scale the scrim to it. `apps/worker/src/video.ts` → `measureLowerLuminance`;
+`compositions.tsx` derives the gradient from `backgroundLuminance`.
+
+Since §294 every video has sat on a generated photograph under a gradient that
+was the same three stops every time. That gradient was tuned against one image.
+A dark kitchen gets more scrim than it needs and turns into a grey card — which
+is the exact failure full-bleed was introduced to fix — and a bright flatlay
+gets less than it needs and the headline sits on toast.
+
+Measured over the **lower 45% only**. A whole-image mean is the wrong number: a
+photograph with a bright sky over a dark counter averages to "medium" and says
+nothing about the strip a headline actually crosses.
+
+**Unmeasured stays unmeasured.** A failed probe returns `null` and the
+composition keeps its fixed scrim rather than substituting 0.5. Gotcha 9's line,
+applied to a number nobody would think of as evidence: an unmeasured background
+is not a mid-grey one.
+
+**Rejected:** deciding it in the model that writes the piece. The describer is
+already forbidden to judge its own output (§275), and "how dark is this photo"
+is a measurement, not a perception — *agents perceive, code decides*.
+
+**Also fixed here:** the quiz title card was `brand.ink` unconditionally, which
+put dark type on the dark end of a scrim for the first two seconds of every
+quiz. Same class of bug, and it had been shipping since §294.
+
+## 302. One quiz template is one quiz template too few
+
+**Chosen:** five treatments — `stack`, `rail`, `grid`, `spotlight`, `versus` —
+chosen per question by `chooseQuizTemplate`, fit before recency. See
+`packages/render/src/video/quizTemplates.tsx`.
+
+§300 fixed how a question is *asked*. This is how it is *drawn*, and drawing it
+was worse than it looked: `QuizQuestion` has carried `options` and
+`correctIndex` since §294, `planQuestion` returns `optionCount: 3`, and the
+composition **never rendered a single option**. Every multiple-choice question
+ever made reached the viewer as free-form. The same missing-last-hop shape as
+the image client, the typography path and the captures.
+
+One template per question kind would not have been enough either. A feed does
+not experience "this is a true/false and that is a multiple choice" — it
+experiences *these all look the same*, and an account posting three times a week
+asks a viewer to see the same composition 150 times a year.
+
+**Fit before variety, and it is not a close call.** A template is picked only
+from those that can draw the question's option count; `versus` renders two
+panels and given three options would drop one, which could be the right answer.
+Variety only breaks ties. `chooseLayout`'s order (§293), for the same reason.
+
+**Rejected:** random selection. It reruns the same treatment twice in a row
+often enough to notice, and cannot tell an operator why.
+
+**The palette is measured, not configured.** `quizPalette` resolves type and
+surface colours once from the brand: white over a photograph, and on the brand
+ground whichever of ink and white actually contrasts with it, by the same
+`contrastRatio` the captions have used since §211. A dark-ground product gets
+legible type with nothing configured — which is the product-agnostic claim made
+concrete rather than asserted. The accent is lifted toward white until it clears
+4.5:1, because RecipeFix's rust measured ~3:1 against the scrim and it is used
+only in small type, where a marginal ratio is where it actually fails.
+
+**Found by rendering, not by testing.** The first version was written in white
+and was invisible on RecipeFix's cream ground; the second stranded the question
+in the middle 40% of a 9:16 frame; the third split it into three islands; the
+rail's rule ran the full height of the frame because a stray `height: '100%'`
+survived a replacement. All four typechecked and passed their tests.

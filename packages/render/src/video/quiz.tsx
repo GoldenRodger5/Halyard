@@ -39,6 +39,14 @@ import {
 } from 'remotion';
 import type { BrandTokens } from '../brand.js';
 import type { RenderTypography } from '../image/templates.js';
+import {
+  QUIZ_TEMPLATE_COMPONENTS,
+  chooseQuizTemplate,
+  quizPalette,
+  useQuizProgress,
+  type QuizPalette,
+  type QuizTemplateId,
+} from './quizTemplates.js';
 
 export interface QuizQuestion {
   question: string;
@@ -202,58 +210,81 @@ const QuestionBeat: React.FC<{
   type?: RenderTypography;
   countdownSeconds: number;
   revealSeconds: number;
-}> = ({ item, index, total, brand, type, countdownSeconds, revealSeconds }) => {
-  const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  const seconds = frame / fps;
-
+  /** §302. Which of the five treatments draws this one. */
+  template: QuizTemplateId;
+  palette: QuizPalette;
+}> = ({ item, index, total, brand, type, countdownSeconds, revealSeconds, template, palette }) => {
   const countdownStart = QUIZ_QUESTION_SECONDS;
   const revealStart = countdownStart + countdownSeconds;
-  const revealed = seconds >= revealStart;
-
-  /* The question rises once and stays; nothing re-animates on the reveal. */
-  const rise = spring({ frame, fps, config: { damping: 200 }, durationInFrames: Math.round(fps * 0.4) });
+  const { rise, reveal, revealed } = useQuizProgress(revealStart);
+  const Template = QUIZ_TEMPLATE_COMPONENTS[template];
 
   return (
     <AbsoluteFill
       style={{
         /* Transparent when a photograph is behind the whole piece. */
         backgroundColor: 'transparent',
-        padding: '120px 72px',
+        /*
+         * §302. Asymmetric, and it has to be. Rendering the first version
+         * showed the whole question sitting in the middle 40% of a 9:16 frame
+         * with dead space above and below it — which on a phone reads as timid
+         * next to a feed of edge-to-edge video. Type at the top, a fixed slot
+         * for the timer at the bottom, and the question fills what is left.
+         */
+        padding: '150px 68px 60px',
         flexDirection: 'column',
-        justifyContent: 'center',
+        justifyContent: 'flex-start',
       }}
     >
-      <span
+      {/*
+        §302. The question, its options and their reveal state, drawn by
+        whichever treatment was chosen for this question. Before this, options
+        were carried on `QuizQuestion` and never rendered at all — every
+        multiple choice reached the viewer as a free-form question.
+      */}
+      {/* The question takes every pixel the timer slot does not need. */}
+      <div
         style={{
-          fontSize: 34,
-          textTransform: 'uppercase',
-          letterSpacing: '0.12em',
-          color: brand.primary,
-          marginBottom: 24,
-          ...face(type, 'label'),
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          minHeight: 0,
         }}
       >
-        Question {index + 1} of {total}
-      </span>
-
-      <span
-        style={{
-          fontSize: 104,
-          lineHeight: 1.02,
-          opacity: rise,
-          transform: `translateY(${(1 - rise) * 24}px)`,
-          ...face(type, 'display'),
-        }}
-      >
-        {item.question}
-      </span>
+      <Template
+        question={item.question}
+        options={item.options ?? []}
+        correctIndex={item.correctIndex}
+        revealed={revealed}
+        brand={brand}
+        type={type}
+        rise={rise}
+        reveal={reveal}
+        index={index}
+        total={total}
+        palette={palette}
+      />
+      </div>
 
       {/*
         The countdown occupies the space the answer will fill, so the reveal
         replaces it in place rather than pushing the question up the frame. A
         layout that jumps at the moment of payoff undercuts the payoff.
+
+        §302. Pinned to a slot of fixed height at the foot of the frame, so the
+        timer lands in the same place whichever treatment is above it. It used
+        to sit directly under the options, which put it at a different height in
+        every template and made a four-question quiz look unsteady.
       */}
+      <div
+        style={{
+          minHeight: 240,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+        }}
+      >
       {!revealed ? (
         <Countdown
           seconds={countdownSeconds}
@@ -262,8 +293,22 @@ const QuestionBeat: React.FC<{
           type={type}
         />
       ) : (
-        <Reveal item={item} brand={brand} type={type} revealSeconds={revealSeconds} />
+        <Reveal
+          item={item}
+          brand={brand}
+          type={type}
+          revealSeconds={revealSeconds}
+          /*
+           * §302. When the treatment has options, it has already filled the
+           * right one — restating the answer in display type underneath is the
+           * same information twice and pushes the options off frame at the
+           * exact moment the viewer is checking whether they were right.
+           */
+          answerAlreadyShown={(item.options?.length ?? 0) > 0}
+          palette={palette}
+        />
       )}
+      </div>
     </AbsoluteFill>
   );
 };
@@ -273,7 +318,10 @@ const Reveal: React.FC<{
   brand: BrandTokens;
   type?: RenderTypography;
   revealSeconds: number;
-}> = ({ item, brand, type }) => {
+  /** §302. The chosen template already filled the right option. */
+  answerAlreadyShown?: boolean;
+  palette: QuizPalette;
+}> = ({ item, brand, type, answerAlreadyShown, palette }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
@@ -287,6 +335,29 @@ const Reveal: React.FC<{
     config: { damping: 14, stiffness: 120 },
     durationInFrames: Math.round(fps * 0.5),
   });
+
+  /*
+   * With options on screen the reveal is the fill, not a second headline. All
+   * that is left to add is the citation, small and under it.
+   */
+  if (answerAlreadyShown) {
+    return item.source ? (
+      <div style={{ minHeight: 80, display: 'flex', alignItems: 'center', marginTop: 24 }}>
+        <span
+          style={{
+            fontSize: 26,
+            color: palette.dimmed,
+            opacity: Math.min(1, enter * 1.2),
+            ...face(type, 'body'),
+          }}
+        >
+          Source: {item.source}
+        </span>
+      </div>
+    ) : (
+      <div style={{ minHeight: 80 }} />
+    );
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: 260, justifyContent: 'center' }}>
@@ -302,6 +373,7 @@ const Reveal: React.FC<{
         style={{
           fontSize: 86,
           lineHeight: 1.06,
+          color: palette.fg,
           opacity: Math.min(1, enter * 1.4),
           transform: `translateY(${(1 - enter) * 18}px)`,
           ...face(type, 'display'),
@@ -314,7 +386,7 @@ const Reveal: React.FC<{
           style={{
             fontSize: 26,
             marginTop: 22,
-            color: brand.muted,
+            color: palette.dimmed,
             opacity: Math.min(1, Math.max(0, enter * 1.2 - 0.3)),
             ...face(type, 'body'),
           }}
@@ -338,6 +410,40 @@ export const QuizVideo: React.FC<QuizVideoProps> = ({
   backgroundDataUri,
 }) => {
   const { fps } = useVideoConfig();
+
+  /*
+   * §302. A treatment per question, chosen once for the whole piece so it is
+   * stable across a re-render, and chosen with the running history so five
+   * questions cycle through the treatments that fit rather than repeating one.
+   */
+  /*
+   * §302. Type and surface colours, measured from the brand once. Over a
+   * photograph it is white; on the brand ground it is whichever of ink and
+   * white actually contrasts with it — which is how a dark-ground product gets
+   * legible type without anybody configuring one.
+   */
+  const palette = React.useMemo(
+    () => quizPalette(brand, Boolean(backgroundDataUri)),
+    [brand, backgroundDataUri],
+  );
+
+  const templates = React.useMemo(() => {
+    const used: QuizTemplateId[] = [];
+    return questions.map((q) => {
+      const options = q.options ?? [];
+      const isTrueFalse =
+        options.length === 2 &&
+        options.every((o) => ['true', 'false'].includes(o.trim().toLowerCase()));
+      const { template } = chooseQuizTemplate({
+        optionCount: options.length,
+        isTrueFalse,
+        recent: used,
+      });
+      used.unshift(template);
+      return template;
+    });
+  }, [questions]);
+
   const titleFrames = Math.round(QUIZ_TITLE_SECONDS * fps);
   const beatFrames = Math.round(secondsPerQuestion(countdownSeconds, revealSeconds) * fps);
 
@@ -373,7 +479,13 @@ export const QuizVideo: React.FC<QuizVideoProps> = ({
             padding: '160px 84px',
             flexDirection: 'column',
             justifyContent: 'center',
-            color: brand.ink,
+            /*
+             * §301/§302. The same resolved type colour the questions use. The
+             * title card was `brand.ink` unconditionally, which is dark type on
+             * the dark end of a scrim — the contrast problem the operator
+             * flagged, and it was in the first two seconds of every quiz.
+             */
+            color: palette.fg,
           }}
         >
           <span
@@ -408,6 +520,8 @@ export const QuizVideo: React.FC<QuizVideoProps> = ({
             type={typography}
             countdownSeconds={countdownSeconds}
             revealSeconds={revealSeconds}
+            template={templates[i]!}
+            palette={palette}
           />
         </Sequence>
       ))}
@@ -419,7 +533,8 @@ export const QuizVideo: React.FC<QuizVideoProps> = ({
               fontSize: 26,
               letterSpacing: '0.14em',
               textTransform: 'uppercase',
-              color: brand.muted,
+              /* §301. Same reason: `brand.muted` disappears into a scrim. */
+              color: palette.dimmed,
             }}
           >
             {wordmark}

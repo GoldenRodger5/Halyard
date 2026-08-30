@@ -474,6 +474,57 @@ export function frameSampleTimes(durationSeconds: number): number[] {
   return [...hook, ...body];
 }
 
+/**
+ * §301. How bright a still is, in the band where the type will sit.
+ *
+ * The scrim over a background photograph was a fixed gradient, and a fixed
+ * scrim cannot be right: the photograph is generated per piece, so a dark
+ * kitchen and a bright flatlay get the same treatment and one of them is
+ * illegible or muddy. `captionStyle` already solved this shape of problem —
+ * `CaptionBackdrop` carries `meanLuminance` and inverts the plate for dark
+ * footage — and the video ground simply never asked the question.
+ *
+ * Measured over the **lower band only**, because that is where the type lives
+ * and a whole-image mean is the wrong number: a photograph with a bright sky
+ * and a dark counter averages to "medium" and tells you nothing about the part
+ * a headline sits on.
+ *
+ * Returns null when it cannot be measured, so the caller keeps the fixed scrim
+ * rather than substituting a guess — an unmeasured background is not a mid-grey
+ * one.
+ */
+export async function measureLowerLuminance(
+  imagePath: string,
+  band = 0.45,
+): Promise<number | null> {
+  try {
+    const { stdout, stderr } = await execFileAsync('ffmpeg', [
+      '-v', 'error',
+      '-i', imagePath,
+      /* Crop to the bottom `band` of the frame, then ask for its statistics. */
+      '-vf', `crop=iw:ih*${band}:0:ih*${1 - band},signalstats,metadata=print:file=-`,
+      '-f', 'null',
+      '-',
+    ]).catch((err: { stdout?: string; stderr?: string }) => ({
+      stdout: err.stdout ?? '',
+      stderr: err.stderr ?? '',
+    }));
+
+    /*
+     * Both streams are searched. §71: `metadata=print:file=-` writes to stdout
+     * and this code once read stderr, which is why `frameLuminance` was empty
+     * on every render ever made. The payload is unambiguous, so reading both
+     * costs nothing and cannot pick up the wrong thing.
+     */
+    const match = `${stdout}\n${stderr}`.match(/lavfi\.signalstats\.YAVG=([0-9.]+)/);
+    if (!match) return null;
+    const yavg = Number(match[1]);
+    return Number.isFinite(yavg) ? Number((yavg / 255).toFixed(4)) : null;
+  } catch {
+    return null;
+  }
+}
+
 export interface SampledFrame {
   atSeconds: number;
   bytes: Uint8Array;

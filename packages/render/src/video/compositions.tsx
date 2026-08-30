@@ -30,6 +30,8 @@ export interface VideoBaseProps {
    * made. A fix in one composition would have left the rest unchanged.
    */
   backgroundDataUri?: string;
+  /** §301. Measured brightness of the ground where type sits, 0..1. */
+  backgroundLuminance?: number;
   brand?: BrandTokens;
   captions?: CaptionCue[];
   audioSrc?: string | null;
@@ -128,7 +130,19 @@ const Stage: React.FC<{
   wordmark?: string;
   /** A photograph for the whole piece, already inlined as a data URI. */
   backgroundDataUri?: string;
-}> = ({ brand, children, wordmark, backgroundDataUri }) => (
+  /**
+   * §301. How bright the photograph is where the type sits, 0..1.
+   *
+   * A fixed scrim cannot be right for a photograph nobody has looked at: a dark
+   * kitchen and a bright flatlay need different amounts of it, and one of them
+   * ends up illegible or muddy. Measured over the lower band only, because a
+   * whole-image mean says nothing about the part a headline sits on.
+   *
+   * Absent means unmeasured, and unmeasured keeps the safe fixed scrim rather
+   * than assuming a mid-grey — the same distinction every gate here draws.
+   */
+  backgroundLuminance?: number;
+}> = ({ brand, children, wordmark, backgroundDataUri, backgroundLuminance }) => (
   <AbsoluteFill
     style={{
       backgroundColor: brand.background,
@@ -158,8 +172,23 @@ const Stage: React.FC<{
         */}
         <AbsoluteFill
           style={{
-            backgroundImage:
-              'linear-gradient(to bottom, rgba(0,0,0,0.30) 0%, rgba(0,0,0,0.55) 45%, rgba(0,0,0,0.86) 100%)',
+            /*
+             * §301. Scaled to the photograph. A bright ground needs more scrim
+             * to hold white type at 4.5:1; a dark one needs less, and piling it
+             * on turns the picture into a grey card — which is the failure the
+             * full-bleed treatment was introduced to fix.
+             *
+             * The floor is never zero: even a dark photograph has a bright
+             * patch somewhere, and type that is legible on average is still
+             * unreadable over the one highlight it happens to cross.
+             */
+            backgroundImage: (() => {
+              const lum = backgroundLuminance ?? 0.5;
+              const bottom = Math.min(0.92, Math.max(0.6, 0.55 + lum * 0.5));
+              const middle = Math.min(0.7, Math.max(0.3, bottom - 0.28));
+              const top = Math.min(0.45, Math.max(0.12, bottom - 0.52));
+              return `linear-gradient(to bottom, rgba(0,0,0,${top}) 0%, rgba(0,0,0,${middle}) 45%, rgba(0,0,0,${bottom}) 100%)`;
+            })(),
           }}
         />
       </>
@@ -399,7 +428,8 @@ export const TransformationDiffVideo: React.FC<TransformationDiffVideoProps> = (
       );
 
   return (
-    <Stage brand={brand} wordmark={props.wordmark} backgroundDataUri={props.backgroundDataUri}>
+    <Stage brand={brand} wordmark={props.wordmark} backgroundDataUri={props.backgroundDataUri}
+      backgroundLuminance={props.backgroundLuminance}>
       {props.audioSrc ? <Audio src={props.audioSrc} /> : null}
 
       {planned ? (
@@ -511,7 +541,8 @@ export const SubstitutionExplainer: React.FC<SubstitutionExplainerProps> = (prop
   );
 
   return (
-    <Stage brand={brand} wordmark={props.wordmark} backgroundDataUri={props.backgroundDataUri}>
+    <Stage brand={brand} wordmark={props.wordmark} backgroundDataUri={props.backgroundDataUri}
+      backgroundLuminance={props.backgroundLuminance}>
       {props.audioSrc ? <Audio src={props.audioSrc} /> : null}
 
       <Sequence from={scenes[0]!.startFrame} durationInFrames={scenes[0]!.durationFrames}>
@@ -563,7 +594,8 @@ export const ScalingMathVideo: React.FC<ScalingMathVideoProps> = (props) => {
   const { fps } = useVideoConfig();
 
   return (
-    <Stage brand={brand} wordmark={props.wordmark} backgroundDataUri={props.backgroundDataUri}>
+    <Stage brand={brand} wordmark={props.wordmark} backgroundDataUri={props.backgroundDataUri}
+      backgroundLuminance={props.backgroundLuminance}>
       {props.audioSrc ? <Audio src={props.audioSrc} /> : null}
 
       <Scene>
@@ -616,7 +648,8 @@ export const ChefNoteCardVideo: React.FC<ChefNoteCardProps> = (props) => {
   const words = props.quote.split(' ');
 
   return (
-    <Stage brand={brand} wordmark={props.wordmark} backgroundDataUri={props.backgroundDataUri}>
+    <Stage brand={brand} wordmark={props.wordmark} backgroundDataUri={props.backgroundDataUri}
+      backgroundLuminance={props.backgroundLuminance}>
       {props.audioSrc ? <Audio src={props.audioSrc} /> : null}
 
       <Scene>
