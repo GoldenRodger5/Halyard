@@ -21,7 +21,7 @@ import { readFloor } from '@/lib/studio/floor';
 export const dynamic = 'force-dynamic';
 
 export default async function StudioLayout({ children }: { children: React.ReactNode }) {
-  const pathname = (await headers()).get('x-halyard-pathname') ?? '/call';
+  const pathname = (await headers()).get('x-halyard-pathname') ?? '/';
 
   const reachable = await databaseReachable();
   if (!reachable.ok) {

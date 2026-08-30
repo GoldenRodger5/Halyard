@@ -19,7 +19,7 @@ import {
 } from '@halyard/core';
 import { Label, Sheet } from '@halyard/ui/studio';
 import { BriefRoom } from '@/components/studio/BriefRoom';
-import { makePiece } from '@/app/(dashboard)/make/actions';
+import { makePiece } from '@/app/(studio)/floor/makeActions';
 import { requireOperator } from '@/lib/auth';
 import { readRundown } from '@/lib/studio/live';
 import { query } from '@/lib/db';

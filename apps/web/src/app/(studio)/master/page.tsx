@@ -18,9 +18,10 @@ import Link from 'next/link';
 import { APPROVAL_LABEL, REVIEW_GATES, accountStatus, getAdapter } from '@halyard/core';
 import { PLATFORM_LABELS } from '@halyard/ui';
 import { Action, Label, Pill, Sheet, Tally, cx } from '@halyard/ui/studio';
+import { Deeper } from '@/components/studio/Deeper';
 import { accountBadge } from '@/lib/accountBadge';
 import { getAllAccounts, getSettings } from '@/lib/queries';
-import { runSelfTest } from '@/app/(dashboard)/accounts/actions';
+import { runSelfTest } from '@/app/(studio)/master/actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -168,6 +169,12 @@ export default async function TheRig() {
           );
         })
       )}
+      <Deeper
+        links={[
+          { href: '/master/platforms', label: 'Platform capabilities' },
+          { href: '/master/setup-kit', label: 'Setup kit — what you need to create an account' },
+        ]}
+      />
     </div>
   );
 }

@@ -14,9 +14,10 @@
  */
 import Link from 'next/link';
 import { Action, Label, Sheet, Tally, cx } from '@halyard/ui/studio';
+import { Deeper } from '@/components/studio/Deeper';
 import { getCategorySummary, getFacts } from '@/lib/brainQueries';
 import { getCurrentProduct } from '@/lib/queries';
-import { collectEvidence, rebuildBrain } from '@/app/(dashboard)/brain/actions';
+import { collectEvidence, rebuildBrain } from '@/app/(studio)/master/product/actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -179,6 +180,15 @@ export default async function TheProduct() {
         Everything <Link href="/floor" className="text-lit underline">the floor</Link> writes is
         downstream of this.
       </p>
+      <Deeper
+        links={[
+          { href: '/master/product/evidence', label: 'Evidence' },
+          { href: '/master/product/contradictions', label: 'Contradictions' },
+          { href: '/master/product/features', label: 'Feature claims' },
+          { href: '/master/product/new', label: 'Add a product' },
+          { href: '/master/product/edit', label: 'Edit this product' },
+        ]}
+      />
     </div>
   );
 }

@@ -12,7 +12,7 @@
 import { Action, Label, Sheet } from '@halyard/ui/studio';
 import { query } from '@/lib/db';
 import { formatInOperatorTz } from '@/lib/format';
-import { submitTake } from '@/app/(dashboard)/take/actions';
+import { submitTake } from '@/app/(studio)/wires/take/actions';
 
 export const dynamic = 'force-dynamic';
 

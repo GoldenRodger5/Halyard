@@ -1,7 +1,7 @@
 import { Badge } from '@halyard/ui';
 import { assetStaleness } from '@halyard/core';
 import { query } from '@/lib/db';
-import { attachAsset, detachAsset } from '@/app/(dashboard)/queue/assetActions';
+import { attachAsset, detachAsset } from '@/app/(studio)/gallery/assetActions';
 
 interface PickerAsset {
   id: string;

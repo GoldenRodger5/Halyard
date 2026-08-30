@@ -9394,3 +9394,71 @@ half-built and useless the moment it was not.
 self-contained client component with a tool loop; a second streaming chat would
 be a second thing to keep correct. The formats are resolved server-side, as
 §283 established and `clientBoundary.test.ts` guards.
+
+## 80 · The old console is deleted, and a frozen list proves nothing went with it
+
+**Chosen.** `(dashboard)` is gone. Call Sheet is `/`. Twenty-two drill-downs
+*moved* into the rooms they belong to rather than being rewritten.
+
+**Why move rather than rewrite.** These screens work. `accounts/confirm/[id]` is
+the only thing standing between an OAuth round trip and a live credential;
+`assets/audio` exists because §363 found a sound library with no screen at all.
+Rewriting proven logic to change its chrome is how a re-skin loses a feature.
+Moving a directory between route groups keeps the body and swaps the shell,
+which is the whole reason the groups exist.
+
+**The guarantee.** `navigation.test.ts` held a *frozen* list of every
+destination the old sidebar offered, and made §172's reorganisation prove it
+dropped nothing. Deleting that test would have thrown away the only check that
+this change dropped nothing either — so it became `capability.test.ts`, with the
+same frozen list and an explicit map from each old destination to where it lives
+now. A map entry is a claim, and the test checks the claim resolves to a real
+page. **The only way to lose a capability now is to say so, in that file.**
+
+**What the move exposed.** Five components were left with no caller and three of
+them were capabilities, not decoration: the TikTok panel (its API refuses a
+direct post without those options), the asset picker, and manual publish. They
+are on the Gallery piece now. Had the delete gone first, all three would have
+vanished silently — which is the argument for the frozen list.
+
+**Rejected.** Keeping both consoles behind a flag. Two consoles is worse than
+either: every fix has to be made twice, and the one nobody is looking at is the
+one that rots.
+
+## 81 · Reachable means linked, not listed
+
+**Chosen.** `rooms.test.ts` scans every `href` in the app, not just `ROOMS`.
+
+**Why.** The first version asked whether a route was in the navigation model,
+which was right while every screen was a room or a tab. The drill-downs are
+neither — they are linked from the page they belong to, which is a real path
+down and the one an operator takes. Checking the model alone reported all
+sixteen as orphans while their rooms linked to every one.
+
+The check that matters is *does anything link here*, and that is answerable by
+reading the source. A page nothing links to is reachable only by somebody who
+already knows the URL, which is nobody.
+
+## 82 · Google sign-in changes nothing on the server
+
+**Chosen.** `signInWithOAuth({ provider: 'google' })` on the client, and no new
+route.
+
+**Why.** Google returns to *Supabase's* callback; Supabase then redirects to
+`/api/auth/callback` with `?code=` — the same PKCE exchange the magic link has
+used since Milestone 48. The allow-list is untouched and still the real gate: a
+Google account that signs in successfully is signed straight back out unless it
+is in `admin_users`. **Signing in with Google proves an address; it does not
+make anybody an operator.**
+
+`prompt: 'select_account'` is passed deliberately. Without it Google reuses
+whichever account the browser is already signed into — the same failure the
+account-confirmation step exists for on the publishing side, where a consent
+screen authorises whoever is already there without ever asking.
+
+The Google mark is drawn rather than fetched. An external image on a sign-in
+page is a third party being told who reaches it.
+
+**Rejected.** A server action. The PKCE verifier is generated in the browser and
+has to still be there on return, which is why the whole sign-in form is the one
+client component in the app.

@@ -41,17 +41,17 @@ export const FIRST_THIRTY_DAYS: FirstRunPhase[] = [
       'The launch batch stages a fortnight in one pass, then writes each post as a separate job, so a failure costs one slot rather than the batch.',
     ],
     yours: [
-      'Create the accounts from /setup-kit, with the link-in-bio page already live.',
-      'Connect them on /accounts and confirm each identity. A token is not an account until you have looked at whose account it is.',
+      'Create the accounts from /master/setup-kit, with the link-in-bio page already live.',
+      'Connect them on /master and confirm each identity. A token is not an account until you have looked at whose account it is.',
       'Finish /onboarding, including the twenty calibration drafts. This is the step that cannot be automated, because it is your taste.',
     ],
     expected: [
       'Every platform except X and Bluesky will sit in draft_only until a manual review lands. That is the platform, not a bug, and the wait is measured in weeks.',
     ],
     screens: [
-      { href: '/setup-kit', label: 'Setup kit' },
-      { href: '/accounts', label: 'Accounts' },
-      { href: '/settings/readiness', label: 'Readiness' },
+      { href: '/master/setup-kit', label: 'Setup kit' },
+      { href: '/master', label: 'Accounts' },
+      { href: '/first-run', label: 'Readiness' },
     ],
   },
   {
@@ -60,7 +60,7 @@ export const FIRST_THIRTY_DAYS: FirstRunPhase[] = [
     happening: [
       'Posts publish on the staggered schedule, jittered inside each slot window.',
       'Metrics start arriving on a delay of an hour or two. Some platforms need a paid tier before they report at all.',
-      'Every link goes through /r, so clicks are counted here even where the platform will not report them.',
+      'Every link goes through /l/<slug>, so clicks are counted here even where the platform will not report them.',
     ],
     yours: [
       'Review the queue. It is built to work on a phone, because approval happens in spare moments or it does not happen.',
@@ -72,9 +72,9 @@ export const FIRST_THIRTY_DAYS: FirstRunPhase[] = [
       'Predicted stop rate stays blank below three posts of history. A prediction from two samples is a guess wearing a number.',
     ],
     screens: [
-      { href: '/queue', label: 'Queue' },
-      { href: '/calendar', label: 'Calendar' },
-      { href: '/inbox', label: 'Inbox' },
+      { href: '/gallery', label: 'Queue' },
+      { href: '/rundown', label: 'Calendar' },
+      { href: '/wires', label: 'Inbox' },
     ],
   },
   {
@@ -94,9 +94,9 @@ export const FIRST_THIRTY_DAYS: FirstRunPhase[] = [
       'Idea scoring is still on cold-start weights, which lean on mix debt and novelty rather than history. It switches itself over when there is history worth leaning on.',
     ],
     screens: [
-      { href: '/swipe', label: 'Swipe file' },
-      { href: '/hooks', label: 'Hooks' },
-      { href: '/analytics', label: 'Analytics' },
+      { href: '/floor/sources', label: 'Swipe file' },
+      { href: '/floor/sources', label: 'Hooks' },
+      { href: '/numbers', label: 'Analytics' },
     ],
   },
   {
@@ -113,7 +113,7 @@ export const FIRST_THIRTY_DAYS: FirstRunPhase[] = [
       'The numbers will be smaller than the platform dashboards suggest. Halyard counts activated users, not impressions, and those are different questions.',
     ],
     screens: [
-      { href: '/analytics', label: 'Analytics' },
+      { href: '/numbers', label: 'Analytics' },
       { href: '/', label: 'Dashboard' },
     ],
   },

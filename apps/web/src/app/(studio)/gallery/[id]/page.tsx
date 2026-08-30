@@ -24,17 +24,23 @@ import { adjustmentsFor, type GateStatus } from '@halyard/core';
 import { PLATFORM_LABELS } from '@halyard/ui';
 import { Action, Chip, Label, Sheet, Tally, cx } from '@halyard/ui/studio';
 import { RouteStrip } from '@/components/studio/RouteStrip';
+import { AssetPicker } from '@/components/AssetPicker';
+import { DeliveryBadge } from '@/components/DeliveryState';
+import { ManualPublish } from '@/components/ManualPublish';
+import { PieceAccountPanel } from '@/components/PieceAccountPanel';
+import { TikTokPanel } from '@/components/TikTokPanel';
 import { lampFor, opening } from '@/components/studio/MonitorWall';
 import { routeFor } from '@/lib/studio/route';
-import { getProducts, getQueueItem } from '@/lib/queries';
+import { getProducts, getQueueItem, getTikTokPanel } from '@/lib/queries';
 import { formatInOperatorTz } from '@/lib/format';
 import {
   adjustItem,
   approveItem,
+  markManuallyPublished,
   markOverflowPosted,
   rejectItem,
   retryRender,
-} from '@/app/(dashboard)/queue/actions';
+} from '@/app/(studio)/gallery/actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -61,6 +67,13 @@ export default async function GalleryPiece({ params }: { params: Promise<{ id: s
 
   const products = await getProducts();
   const timeZone = products[0]?.operator_timezone ?? 'UTC';
+
+  /*
+   * §390. TikTok only, loaded separately. §179's reasoning stands: TikTok is
+   * one platform out of seven, and widening `QUEUE_SELECT` would make every
+   * list page carry columns only this panel uses.
+   */
+  const tiktok = item.platform === 'tiktok' ? await getTikTokPanel(item.id) : null;
 
   const route = routeFor(item);
   const gates = item.qc_results?.gates ?? [];
@@ -118,9 +131,15 @@ export default async function GalleryPiece({ params }: { params: Promise<{ id: s
                 {renderFailed ? 'not made' : rendering ? 'rendering' : 'no render'}
               </span>
             ) : null}
-            <span className="absolute left-3 top-3 flex items-center gap-1.5 font-data text-[9px] uppercase tracking-[0.16em] text-tally">
+            <span className="absolute left-3 top-3 flex items-center gap-2 font-data text-[9px] uppercase tracking-[0.16em] text-tally">
               <Tally state={lamp} size={7} live={lamp === 'working'} />
               {item.status.replace(/_/g, ' ')}
+              {/*
+                What the *platform* holds, which is a different fact from what
+                Halyard's status says. §156: a piece can be delivered as a draft
+                and still read `awaiting_manual_publish` here.
+              */}
+              <DeliveryBadge item={item} />
             </span>
             <span className="absolute inset-x-3.5 bottom-3.5 font-display text-[19px] font-extrabold leading-tight tracking-[-0.03em] text-white [text-shadow:0_2px_12px_rgba(0,0,0,0.65)]">
               {opening(item)}
@@ -208,6 +227,55 @@ export default async function GalleryPiece({ params }: { params: Promise<{ id: s
             </pre>
           </Sheet>
         ) : null}
+
+        {/*
+          §390. The three panels the old queue carried and this page did not.
+          Each is a capability, not a decoration: TikTok's API refuses a direct
+          post without its options, an asset cannot be attached anywhere else,
+          and a piece delivered as a draft is finished by a person.
+        */}
+        {tiktok ? (
+          <Sheet>
+            <Label>TikTok</Label>
+            <TikTokPanel itemId={item.id} panel={tiktok} />
+          </Sheet>
+        ) : null}
+
+        {item.status === 'awaiting_manual_publish' ? (
+          <Sheet tone="lit">
+            <Label>Finish it by hand</Label>
+            <ManualPublish
+              itemId={item.id}
+              platform={item.platform}
+              body={item.body}
+              hashtags={item.hashtags}
+              title={item.title}
+              altText={item.alt_text}
+              linkUrl={item.final_link_url}
+              assets={item.preview_urls.map((url, i) => ({
+                id: `${item.id}-${i}`,
+                url,
+                kind: 'render',
+              }))}
+              onRecord={markManuallyPublished}
+            />
+          </Sheet>
+        ) : null}
+
+        <Sheet>
+          <Label>Media attached to this piece</Label>
+          <AssetPicker
+            contentItemId={item.id}
+            productId={item.product_id}
+            attachedIds={item.attached_asset_ids}
+            usableFor={item.format}
+          />
+        </Sheet>
+
+        <Sheet>
+          <Label>Which account, and why</Label>
+          <PieceAccountPanel contentItemId={item.id} />
+        </Sheet>
       </div>
 
       {/* ── The decision ───────────────────────────────────────── */}

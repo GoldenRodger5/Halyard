@@ -11,6 +11,7 @@
  * the same discipline as gotcha 9, applied to the crew instead of to metrics.
  */
 import { Label, Sheet, cx } from '@halyard/ui/studio';
+import { Deeper } from '@/components/studio/Deeper';
 import { getAgentOverview } from '@/lib/agentQueries';
 import { formatInOperatorTz } from '@/lib/format';
 import { getProducts } from '@/lib/queries';
@@ -123,6 +124,12 @@ export default async function Crew() {
           </ul>
         </Sheet>
       ))}
+      <Deeper
+        links={[
+          { href: '/master/crew/runs', label: 'Recent runs' },
+          { href: '/master/crew/versions', label: 'Prompt versions' },
+        ]}
+      />
     </div>
   );
 }

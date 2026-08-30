@@ -11,10 +11,11 @@
  * resumes rather than restarts.
  */
 import { Action, Label, Sheet, cx } from '@halyard/ui/studio';
+import { Deeper } from '@/components/studio/Deeper';
 import { getSystemHealth } from '@/lib/agentQueries';
 import { getNavCounts, getSettings } from '@/lib/queries';
 import { query } from '@/lib/db';
-import { setGeneration, setKillSwitch } from '@/app/(dashboard)/settings/actions';
+import { setGeneration, setKillSwitch } from '@/app/(studio)/master/system/actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -145,6 +146,14 @@ export default async function System() {
             : 'Nothing has exhausted its retries.'}
         </p>
       </Sheet>
+      <Deeper
+        links={[
+          { href: '/master/system/jobs', label: 'The job queue' },
+          { href: '/master/system/audit', label: 'Audit' },
+          { href: '/master/system/integrations', label: 'Integrations' },
+          { href: '/master/system/pronunciation', label: 'How words are said' },
+        ]}
+      />
     </div>
   );
 }

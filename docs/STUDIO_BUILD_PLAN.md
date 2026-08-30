@@ -1,5 +1,7 @@
 # The Studio — build plan
 
+**Status: done.** All nine steps have landed. The old console is deleted.
+
 **Decision:** the console is replaced. Seven rooms, Halyard's own brand, the
 studio floor. The old `(dashboard)` UI is deleted at the end of this, not kept.
 
@@ -67,7 +69,7 @@ apps/web/src/app/(studio)/     the seven rooms.
 | 6 | ✅ **The Floor** | Landed. Brief and Live. §387, decisions 74–76. |
 | 7 | ✅ **Rundown, Wires, Numbers** | Landed. §388. |
 | 8 | **Master Control** | Largest surface, least new logic. |
-| 9 | **Delete `(dashboard)`** | Move Call Sheet to `/`, drop the old tokens, drop `Shell.tsx` and the old components, update the navigation test. **Also:** `assessReadiness` and `FIRST_THIRTY_DAYS` hardcode ten routes — `/accounts`, `/analytics`, `/calendar`, `/hooks`, `/inbox`, `/queue`, `/settings`, `/settings/health`, `/settings/readiness`, `/setup-kit`, `/swipe` — all of which this step deletes. They need remapping to the studio, and a test that a route named in core actually exists. (`/onboarding` is fine: it is a top-level route outside both groups.) Found while building Call Sheet ▸ First run. |
+| 9 | ✅ **Delete `(dashboard)`** | Landed. §390, decision 80. Call Sheet is `/`; 22 drill-downs moved into the rooms they belong to; core's eleven hardcoded routes remapped and guarded by `coreRoutes.test.ts`; the old navigation test became `capability.test.ts`, which holds the frozen list of all 29 old destinations and asserts each has somewhere to go. |
 
 Steps 4–8 are independent. Each is safe to land alone.
 

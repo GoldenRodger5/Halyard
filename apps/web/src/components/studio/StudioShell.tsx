@@ -88,7 +88,7 @@ export function StudioShell({
       {/* ── Sidebar · laptop ─────────────────────────────────────── */}
       <aside className="hidden w-[196px] shrink-0 flex-col border-r border-rule bg-gradient-to-b from-white to-sheet2 md:flex">
         <div className="bg-sink px-3.5 py-4 text-white">
-          <Link href="/call" className="mb-2 flex items-center gap-2">
+          <Link href="/" className="mb-2 flex items-center gap-2">
             <Mark />
             <span className="font-display text-[17px] font-extrabold tracking-[-0.03em]">Halyard</span>
           </Link>

@@ -15,7 +15,7 @@ import { PLATFORM_LABELS } from '@halyard/ui';
 import { Action, Label, Sheet, Tally } from '@halyard/ui/studio';
 import { getInbox, getProducts } from '@/lib/queries';
 import { formatRelative } from '@/lib/format';
-import { draftReply, ignoreComment, markReplied } from '@/app/(dashboard)/inbox/actions';
+import { draftReply, ignoreComment, markReplied } from '@/app/(studio)/wires/actions';
 
 export const dynamic = 'force-dynamic';
 

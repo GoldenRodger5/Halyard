@@ -18,7 +18,7 @@ import {
   requiresCitation,
 } from '@halyard/core';
 import { Label, Sheet } from '@halyard/ui/studio';
-import { ComposeClient } from '@/app/(dashboard)/compose/ComposeClient';
+import { ComposeClient } from '@/app/(studio)/floor/chat/ComposeClient';
 import { getProducts } from '@/lib/queries';
 
 export const dynamic = 'force-dynamic';

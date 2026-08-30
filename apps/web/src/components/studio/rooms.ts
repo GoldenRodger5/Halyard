@@ -53,14 +53,14 @@ export interface Room {
 
 export const ROOMS: Room[] = [
   {
-    href: '/call',
+    href: '/',
     label: 'Call Sheet',
     question: 'What needs me?',
     number: 1,
     pocket: true,
     tabs: [
-      { href: '/call', label: 'Today', hint: 'What happened overnight, and the one thing to do now' },
-      { href: '/call/first-run', label: 'First run', hint: 'Daily generation will not start until this is done' },
+      { href: '/', label: 'Today', hint: 'What happened overnight, and the one thing to do now' },
+      { href: '/first-run', label: 'First run', hint: 'Daily generation will not start until this is done' },
     ],
   },
   {

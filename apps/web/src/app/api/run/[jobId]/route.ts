@@ -8,7 +8,7 @@
  */
 import { NextResponse } from 'next/server';
 import { requireOperator } from '@/lib/auth';
-import { loadRun } from '@/app/(dashboard)/make/run/[jobId]/route-data';
+import { loadRun } from '@/app/(studio)/floor/live/run/[jobId]/route-data';
 
 export const dynamic = 'force-dynamic';
 

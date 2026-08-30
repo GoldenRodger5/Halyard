@@ -12,7 +12,7 @@ import Link from 'next/link';
 import { Action, Label, Sheet } from '@halyard/ui/studio';
 import { getCurrentProduct } from '@/lib/queries';
 import { query } from '@/lib/db';
-import { discardFind, draftFind } from '@/app/(dashboard)/finds/actions';
+import { discardFind, draftFind } from '@/app/(studio)/wires/finds/actions';
 
 export const dynamic = 'force-dynamic';
 

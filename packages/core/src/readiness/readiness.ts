@@ -110,7 +110,7 @@ function productSection(input: ReadinessInput): ReadinessSection {
       label: 'A product exists',
       state: 'fail',
       detail: 'No product is configured.',
-      fix: 'Add one on /products/new. It takes five steps.',
+      fix: 'Add one on /master/product/new. It takes five steps.',
       needsYou: true,
     });
     return { id: 'product', title: 'Product', why: 'Everything generated is downstream of this.', checks };
@@ -209,7 +209,7 @@ function calibrationSection(input: ReadinessInput): ReadinessSection {
         `Rate ${onboarding.calibrationTarget} real drafts in /onboarding — ${onboarding.calibrationReviewed} done. Without this the copywriter is guessing at your taste.`,
       ],
       ['Templates reviewed', onboarding.templatesDone, 'Approve or disable each template.'],
-      ['Accounts connected', onboarding.accountsDone, 'Connect at least one account on /accounts.'],
+      ['Accounts connected', onboarding.accountsDone, 'Connect at least one account on /master.'],
     ];
 
     for (const [label, done, fix] of steps) {
@@ -250,7 +250,7 @@ function accountsSection(input: ReadinessInput): ReadinessSection {
     fix:
       live.length > 0
         ? undefined
-        : 'X and Bluesky have no review gate and can be live today. Everything else is weeks of waiting — track it on /submissions.',
+        : 'X and Bluesky have no review gate and can be live today. Everything else is weeks of waiting — track it on /gallery/stock/submissions.',
     needsYou: true,
   });
 
@@ -282,7 +282,7 @@ function accountsSection(input: ReadinessInput): ReadinessSection {
         : expiring
             .map((a) => `${a.platform}/${a.persona} in ${a.tokenExpiresInDays}d`)
             .join(', '),
-    fix: expiring.length === 0 ? undefined : 'Reconnect on /accounts before they lapse.',
+    fix: expiring.length === 0 ? undefined : 'Reconnect on /master before they lapse.',
   });
 
   const failing = input.accounts.filter((a) => a.lastSelfTestOk === false);
@@ -294,7 +294,7 @@ function accountsSection(input: ReadinessInput): ReadinessSection {
       failing.length === 0
         ? 'No failing self-tests.'
         : `${failing.length} failing: ${failing.map((a) => a.platform).join(', ')}.`,
-    fix: failing.length === 0 ? undefined : 'Run the self-test on /accounts to see the reason.',
+    fix: failing.length === 0 ? undefined : 'Run the self-test on /master to see the reason.',
   });
 
   return {
@@ -333,7 +333,7 @@ function pipelineSection(input: ReadinessInput): ReadinessSection {
     label: 'No jobs have died',
     state: p.deadJobs === 0 ? 'pass' : 'warn',
     detail: p.deadJobs === 0 ? 'None.' : `${p.deadJobs} exhausted their retries.`,
-    fix: p.deadJobs === 0 ? undefined : 'Check /settings/health for the reason each gave up.',
+    fix: p.deadJobs === 0 ? undefined : 'Check /master/system for the reason each gave up.',
   });
 
   checks.push({
@@ -368,7 +368,7 @@ function pipelineSection(input: ReadinessInput): ReadinessSection {
       p.flowsBroken > 0
         ? 'A broken flow records footage of an error state. Nothing is captured while it fails — fix the selector in packages/core/src/capture/flows.ts.'
         : p.flowsNeverRun > 0
-          ? 'Run pnpm verify-flows, or capture from /assets.'
+          ? 'Run pnpm verify-flows, or capture from /gallery/stock/media.'
           : undefined,
   });
 
@@ -482,7 +482,7 @@ function safetySection(input: ReadinessInput): ReadinessSection {
     label: 'The kill switch is available',
     state: 'pass',
     detail: s.publishingEnabled
-      ? 'Publishing is enabled; the switch is on /settings.'
+      ? 'Publishing is enabled; the switch is on /master/system.'
       : 'Publishing is currently paused.',
   });
 
@@ -497,7 +497,7 @@ function safetySection(input: ReadinessInput): ReadinessSection {
       ? s.release === 'unknown'
         ? 'Release is "unknown", so a regression cannot be mapped to a change. Set SENTRY_RELEASE or deploy somewhere that exposes the commit.'
         : undefined
-      : 'Failures are still recorded in the database and on /settings/health; Sentry adds the stack and the release tag.',
+      : 'Failures are still recorded in the database and on /master/system; Sentry adds the stack and the release tag.',
   });
 
   return {

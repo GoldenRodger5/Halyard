@@ -75,6 +75,7 @@ export default async function GalleryStock() {
     <div className="grid gap-3.5 md:grid-cols-2">
       <Section
         title="Media"
+        href="/gallery/stock/media"
         lamp={c.assets === 0 ? 'onair' : c.assets_stale > 0 ? 'working' : 'ready'}
         headline={
           c.assets === 0
@@ -92,6 +93,7 @@ export default async function GalleryStock() {
 
       <Section
         title="Sound"
+        href="/gallery/stock/sound"
         lamp={c.beds_publishable === 0 ? 'onair' : 'ready'}
         headline={
           c.beds_publishable === 0
@@ -107,6 +109,7 @@ export default async function GalleryStock() {
 
       <Section
         title="Submissions"
+        href="/gallery/stock/submissions"
         lamp={c.submissions_open > 0 ? 'working' : c.submissions === 0 ? 'holding' : 'ready'}
         headline={
           c.submissions === 0
@@ -120,6 +123,7 @@ export default async function GalleryStock() {
 
       <Section
         title="Social proof"
+        href="/gallery/stock/proof"
         lamp={c.proof_waiting > 0 ? 'working' : c.proof === 0 ? 'holding' : 'ready'}
         headline={
           c.proof === 0
@@ -141,11 +145,14 @@ export default async function GalleryStock() {
 
 function Section({
   title,
+  href,
   lamp,
   headline,
   detail,
 }: {
   title: string;
+  /** Where the inventory itself lives. A hub that cannot be opened is a summary. */
+  href: string;
   lamp: 'holding' | 'working' | 'ready' | 'onair';
   headline: string;
   detail: string;
@@ -160,6 +167,12 @@ function Section({
         <span className="min-w-0">{headline}</span>
       </p>
       <p className="mt-1.5 text-xs leading-relaxed text-quiet">{detail}</p>
+      <Link
+        href={href}
+        className="mt-2.5 inline-block font-data text-[10px] uppercase tracking-[0.1em] text-lit underline decoration-rule2 underline-offset-2"
+      >
+        Open {title.toLowerCase()} →
+      </Link>
     </Sheet>
   );
 }

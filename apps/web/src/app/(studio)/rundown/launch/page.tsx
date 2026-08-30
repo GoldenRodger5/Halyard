@@ -16,7 +16,7 @@ import { FIRST_THIRTY_DAYS } from '@halyard/core';
 import { PLATFORM_LABELS } from '@halyard/ui';
 import { Action, Label, Sheet } from '@halyard/ui/studio';
 import { getCurrentProduct } from '@/lib/queries';
-import { buildLaunchPlan, generateLaunchBatch } from '@/app/(dashboard)/launch/actions';
+import { buildLaunchPlan, generateLaunchBatch } from '@/app/(studio)/rundown/launch/actions';
 
 export const dynamic = 'force-dynamic';
 

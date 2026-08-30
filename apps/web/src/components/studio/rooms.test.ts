@@ -5,7 +5,7 @@
  * The old sidebar grew to twenty-nine links because nothing asserted its shape.
  * These are the assertions that stop that happening twice.
  */
-import { existsSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { ROOMS, POCKET_ROOMS, roomFor, tabFor } from './rooms.js';
@@ -115,29 +115,46 @@ describe('the rooms', () => {
     }
   });
 
-  it('leaves no built room unreachable from the navigation', () => {
+  it('leaves no built room unreachable', () => {
     /*
      * The dangerous direction. A route that exists and that nothing links to is
      * a screen an operator can only find by typing the URL, and it is the
      * failure that hides — the other direction 404s loudly the first time
      * anybody clicks it.
      *
-     * This is the same shape as every "declared and never executed" defect in
-     * this codebase, one level up: built and never linked.
+     * Reachable means *linked from somewhere*, not merely present in `ROOMS`.
+     * The tab row lists a room's sections; its drill-downs are linked from the
+     * page they belong to, which is a real path down and the one an operator
+     * actually takes. Checking only the nav model would report every drill-down
+     * as an orphan while the room links to all of them.
      */
     const root = join(__dirname, '..', '..', 'app', '(studio)');
     if (!existsSync(root)) return;
 
-    const known = new Set(ROOMS.flatMap((r) => [r.href, ...r.tabs.map((t) => t.href)]));
-    const orphans: string[] = [];
+    /** Every href written anywhere in the app, in either JSX or a data table. */
+    const linked = new Set<string>(ROOMS.flatMap((r) => [r.href, ...r.tabs.map((t) => t.href)]));
+    const scan = (dir: string): void => {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const full = join(dir, entry.name);
+        if (entry.isDirectory()) scan(full);
+        else if (/\.tsx?$/.test(entry.name) && !/\.test\.tsx?$/.test(entry.name)) {
+          const source = readFileSync(full, 'utf8');
+          for (const m of source.matchAll(/href[=:]\s*["'`](\/[^"'`${}]*)["'`]/g)) {
+            linked.add(m[1]!.replace(/\/$/, '') || '/');
+          }
+        }
+      }
+    };
+    scan(join(__dirname, '..', '..'));
 
+    const orphans: string[] = [];
     const walk = (dir: string, href: string): void => {
       for (const entry of readdirSync(dir, { withFileTypes: true })) {
         if (!entry.isDirectory()) continue;
-        /* `[id]` is a drill-down, reached from its room rather than the nav. */
+        /* `[id]` is a drill-down, reached from its room rather than by a link. */
         if (entry.name.startsWith('[') || entry.name.startsWith('(')) continue;
         const childHref = `${href}/${entry.name}`;
-        if (existsSync(join(dir, entry.name, 'page.tsx')) && !known.has(childHref)) {
+        if (existsSync(join(dir, entry.name, 'page.tsx')) && !linked.has(childHref)) {
           orphans.push(childHref);
         }
         walk(join(dir, entry.name), childHref);
@@ -145,6 +162,6 @@ describe('the rooms', () => {
     };
     walk(root, '');
 
-    expect(orphans).toEqual([]);
+    expect(orphans, 'pages nothing links to').toEqual([]);
   });
 });

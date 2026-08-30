@@ -13,7 +13,7 @@
 import { Action, Label, Sheet, Tally, cx } from '@halyard/ui/studio';
 import { getCurrentProduct } from '@/lib/queries';
 import { query } from '@/lib/db';
-import { rejectBatch, requestConcepts, selectConcept } from '@/app/(dashboard)/studio/actions';
+import { rejectBatch, requestConcepts, selectConcept } from '@/app/(studio)/floor/concepts/actions';
 
 export const dynamic = 'force-dynamic';
 

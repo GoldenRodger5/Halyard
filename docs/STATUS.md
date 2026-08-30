@@ -1,5 +1,46 @@
 # Where Halyard is right now
 
+**2026-08-30 (late) — the old console is gone, and Google signs you in.**
+
+`(dashboard)` is deleted. The studio is the console: Call Sheet at `/`, seven
+rooms, 49 routes, and nothing in the navigation that does not resolve.
+
+*A frozen list proves nothing was lost.* `navigation.test.ts` held the set of
+every destination the old sidebar offered and made §172 prove it dropped none.
+Deleting that test would have thrown away the only check that *this* change
+dropped none either — so it became `capability.test.ts`, same frozen list, plus
+an explicit map from each old destination to where it lives now. A map entry is
+a claim; the test checks it resolves to a real page. The only way to lose a
+capability now is to write it down. Decision 80.
+
+*Twenty-two drill-downs moved rather than being rewritten.* These screens work —
+`accounts/confirm/[id]` is the only thing between an OAuth round trip and a live
+credential. Moving a directory between route groups keeps the body and swaps the
+shell, which is what the groups are for.
+
+*The move exposed three capabilities about to vanish.* The TikTok panel (its API
+refuses a direct post without those options), the asset picker and manual
+publish were left with no caller. They are on the Gallery piece now. Had the
+delete gone first they would have gone silently.
+
+*Reachable means linked, not listed.* The orphan check now scans every `href` in
+the app rather than the navigation model, because a drill-down is linked from
+the page it belongs to and that is a real path down. Decision 81.
+
+*Google sign-in.* `signInWithOAuth` on the client and no new route: Google
+returns to Supabase, Supabase redirects to `/api/auth/callback` with `?code=`,
+and that has exchanged PKCE codes since Milestone 48. The `admin_users`
+allow-list is untouched — signing in with Google proves an address, it does not
+make anybody an operator. Decision 82. **Setup steps are in
+`docs/GOOGLE_SIGN_IN.md`; two consoles still need configuring by hand.**
+
+**Suite: 212 files, 3,207 tests, none skipped. Lint and typecheck clean.**
+
+Still true: both model providers are out of credits, so no live generation run
+has been made against the new UI, and the app is not deployed.
+
+---
+
 **2026-08-30 (evening) — all seven rooms are built, and nothing in the
 navigation is dead.**
 

@@ -6,7 +6,7 @@ import {
   type TikTokCreatorInfo,
   type TikTokPostOptions,
 } from '@halyard/core';
-import { refreshTikTokCreatorInfo, saveTikTokOptions } from '@/app/(dashboard)/queue/tiktokActions';
+import { refreshTikTokCreatorInfo, saveTikTokOptions } from '@/app/(studio)/gallery/tiktokActions';
 
 const PRIVACY_LABELS: Record<string, string> = {
   PUBLIC_TO_EVERYONE: 'Everyone',
