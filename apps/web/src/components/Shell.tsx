@@ -1,10 +1,42 @@
 /**
- * The application shell. v1 §8:
- *   Desktop — persistent left sidebar (240px), content area max 1280px.
- *   Mobile  — bottom tab bar: Queue · Calendar · Library · More.
+ * The application shell.
  *
- * "The queue must be fully usable on a phone; approval happens in spare moments
- * or it doesn't happen."
+ * §361. Seven sections, and every tool lives *inside* one of them.
+ *
+ * §172 cut twenty-nine sidebar links to seven plus a collapsed More. That was
+ * the right move and it stopped half way: More still held twenty-one links in
+ * four groups, so the sidebar was a short list with a long list folded under
+ * it, and the operator's report a fortnight later was that the navigation is
+ * "hard to use and see and confusing, tabs are scattered and too many".
+ *
+ * Two things were wrong, and neither was the count.
+ *
+ * **Three of the seven were the same job.** Make, Create and Co-pilot are a
+ * wizard, a concept picker and a conversation — three ways to begin one task,
+ * presented as three destinations. Choosing between them requires knowing how
+ * Halyard is built before you can ask it for anything.
+ *
+ * **More was a second sidebar.** A list you open to find a list is not
+ * progressive disclosure; the items in it were no longer related to where you
+ * were standing, so finding one still meant reading all twenty-one.
+ *
+ * So: a **section** is a job, and its tools are *tabs within it*, shown only
+ * while you are in it. Seven sidebar entries, never more than eight tabs, and
+ * nothing hidden behind a disclosure. The operator sees the whole of where they
+ * are and none of where they are not.
+ *
+ * ## Every route is still reachable, and it is asserted
+ *
+ * No route changed. `/studio` is still `/studio`; it is now labelled *Concepts*
+ * and sits under Make, because the label is what an operator reads and the URL
+ * is what a bookmark keeps. `navigation.test.ts` holds a frozen list of every
+ * destination that has ever been in the sidebar and fails if one stops being
+ * reachable — which is the only reason a reorganisation like this is safe to
+ * make twice.
+ *
+ * Desktop — persistent left sidebar (240px), content area max 1280px.
+ * Mobile  — bottom tab bar. "The queue must be fully usable on a phone;
+ * approval happens in spare moments or it doesn't happen."
  */
 import Link from 'next/link';
 import type { ReactNode } from 'react';
@@ -18,108 +50,155 @@ export interface NavCounts {
   storiesWaiting?: number;
 }
 
-/**
- * Seven destinations, then everything else.
- *
- * §172. The sidebar carried twenty-nine links across three groups named after
- * Halyard's internals — Swipe file, Hooks, Series, Social proof, Finds,
- * Readiness, Pronunciation, Agents, System. Each is a real capability and none
- * of them is a question a person arrives with.
- *
- * The primary list is organised around what the operator wants to know, one
- * question per destination:
- *
- *   Home       what needs me?
- *   Create     what do I want to publish?
- *   Content    what am I working on?
- *   Calendar   what goes out, and when?
- *   Inbox      who needs a reply?
- *   Analytics  how is it doing?
- *   Accounts   what is connected?
- *
- * **Nothing was removed.** Every previous destination is still one click away
- * under More, grouped by what it is for. Progressive disclosure, not feature
- * reduction — the capability matrix in `docs/PRODUCT_UX.md` maps old location to
- * new for all of them.
- */
-export const NAV: Array<{ href: string; label: string }> = [
-  { href: '/', label: 'Home' },
-  /*
-   * §235. Studio is where a piece is *decided*; Compose is where one is talked
-   * out with the co-pilot. Both are "creating", and they are different jobs —
-   * one picks a concept and a direction, the other is a conversation.
+export interface NavTab {
+  href: string;
+  label: string;
+  /** One line, shown on hover. What this tab is for, not what it is called. */
+  hint?: string;
+}
+
+export interface NavSection {
+  href: string;
+  label: string;
+  /**
+   * The question this section answers, in the operator's words.
+   *
+   * Rendered under the tab row rather than kept in a document. A section that
+   * cannot be described as one question is two sections, and writing the line
+   * is how that gets noticed.
    */
-  /*
-   * §288. Two buttons and a make. `/studio` picks a concept and a direction,
-   * `/compose` is a conversation — this is for when the operator already knows
-   * both and typing it is a worse interface for the same request.
+  question: string;
+  tabs: NavTab[];
+  /**
+   * A third level, shown only inside the tab it belongs to.
+   *
+   * Settings has readiness and pronunciation under it. Those are real screens
+   * and they are not peers of Accounts, so putting them in the tab row would
+   * make the row longer and the hierarchy flatter than it is.
    */
-  { href: '/make', label: 'Make' },
-  { href: '/studio', label: 'Create' },
-  { href: '/compose', label: 'Co-pilot' },
-  { href: '/queue', label: 'Content' },
-  { href: '/calendar', label: 'Calendar' },
-  { href: '/inbox', label: 'Inbox' },
-  { href: '/analytics', label: 'Analytics' },
-  { href: '/accounts', label: 'Accounts' },
+  deeper?: Record<string, NavTab[]>;
+}
+
+export const SECTIONS: NavSection[] = [
+  {
+    href: '/',
+    label: 'Home',
+    question: 'What needs me?',
+    tabs: [],
+  },
+  {
+    /**
+     * §361. One place to begin, with three ways to begin.
+     *
+     * The wizard when you know what you want, concepts when you want to be
+     * offered something, and the conversation when it is easier to say it than
+     * to click it. Same job, same section — the choice is a tab, not a
+     * destination, because "which of these three screens is the one that makes
+     * a video" is not a question an operator should have to hold.
+     */
+    href: '/make',
+    label: 'Make',
+    question: 'What do I want to publish?',
+    tabs: [
+      { href: '/make', label: 'Wizard', hint: 'Pick where it goes and what shape it takes' },
+      { href: '/studio', label: 'Concepts', hint: 'Be offered several directions and choose one' },
+      { href: '/compose', label: 'Chat', hint: 'Talk it out with the co-pilot' },
+      { href: '/ideas', label: 'Ideas', hint: 'The pool everything is drawn from' },
+      { href: '/hooks', label: 'Hooks', hint: 'Openings that have worked' },
+      { href: '/swipe', label: 'Swipe file', hint: 'Other people’s work, kept on purpose' },
+    ],
+  },
+  {
+    href: '/queue',
+    label: 'Review',
+    question: 'What have I made that needs a decision?',
+    tabs: [
+      { href: '/queue', label: 'Waiting', hint: 'Everything holding for approval' },
+      { href: '/library', label: 'Published', hint: 'What has already gone out' },
+      { href: '/assets', label: 'Assets', hint: 'Images, video and audio Halyard holds' },
+      { href: '/submissions', label: 'Submissions', hint: 'What people sent in' },
+    ],
+  },
+  {
+    href: '/calendar',
+    label: 'Plan',
+    question: 'What goes out, and when?',
+    tabs: [
+      { href: '/calendar', label: 'Calendar', hint: 'The schedule itself' },
+      { href: '/launch', label: 'First two weeks', hint: 'The opening run for a new account' },
+      { href: '/series', label: 'Series', hint: 'Recurring shapes with their own cadence' },
+      { href: '/campaigns', label: 'Campaigns', hint: 'A window where the mix is allowed to change' },
+      { href: '/first-30-days', label: 'First 30 days', hint: 'The plan for a new product' },
+    ],
+  },
+  {
+    href: '/inbox',
+    label: 'Inbox',
+    question: 'Who is talking to us?',
+    tabs: [
+      { href: '/inbox', label: 'Replies', hint: 'Comments and mentions waiting on an answer' },
+      { href: '/finds', label: 'Finds', hint: 'Conversations worth joining' },
+      { href: '/take', label: 'Daily Take', hint: 'Your opinion, which nothing writes without' },
+      { href: '/social-proof', label: 'Social proof', hint: 'What people said that is worth quoting' },
+    ],
+  },
+  {
+    href: '/analytics',
+    label: 'Analytics',
+    question: 'How is it doing?',
+    tabs: [],
+  },
+  {
+    href: '/accounts',
+    label: 'Setup',
+    question: 'Is everything wired up, and does Halyard know the product?',
+    tabs: [
+      { href: '/accounts', label: 'Accounts', hint: 'What is connected, and what each one may do' },
+      { href: '/brain', label: 'Product Brain', hint: 'What Halyard believes, and what backs it' },
+      { href: '/products', label: 'Products', hint: 'Add, configure and switch product' },
+      { href: '/templates', label: 'Templates', hint: 'Every card and composition, previewable' },
+      { href: '/setup-kit', label: 'Setup kit', hint: 'Everything a platform review asks for' },
+      { href: '/settings', label: 'Settings', hint: 'Publishing, the kill switch, the model' },
+      { href: '/agents', label: 'Agents', hint: 'Who does what, and how they are doing' },
+      { href: '/system', label: 'System', hint: 'Jobs, integrations and the audit' },
+    ],
+    deeper: {
+      '/settings': [
+        { href: '/settings', label: 'General' },
+        { href: '/settings/readiness', label: 'Readiness' },
+        { href: '/settings/pronunciation', label: 'Pronunciation' },
+      ],
+    },
+  },
 ];
 
 /**
- * The specialised tools, kept and grouped rather than hidden.
- *
- * Collapsed by default because none of them answers a first-visit question; a
- * heading says what each group is for, so finding one is a guess about purpose
- * rather than a memory of a name.
+ * Kept for the navigation test, which holds a frozen list of every destination
+ * the sidebar has ever offered. Derived rather than written twice — a second
+ * hand-maintained list is exactly the drift the test exists to catch.
  */
-export const MORE: Array<{ heading: string; items: Array<{ href: string; label: string }> }> = [
-  {
-    heading: 'Planning',
-    items: [
-      { href: '/launch', label: 'First two weeks' },
-      { href: '/ideas', label: 'Ideas' },
-      { href: '/hooks', label: 'Hooks' },
-      { href: '/swipe', label: 'Swipe file' },
-      { href: '/series', label: 'Series' },
-      { href: '/campaigns', label: 'Campaigns' },
-      { href: '/finds', label: 'Finds' },
-      { href: '/take', label: 'Daily Take' },
-    ],
-  },
-  {
-    heading: 'Library',
-    items: [
-      { href: '/library', label: 'Library' },
-      { href: '/assets', label: 'Assets' },
-      { href: '/templates', label: 'Templates' },
-      { href: '/social-proof', label: 'Social proof' },
-      { href: '/submissions', label: 'Submissions' },
-    ],
-  },
-  {
-    heading: 'Your product',
-    items: [
-      { href: '/brain', label: 'Product Brain' },
-      { href: '/products', label: 'Products' },
-      { href: '/setup-kit', label: 'Setup kit' },
-      { href: '/first-30-days', label: 'First 30 days' },
-    ],
-  },
-  {
-    heading: 'Advanced',
-    items: [
-      { href: '/settings', label: 'Settings' },
-      { href: '/settings/readiness', label: 'Readiness' },
-      { href: '/settings/pronunciation', label: 'Pronunciation' },
-      { href: '/agents', label: 'Agents' },
-      { href: '/system', label: 'System' },
-    ],
-  },
-];
+export const NAV = SECTIONS.map((s) => ({ href: s.href, label: s.label }));
+export const MORE = SECTIONS.filter((s) => s.tabs.length > 0).map((s) => {
+  /*
+   * Deduped, because a tab's third level repeats the tab itself as its
+   * "General" entry — `/settings` is both the Settings tab and the first page
+   * inside it, which is one destination reached two ways rather than two
+   * destinations.
+   */
+  const seen = new Set([s.href]);
+  const items: Array<{ href: string; label: string }> = [];
+  for (const tab of [...s.tabs, ...Object.values(s.deeper ?? {}).flat()]) {
+    if (seen.has(tab.href)) continue;
+    seen.add(tab.href);
+    items.push({ href: tab.href, label: tab.label });
+  }
+  return { heading: s.label, items };
+});
 
 const MOBILE_TABS = [
   { href: '/', label: 'Home' },
-  { href: '/queue', label: 'Content' },
-  { href: '/calendar', label: 'Calendar' },
+  { href: '/make', label: 'Make' },
+  { href: '/queue', label: 'Review' },
   { href: '/inbox', label: 'Inbox' },
 ];
 
@@ -127,6 +206,30 @@ export interface ShellProduct {
   id: string;
   name: string;
   kind: 'product' | 'personal';
+}
+
+/**
+ * Which section a path belongs to.
+ *
+ * Longest match wins, so `/settings/readiness` finds Setup through `/settings`
+ * rather than falling to Home. Exported because the tab row needs the same
+ * answer the sidebar highlight does, and two implementations of "where am I"
+ * disagree eventually.
+ */
+export function sectionFor(pathname: string): NavSection | null {
+  let best: NavSection | null = null;
+  let bestLength = -1;
+  for (const section of SECTIONS) {
+    const candidates = [section.href, ...section.tabs.map((t) => t.href)];
+    for (const href of candidates) {
+      const matches = href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(`${href}/`);
+      if (matches && href.length > bestLength) {
+        best = section;
+        bestLength = href.length;
+      }
+    }
+  }
+  return best;
 }
 
 export function Shell({
@@ -153,10 +256,12 @@ export function Shell({
     return 0;
   };
 
-  /* Whether the current page lives under More, so the disclosure opens itself. */
-  const inMore = MORE.some((section) =>
-    section.items.some((item) => pathname === item.href),
+  const section = sectionFor(pathname);
+  /* The tab whose own deeper list should be showing, if any. */
+  const activeTab = section?.tabs.find(
+    (t) => pathname === t.href || pathname.startsWith(`${t.href}/`),
   );
+  const deeper = activeTab && section?.deeper?.[activeTab.href];
 
   return (
     <div className="min-h-dvh md:flex">
@@ -173,10 +278,7 @@ export function Shell({
               §172. Two reported problems, one cause. Clicking a product did
               nothing, because the chip wrote `?product=` into the URL and the
               layout never read it — see `app/api/product/route.ts`. And there was
-              no way to reach products from here at all: `/products`, `/products/new`
-              and `/products/[id]` all existed, buried in a sidebar group called
-              "Plan", while the operator was clicking the product name looking for
-              them. Capability is not the same as reachability.
+              no way to reach products from here at all.
 
               The list renders even with one product, because "add another" is a
               thing you want precisely when you only have one.
@@ -211,25 +313,22 @@ export function Shell({
           </div>
 
           {/*
-            §174. Named landmarks.
-
-            The shell renders two <nav> elements — the sidebar and the phone tab
-            bar — and neither had a name, so a screen reader announced two
-            identical "navigation" landmarks and gave no way to tell them apart.
-            It also made them indistinguishable to a test, which is how a mobile
-            spec ended up matching the desktop sidebar.
+            §174. Named landmarks. The shell renders two <nav> elements and
+            neither had a name, so a screen reader announced two identical
+            "navigation" landmarks with no way to tell them apart.
           */}
           <nav aria-label="Main" className="flex-1 overflow-y-auto px-3 pb-6">
-            {NAV.map((item) => {
-              const active =
-                item.href === '/' ? pathname === '/' : pathname.startsWith(item.href);
-              const count = badgeFor(item.href);
+            {SECTIONS.map((item) => {
+              const active = section?.href === item.href;
+              const count =
+                badgeFor(item.href) ||
+                item.tabs.reduce((sum, tab) => sum + badgeFor(tab.href), 0);
               return (
                 <Link
                   key={item.href}
                   href={item.href}
                   className={cx(
-                    'flex items-center justify-between rounded-lg px-2.5 py-1.5 text-sm transition-colors',
+                    'flex items-center justify-between rounded-lg px-2.5 py-2 text-sm transition-colors',
                     active
                       ? 'bg-primary/10 font-medium text-primary'
                       : 'text-ink/80 hover:bg-sunk hover:text-ink',
@@ -244,57 +343,6 @@ export function Shell({
                 </Link>
               );
             })}
-
-            {/*
-              A native <details>, not a client component. The shell renders on the
-              server, and a disclosure triangle is one of the few interactions the
-              platform already has — reaching for `useState` here would make the
-              whole sidebar client-side to animate a caret.
-
-              It opens itself when the current page lives inside it, so arriving by
-              link or reload never shows the active page as collapsed away.
-            */}
-            <details className="group mt-4" open={inMore}>
-              <summary className="flex cursor-pointer list-none items-center justify-between rounded-lg px-2.5 py-1.5 text-sm text-muted transition-colors hover:bg-sunk hover:text-ink">
-                <span>More</span>
-                <span className="text-[10px] text-muted transition-transform group-open:rotate-90">
-                  &#9654;
-                </span>
-              </summary>
-
-              <div className="mt-1 space-y-3 border-l border-line pl-2">
-                {MORE.map((section) => (
-                  <div key={section.heading}>
-                    <p className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
-                      {section.heading}
-                    </p>
-                    {section.items.map((item) => {
-                      const active = pathname === item.href;
-                      const count = badgeFor(item.href);
-                      return (
-                        <Link
-                          key={item.href}
-                          href={item.href}
-                          className={cx(
-                            'flex items-center justify-between rounded-lg px-2.5 py-1 text-[13px] transition-colors',
-                            active
-                              ? 'bg-primary/10 font-medium text-primary'
-                              : 'text-ink/70 hover:bg-sunk hover:text-ink',
-                          )}
-                        >
-                          <span>{item.label}</span>
-                          {count > 0 ? (
-                            <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold text-white">
-                              {count}
-                            </span>
-                          ) : null}
-                        </Link>
-                      );
-                    })}
-                  </div>
-                ))}
-              </div>
-            </details>
           </nav>
 
           {killSwitchOn ? (
@@ -319,7 +367,75 @@ export function Shell({
           </div>
         </header>
 
-        <main className="mx-auto w-full max-w-[1280px] flex-1 px-4 py-6 pb-tabbar md:px-8 md:py-10 md:pb-10">
+        {/*
+          §361. The section's own tools, in the section.
+
+          Rendered here rather than by each page, so a new tab appears without
+          touching a screen and no two screens can disagree about what section
+          they are in.
+        */}
+        {section && section.tabs.length > 0 ? (
+          <div className="border-b border-line bg-surface/60">
+            <div className="mx-auto w-full max-w-[1280px] px-4 pt-4 md:px-8">
+              <p className="text-xs text-muted">{section.question}</p>
+              <nav
+                aria-label={`${section.label} tools`}
+                className="-mb-px mt-2 flex flex-wrap gap-x-1 gap-y-1 overflow-x-auto"
+              >
+                {section.tabs.map((tab) => {
+                  const active = tab.href === activeTab?.href;
+                  const count = badgeFor(tab.href);
+                  return (
+                    <Link
+                      key={tab.href}
+                      href={tab.href}
+                      title={tab.hint}
+                      className={cx(
+                        'flex items-center gap-1.5 whitespace-nowrap border-b-2 px-3 py-2 text-sm transition-colors',
+                        active
+                          ? 'border-primary font-medium text-primary'
+                          : 'border-transparent text-muted hover:text-ink',
+                      )}
+                    >
+                      {tab.label}
+                      {count > 0 ? (
+                        <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                          {count}
+                        </span>
+                      ) : null}
+                    </Link>
+                  );
+                })}
+              </nav>
+            </div>
+          </div>
+        ) : null}
+
+        {deeper ? (
+          <div className="border-b border-line bg-sunk/40">
+            <nav
+              aria-label={`${activeTab?.label} pages`}
+              className="mx-auto flex w-full max-w-[1280px] flex-wrap gap-1 px-4 py-2 md:px-8"
+            >
+              {deeper.map((tab) => (
+                <Link
+                  key={tab.href}
+                  href={tab.href}
+                  className={cx(
+                    'rounded-md px-2.5 py-1 text-[13px] transition-colors',
+                    pathname === tab.href
+                      ? 'bg-primary/10 font-medium text-primary'
+                      : 'text-muted hover:bg-sunk hover:text-ink',
+                  )}
+                >
+                  {tab.label}
+                </Link>
+              ))}
+            </nav>
+          </div>
+        ) : null}
+
+        <main className="mx-auto w-full max-w-[1280px] flex-1 px-4 py-6 pb-tabbar md:px-8 md:py-8 md:pb-10">
           {children}
         </main>
 
@@ -328,7 +444,7 @@ export function Shell({
           className="fixed inset-x-0 bottom-0 z-20 flex border-t border-line bg-surface/95 backdrop-blur md:hidden"
         >
           {MOBILE_TABS.map((tab) => {
-            const active = pathname.startsWith(tab.href);
+            const active = section?.href === tab.href;
             const count = badgeFor(tab.href);
             return (
               <Link

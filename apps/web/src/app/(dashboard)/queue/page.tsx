@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Badge, EmptyState, PageHeader, cx } from '@halyard/ui';
-import { QueueCard } from '@/components/QueueCard';
+import { QueueRow } from '@/components/QueueRow';
 import { QueueKeyboard } from '@/components/QueueKeyboard';
 import { getProducts, getQueue } from '@/lib/queries';
 import { formatInOperatorTz } from '@/lib/format';
@@ -72,8 +72,8 @@ export default async function QueuePage({
   return (
     <>
       <PageHeader
-        title="Queue"
-        subtitle="Nothing reaches this screen without passing all four QC gates. Approving a description of an asset is not approval, so every preview here is the real rendered file."
+        title="Review"
+        subtitle="Nothing reaches this screen without passing all four QC gates. Approving a description of an asset is not approval, so every preview here is the real rendered file. Open a piece to edit, reschedule or regenerate it."
       />
 
       <div className="mb-6 flex flex-wrap gap-2">
@@ -152,9 +152,14 @@ export default async function QueuePage({
                 <h2 className="font-serif text-2xl text-ink">{day}</h2>
                 <Badge tone="neutral">{dayItems.length}</Badge>
               </div>
-              <ul className="space-y-4">
+              {/*
+                §362. Rows, not cards. Seventeen expanded cards made this page
+                twenty-five thousand pixels tall, which is not a review screen.
+                The full card lives on `/queue/[id]`, which already renders it.
+              */}
+              <ul className="border-t border-line">
                 {dayItems.map((item) => (
-                  <QueueCard key={item.id} item={item} timeZone={timeZone} />
+                  <QueueRow key={item.id} item={item} timeZone={timeZone} />
                 ))}
               </ul>
             </section>

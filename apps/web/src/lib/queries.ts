@@ -247,6 +247,10 @@ export interface QueueItem {
   product_id: string;
   attached_asset_ids: string[];
   attached_urls: string[];
+  /** §362. Why generation gave up, from `generation_meta`. Null when it did not. */
+  failed_because: string | null;
+  /** §362. The line written when this was rejected, which trains the voice. */
+  reject_reason: string | null;
   destination_type: string | null;
   destination_url: string | null;
   destination_reason: string | null;
@@ -270,6 +274,15 @@ const QUEUE_SELECT = `
          ci.requires_ai_label, ci.disclosure_text, ci.audio_mode,
          ci.edited_by_human, ci.sequence_number, ci.product_id, ci.attached_asset_ids,
          ci.destination_type, ci.destination_url, ci.destination_reason, ci.product_artifact,
+         -- §362. Why a piece failed, and why one was rejected.
+         --
+         -- generate.ts has always written failed_because into generation_meta
+         -- and nothing had ever read it, so the queue showed a red FAILED badge
+         -- and no reason at all. reject_reason is the same shape of omission: it
+         -- is fed back into the voice as a negative example and was never shown
+         -- to the person who wrote it.
+         ci.generation_meta ->> 'failed_because' as failed_because,
+         ci.reject_reason,
          ci.board_id, ci.board_reason, ci.media_observations,
          sa.transport,
          sa.handle as account_handle,

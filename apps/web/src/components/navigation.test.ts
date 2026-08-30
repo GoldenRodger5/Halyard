@@ -16,7 +16,7 @@
 import { readdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { NAV, MORE } from './Shell';
+import { NAV, MORE, SECTIONS, sectionFor } from './Shell';
 
 /** Every destination the sidebar offered before §172. Frozen; do not regenerate. */
 const BEFORE_REORGANISATION = [
@@ -95,5 +95,72 @@ describe('sidebar navigation', () => {
       .filter((e) => e.isDirectory() && !e.name.startsWith('_'))
       .map((e) => `/${e.name}`);
     expect(top.length).toBeGreaterThan(0);
+  });
+});
+
+/**
+ * §361. The section model's own promises.
+ *
+ * The frozen baseline above proves nothing was lost. These prove the thing that
+ * replaced it stays the shape it was reorganised into — which is the half §172
+ * had no test for, and is why More grew back to twenty-one links.
+ */
+describe('sections', () => {
+  it('gives every section a question, in the operator’s words', () => {
+    /*
+     * A section that cannot be described as one question is two sections.
+     * Asserting the line exists is how that gets noticed at the time rather
+     * than a fortnight later.
+     */
+    const silent = SECTIONS.filter((s) => !s.question.trim().endsWith('?'));
+    expect(silent.map((s) => s.label)).toEqual([]);
+  });
+
+  it('keeps every tab row scannable', () => {
+    /*
+     * Eight fits one row at the content width. Beyond that the row wraps and
+     * becomes the list it exists to replace.
+     */
+    const crowded = SECTIONS.filter((s) => s.tabs.length > 8);
+    expect(crowded.map((s) => `${s.label}: ${s.tabs.length}`)).toEqual([]);
+  });
+
+  it('opens a section on its own first tab', () => {
+    /*
+     * A section href that is not one of its tabs leaves the tab row with
+     * nothing highlighted when you arrive from the sidebar.
+     */
+    const orphans = SECTIONS.filter(
+      (s) => s.tabs.length > 0 && !s.tabs.some((t) => t.href === s.href),
+    );
+    expect(orphans.map((s) => s.label)).toEqual([]);
+  });
+
+  it('puts every way of starting a piece in one section', () => {
+    /*
+     * The reported problem in its most specific form: Make, Create and Co-pilot
+     * were three sidebar destinations for one job. If any of them ever becomes
+     * a section again, this fails.
+     */
+    const starts = ['/make', '/studio', '/compose'];
+    const sections = new Set(starts.map((href) => sectionFor(href)?.label));
+    expect([...sections]).toEqual(['Make']);
+  });
+
+  it('resolves every listed destination to exactly one section', () => {
+    const everything = [...NAV.map((n) => n.href), ...MORE.flatMap((m) => m.items.map((i) => i.href))];
+    const unresolved = everything.filter((href) => !sectionFor(href));
+    expect(unresolved).toEqual([]);
+  });
+
+  it('resolves a drill-down to its parent section rather than to Home', () => {
+    /*
+     * Longest match wins. `/settings/readiness` used to fall through to `/` on
+     * a naive startsWith, which highlighted Home while you were in Settings.
+     */
+    expect(sectionFor('/settings/readiness')?.label).toBe('Setup');
+    expect(sectionFor('/queue/abc-123')?.label).toBe('Review');
+    expect(sectionFor('/make/run/abc-123')?.label).toBe('Make');
+    expect(sectionFor('/')?.label).toBe('Home');
   });
 });
