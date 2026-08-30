@@ -1,0 +1,10 @@
+import { chromium } from 'playwright';
+const b = await chromium.launch();
+const p = await (await b.newContext({ viewport: { width: 1440, height: 1000 } })).newPage();
+await p.goto('http://localhost:3200/queue/3776dbbe-06c9-44e4-ad05-0c7a80ff795c', { waitUntil: 'domcontentloaded' });
+await p.waitForTimeout(1500);
+const el = await p.locator('text=Ask for a change').first();
+await el.scrollIntoViewIfNeeded();
+await p.waitForTimeout(400);
+await p.screenshot({ path: process.env.OUT });
+await b.close();

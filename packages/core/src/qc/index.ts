@@ -29,23 +29,35 @@ import {
 } from './destinationQC.js';
 import { runProofQC, type ProofQCInput, type ProofQCResult } from '../proof/testimonials.js';
 
-export type GateName =
-  | 'copy'
-  | 'claims'
-  | 'visual'
-  | 'audio'
-  | 'destination'
-  | 'proof'
+/**
+ * Every gate, as a list.
+ *
+ * §374. This was a type union, which is unreachable at runtime — nothing could
+ * iterate it, count it, or check anything about it. That is how a gate name
+ * outgrew its column on the review screen and printed "Destinationno link":
+ * the string was right, the layout was wrong, and no test could have known the
+ * longest name because no test could see the names.
+ *
+ * The same shape every other vocabulary in this codebase uses — `STAGES`,
+ * `MOVES`, `BED_MOODS`, `JOB_KINDS` — for the same reason.
+ */
+export const GATE_NAMES = [
+  'copy',
+  'claims',
+  'visual',
+  'audio',
+  'destination',
+  'proof',
   /**
    * Does the artifact show what the post claims? Every other gate passes on a
    * video whose voiceover describes a feature the footage never shows.
    */
-  | 'coherence'
+  'coherence',
   /**
    * Does the opening earn the next three seconds? Measured from the rendered
    * file, so it runs in `review_media` beside `visual` rather than at copy time.
    */
-  | 'retention'
+  'retention',
   /**
    * Is it good creative, rather than merely legal creative? §205.
    *
@@ -54,7 +66,7 @@ export type GateName =
    * the level of pixels a card changing and a product being used are the same
    * event.
    */
-  | 'creative'
+  'creative',
   /**
    * Is it *well made*? §275.
    *
@@ -64,7 +76,10 @@ export type GateName =
    * fine and the *set* of them is the problem. This gate carries the critic's
    * judgements, which are warnings and never failures.
    */
-  | 'critic';
+  'critic',
+] as const;
+
+export type GateName = (typeof GATE_NAMES)[number];
 export type GateStatus = 'passed' | 'warning' | 'failed' | 'skipped';
 
 export interface GateResult {

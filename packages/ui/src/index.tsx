@@ -305,7 +305,15 @@ export function GateLine({
   return (
     <div className="flex items-baseline gap-2 font-mono text-xs">
       <span className={cx('w-3 shrink-0 text-center font-bold', color)}>{mark}</span>
-      <span className="w-14 shrink-0 capitalize text-muted">{gate}</span>
+      {/*
+        §374. Fixed width, and `shrink-0`, so a long gate name overflowed its
+        column and ran straight into the summary: "Destinationno link",
+        "Coherencenothing rendered". Every gate name up to "coherence" fits in
+        the wider column, and the padding guarantees a gap even when one does
+        not — a column that can touch its neighbour is a column that eventually
+        will.
+      */}
+      <span className="w-20 shrink-0 pr-1 capitalize text-muted">{gate}</span>
       {/*
         §174. A skipped gate reads as muted, not as 60% of muted.
 
