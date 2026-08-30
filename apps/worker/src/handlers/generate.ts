@@ -1281,7 +1281,13 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
             ? await generateHeroImage(ctx, imageClient, {
                 subject: heroSubject,
                 visualLanguage: undefined,
-                aspectRatio: account.platform === 'instagram' ? '4:5' : '9:16',
+                /*
+                 * §351. From the post type's own canvas rather than from the
+                 * platform. A carousel is 4:5 wherever it is posted, and a
+                 * short video is 9:16 — including on Instagram, where the old
+                 * platform test gave a Reel a carousel's aspect ratio.
+                 */
+                aspectRatio: resolvedType.postType.media === 'carousel' ? '4:5' : '9:16',
                 contentItemId,
               })
             : null;
@@ -1307,7 +1313,20 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
             await ctx.enqueue('render', { renderId: render.rows[0]!.id }, { priority: 50 });
           }
 
-          if (account.platform === 'instagram' && enabledTemplates.includes('carousel_6')) {
+          /*
+           * §351. Whether this piece *is* a carousel, not whether the platform
+           * happens to be Instagram.
+           *
+           * The old condition was a platform test standing in for a media
+           * question, so Threads and TikTok — both of which carry carousels —
+           * could never receive one, and an Instagram Reel took the carousel
+           * branch whenever the template was enabled. §349 made the question
+           * answerable; this is where it gets asked.
+           */
+          if (
+            resolvedType.postType.media === 'carousel' &&
+            enabledTemplates.includes('carousel_6')
+          ) {
             /**
              * §281. The deck comes from the format when the format has one.
              *
@@ -1678,7 +1697,38 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                 }).sections
               : null;
 
-          const vo = longFormSections
+          /**
+           * §351. Do not write a script that is already written.
+           *
+           * §306 made a format piece derive its narration from the same slots
+           * the picture is built from, so the voice cannot say something the
+           * screen does not show. `writeVoScript` still ran alongside it and
+           * its output was discarded at the update below — a model call, its
+           * cost, its retries and its QC, for a script nothing would ever read.
+           *
+           * Skipped rather than tidied away, because the reason matters: the
+           * format's narration is *better*, not merely first. A script written
+           * from the caption is two removes from the words on screen, which is
+           * exactly the fault §350 traced.
+           */
+          const narrationAlreadyWritten = (formatNarration?.length ?? 0) > 0;
+          if (narrationAlreadyWritten) {
+            ctx.log('vo script skipped', {
+              contentItemId,
+              because:
+                'the format built the narration from its own slots, so a script written from ' +
+                'the caption would be discarded — and would say different words from the screen',
+            });
+          }
+
+          const vo = narrationAlreadyWritten
+            ? {
+                script: formatNarration!.map((line) => line.text).join(' '),
+                costUsd: 0,
+                qc: null as Awaited<ReturnType<typeof writeVoScript>>['qc'] | null,
+                attempts: 0,
+              }
+            : longFormSections
             ? await (async () => {
                 const parts: string[] = [];
                 let cost = 0;
