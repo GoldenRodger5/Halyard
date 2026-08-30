@@ -157,6 +157,19 @@ export function checkScreenplay(
     seconds: { min: number; max: number };
     /** Whether real captured footage exists for this piece. */
     hasFootage: boolean;
+    /**
+     * §340. The content the format writer produced, which this piece must carry.
+     *
+     * A screenplay is what a video is **based on**, not a parallel invention of
+     * the same piece. When a format has already written its slots — a quiz's
+     * questions and answers, sourced and checked (§282, §300) — the screenplay
+     * *stages* them: decides what is spoken, what is read, where the emphasis
+     * falls, what the score does.
+     *
+     * Absent for a format with no written content, where the screenplay is the
+     * first draft rather than a staging of one.
+     */
+    slots?: ReadonlyArray<{ key: string; index: number; text: string }>;
   },
 ): ScreenplayCheck {
   const problems: ScreenplayProblem[] = [];
@@ -203,6 +216,66 @@ export function checkScreenplay(
     });
   }
 
+  /*
+   * §339. The opening cannot be an afterthought.
+   *
+   * The first real RecipeFix screenplay opened on a `support` hook and did not
+   * reach a `lead` until 18 seconds in — past the point every channel brief
+   * says a viewer has decided. A hook weighted `aside` is a piece that opens
+   * apologising.
+   */
+  const opening = screenplay.scenes[0];
+  if (opening && opening.weight === 'aside') {
+    problems.push({
+      scene: opening.id,
+      rule: 'weak_opening',
+      detail:
+        'The first scene is weighted `aside`. Whatever the channel, the opening is the only ' +
+        'scene guaranteed to be seen.',
+    });
+  }
+
+  /*
+   * §340. Everything written must reach the screen, and nothing else may.
+   *
+   * The first standalone run invented three quiz questions — *"was it the
+   * story, the mood, the people, or the night?"* — which is not a question
+   * anybody can be right or wrong about, and it revealed no answers at all.
+   * The format writer had produced none of it, so `planQuestion` never chose a
+   * question kind, `checkQuestion` never verified an answer was among its
+   * options, and the citation gate never saw a claim.
+   *
+   * A screenplay that writes its own content is a second copywriter with none
+   * of the first one's gates.
+   */
+  if (available.slots && available.slots.length > 0) {
+    const said = screenplay.scenes
+      .flatMap((scene) => [scene.spoken ?? '', ...scene.onScreen])
+      .join(' ')
+      .toLowerCase();
+
+    for (const slot of available.slots) {
+      /* The distinctive words of the slot, so a rephrasing still counts. */
+      const words = slot.text
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .split(/\s+/)
+        .filter((w) => w.length > 4);
+      if (words.length === 0) continue;
+      const carried = words.filter((w) => said.includes(w)).length / words.length;
+      if (carried < 0.4) {
+        problems.push({
+          scene: '(whole piece)',
+          rule: 'content_dropped',
+          detail:
+            `"${slot.key}[${slot.index}]" was written for this piece and does not reach the ` +
+            `screen: "${slot.text.slice(0, 48)}…". A screenplay stages written content; it does ` +
+            'not replace it.',
+        });
+      }
+    }
+  }
+
   const seen = new Set<string>();
   for (const scene of screenplay.scenes) {
     if (seen.has(scene.id)) {
@@ -231,13 +304,25 @@ export function checkScreenplay(
       }
     }
 
-    if (scene.ground === 'product_capture' && !available.hasFootage) {
+    /*
+     * §339. Both moving grounds, not only the product one.
+     *
+     * This checked `product_capture` alone, and the first real RecipeFix
+     * screenplay asked for `footage — hands kneading wheat dough` with
+     * `hasFootage: false`. It passed, and would have rendered a blank frame
+     * where a scene expected film.
+     *
+     * `footage` is filmed material somebody shot and `product_capture` is a
+     * recording of the software; neither can be conjured, and the check that
+     * covered one of them read as covering both.
+     */
+    if ((scene.ground === 'product_capture' || scene.ground === 'footage') && !available.hasFootage) {
       problems.push({
         scene: scene.id,
         rule: 'no_footage',
         detail:
-          'The scene calls for product footage and none was captured. §163: there is no ' +
-          'placeholder, because a synthetic screenshot is a claim about a state nobody observed.',
+          `The scene calls for ${scene.ground.replace('_', ' ')} and none exists. §163: there is ` +
+          'no placeholder, because substituting one is a claim about something nobody filmed.',
       });
     }
 

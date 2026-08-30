@@ -21,6 +21,7 @@
 import {
   briefFor,
   checkDraft,
+  repairDraft,
   parseDraft,
   requiresCitation,
   type FormatDraft,
@@ -106,6 +107,25 @@ export async function writeToFormat(
       parsed = parseDraft(JSON.parse(raw), format);
     } catch {
       parsed = { formatId: format.id, slots: [] };
+    }
+
+    /**
+     * §343. Repair the mechanical, then judge the writing.
+     *
+     * A Kinolog quiz exhausted all three attempts on curly quotes and 1-based
+     * slot indices. Both were reported, fed back, and reproduced — a model
+     * asked to avoid a character it does not distinguish will keep producing
+     * it, and every attempt spent that way is an attempt not spent on the
+     * questions.
+     */
+    const repaired = repairDraft(format, parsed);
+    if (repaired.repairs.length > 0) {
+      ctx.log('draft repaired mechanically', {
+        format: format.id,
+        attempt,
+        repairs: repaired.repairs.map((r) => `${r.slot}: ${r.because}`),
+      });
+      parsed = repaired.draft;
     }
 
     const check = checkDraft(format, parsed);

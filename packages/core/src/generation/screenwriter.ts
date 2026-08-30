@@ -58,8 +58,39 @@ export interface ScreenwriterInput {
   slots?: Array<{ key: string; index: number; text: string }>;
 }
 
-function systemPrompt(): string {
+function systemPrompt(staging: boolean): string {
+  /**
+   * §340. Two different jobs, and conflating them produced a bad quiz.
+   *
+   * Given written content, this agent **stages** it: decides what is spoken,
+   * what is read, where the emphasis falls, what the score does. Given none, it
+   * drafts. The first standalone run had no content and invented three quiz
+   * questions with no answers and no sources — a second copywriter with none of
+   * the first one's gates.
+   */
+  const staged = staging
+    ? [
+        'THE CONTENT IS ALREADY WRITTEN. It was researched, sourced and checked before it',
+        'reached you. You are staging it, not rewriting it.',
+        '',
+        '- Every written line must reach the screen — as something spoken, something read, or both.',
+        '- Never invent a question, an answer, a statistic, a price or a claim. If the content does',
+        '  not say it, it is not true for this piece.',
+        '- You decide the *staging*: which line is spoken and which is read, how long each holds,',
+        '  what the ground is, what moves, what is marked, and what the score does.',
+        '- You may shorten a line for the screen. You may not change what it says.',
+        '- A quiz reveals its answers. If the content has answers, they are scenes.',
+        '',
+      ]
+    : [
+        'No content has been written for this piece, so you are drafting it. Everything you write',
+        'must follow from the product facts you were given. Never invent a statistic, a price or a',
+        'claim that is not in them.',
+        '',
+      ];
+
   return [
+    ...staged,
     'You are the director of a short social video. You write a screenplay: not just what is said,',
     'but what is on screen, what moves, what is marked, and what the music does — together.',
     '',
@@ -139,7 +170,7 @@ export async function writeScreenplay(
       ? 'Real product footage exists and may be used as a ground.'
       : 'No product footage exists. Never call for `product_capture`.',
     input.slots?.length
-      ? `\nThe written content this piece must carry:\n${input.slots
+      ? `\nThe written content this piece must carry, in order:\n${input.slots
           .map((s) => `- ${s.key}[${s.index}]: ${s.text}`)
           .join('\n')}`
       : '',
@@ -148,7 +179,7 @@ export async function writeScreenplay(
     .join('\n');
 
   const reply = await llm.complete({
-    system: systemPrompt(),
+    system: systemPrompt((input.slots?.length ?? 0) > 0),
     messages: [{ role: 'user', content: user }],
     maxTokens: 3000,
     /*

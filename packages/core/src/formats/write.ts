@@ -190,6 +190,14 @@ export function checkDraft(format: PostFormat, draft: FormatDraft): FormatCheck 
      */
     const slop = slopFilter({ body: got.text, platform: 'x', hashtags: [] });
     for (const violation of slop.errors) {
+      /*
+       * §341. A quiz question is a question. `structure.question_density` is a
+       * caption rule — a post made of questions reads as engagement bait — and
+       * it fired on every slot of a format whose whole shape is questions.
+       * A copy gate written for one shape, applied to another where the shape
+       * is the point.
+       */
+      if (slot.isQuestion && violation.rule === 'structure.question_density') continue;
       problems.push({
         rule: violation.rule,
         severity: 'error',
@@ -198,7 +206,12 @@ export function checkDraft(format: PostFormat, draft: FormatDraft): FormatCheck 
       });
     }
 
-    if (requiresCitation(format) && !looksCitable(got.citation)) {
+    /*
+     * §341. Claims need citations; framing does not. A slot that asserts
+     * nothing about the world has nothing to cite, and demanding one burned
+     * the writer's retries on a title while the questions went unfixed.
+     */
+    if (requiresCitation(format) && slot.asserts !== false && !looksCitable(got.citation)) {
       problems.push({
         rule: 'format.uncited_claim',
         severity: 'error',
@@ -207,6 +220,20 @@ export function checkDraft(format: PostFormat, draft: FormatDraft): FormatCheck 
       });
     }
   }
+
+  /*
+   * §342. The checks only a specific format can make.
+   *
+   * `checkDraft` validates what every format shares — slots filled, words
+   * counted, citations present, copy gate passed. It cannot see that a quiz
+   * answer is not among its own options, because only a quiz has options.
+   *
+   * §300 built `checkQuestion` for exactly this and nothing called it, so the
+   * one rule that stops a quiz revealing an answer nobody could have chosen was
+   * written, tested and unreachable. That is the pattern this codebase keeps
+   * finding, and this is where it gets closed.
+   */
+  problems.push(...checkFormatSpecific(format, draft));
 
   if (missing.length > 0) {
     problems.push({
@@ -256,4 +283,194 @@ export function parseDraft(raw: unknown, format: PostFormat): FormatDraft {
     });
   }
   return { formatId: format.id, slots };
+}
+
+
+/**
+ * §342. Rules that only apply to one shape.
+ *
+ * Registered per format rather than branched inside `checkDraft`, so a new
+ * format adds a function instead of an `if`, and a format with no special rules
+ * declares none rather than being absent from a chain of conditions.
+ */
+const FORMAT_CHECKS: Record<string, (draft: FormatDraft) => SlotProblem[]> = {
+  quiz(draft) {
+    const problems: SlotProblem[] = [];
+    const questions = draft.slots.filter((s) => s.key === 'question');
+    const answers = new Map(
+      draft.slots.filter((s) => s.key === 'answer').map((s) => [s.index, s]),
+    );
+
+    for (const question of questions) {
+      const answer = answers.get(question.index);
+      if (!answer) {
+        problems.push({
+          rule: 'quiz.no_answer',
+          severity: 'error',
+          message: `question[${question.index}] has no answer. A quiz without a reveal is a list of prompts.`,
+          slot: 'answer',
+        });
+        continue;
+      }
+
+      /*
+       * A question a viewer cannot be right or wrong about is not a quiz
+       * question. "Was it the story, the mood, the people, or the night?" was
+       * written by a screenplay that bypassed this check entirely (§340) — it
+       * reads like a question and has no answer, so the reveal has nothing to
+       * reveal.
+       */
+      if (!/\?\s*$/.test(question.text.trim())) {
+        problems.push({
+          rule: 'quiz.not_a_question',
+          severity: 'error',
+          message: `question[${question.index}] is not phrased as a question: "${question.text.slice(0, 48)}".`,
+          slot: 'question',
+        });
+      }
+
+      /*
+       * An opinion has no answer to reveal. These openings ask what somebody
+       * *feels*, and a quiz that reveals the right feeling is a quiz nobody can
+       * lose — which is also a quiz nobody plays.
+       */
+      if (/^(was it|do you|would you|which do you|how do you|what do you)\b/i.test(question.text.trim())) {
+        problems.push({
+          rule: 'quiz.opinion_not_fact',
+          severity: 'error',
+          message:
+            `question[${question.index}] asks for an opinion, which has no answer to reveal: ` +
+            `"${question.text.slice(0, 48)}".`,
+          slot: 'question',
+        });
+      }
+    }
+
+    if (questions.length === 0) {
+      problems.push({
+        rule: 'quiz.no_questions',
+        severity: 'error',
+        message: 'A quiz with no questions.',
+        slot: 'question',
+      });
+    }
+
+    return problems;
+  },
+
+  myth_fact(draft) {
+    const problems: SlotProblem[] = [];
+    const myth = draft.slots.find((s) => s.key === 'myth');
+    const correction = draft.slots.find((s) => s.key === 'correction');
+    /*
+     * A myth stated without a correction is a myth post spreading the myth —
+     * the worst possible outcome for the format, and the reason §308 puts the
+     * "Myth" label on the beat that states it.
+     */
+    if (myth && !correction) {
+      problems.push({
+        rule: 'myth_fact.uncorrected',
+        severity: 'error',
+        message: 'The myth is stated and never corrected, which spreads it.',
+        slot: 'correction',
+      });
+    }
+    return problems;
+  },
+};
+
+export function checkFormatSpecific(format: PostFormat, draft: FormatDraft): SlotProblem[] {
+  return FORMAT_CHECKS[format.id]?.(draft) ?? [];
+}
+
+
+/**
+ * §343. Fix mechanically what can be fixed mechanically.
+ *
+ * A Kinolog quiz exhausted all three writing attempts on **curly quotes** and a
+ * slot index that started at one instead of zero. Neither is a writing problem.
+ * Both were reported as errors, sent back to the model as feedback, and
+ * reproduced — because a model asked to avoid a character it does not
+ * distinguish will keep producing it, and every attempt spent on that is an
+ * attempt not spent on the questions.
+ *
+ * §287 established the principle for spoken text: `MECHANICALLY_REPAIRABLE`
+ * excludes sentence length, because that is a judgement, while "1/4" → "a
+ * quarter" is arithmetic. The same line applies here. Punctuation and indexing
+ * are transcription; what a question asks is not.
+ *
+ * Returns what it changed, so a repaired draft is never a silent one.
+ */
+export interface SlotRepair {
+  slot: string;
+  from: string;
+  to: string;
+  because: string;
+}
+
+export function repairDraft(
+  format: PostFormat,
+  draft: FormatDraft,
+): { draft: FormatDraft; repairs: SlotRepair[] } {
+  const repairs: SlotRepair[] = [];
+
+  const slots = draft.slots.map((slot) => {
+    let text = slot.text;
+
+    /*
+     * Curly quotes and dashes. Platforms mangle them, `slopFilter` calls the em
+     * dash the single strongest LLM tell, and neither carries meaning that a
+     * straight equivalent loses.
+     */
+    const punctuated = text
+      .replace(/[\u2018\u2019]/g, "'")
+      .replace(/[\u201C\u201D]/g, '"')
+      .replace(/\s*\u2014\s*/g, ', ')
+      .replace(/\s*\u2013\s*/g, '-');
+
+    if (punctuated !== text) {
+      repairs.push({
+        slot: slot.key,
+        from: text,
+        to: punctuated,
+        because: 'punctuation a platform mangles, replaced with its straight equivalent',
+      });
+      text = punctuated;
+    }
+
+    return { ...slot, text };
+  });
+
+  /*
+   * A model that numbers from one produces `question[1..5]` for a format
+   * expecting `question[0..4]`, so the first is reported missing and the last
+   * is unexpected. Re-based only when the whole run is off by one — a genuine
+   * gap must stay a gap, because a missing question is a real defect.
+   */
+  const byKey = new Map<string, number[]>();
+  for (const slot of slots) {
+    byKey.set(slot.key, [...(byKey.get(slot.key) ?? []), slot.index]);
+  }
+
+  const rebased = slots.map((slot) => {
+    const indices = (byKey.get(slot.key) ?? []).slice().sort((a, b) => a - b);
+    const expected = expandSlots(format).filter((s) => s.key === slot.key).length;
+    const contiguousFromOne =
+      indices.length === expected &&
+      indices[0] === 1 &&
+      indices.every((n, i) => n === i + 1);
+    if (!contiguousFromOne) return slot;
+    return { ...slot, index: slot.index - 1 };
+  });
+
+  if (rebased.some((slot, i) => slot.index !== slots[i]!.index)) {
+    repairs.push({
+      slot: '(indices)',
+      from: '1-based',
+      to: '0-based',
+      because: 'the whole run was numbered from one, which reads as a missing first slot',
+    });
+  }
+
+  return { draft: { ...draft, slots: rebased }, repairs };
 }

@@ -20,6 +20,7 @@ import {
   writeScreenplay,
   type PostFormatId,
 } from '../packages/core/src/index.js';
+import { writeToFormat } from '../apps/worker/src/formatWriter.js';
 import { motifFor } from '../packages/render/src/video/motif.js';
 import { resolveBrand } from '../packages/render/src/brand.js';
 
@@ -62,8 +63,6 @@ async function main(): Promise<void> {
       order by confidence desc limit 40`,
     [productId],
   );
-  await pool.end();
-
   const format = POST_FORMAT_CATALOG[formatId];
   const channel = CHANNEL_CATALOG[format.channels[0]!];
   const motif = motifFor(resolveBrand(product.brand_tokens));
@@ -72,9 +71,30 @@ async function main(): Promise<void> {
   console.log(`# motif: ${motif.register} — ${motif.reason}`);
   console.log(`# ${facts.length} facts from the Brain\n`);
 
+  /**
+   * §340. The format writer runs first, and the screenplay stages what it wrote.
+   *
+   * The first version of this script skipped it, so the screenwriter invented
+   * three quiz questions with no answers and no citations — bypassing
+   * `planQuestion`, `checkQuestion` and the citation gate in one move. A
+   * screenplay is what a video is *based on*, not a second draft of it.
+   */
+  const written = await writeToFormat(
+    { pool, log: (m: string, d?: unknown) => console.log(`# ${m}`, d ?? '') } as never,
+    format,
+    {
+      subject: subject || format.intent,
+      audience: 'the people this product is for',
+      platform: channel.platforms[0] ?? 'tiktok',
+    },
+    createLlmClient(),
+  );
+  console.log(`# format writer: ${written.draft.slots.length} slots in ${written.attempts} attempt(s)\n`);
+
   const { screenplay, costUsd } = await writeScreenplay(
     {
       subject: subject || format.intent,
+      slots: written.draft.slots.map((s) => ({ key: s.key, index: s.index, text: s.text })),
       format: formatId,
       channel: channel.id,
       seconds: channel.targetSeconds ?? { min: 15, max: 45 },
@@ -103,6 +123,7 @@ async function main(): Promise<void> {
     locatable: [],
     seconds: channel.targetSeconds ?? { min: 15, max: 45 },
     hasFootage: false,
+    slots: written.draft.slots.map((s) => ({ key: s.key, index: s.index, text: s.text })),
   });
 
   console.log(`\n${'—'.repeat(74)}`);
@@ -114,6 +135,7 @@ async function main(): Promise<void> {
   for (const problem of check.problems) {
     console.log(`  ${problem.scene} — ${problem.rule}: ${problem.detail}`);
   }
+  await pool.end();
 }
 
 main().catch((e) => {

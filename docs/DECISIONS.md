@@ -8808,3 +8808,51 @@ Found because a motif pack **explains itself**: it printed *"a near-black ground
 with Instrument Serif"*, and Kinolog does not own that face. A decision that
 states its reason is a decision that can be caught being wrong, which is most of
 the argument for making every director explain itself.
+
+## 339–343. The screenplay stages; it does not write
+
+Reviewing the first two screenplays with the operator found the architectural
+error in what §335 built.
+
+**The screenwriter invented quiz questions.** Run standalone with no slots, it
+wrote *"Was it the story, the mood, the people, or the night?"* — which is not a
+question anybody can be right or wrong about — and revealed no answers at all.
+It had bypassed `planQuestion`, `checkQuestion` and the citation gate in one
+move: a second copywriter with none of the first one's gates.
+
+A screenplay is what a video is **based on**, not a parallel draft of it. Given
+written content it now *stages*: what is spoken, what is read, where the
+emphasis falls, what the score does. `content_dropped` fails a screenplay that
+leaves written content off the screen, and the brief changes entirely between
+drafting and staging.
+
+**Format-wide rules were applied to slots they did not fit.** `factuality:
+'sourced'` demanded a citation for a quiz's *title* — a dare that asserts
+nothing — and `structure.question_density`, a caption rule about engagement
+bait, fired on every question in a format made of questions. Both are per-slot
+now (`asserts`, `isQuestion`). The cost was not a false positive: the writer
+burned its retries citing a framing line while the actual questions went
+unfixed.
+
+**Per-format checks existed and nothing called them.** §300 built
+`checkQuestion` and it was unreachable, so the one rule that stops a quiz
+revealing an answer nobody could have chosen was written, tested and never run.
+`checkFormatSpecific` closes it, registered per format so a new format adds a
+function rather than an `if`.
+
+**Mechanical repair before judgement.** A Kinolog quiz exhausted all three
+attempts on curly quotes and 1-based slot indices — reported, fed back, and
+reproduced, because a model asked to avoid a character it does not distinguish
+keeps producing it. §287's line applies: punctuation and indexing are
+transcription, what a question asks is judgement. `repairDraft` fixes the first
+and leaves the second to the model.
+
+**`footage` was not checked against having footage.** Only `product_capture`
+was, and the first RecipeFix screenplay called for *"hands kneading wheat
+dough"* with none available. It would have rendered a blank frame where a scene
+expected film.
+
+**What is still refusing, and correctly.** The Kinolog quiz now fails on
+citations that return 404 — invented sources, caught by fetching them. That is
+the gate working. It also names the real gap: **the writer is asked to cite and
+has no research step**, so it invents URLs because nothing gave it real ones.

@@ -81,6 +81,32 @@ export interface FormatSlot {
   maxWords: number;
   /** How many of this slot a piece has. A quiz has five questions. */
   repeats?: number;
+  /**
+   * §341. Whether this slot makes a claim about the world.
+   *
+   * `factuality: 'sourced'` was applied to *every* slot in the format, so a
+   * quiz's title — "How well do you know your film taste?" — was refused for
+   * asserting something with no citable source. It asserts nothing; it is a
+   * question, and the citation rule is about claims.
+   *
+   * The consequence was worse than a false positive: the writer retried three
+   * times trying to cite a framing line, burning attempts it needed for the
+   * questions that genuinely do require a source.
+   *
+   * Defaults to true for a sourced format, because the safe direction is to
+   * demand a citation and be told a slot does not need one — the opposite
+   * default would let a claim through by omission.
+   */
+  asserts?: boolean;
+  /**
+   * §341. Whether this slot is a question by design.
+   *
+   * `structure.question_density` is a caption rule: a post made of questions
+   * reads as engagement bait. A quiz is made of questions, and the rule fired
+   * on every one of them — a copy gate written for one shape, applied to
+   * another where the shape is the point.
+   */
+  isQuestion?: boolean;
 }
 
 export interface PostFormat {
@@ -139,12 +165,19 @@ export const POST_FORMAT_CATALOG: Record<PostFormatId, PostFormat> = {
     needsArtifact: false,
     targetSeconds: 30,
     slots: [
-      { key: 'title', brief: 'The challenge, as a dare. Under eight words.', maxWords: 8 },
+      {
+        key: 'title',
+        brief: 'The challenge, as a dare. Under eight words.',
+        maxWords: 8,
+        /* §341. A dare asserts nothing, so it cites nothing. */
+        asserts: false,
+      },
       {
         key: 'question',
         brief: 'A question with one unambiguous answer and a real source. Not a matter of opinion.',
         maxWords: 14,
         repeats: 5,
+        isQuestion: true,
       },
       {
         key: 'answer',
@@ -152,7 +185,13 @@ export const POST_FORMAT_CATALOG: Record<PostFormatId, PostFormat> = {
         maxWords: 18,
         repeats: 5,
       },
-      { key: 'close', brief: 'How many did they get. One line, no hard sell.', maxWords: 12 },
+      {
+        key: 'close',
+        brief: 'How many did they get. One line, no hard sell.',
+        maxWords: 12,
+        asserts: false,
+        isQuestion: true,
+      },
     ],
   },
 
