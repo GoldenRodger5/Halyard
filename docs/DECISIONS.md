@@ -8491,3 +8491,67 @@ has an answer rather than a shrug.
 Found only by attaching a second product. Against RecipeFix, six pages was
 enough and nothing was ever dropped — the defect needed a site with more
 surface than the cap.
+
+## 323. A product's palette is in its own stylesheet
+
+Kinolog's `brand_tokens` was `{}`, so `resolveBrand` fell back to
+`DEFAULT_BRAND` — RecipeFix's cream, rust and serif. Every Kinolog video would
+have come out in another product's colours. The system would have *worked* and
+produced the wrong account, which is the failure mode the product-agnostic claim
+exists to rule out.
+
+A palette is not something to invent or ask for. Kinolog declares
+`--color-bg: #141210`, `--color-ink: #ede8e0`, an amber `#e3b341` and a
+Bricolage Grotesque display face. That is the brand, stated by the brand, in
+machine-readable form.
+
+**Code, not an agent.** The `visual-brand` agent reads described screenshots and
+is right for "what does this design feel like". This is a different question
+with an exact answer, and asking a model to read hex codes out of a stylesheet
+is asking it to do arithmetic — it will usually be right, and "usually" is not a
+property you want in a colour that appears on every post.
+
+**Two fixes found by running it on both products.** A site that names its brand
+colour by hue rather than by role — `--color-amber`, which is completely normal
+— produced no primary at all, so the most-used non-neutral colour is the
+fallback, reported with its count. Then that picked Kinolog's *dim* amber,
+because the real one is written `#e3b34166` in every gradient and a six-digit
+match skipped it: a colour used with transparency is still that colour. And on
+RecipeFix it picked `#111827`, Tailwind's gray-900, which is 56% saturated
+because its channels are 17/24/39 — three near-blacks still differ enough in
+ratio to look colourful to a saturation test. A brand colour has to be bright
+enough to be a colour rather than a shade.
+
+Same extractor, opposite brands: RecipeFix `#c17652` on cream, Kinolog
+`#e3b341` on `#141210`.
+
+## 324. A ring the size of the thing it points at
+
+The callout ring was a fixed 132px circle. That is right for nothing: it
+swallows a diet chip and disappears inside a full-width button, and neither
+reads as pointing at anything.
+
+The element Playwright clicked knows its own size, and §303 was already
+measuring the box — and throwing away everything but the centre. The whole box
+travels now, as fractions of the viewport, and the ring is that box plus a
+margin. A rounded rectangle rather than a circle, because interfaces are made of
+rectangles: a circle around a wide button either misses its ends or covers
+everything above and below it.
+
+Deterministic, measured at the moment of the tap, and product-agnostic by
+construction — nothing here knows what the control is, only how big it was.
+
+## 325. The Brain, as something a person can read
+
+`product_facts` is a fact table and a fact table is not readable. An operator
+asking "did they actually understand my product" should not have to write SQL,
+and that answer is the main evidence for whether any of this is
+product-agnostic.
+
+`scripts/brain-report.ts` writes it out. It reports **what was not learned as
+prominently as what was** — an empty category is the interesting part, and a
+report of only findings makes a brain with a hole in it look complete. It also
+lists the claims marked `unverifiable`, so the discipline is visible rather than
+buried in a status column.
+
+`docs/brain-kinolog.md` is the first one.

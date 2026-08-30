@@ -46,12 +46,12 @@ describe('calloutSourceFromCapture', () => {
   it('carries the tap point through, and null when there was no tap', () => {
     const out = calloutSourceFromCapture(
       [
-        { step: 'tap gluten-free', ok: true, startMs: 1_000, endMs: 1_200, at: { x: 0.5, y: 0.62 } },
+        { step: 'tap gluten-free', ok: true, startMs: 1_000, endMs: 1_200, at: { x: 0.5, y: 0.62, width: 0.34, height: 0.06 } },
         { step: 'the result settles', ok: true, startMs: 2_000, endMs: 2_400 },
       ],
       [span(0, 5_000)],
     );
-    expect(out[0]!.at).toEqual({ x: 0.5, y: 0.62 });
+    expect(out[0]!.at).toEqual({ x: 0.5, y: 0.62, width: 0.34, height: 0.06 });
     expect(out[1]!.at).toBeNull();
   });
 

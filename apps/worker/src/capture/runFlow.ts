@@ -84,8 +84,16 @@ export interface StepResult {
    * clicked, so the ring cannot point somewhere the tap did not happen.
    *
    * Absent for steps that are not taps, and for a tap whose element had no box.
+   *
+   * §324. The **whole box**, not only the centre.
+   *
+   * A ring drawn at a fixed 132px is right for nothing: it swallows a chip and
+   * is lost inside a full-width card. The element Playwright clicked knows its
+   * own size, and that size is the only correct one — so the box travels and
+   * the composition sizes the ring to fit what was actually pressed. Fractions
+   * of the viewport, so it survives being rendered at any scale.
    */
-  at?: { x: number; y: number };
+  at?: { x: number; y: number; width: number; height: number };
   /** Present on failure: what the page actually looked like. */
   failureScreenshot?: string;
   error?: string;
@@ -405,7 +413,10 @@ async function executeStep(
   stills: Record<string, string>,
   secrets: Record<string, string> | undefined,
   mode: 'verify' | 'capture',
-): Promise<{ fallbackDepth?: number; at?: { x: number; y: number } }> {
+): Promise<{
+  fallbackDepth?: number;
+  at?: { x: number; y: number; width: number; height: number };
+}> {
   const timeout = step.timeoutMs ?? 15_000;
   /* §309. The recorded pass may need a different input; see `captureValue`. */
   const value = (mode === 'capture' ? step.captureValue : undefined) ?? step.value;
@@ -459,6 +470,9 @@ async function executeStep(
           ? {
               x: Number(((box.x + box.width / 2) / viewport.width).toFixed(4)),
               y: Number(((box.y + box.height / 2) / viewport.height).toFixed(4)),
+              /* §324. So the ring can be the size of the thing it points at. */
+              width: Number((box.width / viewport.width).toFixed(4)),
+              height: Number((box.height / viewport.height).toFixed(4)),
             }
           : undefined;
 

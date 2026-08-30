@@ -453,8 +453,14 @@ export interface CapturedStep {
   elide?: boolean;
   /** The flow ran this to produce the artifact, and it is not part of the story. §166. */
   setup?: boolean;
-  /** §303. Where the tap landed, as fractions of the viewport. Taps only. */
-  at?: { x: number; y: number };
+  /**
+   * §303/§324. The element that was tapped, as fractions of the viewport.
+   *
+   * The whole box, so a ring can be the size of what was pressed rather than a
+   * constant that is wrong for everything: a diet chip and a full-width submit
+   * button need very different rings, and neither is 132 pixels.
+   */
+  at?: { x: number; y: number; width: number; height: number };
   /** A line worth saying about this step, from the flow definition. */
   narration?: string;
 }
@@ -591,8 +597,16 @@ export function footageDurationMs(spans: FootageSpan[]): number {
 export function calloutSourceFromCapture(
   steps: CapturedStep[],
   spans: FootageSpan[],
-): Array<{ label: string; atSeconds: number; at: { x: number; y: number } | null }> {
-  const out: Array<{ label: string; atSeconds: number; at: { x: number; y: number } | null }> = [];
+): Array<{
+  label: string;
+  atSeconds: number;
+  at: { x: number; y: number; width: number; height: number } | null;
+}> {
+  const out: Array<{
+    label: string;
+    atSeconds: number;
+    at: { x: number; y: number; width: number; height: number } | null;
+  }> = [];
 
   for (const step of steps) {
     if (!step.ok || step.startMs === undefined) continue;

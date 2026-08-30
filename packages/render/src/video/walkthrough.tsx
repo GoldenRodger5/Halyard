@@ -69,12 +69,17 @@ export interface WalkthroughCallout {
   holdSeconds?: number;
   text: string;
   /**
-   * Where on the *screen* it points, as fractions of the phone screen.
+   * The control it points at, as fractions of the phone screen.
    *
-   * Null pins it beside the device instead, which is right for a remark about
-   * the whole step rather than about one control.
+   * §324. Carries the element's **size** as well as its centre, so the ring can
+   * be drawn around what was actually pressed. A fixed radius is wrong for
+   * everything: it swallows a diet chip and vanishes inside a full-width
+   * button, and neither reads as pointing at anything.
+   *
+   * Null pins the text beside the device instead, which is right for a remark
+   * about the whole step rather than about one control.
    */
-  at?: { x: number; y: number } | null;
+  at?: { x: number; y: number; width?: number; height?: number } | null;
 }
 
 export interface WalkthroughProps {
@@ -223,16 +228,42 @@ const Callout: React.FC<{
         <div
           style={{
             position: 'absolute',
-            left: `${callout.at.x * 100}%`,
-            top: `${callout.at.y * 100}%`,
-            width: 132,
-            height: 132,
-            marginLeft: -66,
-            marginTop: -66,
-            borderRadius: 999,
+            /*
+             * §324. Sized from the element, not from a constant.
+             *
+             * `width`/`height` are the tapped control's own box as fractions of
+             * the screen, measured by the runner at the instant of the tap. The
+             * ring is that box plus a margin, so it reads as *around* the
+             * control — which is what a ring means — instead of as a circle
+             * that happens to be near it.
+             *
+             * A rounded rectangle rather than a circle, because interfaces are
+             * made of rectangles: a circle around a wide button either misses
+             * its ends or covers everything above and below it.
+             *
+             * Falls back to a modest square when a capture predates §324 and
+             * carries only a centre.
+             */
+            ...(() => {
+              const pad = 0.035;
+              const w = callout.at.width ?? 0.18;
+              const h = callout.at.height ?? 0.05;
+              const left = (callout.at.x - w / 2 - pad) * 100;
+              const top = (callout.at.y - h / 2 - pad * 0.45) * 100;
+              return {
+                left: `${left}%`,
+                top: `${top}%`,
+                width: `${(w + pad * 2) * 100}%`,
+                height: `${(h + pad * 0.9) * 100}%`,
+              };
+            })(),
+            /* Half the shorter side, capped: a pill for a chip, a rounded
+               rectangle for a card, never a lozenge. */
+            borderRadius: 28,
             border: `4px solid ${brand.primary}`,
             opacity: opacity * 0.9,
-            transform: `scale(${0.7 + enter * 0.3})`,
+            transform: `scale(${0.94 + enter * 0.06})`,
+            transformOrigin: 'center',
           }}
         />
       ) : null}
