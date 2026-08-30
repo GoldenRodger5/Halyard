@@ -4,7 +4,7 @@ Written by `scripts/brain-report.ts` from `product_facts`. Nothing here was type
 
 - **Site:** https://kinolog.app
 - **Tagline:** A diary with a brain
-- **Facts:** 46 across 3 categories
+- **Facts:** 24 across 7 categories
 - **Evidence:** 8 pages
 
 ## Brand, read from the product’s own stylesheet
@@ -20,116 +20,80 @@ Written by `scripts/brain-report.ts` from `product_facts`. Nothing here was type
 
 ## identity
 
-- **account_access** — Users can sign in with username or email and password, or with a one-time email link.
-  - The login page offers both password sign-in and an emailed sign-in link.
-- **core_diary_features** — Users can log films, ratings, notes, reviews, watch dates, watchlists and backlog.
-  - The privacy and pricing pages list diary content and free diary capabilities including ratings, vibes, notes, watch dates, library, watchlist and backlog.
-- **data_export** — Users can export their data as JSON or Letterboxd-compatible CSV.
-  - The homepage and pricing page both describe one-click export in these formats.
-- **explainable_recommendations** — Recommendations include reasons tied to the user's own diary.
-  - The Letterboxd alternatives post says Kinolog explains picks against films the user rated; pricing says Plus reasons can quote the user's notes.
-- **export** — Kinolog lets users export their data.
-  - Pricing and privacy pages mention export as JSON or CSV, and Settings export for access and portability.
-- **export** — Users can export their Kinolog data.
-  - Pricing and privacy mention export from Settings; pricing names JSON and Letterboxd-compatible CSV/CSV export.
-- **export_options** — Users can export their Kinolog data.
-  - Pricing mentions export any time as JSON or CSV; the privacy page says users can export everything as JSON from Settings.
-- **letterboxd_import** — Kinolog imports Letterboxd history.
-  - The site mentions importing Letterboxd ratings, rewatches, reviews, watchlist, tags, likes, and original watch dates.
-- **letterboxd_import** — Kinolog imports Letterboxd history, including ratings, watch dates, reviews, tags, rewatches, likes and watchlist.
-  - The try page states a full Letterboxd export imports ratings to half-stars, original watch dates, review text, tags, rewatches, likes and watchlist.
-- **movie_diary** — Users can log films with ratings, notes, reviews, watch dates, rewatches, vibes and tags.
-  - Pricing lists unlimited logging, ratings, vibes, notes and honest watch dates; the privacy policy lists films logged, ratings, notes, reviews and watchlist as diary content.
-- **movie_logging** — Users can log films with ratings, vibe tags, notes, and watch dates.
-  - The pricing page lists unlimited logging, ratings, vibes, notes, and honest watch dates.
-- **movie_night** — Kinolog includes a Movie night feature for watching with someone.
-  - The pricing comparison table lists “Movie night, for watching with someone” on both Free and Plus.
-- **movie_night** — Kinolog has a movie-night mode for choosing something multiple people have not seen.
-  - The homepage says users can add whoever is on the couch and Kinolog finds something none of them have seen.
-- **no_account_trial** — Kinolog has a no-account trial that asks which films someone has seen, reads their taste, and suggests a film.
-  - The /try page presents a three-step flow: teach it, my read, tonight, with taps stored in the browser until the user chooses to keep them.
-- **no_account_try_mode** — Kinolog offers a no-account taste-reading flow.
-  - The Try page asks users what films they have seen, makes three taste guesses, and then shows a film recommendation.
-- **platforms** — Kinolog works on iPhone, Android, and desktop.
-  - The homepage says there is a native iPhone app and Kinolog also runs in any browser on Android and desktop.
-- **predicted_rating** — Plus can show what Kinolog thinks a user would rate an unseen film.
-  - Pricing describes Plus as showing a number and the working behind it for films the user has not seen.
-- **predicted_rating** — Plus can show what Kinolog thinks the user would rate an unseen film.
-  - Pricing describes Plus as providing “what you would rate it, before you watch it,” with the working behind the number.
-- **predicted_rating_feature** — Plus can show what Kinolog thinks a user would rate an unseen film and the reasoning behind it.
-  - Pricing describes Plus as showing a predicted rating and the arithmetic behind the call.
-- **privacy_model** — Kinolog is private by default, with no ads, no data sales, and no public pages.
-  - The homepage says there are no ads, no data sales, and no public pages; pricing says the diary is private by default.
-- **private_diary** — Kinolog stores a private film diary with logs, ratings, notes, reviews, watchlist, and taste profile.
-  - The privacy policy lists diary content as films logged, ratings, notes, reviews, watchlist, and the taste profile built from them.
-- **product_type** — Kinolog is a private movie diary app with AI recommendations.
-  - The homepage title calls it a “movie diary with AI recommendations” and describes “a private movie diary” that remembers what you watched.
-- **product_type** — Kinolog is a private movie diary app with recommendations.
-  - The site describes Kinolog as a private diary and contrasts it with social film networks; recommendations use a user's diary, ratings and notes.
-- **product_type** — Kinolog is a private movie diary and recommendation app.
-  - The site describes Kinolog as a private diary for films, with recommendations generated from a user's own ratings, notes, reviews, watchlist and taste profile.
-- **product_type** — Kinolog is a movie diary app.
-  - The site describes Kinolog as a place to keep a private movie diary, log films, and build a taste profile from that diary.
-- **recommendation_feedback** — Users can mark a recommendation as bullseye, fine, or miss.
-  - The homepage says Kinolog keeps a hit rate on the stats page and shows misses.
-- **recommendation_system** — Kinolog recommends films using a user's logged movie history and taste profile.
-  - The privacy page says it generates taste profiles and recommendations from the user's library; pricing says Plus reads the diary for picks and predictions.
-- **recommendations** — Kinolog recommends films using the user's diary and taste profile.
-  - The privacy policy says Kinolog processes diary content to generate taste profiles and recommendations; pricing says Plus reads the user's whole diary.
-- **recommendations_basis** — Kinolog’s recommendations use the user’s own ratings, notes, and diary history.
-  - The site says reasons come from “your own ratings and notes,” and Plus reads picks against the whole diary.
-- **recommendations_from_diary** — Kinolog generates movie recommendations from a user's library and taste profile.
-  - The privacy policy says it processes diary data to generate taste profiles and recommendations from the user's library.
-- **seen_check** — Kinolog can answer whether the user has seen a film, with their rating and past note.
-  - The homepage lists “Have I seen this?” as an answered question from the user’s library.
-- **tonight_picks** — Kinolog can suggest what to watch tonight.
-  - The homepage lists “What should I watch tonight?” and says recommendations exclude the user’s own library and “never again” list.
-- **watch_selection_view** — Kinolog can present a single film suggestion with a reason, runtime, and where to watch it.
-  - The try page says the final step is one film, with why it was chosen, runtime, streaming availability, and two alternates.
-- **watch_tools** — Kinolog includes a library, watchlist, backlog, calibration deck, stats, and yearly Wrapped.
-  - These are listed as Free plan features on the pricing page.
+- **asks** — Users can make “asks” for Kinolog to think about their diary and recommendations.
+  - The pricing page uses “asks” as the unit of AI use.
+- **diary_features** — Users log films with ratings, vibes, notes and honest watch dates.
+  - The Free plan includes unlimited logging, ratings, vibes, notes and watch dates.
+- **platforms** — Kinolog has a native iPhone app and also runs in any browser on Android and desktop.
+  - One account works everywhere so the diary is the same wherever opened.
+- **product_summary** — Kinolog is a private movie diary with AI recommendations.
+  - The homepage title calls it a “movie diary with AI recommendations” and the hero calls it “a private movie diary.”
+- **recommendation_engine** — Kinolog reads a user’s diary to recommend what to watch and explain why.
+  - Reasons come from the user’s own ratings and notes rather than charts.
 
 ## mission
 
-- **data_business_model** — Kinolog says it is funded by Plus subscriptions, not ads or data sales. _(unverifiable)_
-  - The privacy and pricing pages say there are no ads, no data sales, and Plus is the only thing paying for the service.
-- **free_diary_principle** — Kinolog says logging a movie life should not sit behind a paywall. _(unverifiable)_
-  - The pricing page says the diary is free forever and manual logging is never capped on either plan.
-- **free_diary_principle** — Kinolog presents movie logging as something that should not sit behind a paywall. _(unverifiable)_
-  - The pricing page says “The diary is free” and “Logging your movie life should never sit behind a paywall.”
-- **free_diary_principle** — Kinolog says logging a movie diary should not sit behind a paywall. _(unverifiable)_
-  - The pricing page says the diary is free forever and that logging your movie life should never sit behind a paywall.
-- **privacy_business_model** — Kinolog says it makes money from Plus subscriptions, not from selling user data. _(unverifiable)_
-  - The privacy and pricing pages state there are no ads, no data sales and the optional Plus subscription is the only revenue model.
-- **privacy_principle** — Kinolog says it is funded by Plus subscriptions rather than ads or data sales. _(unverifiable)_
-  - The privacy policy says there are no ads, no advertising cookies or pixels, no sale of data, and that Kinolog earns money through the optional Plus subscription.
+- **mission_end_scrolling_stalemate** — Help users choose one film to watch instead of scrolling a wall of artwork and going to bed. _(unverifiable)_
+  - The try page says the problem is not finding films, but scrolling for forty minutes without deciding.
+- **mission_private_taste_reader** — Help a private movie diary give something back: taste reads and recommendations grounded in the user’s own history. _(unverifiable)_
+  - The site contrasts Kinolog with charts, public social profiles and generic mood quizzes.
+- **mission_trustworthy_recommendations** — Make recommendations accountable by explaining picks, avoiding repeats and keeping score on misses. _(unverifiable)_
+  - Users can mark picks bullseye, fine or miss; hit rate stays on the stats page.
 
 ## users
 
-- **age_requirement** — Kinolog is for people aged 13 and over.
-  - The privacy policy says Kinolog does not knowingly collect data from children under 13.
-- **letterboxd_users** — Kinolog serves Letterboxd users who want to import their film history.
-  - The site has a Letterboxd alternatives guide and describes importing a full Letterboxd export into Kinolog.
-- **letterboxd_users** — Kinolog serves Letterboxd users who want to move or copy their film history.
-  - Multiple pages discuss importing Letterboxd exports and compare Kinolog with Letterboxd alternatives.
-- **primary_audience** — People who want to keep a private movie diary.
-  - The Letterboxd alternatives page says Kinolog lives in the private movie diary corner: no public pages, no followers, no feed.
-- **primary_audience** — Kinolog serves people who keep a movie diary.
-  - The blog and pricing pages frame the product around logging a movie life, maintaining a film diary, and preserving viewing history.
-- **primary_audience** — Kinolog serves people who keep a personal record of the films they watch.
-  - The product centers on a movie diary with films logged, ratings, notes, reviews, watch dates, watchlist and stats.
+- **primary_audience** — People who want a private movie diary that remembers what they watched and recommends from their own ratings and notes.
+  - They are the users who would miss the diary, taste page, asks and personal recommendations.
+- **secondary_audience** — Letterboxd users who want privacy, better recommendations or to move a long film history without losing it.
+  - Kinolog highlights Letterboxd import and publishes a Letterboxd alternatives guide.
+- **tertiary_audience** — People choosing a film with someone else on the couch.
+  - Movie night lets users add whoever is watching and find something none of them have seen.
+
+## personas
+
+- **letterboxd_migrator** — A Letterboxd migrator with years of ratings, reviews, watch dates, tags, rewatches, likes and watchlist to preserve.
+  - Kinolog imports a full Letterboxd export and keeps half-star precision and original watch dates.
+- **letterboxd_escapee_with_history** — Someone rebuilding years of viewing history after leaving or reducing use of Letterboxd, while trying not to lose ratings, reviews, watch dates, tags, rewatches, likes and a watchlist. _(inferred)_
+  - Follows from secondary_audience and letterboxd_migrator.
+- **private_taste_archivist** — Someone who logs films for themselves, not an audience, and wants their ratings, vibes, notes and watch dates to turn into useful taste feedback. _(inferred)_
+  - Follows from private movie diary, diary_features, recommendation_engine and primary_audience.
+- **recommendation_skeptic** — Someone who has been burned by vague recommendations and wants to know why a pick fits, whether it repeats old suggestions and whether misses are remembered. _(inferred)_
+  - Follows from mission_trustworthy_recommendations and recommendation_engine.
+- **stuck_on_the_couch_picker** — Someone sitting with another person, trying to choose one film both can commit to before the night disappears into browsing. _(inferred)_
+  - Follows from tertiary_audience and mission_end_scrolling_stalemate.
+
+## jobs to be done
+
+- **choose_tonight_without_scrolling** — Decide what to watch tonight without scrolling through posters for forty minutes and giving up. _(inferred)_
+  - Follows from mission_end_scrolling_stalemate.
+- **get_recs_from_my_own_history** — Give me recommendations based on what I actually watched, rated, felt and wrote down, not generic popularity. _(inferred)_
+  - Follows from diary_features, recommendation_engine and mission_private_taste_reader.
+- **log_honest_viewing_memory** — Record what I watched, when I really watched it, how it felt and what I thought, for my own memory. _(inferred)_
+  - Follows from diary_features and primary_audience.
+- **move_letterboxd_history_privately** — Move my long Letterboxd history somewhere private without treating years of ratings, reviews and watch dates as disposable. _(inferred)_
+  - Follows from secondary_audience and letterboxd_migrator.
+- **understand_the_pick** — Tell me why this film is being recommended to me so I can trust the suggestion before I spend the evening on it. _(inferred)_
+  - Follows from recommendation_engine and mission_trustworthy_recommendations.
+
+## differentiators
+
+- **private_diary_first** — Kinolog’s starting point is a private diary rather than a public film profile, which makes it distinct for people reacting against social film logging. _(inferred)_
+  - Follows from product_summary, primary_audience and secondary_audience.
+
+## competitors
+
+- **letterboxd** — Letterboxd is the clear incumbent for people with existing film diaries, especially because Kinolog addresses Letterboxd users who want privacy, better recommendations or to move a long history. _(inferred)_
+  - Follows from secondary_audience and letterboxd_migrator.
+- **streaming_service_home_screens** — Streaming-service home screens are a practical competitor in the watch-choice moment, because Kinolog is positioned against the behavior of scrolling a wall of artwork instead of choosing one film. _(inferred)_
+  - Follows from mission_end_scrolling_stalemate and tertiary_audience.
 
 ## Nothing learned about
 
 Listed because an empty category is the interesting part. A report of only findings makes a brain with a hole in it look complete.
 
-- personas
-- jobs to be done
 - workflows
-- differentiators
 - pricing
 - monetization
-- competitors
 - brand voice
 - visual identity
 - claims
@@ -154,9 +118,18 @@ Listed because an empty category is the interesting part. A report of only findi
 
 A company saying something on its own site is evidence that it *says* it, not that it is true. These are recorded and marked, so nothing downstream can publish one as a fact.
 
-- Kinolog says it is funded by Plus subscriptions, not ads or data sales. — `unverifiable`
-- Kinolog says logging a movie life should not sit behind a paywall. — `unverifiable`
-- Kinolog presents movie logging as something that should not sit behind a paywall. — `unverifiable`
-- Kinolog says logging a movie diary should not sit behind a paywall. — `unverifiable`
-- Kinolog says it makes money from Plus subscriptions, not from selling user data. — `unverifiable`
-- Kinolog says it is funded by Plus subscriptions rather than ads or data sales. — `unverifiable`
+- Letterboxd is the clear incumbent for people with existing film diaries, especially because Kinolog addresses Letterboxd users who want privacy, better recommendations or to move a long history. — `inferred`
+- Streaming-service home screens are a practical competitor in the watch-choice moment, because Kinolog is positioned against the behavior of scrolling a wall of artwork instead of choosing one film. — `inferred`
+- Kinolog’s starting point is a private diary rather than a public film profile, which makes it distinct for people reacting against social film logging. — `inferred`
+- Decide what to watch tonight without scrolling through posters for forty minutes and giving up. — `inferred`
+- Give me recommendations based on what I actually watched, rated, felt and wrote down, not generic popularity. — `inferred`
+- Record what I watched, when I really watched it, how it felt and what I thought, for my own memory. — `inferred`
+- Move my long Letterboxd history somewhere private without treating years of ratings, reviews and watch dates as disposable. — `inferred`
+- Tell me why this film is being recommended to me so I can trust the suggestion before I spend the evening on it. — `inferred`
+- Help users choose one film to watch instead of scrolling a wall of artwork and going to bed. — `unverifiable`
+- Help a private movie diary give something back: taste reads and recommendations grounded in the user’s own history. — `unverifiable`
+- Make recommendations accountable by explaining picks, avoiding repeats and keeping score on misses. — `unverifiable`
+- Someone rebuilding years of viewing history after leaving or reducing use of Letterboxd, while trying not to lose ratings, reviews, watch dates, tags, rewatches, likes and a watchlist. — `inferred`
+- Someone who logs films for themselves, not an audience, and wants their ratings, vibes, notes and watch dates to turn into useful taste feedback. — `inferred`
+- Someone who has been burned by vague recommendations and wants to know why a pick fits, whether it repeats old suggestions and whether misses are remembered. — `inferred`
+- Someone sitting with another person, trying to choose one film both can commit to before the night disappears into browsing. — `inferred`

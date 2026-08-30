@@ -25,7 +25,26 @@ export const CODE_INTELLIGENCE_PROMPT_VERSION = 'code_intelligence.v1';
 export const VISUAL_BRAND_PROMPT_VERSION = 'visual_brand.v1';
 export const PRODUCT_RECONCILER_PROMPT_VERSION = 'product_reconciler.v1';
 
-/** The most facts one call may yield, so a long page cannot flood a category. */
+/**
+ * §334. The most facts one call may yield — **per category it was asked for**.
+ *
+ * This was a flat 12 per call, which was right when an agent covered a handful
+ * of categories and became a truncation the moment §328 widened the discovery
+ * agent's remit to eleven. The rewritten guidance asked for mission, three
+ * audience tiers, competitors, monetization limits and differentiators; the
+ * model answered well and the first twelve facts were kept.
+ *
+ * Kinolog's Brain came back with identity, mission and users — eleven facts —
+ * and **nothing about pricing**, from a run that had the pricing page in front
+ * of it. Not a model failure and not an evidence failure: a slice.
+ *
+ * A per-category budget keeps the original intent, which was that one long page
+ * must not flood a category with twenty variations of one idea. Three is
+ * generous for a single category and cannot crowd out another.
+ */
+export const MAX_FACTS_PER_CATEGORY = 3;
+
+/** Kept for callers that reason about the old flat cap. */
 export const MAX_FACTS_PER_CALL = 12;
 
 /** Longest value that is still a fact rather than a paragraph. */
@@ -69,7 +88,22 @@ export function parseProposals(
     return { accepted, rejected: [{ key: '(response)', reason: 'No facts array in the reply.' }] };
   }
 
-  for (const entry of facts.slice(0, MAX_FACTS_PER_CALL)) {
+  /*
+   * §334. Budgeted per category rather than per call, so a broad agent is not
+   * truncated before it reaches its later categories.
+   */
+  const perCategory = new Map<string, number>();
+  for (const entry of facts) {
+    const bucket = String((entry as { category?: unknown }).category ?? '');
+    const used = perCategory.get(bucket) ?? 0;
+    if (used >= MAX_FACTS_PER_CATEGORY) {
+      rejected.push({
+        key: String((entry as { key?: unknown }).key ?? '(no key)'),
+        reason: `'${bucket}' already has ${MAX_FACTS_PER_CATEGORY} facts from this call.`,
+      });
+      continue;
+    }
+    perCategory.set(bucket, used + 1);
     const fact = entry as Record<string, unknown>;
     const key = String(fact.key ?? '').trim().toLowerCase().replace(/[^a-z0-9_]+/g, '_');
     const category = String(fact.category ?? '').trim();

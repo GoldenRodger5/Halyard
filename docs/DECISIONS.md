@@ -8736,3 +8736,25 @@ and 0031 exist because of the job-kinds version; this is 0065.
 
 **Every enum shared between the two languages has this problem.** The list in
 the gotcha should be read as a class, not an instance.
+
+## 334. The Brain knew the price and was cut off before it could say so
+
+Kinolog's rebuilt Brain came back with identity, mission and users — eleven
+facts, all good — and **nothing about pricing**, from a run with the pricing
+page in front of it.
+
+`MAX_FACTS_PER_CALL` was a flat 12. That was right when an agent covered a few
+categories and became a truncation the moment §328 widened the discovery agent's
+remit to eleven: the rewritten guidance asked for mission, three audience tiers,
+competitors, monetization limits and differentiators, the model answered in a
+sensible order, and the first twelve were kept.
+
+Not a model failure and not an evidence failure. A slice.
+
+The budget is per **category** now, which keeps the original intent — one long
+page must not flood a category with twenty variations of one idea — without
+letting a broad agent be truncated before it reaches its later categories.
+
+Worth naming as a pattern: **widening what an agent is asked for silently
+narrows what it can answer**, unless the budget is expressed in the same terms
+as the request. The cap was per call and the request was per category.
