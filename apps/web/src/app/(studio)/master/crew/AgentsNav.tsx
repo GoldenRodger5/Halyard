@@ -9,11 +9,11 @@ import Link from 'next/link';
  * be five places to get it wrong.
  */
 const TABS = [
-  { href: '/agents', label: 'Overview' },
-  { href: '/agents/runs', label: 'Runs' },
-  { href: '/agents/teams', label: 'Teams' },
-  { href: '/agents/health', label: 'Health' },
-  { href: '/agents/versions', label: 'Versions' },
+  { href: '/master/crew', label: 'Overview' },
+  { href: '/master/crew/runs', label: 'Runs' },
+  { href: '/master/crew', label: 'Teams' },
+  { href: '/master/system', label: 'Health' },
+  { href: '/master/crew/versions', label: 'Versions' },
 ];
 
 export function AgentsNav({ current }: { current: string }) {
@@ -37,10 +37,10 @@ export function AgentsNav({ current }: { current: string }) {
 }
 
 const SYSTEM_TABS = [
-  { href: '/system', label: 'Health' },
-  { href: '/system/jobs', label: 'Jobs' },
-  { href: '/system/integrations', label: 'Integrations' },
-  { href: '/system/audit', label: 'Audit' },
+  { href: '/master/system', label: 'Health' },
+  { href: '/master/system/jobs', label: 'Jobs' },
+  { href: '/master/system/integrations', label: 'Integrations' },
+  { href: '/master/system/audit', label: 'Audit' },
 ];
 
 export function SystemNav({ current }: { current: string }) {

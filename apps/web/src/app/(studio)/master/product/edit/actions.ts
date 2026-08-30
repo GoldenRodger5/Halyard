@@ -30,7 +30,7 @@ export async function saveBrief(formData: FormData): Promise<void> {
     [id, brief.trim().length > 0],
   );
 
-  revalidatePath(`/products/${id}`);
+  revalidatePath(`/master/product/${id}`);
   revalidatePath('/');
 }
 
@@ -64,7 +64,7 @@ export async function saveVoice(formData: FormData): Promise<void> {
     await query(`update onboarding_state set step_voice_done = true where product_id = $1`, [
       voice.product_id,
     ]);
-    revalidatePath(`/products/${voice.product_id}`);
+    revalidatePath(`/master/product/${voice.product_id}`);
   }
 }
 
@@ -91,7 +91,7 @@ export async function testConnector(formData: FormData): Promise<void> {
        values ('connector_down', 'warning', 'No connector configured',
                'Set RECIPEFIX_MCP_URL and RECIPEFIX_MCP_TOKEN, or set connector_type to none.')`,
     );
-    revalidatePath(`/products/${id}`);
+    revalidatePath(`/master/product/${id}`);
     return;
   }
 
@@ -106,6 +106,6 @@ export async function testConnector(formData: FormData): Promise<void> {
     ],
   );
 
-  revalidatePath(`/products/${id}`);
-  revalidatePath('/settings/health');
+  revalidatePath(`/master/product/${id}`);
+  revalidatePath('/master/system');
 }

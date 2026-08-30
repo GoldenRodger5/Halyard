@@ -39,7 +39,7 @@ export async function collectEvidence(formData: FormData): Promise<void> {
   if (!productId) return;
 
   await enqueue('collect_product_evidence', productId, 25);
-  revalidatePath('/brain');
+  revalidatePath('/master/product');
 }
 
 /**
@@ -55,7 +55,7 @@ export async function rebuildBrain(formData: FormData): Promise<void> {
   if (!productId) return;
 
   await enqueue('build_product_brain', productId, 40);
-  revalidatePath('/brain');
+  revalidatePath('/master/product');
 }
 
 /**
@@ -76,5 +76,5 @@ export async function exploreProduct(formData: FormData): Promise<void> {
   if (!productId) return;
 
   await enqueue('explore_product', productId, 30);
-  revalidatePath('/brain/features');
+  revalidatePath('/master/product/features');
 }

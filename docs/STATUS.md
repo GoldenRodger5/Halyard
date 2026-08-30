@@ -1,5 +1,48 @@
 # Where Halyard is right now
 
+**2026-08-30 (night) — walked the new console page by page, and it was hiding
+two broken things.**
+
+Every route shot at 1440×900 and 390×844 and reviewed. Two defects that no test
+saw, both found by using the app:
+
+*Connecting an account was broken.* §390 moved twenty-two screens between route
+groups; their bodies came along and so did every link inside them, still written
+against the old paths. Thirty-four routing targets were dead the moment
+`(dashboard)` went — including the OAuth callback's redirect to
+`/accounts/confirm/`, which is the last step of connecting anything. Nothing
+failed, because a route is a string until somebody clicks it.
+`deadLinks.test.ts` now resolves every `href`, `redirect()` and
+`revalidatePath()` in the app. Decision 83.
+
+*The Brief's shape chips did nothing.* The panel posted `name="format"` and
+`makePiece` reads `postFormat`, so every shape an operator chose — quiz,
+history, tips — was dropped on the way to the job and the run picked its own.
+Found by driving the room in a browser and reading the payload back out of the
+database, which is the only way it could be found. `formFields.test.ts` is the
+guard, and it is asserted against the real mutation because three earlier
+versions of it passed while the bug was there. Decision 84.
+
+**The path works end to end**, verified in a real browser: the room opens with
+its desks already lit, choosing TikTok · short video · quiz moves it to 6 of 6
+desks, and sending writes a `generate` job carrying
+`{subject, postType, postFormat, productId, onlyPlatform}`. It stops there —
+the worker is not running and both model providers are out of credits, so
+nothing has been generated against the new UI.
+
+*UI work from the same pass.* The Call Sheet's counters and rig rows are links
+with a visible affordance, and "failed" filters rather than dropping you on the
+unfiltered wall. The Gallery no longer shows two different things for a missing
+render and a broken one. The phone's tab bar has four distinct marks instead of
+four identical squares. The Brief's first preview is computed on the server, so
+the room is lit on first paint rather than reading dead for a second. The crew
+list links to each agent and filters by state — the two agents nothing calls are
+the rows worth finding.
+
+**Suite: 214 files, 3,209 tests, none skipped. Lint and typecheck clean.**
+
+---
+
 **2026-08-30 (late) — the old console is gone, and Google signs you in.**
 
 `(dashboard)` is deleted. The studio is the console: Call Sheet at `/`, seven

@@ -29,7 +29,7 @@ export async function connectBluesky(formData: FormData): Promise<void> {
   const appPassword = String(formData.get('appPassword') ?? '').trim();
 
   const fail = (message: string): never =>
-    redirect(`/accounts?error=${encodeURIComponent(message)}`);
+    redirect(`/master?error=${encodeURIComponent(message)}`);
 
   if (!handle || !appPassword) {
     fail('A Bluesky handle and an app password are both required.');
@@ -66,7 +66,7 @@ export async function connectBluesky(formData: FormData): Promise<void> {
     fail(`Bluesky refused the app password: ${(err as Error).message}`);
   }
 
-  redirect(`/accounts/confirm/${pendingId!}`);
+  redirect(`/master/confirm/${pendingId!}`);
 }
 
 /**
@@ -141,7 +141,7 @@ export async function runSelfTest(formData: FormData): Promise<void> {
     [id, result.ok, result.summary.slice(0, 500)],
   );
 
-  revalidatePath('/accounts');
+  revalidatePath('/master');
 }
 
 /**
@@ -171,7 +171,7 @@ export async function setCapabilityState(formData: FormData): Promise<void> {
     [id, { state, operator: operator.email }],
   );
 
-  revalidatePath('/accounts');
+  revalidatePath('/master');
   revalidatePath('/');
 }
 
@@ -192,7 +192,7 @@ export async function setTransport(formData: FormData): Promise<void> {
 
   if (transport === 'unified' && !providerAccountId) {
     redirect(
-      '/accounts?error=' +
+      '/master?error=' +
         encodeURIComponent(
           'The unified transport needs the provider\u2019s account id. Find it in the provider dashboard, or run `pnpm verify-provider` which lists every connected account.',
         ),
@@ -215,7 +215,7 @@ export async function setTransport(formData: FormData): Promise<void> {
     if (verified !== 'yes') {
       // Unknown is not permission. The same rule the QC gates now follow.
       redirect(
-        '/accounts?error=' +
+        '/master?error=' +
           encodeURIComponent(
             `The unified provider has not been verified for ${account?.platform}. Run \`pnpm verify-provider\` before routing real posts through it.`,
           ),
@@ -242,7 +242,7 @@ export async function setTransport(formData: FormData): Promise<void> {
     [id, { transport, losesAltText }],
   );
 
-  revalidatePath('/accounts');
+  revalidatePath('/master');
 }
 
 /**
@@ -271,7 +271,7 @@ export async function probeProviderCapability(formData: FormData): Promise<void>
      on conflict do nothing`,
     [JSON.stringify({ provider }), `verify_provider_capability:${provider}:${new Date().toISOString().slice(0, 16)}`],
   );
-  revalidatePath('/accounts');
+  revalidatePath('/master');
 }
 
 /**
@@ -297,7 +297,7 @@ export async function disconnectAccount(formData: FormData): Promise<void> {
     [id],
   );
   if (!account) {
-    redirect('/accounts?error=' + encodeURIComponent('That account no longer exists.'));
+    redirect('/master?error=' + encodeURIComponent('That account no longer exists.'));
   }
 
   // Compared without the leading @ and without case, because the stored handle
@@ -305,7 +305,7 @@ export async function disconnectAccount(formData: FormData): Promise<void> {
   const normalise = (value: string) => value.replace(/^@/, '').toLowerCase();
   if (normalise(typed) !== normalise(account.handle)) {
     redirect(
-      '/accounts?error=' +
+      '/master?error=' +
         encodeURIComponent(
           `Nothing was erased. To disconnect ${account.handle}, type its handle exactly.`,
         ),
@@ -320,7 +320,7 @@ export async function disconnectAccount(formData: FormData): Promise<void> {
     actor: operator.email ?? operator.id,
   });
 
-  revalidatePath('/accounts');
+  revalidatePath('/master');
   revalidatePath('/');
 
   /**
@@ -335,7 +335,7 @@ export async function disconnectAccount(formData: FormData): Promise<void> {
     : '';
 
   redirect(
-    '/accounts?disconnected=' +
+    '/master?disconnected=' +
       encodeURIComponent(
         `${outcome.handle ?? 'The account'}: stored credential erased.${
           outcome.pendingDiscarded > 0 ? ` ${outcome.pendingDiscarded} staged token discarded.` : ''

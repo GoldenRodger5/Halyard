@@ -85,7 +85,7 @@ export default async function PlatformRulesPage() {
       />
 
       <div className="mb-6">
-        <Link href="/accounts" className="text-sm text-primary underline">
+        <Link href="/master" className="text-sm text-primary underline">
           Back to accounts
         </Link>
       </div>
@@ -96,7 +96,7 @@ export default async function PlatformRulesPage() {
       />
 
       <div className="mb-6">
-        <Link href="/accounts" className="text-sm text-primary underline">
+        <Link href="/master" className="text-sm text-primary underline">
           Back to accounts
         </Link>
       </div>

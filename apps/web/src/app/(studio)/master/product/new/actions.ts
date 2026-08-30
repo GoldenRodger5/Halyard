@@ -28,7 +28,7 @@ export async function createProduct(formData: FormData): Promise<void> {
   const operatorTimezone = String(formData.get('operator_timezone') ?? 'America/New_York');
 
   const fail = (message: string): never =>
-    redirect(`/products/new?error=${encodeURIComponent(message)}`);
+    redirect(`/master/product/new?error=${encodeURIComponent(message)}`);
 
   if (!name) fail('A product needs a name.');
   if (!SLUG.test(id)) {
@@ -69,7 +69,7 @@ export async function createProduct(formData: FormData): Promise<void> {
     [{ productId: id, name }],
   );
 
-  redirect(`/products/new?product=${id}&step=2`);
+  redirect(`/master/product/new?product=${id}&step=2`);
 }
 
 export async function saveBrief(formData: FormData): Promise<void> {
@@ -90,7 +90,7 @@ export async function saveBrief(formData: FormData): Promise<void> {
       [id],
     );
   }
-  redirect(`/products/new?product=${id}&step=3`);
+  redirect(`/master/product/new?product=${id}&step=3`);
 }
 
 /**
@@ -124,7 +124,7 @@ export async function saveBrandTokens(formData: FormData): Promise<void> {
   };
 
   await query(`update products set brand_tokens = $2 where id = $1`, [id, tokens]);
-  redirect(`/products/new?product=${id}&step=4`);
+  redirect(`/master/product/new?product=${id}&step=4`);
 }
 
 export async function saveConnector(formData: FormData): Promise<void> {
@@ -152,7 +152,7 @@ export async function saveConnector(formData: FormData): Promise<void> {
     [id, type, config, type === 'github' ? config : {}],
   );
 
-  redirect(`/products/new?product=${id}&step=5`);
+  redirect(`/master/product/new?product=${id}&step=5`);
 }
 
 /**
@@ -230,7 +230,7 @@ export async function testConnector(formData: FormData): Promise<void> {
     [id, { last_test: result, last_test_at: new Date().toISOString() }],
   );
 
-  revalidatePath('/products/new');
+  revalidatePath('/master/product/new');
 }
 
 /**
@@ -294,6 +294,6 @@ export async function seedVoices(formData: FormData): Promise<void> {
     [id],
   );
 
-  revalidatePath('/products');
-  redirect(`/products/${id}?created=1`);
+  revalidatePath('/master/product');
+  redirect(`/master/product/${id}?created=1`);
 }

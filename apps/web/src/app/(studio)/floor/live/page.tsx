@@ -30,6 +30,19 @@ export default async function FloorLive() {
       ) : null}
 
       <div className="flex flex-wrap gap-2">
+        {/*
+          The run's own page: every event in order, rather than the newest
+          twenty-four the rail holds. Shown only while there is a run, because
+          a link to a job that does not exist is worse than no link.
+        */}
+        {live.jobId ? (
+          <Link
+            href={`/floor/live/run/${live.jobId}`}
+            className="rounded-lg border border-rule2 px-3.5 py-[7px] text-xs text-quiet transition-colors hover:border-sink hover:text-sink"
+          >
+            The whole run →
+          </Link>
+        ) : null}
         <Link
           href="/floor"
           className="rounded-lg border border-rule2 px-3.5 py-[7px] text-xs text-quiet transition-colors hover:border-sink hover:text-sink"

@@ -25,7 +25,7 @@ export default async function AgentDetailPage({
   return (
     <>
       <PageHeader title={contract.name} subtitle={contract.purpose} />
-      <Link href="/agents" className="mb-4 inline-block text-sm text-muted hover:text-ink">
+      <Link href="/master/crew" className="mb-4 inline-block text-sm text-muted hover:text-ink">
         ← All agents
       </Link>
 

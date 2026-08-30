@@ -86,7 +86,7 @@ export default async function CallSheet() {
   const stats = [
     { n: counts.pendingApproval, l: 'holding', href: '/gallery' },
     { n: counts.scheduledToday, l: 'out today', href: '/rundown' },
-    { n: counts.failed, l: 'failed', href: '/gallery', hot: true },
+    { n: counts.failed, l: 'failed', href: '/gallery?view=failed', hot: true },
     { n: counts.inboxPending, l: 'on the wire', href: '/wires' },
   ];
 
@@ -131,10 +131,26 @@ export default async function CallSheet() {
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {stats.map((s) => (
-          <Link key={s.l} href={s.href}>
-            <Sheet tone={s.hot && s.n > 0 ? 'onair' : 'plain'} className="h-full">
+          <Link key={s.l} href={s.href} className="group">
+            {/*
+              A number that is a link has to look like one. These were links
+              already and read as flat panels, so nobody clicked the most
+              obvious thing on the screen.
+            */}
+            <Sheet
+              tone={s.hot && s.n > 0 ? 'onair' : 'plain'}
+              className="h-full transition-transform group-hover:-translate-y-0.5"
+            >
               <div className="font-display text-[28px] font-extrabold leading-none">{s.n}</div>
-              <div className="mt-1 text-xs text-quiet">{s.l}</div>
+              <div className="mt-1 flex items-center gap-1 text-xs text-quiet">
+                {s.l}
+                <span
+                  aria-hidden
+                  className="opacity-0 transition-opacity group-hover:opacity-100"
+                >
+                  →
+                </span>
+              </div>
             </Sheet>
           </Link>
         ))}
@@ -148,10 +164,16 @@ export default async function CallSheet() {
             const state =
               b.tone === 'good' ? 'ready' : b.tone === 'bad' ? 'onair' : b.tone === 'warn' ? 'working' : 'dark';
             return (
-              <li
-                key={a.id}
-                className="flex items-center gap-2.5 border-b border-rule py-2 last:border-0"
-              >
+              <li key={a.id} className="border-b border-rule last:border-0">
+                {/*
+                  Every row is a link. An account with a problem is the thing an
+                  operator most wants to open, and this list was the only place
+                  it was named and the only place you could not act on it.
+                */}
+                <Link
+                  href="/master"
+                  className="flex items-center gap-2.5 py-2 transition-colors hover:text-lit"
+                >
                 <Tally state={state} on="light" />
                 <span className="flex-1 text-[13px]">
                   {PLATFORM_LABELS[a.platform] ?? a.platform}{' '}
@@ -162,6 +184,7 @@ export default async function CallSheet() {
                 >
                   {b.label}
                 </Pill>
+                </Link>
               </li>
             );
           })}

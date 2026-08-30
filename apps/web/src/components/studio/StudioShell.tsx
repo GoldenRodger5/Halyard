@@ -24,6 +24,7 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { Slate, Tally, cx } from '@halyard/ui/studio';
 import { ROOMS, POCKET_ROOMS, roomFor, tabFor } from './rooms';
+import { RoomIcon } from './RoomIcon';
 
 export interface FloorState {
   /** True while anything is in production. */
@@ -235,13 +236,11 @@ export function StudioShell({
                   on ? 'font-semibold text-sink' : 'text-quiet',
                 )}
               >
-                <span
-                  aria-hidden
-                  className={cx(
-                    'h-[19px] w-[19px] rounded-md border-[1.8px] border-current',
-                    on && 'bg-sink',
-                  )}
-                />
+                {/*
+                  The room's own mark. Four identical squares told you nothing
+                  and took the space a distinguishing icon would have used.
+                */}
+                <RoomIcon room={r.href} className={cx(on ? 'opacity-100' : 'opacity-70')} />
                 {r.label}
                 {n > 0 ? (
                   <span className="absolute right-[22%] top-0 h-1.5 w-1.5 rounded-full bg-lit" />

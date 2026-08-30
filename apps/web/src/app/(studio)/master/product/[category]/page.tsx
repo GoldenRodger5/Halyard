@@ -50,7 +50,7 @@ export default async function CategoryPage({
         subtitle={`${product.name} · what Halyard believes, and what each belief rests on`}
       />
 
-      <Link href="/brain" className="mb-4 inline-block text-sm text-muted underline hover:text-ink">
+      <Link href="/master/product" className="mb-4 inline-block text-sm text-muted underline hover:text-ink">
         ← Back to the Brain
       </Link>
 

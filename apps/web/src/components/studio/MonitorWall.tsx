@@ -25,6 +25,7 @@
 import Link from 'next/link';
 import { PLATFORM_LABELS } from '@halyard/ui';
 import { Tally, cx, tallyFor } from '@halyard/ui/studio';
+import { MonitorPicture } from './MonitorPicture';
 import type { QueueItem } from '@/lib/queries';
 
 /** What the operator recognises the piece by, in the order it is worth showing. */
@@ -75,24 +76,10 @@ export function Monitor({ item, selected }: { item: QueueItem; selected?: boolea
             : 'bg-[#141D1C]',
         )}
       >
-        {picture ? (
-          /*
-            No `alt`, and the image is allowed to fail quietly.
-
-            A render's `public_url` can point at a file that is no longer on
-            disk — expired storage, a dev database carried across a reset. The
-            browser's default for that is a broken-image glyph in the corner of
-            every monitor, which reads as "this product is broken" rather than
-            "this one file is missing". The monitor's own ground shows through
-            instead, and the caption below still says what the piece is.
-          */
-          <img
-            src={picture}
-            alt=""
-            className="h-full w-full object-cover"
-            style={{ color: 'transparent' }}
-          />
-        ) : null}
+        <MonitorPicture
+          src={picture}
+          absent={failed ? 'not made' : item.render_total > 0 ? 'rendering' : 'no render'}
+        />
         {words ? (
           <span
             className={cx(
@@ -102,16 +89,6 @@ export function Monitor({ item, selected }: { item: QueueItem; selected?: boolea
             )}
           >
             {words}
-          </span>
-        ) : null}
-        {/*
-          What state the picture is in, named rather than left to be guessed
-          from an empty rectangle. A wall of dark monitors that all mean
-          different things is worse than a wall that says which is which.
-        */}
-        {!picture ? (
-          <span className="absolute right-2 top-2 font-data text-[7.5px] uppercase tracking-[0.12em] text-[#5F7975]">
-            {failed ? 'not made' : item.render_total > 0 ? 'rendering' : 'no render'}
           </span>
         ) : null}
       </div>

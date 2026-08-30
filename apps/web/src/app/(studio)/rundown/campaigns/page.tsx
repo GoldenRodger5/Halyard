@@ -70,7 +70,10 @@ export default async function Campaigns() {
                 on="light"
                 size={8}
               />
-              <span className="min-w-0 flex-1">
+              <Link
+                href={`/rundown/campaigns/${c.id}`}
+                className="min-w-0 flex-1 transition-colors hover:text-lit"
+              >
                 <span className="block text-[13px] font-semibold">{c.name}</span>
                 <span className="mt-0.5 block text-[12px] leading-snug text-quiet">
                   {formatInOperatorTz(c.starts_at, tz, 'd MMM')} →{' '}
@@ -82,7 +85,7 @@ export default async function Campaigns() {
                 {c.goal ? (
                   <span className="mt-1 block text-[12px] leading-relaxed text-quiet">{c.goal}</span>
                 ) : null}
-              </span>
+              </Link>
               <span className="shrink-0 font-data text-[9px] uppercase tracking-[0.07em] text-quiet">
                 {c.status} · {c.slots} {c.slots === 1 ? 'piece' : 'pieces'}
               </span>

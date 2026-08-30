@@ -24,7 +24,7 @@ export async function setKillSwitch(formData: FormData): Promise<void> {
     [enabled ? 'publishing_enabled' : 'publishing_paused', { reason, operator: operator.email }],
   );
 
-  revalidatePath('/settings');
+  revalidatePath('/master/system');
   revalidatePath('/');
 }
 
@@ -53,14 +53,14 @@ export async function setLogRetention(formData: FormData): Promise<void> {
     [{ days, operator: operator.email }],
   );
 
-  revalidatePath('/settings');
+  revalidatePath('/master/system');
 }
 
 export async function setGeneration(formData: FormData): Promise<void> {
   await requireOperator();
   const enabled = String(formData.get('enabled')) === '1';
   await query('update settings set generation_enabled = $1 where id = true', [enabled]);
-  revalidatePath('/settings');
+  revalidatePath('/master/system');
 }
 
 /**
@@ -85,5 +85,5 @@ export async function exportData(): Promise<void> {
     ],
   );
 
-  revalidatePath('/settings');
+  revalidatePath('/master/system');
 }

@@ -65,6 +65,6 @@ export async function updateSubmission(formData: FormData): Promise<void> {
     [id, { status }],
   );
 
-  revalidatePath('/submissions');
-  revalidatePath('/accounts');
+  revalidatePath('/gallery/stock/submissions');
+  revalidatePath('/master');
 }

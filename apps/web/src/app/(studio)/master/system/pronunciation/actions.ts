@@ -59,7 +59,7 @@ export async function addPronunciation(formData: FormData): Promise<void> {
     [{ term, phonetic, operator: operator.email }],
   );
 
-  revalidatePath('/settings/pronunciation');
+  revalidatePath('/master/system/pronunciation');
 }
 
 export async function deletePronunciation(formData: FormData): Promise<void> {
@@ -80,5 +80,5 @@ export async function deletePronunciation(formData: FormData): Promise<void> {
     );
   }
 
-  revalidatePath('/settings/pronunciation');
+  revalidatePath('/master/system/pronunciation');
 }

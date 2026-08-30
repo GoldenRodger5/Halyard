@@ -38,6 +38,7 @@ export function BriefPanel({
   platforms,
   carriage,
   shapes,
+  productId,
   onPreview,
   action,
 }: {
@@ -45,6 +46,8 @@ export function BriefPanel({
   platforms: string[];
   carriage: CarriageEntry[];
   shapes: BriefShape[];
+  /** Sent with the brief rather than defaulted inside the action. */
+  productId: string;
   /** Lifts the preview so the room can light its desks. */
   onPreview: (preview: BriefPreview | null) => void;
   action: (formData: FormData) => void;
@@ -97,7 +100,16 @@ export function BriefPanel({
     >
       <input type="hidden" name="platforms" value={platform} />
       <input type="hidden" name="postType" value={chosen?.id ?? ''} />
-      <input type="hidden" name="format" value={shape} />
+      {/*
+        `postFormat`, not `format`. `makePiece` reads `postFormat`, this sent
+        `format`, and a `FormData` key nobody reads is silently dropped — so
+        every shape chosen on this panel was discarded on the way to the job and
+        the run picked its own. Declared, wired, never read: decision 71's shape
+        in the newest code in the repository, found by driving the room and
+        reading the payload back out of the database.
+      */}
+      <input type="hidden" name="postFormat" value={shape} />
+      <input type="hidden" name="productId" value={productId} />
 
       <div className="font-display text-sm font-semibold tracking-[-0.02em]">Brief the floor</div>
 

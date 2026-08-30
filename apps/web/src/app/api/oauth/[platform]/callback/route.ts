@@ -18,7 +18,7 @@ export const dynamic = 'force-dynamic';
  *
  * Milestone 40: the token is not written to `social_accounts` here. It is sealed
  * into `pending_connections`, the identity it belongs to is fetched and checked,
- * and the operator confirms on /accounts/confirm. Connecting the wrong account
+ * and the operator confirms on /master/confirm. Connecting the wrong account
  * because the browser was already signed in as someone else is the most common
  * failure in this flow, and it is invisible until the first post lands.
  *
@@ -121,14 +121,14 @@ export async function GET(
   );
 
   const response = NextResponse.redirect(
-    new URL(`/accounts/confirm/${pendingId}`, request.nextUrl.origin),
+    new URL(`/master/confirm/${pendingId}`, request.nextUrl.origin),
   );
   response.cookies.delete(`halyard_pkce_${platform}`);
   return response;
 }
 
 function redirectWithMessage(request: NextRequest, message: string): NextResponse {
-  const target = new URL('/accounts', request.nextUrl.origin);
+  const target = new URL('/master', request.nextUrl.origin);
   target.searchParams.set('error', message.slice(0, 300));
   return NextResponse.redirect(target);
 }

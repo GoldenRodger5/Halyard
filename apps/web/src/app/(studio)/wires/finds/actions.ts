@@ -57,7 +57,7 @@ export async function addFind(formData: FormData): Promise<void> {
     );
   }
 
-  revalidatePath('/finds');
+  revalidatePath('/wires/finds');
 }
 
 /**
@@ -126,14 +126,14 @@ Reply with JSON only: {"body":""}`,
     // The line is saved either way; drafting can be retried.
   }
 
-  revalidatePath('/finds');
-  revalidatePath('/queue');
+  revalidatePath('/wires/finds');
+  revalidatePath('/gallery');
 }
 
 export async function discardFind(formData: FormData): Promise<void> {
   await requireOperator();
   await query(`update finds set status = 'discarded' where id = $1`, [String(formData.get('id'))]);
-  revalidatePath('/finds');
+  revalidatePath('/wires/finds');
 }
 
 /**
@@ -178,7 +178,7 @@ export async function addWatchTerm(formData: FormData): Promise<void> {
     [String(formData.get('product') ?? 'recipefix'), term, sources, minOccurrences],
   );
 
-  revalidatePath('/finds');
+  revalidatePath('/wires/finds');
 }
 
 /** Stop watching without losing what it already saw. */
@@ -190,7 +190,7 @@ export async function setWatchTermEnabled(formData: FormData): Promise<void> {
   // Disabled rather than deleted: `watch_hits` references it, and thirty days of
   // recurrence evidence is the thing that makes a signal mean anything.
   await query(`update watch_terms set enabled = $2 where id = $1`, [id, enabled]);
-  revalidatePath('/finds');
+  revalidatePath('/wires/finds');
 }
 
 /**
@@ -214,5 +214,5 @@ export async function collectWatchTermsNow(formData: FormData): Promise<void> {
       `watch_manual:${productId}:${new Date().toISOString().slice(0, 13)}`,
     ],
   );
-  revalidatePath('/finds');
+  revalidatePath('/wires/finds');
 }

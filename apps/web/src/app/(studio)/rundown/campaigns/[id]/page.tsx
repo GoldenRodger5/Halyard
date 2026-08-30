@@ -131,7 +131,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
           </span>
         }
         actions={
-          <Link href="/campaigns" className="text-sm text-primary underline">
+          <Link href="/rundown/campaigns" className="text-sm text-primary underline">
             All campaigns
           </Link>
         }
@@ -317,7 +317,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
                     <p className="mt-1 text-xs text-muted">
                       {comment.author_handle ?? 'someone'} ·{' '}
                       {formatInOperatorTz(comment.posted_at, timeZone, 'HH:mm')} ·{' '}
-                      <Link href="/inbox" className="text-primary hover:underline">
+                      <Link href="/wires" className="text-primary hover:underline">
                         reply in the inbox
                       </Link>
                     </p>

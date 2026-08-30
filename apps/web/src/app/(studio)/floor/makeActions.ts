@@ -170,8 +170,8 @@ export async function makePiece(formData: FormData): Promise<MakeResult> {
     if (inserted[0]) rows.push(inserted[0]);
   }
 
-  revalidatePath('/make');
-  revalidatePath('/queue');
+  revalidatePath('/floor');
+  revalidatePath('/gallery');
 
   const shape = format?.name ?? postFormat ?? 'a shape it chooses';
   const where = platforms.length === 1 ? platforms[0] : `${platforms.length} platforms`;

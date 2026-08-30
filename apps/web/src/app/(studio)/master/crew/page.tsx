@@ -10,6 +10,7 @@
  * nobody has checked, and it reads as `unknown` here rather than as `working` —
  * the same discipline as gotcha 9, applied to the crew instead of to metrics.
  */
+import Link from 'next/link';
 import { Label, Sheet, cx } from '@halyard/ui/studio';
 import { Deeper } from '@/components/studio/Deeper';
 import { getAgentOverview } from '@/lib/agentQueries';
@@ -38,13 +39,31 @@ const STATE: Record<string, { label: string; tone: string }> = {
 
 const UNOBSERVED = { label: 'never observed', tone: 'text-quiet' };
 
-export default async function Crew() {
+/** The states worth filtering to. `nothing calls it` is the whole point. */
+const FILTERS = [
+  { key: 'all', label: 'Everyone' },
+  { key: 'implemented_no_caller', label: 'Nothing calls it' },
+  { key: 'implemented_exercised', label: 'Working' },
+  { key: 'planned', label: 'Not built' },
+];
+
+export default async function Crew({
+  searchParams,
+}: {
+  searchParams: Promise<{ state?: string }>;
+}) {
+  const { state: wanted } = await searchParams;
   const [agents, products] = await Promise.all([getAgentOverview(), getProducts()]);
   const tz = products[0]?.operator_timezone ?? 'UTC';
 
+  const shown =
+    wanted && wanted !== 'all'
+      ? agents.filter((a) => a.observed?.state === wanted)
+      : agents;
+
   /* Grouped by team, because that is how the floor is arranged. */
   const teams = new Map<string, typeof agents>();
-  for (const agent of agents) {
+  for (const agent of shown) {
     const team = agent.contract.team;
     if (!teams.has(team)) teams.set(team, []);
     teams.get(team)!.push(agent);
@@ -67,6 +86,43 @@ export default async function Crew() {
           : ''}
       </p>
 
+      {/*
+        A filter, because the interesting rows are a handful out of forty and
+        scrolling three thousand pixels to find them is not finding them.
+      */}
+      <div className="flex flex-wrap gap-1.5">
+        {FILTERS.map((f) => {
+          const n =
+            f.key === 'all'
+              ? agents.length
+              : agents.filter((a) => a.observed?.state === f.key).length;
+          const on = (wanted ?? 'all') === f.key;
+          return (
+            <Link
+              key={f.key}
+              href={f.key === 'all' ? '/master/crew' : `/master/crew?state=${f.key}`}
+              className={cx(
+                'rounded-[7px] border px-2.5 py-[5px] text-xs transition-colors',
+                on
+                  ? 'border-sink bg-sink text-white'
+                  : 'border-rule2 bg-sheet text-quiet hover:border-sink hover:text-sink',
+              )}
+            >
+              {f.label}
+              {n > 0 ? <b className="ml-1.5 font-data text-[10px] font-medium">{n}</b> : null}
+            </Link>
+          );
+        })}
+      </div>
+
+      {shown.length === 0 ? (
+        <Sheet tone="cool">
+          <p className="text-sm leading-relaxed text-quiet">
+            No agent is in that state, which is the answer you want for most of them.
+          </p>
+        </Sheet>
+      ) : null}
+
       {[...teams.entries()].map(([team, members]) => (
         <Sheet key={team}>
           <Label>
@@ -78,7 +134,10 @@ export default async function Crew() {
                 key={contract.agentId}
                 className="flex flex-wrap items-start gap-x-3 gap-y-1 border-t border-rule2 py-2.5 first:border-t-0 first:pt-0"
               >
-                <span className="min-w-0 flex-1">
+                <Link
+                  href={`/master/crew/${contract.agentId}`}
+                  className="min-w-0 flex-1 transition-colors hover:text-lit"
+                >
                   <span className="block text-[13px] leading-snug">
                     {contract.name}
                     <span className="ml-2 font-data text-[10px] text-quiet">
@@ -98,7 +157,7 @@ export default async function Crew() {
                       {observed.reason}
                     </span>
                   ) : null}
-                </span>
+                </Link>
                 <span className="shrink-0 text-right font-data text-[10px] uppercase tracking-[0.06em]">
                   {(() => {
                     const view = observed ? (STATE[observed.state] ?? UNOBSERVED) : UNOBSERVED;

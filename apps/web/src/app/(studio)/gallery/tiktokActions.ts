@@ -51,7 +51,7 @@ export async function refreshTikTokCreatorInfo(formData: FormData): Promise<void
 
   if (!row.access_token_enc) {
     await storeCreatorInfoError(id, 'This TikTok account is not connected yet.');
-    revalidatePath(`/queue/${id}`);
+    revalidatePath(`/gallery/${id}`);
     return;
   }
 
@@ -96,7 +96,7 @@ export async function refreshTikTokCreatorInfo(formData: FormData): Promise<void
     await storeCreatorInfoError(id, `TikTok could not be reached: ${(err as Error).message}`);
   }
 
-  revalidatePath(`/queue/${id}`);
+  revalidatePath(`/gallery/${id}`);
 }
 
 async function storeCreatorInfoError(id: string, message: string): Promise<void> {
@@ -171,5 +171,5 @@ export async function saveTikTokOptions(formData: FormData): Promise<void> {
     ],
   );
 
-  revalidatePath(`/queue/${id}`);
+  revalidatePath(`/gallery/${id}`);
 }

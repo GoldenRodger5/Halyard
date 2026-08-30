@@ -32,7 +32,7 @@ interface VoiceRow {
 }
 
 const fail = (message: string): never =>
-  redirect(`/setup-kit?error=${encodeURIComponent(message)}`);
+  redirect(`/master/setup-kit?error=${encodeURIComponent(message)}`);
 
 /**
  * Generate the profile copy for one platform, or for all of them.
@@ -166,7 +166,7 @@ export async function generateKit(formData: FormData): Promise<void> {
     }
   }
 
-  revalidatePath('/setup-kit');
+  revalidatePath('/master/setup-kit');
   if (failures.length > 0) {
     fail(
       `${platforms.length - failures.length} of ${platforms.length} generated. Failed: ${failures.join('; ')}`,
@@ -192,7 +192,7 @@ export async function chooseVariant(formData: FormData): Promise<void> {
     [productId, platform, persona, index],
   );
 
-  revalidatePath('/setup-kit');
+  revalidatePath('/master/setup-kit');
 }
 
 /**
@@ -227,6 +227,6 @@ export async function checkHandles(formData: FormData): Promise<void> {
     );
   }
 
-  revalidatePath('/setup-kit');
+  revalidatePath('/master/setup-kit');
 }
 

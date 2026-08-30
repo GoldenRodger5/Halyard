@@ -9,10 +9,10 @@ import Link from 'next/link';
  * screens, most of which would be empty for most products.
  */
 const TABS = [
-  { href: '/brain', label: 'Overview' },
-  { href: '/brain/features', label: 'Features' },
-  { href: '/brain/evidence', label: 'Evidence' },
-  { href: '/brain/contradictions', label: 'Contradictions' },
+  { href: '/master/product', label: 'Overview' },
+  { href: '/master/product/features', label: 'Features' },
+  { href: '/master/product/evidence', label: 'Evidence' },
+  { href: '/master/product/contradictions', label: 'Contradictions' },
 ];
 
 export function BrainNav({ current }: { current: string }) {

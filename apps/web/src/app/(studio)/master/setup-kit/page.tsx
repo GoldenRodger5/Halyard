@@ -88,7 +88,7 @@ export default async function SetupKitPage({
           body="The kit is generated from a product's brief and brand tokens. Create one first."
           action={
             <a
-              href="/products/new"
+              href="/master/product/new"
               className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-dark"
             >
               Add a product

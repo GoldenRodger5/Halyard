@@ -106,7 +106,7 @@ export async function submitTake(formData: FormData): Promise<void> {
     );
   }
 
-  revalidatePath('/take');
+  revalidatePath('/wires/take');
 }
 
 /** Approve a drafted take into the queue, where it goes through the same gates. */
@@ -148,12 +148,12 @@ export async function approveTake(formData: FormData): Promise<void> {
     item[0]!.id,
   ]);
 
-  revalidatePath('/take');
-  revalidatePath('/queue');
+  revalidatePath('/wires/take');
+  revalidatePath('/gallery');
 }
 
 export async function discardTake(formData: FormData): Promise<void> {
   await requireOperator();
   await query(`update takes set status = 'discarded' where id = $1`, [String(formData.get('takeId'))]);
-  revalidatePath('/take');
+  revalidatePath('/wires/take');
 }

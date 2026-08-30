@@ -77,7 +77,7 @@ export async function uploadAssets(formData: FormData): Promise<void> {
     );
   }
 
-  revalidatePath('/assets');
+  revalidatePath('/gallery/stock/media');
 }
 
 /** PNG dimensions live in the IHDR chunk, at a fixed offset. */
@@ -111,7 +111,7 @@ export async function retagAssets(formData: FormData): Promise<void> {
     [ids, add, remove],
   );
 
-  revalidatePath('/assets');
+  revalidatePath('/gallery/stock/media');
 }
 
 /**
@@ -132,7 +132,7 @@ export async function archiveAssets(formData: FormData): Promise<void> {
       where id = any($1::uuid[]) and archived_at is null`,
     [ids],
   );
-  revalidatePath('/assets');
+  revalidatePath('/gallery/stock/media');
 }
 
 export async function restoreAssets(formData: FormData): Promise<void> {
@@ -143,7 +143,7 @@ export async function restoreAssets(formData: FormData): Promise<void> {
     `update assets set archived_at = null, archived_reason = null where id = any($1::uuid[])`,
     [ids],
   );
-  revalidatePath('/assets');
+  revalidatePath('/gallery/stock/media');
 }
 
 /** Queue a fresh capture of a flow. The worker verifies before it records. */
@@ -174,5 +174,5 @@ export async function recaptureFlow(formData: FormData): Promise<void> {
     [{ flow: rootId, productId }],
   );
 
-  revalidatePath('/assets');
+  revalidatePath('/gallery/stock/media');
 }

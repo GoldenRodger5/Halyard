@@ -77,7 +77,7 @@ export async function approveItem(formData: FormData): Promise<void> {
         id,
         `TikTok settings are incomplete: ${problems.map((p) => p.message).join(' ')}`.slice(0, 500),
       ]);
-      revalidatePath(`/queue/${id}`);
+      revalidatePath(`/gallery/${id}`);
       return;
     }
   }
@@ -99,7 +99,7 @@ export async function approveItem(formData: FormData): Promise<void> {
     );
   }
 
-  revalidatePath('/queue');
+  revalidatePath('/gallery');
   revalidatePath('/');
 }
 
@@ -132,7 +132,7 @@ export async function rejectItem(formData: FormData): Promise<void> {
     }
   }
 
-  revalidatePath('/queue');
+  revalidatePath('/gallery');
 }
 
 /**
@@ -261,8 +261,8 @@ export async function editItem(formData: FormData): Promise<void> {
     ...(withdrawsApproval ? { withdrewApproval: true, previousStatus: item.status } : {}),
   });
 
-  revalidatePath('/queue');
-  revalidatePath(`/queue/${id}`);
+  revalidatePath('/gallery');
+  revalidatePath(`/gallery/${id}`);
 }
 
 /** Regenerate with a note. Blind retry is a wasted call (v1 §8). */
@@ -307,8 +307,8 @@ export async function regenerateItem(formData: FormData): Promise<void> {
   );
   await audit('regenerate', id, { note });
 
-  revalidatePath(`/queue/${id}`);
-  revalidatePath('/queue');
+  revalidatePath(`/gallery/${id}`);
+  revalidatePath('/gallery');
 }
 
 /** Reschedule from the queue card dropdown. */
@@ -354,8 +354,8 @@ export async function rescheduleItem(formData: FormData): Promise<void> {
 
   await query('update content_items set scheduled_at = $2 where id = $1', [id, target]);
   await audit('reschedule', id, { to: target.toISOString() });
-  revalidatePath('/queue');
-  revalidatePath('/calendar');
+  revalidatePath('/gallery');
+  revalidatePath('/rundown');
 }
 
 /** Retry a failed render (build pack §3). */
@@ -376,7 +376,7 @@ export async function retryRender(formData: FormData): Promise<void> {
   }
   await query(`update content_items set status = 'pending_approval' where id = $1`, [id]);
   await audit('retry_render', id, { renders: renders.length });
-  revalidatePath('/queue');
+  revalidatePath('/gallery');
 }
 
 /**
@@ -416,8 +416,8 @@ export async function publishNow(formData: FormData): Promise<void> {
   );
   await audit('publish_now', id, { previousStatus: item.status });
 
-  revalidatePath('/queue');
-  revalidatePath(`/queue/${id}`);
+  revalidatePath('/gallery');
+  revalidatePath(`/gallery/${id}`);
 }
 
 /**
@@ -463,8 +463,8 @@ export async function markManuallyPublished(formData: FormData): Promise<void> {
   );
   await audit('manual_publish_recorded', id, { url, platform: item.platform });
 
-  revalidatePath('/queue');
-  revalidatePath(`/queue/${id}`);
+  revalidatePath('/gallery');
+  revalidatePath(`/gallery/${id}`);
 }
 
 /**
@@ -533,8 +533,8 @@ export async function adjustItem(formData: FormData): Promise<void> {
   );
 
   await audit('adjust', id, { adjustment: adjustment.id, component: adjustment.component, note });
-  revalidatePath(`/queue/${id}`);
-  revalidatePath('/queue');
+  revalidatePath(`/gallery/${id}`);
+  revalidatePath('/gallery');
 }
 
 /**
@@ -550,5 +550,5 @@ export async function markOverflowPosted(formData: FormData): Promise<void> {
   const id = String(formData.get('id'));
   await query(`update content_items set overflow_posted_at = now() where id = $1`, [id]);
   await audit('overflow_posted', id, {});
-  revalidatePath(`/queue/${id}`);
+  revalidatePath(`/gallery/${id}`);
 }

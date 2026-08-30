@@ -65,7 +65,7 @@ export async function draftReply(formData: FormData): Promise<void> {
     ]);
   }
 
-  revalidatePath('/inbox');
+  revalidatePath('/wires');
 }
 
 /**
@@ -121,7 +121,7 @@ export async function markReplied(formData: FormData): Promise<void> {
     [id, { operator: operator.email, latencySeconds }],
   );
 
-  revalidatePath('/inbox');
+  revalidatePath('/wires');
 }
 
 export async function ignoreComment(formData: FormData): Promise<void> {
@@ -129,7 +129,7 @@ export async function ignoreComment(formData: FormData): Promise<void> {
   await query(`update comments set reply_status = 'ignored' where id = $1`, [
     String(formData.get('id')),
   ]);
-  revalidatePath('/inbox');
+  revalidatePath('/wires');
 }
 
 /** Support questions go to a human channel, not to a social reply. */
@@ -145,5 +145,5 @@ export async function routeToSupport(formData: FormData): Promise<void> {
      values ('digest', 'info', 'Support question routed', 'A comment was routed to hello@ rather than answered in public.', 'comment', $1)`,
     [id],
   );
-  revalidatePath('/inbox');
+  revalidatePath('/wires');
 }

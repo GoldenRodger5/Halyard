@@ -19,7 +19,7 @@ export async function createCampaign(formData: FormData): Promise<void> {
   const ceiling = Math.max(0.15, Math.min(1, Number(formData.get('ceiling') ?? 0.6)));
 
   if (!name || !startsAt) {
-    redirect('/campaigns?error=' + encodeURIComponent('A campaign needs a name and a start date.'));
+    redirect('/rundown/campaigns?error=' + encodeURIComponent('A campaign needs a name and a start date.'));
   }
 
   // A date input carries a bare calendar day. `new Date('2026-09-18')` is UTC
@@ -32,7 +32,7 @@ export async function createCampaign(formData: FormData): Promise<void> {
   const timeZone = product?.operator_timezone ?? 'UTC';
   const start = fromDatetimeLocalValue(`${startsAt}T09:00`, timeZone);
   if (!start) {
-    redirect('/campaigns?error=' + encodeURIComponent('That start date could not be read.'));
+    redirect('/rundown/campaigns?error=' + encodeURIComponent('That start date could not be read.'));
   }
   const end = new Date(start.getTime() + days * 86_400_000);
 
@@ -44,7 +44,7 @@ export async function createCampaign(formData: FormData): Promise<void> {
     [productId, name, kind, brief || null, goal || null, start, end, ceiling],
   );
 
-  redirect(`/campaigns/${rows[0]!.id}`);
+  redirect(`/rundown/campaigns/${rows[0]!.id}`);
 }
 
 /**
@@ -126,7 +126,7 @@ export async function planCampaignSlots(formData: FormData): Promise<void> {
   }
 
   await query(`update campaigns set status = 'staged' where id = $1`, [id]);
-  revalidatePath(`/campaigns/${id}`);
+  revalidatePath(`/rundown/campaigns/${id}`);
 }
 
 /** Move one slot, before anything is generated into it. */
@@ -144,7 +144,7 @@ export async function moveSlot(formData: FormData): Promise<void> {
   if (!target) return;
 
   await query(`update content_items set scheduled_at = $2 where id = $1`, [itemId, target]);
-  revalidatePath(`/campaigns/${campaignId}`);
+  revalidatePath(`/rundown/campaigns/${campaignId}`);
 }
 
 export async function removeSlot(formData: FormData): Promise<void> {
@@ -157,7 +157,7 @@ export async function removeSlot(formData: FormData): Promise<void> {
   await query(`delete from content_items where id = $1 and status = 'draft' and body = ''`, [
     itemId,
   ]);
-  revalidatePath(`/campaigns/${campaignId}`);
+  revalidatePath(`/rundown/campaigns/${campaignId}`);
 }
 
 /** Hand the staged slots to the generator. */
@@ -202,7 +202,7 @@ export async function generateCampaign(formData: FormData): Promise<void> {
     [id, { slots: slots.length }],
   );
 
-  revalidatePath(`/campaigns/${id}`);
+  revalidatePath(`/rundown/campaigns/${id}`);
 }
 
 /**
@@ -230,12 +230,12 @@ export async function pauseCampaign(formData: FormData): Promise<void> {
     [id, { heldBack: held.length }],
   );
 
-  revalidatePath(`/campaigns/${id}`);
+  revalidatePath(`/rundown/campaigns/${id}`);
 }
 
 export async function completeCampaign(formData: FormData): Promise<void> {
   await requireOperator();
   const id = String(formData.get('id'));
   await query(`update campaigns set status = 'complete' where id = $1`, [id]);
-  revalidatePath(`/campaigns/${id}`);
+  revalidatePath(`/rundown/campaigns/${id}`);
 }

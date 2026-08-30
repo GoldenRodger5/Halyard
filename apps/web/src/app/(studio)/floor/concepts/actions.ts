@@ -42,7 +42,7 @@ export async function requestConcepts(formData: FormData): Promise<void> {
     ],
   );
 
-  revalidatePath('/studio');
+  revalidatePath('/floor/concepts');
 }
 
 /**
@@ -96,7 +96,7 @@ export async function selectConcept(formData: FormData): Promise<void> {
     ],
   );
 
-  revalidatePath('/studio');
+  revalidatePath('/floor/concepts');
 }
 
 /**
@@ -125,7 +125,7 @@ export async function pinDirection(formData: FormData): Promise<void> {
     [conceptId, JSON.stringify({ pins })],
   );
 
-  revalidatePath('/studio');
+  revalidatePath('/floor/concepts');
 }
 
 /**
@@ -148,5 +148,5 @@ export async function rejectBatch(formData: FormData): Promise<void> {
     [batchId, reason],
   );
 
-  revalidatePath('/studio');
+  revalidatePath('/floor/concepts');
 }

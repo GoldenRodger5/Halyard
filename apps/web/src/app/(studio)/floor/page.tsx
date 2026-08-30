@@ -21,13 +21,16 @@ import { Label, Sheet } from '@halyard/ui/studio';
 import { BriefRoom } from '@/components/studio/BriefRoom';
 import { makePiece } from '@/app/(studio)/floor/makeActions';
 import { requireOperator } from '@/lib/auth';
+import { getCurrentProduct } from '@/lib/queries';
 import { readRundown } from '@/lib/studio/live';
+import { previewBrief } from './actions';
 import { query } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
 export default async function FloorBrief() {
   await requireOperator();
+  const product = await getCurrentProduct();
 
   /*
    * Only platforms with an account. A chip for a platform you cannot post to is
@@ -78,6 +81,20 @@ export default async function FloorBrief() {
   const shapes = POST_FORMATS.map((id) => ({ id, name: POST_FORMAT_CATALOG[id].name }));
   const rundown = await readRundown();
 
+  /*
+   * §391. The room is alive on first paint.
+   *
+   * The preview is a server action the panel fires from an effect, so on a cold
+   * load every desk read "waiting for a brief" for over a second — the room
+   * looked broken at exactly the moment somebody is deciding whether to trust
+   * it. The default selection is known here, so the first answer is computed
+   * here and the effect only ever *replaces* it.
+   */
+  const first = carriage.find((c) => c.byPlatform[platforms[0]!]?.ok);
+  const initialPreview = first
+    ? await previewBrief({ media: first.media, channel: first.channel })
+    : null;
+
   /**
    * Sending the brief.
    *
@@ -102,6 +119,8 @@ export default async function FloorBrief() {
         carriage={carriage}
         shapes={shapes}
         rundown={rundown}
+        productId={product?.id ?? 'recipefix'}
+        initialPreview={initialPreview}
         action={send}
       />
       <p className="text-xs leading-relaxed text-quiet">

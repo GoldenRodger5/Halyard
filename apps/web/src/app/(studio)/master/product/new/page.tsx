@@ -64,7 +64,7 @@ export default async function NewProductPage({
         title="Add a product"
         subtitle="Five steps. Each one saves as you go, so stopping halfway leaves a real product with gaps rather than nothing."
         actions={
-          <Link href="/products" className="text-sm text-primary underline">
+          <Link href="/master/product" className="text-sm text-primary underline">
             All products
           </Link>
         }
@@ -418,7 +418,7 @@ export default async function NewProductPage({
         {step > 1 && !product ? (
           <p className="text-sm text-muted">
             That product no longer exists.{' '}
-            <Link href="/products/new" className="text-primary underline">
+            <Link href="/master/product/new" className="text-primary underline">
               Start again
             </Link>
             .

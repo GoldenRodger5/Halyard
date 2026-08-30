@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
   });
 
   if (!qc.passed) {
-    const target = new URL('/compose', request.nextUrl.origin);
+    const target = new URL('/floor/chat', request.nextUrl.origin);
     target.searchParams.set(
       'error',
       `Not queued: ${qc.gates.find((g) => g.status === 'failed')?.summary ?? 'QC failed'}`,
@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
     [rows[0]!.id],
   );
 
-  return NextResponse.redirect(new URL(`/queue/${rows[0]!.id}`, request.nextUrl.origin), {
+  return NextResponse.redirect(new URL(`/gallery/${rows[0]!.id}`, request.nextUrl.origin), {
     status: 303,
   });
 }

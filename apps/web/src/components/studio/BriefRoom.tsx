@@ -33,15 +33,20 @@ export function BriefRoom({
   carriage,
   shapes,
   rundown,
+  productId,
+  initialPreview,
   action,
 }: {
   platforms: string[];
   carriage: CarriageEntry[];
   shapes: BriefShape[];
   rundown: RundownLine[];
+  productId: string;
+  /** Computed on the server for the default selection, so the room opens lit. */
+  initialPreview: BriefPreview | null;
   action: (formData: FormData) => void;
 }) {
-  const [preview, setPreview] = useState<BriefPreview | null>(null);
+  const [preview, setPreview] = useState<BriefPreview | null>(initialPreview);
   /* Stable, so the panel's effect does not re-run on every render. */
   const onPreview = useCallback((p: BriefPreview | null) => setPreview(p), []);
 
@@ -128,6 +133,7 @@ export function BriefRoom({
           platforms={platforms}
           carriage={carriage}
           shapes={shapes}
+          productId={productId}
           onPreview={onPreview}
           action={action}
         />

@@ -37,7 +37,7 @@ export async function turnIntoPost(formData: FormData): Promise<void> {
   );
   if (!account) {
     redirect(
-      `/social-proof?error=${encodeURIComponent(`No connected ${platform} account to post this from.`)}`,
+      `/gallery/stock/proof?error=${encodeURIComponent(`No connected ${platform} account to post this from.`)}`,
     );
   }
 
@@ -91,8 +91,8 @@ export async function turnIntoPost(formData: FormData): Promise<void> {
     [id, rows[0]!.id],
   );
 
-  revalidatePath('/social-proof');
-  redirect(`/queue/${rows[0]!.id}`);
+  revalidatePath('/gallery/stock/proof');
+  redirect(`/gallery/${rows[0]!.id}`);
 }
 
 export async function setConsent(formData: FormData): Promise<void> {
@@ -102,7 +102,7 @@ export async function setConsent(formData: FormData): Promise<void> {
   if (!['not_asked', 'granted', 'declined', 'public_by_default'].includes(state)) return;
 
   await query('update social_proof set consent_state = $2 where id = $1', [id, state]);
-  revalidatePath('/social-proof');
+  revalidatePath('/gallery/stock/proof');
 }
 
 export async function declineProof(formData: FormData): Promise<void> {
@@ -110,5 +110,5 @@ export async function declineProof(formData: FormData): Promise<void> {
   await query(`update social_proof set status = 'declined' where id = $1`, [
     String(formData.get('id')),
   ]);
-  revalidatePath('/social-proof');
+  revalidatePath('/gallery/stock/proof');
 }

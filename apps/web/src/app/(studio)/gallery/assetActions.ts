@@ -90,8 +90,8 @@ export async function attachAsset(formData: FormData): Promise<void> {
 
   await reexamineMedia(contentItemId);
 
-  revalidatePath(`/queue/${contentItemId}`);
-  revalidatePath('/queue');
+  revalidatePath(`/gallery/${contentItemId}`);
+  revalidatePath('/gallery');
 }
 
 export async function detachAsset(formData: FormData): Promise<void> {
@@ -120,6 +120,6 @@ export async function detachAsset(formData: FormData): Promise<void> {
 
   await reexamineMedia(contentItemId);
 
-  revalidatePath(`/queue/${contentItemId}`);
-  revalidatePath('/queue');
+  revalidatePath(`/gallery/${contentItemId}`);
+  revalidatePath('/gallery');
 }

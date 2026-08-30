@@ -25,7 +25,7 @@ export default async function OnboardingPage() {
           <p className="mt-2 text-sm text-muted">
             Add a product first — everything here is scoped to one.
           </p>
-          <Link href="/products/new" className="mt-3 inline-block text-sm text-primary underline">
+          <Link href="/master/product/new" className="mt-3 inline-block text-sm text-primary underline">
             Add a product
           </Link>
         </Card>
@@ -85,7 +85,7 @@ export default async function OnboardingPage() {
               </span>
             </p>
           ))}
-          <Link href="/brain" className="inline-block text-sm text-primary underline">
+          <Link href="/master/product" className="inline-block text-sm text-primary underline">
             Review what was found
           </Link>
         </div>
@@ -134,7 +134,7 @@ export default async function OnboardingPage() {
       done: onboarding?.step_templates_done ?? false,
       body: 'Render every image and video template against a real adaptation. Templates you reject are disabled rather than deleted.',
       action: (
-        <Link href="/templates" className="text-sm text-primary underline">
+        <Link href="/master/templates" className="text-sm text-primary underline">
           Review templates
         </Link>
       ),
@@ -145,7 +145,7 @@ export default async function OnboardingPage() {
       done: onboarding?.step_accounts_done ?? false,
       body: 'OAuth all six, then submit the reviews the same day. Reviews are wall-clock time you cannot compress.',
       action: (
-        <Link href="/accounts" className="text-sm text-primary underline">
+        <Link href="/master" className="text-sm text-primary underline">
           Connect
         </Link>
       ),

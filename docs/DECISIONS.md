@@ -9462,3 +9462,50 @@ page is a third party being told who reaches it.
 **Rejected.** A server action. The PKCE verifier is generated in the browser and
 has to still be there on return, which is why the whole sign-in form is the one
 client component in the app.
+
+## 83 · The re-skin left thirty-four links pointing at deleted routes
+
+**Chosen.** Every routing target remapped, and `deadLinks.test.ts` to keep them
+pointing somewhere.
+
+**Why.** §390 moved twenty-two screens between route groups. Their bodies came
+with them and so did every link inside those bodies, all still written against
+the paths they had in the old console. The moment `(dashboard)` was deleted,
+thirty-four `href`, `redirect()` and `revalidatePath()` targets were dead —
+including the OAuth callback's redirect to `/accounts/confirm/${pendingId}`,
+which is the last step of connecting an account.
+
+**Connecting any account was broken and nothing failed**, because a route is a
+string until somebody clicks it. `capability.test.ts` proved every *destination*
+still had a page; it could not see that the links between them had rotted. Two
+directions, two tests: one asks whether every page is reachable, the other
+whether every link resolves.
+
+Found by walking the app after the move rather than by a test, which is the
+argument for having written the test.
+
+## 84 · A control that does nothing looks exactly like one that works
+
+**Chosen.** The Brief sends `postFormat`; `formFields.test.ts` asserts every
+field a form submits is read by something.
+
+**Why.** The Brief's shape chips — quiz, history, tips — posted
+`<input name="format">` and `makePiece` reads `postFormat`. `FormData` has no
+schema and no compiler behind it, so the mismatch produced no error anywhere:
+every shape an operator chose was discarded on the way to the job and the run
+picked its own. The room *looked* like it was working, which is worse than an
+error.
+
+It was found by driving the room in a browser and reading the payload back out
+of the database — the only way it could be found, because every layer in
+between was happy.
+
+This is `payloadCoverage.test.ts` at the other end of the same pipe: that one
+catches a job payload key nobody reads, this one catches a form field nobody
+reads. Decision 71's method, third instance.
+
+**On verifying a guard.** The first three versions of this test passed while the
+bug was present — once because the file declaring the field also mentioned
+`FormData` and so vouched for its own name. A test that cannot be shown to fail
+on the defect it was written for is a false assurance, which is the exact thing
+this codebase keeps finding. It is asserted against the real mutation now.

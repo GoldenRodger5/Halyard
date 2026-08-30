@@ -60,7 +60,7 @@ export async function setDestination(formData: FormData): Promise<void> {
     [id, { type: resolved.type, url: resolved.url }],
   );
 
-  revalidatePath(`/queue/${id}`);
+  revalidatePath(`/gallery/${id}`);
 }
 
 /** Recompute from the artifact, discarding an override. */
@@ -98,7 +98,7 @@ export async function resetDestination(formData: FormData): Promise<void> {
     ],
   );
 
-  revalidatePath(`/queue/${id}`);
+  revalidatePath(`/gallery/${id}`);
 }
 
 /*

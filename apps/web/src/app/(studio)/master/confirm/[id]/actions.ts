@@ -48,7 +48,7 @@ export async function confirmConnection(formData: FormData): Promise<void> {
 
   if (!pending) {
     redirect(
-      '/accounts?error=' +
+      '/master?error=' +
         encodeURIComponent(
           'That connection expired before it was confirmed. Tokens are held for thirty minutes and no longer. Connect again.',
         ),
@@ -170,8 +170,8 @@ export async function confirmConnection(formData: FormData): Promise<void> {
     ],
   );
 
-  revalidatePath('/accounts');
-  redirect('/accounts?connected=' + encodeURIComponent(handle));
+  revalidatePath('/master');
+  redirect('/master?connected=' + encodeURIComponent(handle));
 }
 
 /** Throw the pending token away. The account is left exactly as it was. */
@@ -179,6 +179,6 @@ export async function discardConnection(formData: FormData): Promise<void> {
   await requireOperator();
   const pendingId = String(formData.get('pendingId'));
   await query(`delete from pending_connections where id = $1`, [pendingId]);
-  revalidatePath('/accounts');
-  redirect('/accounts?discarded=1');
+  revalidatePath('/master');
+  redirect('/master?discarded=1');
 }

@@ -150,7 +150,7 @@ export async function generateLaunchBatch(formData: FormData): Promise<void> {
 
   if (placed.length === 0) {
     redirect(
-      '/launch?error=' +
+      '/rundown/launch?error=' +
         encodeURIComponent(
           plan.warnings[0] ??
             'Nothing could be scheduled. Connect an account on /accounts first.',
@@ -225,9 +225,9 @@ export async function generateLaunchBatch(formData: FormData): Promise<void> {
     [productId, { days, staged: staged.length, warnings: plan.warnings }],
   );
 
-  revalidatePath('/launch');
-  revalidatePath('/calendar');
-  revalidatePath('/queue');
+  revalidatePath('/rundown/launch');
+  revalidatePath('/rundown');
+  revalidatePath('/gallery');
 }
 
 /** Throw away a staged batch nobody has started reviewing. */
@@ -242,6 +242,6 @@ export async function discardLaunchBatch(formData: FormData): Promise<void> {
     [productId, LAUNCH_SOURCE],
   );
 
-  revalidatePath('/launch');
-  revalidatePath('/calendar');
+  revalidatePath('/rundown/launch');
+  revalidatePath('/rundown');
 }

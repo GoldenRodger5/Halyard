@@ -240,7 +240,7 @@ export default async function AudioLibraryPage() {
           title="No sound at all"
           body="Halyard will narrate over silence, which is a normal short-form style and not a broken video."
           action={
-            <Link href="/assets" className="text-sm text-primary underline">
+            <Link href="/gallery/stock/media" className="text-sm text-primary underline">
               Other assets
             </Link>
           }

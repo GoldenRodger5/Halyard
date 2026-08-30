@@ -60,7 +60,7 @@ export async function AssetPicker({
     return (
       <p className="py-6 text-center text-sm text-muted">
         No assets for this product yet. Capture a flow or upload photographs on{' '}
-        <a href="/assets" className="text-primary underline">
+        <a href="/gallery/stock/media" className="text-primary underline">
           Assets
         </a>
         , and they become pickable here.
