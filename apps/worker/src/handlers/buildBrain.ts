@@ -271,6 +271,22 @@ export async function buildBrainHandler(
    * words in its mouth.
    */
   if (writes.length > 0) {
+    /**
+     * §332. An inference cites the evidence its premises cite.
+     *
+     * The first run was refused by the database: *"a product fact must cite at
+     * least one evidence row"*. That invariant is right and the inference had
+     * none, because it reasons over *facts* rather than over pages.
+     *
+     * Citing nothing was the wrong answer and relaxing the rule would have been
+     * worse — an unciteable fact is exactly what the Brain exists to prevent.
+     * An inference drawn from facts A and B is grounded, transitively, in the
+     * pages A and B came from, so it cites their union. The chain page → fact →
+     * inference stays walkable, which is the only reason to trust the last
+     * link at all.
+     */
+    const premiseEvidence = [...new Set(writes.flatMap((w) => w.evidenceIds))];
+
     const inferred = await inferProductFacts(
       {
         productName: product.name,
@@ -284,7 +300,7 @@ export async function buildBrainHandler(
         `insert into product_facts
            (product_id, category, key, value, detail, status, confidence, evidence_ids,
             agent_id, agent_version, prompt_version, last_verified_at, updated_at)
-         values ($1,$2,$3,$4,$5,'inferred',$6,'{}',$7,'1.0',$8, now(), now())
+         values ($1,$2,$3,$4,$5,'inferred',$6,$9,$7,'1.0',$8, now(), now())
          on conflict (product_id, category, key, value) where superseded_by is null
          do update set detail = excluded.detail, updated_at = now()`,
         [
@@ -301,6 +317,7 @@ export async function buildBrainHandler(
           0.35,
           'product-inference',
           'product_inference.v1',
+          premiseEvidence,
         ],
       );
     }
