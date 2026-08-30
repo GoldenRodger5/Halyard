@@ -158,6 +158,13 @@ export async function writeToFormat(
   let facts: { claim: string; sourceUrl: string }[] = [];
   const sources = newSourceCache();
   const startedAt = Date.now();
+  /*
+    §367. Research is its own stage with its own agent, and it happens inside
+    the writer. Scoping here rather than at the call site keeps the attribution
+    true to what actually ran: every citation check belongs to the researcher,
+    not to the copywriter that asked for it.
+  */
+  const researchCtx = ctx.as('research');
   if (requiresCitation(format)) {
     const found = await research(
       {
@@ -168,11 +175,11 @@ export async function writeToFormat(
       llm,
       fetchImpl,
     ).catch((error: Error) => {
-      ctx.log('research failed, writer will cite from memory', { error: error.message });
+      researchCtx.log('research failed, writer will cite from memory', { error: error.message });
       return { facts: [], rejected: [], costUsd: 0 };
     });
 
-    ctx.log('research', {
+    researchCtx.log('research', {
       format: format.id,
       kept: found.facts.length,
       rejected: found.rejected.map((r) => `${r.url} — ${r.because}`),
@@ -273,7 +280,7 @@ export async function writeToFormat(
         const fromResearch = facts.find((f) => slot.citation?.includes(f.sourceUrl));
         if (fromResearch) {
           if (matchesResearchedFact(slot.text, fromResearch.claim)) {
-            ctx.log('citation checked', {
+            researchCtx.log('citation checked', {
               url: fromResearch.sourceUrl,
               verdict: 'supported',
               because: 'verified during research, and the slot still says that fact',
@@ -290,7 +297,7 @@ export async function writeToFormat(
         }
 
         const verdict = await checkCitation(
-          ctx,
+          researchCtx,
           { claim: slot.text, citation: slot.citation },
           fetchImpl,
           sources,

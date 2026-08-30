@@ -9,6 +9,7 @@ export * from './creative/mediaDirector.js';
 export * from './creative/annotationDirector.js';
 export * from './creative/screenplay.js';
 export * from './creative/productionPlan.js';
+export * from './creative/stageAgents.js';
 export * from './generation/screenwriter.js';
 export * from './generation/researcher.js';
 export * from './generation/timeScript.js';

@@ -3,9 +3,20 @@
 /**
  * §356. The run, as it happens.
  *
- * Two lanes, because they answer different questions. **What happened** is the
- * event feed — the decisions, in the words the worker wrote them. **Who did
- * it** is the agent list, with what each cost.
+ * §367. Grouped into the lanes that produced it. The feed used to be flat and
+ * chronological — *research*, *citation checked*, *photographic subject*,
+ * *format filled* — because a log line carried no author, so an operator could
+ * read what happened and never see **who**, which is the thing they asked to
+ * watch.
+ *
+ * Now every event carries the production stage it came from, and each stage
+ * knows its agent and its team. A lane keeps its own order and the lanes keep
+ * theirs, ordered by when each first spoke rather than by the canonical stage
+ * list — a production skips stages, and a skipped stage rendered in place would
+ * read as one that ran and said nothing.
+ *
+ * The agent list stays, because it answers a different question: not who was
+ * responsible for a decision, but which models actually ran and what they cost.
  *
  * Polls while the run is live and stops when it is not. A page that keeps
  * polling a finished job is a page that costs the database something forever,
@@ -103,24 +114,57 @@ export function RunClient({ initial }: { initial: RunView }) {
       ) : null}
 
       <section>
-        <h2 className="mb-3 text-xs uppercase tracking-[0.1em] text-muted">What happened</h2>
+        <h2 className="mb-3 text-xs uppercase tracking-[0.1em] text-muted">The team, working</h2>
         {run.events.length === 0 ? (
           <p className="text-sm text-muted">
             {run.live ? 'Waiting for the worker to pick it up…' : 'This run recorded nothing.'}
           </p>
         ) : (
-          <ol className="space-y-3">
-            {run.events.map((event) => {
-              const decision = decisionOf(event.detail);
-              const extra = summarise(event.detail);
-              return (
-                <li key={event.id} className="border-l-2 border-line pl-3">
-                  <p className="text-sm">{event.message}</p>
-                  {decision ? <p className="mt-0.5 text-xs text-muted">{decision}</p> : null}
-                  {extra ? <p className="mt-0.5 text-xs text-muted/70">{extra}</p> : null}
-                </li>
-              );
-            })}
+          <ol className="space-y-6">
+            {run.stages.map((lane) => (
+              <li key={lane.stage}>
+                <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                  <span className="text-sm font-medium text-ink">{lane.owner}</span>
+                  <span className="text-[11px] uppercase tracking-[0.08em] text-muted">
+                    {lane.team}
+                  </span>
+                  {lane.spanMs !== null ? (
+                    <span className="text-[11px] text-muted">
+                      {(lane.spanMs / 1000).toFixed(1)}s
+                    </span>
+                  ) : null}
+                  {/*
+                    The handoff, named. A stage that is genuinely a
+                    collaboration says so rather than flattening to one author,
+                    which would be a different lie from the one being fixed.
+                  */}
+                  {lane.alongside.length > 0 ? (
+                    <span className="text-[11px] text-muted">
+                      with {lane.alongside.join(', ')}
+                    </span>
+                  ) : null}
+                </div>
+                <p className="mb-2 text-xs text-muted">{lane.doing}</p>
+
+                <ol className="space-y-2 border-l-2 border-line pl-3">
+                  {lane.events.map((event) => {
+                    const decision = decisionOf(event.detail);
+                    const extra = summarise(event.detail);
+                    return (
+                      <li key={event.id}>
+                        <p className="text-sm">{event.message}</p>
+                        {decision ? (
+                          <p className="mt-0.5 text-xs text-muted">{decision}</p>
+                        ) : null}
+                        {extra ? (
+                          <p className="mt-0.5 text-xs text-muted/70">{extra}</p>
+                        ) : null}
+                      </li>
+                    );
+                  })}
+                </ol>
+              </li>
+            ))}
           </ol>
         )}
         <div ref={bottom} />

@@ -65,6 +65,28 @@ export interface HandlerContext {
   log: (message: string, detail?: Record<string, unknown>) => void;
   /** Enqueue follow-on work from inside a handler. */
   enqueue: (kind: JobKind, payload: Record<string, unknown>, options?: EnqueueOptions) => Promise<void>;
+  /**
+   * §367. The same context, with every log line attributed to a stage.
+   *
+   * `job_events` was a flat chronological feed because a log line carries no
+   * author, so the run view could not group anything into lanes and the
+   * operator could not watch the agents work on their teams.
+   *
+   * The obvious repair — pass an agent id at each of two hundred `ctx.log`
+   * calls — is a rule that has to be remembered two hundred times, which is
+   * the shape of every declared-and-never-executed bug in this codebase. So
+   * the attribution is structural: a production is already a list of stages,
+   * each stage is already the work of a known agent, and wrapping a stage
+   * attributes everything logged inside it, including lines written by code
+   * three modules down that has never heard of a stage.
+   *
+   *   const research = ctx.as('research');
+   *   research.log('citation checked', { url });   // lands in the researcher's lane
+   *
+   * Cheap enough to call per stage: it closes over the same pool and the same
+   * enqueue, and only the logger differs.
+   */
+  as: (stage: string) => HandlerContext;
 }
 
 export interface EnqueueOptions {
@@ -150,6 +172,40 @@ export class Poller {
     );
   }
 
+  /**
+   * The context a handler runs with, optionally scoped to a production stage.
+   *
+   * §356. The logger writes to stdout *and* `job_events`, so an operator can
+   * watch a run rather than wait for its output. Bound per job because that is
+   * the only place the id is known.
+   *
+   * §367. `stage` travels with the line. It is recursive by construction —
+   * `ctx.as('write')` returns a context whose own `as` re-scopes again — so a
+   * nested stage cannot inherit its parent's attribution by accident.
+   */
+  private contextFor(job: Job, stage: string | null = null): HandlerContext {
+    const context: HandlerContext = {
+      pool: this.pool,
+      workerId: this.workerId,
+      log: (message, detail) => {
+        this.log(message, { ...detail, jobId: job.id, ...(stage ? { stage } : {}) });
+        void this.pool
+          .query(
+            `insert into job_events (job_id, message, detail, stage) values ($1, $2, $3, $4)`,
+            [job.id, message, detail ? JSON.stringify(detail) : null, stage],
+          )
+          /*
+           * Swallowed. A log line is bookkeeping and a job must never fail
+           * because its progress could not be recorded.
+           */
+          .catch(() => undefined);
+      },
+      enqueue: (kind, payload, options) => this.enqueue(kind, payload, options),
+      as: (next: string) => this.contextFor(job, next),
+    };
+    return context;
+  }
+
   /** Claim and run exactly one job. Returns false when the queue is empty. */
   async tick(): Promise<boolean> {
     const { rows } = await this.pool.query<Job>('select * from claim_next_job($1, $2)', [
@@ -206,29 +262,7 @@ export class Poller {
     const startedAt = Date.now();
     try {
       await withTimeout(
-        handler(job, {
-          pool: this.pool,
-          workerId: this.workerId,
-          /*
-           * §356. The job's own logger: still stdout, and also `job_events`,
-           * so an operator can watch this run rather than wait for its output.
-           * Bound per job because that is the only place the id is known.
-           */
-          log: (message, detail) => {
-            this.log(message, { ...detail, jobId: job.id });
-            void this.pool
-              .query(
-                `insert into job_events (job_id, message, detail) values ($1, $2, $3)`,
-                [job.id, message, detail ? JSON.stringify(detail) : null],
-              )
-              /*
-               * Swallowed. A log line is bookkeeping and a job must never fail
-               * because its progress could not be recorded.
-               */
-              .catch(() => undefined);
-          },
-          enqueue: (kind, payload, options) => this.enqueue(kind, payload, options),
-        }),
+        handler(job, this.contextFor(job)),
         policy.timeoutMs,
         `${job.kind} exceeded its ${policy.timeoutMs / 1000}s timeout`,
       );

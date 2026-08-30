@@ -96,6 +96,11 @@ function context(): HandlerContext {
         [kind, payload, options?.runAfter ?? null, options?.dedupeKey ?? null],
       );
     },
+    /*
+      §367. A stage-scoped context is still this context — the test cares about
+      what a handler does, not about which lane its log lines land in.
+    */
+    as: () => context(),
   };
 }
 

@@ -18,11 +18,10 @@ const sourceSaying = (text: string) =>
   (async () => new Response(`<html><body>${text}</body></html>`, { status: 200 })) as unknown as typeof fetch;
 
 const sourceMissing = (async () => new Response('nope', { status: 404 })) as unknown as typeof fetch;
-import type { HandlerContext } from './poller.js';
+import { testContext, type TestContext } from './testContext.js';
 
-function ctx(): HandlerContext & { logs: string[] } {
-  const logs: string[] = [];
-  return { logs, log: (m: string) => logs.push(m) } as unknown as HandlerContext & { logs: string[] };
+function ctx(): TestContext {
+  return testContext();
 }
 
 const reply = (slots: unknown) => ({

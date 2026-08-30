@@ -5,13 +5,40 @@
  * what a run *is* — which they would, being written separately and asked the
  * same question.
  */
+import { agentsForStage } from '@halyard/core';
 import { query } from '@/lib/db';
+
+/** The bucket unattributed events land in. Named, never dropped — see §367. */
+const UNATTRIBUTED_KEY = 'run';
 
 export interface RunEvent {
   id: number;
   message: string;
   detail: Record<string, unknown> | null;
   at: string;
+  /** §367. The production stage this came from, or null for the run itself. */
+  stage: string | null;
+}
+
+/**
+ * §367. One stage of a run, with everything it said.
+ *
+ * The feed was chronological because a log line had no author, so an operator
+ * could read what happened and never see *who* — which is the thing they asked
+ * to watch. Stages are grouped rather than filtered: an event's position in the
+ * run still matters, so a lane keeps its own order and the lanes keep theirs.
+ */
+export interface RunStage {
+  stage: string;
+  /** The agent this lane is labelled with, from `STAGE_AGENTS`. */
+  owner: string;
+  /** Everyone else who contributes, in the order they act. */
+  alongside: string[];
+  team: string;
+  doing: string;
+  events: RunEvent[];
+  /** Wall-clock across this stage's own events. Null when it said one thing. */
+  spanMs: number | null;
 }
 
 export interface RunAgent {
@@ -29,6 +56,8 @@ export interface RunView {
   attempts: number;
   lastError: string | null;
   events: RunEvent[];
+  /** §367. The same events, grouped into the lanes that produced them. */
+  stages: RunStage[];
   agents: RunAgent[];
   /** Set once the run produced something an operator can look at. */
   contentItemId: string | null;
@@ -52,7 +81,10 @@ export async function loadRun(jobId: string): Promise<RunView | null> {
     message: string;
     detail: Record<string, unknown> | null;
     at: string;
-  }>('select id, message, detail, at from job_events where job_id = $1 order by id', [jobId]);
+    stage: string | null;
+  }>('select id, message, detail, at, stage from job_events where job_id = $1 order by id', [
+    jobId,
+  ]);
 
   /*
    * Agent runs are matched on `trigger_ref`, which `recordingClient` sets to
@@ -71,15 +103,55 @@ export async function loadRun(jobId: string): Promise<RunView | null> {
     [jobId],
   );
 
+  const mapped: RunEvent[] = events.map((e) => ({
+    id: e.id,
+    message: e.message,
+    detail: e.detail,
+    at: e.at,
+    stage: e.stage,
+  }));
+
   /*
    * The piece this run produced, found through the events rather than a column:
    * a job does not know what it made, and the handler already logs the id.
    */
   const contentItemId =
-    events
+    mapped
       .map((event) => event.detail?.contentItemId)
       .filter((id): id is string => typeof id === 'string')
       .at(-1) ?? null;
+
+  /*
+   * Lanes, in the order the stages first spoke rather than in `STAGE_ORDER`.
+   *
+   * A production skips stages, and a skipped stage that appeared in the list
+   * anyway would read as one that ran and said nothing. Ordering by first
+   * appearance also shows the run as it actually happened, which is the point
+   * of watching it — if research ran after writing, the operator should see
+   * that rather than a diagram of how it was supposed to go.
+   */
+  const byStage = new Map<string, RunEvent[]>();
+  for (const event of mapped) {
+    const key = event.stage ?? UNATTRIBUTED_KEY;
+    const bucket = byStage.get(key);
+    if (bucket) bucket.push(event);
+    else byStage.set(key, [event]);
+  }
+
+  const stages: RunStage[] = [...byStage.entries()].map(([stage, laneEvents]) => {
+    const agents = agentsForStage(stage);
+    const first = new Date(laneEvents[0]!.at).getTime();
+    const last = new Date(laneEvents[laneEvents.length - 1]!.at).getTime();
+    return {
+      stage,
+      owner: agents.owner,
+      alongside: agents.alongside,
+      team: agents.team,
+      doing: agents.doing,
+      events: laneEvents,
+      spanMs: laneEvents.length > 1 ? last - first : null,
+    };
+  });
 
   return {
     jobId: job.id,
@@ -87,7 +159,8 @@ export async function loadRun(jobId: string): Promise<RunView | null> {
     status: job.status,
     attempts: job.attempts,
     lastError: job.last_error,
-    events: events.map((e) => ({ id: e.id, message: e.message, detail: e.detail, at: e.at })),
+    events: mapped,
+    stages,
     agents: agents.map((a) => ({
       agentId: a.agent_id,
       status: a.status,

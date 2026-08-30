@@ -1236,7 +1236,13 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
         const written =
           chosenFormat.format.id !== 'transformation'
             ? await writeToFormat(
-                ctx,
+                /*
+                  §367. Everything the writer and its researcher log lands in
+                  their own lanes, without either module knowing there is such
+                  a thing as a lane. `formatWriter` re-scopes to `research`
+                  around the research call for the same reason.
+                */
+                ctx.as('write'),
                 chosenFormat.format,
                 {
                   subject:
@@ -1289,6 +1295,8 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
           ctx.log('assets stage refused', { contentItemId, because: assetsGate.because });
         }
 
+        /* §367. Everything the picture decisions log belongs to the assets lane. */
+        const assets = ctx.as('assets');
         const formatLine = written ? subjectFromFormat(written.draft.slots) : null;
         let heroSubject = subjectForImage(artifact, idea.title);
         if (formatLine) {
@@ -1296,7 +1304,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
             { line: formatLine, productContext: product.brief_summary ?? undefined },
             llmFor(),
           ).catch(() => ({ subject: null, reason: 'the subject agent failed' }));
-          ctx.log('photographic subject', {
+          assets.log('photographic subject', {
             contentItemId,
             from: formatLine,
             subject: verdict.subject,
@@ -1306,7 +1314,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
         }
         const hero =
           heroSubject && imageClient
-            ? await generateHeroImage(ctx, imageClient, {
+            ? await generateHeroImage(assets, imageClient, {
                 subject: heroSubject,
                 visualLanguage: undefined,
                 /*
