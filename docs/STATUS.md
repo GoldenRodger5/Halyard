@@ -1274,3 +1274,40 @@ The suite is green locally. Two things worth knowing:
 
 - The `SET ROLE` RLS probe **skips** against Supabase local, whose `postgres` role has `CREATEROLE` but may not `SET ROLE` into a role it creates. It fails rather than skips wherever it can run, and the same invariant is asserted from the catalog by a test that runs everywhere — which itself could not fail for the right reason until today. `DECISIONS.md` §76.
 - `renderVideo.test.ts` does a real Remotion render taking 15–20s against a 30s timeout, so it fails under heavy CPU contention (two suites at once) and passes on an idle machine.
+
+## 2026-08-30 — the first end-to-end wizard run, and what it found
+
+The Make wizard was driven in a real browser for the first time
+(`scripts/browser/make-wizard.mjs`). It works: the tree narrows correctly, the
+payload is right, the overrides travel, and `job_events` feeds the live run
+page. Five defects surfaced, all invisible to a green suite of 2,618:
+
+1. The quiz template diagrams were **invisible in the default state** — drawn
+   only for the selected choice, and the default choice is `auto`, which has
+   none. Fixed: all five shown as a gallery.
+2. `citationCheck` re-read the same page up to **eight times per run** and blew
+   the handler's 300s budget. Fixed with a per-run source cache.
+3. A **PDF** answered 200, yielded no text, and was reported as *"the source
+   does not mention this claim"* — false. New `unreadable` verdict.
+4. **The citation comparison itself was wrong.** Research verifies a fact
+   against its page; the writer paraphrases it into a quiz question; the gate
+   then term-matched the *question* against the page and refused good work. A
+   slot citing a researched URL is now judged against the researched fact.
+5. A generate run that produced nothing **returned silently**. Now names which
+   of the two very different causes it was.
+
+### Blocked
+
+**Both model providers are out of credits.** Anthropic returns
+`credit balance is too low`; OpenAI returns `429 no credits remaining`. Nothing
+generates — no copy, no gpt-image-1 background, no piece. The full visual test
+(background → template → questions → voice → render) is written and waiting on
+a topped-up key.
+
+### Local database was several migrations behind
+
+`scripts/db-catchup.ts` applies migrations to a database with no ledger, one
+file at a time, treating "already exists" as already applied. It brought this
+machine forward 39 migrations, including `job_events`, `capture_credentials`
+and the Quiz/Walkthrough/Narrative template rows — without which the quiz
+composition cannot render at all.
