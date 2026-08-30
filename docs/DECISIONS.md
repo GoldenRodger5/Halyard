@@ -9348,3 +9348,49 @@ hides whether it satisfies the interface at all — which is the thing that brok
 could keep their own `logs` arrays. It would have made the conversion a
 one-liner per file and left every assertion reading a private array instead of
 the context's own — two ways to ask the same question, which is how they drift.
+
+## 78 · A gap counted beats a gap enumerated
+
+**Chosen.** The Rundown lists what is scheduled and *counts* what is open,
+per day, with the platforms named.
+
+**Why.** Seven platforms with four slots each is twenty-eight openings a day.
+Listing them produced a **9,454-pixel page of one repeated sentence** — §362's
+lesson exactly, one room over: a screen that shows everything shows nothing.
+
+The count is also the *truer* statement. An open slot next Tuesday is not a
+problem; the daily run fills it. What an operator needs is how much of the day
+is uncommissioned and on which platforms, and that is a number and a list of
+names — not twenty-eight rows saying "Slot open".
+
+**Rejected.** Hiding open slots entirely. The gaps are the reason this screen
+exists; a calendar that shows only what exists cannot tell you Friday morning
+is empty, and finding that out on Friday morning is finding out too late.
+
+## 79 · Seven rooms, and nothing in the navigation is dead
+
+**Chosen.** All 26 nav routes exist, and `rooms.test.ts` fails if one does not.
+
+**Why.** A nav entry with no page behind it is the most visible bug a console
+can have — every operator finds it immediately, by clicking. The test was
+previously "at least one route is built", which was right while the studio was
+half-built and useless the moment it was not.
+
+**What the rooms turned up on the way**, all fixed at the source:
+
+- `concepts.score` is a Postgres `numeric`, which node-postgres hands back as a
+  **string**. `.toFixed` on it throws. Typed as it arrives rather than as it
+  reads — `IdeaRow.score` was already `string` for the same reason.
+- `REVIEW_GATES.typicalWeeks` holds three different shapes — `'0'`,
+  `'2–4 per submission'`, `'Assume rejection for an internal tool'` — so
+  appending "weeks" produced *"typically Assume rejection for an internal tool
+  weeks"*. The unit goes after the number, where it belongs.
+- The Auditor's own state vocabulary is better than the one the crew screen
+  invented. `implemented_no_caller` — built, typed, tested, called by nothing —
+  is the shape of §303, §362, §374 and §387, and it earns a red lamp rather
+  than a grey one.
+
+**Rejected.** Rewriting the compose co-pilot for Floor ▸ Chat. It is already a
+self-contained client component with a tool loop; a second streaming chat would
+be a second thing to keep correct. The formats are resolved server-side, as
+§283 established and `clientBoundary.test.ts` guards.

@@ -65,9 +65,9 @@ apps/web/src/app/(studio)/     the seven rooms.
 | 4 | ✅ **Gallery** | Landed. Wall, piece, Scheduled, On air, Stock. §386, decision 72. |
 | 5 | ✅ **Call Sheet** | Landed at `/call`. Overnight band, `whatNeedsMe`, the rig. §385. |
 | 6 | ✅ **The Floor** | Landed. Brief and Live. §387, decisions 74–76. |
-| 7 | **Rundown, Wires, Numbers** | Re-skins of screens that already work. |
+| 7 | ✅ **Rundown, Wires, Numbers** | Landed. §388. |
 | 8 | **Master Control** | Largest surface, least new logic. |
-| 9 | **Delete `(dashboard)`** | Move Call Sheet to `/`, drop the old tokens, drop `Shell.tsx` and the old components, update the navigation test. |
+| 9 | **Delete `(dashboard)`** | Move Call Sheet to `/`, drop the old tokens, drop `Shell.tsx` and the old components, update the navigation test. **Also:** `assessReadiness` and `FIRST_THIRTY_DAYS` hardcode ten routes — `/accounts`, `/analytics`, `/calendar`, `/hooks`, `/inbox`, `/queue`, `/settings`, `/settings/health`, `/settings/readiness`, `/setup-kit`, `/swipe` — all of which this step deletes. They need remapping to the studio, and a test that a route named in core actually exists. (`/onboarding` is fine: it is a top-level route outside both groups.) Found while building Call Sheet ▸ First run. |
 
 Steps 4–8 are independent. Each is safe to land alone.
 
@@ -126,6 +126,11 @@ ones a re-skin would quietly drop:
 - **The kill switch**, and that it stops things mid-flight without losing them.
 - **Campaign slots**, and the mix ceiling a campaign lifts.
 - **Every empty state's honesty.** A dash is unmeasured; a zero is measured.
+- **The setup kit** — *"everything needed to create the accounts"*: the handles,
+  bios, links and avatars to paste into each platform's signup. It is the
+  before-you-connect half of the rig and has no studio home yet. Master already
+  has six tabs and `rooms.test.ts` caps a room at six, so it folds into **The
+  rig** as a section rather than becoming a seventh tab. Found in §389.
 
 ---
 

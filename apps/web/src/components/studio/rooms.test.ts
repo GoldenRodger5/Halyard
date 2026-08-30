@@ -86,18 +86,16 @@ describe('the rooms', () => {
   it('points every path at a route that exists', () => {
     /*
      * Reads the App Router tree rather than trusting the list. A mistyped href
-     * typechecks perfectly and 404s in production.
+     * typechecks perfectly and 404s in production, and a nav entry with no page
+     * behind it is the most visible bug a console can have — every operator
+     * finds it, immediately, by clicking.
      *
-     * Only asserts over rooms that have landed — a room still to be built has
-     * no route yet, and this becomes total the moment step 9 deletes the old
-     * group.
+     * Total since §389: all seven rooms have landed.
      */
     const root = join(__dirname, '..', '..', 'app', '(studio)');
-    if (!existsSync(root)) return;
-    const built = ROOMS.flatMap((r) => r.tabs.map((t) => t.href)).filter((href) =>
-      existsSync(join(root, href, 'page.tsx')),
-    );
-    expect(built.length).toBeGreaterThan(0);
+    const hrefs = [...new Set(ROOMS.flatMap((r) => [r.href, ...r.tabs.map((t) => t.href)]))];
+    const dead = hrefs.filter((href) => !existsSync(join(root, href, 'page.tsx')));
+    expect(dead, 'nav links with no page behind them').toEqual([]);
   });
 
   it('only advertises keys on a tab that is a list to move through', () => {

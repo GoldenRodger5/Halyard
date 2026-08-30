@@ -1,5 +1,42 @@
 # Where Halyard is right now
 
+**2026-08-30 (evening) — all seven rooms are built, and nothing in the
+navigation is dead.**
+
+The studio is complete as a surface: 26 routes across Call Sheet, The Floor,
+Gallery, Rundown, Wires, Numbers and Master Control, every one rendering against
+real data, checked by screenshot at 1440×900 and 390×844. `rooms.test.ts` fails
+if a nav entry ever loses its page.
+
+*The Rundown counts gaps rather than listing them.* Twenty-eight slot openings a
+day produced a 9,454-pixel page of one repeated sentence — §362's lesson one
+room over. A count is also the truer statement: an open slot next Tuesday is
+normal, and what an operator needs is how much of the day is uncommissioned.
+Decision 78.
+
+*Numbers prints dashes, not zeroes.* Four absent figures and a sheet explaining
+that they are absent rather than low. Gotcha 9 made visible, in the room where a
+confident-looking zero would be most persuasive and most wrong.
+
+*Master Control separates three facts that used to be one.* Whether Halyard has
+a credential, whether the platform has reviewed the app, and what the account
+can actually do right now — gotcha 5 is precisely the case where those three
+disagree.
+
+*Three defects found by building the rooms* (decision 79): a Postgres `numeric`
+arriving as a string and throwing on `.toFixed`; "typically Assume rejection for
+an internal tool **weeks**"; and a crew screen that invented a state vocabulary
+when the Auditor's own is better — it has `implemented_no_caller`, which is this
+codebase's recurring bug given a name.
+
+**Suite: 211 files, 3,214 tests, none skipped. Lint and typecheck clean.**
+
+Remaining, all in step 9: delete `(dashboard)`, move Call Sheet to `/`, fold the
+setup kit into the rig, and remap the ten routes `assessReadiness` and
+`FIRST_THIRTY_DAYS` hardcode — they still point at screens that step deletes.
+
+---
+
 **2026-08-30 (later) — the floor, and the seven stages nobody could see.**
 
 Room 2 has landed: **Brief** and **Live**. Six desks in a horseshoe, wires
