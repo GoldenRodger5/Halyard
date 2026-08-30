@@ -10,10 +10,8 @@ import {
 } from '@halyard/ui';
 import { registrationFor } from '@/lib/oauthRegistration';
 import {
-  BROWSER_PROFILE_RULE,
   resolvePlatformClient,
   PREFLIGHT,
-  REVIEW_GATES,
   allAdapters,
   getAdapter,
   describeGap,
@@ -25,14 +23,7 @@ import {
 } from '@halyard/core';
 import { getAllAccounts, type AccountRow } from '@/lib/queries';
 import { accountStatus, APPROVAL_LABEL } from '@halyard/core';
-import {
-  getAccountObservations,
-  getRecentProbes,
-  resolveForAccount,
-  strategyView,
-  type StrategyView,
-} from '@/lib/capabilityQueries';
-import { CapabilityPanel } from './CapabilityPanel';
+
 import { query } from '@/lib/db';
 import { formatInOperatorTz } from '@/lib/format';
 import {
@@ -115,32 +106,12 @@ export default async function AccountsPage({
    * status. Every account for a platform shares the platform's transport
    * observation, so one account per platform is enough to show the picture.
    */
-  const probes = await getRecentProbes();
-  const seenPlatforms = new Map<string, AccountRow>();
-  for (const account of accounts) {
-    if (!seenPlatforms.has(account.platform)) seenPlatforms.set(account.platform, account);
-  }
-  /**
-   * Account-scoped observations, loaded in one query for every account on the
-   * page. These are the only route by which an engagement read can show as
-   * verified rather than merely declared.
-   */
-  const observations = await getAccountObservations([...seenPlatforms.values()].map((a) => a.id));
-  const capabilityViews = [...seenPlatforms.entries()].map(([platform, account]) =>
-    resolveForAccount({
-      platform: platform as Parameters<typeof strategyView>[0],
-      accountId: account.id,
-      accountState: account.capability_state as never,
-      transport: capabilities?.platforms?.[platform as never] ?? null,
-      provider: capabilities ? 'blotato' : null,
-      transportVerifiedAt: capabilities?.verifiedAt ? new Date(capabilities.verifiedAt) : null,
-      observations: observations.get(account.id) ?? [],
-    }),
-  );
-  const strategies: StrategyView[] = [...seenPlatforms.keys()].map((platform) =>
-    strategyView(platform as Parameters<typeof strategyView>[0]),
-  );
-
+  /*
+    §368. The capability matrix, the review-gate table and the platform
+    strategies moved to /accounts/platforms, and their inputs went with them.
+    They are reference read when deciding whether a platform is worth a review;
+    this screen answers whether something is connected.
+  */
   return (
     <>
       <PageHeader
@@ -201,24 +172,46 @@ export default async function AccountsPage({
               {product.name}
             </SectionTitle>
             <div className="space-y-3">
-              {adapters.map((adapter) => (
-                <AccountCard
-                  callbackOrigin={callbackOrigin}
-                  key={`${product.id}-${adapter.platform}`}
-                  platform={adapter.platform}
-                  persona="brand"
-                  productId={product.id}
-                  timeZone={product.operator_timezone}
-                  account={accounts.find(
+              {adapters
+                .filter((adapter) =>
+                  accounts.some(
                     (a) =>
                       a.product_id === product.id &&
                       a.platform === adapter.platform &&
                       a.persona === 'brand',
-                  )}
-                  unified={capabilities?.platforms?.[adapter.platform] ?? null}
-                  publishingEnabled={publishingEnabled}
-                />
-              ))}
+                  ),
+                )
+                .map((adapter) => (
+                  <AccountCard
+                    callbackOrigin={callbackOrigin}
+                    key={`${product.id}-${adapter.platform}`}
+                    platform={adapter.platform}
+                    persona="brand"
+                    productId={product.id}
+                    timeZone={product.operator_timezone}
+                    account={accounts.find(
+                      (a) =>
+                        a.product_id === product.id &&
+                        a.platform === adapter.platform &&
+                        a.persona === 'brand',
+                    )}
+                    unified={capabilities?.platforms?.[adapter.platform] ?? null}
+                    publishingEnabled={publishingEnabled}
+                  />
+                ))}
+              <NotConnected
+                productId={product.id}
+                persona="brand"
+                adapters={adapters.filter(
+                  (adapter) =>
+                    !accounts.some(
+                      (a) =>
+                        a.product_id === product.id &&
+                        a.platform === adapter.platform &&
+                        a.persona === 'brand',
+                    ),
+                )}
+              />
             </div>
           </section>
         ))}
@@ -228,70 +221,107 @@ export default async function AccountsPage({
           {personalProduct?.name ?? 'Founder'}
         </SectionTitle>
         <div className="space-y-3">
-          {adapters.map((adapter) => (
-            <AccountCard
-              callbackOrigin={callbackOrigin}
-              key={`founder-${adapter.platform}`}
-              platform={adapter.platform}
-              persona="founder"
-              productId={personalProduct?.id ?? ''}
-              timeZone={personalProduct?.operator_timezone ?? 'UTC'}
-              account={accounts.find(
-                (a) => a.persona === 'founder' && a.platform === adapter.platform,
-              )}
-              unified={capabilities?.platforms?.[adapter.platform] ?? null}
-              publishingEnabled={publishingEnabled}
-            />
-          ))}
+          {adapters
+            .filter((adapter) =>
+              accounts.some((a) => a.persona === 'founder' && a.platform === adapter.platform),
+            )
+            .map((adapter) => (
+              <AccountCard
+                callbackOrigin={callbackOrigin}
+                key={`founder-${adapter.platform}`}
+                platform={adapter.platform}
+                persona="founder"
+                productId={personalProduct?.id ?? ''}
+                timeZone={personalProduct?.operator_timezone ?? 'UTC'}
+                account={accounts.find(
+                  (a) => a.persona === 'founder' && a.platform === adapter.platform,
+                )}
+                unified={capabilities?.platforms?.[adapter.platform] ?? null}
+                publishingEnabled={publishingEnabled}
+              />
+            ))}
+          <NotConnected
+            productId={personalProduct?.id ?? ''}
+            persona="founder"
+            adapters={adapters.filter(
+              (adapter) =>
+                !accounts.some((a) => a.persona === 'founder' && a.platform === adapter.platform),
+            )}
+          />
         </div>
       </section>
 
-      <SectionTitle hint="what unreviewed access actually gives you">Review gates</SectionTitle>
-      <Card className="mb-8 overflow-x-auto" scrollLabel="Connected accounts">
-        <table className="w-full min-w-[48rem] text-sm">
-          <thead>
-            <tr className="border-b border-line text-left text-xs uppercase tracking-[0.08em] text-muted">
-              <th className="px-4 py-3 font-medium">Platform</th>
-              <th className="px-4 py-3 font-medium">Review required</th>
-              <th className="px-4 py-3 font-medium">What unreviewed access gives you</th>
-              <th className="px-4 py-3 font-medium">Typical wait</th>
-              <th className="px-4 py-3 font-medium">Link strategy</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-line">
-            {adapters.map((adapter) => {
-              const gate = REVIEW_GATES[adapter.platform];
-              return (
-                <tr key={adapter.platform}>
-                  <td className="whitespace-nowrap px-4 py-3">
-                    <span className="inline-flex items-center gap-2 font-medium text-ink">
-                      <PlatformDot platform={adapter.platform} />
-                      {PLATFORM_LABELS[adapter.platform]}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    {adapter.constraints.requiresReviewForPublicPosting ? (
-                      <Badge tone="warn">{gate.review}</Badge>
-                    ) : (
-                      <Badge tone="good">none</Badge>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-muted">{gate.unreviewedGives}</td>
-                  <td className="px-4 py-3 text-muted">{gate.typicalWeeks}</td>
-                  <td className="px-4 py-3 text-muted">
-                    {adapter.constraints.linkStrategy.replace(/_/g, ' ')}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </Card>
+      {/*
+        §368. The reference material moved.
 
-      <CapabilityPanel views={capabilityViews} probes={probes} strategies={strategies} />
-
-      <p className="max-w-3xl text-sm text-muted">{BROWSER_PROFILE_RULE}</p>
+        The connection screen carried the review-gate table, the whole
+        capability matrix and the platform-strategy notes underneath eight
+        account cards per persona, and came to eight thousand pixels. Every
+        piece of it is worth having and none of it answers "is this connected",
+        which is the question somebody opens this screen with.
+      */}
+      <div className="border-t border-line pt-6">
+        <Link href="/accounts/platforms" className="text-sm text-primary underline">
+          What each platform allows, and what a review unlocks
+        </Link>
+      </div>
     </>
+  );
+}
+
+/**
+ * §368. A platform nobody has connected does not need a card.
+ *
+ * The screen rendered a full `AccountCard` for every adapter, for every
+ * persona — fourteen cards, eleven of them saying *"this account is set up in
+ * Halyard but not yet connected"* over a four-row status table where every row
+ * read "not connected". That is one sentence of information repeated eleven
+ * times at four hundred pixels each, and it buried the three accounts that
+ * actually have a state worth reading.
+ *
+ * A card is for an account with something to say: a token that expired, a
+ * review pending, a self-test that failed, a capability the platform is
+ * withholding. A platform with no account at all has exactly one thing to
+ * offer, which is the connect button, so it gets one line.
+ */
+function NotConnected({
+  adapters,
+  productId,
+  persona,
+}: {
+  adapters: ReturnType<typeof allAdapters>;
+  productId: string;
+  persona: 'brand' | 'founder';
+}) {
+  if (adapters.length === 0) return null;
+  return (
+    <div className="rounded-lg border border-dashed border-line px-4 py-3">
+      <p className="mb-2 text-xs uppercase tracking-[0.08em] text-muted">
+        Not connected yet
+      </p>
+      <ul className="flex flex-wrap gap-x-5 gap-y-2">
+        {adapters.map((adapter) => (
+          <li key={adapter.platform} className="flex items-center gap-2 text-sm">
+            <PlatformDot platform={adapter.platform} />
+            <span className="text-ink">{PLATFORM_LABELS[adapter.platform] ?? adapter.platform}</span>
+            <a
+              href={`/api/oauth/${adapter.platform}/start?product=${encodeURIComponent(productId)}&persona=${persona}`}
+              className="text-xs text-primary underline underline-offset-2"
+            >
+              connect
+            </a>
+            {adapter.constraints.requiresReviewForPublicPosting ? (
+              <span
+                className="text-[11px] text-muted"
+                title="Public posting here is gated behind a manual platform review"
+              >
+                review gated
+              </span>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
@@ -345,6 +375,16 @@ function AccountCard({
   const expiry = tokenExpiryState(
     account?.token_expires_at ? new Date(account.token_expires_at) : null,
   );
+
+  /**
+   * §368. Whether this account has ever had a working credential.
+   *
+   * Not the same question as "is it connected now": an expired token has
+   * worked, has a real state, and its breakdown is worth reading. One that has
+   * never held a credential has nothing in its breakdown but four rows saying
+   * "not connected", under a sentence that already said so.
+   */
+  const hasWorked = Boolean(account?.has_token) || Boolean(account?.last_error);
 
   /**
    * One human-readable summary, derived from the state that already exists.
@@ -408,17 +448,27 @@ function AccountCard({
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink">{status.explanation}</p>
           </div>
 
-          {/* ── Capabilities: the three questions, answered separately ────
-              Publishing and reading are different permissions, and platform
-              approval is a different thing again — an account can be approved
-              and still unable to publish. Collapsing them is what made the old
-              badges unreadable. */}
-          {/* ── The three questions, answered separately ─────────────────
-              Account status, publishing and connection are different things,
-              and the middle one is the trap: an account can be perfectly
-              connected while the global switch means nothing will go out.
-              "Ready to publish" must never imply a post leaves right now. */}
-          <dl className="mt-3 space-y-1 text-sm">
+          {/*
+            §368. The breakdown is folded away for an account that has never
+            worked.
+
+            The three rows exist because account status, publishing and
+            connection are genuinely different things, and the middle one is the
+            trap: an account can be perfectly connected while the global switch
+            means nothing goes out. That is worth reading — for an account that
+            has a state. For one with no credential ever, all three say "not
+            connected", which `status.explanation` has already said in a
+            sentence directly above, and five of those in a row is what made
+            this screen unreadable.
+
+            A native <details>, so the page stays a server component, and open
+            by default the moment there is anything to read.
+          */}
+          <details open={hasWorked} className="group mt-3">
+            <summary className="cursor-pointer list-none text-xs text-muted underline underline-offset-2 group-open:hidden">
+              What is set up
+            </summary>
+          <dl className="space-y-1 text-sm">
             <div className="flex gap-2">
               <dt className="w-32 shrink-0 text-muted">Account status</dt>
               {/* Whether Halyard has a working connection — deliberately not a
@@ -451,6 +501,7 @@ function AccountCard({
               <dd className="text-ink">{APPROVAL_LABEL[status.approval]}</dd>
             </div>
           </dl>
+          </details>
 
           {/*
             * The platform-specific detail, which is where the genuinely useful

@@ -166,7 +166,7 @@ export const SECTIONS: NavSection[] = [
     label: 'Setup',
     question: 'Is everything wired up, and does Halyard know the product?',
     tabs: [
-      { href: '/accounts', label: 'Accounts', hint: 'What is connected, and what each one may do' },
+      { href: '/accounts', label: 'Accounts', hint: 'What is connected, and what is stopping the rest' },
       { href: '/brain', label: 'Product Brain', hint: 'What Halyard believes, and what backs it' },
       { href: '/products', label: 'Products', hint: 'Add, configure and switch product' },
       { href: '/templates', label: 'Templates', hint: 'Every card and composition, previewable' },
@@ -176,6 +176,10 @@ export const SECTIONS: NavSection[] = [
       { href: '/system', label: 'System', hint: 'Jobs, integrations and the audit' },
     ],
     deeper: {
+      '/accounts': [
+        { href: '/accounts', label: 'Connections' },
+        { href: '/accounts/platforms', label: 'Platform rules' },
+      ],
       '/settings': [
         { href: '/settings', label: 'General' },
         { href: '/settings/readiness', label: 'Readiness' },
