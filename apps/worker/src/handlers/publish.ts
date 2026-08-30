@@ -16,6 +16,8 @@
 import {
   audioIsPublishable,
   adapterForAccount,
+  checkFinish,
+  finishFor,
   PublishError,
   disclosureSatisfied,
   emptyTikTokOptions,
@@ -413,6 +415,48 @@ export async function publishHandler(job: Job, ctx: HandlerContext): Promise<voi
     ...(await loadAssets(ctx, item.render_ids)),
     ...(await loadAttachedAssets(ctx, item.attached_asset_ids)),
   ];
+
+  /**
+   * §353. Checked against the platform it is actually going to.
+   *
+   * `HALYARD_CREATIVE_GAP_AUDIT` §6: the same render reaches TikTok, Reels and
+   * Shorts, so a piece is never assessed against the surface it lands on. A
+   * video whose opening lands at 1.2 seconds is fine on Shorts and too slow on
+   * TikTok, and today both receive it with nothing said.
+   *
+   * Recorded rather than blocking. Every rule here is about *quality on this
+   * surface* rather than capability — the platform will accept the post either
+   * way — and a gate that started refusing publishes on rules nobody has seen
+   * yet would stop the account rather than improve it. The finding reaches
+   * `qc_results` and the log, where an operator sees it before the next one.
+   *
+   * The one thing worth blocking on eventually is a misplaced link, which costs
+   * real money on X. Left as a warning until an operator has seen it fire.
+   */
+  const finish = finishFor(accountRow.platform);
+  if (finish) {
+    const problems = checkFinish(
+      {
+        caption: item.body,
+        captionHasLink: /https?:\/\//.test(item.body ?? ''),
+      },
+      finish,
+    );
+    if (problems.length > 0) {
+      ctx.log('platform finish', {
+        contentItemId: item.id,
+        platform: accountRow.platform,
+        problems: problems.map((p) => `${p.rule}: ${p.detail}`),
+      });
+      await ctx.pool.query(
+        `update content_items
+            set qc_results = coalesce(qc_results, '{}'::jsonb)
+                             || jsonb_build_object('finish', $2::jsonb)
+          where id = $1`,
+        [item.id, JSON.stringify({ platform: accountRow.platform, problems })],
+      );
+    }
+  }
 
   const account: PublishAccount = {
     id: accountRow.id,

@@ -1798,6 +1798,24 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                * check, the caption aligner — still has something true to read.
                */
               formatNarration ? formatNarration.map((l) => l.text).join(' ') : vo.script,
+              /*
+               * §354. The artifact path still has no timed lines, and this is
+               * where the attempt stopped.
+               *
+               * Placing lines on beats needs each beat's *duration*, and at
+               * this point in the pipeline they do not have one:
+               * `CreativeBeat` carries no seconds, and the allocation that
+               * turns weights into times happens later, at render.
+               *
+               * Duplicating that allocation here would give two answers to one
+               * question and let them drift — the exact fault this section
+               * keeps removing. The real fix is to share the allocator, which
+               * is a change to make deliberately rather than in passing.
+               *
+               * So the format path has timed lines and the artifact path does
+               * not, and that is written down rather than papered over with
+               * timings derived from nothing. `docs/NEXT_STEPS.md` carries it.
+               */
               formatNarration ? JSON.stringify(formatNarration) : null,
             ],
           );
