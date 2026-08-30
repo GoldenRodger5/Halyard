@@ -1,19 +1,27 @@
 'use client';
 
 /**
- * §288. Two rows of buttons and one action.
+ * §355. The generation wizard.
  *
- * Platform, then shape, then make. The subject box is optional and last,
- * because most of the time the system has better ideas about what to write
- * about than an operator typing at 11pm — and when it does not, one line is
- * enough to say so.
+ * `docs/UI_GENERATION_SPEC.md` is the spec. Five steps, each narrowing the next:
+ * where → what kind → together? → shape → specifics.
  *
- * Formats grey out rather than disappear when the chosen platform cannot carry
- * them. Hiding them would leave an operator wondering where the quiz went; a
- * disabled button with a reason on hover answers the question without them
- * having to ask it.
+ * ## Two rules the whole screen follows
+ *
+ * **Nothing is hidden; things are disabled with a reason.** An option that
+ * disappears makes an operator wonder where it went and whether the tool is
+ * broken. One that is greyed out with "TikTok carries no caption-only post"
+ * tells them what to change — drop the platform, or pick a different type.
+ *
+ * **A question with one answer is not a question.** A step whose options
+ * collapse to one is shown as already decided rather than asked, because
+ * clicking the only button is a step that wastes the operator's attention.
+ *
+ * Buttons rather than free text wherever the answer is finite: an operator
+ * choosing from four options cannot ask for something that does not exist, and
+ * the system never has to guess what they meant.
  */
-import { useState, useTransition } from 'react';
+import { useMemo, useState, useTransition } from 'react';
 import { makePiece, type MakeResult } from './actions';
 
 export interface MakeFormat {
@@ -21,184 +29,282 @@ export interface MakeFormat {
   name: string;
   intent: string;
   platforms: string[];
+  channels: string[];
   needsArtifact: boolean;
   needsCitation: boolean;
-  /** §318. Built around a recording, so it asks which flow to record. */
   needsCapture: boolean;
 }
 
-/**
- * §318. The flows a walkthrough can be built from.
- *
- * Buttons, not a text box. An operator choosing "cook mode" from two options
- * cannot ask for a flow that does not exist, and the system never has to guess
- * what they meant — which is the whole reason this page is buttons.
- */
 export interface MakeFlow {
   id: string;
   title: string;
   why: string;
 }
 
-const PLATFORMS: Array<{ id: string; label: string }> = [
-  { id: 'tiktok', label: 'TikTok' },
-  { id: 'instagram', label: 'Instagram' },
-  { id: 'youtube', label: 'YouTube' },
-  { id: 'x', label: 'X' },
-  { id: 'threads', label: 'Threads' },
-  { id: 'pinterest', label: 'Pinterest' },
-];
+export interface Carriage {
+  id: string;
+  name: string;
+  intent: string;
+  media: string;
+  channel: string;
+  /** Per platform: can it carry this, and if not, why not. */
+  byPlatform: Record<string, { ok: boolean; because: string }>;
+}
+
+const PLATFORM_LABELS: Record<string, string> = {
+  tiktok: 'TikTok',
+  instagram: 'Instagram',
+  youtube: 'YouTube',
+  x: 'X',
+  threads: 'Threads',
+  pinterest: 'Pinterest',
+};
+
+/** A platform whose account cannot publish, said the way an operator reads it. */
+function accountNote(state: string | undefined): string | null {
+  if (!state) return 'not set up';
+  if (state === 'live' || state === 'draft_only') return null;
+  if (state === 'error') return 'reconnect';
+  return state.replace('_', ' ');
+}
 
 export function MakeClient({
   productId,
+  platforms,
+  carriage,
   formats,
   flows,
   connected,
 }: {
   productId: string;
+  platforms: string[];
+  carriage: Carriage[];
   formats: MakeFormat[];
-  /** §318. Recordable product flows, for the formats built around one. */
   flows: MakeFlow[];
-  /** Platforms with a usable account, so a dead one is visibly dead. */
   connected: Record<string, string>;
 }) {
-  const [platform, setPlatform] = useState<string | null>(null);
+  const [chosenPlatforms, setChosenPlatforms] = useState<string[]>([]);
+  const [postType, setPostType] = useState<string | null>(null);
+  const [together, setTogether] = useState(true);
   const [format, setFormat] = useState<string | null>(null);
-  const [subject, setSubject] = useState('');
   const [flowId, setFlowId] = useState<string | null>(null);
+  const [subject, setSubject] = useState('');
   const [result, setResult] = useState<MakeResult | null>(null);
   const [pending, startTransition] = useTransition();
 
-  const carries = (f: MakeFormat) => !platform || f.platforms.includes(platform);
+  /**
+   * A post type is offered when **every** chosen platform can carry it.
+   *
+   * Every, not any: a piece made for three platforms and publishable to two is
+   * a piece that fails at the last step, which is the most expensive place to
+   * discover it.
+   */
+  const typeVerdict = useMemo(() => {
+    return carriage.map((type) => {
+      if (chosenPlatforms.length === 0) return { type, ok: true, because: '' };
+      const blocking = chosenPlatforms
+        .map((platform) => ({ platform, verdict: type.byPlatform[platform] }))
+        .filter((entry) => entry.verdict && !entry.verdict.ok);
+      return {
+        type,
+        ok: blocking.length === 0,
+        /* Name the platform that is the obstacle, so it can be dropped. */
+        because: blocking.map((entry) => entry.verdict!.because).join(' '),
+      };
+    });
+  }, [carriage, chosenPlatforms]);
+
+  const chosenType = carriage.find((t) => t.id === postType) ?? null;
+
+  /* Formats whose brief matches the chosen post type's channel. */
+  const availableFormats = useMemo(() => {
+    if (!chosenType) return formats;
+    return formats.filter((f) => f.channels.includes(chosenType.channel));
+  }, [formats, chosenType]);
+
+  const chosenFormat = availableFormats.find((f) => f.id === format) ?? null;
 
   const submit = () => {
     const data = new FormData();
     data.set('productId', productId);
-    data.set('platform', platform ?? '');
+    /* One job per platform: the action fans out, the wizard does not. */
+    data.set('platforms', chosenPlatforms.join(','));
+    data.set('postType', postType ?? '');
     data.set('postFormat', format ?? '');
     data.set('subject', subject);
-    /* §318. Only meaningful for a capture-backed format; ignored otherwise. */
     data.set('flowId', flowId ?? '');
+    data.set('together', together ? '1' : '');
     startTransition(async () => setResult(await makePiece(data)));
   };
 
+  const step = (n: number, title: string, hint?: string) => (
+    <h2 className="mb-2 flex items-baseline gap-2 text-xs uppercase tracking-[0.1em] text-muted">
+      <span>
+        {n} · {title}
+      </span>
+      {hint ? <span className="normal-case tracking-normal text-muted/70">{hint}</span> : null}
+    </h2>
+  );
+
+  const chip = (active: boolean, usable: boolean) =>
+    `rounded-lg border px-3.5 py-2 text-sm transition ${
+      active
+        ? 'border-primary bg-primary text-paper'
+        : usable
+          ? 'border-line hover:border-primary'
+          : 'cursor-not-allowed border-line text-muted opacity-40'
+    }`;
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
+      <header>
+        <h1 className="text-2xl">Make something</h1>
+        <p className="mt-1 text-sm text-muted">
+          Each step narrows the next. Anything greyed out says why on hover.
+        </p>
+      </header>
+
+      {/* ── 1 · Where ─────────────────────────────────────────────────── */}
       <section>
-        <h2 className="mb-2 text-xs uppercase tracking-[0.1em] text-muted">1 · Where</h2>
+        {step(1, 'Where', 'pick one or several')}
         <div className="flex flex-wrap gap-2">
-          {PLATFORMS.map((p) => {
-            const state = connected[p.id];
-            const usable = state === 'live' || state === 'draft_only';
+          {platforms.map((platform) => {
+            const note = accountNote(connected[platform]);
+            const active = chosenPlatforms.includes(platform);
             return (
               <button
-                key={p.id}
+                key={platform}
                 type="button"
                 onClick={() => {
-                  setPlatform(p.id);
-                  /* A shape the new platform cannot carry is cleared, not left
-                     selected and silently ignored at submit. */
-                  if (format) {
-                    const f = formats.find((x) => x.id === format);
-                    if (f && !f.platforms.includes(p.id)) setFormat(null);
+                  const next = active
+                    ? chosenPlatforms.filter((p) => p !== platform)
+                    : [...chosenPlatforms, platform];
+                  setChosenPlatforms(next);
+                  /*
+                   * A post type the new set cannot carry is cleared rather than
+                   * left selected and silently ignored at submit.
+                   */
+                  if (postType) {
+                    const type = carriage.find((t) => t.id === postType);
+                    const stillOk = next.every((p) => type?.byPlatform[p]?.ok);
+                    if (!stillOk) {
+                      setPostType(null);
+                      setFormat(null);
+                    }
                   }
                 }}
-                aria-pressed={platform === p.id}
-                title={state ? `Account state: ${state}` : 'No account connected'}
-                className={`rounded-lg border px-3.5 py-2 text-sm transition ${
-                  platform === p.id
-                    ? 'border-primary bg-primary text-paper'
-                    : usable
-                      ? 'border-line hover:border-primary'
-                      : 'border-line text-muted'
-                }`}
+                aria-pressed={active}
+                title={note ? `Account state: ${connected[platform] ?? 'none'}` : undefined}
+                className={chip(active, true)}
               >
-                {p.label}
-                {!usable ? (
-                  <span className="ml-1.5 text-xs text-warn-ink">
-                    {state === 'error' ? 'reconnect' : state ? state.replace('_', ' ') : 'not set up'}
-                  </span>
-                ) : null}
+                {PLATFORM_LABELS[platform] ?? platform}
+                {note ? <span className="ml-1.5 text-xs text-warn-ink">{note}</span> : null}
               </button>
             );
           })}
         </div>
       </section>
 
+      {/* ── 2 · What kind ─────────────────────────────────────────────── */}
       <section>
-        <h2 className="mb-2 text-xs uppercase tracking-[0.1em] text-muted">2 · What shape</h2>
+        {step(
+          2,
+          'What kind of post',
+          chosenPlatforms.length > 1 ? 'only what all of them can carry' : undefined,
+        )}
+        <div className="flex flex-wrap gap-2">
+          {typeVerdict.map(({ type, ok, because }) => (
+            <button
+              key={type.id}
+              type="button"
+              disabled={!ok}
+              onClick={() => {
+                setPostType(type.id === postType ? null : type.id);
+                setFormat(null);
+                setFlowId(null);
+              }}
+              aria-pressed={postType === type.id}
+              title={ok ? type.intent : because}
+              className={chip(postType === type.id, ok)}
+            >
+              {type.name}
+            </button>
+          ))}
+        </div>
+        {chosenType ? <p className="mt-2 text-xs text-muted">{chosenType.intent}</p> : null}
+      </section>
+
+      {/* ── 3 · Together? ─── only a question when there is more than one ── */}
+      {chosenPlatforms.length > 1 ? (
+        <section>
+          {step(3, 'One piece, or several')}
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setTogether(true)}
+              aria-pressed={together}
+              className={chip(together, true)}
+            >
+              One piece for all {chosenPlatforms.length}
+            </button>
+            <button
+              type="button"
+              onClick={() => setTogether(false)}
+              aria-pressed={!together}
+              className={chip(!together, true)}
+            >
+              A different piece each
+              <span className="ml-1.5 text-xs opacity-70">{chosenPlatforms.length}× the cost</span>
+            </button>
+          </div>
+          <p className="mt-2 text-xs text-muted">
+            {together
+              ? 'One production, finished per platform — the opening budget and caption length differ, the piece does not.'
+              : 'Separate productions. Occasionally right: a TikTok quiz and a YouTube explainer on one subject are not the same piece.'}
+          </p>
+        </section>
+      ) : null}
+
+      {/* ── 4 · Shape ─────────────────────────────────────────────────── */}
+      <section>
+        {step(chosenPlatforms.length > 1 ? 4 : 3, 'What shape')}
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
             onClick={() => setFormat(null)}
             aria-pressed={format === null}
-            className={`rounded-lg border px-3.5 py-2 text-sm transition ${
-              format === null ? 'border-primary bg-primary text-paper' : 'border-line hover:border-primary'
-            }`}
+            className={chip(format === null, true)}
           >
             Let Halyard choose
           </button>
-          {formats.map((f) => (
+          {availableFormats.map((f) => (
             <button
               key={f.id}
               type="button"
-              disabled={!carries(f)}
               onClick={() => {
-                const next = f.id === format ? null : f.id;
-                setFormat(next);
-                /*
-                 * A flow chosen for a walkthrough is meaningless on a quiz, and
-                 * leaving it set would submit it silently.
-                 */
-                if (!next || !formats.find((x) => x.id === next)?.needsCapture) setFlowId(null);
+                setFormat(f.id === format ? null : f.id);
+                if (!f.needsCapture) setFlowId(null);
               }}
               aria-pressed={format === f.id}
-              title={
-                carries(f)
-                  ? f.intent
-                  : `${f.name} runs on ${f.platforms.join(', ')} — not ${platform}.`
-              }
-              className={`rounded-lg border px-3.5 py-2 text-sm transition ${
-                format === f.id
-                  ? 'border-primary bg-primary text-paper'
-                  : carries(f)
-                    ? 'border-line hover:border-primary'
-                    : 'cursor-not-allowed border-line text-muted opacity-40'
-              }`}
+              title={f.intent}
+              className={chip(format === f.id, true)}
             >
               {f.name}
+              {f.needsCitation ? (
+                <span className="ml-1.5 text-xs opacity-60" title="Every claim is researched and its source checked">
+                  sourced
+                </span>
+              ) : null}
             </button>
           ))}
         </div>
-
-        {format ? (
-          <p className="mt-2 text-xs text-muted">
-            {formats.find((f) => f.id === format)?.intent}
-            {formats.find((f) => f.id === format)?.needsCitation
-              ? ' Every claim is fetched and checked against its source, so it may take a few attempts.'
-              : ''}
-            {formats.find((f) => f.id === format)?.needsArtifact
-              ? ' Needs an adapted recipe to exist.'
-              : ''}
-          </p>
-        ) : (
-          <p className="mt-2 text-xs text-muted">
-            Chosen by what the source supports, which pillar is thin, and what this account has
-            not done recently.
-          </p>
-        )}
+        {chosenFormat ? <p className="mt-2 text-xs text-muted">{chosenFormat.intent}</p> : null}
       </section>
 
-      {/*
-        §318. Only for a format built around a recording. It appears rather than
-        greying out, because a flow picker on a quiz is not a disabled choice —
-        it is a question that does not apply.
-      */}
-      {formats.find((f) => f.id === format)?.needsCapture ? (
+      {/* ── 5 · Specifics ─────────────────────────────────────────────── */}
+      {chosenFormat?.needsCapture ? (
         <section>
-          <h2 className="mb-2 text-xs uppercase tracking-[0.1em] text-muted">
-            3 · Which part of the app
-          </h2>
+          {step(chosenPlatforms.length > 1 ? 5 : 4, 'Which part of the app')}
           <div className="flex flex-wrap gap-2">
             {flows.map((f) => (
               <button
@@ -207,28 +313,25 @@ export function MakeClient({
                 onClick={() => setFlowId(f.id === flowId ? null : f.id)}
                 aria-pressed={flowId === f.id}
                 title={f.why}
-                className={`rounded-lg border px-3.5 py-2 text-sm transition ${
-                  flowId === f.id
-                    ? 'border-primary bg-primary text-paper'
-                    : 'border-line hover:border-primary'
-                }`}
+                className={chip(flowId === f.id, true)}
               >
                 {f.title}
               </button>
             ))}
           </div>
           <p className="mt-2 text-xs text-muted">
-            Halyard records this flow against the live product, signed in to the test account,
-            and builds the video from the recording. Nothing is drawn or simulated.
+            Halyard records this flow against the live product, signed in to the test account, and
+            builds the video from the recording. Nothing is drawn or simulated.
           </p>
         </section>
       ) : null}
 
       <section>
-        <h2 className="mb-2 text-xs uppercase tracking-[0.1em] text-muted">
-          {formats.find((f) => f.id === format)?.needsCapture ? '4' : '3'} · About what{' '}
-          <span className="normal-case tracking-normal">(optional)</span>
-        </h2>
+        {step(
+          (chosenPlatforms.length > 1 ? 5 : 4) + (chosenFormat?.needsCapture ? 1 : 0),
+          'About what',
+          'optional',
+        )}
         <input
           value={subject}
           onChange={(e) => setSubject(e.target.value)}
@@ -237,27 +340,27 @@ export function MakeClient({
         />
       </section>
 
-      <div className="flex items-center gap-3 border-t border-line pt-4">
+      <section className="border-t border-line pt-6">
         <button
           type="button"
           onClick={submit}
-          disabled={!platform || pending}
-          className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white disabled:opacity-40"
+          disabled={pending || chosenPlatforms.length === 0 || !postType}
+          className="rounded-lg bg-primary px-5 py-2.5 text-sm text-paper transition disabled:opacity-40"
         >
-          {pending ? 'Making…' : 'Make it'}
+          {pending ? 'Starting…' : 'Generate'}
         </button>
-        {!platform ? <span className="text-xs text-muted">Pick a platform first.</span> : null}
-      </div>
+        {chosenPlatforms.length === 0 || !postType ? (
+          <span className="ml-3 text-xs text-muted">
+            {chosenPlatforms.length === 0 ? 'Pick where it goes.' : 'Pick what kind of post.'}
+          </span>
+        ) : null}
 
-      {result ? (
-        <p
-          className={`rounded-lg px-3 py-2 text-sm ${
-            result.ok ? 'bg-good/10 text-good' : 'bg-danger/10 text-danger'
-          }`}
-        >
-          {result.message}
-        </p>
-      ) : null}
+        {result ? (
+          <p className={`mt-4 text-sm ${result.ok ? 'text-muted' : 'text-warn-ink'}`}>
+            {result.message}
+          </p>
+        ) : null}
+      </section>
     </div>
   );
 }

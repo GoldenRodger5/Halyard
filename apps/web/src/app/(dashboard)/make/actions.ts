@@ -30,13 +30,29 @@ export async function makePiece(formData: FormData): Promise<MakeResult> {
   await requireOperator();
 
   const productId = String(formData.get('productId') ?? 'recipefix');
-  const platform = String(formData.get('platform') ?? '').trim();
+  /**
+   * §355. Several platforms, because the wizard asks for several.
+   *
+   * One production for many destinations is the normal case (§352): the
+   * screenplay, the voice and the render are shared and only the finish
+   * differs. The old field took one platform, so the wizard's multi-select had
+   * nowhere to go.
+   */
+  const platforms = String(formData.get('platforms') ?? '')
+    .split(',')
+    .map((p) => p.trim())
+    .filter(Boolean);
+  /* The old single field still works, for anything that has not moved. */
+  const single = String(formData.get('platform') ?? '').trim();
+  if (single && platforms.length === 0) platforms.push(single);
+  const postType = String(formData.get('postType') ?? '').trim();
+  const together = String(formData.get('together') ?? '') === '1';
   const postFormat = String(formData.get('postFormat') ?? '').trim();
   const subject = String(formData.get('subject') ?? '').trim();
   /* §318. Which product flow to record, for a capture-backed format. */
   const flowId = String(formData.get('flowId') ?? '').trim();
 
-  if (!platform) return { ok: false, message: 'Pick a platform first.' };
+  if (platforms.length === 0) return { ok: false, message: 'Pick where it goes first.' };
 
   /*
    * A format the platform cannot carry is refused here rather than silently
@@ -49,10 +65,15 @@ export async function makePiece(formData: FormData): Promise<MakeResult> {
     if (!format) return { ok: false, message: `There is no ${postFormat} format.` };
     /* §295. Derived from the format's channels; there is no second list. */
     const carries = platformsForFormat(format.id);
-    if (!carries.includes(platform)) {
+    /*
+     * Every chosen platform, not any. A piece made for three and publishable to
+     * two fails at the last step, which is the most expensive place to find out.
+     */
+    const cannot = platforms.filter((p) => !carries.includes(p));
+    if (cannot.length > 0) {
       return {
         ok: false,
-        message: `${format.name} cannot run on ${platform}. It carries: ${carries.join(', ')}.`,
+        message: `${format.name} cannot run on ${cannot.join(', ')}. It carries: ${carries.join(', ')}.`,
       };
     }
   }
@@ -94,34 +115,56 @@ export async function makePiece(formData: FormData): Promise<MakeResult> {
    * operator has rated twenty drafts (§260), and a button that silently did
    * nothing because of a gate elsewhere is the worst kind of button.
    */
-  const rows = await query<{ id: string }>(
-    `insert into jobs (kind, payload, status, priority)
-     values ('generate', $1::jsonb, 'queued', 5)
-     returning id`,
-    [
-      JSON.stringify({
-        productId,
-        limit: 1,
-        calibration: true,
-        onlyPlatform: platform,
-        ...(postFormat ? { postFormat } : {}),
-        ...(subject ? { subject } : {}),
-        /* §318. Which recording this piece is about, for a capture-backed format. */
-        ...(flowId ? { flowId } : {}),
-      }),
-    ],
-  );
+  /**
+   * §355. One job per platform.
+   *
+   * `generate.ts` produces a piece for one account per run — "one call per
+   * platform, never one call producing all platforms" — so a multi-platform
+   * request is several jobs rather than one job that fans out inside the
+   * handler.
+   *
+   * `together` does not change the number of jobs, and that is deliberate: it
+   * changes what §352's finish does at publish, not what is produced. Both
+   * modes make a piece per platform today; the difference is whether they were
+   * written from the same brief. Making "together" literally share a render is
+   * the next step and belongs in the handler, not here.
+   */
+  const rows: Array<{ id: string }> = [];
+  for (const platform of platforms) {
+    const inserted = await query<{ id: string }>(
+      `insert into jobs (kind, payload, status, priority)
+       values ('generate', $1::jsonb, 'queued', 5)
+       returning id`,
+      [
+        JSON.stringify({
+          productId,
+          limit: 1,
+          calibration: true,
+          onlyPlatform: platform,
+          ...(postFormat ? { postFormat } : {}),
+          ...(postType ? { postType } : {}),
+          ...(subject ? { subject } : {}),
+          /* §318. Which recording this piece is about, for a capture-backed format. */
+          ...(flowId ? { flowId } : {}),
+          /* §355. Recorded so a piece knows it was meant to match its siblings. */
+          ...(together && platforms.length > 1 ? { together: true } : {}),
+        }),
+      ],
+    );
+    if (inserted[0]) rows.push(inserted[0]);
+  }
 
   revalidatePath('/make');
   revalidatePath('/queue');
 
   const shape = format?.name ?? postFormat ?? 'a shape it chooses';
+  const where = platforms.length === 1 ? platforms[0] : `${platforms.length} platforms`;
   return {
     ok: true,
     jobId: rows[0]?.id,
     message: captureJobId
-      ? `Recording ${flowId} against the live product, then making ${shape} for ${platform}. ` +
+      ? `Recording ${flowId} against the live product, then making ${shape} for ${where}. ` +
         'A capture takes a couple of minutes; it appears in the queue when the render finishes.'
-      : `Making ${shape} for ${platform}. It appears in the queue when the render finishes.`,
+      : `Making ${shape} for ${where}. ${rows.length === 1 ? 'It appears' : 'They appear'} in the queue when the render finishes.`,
   };
 }

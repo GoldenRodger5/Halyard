@@ -1,23 +1,38 @@
 /**
- * §288. The button page.
+ * §355. The generation wizard's data, resolved on the server.
  *
- * The catalogue and the account states resolve here, on the server, and cross
- * to the client as plain data. A client component importing `@halyard/core`
- * reaches `node:crypto` and fails `next build` — `clientBoundary.test.ts` exists
- * because that once passed the whole suite and broke only there.
+ * `docs/UI_GENERATION_SPEC.md` describes the flow: where → what kind → shape →
+ * specifics → generate. Every narrowing in it is **derived**, never listed —
+ * which post types a set of platforms can carry, which formats a post type can
+ * hold, which flows can be recorded — because a hand-written list beside the
+ * adapters is what §349 found already disagreeing with them.
+ *
+ * All of it resolves here and crosses to the client as plain data. A client
+ * component importing `@halyard/core` reaches `node:crypto` and fails
+ * `next build` — `clientBoundary.test.ts` exists because that once passed the
+ * whole suite and broke only there.
  */
 import {
   POST_FORMATS,
   POST_FORMAT_CATALOG,
+  POST_TYPES,
+  POST_TYPE_CATALOG,
   allFlows,
+  canCarry,
+  getAdapter,
   platformsForFormat,
   requiresCitation,
+  supportFromConstraints,
+  type PlatformSupport,
 } from '@halyard/core';
 import { requireOperator } from '@/lib/auth';
 import { query } from '@/lib/db';
 import { MakeClient } from './MakeClient';
 
 export const dynamic = 'force-dynamic';
+
+/** Every platform Halyard has an adapter for, in the order the picker shows. */
+const PLATFORMS = ['tiktok', 'instagram', 'youtube', 'x', 'threads', 'pinterest'] as const;
 
 export default async function MakePage() {
   await requireOperator();
@@ -29,6 +44,42 @@ export default async function MakePage() {
   );
   const connected = Object.fromEntries(accounts.map((a) => [a.platform, a.capability_state]));
 
+  /**
+   * §355. What each platform can carry, from its own adapter.
+   *
+   * Read once here rather than in the client, both because the adapters are
+   * server-only and because the answer is the same for every operator — it is
+   * a property of the platform, not of the session.
+   */
+  const supports: PlatformSupport[] = PLATFORMS.map((platform) =>
+    supportFromConstraints(platform, getAdapter(platform as never).constraints),
+  );
+
+  /**
+   * The carriage matrix: for every post type, which platforms can carry it and
+   * **why not**, for the ones that cannot.
+   *
+   * The reason is the important half. A disabled button with no explanation
+   * makes an operator wonder whether it is broken; one that says "TikTok
+   * carries no caption-only post" tells them to drop TikTok or change the type.
+   */
+  const carriage = POST_TYPES.map((id) => {
+    const postType = POST_TYPE_CATALOG[id];
+    return {
+      id: postType.id,
+      name: postType.name,
+      intent: postType.intent,
+      media: postType.media,
+      channel: postType.channel,
+      byPlatform: Object.fromEntries(
+        supports.map((support) => {
+          const verdict = canCarry(postType, support);
+          return [support.platform, { ok: verdict.ok, because: verdict.because }];
+        }),
+      ),
+    };
+  });
+
   const formats = POST_FORMATS.map((id) => {
     const f = POST_FORMAT_CATALOG[id];
     return {
@@ -37,9 +88,10 @@ export default async function MakePage() {
       intent: f.intent,
       /* §295. Derived from channels — the format carries no second list. */
       platforms: platformsForFormat(f.id),
+      /* §355. Which briefs this format suits, so the wizard can narrow by type. */
+      channels: f.channels as string[],
       needsArtifact: f.needsArtifact,
       needsCitation: requiresCitation(f),
-      /* §318. Whether this shape asks which part of the app to record. */
       needsCapture: f.needsCapture === true,
     };
   });
@@ -47,24 +99,24 @@ export default async function MakePage() {
   /**
    * §318. The flows an operator can ask to have recorded.
    *
-   * Only the ones that start a session of their own. A flow with `dependsOn`
-   * acts on a result another flow produced and is captured as part of its
-   * chain, so offering it as a choice would be offering something that cannot
-   * be run — and `plumbing` flows are sign-in and setup, which nobody wants a
-   * video of.
+   * Only the ones that start a session of their own: a flow with `dependsOn`
+   * acts on a result another produced and is captured as part of its chain, and
+   * `plumbing` flows are sign-in and setup, which nobody wants a video of.
    */
   const flows = allFlows()
     .filter((f) => !f.dependsOn && !f.plumbing)
     .map((f) => ({ id: f.id, title: f.title, why: f.why }));
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-10">
-      <h1 className="text-2xl font-semibold">Make something</h1>
-      <p className="mb-8 mt-1 text-sm text-muted">
-        Pick where it goes and what shape it is. Everything after that is the same pipeline the
-        scheduler runs.
-      </p>
-      <MakeClient productId={productId} formats={formats} flows={flows} connected={connected} />
+    <main className="mx-auto w-full max-w-4xl px-6 py-10">
+      <MakeClient
+        productId={productId}
+        platforms={[...PLATFORMS]}
+        carriage={carriage}
+        formats={formats}
+        flows={flows}
+        connected={connected}
+      />
     </main>
   );
 }

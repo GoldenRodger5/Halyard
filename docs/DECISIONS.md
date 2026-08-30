@@ -8946,3 +8946,34 @@ is how a voiceover came to be written from a caption.
 `failed` row: a piece that should never have been started is not a piece that
 broke, and substituting a different kind is how a quiz quietly becomes a
 transformation post.
+
+## 355. The generation wizard, built on derivation
+
+`docs/UI_GENERATION_SPEC.md` was written first, deliberately: building the UI is
+what forces the option space to be complete, and an operator's flow that cannot
+be described cannot be built. The reordering was the operator's call and it is
+right — testing through scripts tests what I remember to test.
+
+**Every narrowing is derived.** Which post types a set of platforms can carry
+comes from `canCarry` reading each adapter's own constraints; which formats a
+post type can hold comes from the format's declared channels. Nothing in the
+wizard is a list beside the thing it describes, because §349 found exactly that
+already disagreeing.
+
+**Every, not any.** A post type is offered only when *all* chosen platforms can
+carry it. A piece made for three platforms and publishable to two fails at the
+last step, which is the most expensive place to find out.
+
+**Nothing is hidden; things are disabled with a reason.** An option that
+disappears makes an operator wonder whether the tool is broken. One greyed out
+saying "TikTok carries no caption-only post" tells them what to change.
+
+**A question with one answer is not a question.** "One piece or several" only
+appears when more than one platform is chosen. Clicking the only button is a
+step that wastes attention.
+
+**One job per platform.** `generate.ts` produces a piece for one account per run
+— its own comment says "one call per platform, never one call producing all
+platforms" — so a multi-platform request is several jobs. `together` is recorded
+rather than acted on: it changes what §352's finish does at publish, and making
+it literally share a render belongs in the handler.
