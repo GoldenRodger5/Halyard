@@ -17,6 +17,7 @@ import { Label, Sheet, cx } from '@halyard/ui/studio';
 import { PLATFORM_LABELS } from '@halyard/ui';
 import { MonitorWall } from '@/components/studio/MonitorWall';
 import { getProducts, getQueue } from '@/lib/queries';
+import { whenMs } from '@/lib/format';
 import { GalleryKeys } from '@/components/studio/GalleryKeys';
 
 export const dynamic = 'force-dynamic';
@@ -66,8 +67,22 @@ export default async function GalleryHolding({
   const counts: Record<string, number> = {
     holding: holdingAll.length,
     failed: failedAll.length,
-    all: 0,
+    /* Everything had no count and read as an empty option. */
+    all: unfiltered.length,
   };
+
+  /*
+   * §393. Oldest first while triaging.
+   *
+   * `getQueue` sorts newest-first, which is right for a feed and wrong for a
+   * queue: the oldest piece can sit for a fortnight while every new one lands
+   * above it. Sorted here rather than in the shared query, because the other
+   * callers genuinely do want newest-first.
+   */
+  const wall =
+    view.key === 'holding'
+      ? [...items].sort((a, b) => whenMs(a.created_at) - whenMs(b.created_at))
+      : items;
 
   /* Only platforms actually present, so no chip leads to an empty wall. */
   const platforms = [...new Set(unfiltered.map((i) => i.platform))].sort();
@@ -133,7 +148,7 @@ export default async function GalleryHolding({
         </Sheet>
       ) : (
         <>
-          <MonitorWall items={items} />
+          <MonitorWall items={wall} />
           <p className="text-xs leading-relaxed text-quiet">
             A dark monitor with a red lamp is a piece that could not be made. It stays on the
             wall — opening it says why in a sentence.
@@ -141,7 +156,7 @@ export default async function GalleryHolding({
         </>
       )}
 
-      <GalleryKeys ids={items.map((i) => i.id)} />
+      <GalleryKeys ids={wall.map((i) => i.id)} />
     </div>
   );
 }

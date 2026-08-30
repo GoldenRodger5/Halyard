@@ -9547,3 +9547,48 @@ what separates a product from a template, and neither fix required a new colour.
 JetBrains Mono are distinctive, legible and appropriate — the composition was
 doing the damage. Two faces the old console used were dropped from the font
 request, which is a saving rather than a design change.
+
+## 86 · A server-rendered image has already failed before React is listening
+
+**Chosen.** The render is painted as a **background**; a one-pixel `<img>` beside
+it is a probe, and its failure is detected on mount as well as by `onError`.
+
+**Why not an `<img>`.** A broken one draws a broken-image glyph and nothing
+turns that off — `alt=""` removes the text and the icon stays. Seventeen of them
+on the Gallery wall read as a broken product rather than as seventeen missing
+files. A background image that fails simply does not paint, and the monitor's
+own ground shows through, which is what a dead source looks like in a real
+gallery.
+
+**Why the probe needs both checks.** `onError` alone catches nothing here. The
+browser requests the picture while parsing the HTML and has failed it long
+before React hydrates and attaches a handler, so the event is missed entirely —
+thirteen missing files went unlabelled while the four with no render at all were
+labelled, which is the inconsistency the component exists to remove. A finished
+image with `naturalWidth === 0` is a failed one, and checking that on mount
+catches the ones that failed before anybody was listening.
+
+The probe is one pixel rather than zero because a zero-size image is not
+reliably fetched — the first version was `h-0 w-0` and never loaded at all.
+
+**On the way:** `created_at` arrives from `pg` as a **Date** while the codebase
+types timestamps as `string`, so `created_at.localeCompare(…)` threw. The same
+line in the Rundown was one scheduled post away from throwing too. Sorting by
+time now goes through `whenMs`, which accepts either.
+
+## 87 · A review queue sorted newest-first starves its oldest item
+
+**Chosen.** The holding wall sorts oldest-first, and every monitor shows its age.
+
+**Why.** `getQueue` orders newest-first, which is right for a feed and wrong for
+a queue: the oldest piece sits while every new one lands above it. The readiness
+check already warns about exactly this — *"17 awaiting approval. Better six
+items you consider than twenty you skim"* — and the wall gave no way to act on
+the warning, because nothing on it said which had been waiting longest.
+
+Sorted in the room rather than in the shared query, because the other callers
+genuinely do want newest-first.
+
+Age is one field and it is what makes the wall triageable: seventeen identical
+tiles become seventeen tiles with an order. Anything over a week is marked, so
+the thing that has been ignored is the thing that stands out.

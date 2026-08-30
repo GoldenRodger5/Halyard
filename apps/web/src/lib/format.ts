@@ -96,3 +96,21 @@ export function formatDuration(seconds: number): string {
   if (hours < 24) return `${hours < 10 ? hours.toFixed(1) : Math.round(hours)} hours`;
   return `${Math.round(hours / 24)} days`;
 }
+
+/**
+ * §393. A timestamp's instant, whatever `pg` handed back.
+ *
+ * node-postgres decodes `timestamptz` to a JavaScript **Date**, and this
+ * codebase types those columns as `string` because that is what they are on the
+ * wire and in JSON. Both are true and the mismatch is harmless until something
+ * calls a string method on one: `created_at.localeCompare(...)` threw
+ * *"a.created_at.localeCompare is not a function"* on the Gallery, and the same
+ * line in the Rundown was one scheduled post away from doing it too.
+ *
+ * Sorting by time goes through here. `new Date()` accepts both, so this is
+ * correct for whichever the driver decides to give us.
+ */
+export function whenMs(value: string | Date | null | undefined): number {
+  if (!value) return 0;
+  return new Date(value).getTime();
+}

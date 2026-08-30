@@ -35,6 +35,13 @@ const NON_COLOUR = new Set([
   'inherit','auto','current','transparent','px','0','1','2','3','4','8',
   // `border-collapse` is a table model; `outline-offset-2` is a length.
   'collapse','separate','offset','offset-2','offset-4',
+  /*
+   * §393. `bg-` also prefixes a background's *size*, *position*, *repeat* and
+   * *attachment*. `bg-cover` names how a picture fills its box, which is a
+   * shape, not a hue — the same distinction `SHAPE_NOT_COLOUR` draws for
+   * gradients.
+   */
+  'cover','contain','repeat','no-repeat','repeat-x','repeat-y','local','scroll',
 ]);
 
 /**

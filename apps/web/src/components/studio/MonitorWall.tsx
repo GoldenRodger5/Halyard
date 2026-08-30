@@ -46,6 +46,19 @@ export function lampFor(item: QueueItem) {
   return tallyFor(item.status);
 }
 
+/** Whole days since it was made. */
+export function waitedDays(item: QueueItem): number {
+  return Math.max(0, Math.floor((Date.now() - new Date(item.created_at).getTime()) / 86_400_000));
+}
+
+/** Age, in the shortest form that is still true. */
+function age(item: QueueItem): string {
+  const days = waitedDays(item);
+  if (days === 0) return 'today';
+  if (days < 7) return `${days}d`;
+  return `${Math.floor(days / 7)}w`;
+}
+
 export function Monitor({ item, selected }: { item: QueueItem; selected?: boolean }) {
   const picture = item.preview_urls[0];
   const lamp = lampFor(item);
@@ -94,8 +107,25 @@ export function Monitor({ item, selected }: { item: QueueItem; selected?: boolea
       </div>
       <div className="flex items-center gap-1.5 bg-[#101817] px-2 py-1.5">
         <Tally state={lamp} size={6} />
-        <span className="truncate font-data text-[8px] uppercase tracking-[0.08em] text-[#7C918C]">
+        <span className="min-w-0 flex-1 truncate font-data text-[8px] uppercase tracking-[0.08em] text-[#7C918C]">
           {PLATFORM_LABELS[item.platform] ?? item.platform}
+        </span>
+        {/*
+          §393. How long it has been waiting.
+          
+          A wall of seventeen pieces gives no sense of which to open first, and
+          the queue sorted newest-first — so the oldest could sit indefinitely,
+          which is exactly what the readiness check warns about. Age is the one
+          fact that makes the wall triageable, and it is one field.
+        */}
+        <span
+          className={cx(
+            'shrink-0 font-data text-[8px] tabular-nums',
+            waitedDays(item) >= 7 ? 'text-lit' : 'text-[#5F7975]',
+          )}
+          title={`Made ${waitedDays(item)} days ago`}
+        >
+          {age(item)}
         </span>
       </div>
     </Link>

@@ -27,6 +27,20 @@ screen authorises whoever is already there, without ever asking.
 
 ---
 
+## 0. Use the stable URL, not the deployment URL
+
+`vercel --prod` prints an **immutable** URL — `halyard-1tokfh97i-….vercel.app` —
+which is different for every deploy. It can never be on an OAuth allow-list,
+because the list would be stale the next time anything ships.
+
+The production alias is stable and is the one to configure everywhere:
+
+```
+https://halyard-ten.vercel.app
+```
+
+(`vercel inspect <deployment>` lists the aliases.)
+
 ## 1. Google Cloud Console
 
 The OAuth client already exists — `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`
@@ -44,7 +58,7 @@ Also add, under **Authorised JavaScript origins**, wherever the app is served:
 
 ```
 http://localhost:3200
-https://<your-production-domain>
+https://halyard-ten.vercel.app
 ```
 
 A redirect URI pointing at Halyard rather than Supabase is the usual mistake
@@ -63,8 +77,8 @@ Then *Authentication → URL Configuration*:
 
 | Field | Value |
 |---|---|
-| Site URL | `http://localhost:3200` for local, the production domain for production |
-| Redirect URLs | add `http://localhost:3200/api/auth/callback` **and** `https://<production-domain>/api/auth/callback` |
+| Site URL | `https://halyard-ten.vercel.app` |
+| Redirect URLs | `http://localhost:3200/api/auth/callback` **and** `https://halyard-ten.vercel.app/api/auth/callback` |
 
 Supabase refuses a redirect that is not on that list, silently returning to the
 site URL — so a sign-in that appears to work and lands you signed out is almost
@@ -83,6 +97,18 @@ values ('<supabase auth user id>', '<email>');
 The user id is in *Authentication → Users* in the Supabase dashboard.
 
 ---
+
+## What each failure means
+
+The message tells you which of the three steps is missing:
+
+| What you see | What is missing |
+|---|---|
+| `redirect_uri_mismatch` from Google | Step 1 — the Supabase callback is not in the Google client's redirect URIs |
+| `Unsupported provider: provider is not enabled` | Step 2 — Google is not enabled in Supabase |
+| Google succeeds, you land back on `/signin` signed out | Step 2 — the app's `/api/auth/callback` is not in Supabase's Redirect URLs |
+| *"That address is not on the allow-list for this instance."* | Step 3 — the account is not in `admin_users`. This one is the app working correctly |
+| A Vercel login wall before you reach the page | Deployment protection, not auth. Open it while signed into Vercel, or turn protection off for this project |
 
 ## Checking it
 

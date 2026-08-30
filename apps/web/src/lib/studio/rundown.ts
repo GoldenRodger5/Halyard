@@ -17,7 +17,7 @@
  */
 import 'server-only';
 import { query } from '@/lib/db';
-import { formatInOperatorTz } from '@/lib/format';
+import { formatInOperatorTz, whenMs } from '@/lib/format';
 
 export interface RundownEntry {
   kind: 'piece' | 'open';
@@ -182,7 +182,7 @@ export async function readRundown(days = 7): Promise<{ days: RundownDay[]; timeZ
   const ordered: RundownDay[] = [...byDay.entries()]
     .map(([label, entries]) => ({
       label,
-      entries: entries.sort((a, b) => a.atIso.localeCompare(b.atIso)),
+      entries: entries.sort((a, b) => whenMs(a.atIso) - whenMs(b.atIso)),
       open: {
         count: openCount.get(label) ?? 0,
         platforms: [...(openByDay.get(label) ?? [])].sort(),

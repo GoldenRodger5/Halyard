@@ -252,6 +252,8 @@ export interface QueueItem {
   failed_because: string | null;
   /** §362. The line written when this was rejected, which trains the voice. */
   reject_reason: string | null;
+  /** §393. When it was made. The Gallery sorts and labels the wall by this. */
+  created_at: string;
   /** §372. The screenplay, or null when the piece was never staged. */
   screenplay: Screenplay | null;
   /** §380. What did not fit the caption, and where it belongs. */
@@ -322,6 +324,7 @@ const QUEUE_SELECT = `
          p.destinations ->> 'share_url_template' as product_share_template,
          i.title as idea_title,
          s.name as series_name,
+         ci.created_at,
          ci.product_artifact ->> 'recipeName' as artifact_headline,
          coalesce(r.total, 0)  as render_total,
          coalesce(r.done, 0)   as render_done,
