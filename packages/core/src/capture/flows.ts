@@ -394,7 +394,30 @@ export const FLOWS: Record<FlowId, CaptureFlow> = {
           'role=checkbox[name=/gluten[- ]?free/i]',
           'button:has-text("Gluten-Free")',
         ],
-        narration: 'One constraint. This is the only input.',
+        narration: 'Say what you need. Gluten-free.',
+      },
+      {
+        /*
+         * §321. A second constraint, because one is not the interesting case.
+         *
+         * The flow demonstrated a single diet chip and narrated it as "the only
+         * input", which undersells the product and is not what a real person
+         * does — people arrive with more than one requirement. Two also proves
+         * something a single chip cannot: that the constraints compose rather
+         * than the second replacing the first.
+         *
+         * Optional, because a product's chip list is a product decision and a
+         * missing one must not stop the recording of everything around it.
+         */
+        name: 'add a second constraint',
+        action: 'click',
+        selector: 'role=button[name="High-Protein"]',
+        fallbackSelectors: [
+          'role=button[name=/high[- ]?protein/i]',
+          'button:has-text("High-Protein")',
+        ],
+        optional: true,
+        narration: 'And high-protein. They stack.',
       },
       {
         /*
@@ -485,12 +508,56 @@ export const FLOWS: Record<FlowId, CaptureFlow> = {
       { name: 'let the result settle', action: 'wait', value: '1200' },
       { name: 'still of the finished card', action: 'still', value: 'result-card' },
       {
+        /*
+         * §321. Walk the result, rather than cutting from submit to a swap.
+         *
+         * The recording went straight from the button to one expanded
+         * ingredient, so the piece never showed *what came back* — which is the
+         * only thing the product is being judged on. A viewer needs to see the
+         * adapted recipe as a recipe before being shown how one line of it
+         * changed.
+         *
+         * Every step here is optional. They are a tour of a page whose layout
+         * belongs to the product, and a missing heading must never cost the
+         * recording of the parts that do exist.
+         */
+        name: 'show the servings',
+        action: 'scrollTo',
+        selector: 'text=/servings/i',
+        optional: true,
+        narration: 'It kept the servings you asked for.',
+      },
+      { name: 'read the servings', action: 'wait', value: '1400', optional: true },
+      {
+        name: 'show the ingredients',
+        action: 'scrollTo',
+        selector: 'text=/^ingredients/i',
+        fallbackSelectors: ['text=/ingredients/i'],
+        optional: true,
+        narration: 'Every ingredient, rewritten — not just the ones that broke.',
+      },
+      { name: 'read the ingredients', action: 'wait', value: '1800', optional: true },
+      {
         name: 'expand a swapped ingredient',
         action: 'click',
         selector: 'button:has-text("SWAPPED")',
-        narration: 'Every substitution says why it was made.',
+        narration: 'And each swap says why it was made.',
       },
       { name: 'hold on the reason', action: 'wait', value: '2500' },
+      {
+        /*
+         * §321. The refinement control, which is the answer to "what if I do
+         * not like it" — the objection a viewer has at exactly this moment,
+         * having just been shown an automated rewrite of their recipe.
+         */
+        name: 'show that it can be refined',
+        action: 'scrollTo',
+        selector: 'role=button[name=/refine/i]',
+        fallbackSelectors: ['button:has-text("Refine")', 'text=/not quite right/i'],
+        optional: true,
+        narration: 'Not quite right? Tell it what to change.',
+      },
+      { name: 'hold on the refine control', action: 'wait', value: '1600', optional: true },
       { name: 'still of the reveal', action: 'still', value: 'swap-reason' },
     ],
   },

@@ -33,6 +33,7 @@ import {
   AbsoluteFill,
   Audio,
   OffthreadVideo,
+  Sequence,
   staticFile,
   interpolate,
   spring,
@@ -89,6 +90,21 @@ export interface WalkthroughProps {
   wordmark?: string;
   /** §306. How long the capture is, so the piece is exactly that long. */
   footageSeconds?: number;
+  /**
+   * §321. Stretches of the recording to play faster, in footage seconds.
+   *
+   * A walkthrough has one genuinely dead passage — the product working — and
+   * two passages that must be watchable: the input, and the result. The first
+   * real one played the whole recording at 1× and read as *too fast overall*,
+   * which sounds contradictory until you look at it: the interesting parts were
+   * given the same time as the waiting, so nothing had room and everything felt
+   * rushed.
+   *
+   * Speeding only the wait buys that room without cutting anything. It is also
+   * more honest than a cut: the viewer sees the product take time, compressed,
+   * rather than being shown a result that appears instantly.
+   */
+  speedRamps?: Array<{ fromSeconds: number; toSeconds: number; rate: number }>;
 }
 
 const face = (t: RenderTypography | undefined, role: 'display' | 'body' | 'label') =>
@@ -224,9 +240,18 @@ const Callout: React.FC<{
       <div
         style={{
           position: 'absolute',
-          left: '6%',
-          right: '6%',
-          bottom: '11%',
+          /*
+           * §321. Below the device, not across it.
+           *
+           * The label was pinned inside the phone at 11% from the bottom, so it
+           * sat on top of the product's own UI — covering the ingredient rows
+           * in the first real walkthrough, which are the thing the callout is
+           * asking the viewer to look at. A pointer that hides its subject is
+           * worse than no pointer.
+           */
+          left: '8%',
+          right: '8%',
+          bottom: '4%',
           opacity,
           transform: `translateY(${(1 - enter) * 18}px)`,
         }}
@@ -259,6 +284,8 @@ export const Walkthrough: React.FC<WalkthroughProps> = ({
   callouts = [],
   audioSrc,
   wordmark,
+  footageSeconds,
+  speedRamps,
 }) => {
   const frame = useCurrentFrame();
   const { fps, width, height } = useVideoConfig();
@@ -273,6 +300,49 @@ export const Walkthrough: React.FC<WalkthroughProps> = ({
   const drift = interpolate(seconds, [0, 30], [0, 1], { extrapolateRight: 'clamp' });
   const bgScale = 1.08 + drift * 0.08;
   const bgShift = drift * -40;
+
+  /**
+   * §321. The recording, split into segments at every change of pace.
+   *
+   * One video element cannot change `playbackRate` mid-clip, so a ramp is
+   * expressed as the segments it varies across. Each segment states which
+   * stretch of the *recording* it plays and how fast, and the timeline
+   * position follows from the ones before it.
+   *
+   * With no ramps this produces exactly one segment at 1×, which is the
+   * previous behaviour — so a walkthrough that does not need this is unchanged
+   * rather than newly routed through a code path it never used.
+   */
+  const segments = React.useMemo(() => {
+    const total = footageSeconds && footageSeconds > 0 ? footageSeconds : 20;
+    const ramps = [...(speedRamps ?? [])]
+      .filter((r) => r.rate > 0 && r.toSeconds > r.fromSeconds)
+      .sort((a, b) => a.fromSeconds - b.fromSeconds);
+
+    const parts: Array<{ sourceFromSeconds: number; sourceToSeconds: number; rate: number }> = [];
+    let at = 0;
+    for (const ramp of ramps) {
+      const from = Math.max(at, ramp.fromSeconds);
+      const to = Math.min(total, ramp.toSeconds);
+      if (to <= from) continue;
+      if (from > at) parts.push({ sourceFromSeconds: at, sourceToSeconds: from, rate: 1 });
+      parts.push({ sourceFromSeconds: from, sourceToSeconds: to, rate: ramp.rate });
+      at = to;
+    }
+    if (at < total) parts.push({ sourceFromSeconds: at, sourceToSeconds: total, rate: 1 });
+
+    let cursor = 0;
+    return parts.map((part) => {
+      /* Played length is source length divided by how fast it is played. */
+      const durationInFrames = Math.max(
+        1,
+        Math.round(((part.sourceToSeconds - part.sourceFromSeconds) / part.rate) * fps),
+      );
+      const segment = { ...part, fromFrame: cursor, durationInFrames };
+      cursor += durationInFrames;
+      return segment;
+    });
+  }, [footageSeconds, speedRamps, fps]);
 
   /* The device rises once, then holds. */
   const rise = spring({ frame, fps, config: { damping: 200 }, durationInFrames: Math.round(fps * 0.6) });
@@ -339,23 +409,46 @@ export const Walkthrough: React.FC<WalkthroughProps> = ({
           }}
         >
           <PhoneFrame width={phoneWidth} brand={brand}>
-            <OffthreadVideo
-              /*
-               * §319. `staticFile`, like every other composition here.
-               *
-               * This passed `screenSrc` straight through, so a bundle-relative
-               * path — which is exactly what `stageFootage` produces and what
-               * the render handler stores — resolved against the bundle root
-               * instead of `public/` and 404'd. The one composition built
-               * around a video file could not load one.
-               *
-               * A data URI or an absolute URL is left alone: `staticFile` is
-               * for paths inside the bundle, and wrapping either of those
-               * would corrupt it.
-               */
-              src={/^(https?:|data:|blob:|file:)/.test(screenSrc) ? screenSrc : staticFile(screenSrc)}
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-            />
+            {/*
+              §321. The recording, with the waiting compressed.
+
+              `playbackRate` changes over time, so this is a sequence of
+              segments rather than one video element — Remotion resolves a
+              frame by asking for a timestamp, and a rate that varies mid-clip
+              has to be expressed as the segments it varies across.
+            */}
+            {segments.map((segment, i) => (
+              <Sequence
+                key={`seg-${i}`}
+                from={segment.fromFrame}
+                durationInFrames={segment.durationInFrames}
+              >
+                <OffthreadVideo
+                  /*
+                   * §319. `staticFile`, like every other composition here.
+                   *
+                   * This passed `screenSrc` straight through, so a
+                   * bundle-relative path — which is what `stageFootage`
+                   * produces — resolved against the bundle root instead of
+                   * `public/` and 404'd. The one composition built around a
+                   * video file could not load one.
+                   *
+                   * A data URI or absolute URL is left alone: `staticFile` is
+                   * for paths inside the bundle.
+                   */
+                  src={
+                    /^(https?:|data:|blob:|file:)/.test(screenSrc)
+                      ? screenSrc
+                      : staticFile(screenSrc)
+                  }
+                  /* Where in the recording this segment starts. */
+                  startFrom={Math.round(segment.sourceFromSeconds * fps)}
+                  endAt={Math.round(segment.sourceToSeconds * fps)}
+                  playbackRate={segment.rate}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+              </Sequence>
+            ))}
             {/* Callouts that point at the screen live inside the frame. */}
             {callouts
               .filter((c) => c.at)
@@ -431,4 +524,29 @@ export function calloutsFromSteps(
     at: s.at ?? null,
     holdSeconds: 2.4,
   }));
+}
+
+
+/**
+ * §321. How long a walkthrough runs, once the ramps are applied.
+ *
+ * Not the footage length: a stretch played at 3× occupies a third of the
+ * timeline it would have. A composition sized from the raw footage would hold a
+ * frozen final frame for the difference, which is the `media.dead_tail` finding
+ * §317 added — and it would be right.
+ */
+export function walkthroughDurationSeconds(
+  footageSeconds: number,
+  speedRamps: Array<{ fromSeconds: number; toSeconds: number; rate: number }> = [],
+): number {
+  let saved = 0;
+  for (const ramp of speedRamps) {
+    if (ramp.rate <= 0) continue;
+    const from = Math.max(0, ramp.fromSeconds);
+    const to = Math.min(footageSeconds, ramp.toSeconds);
+    if (to <= from) continue;
+    const source = to - from;
+    saved += source - source / ramp.rate;
+  }
+  return Number(Math.max(1, footageSeconds - saved).toFixed(2));
 }

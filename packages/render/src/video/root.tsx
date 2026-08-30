@@ -15,7 +15,7 @@
 import React from 'react';
 import { Composition } from 'remotion';
 import { QuizVideo, quizDurationFor, quizDurationSeconds } from './quiz.js';
-import { Walkthrough } from './walkthrough.js';
+import { Walkthrough, walkthroughDurationSeconds } from './walkthrough.js';
 import { Narrative, narrativeDurationSeconds } from './narrative.js';
 import { DEFAULT_BRAND } from '../brand.js';
 import { LANDSCAPE_SUFFIX } from './geometry.js';
@@ -65,10 +65,20 @@ export const RemotionRoot: React.FC = () => (
        * long as the thing it shows.
        */
       calculateMetadata={({ props }) => {
-        const seconds = (props as { footageSeconds?: number }).footageSeconds;
-        return {
-          durationInFrames: Math.round(VIDEO_FPS * (seconds && seconds > 0 ? seconds : 20)),
+        /*
+         * §321. After the ramps. A stretch played at 3× occupies a third of the
+         * timeline, and a composition sized from raw footage would hold a
+         * frozen final frame for the difference.
+         */
+        const p = props as {
+          footageSeconds?: number;
+          speedRamps?: Array<{ fromSeconds: number; toSeconds: number; rate: number }>;
         };
+        const seconds =
+          p.footageSeconds && p.footageSeconds > 0
+            ? walkthroughDurationSeconds(p.footageSeconds, p.speedRamps ?? [])
+            : 20;
+        return { durationInFrames: Math.round(VIDEO_FPS * seconds) };
       }}
       durationInFrames={VIDEO_FPS * 20}
       fps={VIDEO_FPS}

@@ -20,6 +20,31 @@ import {
   type FlowStep,
 } from '@halyard/core';
 
+/**
+ * §321. Record at twice the viewport, then let the composition scale it down.
+ *
+ * A capture is taken at the phone viewport — 430×932 — and the walkthrough
+ * draws it inside a device 670px wide on a 1080-wide frame. Upscaling 430 to
+ * 670 is a 1.56× enlargement of every glyph in the product's UI, which is
+ * exactly why the first real walkthrough read as blurry: the type on screen was
+ * never sharp, it was interpolated.
+ *
+ * Playwright's `recordVideo.size` is independent of the viewport — the page
+ * still lays out at 430 and thinks it is a phone — so this is free resolution
+ * rather than a different layout. Downscaling 860 to 670 is a reduction, which
+ * is always sharp.
+ */
+export function recordingSize(viewport: { width: number; height: number }): {
+  width: number;
+  height: number;
+} {
+  /* Even numbers: H.264 requires them and an odd dimension fails the encode. */
+  return {
+    width: Math.round((viewport.width * 2) / 2) * 2,
+    height: Math.round((viewport.height * 2) / 2) * 2,
+  };
+}
+
 export interface StepResult {
   step: string;
   action: FlowStep['action'];
@@ -247,7 +272,7 @@ export async function runFlow(
     // A capture is footage; a verification is a check. Only one needs video.
     recordVideo:
       options.mode === 'capture'
-        ? { dir: path.join(outDir, 'video'), size: flow.viewport }
+        ? { dir: path.join(outDir, 'video'), size: recordingSize(flow.viewport) }
         : undefined,
     // Motion is the point of the recording, so the reduced-motion default that
     // Playwright would otherwise leave alone is set explicitly to "no
@@ -547,7 +572,7 @@ export async function runFlowChain(
     deviceScaleFactor: 2,
     recordVideo:
       options.mode === 'capture'
-        ? { dir: path.join(outDir, 'video'), size: root.viewport }
+        ? { dir: path.join(outDir, 'video'), size: recordingSize(root.viewport) }
         : undefined,
     reducedMotion: 'no-preference',
   });
