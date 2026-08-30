@@ -536,3 +536,19 @@ export async function adjustItem(formData: FormData): Promise<void> {
   revalidatePath(`/queue/${id}`);
   revalidatePath('/queue');
 }
+
+/**
+ * §380. Record that the overflow was posted by hand.
+ *
+ * `overflow_posted_at` has been a column with no writer. There is deliberately
+ * no `reply()` on the adapter interface (v1 §13) — Halyard drafts and a person
+ * sends — so this is the person saying they sent it, which is the only way that
+ * column could ever be true.
+ */
+export async function markOverflowPosted(formData: FormData): Promise<void> {
+  await requireOperator();
+  const id = String(formData.get('id'));
+  await query(`update content_items set overflow_posted_at = now() where id = $1`, [id]);
+  await audit('overflow_posted', id, {});
+  revalidatePath(`/queue/${id}`);
+}

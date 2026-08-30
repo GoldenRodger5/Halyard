@@ -254,6 +254,10 @@ export interface QueueItem {
   reject_reason: string | null;
   /** §372. The screenplay, or null when the piece was never staged. */
   screenplay: Screenplay | null;
+  /** §380. What did not fit the caption, and where it belongs. */
+  overflow_body: string | null;
+  overflow_home: string | null;
+  overflow_posted_at: string | null;
   destination_type: string | null;
   destination_url: string | null;
   destination_reason: string | null;
@@ -289,6 +293,15 @@ const QUEUE_SELECT = `
          -- §372. What this piece was staged from, so the review screen can show
          -- what it was meant to be beside what it became.
          ci.screenplay,
+         -- §380. The writing that did not fit the caption budget.
+         --
+         -- Written since §215, which says it is "posted as a first comment or a
+         -- reply, never discarded" — and read by nothing, so it was discarded,
+         -- silently, on every piece that had one. It cannot be posted
+         -- automatically: the adapter interface deliberately has no reply()
+         -- method (v1 §13), because Halyard drafts and a person sends. So it is
+         -- shown to the person who sends.
+         ci.overflow_body, ci.overflow_home, ci.overflow_posted_at,
          ci.board_id, ci.board_reason, ci.media_observations,
          sa.transport,
          sa.handle as account_handle,

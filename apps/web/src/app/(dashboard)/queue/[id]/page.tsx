@@ -20,6 +20,7 @@ import {
 import { AssetPicker } from '@/components/AssetPicker';
 import { PieceAccountPanel } from '@/components/PieceAccountPanel';
 import { ScreenplayPanel } from '@/components/ScreenplayPanel';
+import { OverflowPanel } from '@/components/OverflowPanel';
 import { AdjustPanel } from '@/components/AdjustPanel';
 import { ManualPublish } from '@/components/ManualPublish';
 import {
@@ -427,6 +428,14 @@ export default async function QueueItemPage({ params }: { params: Promise<{ id: 
               </p>
             </Card>
           ) : null}
+
+          {/* §380. What did not fit the caption, and where it goes. */}
+          <OverflowPanel
+            id={id}
+            body={item.overflow_body}
+            home={item.overflow_home}
+            postedAt={item.overflow_posted_at}
+          />
 
           {/*
             §373. The review step's decision half: ask for a change, and say
