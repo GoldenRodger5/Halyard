@@ -10,8 +10,10 @@ import {
   conceptDiversity,
   requirementMet,
   scoreConcepts,
+  scoreSpread,
   type Concept,
   type ConceptCapabilities,
+  type ScoredConcept,
 } from './score.js';
 import { analysePortfolio } from '../social/portfolio.js';
 import { computeInsights } from '../learning/insights.js';
@@ -212,5 +214,54 @@ describe('conceptDiversity — the failure a ranking cannot detect', () => {
     const d = conceptDiversity([concept()]);
     expect(d.meanPremiseOverlap).toBe(0);
     expect(d.diverse).toBe(false);
+  });
+});
+
+/**
+ * §366. The first real batch scored eleven concepts 4.50 apiece. Nothing was
+ * broken; nothing yet existed to tell them apart. These pin the difference
+ * between a ranking and a tie, because the screen has to say which it is.
+ */
+describe('whether a batch is actually ranked', () => {
+  const at = (score: number, buildable = true): ScoredConcept =>
+    ({
+      score: buildable ? score : 0,
+      buildable,
+      breakdown: {},
+      unmetRequirements: [],
+      reason: '',
+      concept: {} as never,
+    }) as unknown as ScoredConcept;
+
+  it('calls an all-equal batch a tie and says why', () => {
+    const verdict = scoreSpread([at(4.5), at(4.5), at(4.5)]);
+    expect(verdict.discriminating).toBe(false);
+    expect(verdict.spread).toBe(0);
+    expect(verdict.because).toContain('nothing has been measured');
+  });
+
+  it('treats a rounding-width gap as a tie', () => {
+    /* 0.06 across weights of 2.0 and 1.4 is not a real difference in either. */
+    expect(scoreSpread([at(4.5), at(4.56)]).discriminating).toBe(false);
+  });
+
+  it('calls a real spread a ranking', () => {
+    const verdict = scoreSpread([at(4.5), at(2.1), at(3.4)]);
+    expect(verdict.discriminating).toBe(true);
+    expect(verdict.spread).toBe(2.4);
+  });
+
+  it('ignores unbuildable concepts, which sit at zero by design', () => {
+    /*
+     * §218 keeps them at 0 rather than deleting them. Counting that zero as
+     * the bottom of the range would make every tied batch look ranked.
+     */
+    const verdict = scoreSpread([at(4.5), at(4.5), at(0, false)]);
+    expect(verdict.discriminating).toBe(false);
+  });
+
+  it('says so when there is nothing to compare', () => {
+    expect(scoreSpread([at(4.5)]).because).toContain('nothing to compare');
+    expect(scoreSpread([at(0, false)]).because).toContain('nothing to rank');
   });
 });

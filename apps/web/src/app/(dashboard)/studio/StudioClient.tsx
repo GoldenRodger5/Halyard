@@ -92,14 +92,36 @@ export function StudioClient(props: {
       {props.batches.map((batch) => {
         const open = batch.concepts.filter((c) => c.status === 'proposed');
         if (open.length === 0) return null;
+        /*
+          §366. Whether these scores are a ranking or a tie.
+
+          The first real batch gave eleven concepts 4.50 apiece — correct, and
+          not a ranking: with no objective, no performance record and no account
+          history, every component maxes identically. Printing the number beside
+          each one said they had been weighed and come out level, when nothing
+          existed to weigh them with.
+        */
+        const buildableScores = open
+          .filter((c) => Number(c.score ?? 0) > 0)
+          .map((c) => Number(c.score));
+        const spread =
+          buildableScores.length < 2
+            ? 0
+            : Math.max(...buildableScores) - Math.min(...buildableScores);
+        const ranked = spread >= 0.1;
         return (
           <Card key={batch.batch_id} className="p-4">
-            <div className="mb-3 flex items-center justify-between">
+            <div className="mb-1 flex items-center justify-between">
               <SectionTitle>{open.length} ways in</SectionTitle>
               <span className="text-xs text-muted">
                 {new Date(batch.created_at).toLocaleString()}
               </span>
             </div>
+            <p className="mb-3 text-xs leading-relaxed text-muted">
+              {ranked
+                ? 'Ranked by evidence, novelty against what this account has posted, and what performance has established.'
+                : 'These all score the same, because nothing has been measured that could separate them yet — no objective is set, no treatment has a performance record, and the account has no history to be novel against. Choose on the idea, not on a number.'}
+            </p>
 
             <div className="space-y-3">
               {open.map((concept) => {
@@ -121,11 +143,11 @@ export function StudioClient(props: {
                           build it" is information about the product's evidence
                           gaps, and hiding it destroys the only record.
                         */}
-                        {buildable ? (
-                          <Badge tone="neutral">{Number(concept.score).toFixed(2)}</Badge>
-                        ) : (
+                        {!buildable ? (
                           <Badge tone="warn">unbuildable</Badge>
-                        )}
+                        ) : ranked ? (
+                          <Badge tone="neutral">{Number(concept.score).toFixed(2)}</Badge>
+                        ) : null}
                       </div>
                     </div>
 

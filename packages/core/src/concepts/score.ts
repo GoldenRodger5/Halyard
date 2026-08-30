@@ -284,3 +284,69 @@ export function conceptDiversity(concepts: Concept[]): {
     diverse: treatments.size > 1 && meanPremiseOverlap < 0.4,
   };
 }
+
+/**
+ * §366. Whether a batch's scores mean anything yet.
+ *
+ * The first real batch scored eleven concepts and gave every one of them
+ * **4.50**. Nothing was broken: with no objective chosen, no learned insights,
+ * no portfolio history and no recent treatments, every component maxes
+ * identically — evidence 1.0, novelty 1.0, platformFit 1.0, objectiveFit at the
+ * 0.5 neutral, learned and portfolio at zero. 2.0 + 1.4 + 0.5 + 0.6 = 4.5,
+ * eleven times.
+ *
+ * The number is correct and it is not a ranking. Printing it beside each
+ * concept tells an operator these were weighed and came out level, when what
+ * actually happened is that nothing yet exists to weigh them with — the same
+ * distinction gotcha 9 draws between a measured zero and an absent one, arriving
+ * in a third place.
+ *
+ * So a caller can ask. A tied batch is presented as a set of alternatives to
+ * choose between on their merits; a spread one is presented as a ranking.
+ */
+export interface ScoreSpread {
+  /** True when the scores actually separate the concepts. */
+  discriminating: boolean;
+  /** Difference between the best and worst buildable score. */
+  spread: number;
+  /** One line for the screen, saying which situation this is. */
+  because: string;
+}
+
+/**
+ * Below this, two scores are the same answer with rounding between them.
+ *
+ * A tenth of a point on a scale whose components are weighted 2.0, 1.4, 1.0 and
+ * 0.6 cannot come from a real difference in any of them.
+ */
+const MEANINGFUL_SPREAD = 0.1;
+
+export function scoreSpread(scored: ScoredConcept[]): ScoreSpread {
+  const buildable = scored.filter((s) => s.buildable).map((s) => s.score);
+  if (buildable.length < 2) {
+    return {
+      discriminating: false,
+      spread: 0,
+      because:
+        buildable.length === 0
+          ? 'Nothing in this batch can be built, so there is nothing to rank.'
+          : 'One buildable concept, so there is nothing to compare it against.',
+    };
+  }
+
+  const spread = Math.max(...buildable) - Math.min(...buildable);
+  if (spread < MEANINGFUL_SPREAD) {
+    return {
+      discriminating: false,
+      spread: Math.round(spread * 100) / 100,
+      because:
+        'These all score the same, because nothing has been measured that could separate them yet — no objective was set, no treatment has a performance record, and the account has no history to be novel against. Choose on the idea, not on a number.',
+    };
+  }
+
+  return {
+    discriminating: true,
+    spread: Math.round(spread * 100) / 100,
+    because: 'Ranked by evidence, novelty against what this account has posted, and what performance has established.',
+  };
+}
