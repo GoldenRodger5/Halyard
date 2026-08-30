@@ -72,7 +72,30 @@ async function migrateInto(pool: pg.Pool): Promise<void> {
     .filter((f) => f.endsWith('.sql'))
     .sort();
   for (const file of files) {
-    await pool.query(readFileSync(path.join(MIGRATIONS, file), 'utf8'));
+    try {
+      await pool.query(readFileSync(path.join(MIGRATIONS, file), 'utf8'));
+    } catch (err) {
+      /**
+       * §379. Say which migration, and say what it means.
+       *
+       * Migrations 0061 and 0063 inserted rows referencing a product that does
+       * not exist until `seed.sql` runs, so they failed on a clean database and
+       * took this whole function down. Every caller guards on
+       * `databaseAvailable()`, which was still true — the database was fine —
+       * so the failure surfaced as *453 skipped tests* for a day. A skipped
+       * test reports green.
+       *
+       * The error carried no file name, which is why it took a while to find.
+       * It does now, and it says the thing worth knowing: a migration must
+       * apply to an empty database, because that is the only kind CI has.
+       */
+      throw new Error(
+        `Migration ${file} failed against a clean database: ${(err as Error).message}\n` +
+          'A migration has to apply to an empty database — CI has no other kind. ' +
+          'Product-scoped seed data belongs in supabase/seed.sql, which runs afterwards.',
+        { cause: err },
+      );
+    }
   }
 }
 
