@@ -53,7 +53,16 @@ boundaries, the logo mark, and the remaining format compositions.
 `cook_mode_timer`'s "Start Cooking" selector no longer resolves. Blocked on
 selector rediscovery.
 
-## The UI — to be specced before building
+## Order changed 2026-08-30: UI before short-form polish
+
+The operator's call, and the reasoning holds: building the wizard forces the
+option space to be scoped, makes generation testable by a person rather than by
+a script, and makes the agents visible at each step. Short-form quality work
+resumes after, tested *through* the UI.
+
+`docs/UI_GENERATION_SPEC.md` is the full spec.
+
+## The UI — specced 2026-08-30, see UI_GENERATION_SPEC.md
 
 The operator flow, as described:
 
