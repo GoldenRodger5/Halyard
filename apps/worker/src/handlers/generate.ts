@@ -33,6 +33,15 @@ import {
   extractHookPattern,
   type SlopPlatform,
   photographicSubject,
+  canStart,
+  getAdapter,
+  planProduction,
+  postTypesForPlatform,
+  requiresCitation,
+  resolvePostType,
+  supportFromConstraints,
+  type PostTypeId,
+  type Stage,
 } from '@halyard/core';
 import {
   carouselProps,
@@ -864,6 +873,78 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
           requested: (job.payload.postFormat as string | undefined) ?? null,
           canCite: true,
         });
+        /**
+         * §350. What kind of thing is being made, resolved once.
+         *
+         * Nothing asked this before. Media was decided by scattered conditions
+         * — a carousel when the platform is Instagram *and* `carousel_6` is
+         * enabled, a landscape render when the subtype says long-form — each a
+         * local answer to a question nobody asked globally.
+         *
+         * So no stage could know what was being made. The voiceover stage could
+         * not skip itself for a text post, because nothing told it there was no
+         * video; it ran whenever its own conditions happened to pass. That is
+         * how a voiceover came to be written from a caption.
+         *
+         * Resolved here, before anything is written, so every stage after this
+         * can ask instead of infer.
+         */
+        const platformSupport = supportFromConstraints(
+          account.platform,
+          getAdapter(account.platform as never).constraints,
+        );
+        const resolvedType = resolvePostType({
+          format: chosenFormat.format,
+          platform: account.platform,
+          available: postTypesForPlatform(platformSupport),
+          requested: (job.payload.postType as PostTypeId | undefined) ?? null,
+        });
+
+        if (!resolvedType) {
+          /*
+           * The format's own channel cannot be carried on this platform.
+           * Refused *before the row is written*: a piece that cannot be
+           * published is not a failed piece, it is a piece that should never
+           * have been started, and a `failed` row for it would read as
+           * something that broke.
+           *
+           * Substituting a different kind of piece is the alternative and is
+           * worse — a quiz quietly becoming a transformation post is the
+           * failure §304 exists to prevent.
+           */
+          ctx.log('no post type this platform can carry', {
+            platform: account.platform,
+            format: chosenFormat.format.id,
+            channel: chosenFormat.format.channels[0],
+          });
+          continue;
+        }
+
+        /**
+         * §345. The stages this production runs, and the ones it does not.
+         *
+         * Declared rather than implied, so an operator reading the log sees
+         * what was skipped **and why** — "it did not happen" and "it was not
+         * needed" look identical otherwise.
+         */
+        const production = planProduction({
+          channel: resolvedType.postType.channel,
+          media: resolvedType.postType.media,
+          sourced: requiresCitation(chosenFormat.format),
+          needsCapture: chosenFormat.format.needsCapture === true,
+        });
+
+        ctx.log('production planned', {
+          postType: resolvedType.postType.id,
+          because: resolvedType.because,
+          alternatives: resolvedType.alternatives,
+          runs: production.stages.map((s) => s.stage),
+          skips: production.skipped.map((s) => `${s.stage} — ${s.because}`),
+        });
+
+        /* What has actually completed, for `canStart` to gate against. */
+        const completed: Stage[] = ['brief'];
+
         ctx.log('post format chosen', {
           platform: account.platform,
           format: chosenFormat.format.id,
@@ -1123,6 +1204,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
          * do with the content of the video". It could not be, because the
          * content did not exist yet.
          */
+        /* §345. `write` is the stage the screenplay, assets and voice depend on. */
         const written =
           chosenFormat.format.id !== 'transformation'
             ? await writeToFormat(
@@ -1163,6 +1245,22 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
          * photographed at all. A refusal falls back to the artifact, which is
          * worse but is at least a noun.
          */
+        if (written) completed.push('write');
+
+        /**
+         * §345. Assets may not start before the content exists.
+         *
+         * Not defensive tidiness. Until §313 the hero was generated from an
+         * unrelated artifact headline *because nothing required the content to
+         * exist first* — a quiz about the history of gluten illustrated with
+         * whatever recipe was adapted that morning. The gate is the rule that
+         * made that impossible rather than merely fixed.
+         */
+        const assetsGate = canStart('assets', completed);
+        if (production.stages.some((stage) => stage.stage === 'assets') && !assetsGate.ok) {
+          ctx.log('assets stage refused', { contentItemId, because: assetsGate.because });
+        }
+
         const formatLine = written ? subjectFromFormat(written.draft.slots) : null;
         let heroSubject = subjectForImage(artifact, idea.title);
         if (formatLine) {
@@ -1520,6 +1618,24 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
            * brief so `tts` uses the same decision rather than making a second
            * one from the same inputs.
            */
+          /**
+           * §345. A voice for a piece that has no video.
+           *
+           * `planProduction` skips `voice` for anything that is not moving, and
+           * this is where that becomes real: a still or a text post ran the
+           * voice stage whenever its own conditions happened to pass, spending
+           * a synthesis on audio nothing would ever play.
+           */
+          const wantsVoice = production.stages.some((stage) => stage.stage === 'voice');
+          if (!wantsVoice) {
+            ctx.log('voice skipped', {
+              contentItemId,
+              because:
+                production.skipped.find((stage) => stage.stage === 'voice')?.because ??
+                'this production has no voice stage',
+            });
+          }
+
           const voice = directVoice({
             platform: account.platform,
             /*

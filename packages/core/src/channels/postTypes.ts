@@ -281,3 +281,29 @@ export function postTypesForPlatform(
 export function postTypeById(id: string): PostType | null {
   return (POST_TYPE_CATALOG as Record<string, PostType>)[id] ?? null;
 }
+
+
+/**
+ * §350. A platform's support, read from its adapter rather than restated.
+ *
+ * The whole point of deriving is defeated by a second place that describes what
+ * a platform can do, so this reads the adapter's own `PlatformConstraints` and
+ * narrows it to the four facts `canCarry` needs.
+ */
+export function supportFromConstraints(
+  platform: string,
+  constraints: {
+    supportedFormats: string[];
+    carousel?: { min: number; max: number; sameAspectRatioRequired?: boolean };
+    linkStrategy: string;
+    video?: { minSeconds: number; maxSeconds: number };
+  },
+): PlatformSupport {
+  return {
+    platform,
+    supportedFormats: constraints.supportedFormats,
+    carousel: constraints.carousel,
+    linkStrategy: constraints.linkStrategy,
+    video: constraints.video,
+  };
+}

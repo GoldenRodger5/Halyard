@@ -3,6 +3,7 @@ export * from './qc/creativeScore.js';
 export * from './qc/critic.js';
 export * from './channels/channels.js';
 export * from './channels/postTypes.js';
+export * from './channels/resolvePostType.js';
 export * from './creative/mediaDirector.js';
 export * from './creative/annotationDirector.js';
 export * from './creative/screenplay.js';

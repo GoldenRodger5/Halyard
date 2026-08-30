@@ -8909,3 +8909,40 @@ written from a caption.
 attempt** and yields a producible 41.1s screenplay, with questions like *"Which
 contest offered $1M to improve Netflix recommendations by 10%?"* — a real
 question, a real answer, a verified source.
+
+## 349–350. Post type is the unit of production
+
+`channels.ts` carried a hand-written `platforms` list per channel and it had
+**already drifted from the adapters**: `carousel.platforms` was
+`['instagram']` while the Threads adapter had declared carousel support all
+along, and the TikTok adapter said `video` only although TikTok has carried
+photo carousels for years. Two hand-maintained lists, already disagreeing —
+gotcha 1 at architecture scale.
+
+`canCarry` derives it from each adapter's own `PlatformConstraints`, checking
+only things that are **real impossibilities**: a platform taking single media
+cannot carry a sequence; `linkStrategy: 'bio_only'` means a link post's whole
+purpose is unreachable there; X's 140-second cap makes a long video impossible.
+
+**TikTok carousels were verified, not assumed** — TikTok's own Content Posting
+API reference documents `/v2/post/publish/content/init/`, `media_type: "PHOTO"`,
+*"an array containing up to 35 photo content URLs"*. Every carousel Halyard
+could have made for TikTok was silently unavailable.
+
+**Ten post types**, split on one rule: different **stages**, **constraints** or
+**destinations** — not merely looking different. `caption_only` and
+`caption_link` are separate because on X a link multiplies the cost from ~$0.015
+to ~$0.20, is demoted by the algorithm, and goes in the first reply rather than
+the post.
+
+**`resolvePostType` asks once what is being made.** Nothing did before: media
+was decided by scattered conditions, each a local answer to a question nobody
+asked globally, which is why no stage could know what it was part of. The
+voiceover stage could not skip itself for a text post because nothing told it
+there was no video — it ran whenever its own conditions happened to pass, which
+is how a voiceover came to be written from a caption.
+
+**A piece that cannot be published is refused before the row is written.** Not a
+`failed` row: a piece that should never have been started is not a piece that
+broke, and substituting a different kind is how a quiz quietly becomes a
+transformation post.
