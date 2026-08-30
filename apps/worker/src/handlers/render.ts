@@ -16,6 +16,12 @@ import {
   thumbnailPasses,
 } from '@halyard/core';
 import { renderTemplate, type TemplateId } from '@halyard/render';
+import { calloutsFromSteps } from '@halyard/render/video';
+import {
+  calloutSourceFromCapture,
+  footageSpansFor,
+  type CapturedStep,
+} from '@halyard/core';
 import { stageFootage } from '../footage.js';
 import { durationInFrames, type CaptionCue } from '@halyard/render/timing';
 import { muxAudioIntoVideo } from '../audio.js';
@@ -255,6 +261,42 @@ async function renderVideoAsset(
     }
   }
 
+  /**
+   * §303. Callouts a walkthrough can actually point at.
+   *
+   * `WalkthroughCallout.at` has existed since §298 and every callout ever built
+   * passed `null`, which pins the text beside the device and never draws the
+   * ring. Two hops were missing: the runner did not record where a tap landed,
+   * and nothing turned a capture into callouts. This is the second.
+   *
+   * Read from `capture_runs` rather than from the render's own props, because
+   * the capture is the record of what happened and the props are a plan. A
+   * callout derived from the plan could name a step the capture skipped.
+   *
+   * The spans are recomputed from the same steps `cutFootage` used, so the
+   * mapping into cut time cannot drift from the cut itself.
+   */
+  let walkthroughCallouts: unknown[] | undefined;
+  if (render.template_id === 'Walkthrough') {
+    const flowId = String(render.input_props.flowId ?? 'adapt_and_reveal');
+    const { rows: runRows } = await ctx.pool.query<{ steps: CapturedStep[] }>(
+      `select steps from capture_runs
+        where flow_id = $1 and mode = 'capture' and ok
+        order by started_at desc
+        limit 1`,
+      [flowId],
+    );
+    const steps = runRows[0]?.steps ?? [];
+    if (steps.length > 0) {
+      const source = calloutSourceFromCapture(steps, footageSpansFor(steps));
+      /*
+       * Four at most. A callout is a pointer, and a walkthrough that annotates
+       * every step is a subtitle track — the viewer stops reading either way.
+       */
+      walkthroughCallouts = calloutsFromSteps(source, { maxCallouts: 4 });
+    }
+  }
+
   try {
     const result = await renderVideo({
       compositionId: render.template_id,
@@ -264,6 +306,7 @@ async function renderVideoAsset(
         ...(videoBackgroundLuminance !== null
           ? { backgroundLuminance: videoBackgroundLuminance }
           : {}),
+        ...(walkthroughCallouts ? { callouts: walkthroughCallouts } : {}),
         ...(brandTokens ? { brand: brandTokens } : {}),
         // Captions are burned in from data. The audio is muxed afterwards
         // rather than played by the renderer, so the composition gets none.

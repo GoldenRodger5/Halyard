@@ -37,6 +37,8 @@ export interface StepResult {
   endMs?: number;
   /** The flow marked this step as a wait the edit should cut. §159/§163. */
   elide?: boolean;
+  /** §303. The line the flow wrote for this step, if it wrote one. */
+  narration?: string;
   /**
    * The flow marked this step as setup: run it, do not show it. §166.
    *
@@ -47,6 +49,18 @@ export interface StepResult {
   ok: boolean;
   optional: boolean;
   ms: number;
+  /**
+   * §303. Where on the screen the tap landed, as fractions of the viewport.
+   *
+   * A callout ring is a claim that something happened *there*, and until now
+   * nothing recorded where "there" was — `WalkthroughCallout.at` existed and
+   * every callout was written with `at: null`, which pins it beside the device
+   * instead of on the control. Measured from the element Playwright actually
+   * clicked, so the ring cannot point somewhere the tap did not happen.
+   *
+   * Absent for steps that are not taps, and for a tap whose element had no box.
+   */
+  at?: { x: number; y: number };
   /** Present on failure: what the page actually looked like. */
   failureScreenshot?: string;
   error?: string;
@@ -94,6 +108,21 @@ export interface RunFlowOptions {
    * result card rather than creating one. The caller owns closing it.
    */
   continueIn?: { context: BrowserContext; page: Page };
+  /**
+   * §303. When the recording started, as a `Date.now()`.
+   *
+   * Every step offset is documented as "milliseconds from the start of the
+   * context", and for a continued flow it was milliseconds from the start of
+   * *that flow* — while `runFlowChain` hands every result the same whole-chain
+   * video. So `cook_mode_timer`'s cut has been taking a stretch of footage
+   * offset by however long `adapt_and_reveal` took before it, and the only
+   * reason nobody caught it is that a wrong stretch of a real recording still
+   * looks like a real recording.
+   *
+   * Absent for a flow that owns its own context, where its start *is* the
+   * recording's start.
+   */
+  anchorMs?: number;
   onStep?: (result: StepResult) => void;
 }
 
@@ -215,6 +244,11 @@ export async function runFlow(
 
   const page = options.continueIn?.page ?? (await context.newPage());
   const started = Date.now();
+  /*
+   * §303. Offsets are measured from the recording, not from this flow. They are
+   * used to cut a video that may have begun before this flow did.
+   */
+  const anchor = options.anchorMs ?? started;
   const steps: StepResult[] = [];
   const stills: Record<string, string> = {};
   const elisions: FlowRunResult['elisions'] = [];
@@ -230,14 +264,26 @@ export async function runFlow(
       ok: true,
       optional: step.optional === true,
       ms: 0,
-      startMs: stepStart - started,
+      startMs: stepStart - anchor,
       ...(step.elide ? { elide: true } : {}),
       ...(step.setup ? { setup: true } : {}),
+      /*
+       * §303. The line the flow wrote for this step, carried onto the result.
+       *
+       * The flow definition is not available where callouts are built — the
+       * render reads `capture_runs.steps`, which is a record of what happened
+       * rather than of what was planned. Carrying it means a callout says what
+       * the author wrote, and a step nobody wrote a line for falls back to its
+       * own name rather than to nothing.
+       */
+      ...(step.narration ? { narration: step.narration } : {}),
     };
 
     try {
       const outcome = await executeStep(page, step, options.baseUrl, outDir, stills);
       if (outcome.fallbackDepth !== undefined) result.fallbackDepth = outcome.fallbackDepth;
+      /* §303. Where the tap landed, for a callout that points at it. */
+      if (outcome.at) result.at = outcome.at;
     } catch (err) {
       result.ok = false;
       result.error = (err as Error).message.split('\n')[0];
@@ -250,13 +296,13 @@ export async function runFlow(
     }
 
     result.ms = Date.now() - stepStart;
-    result.endMs = Date.now() - started;
+    result.endMs = Date.now() - anchor;
     if (step.elide) {
       const measuredMs = Date.now() - stepStart;
       elisions.push({
         step: step.name,
-        startMs: stepStart - started,
-        endMs: Date.now() - started,
+        startMs: stepStart - anchor,
+        endMs: Date.now() - anchor,
         measuredMs,
         elide: shouldElide(measuredMs),
         caption: elisionCaption(measuredMs),
@@ -311,7 +357,7 @@ async function executeStep(
   baseUrl: string,
   outDir: string,
   stills: Record<string, string>,
-): Promise<{ fallbackDepth?: number }> {
+): Promise<{ fallbackDepth?: number; at?: { x: number; y: number } }> {
   const timeout = step.timeoutMs ?? 15_000;
 
   /**
@@ -346,8 +392,28 @@ async function executeStep(
       const { locator, fallbackDepth } = await resolve();
       await locator.waitFor({ state: 'visible', timeout });
       await locator.scrollIntoViewIfNeeded({ timeout });
+
+      /*
+       * §303. Measured after scrolling and before clicking. Before, because a
+       * click can navigate and leave nothing to measure; after scrolling,
+       * because the box moves and the pre-scroll position would put the ring
+       * somewhere the tap did not happen.
+       *
+       * The recording is made at the viewport size, so a fraction of the
+       * viewport is a fraction of the frame and no mapping is needed.
+       */
+      const box = await locator.boundingBox().catch(() => null);
+      const viewport = page.viewportSize();
+      const at =
+        box && viewport && viewport.width > 0 && viewport.height > 0
+          ? {
+              x: Number(((box.x + box.width / 2) / viewport.width).toFixed(4)),
+              y: Number(((box.y + box.height / 2) / viewport.height).toFixed(4)),
+            }
+          : undefined;
+
       await locator.click({ timeout });
-      return { fallbackDepth };
+      return { fallbackDepth, ...(at ? { at } : {}) };
     }
 
     case 'fill': {
@@ -410,7 +476,11 @@ export async function runFlowChain(
   options: Omit<RunFlowOptions, 'continueIn'>,
 ): Promise<FlowRunResult[]> {
   const dependents = Object.values(FLOWS).filter((f) => f.dependsOn === root.id);
-  if (dependents.length === 0) return [await runFlow(root, options)];
+  /*
+   * §303. A shared context is needed for a requirement as well as for a
+   * dependent, so the shortcut only applies when there is neither.
+   */
+  if (dependents.length === 0 && !root.requires) return [await runFlow(root, options)];
 
   const ownBrowser = !options.browser;
   const browser =
@@ -429,9 +499,60 @@ export async function runFlowChain(
     reducedMotion: 'no-preference',
   });
   const page = await context.newPage();
+  /* §303. The recording begins here, so every step in the chain measures from here. */
+  const anchorMs = Date.now();
 
   const results: FlowRunResult[] = [];
-  results.push(await runFlow(root, { ...options, browser, continueIn: { context, page } }));
+
+  /*
+   * §303. Whatever this flow requires runs first, in this same context.
+   *
+   * `requires` has been declared on `adapt_and_reveal` since §299 and nothing
+   * read it, so every capture ran signed out and recorded the demo card rather
+   * than a real adaptation — the operator spotted it in the walkthrough before
+   * any gate did. It is not `dependsOn`: a dependent acts on the result the
+   * root produced and is *shown*; a requirement is plumbing that has to have
+   * happened and is never shown.
+   *
+   * Same context, because a session lives in cookies and a fresh context would
+   * throw away the sign-in the moment it succeeded. Its result is recorded like
+   * any other — a sign-in that failed is the reason the capture is wrong, and
+   * hiding it would leave that unexplained — but its steps are all `setup`, so
+   * §166 keeps them off screen.
+   */
+  if (root.requires) {
+    const required = FLOWS[root.requires];
+    const prerequisite = await runFlow(required, {
+      ...options,
+      browser,
+      anchorMs,
+      continueIn: { context, page },
+    });
+    results.push(prerequisite);
+    if (!prerequisite.ok) {
+      /*
+       * Recording anyway would produce footage of the signed-out product and
+       * file it as evidence of the signed-in one. Gotcha 9: a capture running
+       * is not a capture of the thing it claims.
+       */
+      results.push({
+        flow: root.id,
+        ok: false,
+        mode: options.mode,
+        startedAt: new Date(),
+        totalSeconds: 0,
+        steps: [],
+        stills: {},
+        elisions: [],
+        summary: `Not run: ${required.id} failed, and this flow records a signed-in product.`,
+      });
+      if (options.mode === 'capture') await context.close();
+      if (ownBrowser) await browser.close();
+      return results;
+    }
+  }
+
+  results.push(await runFlow(root, { ...options, browser, anchorMs, continueIn: { context, page } }));
 
   for (const dependent of dependents) {
     if (!results[results.length - 1]!.ok) {
@@ -458,7 +579,9 @@ export async function runFlowChain(
     ) {
       await page.setViewportSize(dependent.viewport);
     }
-    results.push(await runFlow(dependent, { ...options, browser, continueIn: { context, page } }));
+    results.push(
+      await runFlow(dependent, { ...options, browser, anchorMs, continueIn: { context, page } }),
+    );
   }
 
   const video = options.mode === 'capture' ? page.video() : null;

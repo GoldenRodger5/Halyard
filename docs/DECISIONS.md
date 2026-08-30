@@ -8043,3 +8043,46 @@ and was invisible on RecipeFix's cream ground; the second stranded the question
 in the middle 40% of a 9:16 frame; the third split it into three islands; the
 rail's rule ran the full height of the frame because a stray `height: '100%'`
 survived a replacement. All four typechecked and passed their tests.
+
+## 303. Three hops missing between a capture and a callout
+
+**Chosen:** the runner records where each tap landed, `requires` actually runs,
+and step offsets are measured from the recording rather than from each flow.
+
+`WalkthroughCallout.at` has existed since §298 and **every callout ever built
+passed `null`**, which pins the text beside the device and never draws the ring.
+Three separate things had to be true for a ring to appear and none of them were.
+
+**1. Nothing recorded where a tap landed.** `runFlow` now measures the clicked
+element's box — after `scrollIntoViewIfNeeded`, because the box moves, and
+before `click`, because a click can navigate and leave nothing to measure. The
+recording is made at the viewport size, so a fraction of the viewport is a
+fraction of the frame and there is no mapping to get wrong.
+
+**2. Nothing turned a capture into callouts.** `calloutSourceFromCapture` maps
+steps into **cut time**. This is the part that would have shipped broken: the
+recording spans the whole session and `cutFootage` removes the elided stretches,
+so a step beginning at 34s in the raw file may begin at 11s in the footage. A
+callout at the raw offset points at the right place at the wrong moment, which
+reads as a rendering glitch rather than a bug. A step in no kept span produces
+no callout — it is not on screen, and pointing at what a viewer cannot see is
+§296's fabrication rule in visual form.
+
+**3. `requires` was declared and never read.** §299 built the sign-in flow and
+declared `adapt_and_reveal` needs it, and the runner had no code for it — so
+every capture since has run **signed out and recorded the demo card**, which is
+what the operator spotted in the walkthrough. It runs first now, in the same
+context because a session lives in cookies. A failed sign-in refuses the capture
+rather than recording the signed-out product and filing it as evidence of the
+signed-in one (gotcha 9).
+
+**Found on the way:** `runFlowChain` hands every result the same whole-chain
+video while each flow's offsets were relative to its own start, so
+`cook_mode_timer`'s cut has been taking a stretch of footage offset by however
+long `adapt_and_reveal` ran first. Nobody noticed because the wrong stretch of a
+real recording still looks like a real recording. Offsets now anchor to the
+context, which is what the field's own comment always claimed.
+
+**Rejected:** storing callouts on the footage asset. `capture_runs.steps` is
+already the record of what happened; a copy on the asset would be a second
+source that could disagree with the first, which is gotcha 1 in a new place.

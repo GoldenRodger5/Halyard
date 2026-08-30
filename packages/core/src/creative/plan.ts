@@ -453,6 +453,10 @@ export interface CapturedStep {
   elide?: boolean;
   /** The flow ran this to produce the artifact, and it is not part of the story. §166. */
   setup?: boolean;
+  /** §303. Where the tap landed, as fractions of the viewport. Taps only. */
+  at?: { x: number; y: number };
+  /** A line worth saying about this step, from the flow definition. */
+  narration?: string;
 }
 
 /**
@@ -558,4 +562,70 @@ export function footageSpansFor(
 /** Total footage kept, in milliseconds. */
 export function footageDurationMs(spans: FootageSpan[]): number {
   return spans.reduce((total, s) => total + (s.endMs - s.startMs), 0);
+}
+
+
+/**
+ * §303. Turn a capture into things a walkthrough can point at.
+ *
+ * `WalkthroughCallout` has carried an `at` since §298 and every callout ever
+ * built passed `at: null`, which pins the text beside the device instead of on
+ * the control — the ring, the whole reason the field exists, never drew. The
+ * runner now records where each tap landed (§303), and this is the other half:
+ * the mapping from a capture into the walkthrough's own terms.
+ *
+ * ## Cut time, not recording time
+ *
+ * The part that is easy to get wrong and impossible to notice. The recording
+ * spans the whole session and `cutFootage` removes the elided stretches, so a
+ * step that began at 34s in the raw file may begin at 11s in the footage a
+ * viewer sees. A callout placed at the raw offset points at the right *place*
+ * at the wrong *moment* — which looks like a rendering glitch rather than a bug
+ * and would survive every gate here.
+ *
+ * So each step's start is mapped through the spans that were actually kept. A
+ * step in no kept span produces no callout at all: it is not on screen, and a
+ * callout about something the viewer cannot see is the fabrication §296 forbids
+ * in its visual form.
+ */
+export function calloutSourceFromCapture(
+  steps: CapturedStep[],
+  spans: FootageSpan[],
+): Array<{ label: string; atSeconds: number; at: { x: number; y: number } | null }> {
+  const out: Array<{ label: string; atSeconds: number; at: { x: number; y: number } | null }> = [];
+
+  for (const step of steps) {
+    if (!step.ok || step.startMs === undefined) continue;
+    /* Setup ran, and §166 is explicit that it gets no screen time. */
+    if (step.setup) continue;
+
+    /* Where this step's start falls in the cut, or nowhere. */
+    let elapsed = 0;
+    let cutMs: number | null = null;
+    for (const span of spans) {
+      if (step.startMs >= span.startMs && step.startMs <= span.endMs) {
+        cutMs = elapsed + (step.startMs - span.startMs);
+        break;
+      }
+      elapsed += span.endMs - span.startMs;
+    }
+    if (cutMs === null) continue;
+
+    /*
+     * The flow's own narration when it wrote one, and the step name otherwise.
+     * The name is a label an author chose for a log line, so it is the fallback
+     * rather than the source — but it is honest, because it describes the thing
+     * that actually happened.
+     */
+    const label = (step.narration ?? step.step).trim();
+    if (label.length === 0) continue;
+
+    out.push({
+      label,
+      atSeconds: Number((cutMs / 1000).toFixed(2)),
+      at: step.at ?? null,
+    });
+  }
+
+  return out;
 }
