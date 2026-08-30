@@ -19,6 +19,10 @@
  * consumption reports every working agent as partial forever.
  */
 import {
+  PRODUCT_DISCOVERY_PROMPT_VERSION,
+  STORE_LISTING_PROMPT_VERSION,
+  CODE_INTELLIGENCE_PROMPT_VERSION,
+  VISUAL_BRAND_PROMPT_VERSION,
   inferProductFacts,
   discoverImplementationFacts,
   discoverListingFacts,
@@ -188,7 +192,20 @@ export async function buildBrainHandler(
     proposals.push(
       ...attribute(
         result,
-        { agentId: 'product-discovery', agentVersion: '1.0', promptVersion: 'product_discovery.v1' },
+        /*
+         * §381. The constant, not a copy of it.
+         *
+         * This said `product_discovery.v1` while the call itself sent v2, so
+         * every fact discovered this way recorded provenance naming a prompt
+         * that had not been used. The Auditor caught it as an unregistered
+         * agent — a version emitted by the source and claimed by nobody — which
+         * is exactly what a stale literal looks like from outside.
+         */
+        {
+          agentId: 'product-discovery',
+          agentVersion: '1.0',
+          promptVersion: PRODUCT_DISCOVERY_PROMPT_VERSION,
+        },
         web,
       ),
     );
@@ -206,7 +223,7 @@ export async function buildBrainHandler(
     proposals.push(
       ...attribute(
         result,
-        { agentId: 'store-listing', agentVersion: '1.0', promptVersion: 'store_listing.v1' },
+        { agentId: 'store-listing', agentVersion: '1.0', promptVersion: STORE_LISTING_PROMPT_VERSION },
         listing,
       ),
     );
@@ -224,7 +241,7 @@ export async function buildBrainHandler(
     proposals.push(
       ...attribute(
         result,
-        { agentId: 'code-intelligence', agentVersion: '1.0', promptVersion: 'code_intelligence.v1' },
+        { agentId: 'code-intelligence', agentVersion: '1.0', promptVersion: CODE_INTELLIGENCE_PROMPT_VERSION },
         surface,
       ),
     );
@@ -239,7 +256,7 @@ export async function buildBrainHandler(
     proposals.push(
       ...attribute(
         result,
-        { agentId: 'visual-brand', agentVersion: '1.0', promptVersion: 'visual_brand.v1' },
+        { agentId: 'visual-brand', agentVersion: '1.0', promptVersion: VISUAL_BRAND_PROMPT_VERSION },
         shots,
       ),
     );

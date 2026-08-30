@@ -6,6 +6,15 @@
  * `declaredStatus`, so no contract can talk itself green.
  */
 import { describe, expect, it, vi } from 'vitest';
+/*
+ * §381. The constant, not the literal.
+ *
+ * These pinned `copywriter.v1`, so bumping the prompt to v2 — which the source
+ * had already done — broke a test about the *recording seam* for a reason with
+ * nothing to do with the recording seam. A test that hardcodes a version it does
+ * not own is asserting that the version never changes.
+ */
+import { COPYWRITER_PROMPT_VERSION } from '../generation/prompts.js';
 import {
   AGENT_REGISTRY,
   agentById,
@@ -302,7 +311,7 @@ describe('the recording seam', () => {
     );
 
     return client
-      .complete({ system: 's', messages: [], promptVersion: 'copywriter.v1' })
+      .complete({ system: 's', messages: [], promptVersion: COPYWRITER_PROMPT_VERSION })
       .then(() => {
         expect((sink.begun[0] as { agentId: string }).agentId).toBe('copywriter');
         expect((sink.finished[0] as { status: string }).status).toBe('succeeded');
@@ -337,7 +346,7 @@ describe('the recording seam', () => {
     );
 
     return client
-      .complete({ system: 's', messages: [], promptVersion: 'copywriter.v1' })
+      .complete({ system: 's', messages: [], promptVersion: COPYWRITER_PROMPT_VERSION })
       .then(
         () => expect.unreachable('should have thrown'),
         () => {
@@ -361,7 +370,7 @@ describe('the recording seam', () => {
     const client = recordingLlmClient({ complete: async () => ok }, broken, { trigger: 'job' });
 
     return client
-      .complete({ system: 's', messages: [], promptVersion: 'copywriter.v1' })
+      .complete({ system: 's', messages: [], promptVersion: COPYWRITER_PROMPT_VERSION })
       .then((r) => expect(r.text).toBe('result'));
   });
 
@@ -372,7 +381,7 @@ describe('the recording seam', () => {
     const client = recordingLlmClient({ complete: async () => ok }, sink, { trigger: 'job' });
 
     return client
-      .complete({ system: 'a'.repeat(500), messages: [], promptVersion: 'copywriter.v1' })
+      .complete({ system: 'a'.repeat(500), messages: [], promptVersion: COPYWRITER_PROMPT_VERSION })
       .then(() => {
         const input = (sink.begun[0] as { inputRef: Record<string, unknown> }).inputRef;
         expect(input.systemChars).toBe(500);
@@ -403,7 +412,7 @@ describe('the recording seam', () => {
       trigger: 'unknown',
     });
     await expect(
-      client.complete({ system: 's', messages: [], promptVersion: 'copywriter.v1' }),
+      client.complete({ system: 's', messages: [], promptVersion: COPYWRITER_PROMPT_VERSION }),
     ).resolves.toEqual(ok);
     expect(vi.isMockFunction(() => undefined)).toBe(false);
   });

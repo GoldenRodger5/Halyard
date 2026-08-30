@@ -36,7 +36,16 @@ export const AGENT_REGISTRY: AgentContract[] = [
       'Writes the post copy for one platform, retrying against the slop filter and claim verifier until it passes or is refused.',
     model: 'draft',
     runtimeAttribution: 'prompt_version',
-    promptVersions: ['copywriter.v1'],
+    /*
+     * §381. `copywriter.v2`, which is what the source actually emits.
+     *
+     * The prompt was bumped and the contract was not, so the Auditor reported
+     * an unregistered agent — a version emitted by the source and claimed by
+     * nobody — while `copywriter.v1` was a contract describing something that
+     * could not run. Both halves of one drift, and the check runs in both
+     * directions precisely because either alone would have looked fine.
+     */
+    promptVersions: ['copywriter.v2'],
     implementation: 'packages/core/src/generation/copywriter.ts#writeDraft',
     inputSchema: {
       platform: 'SlopPlatform',
@@ -551,7 +560,8 @@ export const AGENT_REGISTRY: AgentContract[] = [
       "Proposes what a product is and who it serves, from its public web surface. Cannot set a fact's status or confidence.",
     model: 'strategy',
     runtimeAttribution: 'prompt_version',
-    promptVersions: ['product_discovery.v1'],
+    /* §381. `product_discovery.v2` is what `brain/agents.ts` emits. */
+    promptVersions: ['product_discovery.v2'],
     implementation: 'packages/core/src/brain/agents.ts#discoverProductFacts',
     inputSchema: {
       productName: 'string',
@@ -1116,8 +1126,15 @@ export const AGENT_REGISTRY: AgentContract[] = [
       'BLOCKED ON SCOPE: thumbnails.set needs youtube or youtube.force-ssl and the channel granted neither, so the upload refuses by naming the scope rather than spending a request on a 403.',
   },
   {
+    /*
+     * §381. The *deterministic* critic. There are two, and conflating them is
+     * why `creative_critic.v2` had no owner: this one is a rule set — pacing,
+     * motion density, loudness, contrast — and the model critic below judges
+     * the craft problem no rule can express. They share a name and nothing
+     * else, so they are two contracts.
+     */
     agentId: 'creative-critic',
-    name: 'Creative Critic',
+    name: 'Creative Critic (rules)',
     team: 'quality',
     kind: 'deterministic',
     version: '1.0',
@@ -1141,6 +1158,139 @@ export const AGENT_REGISTRY: AgentContract[] = [
     declaredStatus: 'implemented_partial',
     statusNote:
       'Every input is optional and an absent one reports unmeasured rather than passing: a skipped gate is not a passed gate.',
+  },
+
+  /**
+   * §381. The model critic, registered beside the rule set it is not.
+   *
+   * `creative_critic.v2` was emitted by `qc/critic.ts` and claimed by no
+   * contract — so the one agent whose entire job is to notice what no rule can
+   * express was itself invisible to the audit that exists to notice exactly
+   * that.
+   */
+  {
+    agentId: 'creative-critic-model',
+    name: 'Creative Critic',
+    team: 'quality',
+    kind: 'model',
+    version: '2.0',
+    purpose:
+      'Watches the finished frames and names craft problems no rule can express — every caption set the same way, an opening that does not earn the next second, a piece that reads as automated. It may never pass anything and may never fail a piece: findings are warnings, and silence from it means nothing.',
+    model: 'strategy',
+    runtimeAttribution: 'prompt_version',
+    promptVersions: ['creative_critic.v2'],
+    implementation: 'packages/core/src/qc/critic.ts#criticSystemPrompt',
+    inputSchema: { frames: 'CriticFrame[] — described frames with their visible text' },
+    outputSchema: { findings: 'CriticFinding[] — each citing the frames it is about' },
+    tools: ['vision'],
+    /*
+     * The vision client, not the handler. `critique()` is a method on
+     * `CriticClient` and the handler calls that; the Auditor resolves a caller
+     * through the call graph, so naming the handler claims an edge that does
+     * not exist.
+     */
+    expectedCallers: ['packages/core/src/generation/critique.ts#createCriticClient'],
+    downstreamConsumer: 'content_items.qc_results gates — warnings, never failures',
+    permissions: ['read:content_items', 'write:content_items'],
+    retries: 1,
+    timeoutMs: 60000,
+    state: ['content_items'],
+    observations: ['what the frames look like as a set, rather than one at a time'],
+    acceptanceTests: ['packages/core/src/qc/critic.test.ts'],
+    declaredStatus: 'implemented_partial',
+    statusNote:
+      'A finding that does not cite its frames is discarded, for the same reason an unsourced claim is: nobody can act on it and nobody can argue with it.',
+  },
+
+  /**
+   * §381. The agent that writes every quiz, history, tips and myth piece.
+   *
+   * `post_format.v1` is emitted by `apps/worker/src/formatWriter.ts` and was
+   * claimed by nobody — so the writer behind the entire format family did not
+   * appear in the registry at all. It is the largest thing the audit was
+   * missing.
+   */
+  {
+    agentId: 'format-writer',
+    name: 'Format Writer',
+    team: 'content',
+    kind: 'model',
+    version: '1.0',
+    purpose:
+      'Fills a post format slot by slot — the questions and answers of a quiz, the beats of a history — and is refused and asked again until every slot is filled, every claim carries a source that was actually read, and the format-specific checks pass.',
+    model: 'draft',
+    runtimeAttribution: 'prompt_version',
+    promptVersions: ['post_format.v1'],
+    implementation: 'apps/worker/src/formatWriter.ts#writeToFormat',
+    inputSchema: {
+      format: 'PostFormat — the catalogue entry, with its slots and its brief',
+      subject: 'string',
+      audience: 'string',
+      platform: 'string',
+    },
+    outputSchema: {
+      draft: 'FormatDraft — slots in the format own order, with citations',
+      attempts: 'number',
+      problems: 'SlotProblem[]',
+    },
+    tools: ['fetch'],
+    expectedCallers: ['apps/worker/src/handlers/generate.ts'],
+    downstreamConsumer:
+      'content_items.body and the video composition, and the caption written afterwards from it',
+    permissions: ['read:products', 'write:content_items'],
+    retries: 3,
+    timeoutMs: 240000,
+    state: ['content_items'],
+    observations: ['whether each cited page actually says what is claimed'],
+    acceptanceTests: [
+      'apps/worker/src/formatWriter.test.ts',
+      'packages/core/src/formats/formatChecks.test.ts',
+    ],
+    declaredStatus: 'implemented_partial',
+    statusNote:
+      'Refuses rather than degrades: a quiz missing two of its five questions is not a shorter quiz, it is a post that promises five and delivers three.',
+  },
+
+  /**
+   * §381. The agent that proposes several ways in, so one can be chosen.
+   *
+   * `concept_generator.v1` is emitted by `concepts/generate.ts` and was claimed
+   * by nobody, which is part of how a batch of eleven concepts scoring 4.50
+   * apiece went unexamined for as long as it did.
+   */
+  {
+    agentId: 'concept-generator',
+    name: 'Concept Generator',
+    team: 'content',
+    kind: 'model',
+    version: '1.0',
+    purpose:
+      'Proposes several materially different directions for one subject, each declaring its treatment, objective, emotional angle and what evidence it would need — so an operator chooses between real alternatives rather than between phrasings of one idea.',
+    model: 'strategy',
+    runtimeAttribution: 'prompt_version',
+    promptVersions: ['concept_generator.v1'],
+    implementation: 'packages/core/src/concepts/generate.ts#generateConcepts',
+    inputSchema: {
+      productFacts: 'Fact[] — from the Brain, so a concept is grounded',
+      objective: 'ConceptObjective | null',
+      recentTreatments: 'string[] — what this account has just done',
+      count: 'number',
+    },
+    outputSchema: {
+      concepts: 'Concept[] — treatment, premise, hook, differentiation, evidence needed',
+    },
+    tools: [],
+    expectedCallers: ['apps/worker/src/handlers/concepts.ts'],
+    downstreamConsumer: 'concepts, scored by scoreConcepts and shown on /studio',
+    permissions: ['read:product_facts', 'write:concepts'],
+    retries: 2,
+    timeoutMs: 120000,
+    state: ['concepts'],
+    observations: [],
+    acceptanceTests: ['packages/core/src/concepts/generate.test.ts'],
+    declaredStatus: 'implemented_partial',
+    statusNote:
+      'A generator asked for five concepts will happily return five phrasings of one, which a ranking cannot detect — conceptDiversity checks that structurally rather than trusting the batch.',
   },
 ];
 
