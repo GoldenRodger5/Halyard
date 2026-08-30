@@ -1,0 +1,87 @@
+# RecipeFix · history
+# motif: drawn — Instrument Serif is a serif on a light ground, which is an editorial register — a drawn mark belongs there.
+# 36 facts from the Brain
+
+# fit: s1 6s → 6.33s — "Bread has a tiny structural secret: …" is 14 words, which takes about 5.9s to say.
+# fit: s2 5.3s → 5.57s — "For centuries, that stretch is what …" is 12 words, which takes about 5.2s to say.
+# fit: s3 6s → 6.33s — "Gluten forms when two wheat proteins…" is 14 words, which takes about 5.9s to say.
+# fit: s4 8.2s → 8.26s — "That is why a bread swap cannot be o…" is 19 words, which takes about 7.9s to say.
+# fit: s5 5.4s → 5.57s — "RecipeFix treats gluten-free as a re…" is 12 words, which takes about 5.2s to say.
+# fit: s6 6s → 6.33s — "So the loaf is not just diet-complia…" is 14 words, which takes about 5.9s to say.
+
+WHY BREAD NEEDS GLUTEN
+history · short_video · 38.4s · score: warm
+
+01. HOOK — support — 0.0s to 6.3s
+    A close view of dough being folded on a floured counter. The dough pulls
+    long before it gives way. The words sit over the empty counter space, not
+    over the hands.
+    [ground: footage — hands kneading wheat dough · move: hold · score: enter]
+
+        ON SCREEN:  THE STRETCH
+
+              VOICE
+        Bread has a tiny structural secret: wheat flour
+        turns water and kneading into stretch.
+
+02. SETUP — support — 6.3s to 11.9s
+    A warm, aged photograph of a small bakery table with round loaves cooling.
+    Nothing is singled out; the frame feels archival and practical.
+    [ground: photograph — old bakery table with bread loaves · move: drift · score: duck]
+
+        ON SCREEN:  BREAD BEFORE ADDITIVES
+
+              VOICE
+        For centuries, that stretch is what let loaves rise
+        instead of crumble.
+
+03. DETAIL — support — 11.9s to 18.2s
+    Back to dough stretched thin between fingers. The translucent sheet fills
+    most of the frame, showing the web-like surface without adding any mark.
+    [ground: footage — stretched bread dough windowpane · move: push_in · score: hold]
+
+        ON SCREEN:  PROTEIN → NETWORK
+
+              VOICE
+        Gluten forms when two wheat proteins link up, making
+        a net that traps gas.
+
+04. TURN — lead — 18.2s to 26.5s
+    A gluten-free flour blend pours into a bowl beside water and other baking
+    ingredients. The cut lands on the word job, and the bowl becomes the
+    center of the frame.
+    [ground: footage — gluten-free baking ingredients in a bowl · move: cut · score: lift]
+
+        ON SCREEN:  NOT A SIMPLE SWAP
+
+              VOICE
+        That is why a bread swap cannot be one-for-one. You
+        have to replace the job, not just the grain.
+
+05. PAYOFF — support — 26.5s to 32.1s
+    A clean color field replaces the kitchen footage. The three phrases appear
+    one at a time with quiet spacing, like a recipe being reorganized rather
+    than decorated.
+    [ground: the brand ground · move: hold · score: hold]
+
+        ON SCREEN:  INGREDIENTS + RATIOS + STEPS
+
+              VOICE
+        RecipeFix treats gluten-free as a rebuild:
+        ingredients, ratios, and steps move together.
+
+06. CLOSE — support — 32.1s to 38.4s
+    A finished sliced loaf rests on a board. The crumb is the focus: soft,
+    open, and held still long enough to read the final line.
+    [ground: footage — sliced gluten-free style bread loaf on a board · move: settle · score: drop_out]
+
+        ON SCREEN:  Adapt Any Recipe for Your Diet
+        ON SCREEN:  recipefix.app
+
+              VOICE
+        So the loaf is not just diet-compliant. It still
+        knows how to be bread.
+
+
+——————————————————————————————————————————————————————————————————————————
+PRODUCIBLE · 38.4s · $0.0273

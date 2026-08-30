@@ -28,9 +28,32 @@ export const DEFAULT_BRAND: BrandTokens = {
 
 export function resolveBrand(tokens: Record<string, unknown> | null | undefined): BrandTokens {
   if (!tokens) return DEFAULT_BRAND;
+  /**
+   * §337. Accepts both spellings, because both are in the database.
+   *
+   * `products.brand_tokens` is untyped JSON, so it typechecks whatever is put
+   * in it. RecipeFix's row was hand-written as `heading_font`; §323's extractor
+   * writes `headingFont`, which is the TypeScript field name and the obvious
+   * thing to write. This function read only the first, so Kinolog's Bricolage
+   * Grotesque silently became RecipeFix's Instrument Serif — a product-agnostic
+   * pipeline quietly rendering one product in another's typeface, with no error
+   * anywhere.
+   *
+   * Found by a motif pack explaining itself: it said "a near-black ground with
+   * Instrument Serif", and Kinolog does not own that face. A decision that
+   * states its reason is a decision that can be caught being wrong.
+   *
+   * Both spellings are accepted rather than one being migrated, because a
+   * schemaless column will accumulate both again the moment somebody writes to
+   * it by hand.
+   */
   const pick = (key: string, fallback: string): string => {
-    const value = tokens[key];
-    return typeof value === 'string' && value.length > 0 ? value : fallback;
+    const snake = key.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`);
+    for (const candidate of [key, snake]) {
+      const value = tokens[candidate];
+      if (typeof value === 'string' && value.length > 0) return value;
+    }
+    return fallback;
   };
   return {
     primary: pick('primary', DEFAULT_BRAND.primary),
@@ -38,8 +61,8 @@ export function resolveBrand(tokens: Record<string, unknown> | null | undefined)
     ink: pick('ink', DEFAULT_BRAND.ink),
     muted: pick('muted', DEFAULT_BRAND.muted),
     accent: pick('accent', DEFAULT_BRAND.accent),
-    headingFont: pick('heading_font', DEFAULT_BRAND.headingFont),
-    bodyFont: pick('body_font', DEFAULT_BRAND.bodyFont),
+    headingFont: pick('headingFont', DEFAULT_BRAND.headingFont),
+    bodyFont: pick('bodyFont', DEFAULT_BRAND.bodyFont),
   };
 }
 

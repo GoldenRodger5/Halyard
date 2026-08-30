@@ -1,0 +1,104 @@
+# Kinolog · quiz
+# motif: precise — A near-black ground with Bricolage Grotesque is a precise register, so marks are geometric.
+# 24 facts from the Brain
+
+# fit: s1 6.3s → 6.72s — "Quick quiz: do you know your film ta…" is 15 words, which takes about 6.3s to say.
+# fit: s2 6.4s → 6.72s — "Question one: name the last film you…" is 15 words, which takes about 6.3s to say.
+# fit: s3 5.6s → 5.95s — "Question two: was it the story, the …" is 13 words, which takes about 5.5s to say.
+# fit: s4 6.5s → 6.72s — "Question three: could your diary use…" is 15 words, which takes about 6.3s to say.
+# fit: s5 6.4s → 6.72s — "Kinolog logs ratings, vibes, notes a…" is 15 words, which takes about 6.3s to say.
+# fit: s6 5.6s → 5.95s — "You can make asks, avoid repeats, an…" is 13 words, which takes about 5.5s to say.
+# fit: s7 5.4s → 5.95s — "Kinolog is a private movie diary tha…" is 13 words, which takes about 5.5s to say.
+
+HOW WELL DO YOU KNOW YOUR FILM TASTE?
+quiz · short_video · 44.7s · score: warm
+
+01. HOOK — lead — 0.0s to 6.7s
+    A plain colour field appears. The title lands cleanly, then waits long
+    enough to feel like a question, not a headline.
+    [ground: the brand ground · move: hold · score: enter]
+
+        ON SCREEN:  TASTE QUIZ
+
+              VOICE
+        Quick quiz: do you know your film taste, or just the
+        posters you scroll past?
+
+02. SETUP — support — 6.7s to 13.4s
+    The first quiz card replaces the title. The number appears first, then the
+    prompt follows with a quiet beat for the viewer to answer.
+    [ground: the brand ground · move: cut · score: duck]
+
+        ON SCREEN:  1
+        ON SCREEN:  LAST LOVED?
+
+              VOICE
+        Question one: name the last film you truly loved,
+        and the date you watched it.
+
+03. DETAIL — support — 13.4s to 19.4s
+    The card changes to the second question. Four small answer chips fade in
+    one after another, suggesting there is more than one kind of taste signal.
+    [ground: the brand ground · move: hold · score: hold]
+
+        ON SCREEN:  2
+        ON SCREEN:  WHAT MADE IT WORK?
+
+              VOICE
+        Question two: was it the story, the mood, the
+        people, or the night?
+
+04. TURN — lead — 19.4s to 26.1s
+    The third card begins spare, then the words tighten into a more decisive
+    frame. This is the turn from memory to usefulness.
+    [ground: the brand ground · move: push_in · score: lift]
+
+        ON SCREEN:  3
+        ON SCREEN:  TONIGHT’S PICK
+
+              VOICE
+        Question three: could your diary use that answer to
+        choose tonight's film and explain why?
+
+05. DETAIL — support — 26.1s to 32.8s
+    The quiz styling gives way to a simple stack of diary ingredients. Each
+    word appears as if being added to a private record.
+    [ground: the brand ground · move: settle · score: hold]
+
+        ON SCREEN:  ratings
+        ON SCREEN:  vibes
+        ON SCREEN:  notes
+        ON SCREEN:  watch dates
+
+              VOICE
+        Kinolog logs ratings, vibes, notes and honest watch
+        dates, then reads them back as recommendations.
+
+06. PAYOFF — support — 32.8s to 38.8s
+    The stack resolves into three short promises. The pace is brisker here,
+    like the diary is answering back instead of just storing entries.
+    [ground: the brand ground · move: cut · score: hold]
+
+        ON SCREEN:  asks
+        ON SCREEN:  no repeat loop
+        ON SCREEN:  misses matter
+
+              VOICE
+        You can make asks, avoid repeats, and see when a
+        miss gets remembered.
+
+07. CLOSE — support — 38.8s to 44.7s
+    The final card is calm and uncluttered. The product name appears with the
+    two ideas held separately: privacy first, recommendations second.
+    [ground: the brand ground · move: hold · score: drop_out]
+
+        ON SCREEN:  PRIVATE MOVIE DIARY
+        ON SCREEN:  AI RECOMMENDATIONS
+
+              VOICE
+        Kinolog is a private movie diary that helps your
+        taste give something back.
+
+
+——————————————————————————————————————————————————————————————————————————
+PRODUCIBLE · 44.7s · $0.0346

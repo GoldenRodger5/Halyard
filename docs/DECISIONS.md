@@ -8758,3 +8758,53 @@ letting a broad agent be truncated before it reaches its later categories.
 Worth naming as a pattern: **widening what an agent is asked for silently
 narrows what it can answer**, unless the budget is expressed in the same terms
 as the request. The cap was per call and the request was per category.
+
+## 335–338. The screenplay layer
+
+Seventeen content agents, each answering a narrow question in isolation, and
+nothing holding the piece in mind at once. The output was *correct* and not
+*composed* — a quiz reveal and a quiz question got the same motion because the
+motion director was never told which was which.
+
+`HALYARD_CREATIVE_GAP_AUDIT.md` §7 named this before it was built. The operator
+rediscovered it from the output alone, which is a good sign the gap is real
+rather than architectural neatness.
+
+A `Scene` carries what is said, what is read, what is behind it, what moves,
+what is marked and what the score does — together. `spoken` and `onScreen` are
+separate fields on purpose: a viewer reads four words and hears fourteen, and
+the same sentence in both is a caption read aloud, which is the clearest sign a
+machine made the video.
+
+**It inverts the pipeline.** Directors stop deciding independently and start
+executing a direction. A committee of specialists with no director produces
+competent, uncomposed work.
+
+**The model directs; the code decides whether the direction is producible.**
+Every refusal in `checkScreenplay` is feasibility — no lead scene, a line that
+will not fit, footage that was never captured, a mark on a region the frame
+cannot locate. None of them is about taste.
+
+**Repair before refusal.** The first real screenplay was refused on all six
+scenes because every line needed more seconds than its scene held. The writing
+was good and the arithmetic was wrong, so `fitScreenplay` lengthens the scene
+and never shortens the line: a scene length is a guess, a sentence is a
+decision.
+
+Proven on a product it had never seen — Kinolog, 34.6s, producible, in Kinolog's
+own vocabulary and its own visual register.
+
+## 337. One product rendered in another's typeface, silently
+
+`products.brand_tokens` is untyped JSON. RecipeFix's row was hand-written with
+`heading_font`; §323's extractor writes `headingFont`, which is the TypeScript
+field name and the obvious thing to write. `resolveBrand` read only the first.
+
+So Kinolog's Bricolage Grotesque became RecipeFix's Instrument Serif, with no
+error anywhere — a product-agnostic pipeline quietly rendering one product in
+another's typeface.
+
+Found because a motif pack **explains itself**: it printed *"a near-black ground
+with Instrument Serif"*, and Kinolog does not own that face. A decision that
+states its reason is a decision that can be caught being wrong, which is most of
+the argument for making every director explain itself.
