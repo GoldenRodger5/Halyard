@@ -9152,3 +9152,37 @@ reason is what makes the second attempt different from another roll of the dice.
 An operator request is not a defect. Nothing failed; a person wanted it
 different. A fabricated defect would enter the history the regression check reads
 and be protected forever afterwards.
+
+## 70 · A skipped test is a failure that got away
+
+**Chosen.** `migrationsApply.test.ts` asserts the migration set applies to an
+empty database, in its own file, separate from every suite that needs one.
+
+**Why.** 445 tests were dark for a day because a migration could not apply to a
+clean database, and every suite that would have caught it guards on
+`databaseAvailable()` — which was still true. The failure surfaced as *skipped*.
+
+A suite that cannot build its database skips. A test that asserts the database
+can be built fails. `schema.test.ts` would have caught the RLS gap and is itself
+one of the suites that goes dark, so it can never be the guard for this.
+
+`migrateInto` now names the failing file and says why it matters: a migration
+has to apply to an empty database, because that is the only kind CI has.
+
+## 71 · Sweep for the shape of the bug, not the bug
+
+**Chosen.** Three mechanical sweeps, kept: payload keys with no reader, core
+functions with no caller, columns no source mentions.
+
+**Why.** *Declared, typed, tested, never executed* is this codebase's recurring
+failure — `requires`, `fillSecret`, `calloutsFromSteps`, `planAnnotations`,
+`platformFinish`, the quiz options. Each was found by noticing. Six more were
+found in an evening by looking for the shape instead.
+
+`payload` is `jsonb` and neither side has a type the other checks, so there was
+never anything for the compiler to catch. That is exactly where a source-reading
+test earns its keep.
+
+**Rejected.** Failing on a key *read* but never written. A handler reading
+`job.payload.limit` with a default is legitimate; a written key nobody reads is a
+promise to the caller that is not kept.

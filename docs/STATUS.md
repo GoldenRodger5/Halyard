@@ -1372,3 +1372,54 @@ against real data — none of it by a live generation.
 - `videoForFormat` still builds from slots rather than from screenplay scenes.
   That is the last hop of the screenplay work and a real change to the
   composition builders.
+
+### The suite was lying — 445 tests were dark (§379)
+
+`pnpm test` reported **2,706 passing, 453 skipped** and had for a day. The 453
+were every database-backed test in the repository, and they were not skipped for
+want of a database: migrations 0061 and 0063 insert templates referencing
+`product_id = 'recipefix'`, a migration runs before `seed.sql`, so a clean
+database has no products and the insert fails on the foreign key.
+`createIsolatedPool` replays every migration into a fresh database, so it threw,
+so every suite guarded on `databaseAvailable()` skipped. **A skipped test
+reports green.**
+
+Worse: those three rows were already in `seed.sql`. The migrations were
+duplicating the seed and failing on a clean database in order to do it.
+
+Now **3,162 passing, nothing skipped**, and two real defects were waiting inside:
+`capture_audit` and `job_events` had shipped without row-level security, which
+`schema.test.ts` had been asserting since the beginning.
+
+`migrationsApply.test.ts` is the guard. The distinction is the whole point: a
+suite that cannot build its database *skips*; a test that asserts the database
+can be built *fails*.
+
+### Three sweeps for the recurring bug
+
+The pattern this codebase keeps producing is *declared, typed, tested, never
+executed*. Three mechanical sweeps found six more:
+
+| Sweep | Found |
+|---|---|
+| Job payload keys with no reader | Regenerate targeted nothing (§375); `campaignId` and `requestedBy` redundant |
+| Core functions with no caller | §300's quiz checks never ran (§376); `opinionPreserved` never ran (§377); `rankStories` never ran (§378) |
+| Columns no source mentions | The caption overflow was discarded despite a comment promising otherwise (§380) |
+
+`payloadCoverage.test.ts` makes the first permanent. Its own first version read
+only the worker and would have missed the bug it was written for — the web app
+enqueues with raw SQL — which is worth remembering: a guard covering the half of
+the system where the fault is not is worse than none, because it reads as
+coverage.
+
+### Deployment state
+
+- **Production schema is current.** Migrations 0067–0070 applied: `job_events.stage`,
+  `content_items.screenplay`, `takes.opinion_*`, and RLS on the two tables that
+  lacked it. All additive; `job_events` verified still readable afterwards.
+- **The worker deploy was uploaded** and the schema is ahead of it, which is the
+  safe direction.
+- **The web app is NOT deployed with tonight's work.** `vercel --prod` returns
+  `Not authorized` — the CLI session needs re-authorising, and that cannot be
+  done non-interactively. Everything is on `main`; one `vercel --prod` publishes
+  it.
