@@ -163,6 +163,15 @@ export async function generateHeroImage(
     model: image.model,
     costUsd: Number(image.costUsd.toFixed(4)),
     subject: request.subject,
+    /*
+     * §369. The reason, not only the parameters. The account of a piece is
+     * assembled from what each decision recorded about itself, and this one
+     * recorded five facts and no sentence — so it appeared in the account as a
+     * decision that said nothing about why.
+     */
+    because:
+      `A photograph of ${request.subject}, because that is the physical thing this piece is about. ` +
+      'It is illustration and carries `generated` provenance, so it can never stand as evidence for a claim about the product.',
   });
 
   return { assetId: stored.id, bytes, mimeType: image.mimeType, costUsd: image.costUsd };

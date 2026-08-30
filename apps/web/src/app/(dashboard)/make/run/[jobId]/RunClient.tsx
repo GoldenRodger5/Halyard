@@ -188,6 +188,90 @@ export function RunClient({ initial }: { initial: RunView }) {
         </section>
       ) : null}
 
+      {/*
+        §369. The account of the piece, once there is one.
+
+        Not a model's reading of the finished video — that would infer the
+        reasons and write confident sentences about choices it did not witness.
+        Every director already logs why, so this collects rather than narrates,
+        and it says so where the record is silent.
+      */}
+      {run.account ? (
+        <section className="border-t border-line pt-6">
+          <h2 className="mb-3 text-xs uppercase tracking-[0.1em] text-muted">
+            Why it came out this way
+          </h2>
+
+          {run.account.decisions.length > 0 ? (
+            <ul className="space-y-2">
+              {run.account.decisions.map((d, i) => (
+                <li key={`${d.about}-${i}`}>
+                  <p className="text-sm">
+                    <span className="text-muted">{d.about}</span>
+                    {d.by === 'operator' ? (
+                      <span className="ml-1.5 text-[11px] uppercase tracking-[0.08em] text-muted/70">
+                        your choice
+                      </span>
+                    ) : null}
+                  </p>
+                  <p className="text-sm text-ink">{d.said}</p>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+
+          {run.account.refusals.length > 0 ? (
+            <div className="mt-5">
+              <p className="mb-2 text-xs uppercase tracking-[0.1em] text-muted">
+                What it refused along the way
+              </p>
+              <ul className="space-y-2">
+                {run.account.refusals.map((r, i) => (
+                  <li key={`${r.about}-${i}`}>
+                    <p className="text-sm text-muted">{r.about}</p>
+                    <p className="text-sm text-warn-ink">{r.said}</p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          {run.account.notDone.length > 0 ? (
+            <div className="mt-5">
+              <p className="mb-2 text-xs uppercase tracking-[0.1em] text-muted">
+                What it did not do
+              </p>
+              <ul className="space-y-1">
+                {run.account.notDone.map((s) => (
+                  <li key={s.stage} className="text-sm">
+                    <span className="text-muted">{s.stage}</span> — {s.because}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          {run.account.silent.length > 0 ? (
+            <div className="mt-5">
+              <p className="mb-1 text-xs uppercase tracking-[0.1em] text-muted">
+                Recorded without a reason
+              </p>
+              <p className="mb-2 text-xs text-muted">
+                These decisions happened and said nothing about themselves. That is a gap in the
+                pipeline&rsquo;s accounting rather than in this reading of it.
+              </p>
+              <ul className="space-y-0.5">
+                {run.account.silent.map((line, i) => (
+                  <li key={i} className="text-sm text-muted">
+                    {line}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+        </section>
+      ) : null}
+
       {run.contentItemId ? (
         <section className="border-t border-line pt-6">
           <Link

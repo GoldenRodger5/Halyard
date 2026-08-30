@@ -5,7 +5,7 @@
  * what a run *is* — which they would, being written separately and asked the
  * same question.
  */
-import { agentsForStage } from '@halyard/core';
+import { agentsForStage, explainPiece, hasAccount, type PieceAccount } from '@halyard/core';
 import { query } from '@/lib/db';
 
 /** The bucket unattributed events land in. Named, never dropped — see §367. */
@@ -63,6 +63,11 @@ export interface RunView {
   contentItemId: string | null;
   /** True while there is any reason to keep polling. */
   live: boolean;
+  /**
+   * §369. Why the piece is the way it is, assembled from the decisions that
+   * were actually recorded. Null when the run has not recorded enough to say.
+   */
+  account: PieceAccount | null;
 }
 
 export async function loadRun(jobId: string): Promise<RunView | null> {
@@ -72,9 +77,11 @@ export async function loadRun(jobId: string): Promise<RunView | null> {
     status: string;
     attempts: number;
     last_error: string | null;
-  }>('select id, kind, status, attempts, last_error from jobs where id = $1', [jobId]);
+    payload: Record<string, unknown> | null;
+  }>('select id, kind, status, attempts, last_error, payload from jobs where id = $1', [jobId]);
   const job = jobs[0];
   if (!job) return null;
+  const jobPayload = job.payload;
 
   const events = await query<{
     id: number;
@@ -153,6 +160,18 @@ export async function loadRun(jobId: string): Promise<RunView | null> {
     };
   });
 
+  /*
+   * §369. Built from the record rather than written by a model. Every director
+   * logs its own reason, so the account is a reading of what happened — it has
+   * no way to produce a sentence nobody wrote.
+   */
+  const overrides = jobPayload?.options ?? null;
+  const built = explainPiece({
+    events: mapped.map((e) => ({ message: e.message, detail: e.detail, stage: e.stage, at: e.at })),
+    overrides: overrides as Record<string, string> | null,
+  });
+  const account = hasAccount(built) ? built : null;
+
   return {
     jobId: job.id,
     kind: job.kind,
@@ -171,5 +190,6 @@ export async function loadRun(jobId: string): Promise<RunView | null> {
     contentItemId,
     /* Queued and running are live; done, dead and cancelled are not. */
     live: job.status === 'queued' || job.status === 'running',
+    account,
   };
 }

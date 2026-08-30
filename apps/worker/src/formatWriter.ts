@@ -343,6 +343,11 @@ export async function writeToFormat(
         attempts: attempt,
         slots: parsed.slots.length,
         warnings: check.problems.length,
+        /* §369. What the attempt count means, rather than only the number. */
+        because:
+          attempt === 1
+            ? `Every slot of the ${format.id} format filled on the first attempt.`
+            : `The ${format.id} format filled on attempt ${attempt}; the earlier ones were refused and rewritten with the problems named.`,
       });
       return { draft: parsed, attempts: attempt, costUsd: totalCost, problems: check.problems };
     }
