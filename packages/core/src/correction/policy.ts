@@ -221,6 +221,68 @@ const BY_RULE: Record<string, PolicyEntry> = {
    * across *cards*, or a plan with no hook beat — and the answer is a different
    * plan, which no correction supplies.
    */
+  /**
+   * §317. The media integrity rules.
+   *
+   * Every one of these is arithmetic about the finished file, and none of them
+   * is fixable by rewriting copy or restyling a caption — the piece has to be
+   * built again with the right numbers. So they escalate, with the exception of
+   * a dead tail, which is untidy rather than wrong.
+   */
+  'media.silent_audio': {
+    rootCause:
+      'The file has an audio stream carrying digital silence, so every player shows a track and plays nothing.',
+    component: 'render',
+    action: 'escalate',
+    correctable: false,
+  },
+  'media.no_audio_stream': {
+    rootCause: 'A narrated piece reached the file with no audio at all; the mux did not happen.',
+    component: 'render',
+    action: 'escalate',
+    correctable: false,
+  },
+  'media.truncated': {
+    rootCause:
+      'The composition was sized for different content than it was given, so the last beat is cut off mid-way.',
+    component: 'render',
+    action: 'escalate',
+    correctable: false,
+  },
+  'media.dead_tail': {
+    /* A held final frame. Worth shortening, not worth refusing a piece over. */
+    rootCause: 'The file runs past its last beat and ends on a held frame.',
+    component: 'creative_plan',
+    action: 'adjust_scene_timing',
+    correctable: true,
+  },
+  'media.narration_overrun': {
+    rootCause:
+      'A line is still being spoken when the next one starts, over a card that has already changed.',
+    component: 'creative_plan',
+    action: 'adjust_scene_timing',
+    correctable: true,
+  },
+  /**
+   * §317. The two imagery findings escalate for the same reason every other
+   * critic finding does: the answer is a different picture, and no correction
+   * in this table supplies one. Restyling a caption over the wrong photograph
+   * produces a well-set caption over the wrong photograph.
+   */
+  'critic.unrelated_imagery': {
+    rootCause:
+      'The photograph has nothing to do with what the words say — generated from something other than this piece.',
+    component: 'creative_plan',
+    action: 'escalate',
+    correctable: false,
+  },
+  'critic.stock_imagery': {
+    rootCause:
+      'The photograph would fit any post on the account, so it was chosen for none of them.',
+    component: 'creative_plan',
+    action: 'escalate',
+    correctable: false,
+  },
   'critic.uniform_treatment': {
     rootCause:
       'One type treatment is used on every frame, so nothing carries more weight than anything else.',
