@@ -64,7 +64,7 @@ apps/web/src/app/(studio)/     the seven rooms.
 | 1–3 | ✅ **Tokens, primitives, shell** | Landed. `globals.css`, `packages/ui/src/studio/`, `StudioShell`. |
 | 4 | ✅ **Gallery** | Landed. Wall, piece, Scheduled, On air, Stock. §386, decision 72. |
 | 5 | ✅ **Call Sheet** | Landed at `/call`. Overnight band, `whatNeedsMe`, the rig. §385. |
-| 6 | **The Floor** | Brief and Live. The most new backend — see §4. |
+| 6 | ✅ **The Floor** | Landed. Brief and Live. §387, decisions 74–76. |
 | 7 | **Rundown, Wires, Numbers** | Re-skins of screens that already work. |
 | 8 | **Master Control** | Largest surface, least new logic. |
 | 9 | **Delete `(dashboard)`** | Move Call Sheet to `/`, drop the old tokens, drop `Shell.tsx` and the old components, update the navigation test. |
@@ -80,10 +80,10 @@ Everything else in the prototypes reads something already in the database.
 | Needs | What it is | Where |
 |---|---|---|
 | **While you slept** | A window over `job_events` between the operator's last visit and now: pieces made, refused, replies drafted. Needs a `last_seen_at` on the operator. | Call Sheet |
-| **Stage transitions** | The lit wire needs to know which two stages are *adjacent in this run*. Today `job_events.stage` tags an event; it does not record a handoff. Add `from_stage` when a stage opens. | Floor · Live |
-| **Crew voice** | The speech bubbles are the logged `because`, phrased. A deterministic map from message → an agent's line, falling back to the raw `because`. Never generated. | Floor · Live |
-| **Brief preview** | Waking a desk as you choose means running `planProduction` on the current selections before anything is enqueued. A server action returning the stage plan and an estimate. | Floor · Brief |
-| **Live push** | The floor polls at 2s today. At this fidelity it wants SSE. Polling ships first; SSE is an optimisation, not a blocker. | Floor · Live |
+| ~~**Stage transitions**~~ | **Done, differently.** No `from_stage` column: a sequence already encodes its own transitions, so `readLive` derives the lit wire from two consecutive events in different stages. What *was* needed turned out to be bigger — seven of eleven stages were declared in `STAGE_AGENTS` and opened nowhere, so three desks could never light. `openStage` fixes it at the source; `stageCoverage.test.ts` keeps it fixed. Decision 74. | Floor · Live ✔ |
+| ~~**Crew voice**~~ | **Done.** `lib/studio/crewVoice.ts`. A test asserts no written line contains a number, so every quantity on the floor came from an event. Decision 75. | Floor · Live ✔ |
+| ~~**Brief preview**~~ | **Done.** `previewBrief` server action — a server action because `planProduction` is behind the core barrel and the barrel pulls `node:crypto` (gotcha 10, which this screen hit once already through `desks.ts`). No cost estimate: nothing measures per-run cost yet, and a made-up number is a fabricated observation. | Floor · Brief ✔ |
+| **Live push** | Polling at 2s, through `/api/floor`. SSE remains the better answer and remains an optimisation rather than a blocker. | Floor · Live |
 | ~~**Route map**~~ | **Wrong when written.** `job_events.job_id` points at a job and nothing on `content_items` points back — no job payload carries a content id either, so the strip would be empty for every row that exists. Built instead from the item's own record (claims, renders, gates, status), which is real evidence and works today. §386. | Gallery ✔ |
 
 Nothing in that list blocks steps 1–4.

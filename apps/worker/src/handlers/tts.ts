@@ -53,6 +53,7 @@ import {
 // them. The worker has no use for a component tree.
 import { buildCaptionCues, durationInFrames } from '@halyard/render/timing';
 import { alignToScript } from '../captions.js';
+import { openStage } from '../stage.js';
 import {
   assembleTimedNarration,
   audioDuration,
@@ -333,6 +334,14 @@ export async function ttsHandler(job: Job, ctx: HandlerContext, deps: TtsDeps = 
      */
     let musicPath: string | null = null;
     let musicSkipped: string | null = null;
+    /*
+     * §387. The music director's own stage. `music` was declared in
+     * `STAGE_AGENTS` and opened nowhere, so choosing a bed — or refusing to,
+     * which is the common case while nothing is licensed — produced no
+     * attributed event and the floor's sound desk stayed dark either way.
+     */
+    const musicCtx = openStage(ctx, 'music');
+
     if (music) {
       try {
         const composed = await music.compose(
@@ -347,7 +356,7 @@ export async function ttsHandler(job: Job, ctx: HandlerContext, deps: TtsDeps = 
           err instanceof SpeechUnavailableError
             ? err.reason
             : (err as Error).message.slice(0, 200);
-        ctx.log('music bed skipped', { contentItemId, reason: musicSkipped });
+        musicCtx.log('music bed skipped', { contentItemId, because: musicSkipped });
       }
     }
 

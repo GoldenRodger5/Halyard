@@ -1,5 +1,43 @@
 # Where Halyard is right now
 
+**2026-08-30 (later) — the floor, and the seven stages nobody could see.**
+
+Room 2 has landed: **Brief** and **Live**. Six desks in a horseshoe, wires
+between them, one speech bubble above whichever desk is working, and a rail of
+what the crew actually said. Choosing in the brief wakes the desks in front of
+you — pick "caption" and the sound booth goes dark, which teaches what a caption
+is in this system without anybody reading anything.
+
+*Seven of eleven stages were declared and never opened.* §367 made stage
+attribution structural — wrapping a stage attributes everything logged inside
+it — and only four stages were ever wrapped. `brief`, `caption`, `voice`,
+`music`, `marks`, `render` and `qc` were named in `STAGE_AGENTS`, owned by named
+agents, and passed to `ctx.as` nowhere. Three of the six desks could never have
+lit up. Nothing failed, because nothing was wrong: the work ran, anonymously.
+`openStage` fixes it and `stageCoverage.test.ts` keeps it fixed. Decision 74.
+
+*The bubbles are written, never generated.* A deterministic map, falling back to
+the handler's own `because`. A test asserts no written line contains a number,
+so every quantity on the floor came from an event that carried it — gotcha 9 in
+its friendliest disguise. Decision 75.
+
+*The phone gets a different gesture, not a smaller room.* At 390px the horseshoe
+overlapped itself and ran off the edge, so below `md` it becomes a map strip and
+a swipe deck. Same desks, same order, same words. Decision 76.
+
+*Gotcha 10 caught one, live.* `desks.ts` imported `STAGE_ORDER` for a name check;
+it is reached from a client component, the core barrel pulls `node:crypto`, and
+it built, typechecked, passed every test and failed at render. The check moved
+into the test, where it costs nothing.
+
+**Rooms live:** `/call`, `/gallery` (+ Scheduled · On air · Stock · piece),
+`/floor` and `/floor/live`. All checked by screenshot at 1440×900 and 390×844.
+
+Next: step 7 — Rundown, Wires and Numbers, which are re-skins of screens that
+already work; then Master Control; then step 9 deletes `(dashboard)`.
+
+---
+
 **2026-08-30 — the studio has three rooms, and they run on real data.**
 
 The console replacement is under way. `docs/STUDIO_BUILD_PLAN.md` is the plan;

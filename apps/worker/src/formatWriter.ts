@@ -32,6 +32,7 @@ import {
   type LlmClient,
 } from '@halyard/core';
 import type { HandlerContext } from './poller.js';
+import { openStage } from './stage.js';
 import { checkCitation, newSourceCache } from './citationCheck.js';
 
 export const FORMAT_PROMPT_VERSION = 'post_format.v1';
@@ -164,7 +165,7 @@ export async function writeToFormat(
     true to what actually ran: every citation check belongs to the researcher,
     not to the copywriter that asked for it.
   */
-  const researchCtx = ctx.as('research');
+  const researchCtx = openStage(ctx, 'research');
   if (requiresCitation(format)) {
     const found = await research(
       {

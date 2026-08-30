@@ -188,3 +188,274 @@
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='.32'/%3E%3C/svg%3E");
   }
 }
+
+/* ── §387 · The floor ──────────────────────────────────────────────────────
+ *
+ * Real CSS rather than utilities, because this is the one screen in Halyard
+ * built out of things Tailwind is bad at: pseudo-element shadows under desks,
+ * a perspective floor grid, keyframed wires, a nodding avatar. Writing these
+ * as arbitrary values would produce class strings nobody can read and no
+ * clearer a result.
+ *
+ * Every value is measured off the prototype.
+ */
+@layer components {
+  /* The room: a dark box with a lit floor and a horizon. */
+  .fl-space {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(180deg, #0e1b19 0%, #0e1b19 26%, #0a1412 26.3%, #08110f 100%);
+  }
+  /* The back wall, with the ceiling wash spilling down it. */
+  .fl-wall {
+    position: absolute;
+    inset: 0 0 79% 0;
+    border-bottom: 1px solid rgba(50, 84, 80, 0.5);
+  }
+  .fl-wall::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(70% 120% at 50% 120%, rgba(217, 164, 65, 0.09), transparent 70%);
+  }
+  /*
+   * The floor. A flat grid rotated in perspective — the single cheapest thing
+   * that makes the room read as a room rather than as a diagram.
+   */
+  .fl-grid {
+    position: absolute;
+    left: -20%;
+    right: -20%;
+    top: 21%;
+    bottom: 0;
+    background-image:
+      linear-gradient(rgba(50, 84, 80, 0.3) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(50, 84, 80, 0.22) 1px, transparent 1px);
+    background-size: 56px 40px;
+    transform: perspective(560px) rotateX(56deg);
+    transform-origin: top center;
+    opacity: 0.55;
+  }
+  /* Vignette, so the eye goes to the middle. */
+  .fl-space::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(130% 90% at 50% 55%, transparent 30%, rgba(8, 17, 15, 0.82) 100%);
+  }
+
+  /* A desk. */
+  .fl-pod {
+    position: absolute;
+    /*
+     * 158, not 150. The longest team name — "Content · writers' room" — is 23
+     * characters of 7.5px mono, which is a couple of pixels wider than a 150px
+     * pod's content box, so it clipped at the edge on exactly one desk.
+     */
+    width: 158px;
+    padding: 9px 10px 10px;
+    border-radius: 12px;
+    z-index: 4;
+    border: 1px solid var(--color-hair);
+    color: var(--color-dink);
+    background: linear-gradient(180deg, #1f3532, #182b28);
+    box-shadow:
+      0 16px 26px -16px rgba(0, 0, 0, 0.9),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    transition:
+      transform 0.2s,
+      border-color 0.2s,
+      opacity 0.4s;
+    text-align: left;
+  }
+  /* The pool of light a working desk sits in. */
+  .fl-pod::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: -24px;
+    transform: translateX(-50%);
+    width: 152px;
+    height: 42px;
+    border-radius: 50%;
+    background: radial-gradient(closest-side, rgba(217, 164, 65, 0.16), transparent 72%);
+    opacity: 0;
+    transition: opacity 0.5s;
+  }
+  .fl-pod:hover {
+    transform: translateY(-4px);
+    border-color: var(--color-hair2);
+  }
+  .fl-pod[data-state='working'] {
+    border-color: rgba(217, 164, 65, 0.5);
+    box-shadow:
+      0 18px 30px -16px rgba(0, 0, 0, 0.9),
+      0 0 38px -12px rgba(217, 164, 65, 0.45);
+  }
+  .fl-pod[data-state='working']::before {
+    opacity: 1;
+  }
+  .fl-pod[data-state='done'] {
+    opacity: 0.6;
+  }
+  .fl-pod[data-state='waiting'] {
+    opacity: 0.4;
+  }
+  .fl-pod[data-state='skipped'] {
+    opacity: 0.22;
+    filter: grayscale(0.5);
+  }
+  .fl-pod[data-pinned='true'] {
+    border-color: var(--color-brass);
+  }
+
+  /* The person at the desk: a head and a pair of shoulders. */
+  .fl-av {
+    width: 23px;
+    height: 23px;
+    border-radius: 7px;
+    flex: none;
+    position: relative;
+    background: linear-gradient(160deg, var(--color-hair2), #182b28);
+    border: 1px solid var(--color-hair2);
+  }
+  .fl-av::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 4px;
+    transform: translateX(-50%);
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0.85;
+  }
+  .fl-av::after {
+    content: '';
+    position: absolute;
+    left: 5px;
+    right: 5px;
+    bottom: 4px;
+    height: 6px;
+    border-radius: 4px 4px 2px 2px;
+    background: currentColor;
+    opacity: 0.85;
+  }
+  .fl-pod[data-state='working'] .fl-av {
+    animation: fl-nod 1.6s ease-in-out infinite;
+  }
+  @keyframes fl-nod {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-1.5px);
+    }
+  }
+
+  /* The wires between desks, and the one that is carrying something. */
+  .fl-wires {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+  }
+  .fl-wires path {
+    fill: none;
+    stroke: rgba(50, 84, 80, 0.7);
+    stroke-width: 1.4;
+    stroke-dasharray: 3 6;
+  }
+  .fl-wires path[data-hot='true'] {
+    stroke: var(--color-brass);
+    stroke-width: 2.2;
+    stroke-dasharray: 7 9;
+    animation: fl-flow 1s linear infinite;
+    filter: drop-shadow(0 0 7px rgba(217, 164, 65, 0.6));
+  }
+  @keyframes fl-flow {
+    to {
+      stroke-dashoffset: -32;
+    }
+  }
+
+  /* What a desk is saying. One at a time, pinned above its own desk. */
+  .fl-bub {
+    position: absolute;
+    max-width: 200px;
+    z-index: 6;
+    background: linear-gradient(180deg, #fff, #eff3f2);
+    color: var(--color-sink);
+    border-radius: 12px;
+    padding: 8px 11px;
+    font-size: 11px;
+    line-height: 1.38;
+    box-shadow: 0 16px 28px -12px rgba(0, 0, 0, 0.8);
+    pointer-events: none;
+    animation: fl-bob 4.6s ease-in-out infinite 0.35s;
+  }
+  .fl-bub::after {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    left: 20px;
+    width: 13px;
+    height: 13px;
+    background: #eff3f2;
+    transform: rotate(45deg);
+    border-radius: 2px;
+  }
+  @keyframes fl-bob {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-4px);
+    }
+  }
+
+  /* The typing dots on a working desk. */
+  .fl-dots i {
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: currentColor;
+    display: inline-block;
+    animation: fl-type 1.2s ease-in-out infinite;
+  }
+  .fl-dots i:nth-child(2) {
+    animation-delay: 0.16s;
+  }
+  .fl-dots i:nth-child(3) {
+    animation-delay: 0.32s;
+  }
+  @keyframes fl-type {
+    0%,
+    60%,
+    100% {
+      opacity: 0.28;
+    }
+    30% {
+      opacity: 1;
+    }
+  }
+
+  /*
+   * Nothing on this screen moves for somebody who has asked things not to.
+   * The room is still perfectly legible still — the states are drawn with
+   * colour and opacity, and the motion is decoration on top of them.
+   */
+  @media (prefers-reduced-motion: reduce) {
+    .fl-pod[data-state='working'] .fl-av,
+    .fl-wires path[data-hot='true'],
+    .fl-bub,
+    .fl-dots i {
+      animation: none;
+    }
+  }
+}

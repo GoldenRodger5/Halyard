@@ -17,7 +17,8 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vites
 import { createIsolatedPool, databaseAvailable } from '../../../packages/db/src/__tests__/testDb.js';
 import { SpeechUnavailableError, type MusicClient, type SpeechClient } from '@halyard/core';
 import { ttsHandler } from './handlers/tts.js';
-import type { HandlerContext, Job } from './poller.js';
+import type { Job } from './poller.js';
+import { testContext, type TestContext } from './testContext.js';
 
 const execFileAsync = promisify(execFile);
 const available = await databaseAvailable();
@@ -108,25 +109,14 @@ beforeEach(async () => {
   await pool.query('delete from voice_lexicon');
 });
 
-function context(): HandlerContext & {
-  logs: Array<[string, unknown]>;
-  enqueued: Array<[string, Record<string, unknown>]>;
-} {
-  const logs: Array<[string, unknown]> = [];
-  const enqueued: Array<[string, Record<string, unknown>]> = [];
-  return {
-    pool,
-    workerId: 'test',
-    logs,
-    enqueued,
-    log: (m: string, det?: unknown) => logs.push([m, det]),
-    enqueue: async (kind: string, payload: Record<string, unknown>) => {
-      enqueued.push([kind, payload]);
-    },
-  } as unknown as HandlerContext & {
-    logs: Array<[string, unknown]>;
-    enqueued: Array<[string, Record<string, unknown>]>;
-  };
+/*
+ * §367's factory, not a hand-built object. The cast this used to carry is a
+ * promise the compiler cannot check, and it came due when `openStage` started
+ * calling `ctx.as` — fifteen tests failed with "ctx.as is not a function", none
+ * of them about text-to-speech.
+ */
+function context(): TestContext {
+  return testContext({ pool });
 }
 
 async function seedItem(overrides: { audioMode?: string; script?: string | null } = {}): Promise<string> {
@@ -327,7 +317,7 @@ d('ttsHandler', () => {
     const ctx = context();
     await ttsHandler(job(id), ctx, { speech: speechStub(), music: null });
 
-    expect(ctx.logs.map(([m]) => m)).toContain('tts skipped, item is text_only');
+    expect(ctx.logs).toContain('tts skipped, item is text_only');
     const { rows } = await pool.query('select vo_asset_id from content_items where id = $1', [id]);
     expect(rows[0]!.vo_asset_id).toBeNull();
   }, 60_000);
@@ -377,7 +367,10 @@ d('ttsHandler', () => {
     const ctx = context();
     await ttsHandler(job(id), ctx, { speech: speechStub(), music: null });
 
-    expect(ctx.enqueued).toContainEqual(['render', { renderId: render.rows[0]!.id }]);
+    expect(ctx.enqueued.map((e) => [e.kind, e.payload])).toContainEqual([
+      'render',
+      { renderId: render.rows[0]!.id },
+    ]);
   }, 180_000);
 
   it('does not release a render that is already done', async () => {
@@ -391,7 +384,7 @@ d('ttsHandler', () => {
     const ctx = context();
     await ttsHandler(job(id), ctx, { speech: speechStub(), music: null });
 
-    expect(ctx.enqueued.filter(([kind]) => kind === 'render')).toEqual([]);
+    expect(ctx.enqueued.filter((e) => e.kind === 'render')).toEqual([]);
   }, 180_000);
 
   it('uses a bed from the operator library, rotating least-recently-used', async () => {

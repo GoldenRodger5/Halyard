@@ -15,7 +15,8 @@ import type pg from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createIsolatedPool, databaseAvailable } from '../../../packages/db/src/__tests__/testDb.js';
 import { renderHandler } from './handlers/render.js';
-import type { HandlerContext, Job } from './poller.js';
+import type { Job } from './poller.js';
+import { testContext, type TestContext } from './testContext.js';
 
 const execFileAsync = promisify(execFile);
 const available = await databaseAvailable();
@@ -59,15 +60,14 @@ beforeEach(async () => {
   await pool.query('delete from content_items');
 });
 
-function context(): HandlerContext & { logs: Array<[string, unknown]> } {
-  const logs: Array<[string, unknown]> = [];
-  return {
-    pool,
-    workerId: 'test',
-    logs,
-    log: (m: string, det?: unknown) => logs.push([m, det]),
-    enqueue: async () => undefined,
-  } as unknown as HandlerContext & { logs: Array<[string, unknown]> };
+/*
+ * §367's factory, not a hand-built object. The cast this used to carry —
+ * `as unknown as HandlerContext` — is a promise the compiler cannot check, and
+ * it came due when `openStage` started calling `ctx.as`: every test in this
+ * file failed with "ctx.as is not a function", none of them about rendering.
+ */
+function context(): TestContext {
+  return testContext({ pool });
 }
 
 async function seedRender(): Promise<{ renderId: string; contentItemId: string }> {

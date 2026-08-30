@@ -94,6 +94,7 @@ import {
 import { chooseVideoComposition } from '@halyard/render/video-props';
 import { VIDEO_FORMATS, videoForFormat } from '@halyard/render/video';
 import { regateHookedBody, runHookStage } from '../hooks.js';
+import { openStage } from '../stage.js';
 
 /**
  * Target length for a voiceover script, in seconds.
@@ -958,6 +959,14 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
          * what was skipped **and why** — "it did not happen" and "it was not
          * needed" look identical otherwise.
          */
+        /*
+         * §387. The brief is a stage, and it is this one — deciding what the
+         * piece is for and what shape it takes. It had no `ctx.as` of its own,
+         * so `completed` counted it done while it produced no attributed event
+         * and the floor's first desk could never light.
+         */
+        const brief = openStage(ctx, 'brief');
+
         const production = planProduction({
           channel: resolvedType.postType.channel,
           media: resolvedType.postType.media,
@@ -965,7 +974,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
           needsCapture: chosenFormat.format.needsCapture === true,
         });
 
-        ctx.log('production planned', {
+        brief.log('production planned', {
           postType: resolvedType.postType.id,
           because: resolvedType.because,
           alternatives: resolvedType.alternatives,
@@ -976,7 +985,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
         /* What has actually completed, for `canStart` to gate against. */
         const completed: Stage[] = ['brief'];
 
-        ctx.log('post format chosen', {
+        brief.log('post format chosen', {
           platform: account.platform,
           format: chosenFormat.format.id,
           because: chosenFormat.reason,
@@ -1009,7 +1018,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                   a thing as a lane. `formatWriter` re-scopes to `research`
                   around the research call for the same reason.
                 */
-                ctx.as('write'),
+                openStage(ctx, 'write'),
                 chosenFormat.format,
                 {
                   subject:
@@ -1043,7 +1052,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
         const staged =
           written && production.stages.some((stage) => stage.stage === 'screenplay')
             ? await stagePiece(
-                ctx.as('screenplay'),
+                openStage(ctx, 'screenplay'),
                 {
                   productId,
                   format: chosenFormat.format,
@@ -1063,6 +1072,15 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
               )
             : null;
         if (staged) completed.push('screenplay');
+
+        /*
+         * §387/§370. `caption` is the last stage `planProduction` names and the
+         * one that writes the words sitting under the piece. `writeDraft` takes
+         * no context — it is a pure call into the model layer — so the stage is
+         * opened here and its outcome logged, rather than left to produce
+         * nothing and read as a stage that never ran.
+         */
+        const captionCtx = openStage(ctx, 'caption');
 
         const draft = await writeDraft(
           {
@@ -1101,6 +1119,14 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
           },
           llmFor(),
         );
+
+        captionCtx.log('caption written', {
+          because: `${draft.body.length} characters for ${account.platform}`,
+          hashtags: draft.hashtags.length,
+          /* An overflow means the piece did not fit and a person must post it. */
+          overflow: Boolean(draft.overflow),
+          gates: (draft.qc?.gates ?? []).map((g) => `${g.gate}: ${g.status}`),
+        });
 
         // Milestone 42 — where this post should send people, decided from the
         // artifact rather than defaulting to the homepage.
@@ -1368,7 +1394,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
         }
 
         /* §367. Everything the picture decisions log belongs to the assets lane. */
-        const assets = ctx.as('assets');
+        const assets = openStage(ctx, 'assets');
         const formatLine = written ? subjectFromFormat(written.draft.slots) : null;
         let heroSubject = subjectForImage(artifact, idea.title);
         if (formatLine) {
@@ -1778,8 +1804,17 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
               : overrides.voice === 'on'
                 ? true
                 : production.stages.some((stage) => stage.stage === 'voice');
+          /*
+           * §387. The sound booth. Opened whether or not a voice is wanted,
+           * because "we decided this piece is silent" is the booth's work and
+           * an operator watching the floor needs to see it happen — a desk that
+           * never lights reads as a stage that never ran, which is the exact
+           * confusion `planProduction`'s `skipped` list exists to remove.
+           */
+          const booth = openStage(ctx, 'voice');
+
           if (!wantsVoice) {
-            ctx.log('voice skipped', {
+            booth.log('voice skipped', {
               contentItemId,
               because:
                 overrides.voice === 'off'
@@ -2692,16 +2727,31 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
             artifact: artifact?.raw,
           });
 
+          /*
+           * §387. The gate is a stage and the critic owns it. `qc` was the last
+           * of the seven declared-and-never-opened stages: gates ran, results
+           * were stored, and not one attributed event said so — so the floor's
+           * quality desk could never light and a refusal at the gate was
+           * invisible in the run.
+           */
+          const gate = openStage(ctx, 'qc');
+
           if (hooked) {
             await ctx.pool.query(
               'update content_items set body = $2, qc_results = $3 where id = $1',
               [contentItemId, hooked.body, JSON.stringify(hooked.qc)],
             );
+            gate.log('re-gated after the hook was applied', {
+              contentItemId,
+              because: 'a hook longer than the sentence it replaced can pass the platform ceiling',
+              gates: (hooked.qc.gates ?? []).map((g) => `${g.gate}: ${g.status}`),
+            });
           } else {
             // Never queued with an unpublishable opening. The copywriter's
             // version is already in the row, and it passed.
-            ctx.log('hook rejected by QC, keeping the copywriter opening', {
+            gate.log('hook rejected by QC, keeping the copywriter opening', {
               contentItemId,
+              because: 'the rewritten opening did not pass the gates the original had passed',
               platform: account.platform,
             });
           }

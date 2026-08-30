@@ -9242,3 +9242,79 @@ sites.
 
 **Rejected.** Bumping the one file that failed. It would have left the eight
 untimed suites on 60s, which is below the number already proven insufficient.
+
+## 74 · Seven of eleven stages were declared and never opened
+
+**Chosen.** `openStage(ctx, stage)` — `ctx.as` plus one `stage opened` event —
+and every stage in `STAGE_AGENTS` now uses it. `stageCoverage.test.ts` asserts
+the map is total in both directions.
+
+**Why.** §367 made stage attribution *structural*: wrapping a stage attributes
+everything logged inside it, including lines from code three modules down that
+has never heard of a stage. That was the right call and it has a gap — a stage
+that logs nothing produces no events, so from outside it is indistinguishable
+from a stage that never ran.
+
+Only four stages were ever passed to `ctx.as`: `research`, `write`,
+`screenplay`, `assets`. The other seven — `brief`, `caption`, `voice`, `music`,
+`marks`, `render`, `qc` — were declared in `STAGE_AGENTS`, owned by named
+agents, and opened nowhere. Three of the floor's six desks could not have lit up
+whatever happened, and no test failed, because nothing was wrong: the work ran,
+it just ran anonymously.
+
+**Declared, typed, tested, never executed**, in the module whose entire job is
+making a run legible. Found by building the screen that needed it, which is the
+same way §303 and §362 were found — by looking at the output.
+
+**Rejected.** Storing `from_stage` to record a handoff, which the build plan
+proposed. A sequence already encodes its own transitions: two consecutive events
+in different stages *are* the edge, and `readLive` derives the lit wire that
+way. A stored copy is a second source of truth that can disagree with the first.
+
+**Rejected.** Passing an agent id at each `ctx.log` call. §367 rejected this for
+two hundred sites and the reasoning has not changed.
+
+## 75 · The crew's lines are written, never generated
+
+**Chosen.** A deterministic message → line map, falling back to the event's own
+`because`. A model is never asked to phrase a bubble.
+
+**Why.** *Agents perceive, code decides.* A caption on a live feed is neither
+perception nor writing that needs a model, and a generated one would cost a call
+per event, be irreproducible, and — the real risk — could describe a run in
+words the run does not support. "Found six great sources" over a stage that
+found two is a fabricated observation: gotcha 9 wearing a friendly face. A test
+asserts **no written line contains a number**, so every quantity on the floor
+comes from the event that carried it.
+
+The fallback matters as much as the map. A desk with nothing written for it says
+the sentence the handler wrote, which is always true if less charming.
+
+**Rejected.** One written line for `stage opened`. It fires for all eleven
+stages, so a single line put the same sentence in six mouths — every desk woke
+up saying "Right, let me look at this." The stage's own `doing` from
+`STAGE_AGENTS` is specific to the desk and true of it, and `openStage` already
+carries it.
+
+## 76 · The phone gets a different gesture, not a smaller room
+
+**Chosen.** Below `md` the horseshoe is replaced by a map strip and a swipe
+deck; the Brief's room becomes a list of desks with their reasons.
+
+**Why.** A horseshoe of six absolutely-positioned desks is a *room*, and a room
+needs room. At 390px the desks overlapped each other and the two on the right
+ran off the edge — cut off and blocking, which is exactly the complaint the
+prototype review raised.
+
+Every desk is still there, in the same order, with the same state and the same
+words. Only the gesture changes, which is the rule the whole console is built
+on: the phone is not a subset. The strip is what replaces the room's *shape* —
+on a laptop the horseshoe tells you where you are in the run at a glance, and a
+single scrolled card cannot.
+
+Two details that follow from having no hover: the skip reason is printed rather
+than left in a `title`, and the speech bubble is inline in its card rather than
+floating above it, because there is nowhere above a full-width card to float.
+
+**Rejected.** Scaling the room down. The desks are 158px because the longest
+team name is 158px; below that the labels clip, which is where this started.

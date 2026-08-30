@@ -25,6 +25,7 @@ import {
   type CapturedStep,
 } from '@halyard/core';
 import { stageFootage } from '../footage.js';
+import { openStage } from '../stage.js';
 import { durationInFrames, type CaptionCue } from '@halyard/render/timing';
 import { hasFaststart, meanVolumeDb, muxAudioIntoVideo } from '../audio.js';
 import { PermanentJobFailure } from '../poller.js';
@@ -312,6 +313,12 @@ async function renderVideoAsset(
         source[source.length - 1]?.atSeconds ??
         20;
 
+      /*
+       * §387. The annotation director's stage — where to point, how big, for
+       * how long. Declared in `STAGE_AGENTS`, opened nowhere until now.
+       */
+      const marks = openStage(ctx, 'marks');
+
       const plan = planAnnotations({
         narration: source.map((s) => ({
           atSeconds: s.atSeconds,
@@ -339,7 +346,7 @@ async function renderVideoAsset(
         durationSeconds,
       });
 
-      ctx.log('annotations planned', {
+      marks.log('annotations planned', {
         renderId: render.id,
         register: motif.register,
         because: motif.reason,
@@ -568,9 +575,14 @@ export async function renderHandler(job: Job, ctx: HandlerContext): Promise<void
       [renderId, asset.id, Date.now() - started],
     );
 
-    ctx.log('rendered', {
+    /*
+     * §387. Turning the plan into frames — the edit bay. This is the last of
+     * the seven stages that were declared and never opened.
+     */
+    openStage(ctx, 'render').log('rendered', {
       renderId,
       template: render.template_id,
+      because: `${render.template_id} at ${render.quality}`,
       ms: Date.now() - started,
       quality: render.quality,
     });
