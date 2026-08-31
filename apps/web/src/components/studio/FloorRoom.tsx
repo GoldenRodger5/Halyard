@@ -91,20 +91,27 @@ export function FloorRoom({
             'inline-flex items-center gap-2 rounded-full border px-2.5 py-[3px] font-data text-[9px] uppercase tracking-[0.16em]',
             live.running
               ? 'border-tally/40 bg-tally/[0.07] text-tally'
-              : 'border-holding/40 bg-holding/[0.07] text-holding',
+              : live.waiting
+                ? 'border-brass/40 bg-brass/[0.07] text-brass'
+                : 'border-holding/40 bg-holding/[0.07] text-holding',
           )}
         >
           <span
             aria-hidden
             className={cx(
               'h-[7px] w-[7px] rounded-full',
-              live.running ? 'animate-pulse bg-tally' : 'bg-holding',
+              live.running ? 'animate-pulse bg-tally' : live.waiting ? 'bg-brass' : 'bg-holding',
             )}
           />
-          {live.running ? 'On the floor' : 'Room idle'}
+          {live.running ? 'On the floor' : live.waiting ? 'Waiting' : 'Room idle'}
         </span>
         <span className="font-display text-sm font-semibold tracking-[-0.02em]">
-          {live.making ?? (live.running ? 'In production' : 'Nothing in production')}
+          {live.making ??
+            (live.running
+              ? 'In production'
+              : live.waiting
+                ? `${live.waiting.queued} ${live.waiting.queued === 1 ? 'brief is' : 'briefs are'} queued`
+                : 'Nothing in production')}
         </span>
         {live.running ? (
           <button

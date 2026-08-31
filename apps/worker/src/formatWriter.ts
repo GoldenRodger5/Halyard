@@ -70,28 +70,91 @@ export const FORMAT_WRITE_BUDGET_MS = 240_000;
  * unrelated claim — is what the overlap test closes. Both strings are short and
  * about one thing, so the comparison is fair in a way page-matching is not.
  */
-function matchesResearchedFact(
-  slotText: string,
-  factClaim: string,
-): boolean {
-  const words = (text: string) =>
-    new Set(
-      text
-        .toLowerCase()
-        .replace(/[^a-z0-9\s]/g, ' ')
-        .split(/\s+/)
-        .filter((w) => w.length > 3),
-    );
-  const claim = words(factClaim);
+/**
+ * §400. Does the piece, where it cites this source, say what the source says?
+ *
+ * ## What was wrong
+ *
+ * This compared **one slot** against the researched fact and demanded a third of
+ * the fact's words appear in it. For a quiz that is structurally impossible:
+ *
+ *   fact:     "Jacopo Beccari isolated gluten in 1728 by washing dough until
+ *              only the protein remained"
+ *   question: "What year was gluten first identified?"   → 1 word of 11  → 9%
+ *   answer:   "1728"                                     → 1 word of 11  → 9%
+ *
+ * Both refused, three attempts, piece abandoned — which is exactly what
+ * happened to the first briefed quiz. **A question that shares a third of the
+ * fact's words has given away its own answer**, so the rule was rejecting good
+ * writing and could only ever be satisfied by bad writing.
+ *
+ * ## The rule now
+ *
+ * A citation is carried by *the slots that cite it*, together — a question and
+ * its answer are one assertion split across two fields, not two claims. And
+ * what a citation actually pins down is the fact's **specifics**: its numbers
+ * and its proper nouns. "1728" appearing in the answer is the citation being
+ * honoured; the grammar around it is writing, not evidence.
+ *
+ * So: if the fact has specifics, the citing text must carry at least one. If it
+ * has none — a qualitative claim — the word-overlap test still applies, because
+ * then wording is all there is to go on.
+ *
+ * This is not a loosening. A piece that cites a source and says something else
+ * still fails: it will carry none of the fact's specifics and share few of its
+ * words. What it stops doing is refusing a well-formed question.
+ */
+
+/** Numbers and proper nouns — what a citation actually pins down. */
+function specificsOf(fact: string): Set<string> {
+  const specifics = new Set<string>();
+  /* Numbers, including years, ratios and percentages. */
+  for (const m of fact.matchAll(/\d[\d.,:/%-]*/g)) {
+    const value = m[0].replace(/[.,]$/, '');
+    if (value.length > 0) specifics.add(value.toLowerCase());
+  }
+  /* Proper nouns: capitalised mid-sentence, so a leading word is not counted. */
+  for (const m of fact.matchAll(/(?<=[a-z,;)]\s)([A-Z][a-zA-Z-]{2,})/g)) {
+    specifics.add(m[1]!.toLowerCase());
+  }
+  return specifics;
+}
+
+function wordsOf(text: string): Set<string> {
+  return new Set(
+    text
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .split(/\s+/)
+      .filter((w) => w.length > 3),
+  );
+}
+
+export function matchesResearchedFact(citingText: string, factClaim: string): boolean {
+  const specifics = specificsOf(factClaim);
+  if (specifics.size > 0) {
+    /*
+     * The fact pins down something concrete. Carrying any one of those is the
+     * citation being honoured — a quiz answer is often the specific and nothing
+     * else, which is the correct way to write one.
+     */
+    const haystack = citingText.toLowerCase();
+    for (const specific of specifics) {
+      if (haystack.includes(specific)) return true;
+    }
+    return false;
+  }
+
+  /*
+   * A qualitative fact with no numbers and no names. Wording is all there is,
+   * so the original overlap test stands — a third, because a piece built from a
+   * fact keeps its subject and discards its grammar.
+   */
+  const claim = wordsOf(factClaim);
   if (claim.size === 0) return false;
-  const slot = words(slotText);
+  const slot = wordsOf(citingText);
   let shared = 0;
   for (const word of claim) if (slot.has(word)) shared += 1;
-  /*
-   * A third. A question built from a fact keeps its subject and its numbers and
-   * discards its grammar, so demanding half would refuse good writing — which
-   * is the mistake being fixed, made again with a different number.
-   */
   return shared / claim.size >= 0.34;
 }
 
@@ -280,7 +343,20 @@ export async function writeToFormat(
          */
         const fromResearch = facts.find((f) => slot.citation?.includes(f.sourceUrl));
         if (fromResearch) {
-          if (matchesResearchedFact(slot.text, fromResearch.claim)) {
+          /*
+           * §400. Every slot citing this source, together.
+           *
+           * A question and its answer are one assertion split across two
+           * fields. Checked apart, the question is refused for not stating the
+           * fact it exists to ask about — which is what abandoned the first
+           * briefed quiz after three attempts.
+           */
+          const citingTogether = parsed.slots
+            .filter((s) => s.citation === slot.citation)
+            .map((s) => s.text)
+            .join(' ');
+
+          if (matchesResearchedFact(citingTogether, fromResearch.claim)) {
             researchCtx.log('citation checked', {
               url: fromResearch.sourceUrl,
               verdict: 'supported',

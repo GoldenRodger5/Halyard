@@ -195,8 +195,26 @@ export class AnthropicLlmClient implements LlmClient {
     this.client = new Anthropic({ apiKey: key, timeout: LLM_TIMEOUT_MS });
   }
 
+  /**
+   * §398. A name this provider does not serve stands for a *tier*.
+   *
+   * The mirror of `OpenAiLlmClient.resolveModel`, and it exists for the same
+   * reason: once a request can fall back from one provider to the other, it
+   * arrives carrying the *first* provider's model name. `gpt-5.5` sent to
+   * Anthropic is a 404 at generation time, which is the worst moment.
+   *
+   * Callers ask for a tier — strategy work or volume work — and a foreign name
+   * is read as the tier it stood for rather than passed through to fail.
+   */
+  private resolveModel(requested: string | undefined): string {
+    if (!requested) return DRAFT_MODEL;
+    if (/^claude-/.test(requested)) return requested;
+    /* OpenAI's strategy tier is its `-pro` and top line; everything else is volume. */
+    return /pro|opus|luna|sol|terra/i.test(requested) ? STRATEGY_MODEL : DRAFT_MODEL;
+  }
+
   async complete(request: LlmRequest): Promise<LlmResponse> {
-    const model = request.model ?? DRAFT_MODEL;
+    const model = this.resolveModel(request.model);
 
     /**
      * `temperature` is sent only when it was asked for *and* the model takes it.
@@ -347,7 +365,11 @@ export function asString(value: unknown): string | null {
  * is reported by `describeLlmProvider()` and shown on /settings, because "which
  * model wrote this" is the first question asked when output quality changes.
  */
+import { OPENAI_DRAFT_MODEL, OPENAI_STRATEGY_MODEL } from './openai.js';
+
 export type LlmProvider = 'anthropic' | 'openai';
+
+
 
 function keyLooksReal(value: string | undefined, prefix: string): boolean {
   const key = value?.trim();
@@ -373,7 +395,7 @@ export function resolveLlmProvider(env: NodeJS.ProcessEnv = process.env): LlmPro
 export function modelsFor(provider: LlmProvider): { strategy: string; draft: string } {
   return provider === 'anthropic'
     ? { strategy: STRATEGY_MODEL, draft: DRAFT_MODEL }
-    : { strategy: 'gpt-5.5', draft: 'gpt-5.5' };
+    : { strategy: OPENAI_STRATEGY_MODEL, draft: OPENAI_DRAFT_MODEL };
 }
 
 /** One sentence for /settings and for logs. */

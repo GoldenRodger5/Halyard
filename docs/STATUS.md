@@ -1,5 +1,48 @@
 # Where Halyard is right now
 
+**2026-08-31 — a brief now produces a piece, end to end, on OpenAI.**
+
+Verified against the live APIs: brief → job → worker → research → citation check
+→ **a `pending_approval` tiktok video** whose sources verified against
+Britannica, the FDA and the NIH. `LLM_PROVIDER=openai` is set in all three env
+files — it had been left empty, so everything tried Anthropic first and died.
+
+Four defects were between a brief and a piece, and only the first was the one
+that looked obvious:
+
+*A provider with a key and no credits counted as configured.* Chosen once, on
+key presence — so every generation died on a 400 while a working OpenAI key sat
+in the same file. `createLlmClient` is a fallback chain now. Provider failures
+fall back; request failures do not, because they fail identically next door.
+Decision 91.
+
+*Building the fallback is what executed it.* The OpenAI client sent
+`content: null` for an absent system prompt — refused by OpenAI, tolerated by
+Anthropic, and never seen because nothing had reached that client. And a
+`generate` genuinely needs twelve minutes, not five. Decision 92.
+
+*The citation gate was refusing well-formed quizzes.* It demanded a third of the
+researched fact's words appear in a single slot — and **a question sharing a
+third of the fact's words has given away its own answer**. It read as
+"gpt-5.5 drifts from its sources"; it was a rule that would have refused any
+writer. A question and its answer are one assertion, checked together, and what
+a citation pins down is the fact's specifics rather than its grammar. Decision 93.
+
+*An operator's brief was not treated as an idea.* The handler looked for a
+proposed idea, found none, and returned — having ignored the subject entirely
+and reported success. That is precisely "it started and then stopped".
+Decision 94.
+
+**On fallbacks:** falling back is a provider choice, never a quality one. The
+other provider runs the same prompt, every gate still runs, and when all
+providers are down the error is thrown — asserted by a test, because in
+production it is better to fail than to serve something fabricated.
+`LLM_FALLBACK=off` disables it entirely. `docs/MODEL_FALLBACK.md`.
+
+**Suite: 219 files, 3,245 tests, none skipped. Lint and typecheck clean.**
+
+---
+
 **2026-08-31 — variety across every post type, and the connection test now
 shows what it found.**
 

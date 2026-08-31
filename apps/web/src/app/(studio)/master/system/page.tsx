@@ -27,12 +27,36 @@ const STATE: Record<string, { label: string; tone: string }> = {
 };
 
 export default async function System() {
-  const [checks, settings, counts, jobs] = await Promise.all([
+  const [checks, settings, counts, jobs, deaths] = await Promise.all([
     getSystemHealth(),
     getSettings(),
     getNavCounts(),
     query<{ status: string; n: string }>(
       `select status, count(*)::text as n from jobs group by status order by status`,
+    ),
+    /*
+     * §397. Why jobs gave up, grouped by reason.
+     *
+     * The readiness check says "62 exhausted their retries — check
+     * /master/system for the reason each gave up", and this page showed counts
+     * by status and no reasons at all. So the most consequential failure a
+     * run can have — *your model provider is out of credits* — was visible
+     * only by querying the database.
+     *
+     * Grouped rather than listed: sixty dead jobs with one cause is one
+     * problem, and sixty rows of the same sentence is how a screen hides it.
+     */
+    query<{ reason: string; n: string; newest: string; kinds: string }>(
+      `select
+         left(coalesce(last_error, 'no reason recorded'), 180) as reason,
+         count(*)::text as n,
+         max(finished_at) as newest,
+         string_agg(distinct kind, ', ') as kinds
+       from jobs
+      where status = 'dead'
+      group by 1
+      order by count(*) desc
+      limit 8`,
     ),
   ]);
 
@@ -140,6 +164,21 @@ export default async function System() {
             ))
           )}
         </div>
+        {deaths.length > 0 ? (
+          <div className="mt-3 flex flex-col gap-2 border-t border-rule2 pt-3">
+            <Label>Why they gave up</Label>
+            {deaths.map((d) => (
+              <div key={d.reason} className="text-[12px] leading-relaxed">
+                <span className="font-data text-[11px] text-onair">{d.n}×</span>{' '}
+                <span className="font-data text-[10px] uppercase tracking-[0.06em] text-quiet">
+                  {d.kinds}
+                </span>
+                <p className="mt-0.5 text-quiet">{d.reason}</p>
+              </div>
+            ))}
+          </div>
+        ) : null}
+
         <p className="mt-2 max-w-[74ch] text-[12px] leading-relaxed text-quiet">
           {counts.failed > 0
             ? `${counts.failed} pieces are in a failed state. A dead job is one that exhausted its retries — the reason each gave up is on the job.`

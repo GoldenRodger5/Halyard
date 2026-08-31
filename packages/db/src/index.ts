@@ -139,7 +139,20 @@ export const JOB_POLICY: Record<
   JobKind,
   { timeoutMs: number; maxAttempts: number; backoffSeconds: number }
 > = {
-  generate: { timeoutMs: 5 * 60_000, maxAttempts: 2, backoffSeconds: 60 },
+  /*
+   * §400. Twelve minutes, not five.
+   *
+   * A generate is not one model call — it is research with a live fetch and a
+   * citation check per fact, a format write that is refused and rewritten up to
+   * three times, a screenplay, and the picture decisions. A briefed quiz that
+   * produced a real, citation-verified piece took **140 seconds on a good run
+   * and exceeded 300 on a slower one**, and a job killed at the timeout throws
+   * away work that was nearly finished.
+   *
+   * Raised rather than made unbounded: a generate that is genuinely stuck must
+   * still be reclaimed, and the render path already carries the long jobs.
+   */
+  generate: { timeoutMs: 12 * 60_000, maxAttempts: 2, backoffSeconds: 60 },
   render: { timeoutMs: 15 * 60_000, maxAttempts: 3, backoffSeconds: 10 },
   tts: { timeoutMs: 2 * 60_000, maxAttempts: 3, backoffSeconds: 30 },
   // A capture drives a real browser through a real adaptation twice — once to

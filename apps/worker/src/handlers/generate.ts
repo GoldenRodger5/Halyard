@@ -426,10 +426,24 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
    * fifth agent added here is recorded without anyone remembering to.
    */
   const llmFor = (): LlmClient =>
-    (cached ??= recordingClient(ctx.pool, createLlmClient(), {
-      trigger: 'job',
-      triggerRef: job.id,
-    }));
+    (cached ??= recordingClient(
+      ctx.pool,
+      /*
+       * §398. A fallback that says so.
+       *
+       * "Which model wrote this" is the first question asked when output
+       * quality moves, so a silent switch to the other provider would be worse
+       * than none. The run records it like any other decision.
+       */
+      createLlmClient(process.env, (from, to, because) =>
+        ctx.log('model provider fell back', {
+          from,
+          to,
+          because: `${from} could not serve this request: ${because}`,
+        }),
+      ),
+      { trigger: 'job', triggerRef: job.id },
+    ));
 
   // A campaign slot has already been told what it is for, so it takes a
   // different path: no idea selection, no mix arithmetic, just the words.
@@ -549,6 +563,56 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
    * that needs no new job kind and therefore no migration. It proposes only;
    * `scoreIdeas` and `selectIdeas` still decide, and every QC gate still runs.
    */
+  /*
+   * §399. An operator's brief *is* an idea.
+   *
+   * The Floor asks "what do you want to publish", takes a subject, and enqueues
+   * a job carrying it. This handler then went looking for a *proposed idea*,
+   * found none because the signals were stale, logged "no proposed ideas to
+   * draft, and none could be proposed" and returned — having ignored the
+   * subject entirely.
+   *
+   * So briefing the room did nothing, silently, and the job reported success.
+   * The operator saw a floor that started and stopped.
+   *
+   * A person who typed the subject has supplied the strongest signal there is;
+   * needing the idea pipeline to independently invent the same thought is
+   * backwards. The brief is written in as a proposed idea and everything
+   * downstream — scoring, selection, every QC gate — runs on it unchanged.
+   */
+  const briefed = (job.payload.subject as string | undefined)?.trim();
+  if (proposed.rows.length === 0 && briefed) {
+    const written = await ctx.pool.query<{
+      id: string;
+      title: string;
+      angle: string;
+      category: IdeaCandidate['category'];
+      embedding: number[] | null;
+    }>(
+      `insert into ideas (product_id, title, angle, category, source_signals, score,
+                          score_breakdown, status)
+       values ($1, $2, $3, $4, '{}'::uuid[], 1, '{"operator": 1}'::jsonb, 'proposed')
+       returning id, title, angle, category, embedding`,
+      [
+        productId,
+        briefed.slice(0, 200),
+        /* The angle is the brief itself: it is what the operator actually asked for. */
+        briefed.slice(0, 500),
+        /*
+         * `education` rather than `product`: a brief is not a claim about the
+         * product, and mis-filing it would let it through a mix ceiling meant
+         * for promotional posts.
+         */
+        'education',
+      ],
+    );
+    proposed.rows.push(...written.rows);
+    ctx.log('briefed idea written', {
+      productId,
+      because: `the operator asked for "${briefed.slice(0, 80)}", which is the idea`,
+    });
+  }
+
   if (proposed.rows.length === 0) {
     const filled = await proposeFromSignals(ctx, product, llmFor());
     if (filled === 0) {

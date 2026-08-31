@@ -128,10 +128,25 @@ export class OpenAiLlmClient implements LlmClient {
   async complete(request: LlmRequest): Promise<LlmResponse> {
     const model = this.resolveModel(request.model);
 
-    // The system prompt is a message with role 'system' here, not a top-level
-    // field as it is on Anthropic.
+    /*
+     * The system prompt is a message with role 'system' here, not a top-level
+     * field as it is on Anthropic.
+     *
+     * §398. Included only when there *is* one. `LlmRequest.system` is optional,
+     * and this used to send `content: undefined` unconditionally — which
+     * serialises to null and OpenAI refuses outright:
+     *
+     *   Invalid value for 'content': expected a string, got null.
+     *
+     * Anthropic simply omits an absent system field, so the same request worked
+     * there and failed here. It stayed hidden because nothing ever reached this
+     * client: the provider was chosen once on key presence, so with an
+     * Anthropic key set this path never ran. Building the fallback is what
+     * executed it for the first time — the defect and its discovery are the
+     * same event.
+     */
     const messages = [
-      { role: 'system' as const, content: request.system },
+      ...(request.system ? [{ role: 'system' as const, content: request.system }] : []),
       ...request.messages.map((m) => ({ role: m.role, content: m.content })),
     ];
 

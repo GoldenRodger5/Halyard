@@ -9701,3 +9701,98 @@ that genuinely race need three. Four is the ceiling with room. The number
 belongs to the operation rather than to each caller — decision 73's rule applied
 to the other resource a suite consumes, and §379's underneath it: a suite that
 skips reports green.
+
+## 91 · A provider with a key and no credits is not a working provider
+
+**Chosen.** `createLlmClient` returns a fallback chain, not a single client.
+`LLM_FALLBACK=off` disables it.
+
+**Why.** `resolveLlmProvider` chose once, on key *presence*, so an exhausted
+Anthropic balance still counted as configured: every generation died on a 400
+while a working OpenAI key sat in the same env file. `llm.ts`'s own docstring
+promised there was "no reason to be unable to generate anything because one
+vendor's key is missing while another's is sitting right there" — and only ever
+handled **missing**, never **failing**.
+
+**What falls back and what does not.** A *provider* failure — credits, quota,
+rate limit, 5xx, timeout, bad key — gives the next provider a real chance. A
+*request* failure — context overflow, invalid schema, a refusal, an unknown
+model — fails identically at the next provider, and retrying turns one clear
+error into two confusing ones and doubles the bill.
+
+**Falling back is never a quality decision.** In production it is better to fail
+than to serve something fabricated. The other provider runs the same prompt,
+every QC gate still runs, and when all providers are down the error is thrown —
+asserted by a test, because it is the property most worth protecting. The rest
+of the codebase already holds this line: `plan.ts` and `mediaDirector.ts` both
+say "there is no default and no placeholder".
+
+**It is announced.** "Which model wrote this" is the first question asked when
+output quality moves, so the run records the switch.
+
+## 92 · Building the fallback is what executed the fallback
+
+Two defects could only appear once the second provider actually ran, and both
+had been latent for as long as the code existed.
+
+**The OpenAI client sent `content: null`.** `LlmRequest.system` is optional and
+the system message was added unconditionally. OpenAI refuses that outright;
+Anthropic omits an absent system field, so the same request worked there. Never
+seen, because with an Anthropic key set nothing ever reached this client.
+
+**`generate` needed twelve minutes, not five.** A generate is research with a
+live fetch per fact, a format write refused and rewritten up to three times, a
+screenplay and the picture decisions. A real briefed quiz took 140 seconds on a
+good run and exceeded 300 on a slower one — and a job killed at its timeout
+throws away work that was nearly done.
+
+## 93 · The citation gate was refusing well-formed quizzes
+
+**Chosen.** A citation is carried by *the slots that cite it, together*, and
+what it pins down is the fact's **specifics** — numbers and proper nouns — not
+its grammar.
+
+**Why.** `matchesResearchedFact` compared one slot against the researched fact
+and demanded a third of the fact's words appear in it:
+
+```
+fact:     "Jacopo Beccari isolated gluten in 1728 by washing dough…"
+question: "What year was gluten first identified?"   → 1 of 11 → 9%
+answer:   "1728"                                     → 1 of 11 → 9%
+```
+
+**A question that shares a third of the fact's words has given away its own
+answer.** The rule could only be satisfied by bad writing, and it abandoned a
+real briefed piece after three attempts. A question and its answer are one
+assertion split across two fields; checked apart, the question is refused for
+not stating the thing it exists to ask about.
+
+It looked like a model-quality problem — the first read was "gpt-5.5 drifts from
+its sources" — and it was a rule that would have refused any writer.
+
+**Not a loosening.** A piece that cites a source and says something else carries
+none of its specifics and still fails; a confident wrong year still fails. The
+fabrication cases are asserted as hard as the good ones, and a sentence-leading
+capital is deliberately not treated as a proper noun, or the first word of every
+fact would become a "specific" and gut the check.
+
+## 94 · An operator's brief is an idea
+
+**Chosen.** A `generate` job carrying a `subject` writes it in as a proposed
+idea rather than looking for one.
+
+**Why.** The Floor asks "what do you want to publish", takes a subject, and
+enqueues a job carrying it. The handler then went looking for a *proposed idea*,
+found none because the signals were stale, logged "no proposed ideas to draft,
+and none could be proposed" and returned — **having ignored the subject
+entirely**, and reporting success.
+
+So briefing the room did nothing, silently. The operator saw a floor that
+started and stopped, which is exactly how it was reported.
+
+A person who typed the subject has supplied the strongest signal there is.
+Requiring the idea pipeline to independently invent the same thought is
+backwards. Filed as `education` rather than `product`, because a brief is not a
+claim about the product and mis-filing it would let it past a mix ceiling meant
+for promotional posts. Everything downstream — scoring, selection, every gate —
+runs on it unchanged.

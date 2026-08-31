@@ -41,6 +41,18 @@ export interface FeedEvent {
 export interface FloorLive {
   /** Null when nothing is in production. */
   running: boolean;
+  /**
+   * §397. Why the room is not working, when it is not.
+   *
+   * "Idle" and "briefed, and nothing will pick it up" are different facts and
+   * looked identical: a brief redirects here, the job sits `queued` because no
+   * worker is running, and the room says *"Nothing in production"* — which is
+   * indistinguishable from never having briefed at all. Somebody watching that
+   * reasonably concludes it started and stopped.
+   *
+   * Null when the room is genuinely idle with nothing waiting.
+   */
+  waiting: { queued: number; workerSeenSecondsAgo: number | null } | null;
   /** What is being made, in one line. */
   making: string | null;
   jobId: string | null;
@@ -64,9 +76,10 @@ interface Row {
 }
 
 /** The idle room. A real state, and it says so rather than reading as broken. */
-function idle(): FloorLive {
+function idle(waiting: FloorLive['waiting'] = null): FloorLive {
   return {
     running: false,
+    waiting,
     making: null,
     jobId: null,
     startedAt: null,
@@ -81,6 +94,17 @@ export async function readLive(): Promise<FloorLive> {
    * The newest running production. `generate` is the job that owns a run; its
    * render and tts children are separate jobs whose events belong to the same
    * production, so they are pulled in by content item below.
+   *
+   * ## §397. A job held by a worker that died is not running
+   *
+   * `reap_stale_jobs()` releases a lock older than thirty minutes — but it runs
+   * *inside a worker*, so when the worker is the thing that died, nothing reaps
+   * anything and the job stays `running` forever. The floor then says "on the
+   * floor" while nothing is happening at all: the same lie as saying "idle"
+   * over a queued brief, told from the other side.
+   *
+   * The query uses the reaper's own thirty minutes, so the screen and the
+   * reaper cannot disagree about what is alive.
    */
   const rows = await query<Row>(
     `select e.id::text, e.job_id::text, e.stage, e.message, e.detail, e.at,
@@ -90,13 +114,36 @@ export async function readLive(): Promise<FloorLive> {
       where j.id = (
         select id from jobs
          where status = 'running' and kind = 'generate'
+           -- §397. A lock older than the reaper's timeout is a dead worker.
+           and j.locked_at > now() - interval '30 minutes'
          order by locked_at desc nulls last
          limit 1
       )
       order by e.id`,
   );
 
-  if (rows.length === 0) return idle();
+  if (rows.length === 0) {
+    /*
+     * Nothing is running — but is anything *waiting*? A queued generate job
+     * with no worker to claim it is the state that reads as "it stopped", and
+     * the worker's heartbeat is the only thing that can say why.
+     */
+    const [pending] = await query<{ queued: string; seconds_ago: number | null }>(
+      `select
+         (select count(*) from jobs
+           where kind = 'generate'
+             and (status = 'queued'
+                  or (status = 'running' and locked_at <= now() - interval '30 minutes')))::text
+           as queued,
+         (select extract(epoch from now() - max(last_seen_at))::int
+            from worker_heartbeats) as seconds_ago`,
+    );
+    const queued = Number(pending?.queued ?? 0);
+    if (queued > 0) {
+      return idle({ queued, workerSeenSecondsAgo: pending?.seconds_ago ?? null });
+    }
+    return idle();
+  }
 
   const first = rows[0]!;
 
@@ -163,6 +210,7 @@ export async function readLive(): Promise<FloorLive> {
 
   return {
     running: true,
+    waiting: null,
     making: makingFrom(first),
     jobId: first.job_id,
     startedAt: first.locked_at,
