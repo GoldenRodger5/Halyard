@@ -60,6 +60,15 @@ export interface CriticVerdict {
   /** Frames examined. Zero means the critic ran on nothing and said nothing. */
   examined: number;
   summary: string;
+  /**
+   * Why the critic could not run, when it could not. §412.
+   *
+   * Zero `examined` has two causes that must never read the same: nothing was
+   * sampled from the render, or the call failed. This client reported the
+   * second as the first — *"No frames were available"* — for its entire life,
+   * while every request returned 400 on a `metadata` field it did not need.
+   */
+  unavailableBecause?: string;
 }
 
 /**

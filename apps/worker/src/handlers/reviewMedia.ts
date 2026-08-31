@@ -550,6 +550,10 @@ export async function reviewMediaHandler(
           : criticVerdict.findings.length > 0
             ? 'warning'
             : 'passed',
+      /*
+       * §412. A critic that errored says so. It reported "No frames were
+       * available" while every one of its requests was returning 400.
+       */
       summary: criticVerdict?.summary ?? 'The critic did not run.',
       detail: { findings: criticVerdict?.findings ?? [] },
       examined: criticVerdict?.examined ?? 0,

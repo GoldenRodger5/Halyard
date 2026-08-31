@@ -10174,3 +10174,34 @@ skims, and it refuses only the rows somebody happened to list. Naming the
 *shape* — "no hype", "no X-but-Y constructions" — refuses the family, including
 the entries nobody has thought of yet. A test asserts the list is not pasted in,
 because the obvious maintenance move is to paste it.
+
+## 107 · The model critic has never once run
+
+**Chosen.** The request drops `metadata`, and a failed call reports why instead
+of blaming an empty input.
+
+**Why.** The critic sent `metadata: { promptVersion }` — telemetry nobody reads
+— and OpenAI answers *"The 'metadata' parameter is only allowed when 'store' is
+enabled."* HTTP 400. **Every request this client has ever made was rejected.**
+
+Its catch then returned `parseCriticReply({ findings: [] }, [])`, whose summary
+for an empty frame list is *"No frames were available, so nothing was
+reviewed."* So the gate read `skipped`, the summary read like a benign
+condition, and nothing anywhere said 400. A silent failure that describes itself
+as an absence of input is the hardest kind to find — it looks like the system
+correctly declining to review something.
+
+**The critic is good.** Called directly against a real frame it returns
+`critic.weak_opening` — *"the viewer cannot tell what the video is promising
+next"* — and `critic.stock_imagery` — *"generic enough to illustrate almost any
+bread post"*. Both true of the frame, and neither is anything the deterministic
+rules can see. That judgement has been available and discarded on every render.
+
+**Kept: failing soft.** The critic is an upgrade to the review, never a gate on
+it. An outage must not fail a piece and must not invent findings, so `examined`
+stays at zero and `findings` stays empty. What changed is that the reason
+survives into the gate.
+
+**Kept: zero `examined` on error.** A call that 400'd did not look at anything,
+so reporting the frame count would claim it looked and found nothing — a false
+endorsement, which is the worse error.

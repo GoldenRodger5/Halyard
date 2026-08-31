@@ -13,7 +13,6 @@
 import {
   criticSystemPrompt,
   parseCriticReply,
-  CRITIC_PROMPT_VERSION,
   type CriticFrame,
   type CriticVerdict,
 } from '../qc/critic.js';
@@ -97,7 +96,16 @@ export class OpenAiCriticClient implements CriticClient {
             { role: 'user', content },
           ],
           max_completion_tokens: 900,
-          metadata: { promptVersion: CRITIC_PROMPT_VERSION },
+          /*
+           * §412. No `metadata` here.
+           *
+           * It carried `promptVersion` for telemetry nobody reads, and OpenAI
+           * refuses it: *"The 'metadata' parameter is only allowed when 'store'
+           * is enabled"* — HTTP 400, on every call this client has ever made.
+           * The critic has therefore never once run. The prompt version is
+           * still exported and is recorded where versions are actually
+           * compared, which is Halyard's own tables.
+           */
         }),
       });
 
@@ -111,15 +119,27 @@ export class OpenAiCriticClient implements CriticClient {
       const end = text.lastIndexOf('}');
       const json = start >= 0 && end > start ? text.slice(start, end + 1) : '{}';
       return parseCriticReply(JSON.parse(json), shown);
-    } catch {
+    } catch (err) {
       /*
-       * Fails silent, and that is the right direction here. The critic is an
-       * upgrade to the review, never a gate on it — an outage must not fail a
-       * piece, and it must not invent findings either. `examined` stays at the
-       * frame count so a caller can tell "looked and found nothing" from "never
-       * looked", which `parseCriticReply` already distinguishes.
+       * Fails soft, never silent. §412.
+       *
+       * The critic is an upgrade to the review and never a gate on it — an
+       * outage must not fail a piece and must not invent findings. `examined`
+       * stays at zero, because a call that errored did not look at anything and
+       * `parseCriticReply` uses that to distinguish "looked and found nothing"
+       * from "never looked".
+       *
+       * What changed is that the reason survives. This swallowed its error
+       * entirely and reported *"No frames were available, so nothing was
+       * reviewed"* — which reads as a benign condition, and was in fact a 400
+       * on every call for the life of this client. A silent failure that
+       * describes itself as an absence of input is the hardest kind to find.
        */
-      return parseCriticReply({ findings: [] }, []);
+      return {
+        ...parseCriticReply({ findings: [] }, []),
+        unavailableBecause: (err as Error).message,
+        summary: `The critic could not be reached: ${(err as Error).message}`,
+      };
     }
   }
 }
