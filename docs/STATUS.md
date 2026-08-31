@@ -1,5 +1,50 @@
 # Where Halyard is right now
 
+**2026-08-31 — a piece now passes its own critics, and the loop has still never
+closed.**
+
+Driven from the UI as an operator drives it (`scripts/browser/floor.mjs`), not
+by seeding a job: TikTok → Short video → History → "Why does bread go stale?" →
+Send. Six text moments over four photographs, six drawn marks, a voiceover and
+burned-in captions.
+
+| Gate | Before this session | Now |
+|---|---|---|
+| critic | `skipped` — "no frames available" | **passed**, "6 frames reviewed" — it had 400'd on every call since it was written |
+| creative | `failed` — 3 findings | **passed**, "6 beats, 0% footage" |
+| retention | "longest static 19.3s" | "longest static 0.0s" |
+| coherence | warning | warning, 1 note |
+| audio | failed | failed — WER 7%, and the gate names the cause |
+
+The audio failure is the correction loop's *input*, not a defect: the gate
+returns `suggestedLexiconTerms: ['rearranges', 'realign', 'retrogradation']`,
+`apply.ts` adds them to `voice_lexicon`, and the piece is retried. Locally it is
+also a small whisper model mishearing technical words.
+
+## The loop has never closed
+
+`HALYARD_AGENTIC_SOCIAL_TEAM_SPEC` §1 sets the objective as "a social operation
+that becomes measurably better over time". That cannot start yet:
+
+| | |
+|---|---|
+| content items | **44** — 21 pending approval, 22 failed, 1 archived |
+| approved | **0** |
+| publications | **0** |
+| post_metrics | **0** — `collect_metrics` has never run |
+| learned_insights | **0** — nothing to learn from |
+
+Halyard is a content factory with a working quality system and no feedback. Five
+job kinds have never run: `collect_metrics`, `collect_comments`,
+`send_newsletter`, `explore_product`, `verify_provider_capability`.
+
+**Accounts:** `x` live (and one in error); instagram, tiktok, pinterest, youtube
+`draft_only`; threads `pending_auth`. Nothing can publish until an account is
+connected *and* an operator approves a piece — which is the boundary working as
+designed, not a bug.
+
+---
+
 **2026-08-31 — the critic ran forty times and could not see what was wrong.**
 
 The agents were the right place to look. Walking the production path one agent
