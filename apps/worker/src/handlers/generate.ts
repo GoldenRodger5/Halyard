@@ -119,6 +119,7 @@ import { PermanentJobFailure } from '../poller.js';
 import type { Job, HandlerContext } from '../poller.js';
 import { generateHeroImage } from '../heroImage.js';
 import { recentShots } from '../shotRecency.js';
+import { photographBeats } from '../beatPhotographs.js';
 import { pickProductShot } from '../productShot.js';
 import { FormatRejectedError, recentFormats, writeToFormat } from '../formatWriter.js';
 import { stagePiece } from '../screenplayStage.js';
@@ -1912,6 +1913,15 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
            * doing nothing.
            */
           let composition: { id: string; props: Record<string, unknown> } | null = null;
+          /*
+           * §406. Whether the composition is drawing *the piece* or *the artifact*.
+           *
+           * Two things can supply a video: `videoForFormat`, which turns the
+           * format's own filled slots into beats, and `chooseVideoComposition`,
+           * which turns the artifact into an artifact-shaped card. They are
+           * different stories and only one of them is on screen.
+           */
+          let compositionFromFormat = false;
           /* §394. What the composition will draw, recorded on the render row. */
           let treatments: string[] | undefined;
           let formatNarration: Array<{ atSeconds: number; text: string }> | null = null;
@@ -2055,10 +2065,47 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                 }
               }
 
+              /*
+               * §407. One photograph per beat, so the picture changes when the
+               * words do.
+               *
+               * Here rather than in the assets stage because that runs before
+               * the video exists, and a beat is the unit being photographed. The
+               * piece's hero is still generated up there — it is the carousel's
+               * image and this video's fallback for any beat whose photograph
+               * did not come back.
+               */
+              if (built.compositionId === 'Narrative') {
+                const photographs = await photographBeats(assets, imageClient, llmFor(), {
+                  productId,
+                  contentItemId,
+                  format: chosenFormat.format.id,
+                  fallbackSubject: heroSubject ?? idea.title,
+                  productContext: product.brief_summary ?? undefined,
+                  beats: ((props as { beats?: Array<{ text?: string }> }).beats ?? []).map((b) => ({
+                    text: b.text ?? '',
+                  })),
+                });
+                if (photographs.some((ph) => ph.assetId)) {
+                  props = {
+                    ...props,
+                    beats: ((props as { beats?: Array<Record<string, unknown>> }).beats ?? []).map(
+                      (b, i) => ({
+                        ...b,
+                        ...(photographs[i]?.assetId
+                          ? { backgroundAssetId: photographs[i]!.assetId }
+                          : {}),
+                      }),
+                    ),
+                  };
+                }
+              }
+
               composition = {
                 id: built.compositionId,
                 props: look && look !== 'auto' ? { ...props, forceTemplate: look } : props,
               };
+              compositionFromFormat = true;
               /*
                * §306. The read comes from the same slots as the picture.
                *
@@ -2805,7 +2852,27 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                    */
                   ...(typography ? { typography: renderTypography(typography.system) } : {}),
                 },
-                ...(plan
+                /*
+                 * §406. The artifact's beats may not overwrite the piece's.
+                 *
+                 * This spread sits after `...composition.props`, so `beats`
+                 * from a creative plan won whenever a plan existed — and a plan
+                 * exists whenever the connector returned an artifact, which for
+                 * RecipeFix is always. So a `history` piece whose slots were
+                 * written, verified against Britannica, staged into a
+                 * screenplay and narrated as sourdough **rendered the artifact's
+                 * before/after instead**: on screen, "Pressed tofu is not
+                 * optional", under a photograph of a sourdough loaf, over a
+                 * voiceover about ancient Egypt.
+                 *
+                 * Every format video was doing this. It is the reason format
+                 * variety produced no visible variety — eleven formats, and the
+                 * frames were always the artifact's five beats.
+                 *
+                 * A plan still drives an artifact-driven composition, which is
+                 * what it was built for and where its beats are the subject.
+                 */
+                ...(plan && !compositionFromFormat
                   ? {
                       beats: beatsForRender(
                         plan,

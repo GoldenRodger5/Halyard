@@ -367,6 +367,44 @@ async function renderVideoAsset(
     }
   }
 
+  /*
+   * §407. Each beat's own photograph, resolved from the asset it names.
+   *
+   * The worker stores an id on the beat because a render row holding four
+   * base64 images would be megabytes of JSON in Postgres for data that already
+   * exists in the asset store. Resolved here, at the last possible moment,
+   * straight into the props Remotion receives.
+   *
+   * A beat whose asset cannot be read keeps no background of its own and falls
+   * back to the piece's, which is what every render did before this — a flatter
+   * beat, not a broken one.
+   */
+  const beatProps = (render.input_props as { beats?: Array<Record<string, unknown>> }).beats;
+  if (Array.isArray(beatProps)) {
+    let photographed = 0;
+    for (const beat of beatProps) {
+      const assetId = beat.backgroundAssetId as string | undefined;
+      if (!assetId) continue;
+      const { rows } = await ctx.pool.query<{
+        storage_path: string | null;
+        public_url: string | null;
+        mime_type: string | null;
+      }>('select storage_path, public_url, mime_type from assets where id = $1', [assetId]);
+      const asset = rows[0];
+      const bytes = asset ? await readAssetBytes(asset.storage_path, asset.public_url) : null;
+      if (!bytes) continue;
+      beat.backgroundDataUri = `data:${asset?.mime_type ?? 'image/png'};base64,${bytes.toString('base64')}`;
+      const probe = path.join(work, `beat-${photographed}.png`);
+      await writeFile(probe, bytes);
+      /* §301. Measured per picture: §402 makes consecutive beats lit differently. */
+      beat.backgroundLuminance = await measureLowerLuminance(probe);
+      photographed += 1;
+    }
+    if (photographed > 0) {
+      ctx.log('beats photographed', { renderId: render.id, photographed, of: beatProps.length });
+    }
+  }
+
   try {
     const result = await renderVideo({
       compositionId: render.template_id,

@@ -47,6 +47,22 @@ export interface NarrativeBeat {
   source?: string | null;
   /** Seconds this beat holds. Derived by the caller from the read. */
   seconds: number;
+  /**
+   * §407. This beat's own photograph.
+   *
+   * A single image held for the whole video is the thing short-form punishes
+   * hardest: every platform's guidance is a visual reset every 1.5-4 seconds,
+   * and "dead time — any moment where nothing new appears on screen" is the
+   * fastest way to lose a feed viewer. Nineteen seconds on one still is four
+   * text changes over one unchanging picture.
+   *
+   * Optional: absent, the beat falls back to the piece-level background, which
+   * is what every render did before this and is still right for a composition
+   * given only one image.
+   */
+  backgroundDataUri?: string;
+  /** Measured brightness where the type sits on *this* beat's picture, 0..1. */
+  backgroundLuminance?: number;
 }
 
 export interface NarrativeProps {
@@ -334,6 +350,95 @@ const Beat: React.FC<{
   );
 };
 
+/**
+ * §407. One beat's photograph, pushed slowly for the length of the beat.
+ *
+ * Two things move here and both are deliberate. The **picture changes between
+ * beats**, which is the visual reset every short-form platform's guidance asks
+ * for and which a single held still cannot give. And it **drifts within the
+ * beat**, so a long beat is never a frozen frame — the slow scale is the
+ * difference between a photograph and a slide.
+ *
+ * The scrim is computed per picture rather than once for the video, because the
+ * whole point of §402 is that consecutive photographs are lit differently: a
+ * hard-sun macro and a soft-window wide need different amounts of help before
+ * type is legible on them.
+ */
+/**
+ * Where a treatment puts its type, so the scrim can be dense in the same place.
+ *
+ * §407. The scrim was a fixed bottom-heavy gradient inherited from the quiz,
+ * where the type is always low. `anchored` holds its type at the *top* and
+ * `statement` centres it, so two of five treatments put white words exactly
+ * where the picture was left brightest — and a bright photograph under
+ * top-anchored type is unreadable however good the photograph is.
+ */
+const TYPE_ANCHOR: Record<NarrativeTreatment, 'top' | 'center' | 'bottom'> = {
+  statement: 'center',
+  anchored: 'top',
+  split_rule: 'center',
+  label_lead: 'center',
+  quiet: 'bottom',
+};
+
+/** The scrim, as stops, dense where the type sits and light everywhere else. */
+export function scrimStops(
+  anchor: 'top' | 'center' | 'bottom',
+  luminance: number,
+): Array<[number, number]> {
+  /*
+   * How much help white type needs is a property of the picture. A dark
+   * photograph already provides the contrast and a heavy scrim only destroys
+   * it — the previous floor of 0.6 put a 60% black wash over an underexposed
+   * crumb shot and turned a good photograph into a grey rectangle.
+   */
+  const peak = Math.min(0.82, Math.max(0.28, 0.2 + luminance * 0.75));
+  /* A little weight at the foot on every picture: the wordmark lives there. */
+  const foot = Math.min(peak, 0.34);
+  if (anchor === 'top') {
+    return [[0, peak], [38, peak * 0.4], [72, peak * 0.16], [100, foot]];
+  }
+  if (anchor === 'center') {
+    return [[0, peak * 0.42], [30, peak * 0.86], [70, peak * 0.86], [100, foot]];
+  }
+  return [[0, peak * 0.18], [45, peak * 0.5], [100, peak]];
+}
+
+const Ground: React.FC<{
+  src: string;
+  luminance?: number;
+  durationInFrames: number;
+  anchor: 'top' | 'center' | 'bottom';
+}> = ({ src, luminance, durationInFrames, anchor }) => {
+  const frame = useCurrentFrame();
+  /* 1.00 → 1.06 across the beat. Enough to read as alive, not as a zoom. */
+  const scale = interpolate(frame, [0, Math.max(1, durationInFrames)], [1, 1.06], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const stops = scrimStops(anchor, luminance ?? 0.5)
+    .map(([at, alpha]) => `rgba(0,0,0,${alpha.toFixed(3)}) ${at}%`)
+    .join(', ');
+  return (
+    <AbsoluteFill style={{ overflow: 'hidden' }}>
+      <img
+        src={src}
+        alt=""
+        style={{
+          position: 'absolute',
+          inset: 0,
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+          transform: `scale(${scale})`,
+          transformOrigin: 'center center',
+        }}
+      />
+      <AbsoluteFill style={{ backgroundImage: `linear-gradient(to bottom, ${stops})` }} />
+    </AbsoluteFill>
+  );
+};
+
 export const Narrative: React.FC<NarrativeProps> = ({
   brand,
   typography,
@@ -345,10 +450,18 @@ export const Narrative: React.FC<NarrativeProps> = ({
   wordmark,
 }) => {
   const { fps } = useVideoConfig();
-  const palette = React.useMemo(
-    () => quizPalette(brand, Boolean(backgroundDataUri)),
-    [brand, backgroundDataUri],
-  );
+  /*
+   * §407. Two palettes, chosen per beat by what is behind *that* beat.
+   *
+   * `quizPalette(brand, overPhoto)` returns white type over a photograph and
+   * the brand's ink over a flat card, because over a picture the ground is the
+   * scrim rather than the brand. Computed once for the whole video, it read the
+   * piece-level background — which per-beat pictures leave undefined — and set
+   * dark ink over four photographs. Every word went nearly invisible, and it
+   * looked exactly like a contrast bug in the scrim rather than what it was.
+   */
+  const overPhoto = React.useMemo(() => quizPalette(brand, true), [brand]);
+  const overCard = React.useMemo(() => quizPalette(brand, false), [brand]);
   const treatments = React.useMemo(
     () => treatmentsForBeats(beats.map((b) => b.role), before ?? []),
     [beats, before],
@@ -360,36 +473,27 @@ export const Narrative: React.FC<NarrativeProps> = ({
     <AbsoluteFill style={{ backgroundColor: brand.background }}>
       {audioSrc ? <Audio src={audioSrc} /> : null}
 
-      {backgroundDataUri ? (
-        <>
-          <img
-            src={backgroundDataUri}
-            alt=""
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
-          />
-          <AbsoluteFill
-            style={{
-              /* §301. Scaled to the photograph, not a fixed three stops. */
-              backgroundImage: (() => {
-                const lum = backgroundLuminance ?? 0.5;
-                const bottom = Math.min(0.92, Math.max(0.6, 0.55 + lum * 0.5));
-                const middle = Math.min(0.7, Math.max(0.3, bottom - 0.28));
-                const top = Math.min(0.45, Math.max(0.12, bottom - 0.52));
-                return `linear-gradient(to bottom, rgba(0,0,0,${top}) 0%, rgba(0,0,0,${middle}) 45%, rgba(0,0,0,${bottom}) 100%)`;
-              })(),
-            }}
-          />
-        </>
-      ) : null}
 
       {beats.map((beat, i) => {
         const durationInFrames = Math.max(1, Math.round(beat.seconds * fps));
         const sequence = (
           <Sequence key={`${beat.role}-${i}`} from={from} durationInFrames={durationInFrames}>
+            {/*
+              §407. This beat's picture, or the piece's if it has none of its
+              own. Inside the sequence, so it changes when the beat changes.
+            */}
+            {beat.backgroundDataUri ?? backgroundDataUri ? (
+              <Ground
+                src={(beat.backgroundDataUri ?? backgroundDataUri)!}
+                luminance={beat.backgroundLuminance ?? backgroundLuminance}
+                durationInFrames={durationInFrames}
+                anchor={TYPE_ANCHOR[treatments[i]!]}
+              />
+            ) : null}
             <Beat
               beat={beat}
               treatment={treatments[i]!}
-              palette={palette}
+              palette={beat.backgroundDataUri ?? backgroundDataUri ? overPhoto : overCard}
               brand={brand}
               type={typography}
             />
@@ -406,7 +510,15 @@ export const Narrative: React.FC<NarrativeProps> = ({
               fontSize: 26,
               letterSpacing: '0.14em',
               textTransform: 'uppercase',
-              color: palette.dimmed,
+              /*
+               * The wordmark sits over whatever the last beat drew, and every
+               * beat in a photographed piece has a picture. The photo palette
+               * is the safe one: white dimmed reads on a scrim and on a card,
+               * where brand ink on a dark photograph does not.
+               */
+              color: (beats.some((b) => b.backgroundDataUri) || backgroundDataUri
+                ? overPhoto
+                : overCard).dimmed,
             }}
           >
             {wordmark}

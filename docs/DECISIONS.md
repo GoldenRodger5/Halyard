@@ -9978,3 +9978,85 @@ it is a wrong post. Removing the contradiction beats out-shouting it.
 
 **Default unchanged.** The flag is optional and undefined still includes the
 artifact, so nothing that relied on the old behaviour silently loses grounding.
+
+## 100 · The video rendered the artifact's story, not the piece's
+
+**Chosen.** A composition built by `videoForFormat` keeps its own beats. The
+creative plan's beats drive only artifact-driven compositions.
+
+**Why.** The render props were assembled as `{ ...composition.props, …,
+...(plan ? { beats } : {}) }`. Later keys win, `plan` is non-null whenever the
+connector returned an artifact, and for RecipeFix that is always. So **every
+format video rendered the artifact's five beats** and the format's own were
+built and thrown away.
+
+Found by pulling a render row and reading it. A `history` piece about the
+origins of sourdough — slots written, citations verified against Britannica,
+screenplay staged, voiceover recorded, hero photograph generated of a sourdough
+loaf — had render props whose first beat was *"Pressed tofu is not optional"*.
+The roles were `hook, demo, before, after, proof`, which are creative-plan
+roles; the format's are `hook, setup, turn, payoff`.
+
+**This is why format variety produced no visible variety.** Eleven formats, and
+the frames were always the same artifact-shaped before/after. Fixing the writing
+(§401), the topic (§403) and the photograph (§402) could not show up while the
+frames came from somewhere else entirely.
+
+## 101 · One photograph per beat, not one per video
+
+**Chosen.** Each beat carries its own generated photograph, its own measured
+luminance and its own scrim. The picture changes when the words change.
+
+**Why.** Halyard generated one image and held it for the whole video. Every
+platform's own guidance is the opposite — TikTok wants a visual reset every
+1.5-3 seconds, Reels 2.5-4, Shorts 3-5 — and "dead time, any moment where
+nothing new appears on screen" is the fastest way to lose a feed viewer. A
+nineteen-second piece on one still is four text changes over one unchanging
+picture.
+
+**Rejected: cropping one image several ways.** Cheaper, and it reads as one
+image, because it is. The subject does not change and the eye recognises the
+same picture moved. Four photographs of the loaf, the starter, the jar and the
+crumb are four resets.
+
+**Two bugs this exposed, both only visible by rendering a frame and looking:**
+
+*The palette went dark.* `quizPalette(brand, overPhoto)` returns white type over
+a photograph and brand ink over a flat card, and it was computed once from the
+piece-level background — which per-beat pictures leave undefined. Every word on
+four photographs went nearly invisible. It is now resolved per beat.
+
+*The scrim was in the wrong place and too heavy.* It was a fixed bottom-heavy
+gradient inherited from the quiz, where type is always low. `anchored` holds
+type at the **top** and `statement` centres it, so two of five treatments put
+white words exactly where the picture was left brightest. And the floor of 0.6
+washed 60% black over an underexposed photograph that needed almost none —
+throwing away a good picture for contrast it already had. The scrim now follows
+the treatment's anchor and scales from the measured luminance of that beat's own
+photograph, which is the whole point of §402: consecutive beats are lit
+differently on purpose.
+
+## 102 · Every format can be made, and a test says so
+
+**Chosen.** `comparison`, `poll` and `behind` gained video builders;
+`walkthrough` gained a deck. A coverage test requires every format to be
+buildable on both surfaces or to name a reason.
+
+**Why.** `videoTemplateCoverage.test.ts` asserted that every format *with* a
+builder targets a registered composition. Nothing asserted a format *had* one.
+So three formats sat in the catalogue with no video path at all — offered to the
+operator, chosen by the picker, filled by the writer, and then with nowhere to
+go.
+
+`recipe` and `transformation` are exempt and say why: they are artifact-driven,
+so the video comes from `chooseVideoComposition`, which is shaped around the
+artifact rather than around slots. A slot-driven builder would render the words
+about the change instead of the change.
+
+**A second assertion, added after the first one passed while the bug was
+present.** `walkthrough`'s deck reused `narrativeSlides`, which hardcodes the
+history and origin key sets. It typechecked, it was registered, it was
+reachable, and it returned **zero slides** — because every key it looks for is
+absent from a walkthrough. A builder that returns nothing is indistinguishable
+from a format with no builder, and the coverage check passes for both. The test
+now fills every slot from the catalogue and requires real output.

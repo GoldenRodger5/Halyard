@@ -308,6 +308,56 @@ const BUILDERS: Record<string, (slots: SlotValue[]) => FormatVideo | null> = {
    * myth without immediately labelling it as one is how a myth post spreads the
    * myth. So the kicker does the work: "Myth" before the claim, every time.
    */
+  /**
+   * §408. A choice, laid out as a choice.
+   *
+   * The question opens it, each option gets its own beat so the two are read in
+   * sequence rather than scanned as a block, and the verdict is the payoff —
+   * which is the only beat that does what the format promises. `Versus` and
+   * `This one` are the kickers because the reader's job changes at each: first
+   * weigh, then decide.
+   */
+  comparison(slots) {
+    return narrativeFrom([
+      { role: 'hook', text: pick(slots, 'question') ?? '' },
+      { role: 'setup', text: pick(slots, 'option_a') ?? '', kicker: 'Option A' },
+      { role: 'detail', text: pick(slots, 'option_b') ?? '', kicker: 'Versus' },
+      { role: 'payoff', text: pick(slots, 'verdict') ?? '', kicker: 'This one' },
+    ]);
+  },
+
+  /**
+   * §408. An either/or, and deliberately no answer.
+   *
+   * A poll ends on the two sides rather than resolving, because the resolution
+   * is the comment section — that is the whole mechanic, and a beat that
+   * settled it would remove the reason to reply. So there is no `payoff` role
+   * here, which is a real difference from `comparison` and not an omission.
+   */
+  poll(slots) {
+    return narrativeFrom([
+      { role: 'hook', text: pick(slots, 'question') ?? '' },
+      { role: 'setup', text: pick(slots, 'option_a') ?? '', kicker: 'One' },
+      { role: 'detail', text: pick(slots, 'option_b') ?? '', kicker: 'Or' },
+    ]);
+  },
+
+  /**
+   * §408. Two beats, and the second is the one that earns it.
+   *
+   * `moment` states what is happening and `aside` is the remark a person would
+   * actually make about it. Kept to two: a behind-the-scenes note that runs
+   * long stops being an aside and becomes an explanation, which is the register
+   * this format exists to avoid.
+   */
+  behind(slots) {
+    const aside = pick(slots, 'aside');
+    return narrativeFrom([
+      { role: 'hook', text: pick(slots, 'moment') ?? '' },
+      ...(aside ? [{ role: 'payoff' as BeatRole, text: aside, kicker: 'Honestly' }] : []),
+    ]);
+  },
+
   myth_fact(slots) {
     const source = pick(slots, 'source');
     const partly = pick(slots, 'partly_true');

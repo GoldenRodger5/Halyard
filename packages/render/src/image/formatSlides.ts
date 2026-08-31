@@ -264,6 +264,51 @@ function transformationSlides(slots: SlotValue[]): FormatSlide[] {
  * not a poll. Deliberately the sparsest thing in this file — a story that looks
  * produced loses the form.
  */
+/**
+ * §408. A walkthrough as a deck.
+ *
+ * The video version is the recording — the product actually being used — and a
+ * deck cannot show that. What it can carry is the same three claims, which is
+ * the difference between "no carousel for this format" and "a carousel that
+ * pretends to be a screen recording".
+ *
+ * Its own builder rather than `narrativeSlides`, which hardcodes the history
+ * and origin key sets. Reusing it looked right, typechecked, and produced
+ * **zero slides** — every key it looks for is absent from a walkthrough, and a
+ * builder that returns nothing is indistinguishable from a format with no
+ * builder at all.
+ */
+function walkthroughSlides(slots: SlotValue[]): FormatSlide[] {
+  const title = pick(slots, 'title');
+  if (!title) return [];
+  const why = pick(slots, 'why');
+  const close = pick(slots, 'close');
+  const out: FormatSlide[] = [
+    { kicker: '', headline: title, bodyLines: [], layout: 'statement', index: 0, total: 0 },
+  ];
+  if (why) {
+    out.push({
+      kicker: 'Why it matters',
+      headline: 'Why it matters',
+      bodyLines: [why],
+      layout: 'editorial',
+      index: 0,
+      total: 0,
+    });
+  }
+  if (close) {
+    out.push({
+      kicker: 'Where it lands',
+      headline: 'Where it lands',
+      bodyLines: [close],
+      layout: 'split_rule',
+      index: 0,
+      total: 0,
+    });
+  }
+  return out;
+}
+
 function pollSlides(slots: SlotValue[]): FormatSlide[] {
   const question = pick(slots, 'question');
   if (!question) return [];
@@ -311,6 +356,7 @@ const BUILDERS: Record<string, (slots: SlotValue[]) => FormatSlide[]> = {
   comparison: comparisonSlides,
   recipe: recipeSlides,
   transformation: transformationSlides,
+  walkthrough: walkthroughSlides,
 };
 
 /**
