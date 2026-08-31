@@ -1,5 +1,38 @@
 # Where Halyard is right now
 
+**2026-08-31 — the critic ran forty times and could not see what was wrong.**
+
+The agents were the right place to look. Walking the production path one agent
+at a time found that the Creative QA team specified in
+`HALYARD_AGENTIC_SOCIAL_TEAM_SPEC.md` §14 is substantially *implemented* — around
+fifty rules across coherence, retention, visual, creative and audio — and that
+**six rules have ever fired**, across forty `review_media` runs.
+
+| Agent | Ran? | Could it fire? |
+|---|---|---|
+| vision-describer | yes, 40× | described frames but never named what was *pictured* — §409 |
+| creative-critic (coherence) | yes | `entirely_static` needed byte-identical descriptions; **never fired once** — §409 |
+| retention | yes | said *"failed — 18.2s with no visual state change"* four times, **recorded as `warning`** by a deliberate §62/§73 deferral |
+| creative-critic (model) | yes | its gate has never recorded a result |
+| format-writer citation check | yes | refused accurate paraphrase whenever a fact carried a number — §410 |
+| format-writer copy check | yes | judged the writer by rules the brief never stated — §411 |
+
+**Fixed.** The describer names the depicted subject separately, so the static
+check compares pictures instead of sentences and both signals fire it.
+`assets.subject` records what each image was *asked* to show, which is a real
+oracle for "does the background make sense with the piece" — a question that
+cannot be answered against the script, because a post about gluten illustrated
+with a loaf of bread is the job done right. A specific is now sufficient rather
+than necessary for a citation. And the brief states the house style, so the
+three-attempt budget buys real corrections rather than rule discovery.
+
+**Still open, and honest:** motif and marks reach one format of eleven; pacing
+holds ~4-5s per beat against 1.5-3s; the retention gate stays non-blocking by
+the §62 deferral, now superseded in practice by the semantic static check, which
+is an error and does block.
+
+---
+
 **2026-08-31 — `quiz` was the only format that could ever have worked.**
 
 Found while proving the novelty fix, by running a `history` piece rather than
