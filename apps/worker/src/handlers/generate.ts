@@ -34,6 +34,7 @@ import {
   type SlopPlatform,
   photographicSubject,
   chooseShot,
+  chooseCaptionShape,
   OpenAIEmbeddingClient,
   ideaText,
   canStart,
@@ -1268,8 +1269,48 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
          */
         const captionCtx = openStage(ctx, 'caption');
 
+        /*
+         * §419. What shape this caption takes, chosen before it is written.
+         *
+         * Fit from what the piece can honestly fill — a `list` needs items, a
+         * `setup_turn` needs two halves that disagree, a `receipt` needs
+         * something to cite — then recency against what this account has
+         * written lately. `VARIETY_BY_POST_TYPE.md` §2.3 calls this the largest
+         * gap and the least obvious, because nothing renders: every individual
+         * caption is fine and the account still reads as automated.
+         */
+        const recentShapes = await ctx.pool.query<{ caption_shape: string }>(
+          `select caption_shape from content_items
+            where product_id = $1 and caption_shape is not null
+            order by created_at desc limit 10`,
+          [productId],
+        );
+        const slotKeys = new Set((written?.draft.slots ?? []).map((s) => s.key));
+        const captionShape = chooseCaptionShape({
+          fit: {
+            /* Repeating slots are the things a list would list. */
+            itemCount: chosenFormat.format.slots
+              .filter((s) => (s.repeats ?? 1) > 1)
+              .reduce((n, s) => n + (s.repeats ?? 1), 0),
+            /* A format with a correction or a second option has two halves. */
+            hasTurn:
+              slotKeys.has('correction') || slotKeys.has('turn') || slotKeys.has('option_b'),
+            hasSource: requiresCitation(chosenFormat.format),
+            asksQuestion: chosenFormat.format.slots.some(
+              (s) => (s as { isQuestion?: boolean }).isQuestion === true,
+            ),
+          },
+          recent: recentShapes.rows.map((r) => r.caption_shape),
+        });
+        captionCtx.log('caption shape', {
+          shape: captionShape.shape,
+          because: captionShape.reason,
+          alternatives: captionShape.alternatives,
+        });
+
         const draft = await writeDraft(
           {
+            captionShape: { shape: captionShape.shape, brief: captionShape.brief },
             platform: account.platform,
             format,
             category: idea.category,
@@ -1420,9 +1461,12 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
               format_subtype,
               /* §372. What this piece was staged from, so the mix, the render
                  and the review screen can all read the same document. */
-              screenplay)
+              screenplay,
+              /* §419. The shape this caption was briefed to take, so the next
+                 one can be briefed differently. */
+              caption_shape)
            values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,'pending_approval',$16,
-                   $17,$18,$19,$20,$21,$22,$23,$24,$25)
+                   $17,$18,$19,$20,$21,$22,$23,$24,$25,$26)
            returning id`,
           [
             productId,
@@ -1452,6 +1496,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
             draft.overflow ? budgetFor(account.platform).overflowHome : null,
             subtype,
             staged ? JSON.stringify(staged.screenplay) : null,
+            captionShape.shape,
 ],
         );
 

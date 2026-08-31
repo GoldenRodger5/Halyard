@@ -67,6 +67,16 @@ export interface CopywriterContext {
    * decide what to verify claims against; the prompt never asked.
    */
   verifyClaimsAgainstArtifact?: boolean;
+  /**
+   * The shape this caption should take on the screen. §419.
+   *
+   * A brief, not a template — nothing decides the words here, only the form.
+   * Chosen by `chooseCaptionShape` from what the piece can honestly fill and
+   * what the account has not written lately, because an account whose every
+   * caption is a three-line paragraph with the same rhythm reads as automated
+   * within a fortnight and no gate catches it.
+   */
+  captionShape?: { shape: string; brief: string } | null;
   artifact?: ProductArtifact | null;
   voice: {
     displayName: string;
@@ -282,10 +292,22 @@ complete one nobody expands.`,
           .join('\n')}\n\nWrite a caption that earns the watch. Do not restate the first line — the reader is about to see it.`
       : '';
 
+  /*
+   * §419. The shape, stated as a constraint on form and nothing else.
+   *
+   * Placed with the request rather than the voice rules: it is what this
+   * caption must *be*, not how the brand generally sounds, and a shape buried
+   * among the style guidance is read as a preference.
+   */
+  const shapeBlock = context.captionShape
+    ? `\n## The shape this one takes\n${context.captionShape.brief}`
+    : '';
+
   const user = [
     `## Product\n${context.productBrief.slice(0, 2000)}`,
     `\n## The idea\n${context.idea.title}\n${context.idea.angle}`,
     `\n## This post\nPlatform: ${context.platform}. Format: ${context.format}. Category: ${context.category}.`,
+    shapeBlock,
     pieceBlock,
     seriesBlock,
     hookBlock,

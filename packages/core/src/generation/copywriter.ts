@@ -34,6 +34,8 @@ export interface DraftRequest {
    * caller keeps the behaviour it had.
    */
   verifyClaimsAgainstArtifact?: boolean;
+  /** §419. The shape this caption should take. Passed through to the prompt. */
+  captionShape?: { shape: string; brief: string } | null;
   voice: {
     displayName: string;
     description: string;

@@ -55,7 +55,12 @@ await click(PLATFORM, '02-platform');
 await click(POST_TYPE, '03-post-type');
 await click(FORMAT, '04-format');
 
-await page.locator('[name="subject"]').fill(SUBJECT);
+/*
+ * An empty subject is a real case and the more interesting one: the room reads
+ * this week's signals and decides for itself, which is the whole agentic path.
+ * Briefing a subject tests the writer; leaving it empty tests the operation.
+ */
+if (SUBJECT) await page.locator('[name="subject"]').fill(SUBJECT);
 await shot('05-subject');
 
 await page.getByRole('button', { name: /Send it to the floor/ }).click({ timeout: 15000 });

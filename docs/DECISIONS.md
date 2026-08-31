@@ -10397,3 +10397,57 @@ and **waits on the URL changing** rather than on a timeout — so a server actio
 that throws fails the test instead of passing on a screenshot of an unchanged
 page. It also fails on any console error or 5xx, which an operator would never
 see and a screenshot would not show.
+
+## 114 · Every caption had the same shape
+
+**Chosen.** A caption is briefed with a **shape** — `single`, `setup_turn`,
+`list`, `question_open`, `receipt` — chosen by what the piece can fill, then by
+what the account has not written lately, and recorded on
+`content_items.caption_shape`.
+
+**Why.** `VARIETY_BY_POST_TYPE.md` §2.3 calls this the largest gap and the least
+obvious, "because nothing renders". A text post's look **is** its shape: where
+the line breaks fall, whether it opens on a question or a claim, whether it is
+one sentence or a short list. Nothing in the codebase modelled it.
+
+**And it is wider than the three text post types.** `caption_only`,
+`caption_link` and `reply` have no other treatment layer at all — but *every*
+post has a caption, on every platform, under every video and every carousel. An
+account whose every caption is a three-line paragraph with the same rhythm reads
+as automated within a fortnight, and no gate catches it because every individual
+caption is fine.
+
+**Fit before recency**, as everywhere: a `list` needs items to list, a
+`setup_turn` needs two halves that disagree, a `receipt` needs something to
+cite. A shape the piece cannot fill produces a caption pretending to a structure
+it does not have, which is worse than a plain one. `single` is always offered —
+any piece has a strongest claim.
+
+**A brief, not a template.** Nothing here writes words. The shape is a
+constraint on *form* and the copywriter writes to it, because which words fill a
+move is exactly the open-ended work a model should be doing. A test asserts no
+brief mentions a recipe, gluten or the product.
+
+**Placed with the request, not the voice rules.** It is what this caption must
+*be*, and a shape buried among style guidance is read as a preference.
+
+## 115 · X cannot generate, and it is not a code defect
+
+**Recorded.** Three X posts briefed through the UI produced nothing: *"no
+connected accounts, nothing to draft"*.
+
+`generate.ts` selects accounts `where capability_state in ('live','draft_only')`.
+RecipeFix's X account is in `error`: its token expired on 2026-08-23 and refresh
+returned `HTTP 400 invalid_request`, which is a rotated or revoked refresh
+token. The other X row is `live` and belongs to a different product
+(`product_id = 'founder'`).
+
+**Not gotcha 4.** `X_CLIENT_ID` and `X_CLIENT_SECRET` are both present in the
+worker's env, so this is not the case where the worker skips every account for
+want of client credentials. The refresh token itself is spent, and only a
+reconnect through the UI fixes that.
+
+Worth stating because the surface reading is the opposite: the operator has
+connected X, and the account row says `error` while a *different* X row says
+`live` — which is exactly the confusion gotcha 5 exists for. `capability_state`
+is not connectedness in either direction.
