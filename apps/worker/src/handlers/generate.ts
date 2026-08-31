@@ -34,6 +34,7 @@ import {
   type SlopPlatform,
   photographicSubject,
   chooseShot,
+  motionFor,
   chooseCaptionShape,
   OpenAIEmbeddingClient,
   ideaText,
@@ -2232,6 +2233,91 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                       return assetId ? { ...b, backgroundAssetId: assetId } : b;
                     }),
                   };
+                }
+              }
+
+              /*
+               * §426. The motion grammar and the opening, on format beats.
+               *
+               * `beatsForRender` applies both, and it takes a *creative plan* —
+               * so a piece built by `videoForFormat` got neither. Confirmed on
+               * a live render: the beats carried typography, emphasis, marks
+               * and photographs, and `motion: MISSING`, `opening: MISSING`.
+               *
+               * That is two whole agents unreachable for the formats that make
+               * most of the content: the story architect's seven opening
+               * compositions and the motion director's six entrances, five
+               * camera moves and four transitions. Declared, tested, and never
+               * drawn on a quiz or a history.
+               *
+               * `motionFor` and `chooseOpening` are per-beat and per-hook
+               * functions already — they need a role, an emphasis and a line,
+               * all of which a format beat has. Only `beatsForRender`'s plan
+               * shape was in the way.
+               */
+              if (built.compositionId === 'Narrative') {
+                const language = DEFAULT_LANGUAGE;
+                const beatsIn = (props as { beats?: Array<Record<string, unknown>> }).beats ?? [];
+
+                const hookText = String(beatsIn[0]?.text ?? '');
+                const opening = hookText
+                  ? chooseOpening({
+                      text: hookText,
+                      visualLanguage: language,
+                      /* Every beat carries a photograph since §407. */
+                      hasMedia: Boolean(beatsIn[0]?.backgroundAssetId),
+                      /* Never invented: a numeral or before-state the line does
+                         not contain would fabricate evidence. */
+                      numeral: null,
+                      beforeState: null,
+                      /*
+                       * Read here rather than reusing the later query, which is
+                       * declared further down the artifact path and would be a
+                       * use-before-declaration on this one.
+                       */
+                      recent: (
+                        await ctx.pool.query<{ opening: string }>(
+                          `select cb.visual_direction ->> 'opening' as opening
+                             from creative_briefs cb
+                            where cb.product_id = $1
+                              and cb.visual_direction ->> 'opening' is not null
+                            order by cb.created_at desc limit 8`,
+                          [productId],
+                        )
+                      ).rows.map((r) => r.opening),
+                    })
+                  : null;
+
+                props = {
+                  ...props,
+                  beats: beatsIn.map((b, i) => ({
+                    ...b,
+                    motion: motionFor({
+                      treatment: chosenFormat.format.id,
+                      role: String(b.role ?? 'detail'),
+                      emphasis: (b.emphasis as 'quick' | 'normal' | 'hold') ?? 'normal',
+                      index: i,
+                      total: beatsIn.length,
+                      hasMedia: Boolean(b.backgroundAssetId),
+                      text: String(b.text ?? ''),
+                      wordCount: String(b.text ?? '').trim().split(/\s+/).filter(Boolean).length,
+                      language,
+                    }),
+                    ...(i === 0 && opening
+                      ? {
+                          opening: opening.composition,
+                          ...(opening.holdWords ? { holdWords: opening.holdWords } : {}),
+                        }
+                      : {}),
+                  })),
+                };
+
+                if (opening) {
+                  ctx.log('opening composition', {
+                    contentItemId,
+                    composition: opening.composition,
+                    because: opening.reason,
+                  });
                 }
               }
 

@@ -10656,3 +10656,51 @@ Checked with the other content fits and before any preference, because a layout
 whose label wraps is not a stylistic choice — it is the layout failing at the
 one thing it exists to do. Optional, so a caller that cannot measure keeps the
 old behaviour rather than silently losing a layout from the pool.
+
+## 122 · Two agents never reached the formats that make most of the content
+
+**Chosen.** `motionFor` and `chooseOpening` are applied to format-driven beats.
+
+**Why.** `beatsForRender` applies both, and it takes a **creative plan** — so a
+piece built by `videoForFormat` got neither. Confirmed on a live render before
+changing anything: the beats carried typography, emphasis, marks and
+photographs, and `motion: MISSING`, `opening: MISSING`.
+
+That is the story architect's seven opening compositions and the motion
+director's six entrances, five camera moves and four transitions — declared,
+tested, and never drawn on a quiz, a history, a comparison or a tips piece.
+Nine of eleven formats render through `Narrative`.
+
+Both functions are per-beat and per-hook already. They need a role, an emphasis
+and a line, all of which a format beat has; only the plan shape was in the way.
+
+**Nothing is invented for them.** `chooseOpening` takes a `numeral` and a
+`beforeState`, and a format beat has neither — passing anything would fabricate
+evidence, so both are null and the compositions that need them are correctly
+unavailable.
+
+**The brief is still artifact-only**, and that is the next thread rather than
+this one: `creative_briefs` holds 6 rows against 44 content items because it is
+written inside the plan branch. The agents that read it — typography, audio
+direction, chapters — take their own defaults for format pieces. Typography does
+reach them by another route; audio direction does not.
+
+## 123 · Retest, from the UI
+
+Every fix in this stretch re-verified by briefing through the Floor rather than
+seeding a job, and reading what the worker logged:
+
+- `caption shape` → `receipt`, "has not been used lately"; then `single`,
+  "every shape this piece can take has been used recently; single is the
+  oldest". §419's rotation and its exhaustion path, both live.
+- `still chosen` → `substitution_ratio`, ground `card`, with
+  `recent: [transformation_diff_4x5 × 7]`. That history was **always empty**
+  before §422 fixed the family read, and this is the first time in the system's
+  life that the still chooser has moved off its first-declared template.
+- The same line carried §422's other half: *"This card carries too much text to
+  stand on a photograph."*
+- `marks drawn` → register `drawn`, *"Instrument Serif is a serif on a light
+  ground, which is an editorial register"*, seven circles. §415 and §330's pack,
+  on screen.
+
+A fix that is not re-run is a claim. All four were claims until this.
