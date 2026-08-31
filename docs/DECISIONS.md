@@ -10704,3 +10704,56 @@ seeding a job, and reading what the worker logged:
   on screen.
 
 A fix that is not re-run is a claim. All four were claims until this.
+
+## 124 · A photographic ground is not footage
+
+**Chosen.** `hasMedia` on a format beat means real captured footage, not the
+generated photograph behind the type.
+
+**Why.** `motionFor` returns one calm motion for a media beat and says why:
+*"footage is the content, and animating type over a product demonstration
+competes with the thing the beat exists for."* That is right for a screen
+recording, where the recording **is** the claim.
+
+§407 then gave every beat a generated photograph, and §426 passed it as
+`hasMedia`. Every beat took that branch. A live render showed five beats all
+`rise / push / crossfade` — the motion grammar switched off, immediately after
+being wired on, by its own correct rule meeting a premise that had changed
+underneath it.
+
+A backdrop is not the subject. On these beats the words carry the piece and the
+picture is behind them, so the grammar should do its work. Real footage still
+gets out of the way, and a test asserts both halves — that footage produces one
+motion across beats, and that a backdrop does not.
+
+**This is the shape to watch for now.** §407, §415, §422 and §426 each changed
+what an input *means* to a rule written earlier. The rules were right and stayed
+right; what moved was the world they describe. Wiring an agent on is not the end
+of the work — the next question is which existing rule now sees something it was
+not written for.
+
+## §427 · The registry says which agents have no caller
+
+Auditing all forty against their declared `downstreamConsumer`:
+
+**Live:** `product_facts` 87 · `ideas` 30 · `concepts` 84 · `hook_variants` 150
+· `platform_variants` 36 · `content_iterations` 21. The product-intelligence
+team works, which is the half of the goal that says *it understands the app*.
+
+**Correctly idle:** `cluster_rejections` has run five times and produced
+nothing, and that is right — zero content items carry a `reject_reason`, so
+there is genuinely nothing to cluster.
+
+**Unwired:** `summariseShippedFeatures` has **zero callers**. It is implemented
+in `connectors/github.ts`, declared in the registry with `shipped_features` as
+its consumer, and the registry's own note already reads "zero rows in
+production". A product that ships a feature and a social system that never
+notices is a real gap on the path from *attach the app* to *post about it*.
+
+**Never scheduled:** `draft_take`, `explore_product`, `collect_comments` and
+`setup_kit` have run zero times each — the founder, explorer, engagement and
+setup teams, eight agents, dormant because nothing enqueues them.
+
+**`creative_briefs` holds 6 rows against 44 content items**, because the brief is
+written inside the artifact-driven branch. Typography reaches format pieces by
+another route and audio direction does not.

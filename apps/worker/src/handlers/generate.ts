@@ -2298,7 +2298,26 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                       emphasis: (b.emphasis as 'quick' | 'normal' | 'hold') ?? 'normal',
                       index: i,
                       total: beatsIn.length,
-                      hasMedia: Boolean(b.backgroundAssetId),
+                      /*
+                       * §427. A photographic ground is not footage.
+                       *
+                       * `motionFor` returns one calm motion for a media beat,
+                       * and says why: "footage is the content, and animating
+                       * type over a product demonstration competes with the
+                       * thing the beat exists for". That is right for a screen
+                       * recording, where the recording *is* the claim.
+                       *
+                       * §407 gave every beat a generated photograph, and
+                       * passing that as `hasMedia` sent every beat down the
+                       * branch — five beats, all `rise / push / crossfade`.
+                       * Confirmed on a live render before changing it.
+                       *
+                       * A backdrop is not the subject. On these beats the words
+                       * carry the piece and the picture is behind them, so the
+                       * motion grammar should do its work. `media` is real
+                       * captured footage; a background photograph is not it.
+                       */
+                      hasMedia: Boolean(b.media),
                       text: String(b.text ?? ''),
                       wordCount: String(b.text ?? '').trim().split(/\s+/).filter(Boolean).length,
                       language,
