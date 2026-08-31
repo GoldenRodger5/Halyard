@@ -19,7 +19,7 @@ and a weak one anywhere is visible:
 | **Voiceover** | ✅ | ElevenLabs + Whisper WER check | per piece, from the piece's own slots |
 | **Captions** | ✅ | word-level timing, karaoke highlight, measured 4.5:1 | burned in from the transcript |
 | **Music** | ✅ 6 beds, 4 SFX | genre + instrumentation | usage history |
-| **Motif / marks** | ❌ walkthrough only | 2 registers, 4 mark kinds | derived from brand — but only reached when there is captured footage |
+| **Motif / marks** | ❌ **zero formats** | 2 registers, 4 mark kinds | `<Annotations>` is never rendered and `annotationForPhrase` has no callers; the director runs for walkthroughs and only its yes/no survives — §110 |
 
 ## What rendering found that tests could not
 
@@ -45,8 +45,11 @@ builder.
 
 ## Still open
 
-- **Motif and marks reach one format of eleven.** The hand-drawn vocabulary is
-  built, derived per brand, and gated behind captured footage.
+- **Motif and marks reach no format at all.** The hand-drawn vocabulary is
+  built, tested and derived per brand, and has never appeared in a rendered
+  frame. The director runs for walkthroughs and only its yes/no survives; the
+  mark kind, stroke, wobble and register are discarded. §110 records why the fix
+  is layout work rather than a wire.
 - **Pacing.** Beats hold ~4-5s; the platforms want 1.5-3s (TikTok), 2.5-4
   (Reels), 3-5 (Shorts).
 - **Planned motion on format videos.** The grammar exists and only artifact

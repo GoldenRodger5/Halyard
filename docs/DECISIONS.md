@@ -10258,3 +10258,43 @@ has changed whichever one noticed, so the larger is the answer.
 photographs are referenced by `backgroundAssetId` on the render props and only
 the hero is attached, so §409's oracle saw one subject of five and would have
 measured the video against a picture it never shows.
+
+## 110 · The drawn marks have never appeared in a frame
+
+**Recorded, not fixed.** Naming it precisely, because the shape is now familiar
+enough to be predictable and the fix is real work rather than a wire.
+
+`<Annotations>` is never rendered anywhere. `annotationForPhrase` — which
+resolves a phrase to a box using word timings, and which §284 wrote with a
+careful character-width weighting because circling "gluten-free" landed on
+"en-free" — has **zero callers**.
+
+The annotation-director does run, for walkthroughs. `planAnnotations` decides
+which callouts earn a mark, of what kind, where it should start and land, using
+the per-brand motif pack §330 derives from the product's own typography and
+ground. Then `render.ts` uses its output like this:
+
+```ts
+const marked = new Set(plan.marks.map((m) => m.target.label));
+walkthroughCallouts = calloutsFromSteps(source.filter((s) => !s.at || marked.has(s.label)), …)
+```
+
+Only the **set of labels** survives. The `kind` — circle, arrow, box, underline
+— the stroke weight, the wobble that is "the single strongest signal of
+register", the corner radius, the arrowhead style, and the register itself are
+all computed and discarded. The agent is asked which mark to draw and answers,
+and the answer is used as a yes/no.
+
+So the hand-drawn vocabulary reaches **zero** formats, not one.
+
+**Why this is not wired today.** `annotationForPhrase` needs `captionBox` — where
+the type sits, as fractions of the frame. The walkthrough knows, because a
+capture supplies measured regions. `Narrative` lays its type out with flex and
+does not expose a box, so every beat-driven composition would need to report
+where it put its words before a mark can be placed against them. Guessing the
+box puts a wobbling line through the middle of a sentence, which is worse than
+no mark and is exactly the class of half-wiring this file keeps recording.
+
+**The honest next step** is for each composition to publish the box it laid its
+type into, and for the marks to be placed against that. Then the register a
+brand already implies reaches every format instead of none.
