@@ -1,5 +1,40 @@
 # Where Halyard is right now
 
+**2026-08-30 (late) — two videos briefed the same way are no longer the same
+video.**
+
+`docs/VARIETY_SPEC.md` scopes the whole thing; step 1 and the highest-leverage
+half of step 3 have landed.
+
+*The machinery was right and nothing remembered its answer.* §302 gave the quiz
+five treatments and §308 gave the narrative five, both chosen by fit then
+recency. Both seeded that recency list **empty on every call**, so a piece
+varied within itself and repeated across pieces — two quizzes briefed the same
+way opened identically, and so did two histories. Nine of eleven formats render
+through `Narrative`, so that was most of an account.
+
+`renders.treatment` (migration 0071) is the whole fix: it records what a render
+drew, and the worker reads it back. The choice moved out of the React
+composition, which runs in a browser bundle and cannot reach a database
+(gotcha 10) — the worker decides and passes the answer down. Decision 88.
+
+**Asserted, and they are different claims:** that the pool is exhausted before a
+treatment repeats; that a treatment is never picked for a piece it cannot draw;
+that the choice is pure, so re-rendering an approved video produces the same
+video; and — against a real database — that what a render drew comes back and
+changes the next choice. Only the last one was broken.
+
+*Corrected while building:* the spec's first draft said `Narrative` had one
+treatment. It has five. The range was already there; the memory was not.
+
+**Suite: 216 files, 3,222 tests, none skipped. Lint and typecheck clean.**
+
+Still ahead in the spec: walkthrough's family, seeded within-treatment variation
+(Remotion's `random(seed)`, already a dependency), and showing the operator which
+treatment was used and why.
+
+---
+
 **2026-08-30 (night, later) — deployed, and put through a design pass.**
 
 Live at `halyard-87mphvnfn-isaac-mineos-projects.vercel.app` (behind Vercel's

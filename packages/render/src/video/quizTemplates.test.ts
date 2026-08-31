@@ -11,6 +11,7 @@ import {
   QUIZ_TEMPLATES,
   QUIZ_TEMPLATE_INFO,
   chooseQuizTemplate,
+  chooseQuizTreatments,
   quizPalette,
   type QuizTemplateId,
 } from './quizTemplates.js';
@@ -150,5 +151,78 @@ describe('quizPalette', () => {
     /* A wash is not a container over an image nobody has looked at. */
     expect(quizPalette(recipefix, true).surface).toContain('rgba(0,0,0');
     expect(quizPalette(recipefix, false).surface).not.toContain('rgba(0,0,0,0.46)');
+  });
+});
+
+/**
+ * §394. The guarantee the whole variety spec exists to make.
+ *
+ * An account posts three times a week — 150 videos a year. What stops them all
+ * looking alike is that a treatment is not reused until every treatment that
+ * *can* carry the piece has been.
+ */
+describe('two pieces briefed the same way do not look the same', () => {
+  const fourWay = [{ options: ['a', 'b', 'c', 'd'] }];
+
+  it('does not repeat a treatment on the next piece', () => {
+    /*
+     * The defect this file was extended for: `used` was seeded empty on every
+     * render, so question one always drew the same treatment and two quizzes
+     * generated back to back were identical.
+     */
+    const first = chooseQuizTreatments({ questions: fourWay });
+    const second = chooseQuizTreatments({ questions: fourWay, recent: first.treatments });
+    expect(second.treatments[0]).not.toBe(first.treatments[0]);
+  });
+
+  it('exhausts every treatment that fits before reusing one', () => {
+    const fits = QUIZ_TEMPLATES.filter((id) => {
+      const [min, max] = QUIZ_TEMPLATE_INFO[id].options;
+      return 4 >= min && 4 <= max;
+    });
+
+    /* Generate one piece at a time, carrying history forward as production does. */
+    const history: QuizTemplateId[] = [];
+    const seen: QuizTemplateId[] = [];
+    for (let i = 0; i < fits.length; i += 1) {
+      const { treatments } = chooseQuizTreatments({ questions: fourWay, recent: history });
+      seen.push(treatments[0]!);
+      history.unshift(treatments[0]!);
+    }
+
+    expect(new Set(seen).size, 'a treatment was reused before the pool ran out').toBe(fits.length);
+  });
+
+  it('is a pure function of its inputs, so a re-render is identical', () => {
+    /*
+     * Approving a video approves nothing if re-rendering it produces a
+     * different one. Every variation here has to be a function of the piece,
+     * never of the clock.
+     */
+    const a = chooseQuizTreatments({ questions: fourWay, recent: ['stack'] });
+    const b = chooseQuizTreatments({ questions: fourWay, recent: ['stack'] });
+    expect(a.treatments).toEqual(b.treatments);
+  });
+
+  it('still refuses a treatment that cannot draw the question', () => {
+    /* Variety never costs correctness: an option off screen is worse than a repeat. */
+    const history: QuizTemplateId[] = [];
+    for (let i = 0; i < 12; i += 1) {
+      const { treatments } = chooseQuizTreatments({
+        questions: [{ options: ['yes', 'no'] }],
+        recent: history,
+      });
+      const [min, max] = QUIZ_TEMPLATE_INFO[treatments[0]!].options;
+      expect(2 >= min && 2 <= max, `${treatments[0]} cannot draw 2 options`).toBe(true);
+      history.unshift(treatments[0]!);
+    }
+  });
+
+  it('gives a reason for every treatment it picks', () => {
+    const { treatments, reasons } = chooseQuizTreatments({
+      questions: [fourWay[0]!, fourWay[0]!, fourWay[0]!],
+    });
+    expect(reasons).toHaveLength(treatments.length);
+    for (const reason of reasons) expect(reason.length).toBeGreaterThan(20);
   });
 });

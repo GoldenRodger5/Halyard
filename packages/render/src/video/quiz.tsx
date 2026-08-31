@@ -109,6 +109,19 @@ export interface QuizVideoProps {
    * than a placeholder. Present, the operator asked for a house style.
    */
   forceTemplate?: QuizTemplateId;
+  /**
+   * §394. The treatments, chosen upstream against real history.
+   *
+   * The composition used to choose these itself, seeding its recency list empty
+   * on every render — so a quiz varied within itself and two quizzes briefed
+   * the same way were identical. A component cannot know what the last piece
+   * drew; it runs in a browser bundle with no database. The worker reads
+   * `renders.treatment`, decides, and passes the answer here.
+   *
+   * Absent, the component falls back to choosing locally, which is right for
+   * the Remotion studio — there is no history to have there.
+   */
+  treatments?: QuizTemplateId[];
   typography?: RenderTypography;
   title: string;
   questions: QuizQuestion[];
@@ -572,6 +585,7 @@ export const QuizVideo: React.FC<QuizVideoProps> = ({
   backgroundDataUri,
   backgroundLuminance,
   forceTemplate,
+  treatments,
 }) => {
   const { fps } = useVideoConfig();
 
@@ -592,6 +606,14 @@ export const QuizVideo: React.FC<QuizVideoProps> = ({
   );
 
   const templates = React.useMemo(() => {
+    /*
+     * §394. Chosen upstream where history is knowable. The local walk below is
+     * the fallback for the Remotion studio, where there is none.
+     */
+    if (treatments && treatments.length >= questions.length) {
+      return questions.map((_, i) => treatments[i]!);
+    }
+
     const used: QuizTemplateId[] = [];
     return questions.map((q) => {
       const options = q.options ?? [];
@@ -604,7 +626,7 @@ export const QuizVideo: React.FC<QuizVideoProps> = ({
       used.unshift(template);
       return template;
     });
-  }, [questions, forceTemplate]);
+  }, [questions, forceTemplate, treatments]);
 
   const titleFrames = Math.round(titleSecondsFor(title) * fps);
 

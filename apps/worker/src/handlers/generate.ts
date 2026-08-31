@@ -95,6 +95,8 @@ import { chooseVideoComposition } from '@halyard/render/video-props';
 import { VIDEO_FORMATS, videoForFormat } from '@halyard/render/video';
 import { regateHookedBody, runHookStage } from '../hooks.js';
 import { openStage } from '../stage.js';
+import { recentTreatments } from '../treatmentRecency.js';
+import { chooseQuizTreatments, treatmentsForBeats } from '@halyard/render/video';
 
 /**
  * Target length for a voiceover script, in seconds.
@@ -1632,6 +1634,8 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
            * doing nothing.
            */
           let composition: { id: string; props: Record<string, unknown> } | null = null;
+          /* §394. What the composition will draw, recorded on the render row. */
+          let treatments: string[] | undefined;
           let formatNarration: Array<{ atSeconds: number; text: string }> | null = null;
           if (written && VIDEO_FORMATS.includes(chosenFormat.format.id)) {
             /* §313. The draft written once above, not a second call. */
@@ -1706,6 +1710,73 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                * auto is the default rather than a placeholder.
                */
               const look = (job.payload.options as Record<string, string> | undefined)?.template;
+
+              /*
+               * §394. The treatments, chosen here against real history.
+               *
+               * They used to be chosen inside the composition, which seeded its
+               * recency list empty every time — so a quiz varied within itself
+               * and two quizzes briefed the same way were identical. A React
+               * component cannot know what the last piece drew; it runs in a
+               * browser bundle with no database (§-gotcha-10). So the worker
+               * reads `renders.treatment`, decides, and passes the decision
+               * down.
+               *
+               * An operator's explicit look still wins: `forceTemplate` is a
+               * decision somebody made, and variety never overrides that.
+               */
+              if (built.compositionId === 'Narrative' && !(look && look !== 'auto')) {
+                /*
+                 * §394. Nine of eleven formats render through `Narrative`, so
+                 * its recency is most of what stops an account looking alike.
+                 * Same defect as the quiz: `treatmentsForBeats` seeded its
+                 * history empty, so two pieces briefed the same way opened on
+                 * the same treatment every time.
+                 */
+                const beats = (props as { beats?: Array<{ role: string }> }).beats;
+                if (beats?.length) {
+                  const recent = await recentTreatments(ctx.pool, {
+                    productId,
+                    templateId: built.compositionId,
+                  });
+                  const chosen = treatmentsForBeats(
+                    beats.map((b) => b.role) as never,
+                    recent as never,
+                  );
+                  treatments = chosen;
+                  props = { ...props, before: recent };
+                  ctx.log('treatments chosen', {
+                    contentItemId,
+                    because: `${chosen[0]} opens it; ${recent.length} recent pieces considered`,
+                    treatments: chosen,
+                    recent,
+                  });
+                }
+              }
+
+              if (built.compositionId === 'Quiz' && !(look && look !== 'auto')) {
+                const questions = (props as { questions?: Array<{ options?: string[] }> })
+                  .questions;
+                if (questions?.length) {
+                  const recent = await recentTreatments(ctx.pool, {
+                    productId,
+                    templateId: built.compositionId,
+                  });
+                  const chosen = chooseQuizTreatments({
+                    questions,
+                    recent: recent as never,
+                  });
+                  treatments = chosen.treatments;
+                  props = { ...props, treatments: chosen.treatments };
+                  ctx.log('treatments chosen', {
+                    contentItemId,
+                    because: chosen.reasons[0] ?? 'no question to draw',
+                    treatments: chosen.treatments,
+                    recent,
+                  });
+                }
+              }
+
               composition = {
                 id: built.compositionId,
                 props: look && look !== 'auto' ? { ...props, forceTemplate: look } : props,
@@ -2408,8 +2479,17 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
           }
 
           await ctx.pool.query(
-            `insert into renders (content_item_id, template_id, renderer, input_props, quality)
-             values ($1, $2, 'remotion', $3, 'final')`,
+            /*
+             * §394. `treatment` is what this render actually drew, and it is
+             * the only reason the *next* piece can look different. §302's rule
+             * was always right; nothing remembered its answer, so it was asked
+             * with an empty history every time.
+             *
+             * The first treatment, not all of them: recency is about the look a
+             * piece opens with, which is what a viewer scrolling a feed sees.
+             */
+            `insert into renders (content_item_id, template_id, renderer, input_props, quality, treatment)
+             values ($1, $2, 'remotion', $3, 'final', $4)`,
             [
               contentItemId,
               composition.id,
@@ -2467,6 +2547,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                     }
                   : {}),
               },
+              treatments?.[0] ?? null,
             ],
           );
 

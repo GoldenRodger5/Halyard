@@ -156,6 +156,56 @@ export function chooseQuizTemplate(input: {
   };
 }
 
+/**
+ * §394. Every question's treatment, in one call, carrying recency forward.
+ *
+ * The loop this replaces lived inside the composition and seeded its recency
+ * list empty on every render:
+ *
+ * ```ts
+ * const used: QuizTemplateId[] = [];   // per piece, every time
+ * ```
+ *
+ * So a quiz varied *within* itself and question one always drew the same
+ * treatment, which made two quizzes briefed the same way identical. The list
+ * has to start with what the *previous pieces* used, and a React component
+ * cannot know that — it runs in a browser bundle with no database (§-gotcha-10).
+ *
+ * So the choice moves here: a pure function the worker calls with real history,
+ * passing the result down as a prop. The composition keeps its own fallback for
+ * the Remotion studio, where there is no history to have.
+ */
+export function chooseQuizTreatments(input: {
+  questions: Array<{ options?: string[] }>;
+  /** What recent pieces drew, most recent first. */
+  recent?: QuizTemplateId[];
+}): { treatments: QuizTemplateId[]; reasons: string[] } {
+  /*
+   * Seeded with history rather than empty. Everything after is §302's rule
+   * unchanged — the only defect was where the list began.
+   */
+  const used: QuizTemplateId[] = [...(input.recent ?? [])];
+  const treatments: QuizTemplateId[] = [];
+  const reasons: string[] = [];
+
+  for (const question of input.questions) {
+    const options = question.options ?? [];
+    const isTrueFalse =
+      options.length === 2 &&
+      options.every((o) => ['true', 'false'].includes(o.trim().toLowerCase()));
+    const { template, reason } = chooseQuizTemplate({
+      optionCount: options.length,
+      isTrueFalse,
+      recent: used,
+    });
+    used.unshift(template);
+    treatments.push(template);
+    reasons.push(reason);
+  }
+
+  return { treatments, reasons };
+}
+
 const face = (t: RenderTypography | undefined, role: 'display' | 'body' | 'label') =>
   t ? { fontFamily: t[role].family, fontWeight: t[role].weight } : {};
 

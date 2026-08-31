@@ -53,6 +53,14 @@ export interface NarrativeProps {
   brand: BrandTokens;
   typography?: RenderTypography;
   beats: NarrativeBeat[];
+  /**
+   * §394. What recent pieces drew, most recent first.
+   *
+   * Supplied by the worker from `renders.treatment`. Absent, the beats are
+   * chosen against an empty history, which is right in the Remotion studio —
+   * there is none there to have.
+   */
+  before?: NarrativeTreatment[];
   backgroundDataUri?: string;
   /** §301. Measured brightness of the ground where type sits, 0..1. */
   backgroundLuminance?: number;
@@ -84,9 +92,23 @@ const FITS: Record<BeatRole, NarrativeTreatment[]> = {
  *
  * Fit, then recency — §302 and §293's order, and for the same reason. Exported
  * so a test can assert the run varies rather than trusting that it does.
+ *
+ * ## §394. The history has to come from outside
+ *
+ * This started its recency list empty on every call, so it varied *within* a
+ * piece and repeated *across* pieces: two histories briefed the same way opened
+ * on the same treatment, every time. Nine of eleven formats render through this
+ * composition, so that was most of the account looking alike.
+ *
+ * `before` is what recent pieces drew, most recent first. The worker reads it
+ * from `renders.treatment` and passes it in; a component cannot, because it
+ * runs in a browser bundle with no database (§-gotcha-10).
  */
-export function treatmentsForBeats(roles: BeatRole[]): NarrativeTreatment[] {
-  const recent: NarrativeTreatment[] = [];
+export function treatmentsForBeats(
+  roles: BeatRole[],
+  before: NarrativeTreatment[] = [],
+): NarrativeTreatment[] {
+  const recent: NarrativeTreatment[] = [...before];
   return roles.map((role) => {
     const fits = FITS[role];
     const chosen =
@@ -316,6 +338,7 @@ export const Narrative: React.FC<NarrativeProps> = ({
   brand,
   typography,
   beats,
+  before,
   backgroundDataUri,
   backgroundLuminance,
   audioSrc,
@@ -326,7 +349,10 @@ export const Narrative: React.FC<NarrativeProps> = ({
     () => quizPalette(brand, Boolean(backgroundDataUri)),
     [brand, backgroundDataUri],
   );
-  const treatments = React.useMemo(() => treatmentsForBeats(beats.map((b) => b.role)), [beats]);
+  const treatments = React.useMemo(
+    () => treatmentsForBeats(beats.map((b) => b.role), before ?? []),
+    [beats, before],
+  );
 
   let from = 0;
 

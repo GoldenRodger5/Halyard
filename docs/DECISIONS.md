@@ -9592,3 +9592,49 @@ genuinely do want newest-first.
 Age is one field and it is what makes the wall triageable: seventeen identical
 tiles become seventeen tiles with an order. Anything over a week is marked, so
 the thing that has been ignored is the thing that stands out.
+
+## 88 · The variety machinery was right; nothing remembered its answer
+
+**Chosen.** `renders.treatment` records what a render drew, the worker reads it
+back as history, and both choosers are seeded with it.
+
+**Why.** §302 gave the quiz five treatments and §308 gave the narrative five
+more, both chosen by *what fits, then what has not been used lately*. The rule
+is right and neither was broken. Both seeded that list **empty on every call**:
+
+```ts
+const used: QuizTemplateId[] = [];         // quiz.tsx
+const recent: NarrativeTreatment[] = [];   // narrative.tsx
+```
+
+So a piece varied *within itself* and repeated *across pieces*. Two quizzes
+briefed the same way opened on the same treatment; so did two histories. Nine of
+eleven formats render through `Narrative`, so that was most of an account.
+
+Nothing could have done better, because nothing wrote down what a render drew.
+That column is the whole fix. **The defect was never a shortage of treatments.**
+
+**Why the choice moved to the worker.** It happened inside the React
+composition, which runs in a browser bundle and cannot reach a database —
+§-gotcha-10, and the reason worker-side preparation belongs in `apps/worker`.
+The worker reads history, chooses, and passes the answer down as a prop. Each
+composition keeps its local fallback, which is correct for the Remotion studio
+where there is no history to have.
+
+**What is asserted.** That the pool is exhausted before a treatment repeats;
+that a treatment is never picked for a piece it cannot draw; that the choice is
+a pure function of its inputs, so re-rendering an approved video produces the
+same video; and — against a real database — that what a render drew comes back
+and changes the next choice. The rule and the loop are different claims and only
+the loop was broken.
+
+**Rejected.** Random selection. It reruns the same treatment twice often enough
+to notice and cannot tell an operator why — §302's reasoning, unchanged. And
+`random(seed)` would give reproducibility without the *guarantee*: a hash can
+still collide twice in a row, and "usually different" is not what an account
+posting 150 times a year needs.
+
+**Rejected.** A composition per treatment. A composition is a registration, a
+schema, a database row and a coverage test; twenty of them is twenty times the
+surface for the same result. A treatment is a branch inside one composition,
+which is what §302 established and what this extends.
