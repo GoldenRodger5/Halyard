@@ -89,6 +89,18 @@ export interface IdeaCandidate {
   availableTemplates: string[];
   /** Embedding for the novelty check. */
   embedding?: number[];
+  /**
+   * True when a person typed this subject in, rather than the machine proposing
+   * it. §403.
+   *
+   * Exempts the idea from the novelty floor and from nothing else. An operator
+   * who asks for a second piece on a subject has said, in the only way the
+   * system offers, that they want a second piece on that subject — refusing it
+   * as "too close to something posted recently" answers a question nobody
+   * asked. Every other guard still applies: a brief with no enabled template
+   * still cannot be rendered, and a brief cannot breach the product ceiling.
+   */
+  briefed?: boolean;
   /** Mean conversion of similar past content, 0..1. */
   historicalConversion?: number;
 }
@@ -111,6 +123,17 @@ export interface ScoredIdea extends IdeaCandidate {
   explanation: string;
   /** Set when a hard cap or cooldown removed the idea from selection. */
   blockedReason?: string;
+  /**
+   * True when the reason will still be true tomorrow. §403.
+   *
+   * Most refusals are about *today* — the daily limit, a category cooldown, a
+   * product ceiling — and the idea rightly waits and competes again. A novelty
+   * refusal is not: the history it lost to only grows, so the idea can never
+   * become novel again. Left `proposed`, it is re-scored and re-refused on
+   * every run forever, and — found live — a single stuck idea is enough to make
+   * every subsequent run produce nothing.
+   */
+  blockedPermanently?: boolean;
 }
 
 export function cosineDistance(a: number[], b: number[]): number {
@@ -135,6 +158,15 @@ export function cosineDistance(a: number[], b: number[]): number {
  * unmeasured factor must not read as a measured maximum. See §140.
  */
 export const NOVELTY_UNMEASURED = 0.5;
+
+/**
+ * Below this, a *measured* idea is a repetition rather than a variation. §403.
+ *
+ * Calibrated against real embeddings: an exact restatement of a used idea
+ * measures ~0.06, a paraphrase of the same subject ~0.45, an unrelated subject
+ * ~0.80. Set to catch the first and not the second.
+ */
+export const NOVELTY_FLOOR = 0.15;
 
 /**
  * Distance from the nearest of the last 60 days of ideas. 1 = wholly novel.
@@ -352,7 +384,6 @@ export function selectIdeas(
       rejected.push({ ...idea, blockedReason: `${idea.category} is on cooldown.` });
       continue;
     }
-
     // v2 G.3 step 5: no two items in the same category on the same day.
     if (usedCategories.has(idea.category)) {
       rejected.push({
@@ -378,11 +409,32 @@ export function selectIdeas(
       }
     }
 
-    // v2 G.3 step 6: novelty against the last 60 days.
-    if (idea.breakdown.novelty < 0.15) {
+    /*
+     * v2 G.3 step 6: novelty against the last 60 days.
+     *
+     * §403. This guard was correct and had never once fired. It compares
+     * `breakdown.novelty` against a floor, `noveltyScore` returns
+     * `NOVELTY_UNMEASURED` for an idea with no embedding, and **nothing had
+     * ever written `ideas.embedding`** — thirteen ideas, zero vectors. So every
+     * idea scored the unmeasured 0.5, every 0.5 cleared a 0.15 floor, and the
+     * one thing standing between the operator and the same post twice was a
+     * comparison that could not reach its threshold. Declared, typed, tested,
+     * unreachable: the shape §394 and §395 also turned out to be.
+     *
+     * `embed.ts` writes the vectors. The floor below is unchanged, and now
+     * measures something.
+     *
+     * The `embedding` check is not redundant with the floor. It is the rule
+     * that an unmeasured value may never ground a refusal, stated where it can
+     * be seen — today `NOVELTY_UNMEASURED` happens to sit above the floor, so
+     * the arithmetic alone is safe, and a floor raised past 0.5 tomorrow would
+     * silently reject every idea on the day the embedding call failed.
+     */
+    if (!idea.briefed && idea.embedding && idea.breakdown.novelty < NOVELTY_FLOOR) {
       rejected.push({
         ...idea,
         blockedReason: 'Too close to something posted in the last 60 days.',
+        blockedPermanently: true,
       });
       continue;
     }

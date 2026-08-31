@@ -35,8 +35,11 @@
  */
 import {
   assertIllustrative,
+  shotDirection,
+  shotId,
   type ImageClient,
   type GeneratedImage,
+  type Shot,
 } from '@halyard/core';
 import type { HandlerContext } from './poller.js';
 import { uploadAsset } from './storage.js';
@@ -62,6 +65,15 @@ const DEFAULT_MOOD = 'natural light, honest and unstyled, shallow depth of field
 export interface HeroImageRequest {
   /** What the picture is of, in plain words. Never the product's interface. */
   subject: string;
+  /**
+   * How to take the picture — framing, light, surface. §402.
+   *
+   * Chosen by `chooseShot` against what this product shot recently, so two
+   * pieces on the same subject are two different photographs rather than one
+   * photograph twice. Optional because a caller with no product history to read
+   * is better off with the default styling than with a fabricated shot.
+   */
+  shot?: Shot;
   /** The piece's visual language, so the photograph matches the type. */
   visualLanguage?: string;
   aspectRatio: '9:16' | '1:1' | '16:9' | '4:5';
@@ -76,11 +88,22 @@ export interface HeroImageRequest {
  * rejects, and being rejected at the guard is the correct outcome if this ever
  * drifts.
  */
-export function heroPrompt(input: { subject: string; visualLanguage?: string }): string {
-  const mood = (input.visualLanguage && MOOD_FOR_LANGUAGE[input.visualLanguage]) || DEFAULT_MOOD;
+export function heroPrompt(input: {
+  subject: string;
+  shot?: Shot;
+  visualLanguage?: string;
+}): string {
+  /*
+   * §402. The shot wins when there is one, because it varies three axes and a
+   * mood varies one. The mood map stays as the fallback for callers with no
+   * history to rotate against — it is still the right answer for a one-off.
+   */
+  const styling = input.shot
+    ? shotDirection(input.shot)
+    : (input.visualLanguage && MOOD_FOR_LANGUAGE[input.visualLanguage]) || DEFAULT_MOOD;
   return [
     `A photograph of ${input.subject}.`,
-    `Styling: ${mood}.`,
+    `Styling: ${styling}.`,
     'Real photography, not an illustration and not a render.',
     'No text, no lettering, no watermarks, no logos, no hands holding a phone.',
     'Nothing resembling software, and no signage of any kind.',
@@ -149,6 +172,8 @@ export async function generateHeroImage(
      * the prompt at all.
      */
     tags: ['generated', `model:${image.model}`],
+    /* §402. So the next picture can be shot differently. */
+    shot: request.shot ? shotId(request.shot) : null,
     /*
      * Never `video` or `proof`. This is an illustration and the roles it may
      * appear in are the non-evidential ones; declaring it here keeps a later
@@ -163,6 +188,7 @@ export async function generateHeroImage(
     model: image.model,
     costUsd: Number(image.costUsd.toFixed(4)),
     subject: request.subject,
+    shot: request.shot ? shotId(request.shot) : null,
     /*
      * §369. The reason, not only the parameters. The account of a piece is
      * assembled from what each decision recorded about itself, and this one

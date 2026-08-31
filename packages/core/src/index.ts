@@ -21,6 +21,8 @@ export * from './generation/critique.js';
 export * from './connectors/index.js';
 export * from './creative/plan.js';
 export * from './creative/treatments.js';
+export * from './creative/shot.js';
+export * from './generation/embed.js';
 export * from './creative/presentation.js';
 export * from './creative/director.js';
 export * from './creative/longform.js';

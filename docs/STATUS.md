@@ -1,6 +1,51 @@
 # Where Halyard is right now
 
-**2026-08-31 — a brief now produces a piece, end to end, on OpenAI.**
+**2026-08-31 — `quiz` was the only format that could ever have worked.**
+
+Found while proving the novelty fix, by running a `history` piece rather than
+reading about one. It returned all five slots, correctly keyed, each with a
+citation that verified against Britannica — and was refused as *"the format
+asked for 5 slots and 3 were not filled"*, three times, then abandoned.
+
+`checkDraft` looks a slot up by `key:index` and `expandSlots` numbers each key
+from zero, so a singular slot is only ever `setup:0`. `parseDraft` believed
+whatever number arrived. A model writing the quiz — `question` and `answer` five
+times each — numbers per key and lands right. A model writing a format whose
+slots are all singular numbers them **globally**, and every slot after the first
+misses.
+
+Thirty-six pieces exist; five are quizzes and thirty-one have no `post_format`.
+`history`, `myth`, `fact`, `walkthrough` and `recipe` were structurally
+incapable of completing, and every failure looked like a model that would not
+follow instructions. `parseDraft` now counts position instead of believing the
+number. Decision 98.
+
+---
+
+**2026-08-31 — the pipeline no longer repeats itself.** Six mechanisms meant to
+stop repetition existed; five had no data to work from and the sixth had no
+column to write to. Every one had the same shape — *the rule was right and
+nothing supplied its answer*, which is indistinguishable from working until an
+operator reads two posts in a row.
+
+| Axis | What was wrong | Now |
+|---|---|---|
+| **Topic** | `selectIdeas` refuses an idea under 0.15 novelty and had never once refused one: nothing wrote `ideas.embedding`, so every idea scored the unmeasured 0.5 and cleared the floor | Ideas are embedded on write; 13 backfilled. A restatement measures 0.06, a paraphrase 0.45, an unrelated subject 0.80. §403 |
+| **Facts** | `research()` took no exclusion list — same subject in, same facts out | `avoid` carries what the account published, injected into the prompt so the researcher looks elsewhere. §401 |
+| **Openings** | The writer saw no previous piece | `recentOpenings` from `content_items`. §401 |
+| **Photograph** | `visualLanguage: undefined` at the call site, so **every hero image ever generated** used the same `DEFAULT_MOOD` string | A *shot* — framing, light, surface — each axis rotated against `assets.shot`. §402 |
+| Video treatment | Recency list seeded empty per piece | `renders.treatment`. §394 |
+| Still / carousel | Four of five templates unreachable | `chooseStill`, layouts seeded from history. §395 |
+
+Music and hook type already read real history. No recency argument in the worker
+is passed empty any more — audited.
+
+**Not fixed, and deliberately:** an operator's brief runs whatever its novelty.
+They asked for it; the guard is for what the machine proposes on its own.
+
+---
+
+**2026-08-31 — a brief produces a piece, end to end, on OpenAI.**
 
 Verified against the live APIs: brief → job → worker → research → citation check
 → **a `pending_approval` tiktok video** whose sources verified against

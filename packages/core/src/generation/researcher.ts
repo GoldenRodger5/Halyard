@@ -62,6 +62,23 @@ export interface ResearchRequest {
    * "a blog agreed with me" is not a source and is very easy to find.
    */
   preferDomains?: string[];
+  /**
+   * §401. Facts this account has already published, so research finds others.
+   *
+   * The same subject produced the same facts every time — `research` had a
+   * subject and no memory, so gluten always came back as Beccari and 1728. The
+   * account said the same thing twice, which is the repetition a viewer
+   * actually notices.
+   *
+   * In the **request**, not as a filter afterwards. Asking for ten facts and
+   * discarding the seven already used leaves three, then none, and eventually a
+   * piece that cannot be written. Told up front, the model proposes different
+   * ones — which is what a researcher who kept notes would do.
+   *
+   * Never a licence to invent: every fact still goes through `verifySource`.
+   * Novelty is a preference among *verified* facts.
+   */
+  avoid?: string[];
 }
 
 export interface ResearchResult {
@@ -117,6 +134,20 @@ export async function proposeFacts(
     ? `\nPrefer sources from: ${request.preferDomains.join(', ')}.`
     : '';
 
+  /*
+   * §401. Capped at twelve. A prompt carrying forty near-identical lines spends
+   * its context restating one thing, and the most recent are the ones a viewer
+   * would still remember.
+   */
+  const used = request.avoid?.slice(0, 12) ?? [];
+  const avoid = used.length
+    ? `\n\nThis account has already published these facts. Do not propose them ` +
+      `again, and do not propose a restatement of one:\n` +
+      used.map((claim) => `- ${claim}`).join('\n') +
+      `\n\nIf the subject genuinely has nothing else worth saying, return fewer ` +
+      `facts rather than repeating one or stretching to something you cannot source.`
+    : '';
+
   const reply = await llm.complete({
     system: SYSTEM,
     messages: [
@@ -130,7 +161,7 @@ export async function proposeFacts(
            * five facts and given exactly five gets fewer than five whenever any
            * source fails, which is most of the time.
            */
-          `Give up to ${Math.ceil(request.want * 2)} facts.${domains}`,
+          `Give up to ${Math.ceil(request.want * 2)} facts.${domains}${avoid}`,
       },
     ],
     maxTokens: 1600,

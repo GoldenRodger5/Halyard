@@ -186,7 +186,20 @@ export class FormatRejectedError extends Error {
 export async function writeToFormat(
   ctx: HandlerContext,
   format: PostFormat,
-  context: { subject: string; audience: string; platform: string },
+  context: {
+    subject: string;
+    audience: string;
+    platform: string;
+    /**
+     * §401. What this account has already said, so research finds something
+     * else and the writer does not open the same way twice.
+     *
+     * Optional: a caller with no history — a test, the first ever run — passes
+     * nothing and gets the previous behaviour, which is correct for a product
+     * that genuinely has said nothing yet.
+     */
+    alreadySaid?: { claims: string[]; openings: string[] };
+  },
   llm: LlmClient,
   /**
    * §282. Injected so tests can verify citations without the network.
@@ -197,7 +210,12 @@ export async function writeToFormat(
    */
   fetchImpl: typeof fetch = fetch,
 ): Promise<FormatWriteResult> {
-  const system = briefFor(format, context);
+  const system = briefFor(format, {
+    ...context,
+    ...(context.alreadySaid?.openings.length
+      ? { recentOpenings: context.alreadySaid.openings }
+      : {}),
+  });
   let totalCost = 0;
 
   /**
@@ -235,6 +253,9 @@ export async function writeToFormat(
         subject: context.subject,
         productContext: context.audience,
         want: Math.max(3, expandSlots(format).filter((slot) => slot.asserts !== false).length),
+        ...(context.alreadySaid?.claims.length
+          ? { avoid: context.alreadySaid.claims }
+          : {}),
       },
       llm,
       fetchImpl,

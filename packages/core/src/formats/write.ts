@@ -68,7 +68,19 @@ export interface FormatCheck {
  */
 export function briefFor(
   format: PostFormat,
-  context: { subject: string; audience: string; platform: string },
+  context: {
+    subject: string;
+    audience: string;
+    platform: string;
+    /**
+     * §401. How recent pieces opened, so this one does not open the same way.
+     *
+     * A *new* fact asked as "What year was X first identified?" for the fourth
+     * time is still repetition — the surface repeats even when the substance
+     * does not. Research exclusion fixes the substance; this fixes the shape.
+     */
+    recentOpenings?: string[];
+  },
 ): string {
   const lines = [
     `Write one ${format.name.toLowerCase()} for ${context.platform}.`,
@@ -83,6 +95,21 @@ export function briefFor(
     const count = slot.repeats ?? 1;
     lines.push(
       `- ${slot.key}${count > 1 ? ` (${count} of them)` : ''}: ${slot.brief} Max ${slot.maxWords} words.`,
+    );
+  }
+
+  /*
+   * §401. Six, and only the openings. More becomes a wall of text the model
+   * skims, and the opening is the part a viewer actually recognises.
+   */
+  const recent = context.recentOpenings?.slice(0, 6) ?? [];
+  if (recent.length > 0) {
+    lines.push(
+      '',
+      'This account opened its recent posts like this. Do not repeat one, and do',
+      'not repeat its shape — a different fact asked in the same words is still',
+      'the same post to somebody scrolling:',
+      ...recent.map((opening) => `- ${opening}`),
     );
   }
 
@@ -278,12 +305,39 @@ export function parseDraft(raw: unknown, format: PostFormat): FormatDraft {
   const list = Array.isArray(parsed?.slots) ? parsed!.slots : [];
   const known = new Set(format.slots.map((s) => s.key));
 
+  /*
+   * §404. The index is the slot's position **within its own key**, and it is
+   * counted here rather than believed.
+   *
+   * `checkDraft` looks a slot up by `key:index`, and `expandSlots` numbers each
+   * key from zero — so a singular slot is only ever `setup:0`. A model writing a
+   * format whose slots all repeat (the quiz: `question` and `answer` five times
+   * each) numbers per key and lands exactly right. A model writing a format
+   * whose slots are all singular numbers them **globally** — hook 0, setup 1,
+   * turn 2 — which is a perfectly reasonable reading of "index" and matches
+   * nothing.
+   *
+   * The result: `history` returned all five slots, correctly keyed, with real
+   * citations, and was refused as *"5 slots and 4 were not filled"* — three
+   * times, then abandoned. Quiz is the only format that has ever produced a
+   * piece, and this is why. Not a model failing to follow instructions: a
+   * parser trusting a number that carries no information the array order does
+   * not already carry.
+   *
+   * So the number is discarded and the position counted. For a singular slot
+   * there is no other valid answer than 0; for a repeating one, the Nth
+   * occurrence is the Nth. A slot the model genuinely omitted is still absent,
+   * and `checkDraft` still says so.
+   */
+  const seen = new Map<string, number>();
+
   const slots: FilledSlot[] = [];
   for (const entry of list) {
     const item = entry as { key?: unknown; index?: unknown; text?: unknown; citation?: unknown };
     if (typeof item.key !== 'string' || !known.has(item.key)) continue;
     if (typeof item.text !== 'string' || item.text.trim().length === 0) continue;
-    const index = Number.isInteger(item.index) ? (item.index as number) : 0;
+    const index = seen.get(item.key) ?? 0;
+    seen.set(item.key, index + 1);
     slots.push({
       key: item.key,
       index,

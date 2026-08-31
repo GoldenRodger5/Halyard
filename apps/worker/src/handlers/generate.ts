@@ -33,6 +33,9 @@ import {
   extractHookPattern,
   type SlopPlatform,
   photographicSubject,
+  chooseShot,
+  OpenAIEmbeddingClient,
+  ideaText,
   canStart,
   getAdapter,
   planProduction,
@@ -100,6 +103,7 @@ import { VIDEO_FORMATS, videoForFormat } from '@halyard/render/video';
 import { regateHookedBody, runHookStage } from '../hooks.js';
 import { openStage } from '../stage.js';
 import { recentTreatments } from '../treatmentRecency.js';
+import { alreadySaid } from '../alreadySaid.js';
 import { chooseQuizTreatments, treatmentsForBeats } from '@halyard/render/video';
 
 /**
@@ -114,6 +118,7 @@ const VO_TARGET_SECONDS = 22;
 import { PermanentJobFailure } from '../poller.js';
 import type { Job, HandlerContext } from '../poller.js';
 import { generateHeroImage } from '../heroImage.js';
+import { recentShots } from '../shotRecency.js';
 import { pickProductShot } from '../productShot.js';
 import { FormatRejectedError, recentFormats, writeToFormat } from '../formatWriter.js';
 import { stagePiece } from '../screenplayStage.js';
@@ -581,7 +586,24 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
    * downstream — scoring, selection, every QC gate — runs on it unchanged.
    */
   const briefed = (job.payload.subject as string | undefined)?.trim();
-  if (proposed.rows.length === 0 && briefed) {
+  /* §403. Which row the operator typed, so the novelty floor can let it past. */
+  let briefedIdeaId: string | null = null;
+  /*
+   * §403. A brief wins outright. It used to win only when the idea table
+   * happened to be empty.
+   *
+   * `proposed.rows.length === 0 && briefed` reads as a reasonable fallback and
+   * is a race with the contents of a table. One leftover idea — refused for
+   * novelty, therefore permanently stuck as `proposed` — was enough to make the
+   * Floor swallow the operator's subject and report "every idea was refused",
+   * which is §399's failure wearing different clothes: the operator briefed the
+   * room, the room did something else, and said it was done.
+   *
+   * A person who typed a subject has asked for a piece about *that*. So the
+   * brief does not join the pool, it **replaces** it. Whatever was queued is
+   * still queued and still runs on the next scheduled batch.
+   */
+  if (briefed) {
     const written = await ctx.pool.query<{
       id: string;
       title: string;
@@ -590,8 +612,8 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
       embedding: number[] | null;
     }>(
       `insert into ideas (product_id, title, angle, category, source_signals, score,
-                          score_breakdown, status)
-       values ($1, $2, $3, $4, '{}'::uuid[], 1, '{"operator": 1}'::jsonb, 'proposed')
+                          score_breakdown, status, embedding)
+       values ($1, $2, $3, $4, '{}'::uuid[], 1, '{"operator": 1}'::jsonb, 'proposed', $5)
        returning id, title, angle, category, embedding`,
       [
         productId,
@@ -604,9 +626,27 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
          * for promotional posts.
          */
         'education',
+        /*
+         * §403. A brief is embedded like any other idea.
+         *
+         * Not so it can be *refused* — the operator asked for this one, and it
+         * runs whatever its novelty. It is embedded so it becomes part of the
+         * history the *next* idea is measured against. An unembedded brief is a
+         * hole in that history, and the topic an operator briefed by hand is
+         * exactly the one a proposal is most likely to duplicate next week.
+         */
+        await new OpenAIEmbeddingClient()
+          .embed([briefed])
+          .then((v) => (v[0] ? JSON.stringify(v[0]) : null))
+          .catch((err: Error) => {
+            ctx.log('briefed idea stored without an embedding', { reason: err.message });
+            return null;
+          }),
       ],
     );
+    proposed.rows.length = 0;
     proposed.rows.push(...written.rows);
+    briefedIdeaId = written.rows[0]?.id ?? null;
     ctx.log('briefed idea written', {
       productId,
       because: `the operator asked for "${briefed.slice(0, 80)}", which is the idea`,
@@ -743,6 +783,14 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
       category: row.category,
       availableTemplates: enabledTemplates,
       embedding: row.embedding ?? undefined,
+      /*
+       * §403. A brief is exempt from the novelty floor and from nothing else.
+       * The operator asked for this subject; refusing it as "too close to
+       * something posted recently" answers a question nobody asked. Without
+       * this, briefing the same subject twice reports success and produces
+       * nothing — which is the exact failure §399 was written to end.
+       */
+      briefed: row.id === briefedIdeaId,
       // Undefined, not 0, when a category has never been measured. The scorer's
       // own `?? 0.5` is the honest neutral; a zero would be a measured failure.
       historicalConversion: historical.get(row.category),
@@ -783,6 +831,27 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
 
   for (const idea of rejected) {
     ctx.log('idea not selected', { id: idea.id, reason: idea.blockedReason });
+    /*
+     * §403. A refusal that will still be true tomorrow retires the idea.
+     *
+     * Found live, and it is worse than it looks. A novelty refusal loses to
+     * history, and history only grows — so the idea can never become novel
+     * again, stays `proposed`, and is re-scored and re-refused on every run
+     * forever. One stuck idea made every subsequent run report "nothing to
+     * make: every idea was refused", and — because the brief path only wrote a
+     * subject when *nothing* was proposed — it also swallowed the operator's
+     * brief on its way past.
+     *
+     * Only permanent refusals retire. The daily limit, a cooldown and the
+     * product ceiling are all about today, and those ideas rightly wait and
+     * compete again tomorrow.
+     */
+    if (idea.blockedPermanently) {
+      await ctx.pool.query(
+        `update ideas set status = 'rejected', reject_reason = $2 where id = $1`,
+        [idea.id, idea.blockedReason ?? 'Refused permanently.'],
+      );
+    }
   }
   if (selected.length === 0) {
     /**
@@ -1057,6 +1126,18 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
          * so `completed` counted it done while it produced no attributed event
          * and the floor's first desk could never light.
          */
+        /*
+         * §401. Read once for the run: every writer in this job avoids the same
+         * history, and re-reading it per platform would be the same query four
+         * times for the same answer.
+         */
+        const said = await alreadySaid(ctx.pool, { productId });
+        if (said.claims.length > 0) {
+          ctx.log('avoiding what has been said', {
+            because: `${said.claims.length} claims and ${said.openings.length} openings from the last 60 days`,
+          });
+        }
+
         const brief = openStage(ctx, 'brief');
 
         const production = planProduction({
@@ -1119,6 +1200,16 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                     idea.title,
                   audience: product.brief_summary ?? 'the people this product is for',
                   platform: account.platform,
+                  /*
+                   * §401. What this account has already said.
+                   *
+                   * Research had a subject and no memory, so the same subject
+                   * returned the same facts every time — gluten always came
+                   * back as Beccari and 1728. `content_items.claims` has
+                   * recorded every fact every piece used since the beginning
+                   * and nothing had ever read it.
+                   */
+                  alreadySaid: said,
                 },
                 llmFor(),
               )
@@ -1502,11 +1593,31 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
           });
           if (verdict.subject) heroSubject = verdict.subject;
         }
+        /*
+         * §402. How to shoot it, not only what to shoot.
+         *
+         * `visualLanguage: undefined` sat here, so `heroPrompt` fell to
+         * DEFAULT_MOOD on every piece Halyard has ever made and two pieces on
+         * one subject were the same photograph twice. Passing the language
+         * would barely have helped — `MOOD_FOR_LANGUAGE` is keyed on a
+         * different vocabulary and varies only the light. The shot varies
+         * framing, light and surface, each rotated against what this product
+         * actually shot recently.
+         */
+        const shot = chooseShot({
+          format: chosenFormat.format.id,
+          recent: await recentShots(ctx.pool, { productId }),
+        });
+        assets.log('shot chosen', {
+          contentItemId,
+          shot: shot.id,
+          because: shot.reason,
+        });
         const hero =
           heroSubject && imageClient
             ? await generateHeroImage(assets, imageClient, {
                 subject: heroSubject,
-                visualLanguage: undefined,
+                shot,
                 /*
                  * §351. From the post type's own canvas rather than from the
                  * platform. A carousel is 4:5 wherever it is posted, and a
@@ -3392,12 +3503,38 @@ export async function proposeFromSignals(
     ctx.log('idea proposal rejected', { title: rejection.title, reason: rejection.reason });
   }
 
+  /*
+   * §403. Embed the batch before storing it, so `noveltyScore` has an input.
+   *
+   * `scoreIdeas` weights novelty at 0.20 and reads `ideas.embedding`; nothing
+   * had ever written that column, so every idea took the unmeasured branch and
+   * "have we already done this topic" was never asked. One call for the whole
+   * batch — the endpoint takes an array, and per-idea calls would be the same
+   * tokens at several times the latency.
+   *
+   * A failure here stores the ideas without embeddings. That is the honest
+   * unmeasured path `noveltyScore` already handles, and it is the reason this
+   * needs no fallback that invents a vector: a made-up embedding would rank
+   * ideas against noise while looking exactly like a measurement.
+   */
+  let embeddings: number[][] | null = null;
+  if (result.proposals.length > 0) {
+    try {
+      embeddings = await new OpenAIEmbeddingClient().embed(result.proposals.map(ideaText));
+    } catch (err) {
+      ctx.log('ideas stored without embeddings, novelty will read unmeasured', {
+        productId: product.id,
+        reason: (err as Error).message,
+      });
+    }
+  }
+
   let written = 0;
-  for (const proposal of result.proposals) {
+  for (const [index, proposal] of result.proposals.entries()) {
     const inserted = await ctx.pool.query<{ id: string }>(
       `insert into ideas
-         (product_id, title, angle, category, rationale, source_signals, status)
-       values ($1, $2, $3, $4, $5, $6, 'proposed')
+         (product_id, title, angle, category, rationale, source_signals, status, embedding)
+       values ($1, $2, $3, $4, $5, $6, 'proposed', $7)
        on conflict do nothing
        returning id`,
       [
@@ -3407,6 +3544,7 @@ export async function proposeFromSignals(
         proposal.category,
         proposal.rationale || null,
         proposal.sourceSignalIds,
+        embeddings?.[index] ? JSON.stringify(embeddings[index]) : null,
       ],
     );
     written += inserted.rows.length;

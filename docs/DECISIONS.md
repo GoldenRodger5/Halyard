@@ -9796,3 +9796,150 @@ backwards. Filed as `education` rather than `product`, because a brief is not a
 claim about the product and mis-filing it would let it past a mix ceiling meant
 for promotional posts. Everything downstream — scoring, selection, every gate —
 runs on it unchanged.
+
+## 95 · Every picture was the same picture
+
+**Chosen.** A hero image is directed by a **shot** — framing, light, surface —
+each axis rotated against what the product actually shot recently, recorded on
+`assets.shot` so the next picture can read it.
+
+**Why.** `heroPrompt` looked a mood up by visual language and `generate.ts`
+passed `visualLanguage: undefined`, so every hero image Halyard has ever made
+fell through to the same `DEFAULT_MOOD` string. Nine moods written, one ever
+used.
+
+Passing the language would barely have helped. `MOOD_FOR_LANGUAGE` is keyed on a
+vocabulary that is *not* `VISUAL_LANGUAGES`: two of its nine keys are not visual
+languages at all, and six real languages have no entry. The map could only have
+hit on seven of thirteen, and hit on none, because the argument was never
+supplied.
+
+**Rejected: fixing the mood map.** A working mood map varies the light. Ask a
+photographer for two different pictures of one loaf and they do not relight it,
+they *move*. Framing is what a viewer reads first, and a flat lay and a macro
+crumb shot of the same bread are not the same photograph under any light.
+
+**Rejected: rotating the combination.** Recency on the whole triple lets framing
+repeat three posts running so long as the triple differs — precisely the
+sameness an operator perceives. Each axis carries its own history, so the next
+picture is framed, lit *and* set differently.
+
+**Rejected: backfilling `assets.shot`.** An old asset genuinely does not know
+how it was shot, and every pre-§402 image really was the same shot, so a guess
+would also be wrong. Null says unmeasured, as it does everywhere else.
+
+## 96 · The novelty guard could never fire
+
+**Chosen.** Ideas are embedded with `text-embedding-3-small` at the point they
+are written — proposed batches in one call, an operator's brief in its own.
+
+**Why.** `selectIdeas` has always refused an idea scoring under 0.15 novelty,
+and had never once refused one. `noveltyScore` returns `NOVELTY_UNMEASURED`
+(0.5) for an idea with no embedding, and **nothing had ever written
+`ideas.embedding`** — thirteen ideas, zero vectors. Every idea scored 0.5, every
+0.5 cleared a 0.15 floor, and the guard against posting the same thing twice was
+a comparison that could not reach its threshold.
+
+The rule, the weight, the floor and the test were all correct. The column was
+empty. Same shape as §394's `renders.treatment` and §402's `assets.shot`: a
+mechanism whose answer nothing supplied.
+
+**Rejected: word-overlap distance.** Cheaper, no API call, and it answers the
+wrong question — *"the history of gluten"* and *"how bread got its stretch"*
+share almost no tokens and are the same post. Novelty that is confidently wrong
+is worse than novelty that is absent, because the absent case is already handled
+honestly. Measured on the real corpus: an exact restatement scores 0.06, a
+paraphrase 0.45, an unrelated subject 0.80.
+
+**Rejected: a fallback vector on failure.** A made-up embedding would rank ideas
+against noise while looking exactly like a measurement. On failure the idea is
+stored without one and novelty reads unmeasured — the honest path that already
+existed, and the reason this needed no fallback at all.
+
+**Kept explicit.** The floor now also tests that an embedding exists. Today
+`NOVELTY_UNMEASURED` sits above the floor so the arithmetic alone is safe; a
+floor raised past 0.5 someday would otherwise reject every idea on the day the
+embedding call failed.
+
+**Backfilled**, unlike `assets.shot` — and the difference is the point. An
+embedding is a function of a title and angle we still have, so embedding an old
+idea is a real measurement. How an old photograph was lit is not recoverable
+from anything.
+
+## 97 · A brief wins outright, and a permanent refusal retires the idea
+
+Both found by running the pipeline, not by reading it. Decision 96 gave
+`selectIdeas` a novelty measurement for the first time, and the first thing it
+did with one was refuse the operator.
+
+**Chosen.** A `generate` job carrying a `subject` **replaces** the candidate
+pool rather than joining it, is exempt from the novelty floor, and an idea
+refused for novelty is marked `rejected` instead of left `proposed`.
+
+**Why the brief must replace the pool.** The guard read
+`proposed.rows.length === 0 && briefed` — the operator's subject was used only
+when the ideas table happened to be empty. That is a race with the contents of a
+table dressed as a fallback. One leftover idea was enough to swallow the brief,
+and the run reported *"nothing to make: every idea was refused"* — §399's failure
+wearing different clothes: the operator briefed the room, the room did something
+else, and reported success.
+
+**Why a brief is exempt from novelty and nothing else.** Someone who types a
+subject has said, in the only way the system offers, that they want a piece
+about that subject. "Too close to something posted recently" answers a question
+nobody asked. Every other guard still applies — a brief with no enabled template
+still cannot be rendered, and a brief cannot breach the product ceiling.
+
+**Why a novelty refusal is permanent.** It loses to history, and history only
+grows, so the idea can never become novel again. Left `proposed` it is re-scored
+and re-refused on every run forever. Live, a single stuck idea made every
+subsequent run produce nothing — and blocked the brief path on its way past.
+Only novelty retires an idea: the daily limit, a category cooldown and the
+product ceiling are all statements about *today*, and those ideas rightly wait
+and compete again tomorrow.
+
+**What this cost to find.** Nothing in the type system, the tests or the docs
+was wrong. The floor was correct, the exemption was written down in Decision 96
+before it existed in code, and the interaction between a new guard and a stale
+row only exists at runtime. It took one live run.
+
+## 98 · The slot index is counted, not believed — and it is why only the quiz worked
+
+**Chosen.** `parseDraft` assigns each slot its position **within its own key**
+and discards the index the model sent.
+
+**Why.** `checkDraft` looks a slot up by `key:index`, and `expandSlots` numbers
+each key from zero — so a singular slot is only ever `setup:0`. `parseDraft`
+took whatever number arrived.
+
+A model filling a format whose slots repeat — the quiz, with `question` and
+`answer` five times each — numbers **per key** and lands exactly right. A model
+filling a format whose slots are all singular numbers them **globally**: hook 0,
+setup 1, turn 2, why_it_matters 3, source 4. That is a fair reading of the word
+"index", and it matches nothing. Every slot after the first misses.
+
+Live, `history` returned all five slots, correctly keyed, each with a citation
+that verified against Britannica — and was refused as *"the format asked for 5
+slots and 3 were not filled"*, three times, then abandoned. Reproduced in
+isolation before changing anything.
+
+**`quiz` is the only format that has ever produced a piece.** Thirty-six pieces
+in the database, five of them quizzes and thirty-one with no `post_format` at
+all. That is not a preference or a scheduling accident: `history`, `myth`,
+`fact`, `walkthrough` and `recipe` were structurally incapable of completing,
+and each failure looked exactly like a model that would not follow instructions.
+
+**Rejected: repairing it in `repairDraft`.** That is where text is mechanically
+corrected — curly quotes, em dashes — and this is not a repair. For a singular
+slot there is no valid index but 0, and for a repeating one the Nth occurrence
+is the Nth. The number carries no information the array order does not already
+carry, so parsing is the place to stop believing it.
+
+**Rejected: demanding the right numbering in the prompt.** It would work most of
+the time, which is the worst outcome available: the failure is silent, costs
+three model calls, and reports itself as the model's fault. A parser that cannot
+be wrong beats an instruction that is usually followed.
+
+**Still honest about gaps.** A slot the model genuinely omitted is still absent
+and still reported — asserted by a test, because renumbering four slots to 0..3
+would otherwise fill four of five and hide the fifth.
