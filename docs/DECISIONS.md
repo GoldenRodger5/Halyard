@@ -10451,3 +10451,52 @@ Worth stating because the surface reading is the opposite: the operator has
 connected X, and the account row says `error` while a *different* X row says
 `live` — which is exactly the confusion gotcha 5 exists for. `capability_state`
 is not connectedness in either direction.
+
+## 116 · Instagram was connected, publishable, and skipped
+
+**Chosen.** The capability report accepts either Meta scope family.
+
+**Why.** Meta has two that both grant publishing. *Instagram API with Instagram
+Login* grants `instagram_business_content_publish`; *Facebook Login for
+Business* grants `instagram_content_publish`. Which one an account carries
+depends on the flow it was connected through. `verifyCapabilities` checked only
+the first.
+
+@recipe.fix holds the second family, is connected with a token valid into
+October, and `capability_detail` reads *"Connected as @recipe.fix. Publishing
+works against your own account in dev mode."* Its `supported_formats` was
+written `{}`, so `generate.ts` — which selects accounts that can take a format
+Halyard produces — skipped it with *"account cannot take any format Halyard
+produces"*.
+
+A connected, publishable account that could not be drafted for, on the platform
+the operator most wanted. Three Instagram posts briefed through the UI produced
+nothing and the log said the account was the problem, when the scope check was.
+
+**The publish path does not care which family granted it** — the Graph endpoint
+it calls is the same — so accepting either is not a loosening.
+
+**The refusal now names both**, because the previous message named one and an
+operator holding the other would reconnect and grant the same thing again.
+
+## 117 · What three runs of the same brief actually did
+
+**Recorded.** Three `single_image` posts on X, briefed through the UI with no
+subject and no format, so the room decided everything.
+
+They produced nothing, for three different reasons, and only one was a defect:
+
+1. **X has no usable account.** Its token expired on 2026-08-23 and refresh
+   returns `400 invalid_request` — a spent refresh token. The other X row is
+   `live` and belongs to `product_id = 'founder'`. §115.
+2. **Three ideas refused as "too close to something posted".** All three were
+   literally *"How well do you know gluten?"*, left over from earlier tests. The
+   floor was right, and §403's retirement has now marked them `rejected` so they
+   cannot block a fourth run.
+3. **"Below the daily selection limit"** — the payload carries `limit: 1`, so
+   one idea is selected and the rest are correctly refused.
+
+Measured before concluding: the five genuinely new ideas the proposer wrote
+score 0.41 to 0.55 novelty against nineteen used ones, well clear of the 0.15
+floor. The proposer is not repeating itself and the floor is not over-refusing;
+both suspicions were wrong and checking took one query.

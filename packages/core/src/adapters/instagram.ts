@@ -280,13 +280,39 @@ export class InstagramAdapter implements PlatformAdapter {
         account,
       )) as { username?: string };
 
+      /*
+       * §420. Meta has two scope families that both grant publishing, and
+       * checking only one calls a working account unauthorised.
+       *
+       * *Instagram API with Instagram Login* grants
+       * `instagram_business_content_publish`; *Facebook Login for Business*
+       * grants `instagram_content_publish`. Which one an account carries
+       * depends on the flow it was connected through, and Halyard requests the
+       * first — but an account connected earlier, or through Meta's own
+       * business surface, holds the second.
+       *
+       * Found live: @recipe.fix holds `instagram_content_publish`,
+       * `instagram_basic`, `instagram_manage_comments` and
+       * `instagram_manage_insights`, is connected with a token valid into
+       * October, and was written to the database with `supported_formats = {}`
+       * — so `generate.ts` skipped it with "account cannot take any format
+       * Halyard produces". A connected, publishable account that could not be
+       * drafted for.
+       *
+       * Either family is accepted. The publish path does not care which one
+       * granted the permission; the Graph endpoint it calls is the same.
+       */
       const scopes = account.tokens.scopes ?? [];
-      const canPublish = scopes.includes('instagram_business_content_publish');
+      const canPublish =
+        scopes.includes('instagram_business_content_publish') ||
+        scopes.includes('instagram_content_publish');
 
       if (!canPublish) {
         return {
           state: 'pending_auth',
-          detail: 'Connected, but instagram_business_content_publish was not granted.',
+          detail:
+            'Connected, but neither instagram_business_content_publish nor ' +
+            'instagram_content_publish was granted.',
           supportedFormats: [],
           nextAction: 'Reconnect and accept the content-publishing permission.',
         };
