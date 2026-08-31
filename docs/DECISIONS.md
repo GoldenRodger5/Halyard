@@ -10341,3 +10341,59 @@ under a word does not draw a bowl.
 **Seeded, not random.** `Math.random()` in a Remotion component gives a
 different line every frame, which reads as static rather than as a hand. Seeded
 from the phrase, the mark is identical across the beat and across a re-render.
+
+## 112 · Nothing was held, and a long line sat whole
+
+**Chosen.** The format video builder marks the payoff beat `hold`, and a long
+line arrives in two parts.
+
+**Why.** Two of the three findings the creative gate raised on the first
+complete piece, and both were the builder never answering a question the gate
+asks.
+
+*`creative.no_payoff`* — "a plan where every beat carries equal weight lands on
+nothing" — is an error, and `formatVideo.ts` never set `emphasis` at all, so no
+beat was ever held and it fired on every format video. The payoff if there is
+one, else the turn: a history lands on why it still matters, a myth-buster on
+the correction.
+
+*`creative.pacing_too_slow`* — 10.9 cuts per minute against 30. The number is
+not the point, and `HALYARD_AGENTIC_SOCIAL_TEAM_SPEC` §11.4 says so explicitly:
+optimise for attention **"without blindly forcing a fixed cut rate"**, and ask
+instead for "short text moments" and "removal of dead air". A thirteen-word
+sentence held for five seconds is one long text moment — spoken it is fine, read
+it is finished in two seconds and then sits there.
+
+So a long, slow line splits at a clause boundary. Both conditions are required:
+a long line spoken quickly does not sit, and a short line held a while is a
+deliberate beat.
+
+**Never mid-clause.** A break between "temperatures just" and "above freezing"
+is worse than no break, so a line with no honest boundary keeps its length, and
+a break that would leave a fragment under three words is refused.
+
+**One photograph per group, not per part.** The picture holds while the sentence
+completes, which is what makes the second part read as the same thought
+continuing rather than a new one starting — and photographing each part would
+buy a second generation to cut the image mid-thought.
+
+## 113 · The operator-path test drove a page that no longer exists
+
+**Chosen.** `scripts/browser/floor.mjs` drives the studio Floor;
+`make-wizard.mjs` drove `/make`.
+
+**Why.** §359 wrote the wizard test on exactly the right principle — *"nothing
+is inserted into the database by hand, which is the whole point: a test that
+seeds a job payload proves the worker works and proves nothing about the screen
+that is supposed to produce it"* — and then the studio UI replaced that route.
+The test had been pointing at a page that does not exist.
+
+A stale test is the same defect as an unwired one and hides the same way: it
+passes by never running. Every generation in this session had been seeded by
+hand, which is precisely what §359 warned proves nothing about the screen.
+
+The new one clicks platform, post type and format, types a subject, sends it,
+and **waits on the URL changing** rather than on a timeout — so a server action
+that throws fails the test instead of passing on a screenshot of an unchanged
+page. It also fails on any console error or 5xx, which an operator would never
+see and a screenshot would not show.

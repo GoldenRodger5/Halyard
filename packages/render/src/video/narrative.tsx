@@ -48,6 +48,24 @@ export interface NarrativeBeat {
   /** Seconds this beat holds. Derived by the caller from the read. */
   seconds: number;
   /**
+   * How much weight this beat carries. §416.
+   *
+   * `hold` is the beat the piece exists for; `quick` is a hook that must not
+   * linger. Read by `creative.no_payoff`, which is an error and failed every
+   * format video because nothing here ever set it.
+   */
+  emphasis?: 'quick' | 'normal' | 'hold';
+  /**
+   * Which spoken line this beat is a part of. §417.
+   *
+   * A long line arrives in two visual moments over one continuous piece of
+   * audio, and both show the same photograph — the picture holds while the
+   * sentence completes, which is what makes the second part read as the thought
+   * continuing rather than a new one starting. The worker photographs one image
+   * per group rather than one per beat.
+   */
+  photographGroup?: number;
+  /**
    * §407. This beat's own photograph.
    *
    * A single image held for the whole video is the thing short-form punishes

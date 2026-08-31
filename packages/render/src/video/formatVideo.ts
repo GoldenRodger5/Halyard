@@ -148,23 +148,106 @@ function secondsToRead(text: string): number {
  * running sum of the beat durations — the same numbers the composition lays out
  * with — so a line is spoken exactly while its own beat is on screen.
  */
+/**
+ * §417. A long line arrives in parts rather than sitting whole.
+ *
+ * `HALYARD_AGENTIC_SOCIAL_TEAM_SPEC` §11.4 asks for "short text moments" and
+ * the "removal of dead air", and explicitly says to optimise for attention
+ * "without blindly forcing a fixed cut rate". So this is not chasing the
+ * pacing gate's number — it is the thing the number was measuring badly.
+ *
+ * A thirteen-word sentence held for five seconds is one long text moment. Said
+ * aloud it is fine; read, it is finished in two seconds and then sits there.
+ * Splitting it at a clause boundary gives the same audio two visual moments,
+ * which is how short-form has always handled a sentence.
+ *
+ * Returns the parts, or a single-element array when the line is short enough or
+ * has no honest place to break. Never splits mid-clause: a break that lands
+ * between "temperatures just" and "above freezing" is worse than no break.
+ */
+export function splitLongLine(text: string, seconds: number): string[] {
+  const words = text.trim().split(/\s+/).filter(Boolean);
+  /*
+   * Both conditions, because either alone is wrong. A long line that is spoken
+   * quickly does not sit; a short line held a long time is a deliberate beat.
+   */
+  if (words.length < 10 || seconds < 3) return [text];
+
+  /* Clause boundaries, in the order a writer would break at. */
+  const breaks: number[] = [];
+  const re = /[,;:]\s+|\s+(?:but|and then|so that|because|which|while)\s+/gi;
+  for (let m = re.exec(text); m; m = re.exec(text)) {
+    breaks.push(m.index + (m[0].startsWith(',') || m[0].startsWith(';') || m[0].startsWith(':') ? 1 : 0));
+  }
+  if (breaks.length === 0) return [text];
+
+  /* The one nearest the middle, so neither part is a fragment. */
+  const middle = text.length / 2;
+  const at = breaks.reduce((best, b) => (Math.abs(b - middle) < Math.abs(best - middle) ? b : best));
+
+  const head = text.slice(0, at).trim();
+  const tail = text.slice(at).trim().replace(/^(?:but|and then|so that|because|which|while)\s+/i, (w) => w);
+  /* A part shorter than three words is a fragment, not a moment. */
+  if (head.split(/\s+/).length < 3 || tail.split(/\s+/).length < 3) return [text];
+  return [head, tail];
+}
+
 function narrativeFrom(
   lines: Array<{ role: BeatRole; text: string; kicker?: string | null; source?: string | null }>,
 ): FormatVideo | null {
   const usable = lines.filter((l) => l.text.trim().length > 0);
   if (usable.length === 0) return null;
 
+  /*
+   * §416. Which beat the piece exists for.
+   *
+   * `creative.no_payoff` fires when no beat is held — "a plan where every beat
+   * carries equal weight lands on nothing" — and it is an error, so it failed
+   * every format video. Nothing here ever set `emphasis`, so nothing was ever
+   * held: the gate was correct and the builder had simply never answered it.
+   *
+   * The payoff if there is one, else the turn. That is the editorial answer as
+   * well as the mechanical one — a history lands on why it still matters, and a
+   * myth-buster lands on the correction, which is its `turn`.
+   */
+  const heldRole = usable.some((l) => l.role === 'payoff')
+    ? 'payoff'
+    : usable.some((l) => l.role === 'turn')
+      ? 'turn'
+      : null;
+  let held = false;
+
   const beats: NarrativeBeat[] = [];
   const narration: NarrationLine[] = [];
   let at = 0;
   for (const line of usable) {
     const seconds = secondsToRead(line.text);
-    beats.push({
-      role: line.role,
-      text: line.text.trim(),
-      kicker: line.kicker ?? null,
-      source: line.source ?? null,
-      seconds,
+    /* Only the first, so a format with two payoffs still lands once. */
+    const isHeld = !held && line.role === heldRole;
+    if (isHeld) held = true;
+
+    /*
+     * §417. The parts share the line's time in proportion to their length, and
+     * share one photograph: the picture holds while the sentence completes,
+     * which is what makes the second part read as the same thought continuing
+     * rather than a new one starting.
+     */
+    const parts = splitLongLine(line.text.trim(), seconds);
+    const chars = parts.reduce((n, part) => n + part.length, 0);
+    const group = beats.length;
+
+    parts.forEach((part, i) => {
+      beats.push({
+        role: line.role,
+        text: part,
+        /* The kicker introduces the line, so it belongs to the first part. */
+        kicker: i === 0 ? (line.kicker ?? null) : null,
+        /* The citation closes it, so it belongs to the last. */
+        source: i === parts.length - 1 ? (line.source ?? null) : null,
+        seconds: Number(((seconds * part.length) / chars).toFixed(2)),
+        emphasis: isHeld && i === parts.length - 1 ? 'hold' : line.role === 'hook' ? 'quick' : 'normal',
+        photographGroup: group,
+      });
     });
     /*
      * A short lead-in so the line is on screen before it is spoken. A narrator

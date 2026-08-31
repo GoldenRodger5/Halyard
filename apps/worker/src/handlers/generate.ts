@@ -2114,27 +2114,45 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
               }
 
               if (built.compositionId === 'Narrative') {
+                /*
+                 * §417. One photograph per *group*, not per beat.
+                 *
+                 * A long line arrives in two visual moments over one continuous
+                 * piece of audio, and both show the same picture — it holds
+                 * while the sentence completes. Photographing each part
+                 * separately would cut the image mid-thought and buy a second
+                 * generation to do it.
+                 */
+                const allBeats =
+                  (props as { beats?: Array<Record<string, unknown>> }).beats ?? [];
+                const groups: number[] = [];
+                for (const [i, b] of allBeats.entries()) {
+                  const g = (b.photographGroup as number | undefined) ?? i;
+                  if (!groups.includes(g)) groups.push(g);
+                }
                 const photographs = await photographBeats(assets, imageClient, llmFor(), {
                   productId,
                   contentItemId,
                   format: chosenFormat.format.id,
                   fallbackSubject: heroSubject ?? idea.title,
                   productContext: product.brief_summary ?? undefined,
-                  beats: ((props as { beats?: Array<{ text?: string }> }).beats ?? []).map((b) => ({
-                    text: b.text ?? '',
+                  /* The first part of each group carries the line worth shooting. */
+                  beats: groups.map((g) => ({
+                    text: String(
+                      allBeats.find((b) => ((b.photographGroup as number | undefined) ?? -1) === g)
+                        ?.text ?? allBeats[g]?.text ?? '',
+                    ),
                   })),
                 });
                 if (photographs.some((ph) => ph.assetId)) {
                   props = {
                     ...props,
-                    beats: ((props as { beats?: Array<Record<string, unknown>> }).beats ?? []).map(
-                      (b, i) => ({
-                        ...b,
-                        ...(photographs[i]?.assetId
-                          ? { backgroundAssetId: photographs[i]!.assetId }
-                          : {}),
-                      }),
-                    ),
+                    beats: allBeats.map((b, i) => {
+                      const g = (b.photographGroup as number | undefined) ?? i;
+                      const at = groups.indexOf(g);
+                      const assetId = at === -1 ? null : (photographs[at]?.assetId ?? null);
+                      return assetId ? { ...b, backgroundAssetId: assetId } : b;
+                    }),
                   };
                 }
               }
