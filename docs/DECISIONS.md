@@ -10298,3 +10298,46 @@ no mark and is exactly the class of half-wiring this file keeps recording.
 **The honest next step** is for each composition to publish the box it laid its
 type into, and for the marks to be placed against that. Then the register a
 brand already implies reaches every format instead of none.
+
+## 111 · The motif pack reaches a frame
+
+**Chosen.** The word a line lands on is marked — underlined or circled — in the
+product's own hand. The worker decides, the composition draws.
+
+**Why.** §110 recorded that the pack had never appeared in a rendered frame.
+Two registers, four mark kinds, a stroke weight and a wobble §330 calls "the
+single strongest signal of register", all derived per brand from the product's
+own typography and ground, and none of it drawn.
+
+**Marks on type, not at a computed box.** §110 said the fix was layout work,
+and for `annotationForPhrase` it still is: resolving a phrase to a box in the
+frame is right for pointing at a *captured region* the composition did not lay
+out, and a box computed against a flex column is a guess that misplaces the mark
+the moment the text wraps differently. But a mark on **type** does not need a
+box at all. Wrapping the phrase in its own inline element and drawing under that
+is exact by construction, at any measure and any wrap.
+
+**Which word.** `emphasisWordFor` — the last word that is not a stopword, which
+is the word a line lands on. It already existed for the motion grammar's
+cascade. No such word means no mark: a line whose every word is a stopword has
+nothing that lands, and marking an arbitrary one is worse than clean type.
+
+**Two kinds, not four.** A box around a word in running type reads as a form
+field and a strike says the word is wrong. Only underline and circle suit a word
+in a headline, and the pack's own preference order decides between them.
+
+**Rejected: `pathLength` with `strokeDasharray` for the draw-on.** The usual way
+to travel a stroke, and unreliable here — `preserveAspectRatio="none"` scales x
+and y differently and the length the browser computes under that transform does
+not match the one the dash is normalised against. It rendered in fragments: a
+line under "mist", a hole, a line under "ke". Found by rendering it and looking.
+An inset clip is exact under any transform.
+
+**Rejected: `Q` chained into `T`.** The reflected control point left the painted
+area once the box was squashed to a third of the word's height, which is what
+produced the hole. One quadratic, and a sag of a few units — a hand drawing
+under a word does not draw a bowl.
+
+**Seeded, not random.** `Math.random()` in a Remotion component gives a
+different line every frame, which reads as static rather than as a hand. Seeded
+from the phrase, the mark is identical across the beat and across a re-render.

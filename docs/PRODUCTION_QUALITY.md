@@ -19,7 +19,7 @@ and a weak one anywhere is visible:
 | **Voiceover** | ✅ | ElevenLabs + Whisper WER check | per piece, from the piece's own slots |
 | **Captions** | ✅ | word-level timing, karaoke highlight, measured 4.5:1 | burned in from the transcript |
 | **Music** | ✅ 6 beds, 4 SFX | genre + instrumentation | usage history |
-| **Motif / marks** | ❌ **zero formats** | 2 registers, 4 mark kinds | `<Annotations>` is never rendered and `annotationForPhrase` has no callers; the director runs for walkthroughs and only its yes/no survives — §110 |
+| **Motif / marks** | ✅ every beat-driven format, §415 | 2 registers, 4 mark kinds | the word the line lands on, marked in the product's own hand — worker decides, composition draws |
 
 ## What rendering found that tests could not
 
@@ -45,11 +45,10 @@ builder.
 
 ## Still open
 
-- **Motif and marks reach no format at all.** The hand-drawn vocabulary is
-  built, tested and derived per brand, and has never appeared in a rendered
-  frame. The director runs for walkthroughs and only its yes/no survives; the
-  mark kind, stroke, wobble and register are discarded. §110 records why the fix
-  is layout work rather than a wire.
+- **Marks reach type, not captured regions.** §415 draws the product's own pen
+  under the word a line lands on, in every beat-driven format. What is still
+  unwired is `annotationForPhrase` — pointing at a *region of a capture* — which
+  needs each composition to publish the box it laid its type into. §110.
 - **Pacing.** Beats hold ~4-5s; the platforms want 1.5-3s (TikTok), 2.5-4
   (Reels), 3-5 (Shorts).
 - **Planned motion on format videos.** The grammar exists and only artifact

@@ -63,6 +63,29 @@ export interface NarrativeBeat {
   backgroundDataUri?: string;
   /** Measured brightness where the type sits on *this* beat's picture, 0..1. */
   backgroundLuminance?: number;
+  /**
+   * A drawn mark on one phrase of this line. §415.
+   *
+   * Decided by the worker, which knows the product's motif pack, and drawn
+   * here — the arrangement §394 settled: a component runs in a browser bundle
+   * and cannot read a brand, so it is handed the decision rather than making
+   * one.
+   *
+   * Absent means no mark, which is a real answer: a line whose emphasis word is
+   * a stopword, or a piece whose brand has no pen, gets clean type.
+   */
+  mark?: BeatMark;
+}
+
+/** A mark on a phrase of a line: what to draw, where, and in whose hand. */
+export interface BeatMark {
+  /** The exact phrase from the line to mark. Matched literally. */
+  phrase: string;
+  kind: 'underline' | 'circle';
+  /** How much the hand shakes, 0..1, from the product's motif pack. */
+  wobble: number;
+  /** Stroke weight in pixels at 1080 wide. */
+  stroke: number;
 }
 
 export interface NarrativeProps {
@@ -204,6 +227,137 @@ const Source: React.FC<{ text: string; palette: QuizPalette; type?: RenderTypogr
   </span>
 );
 
+/**
+ * §415. A drawn mark on the word that lands.
+ *
+ * The motif pack — two registers, four mark kinds, a stroke weight and a wobble
+ * §330 calls "the single strongest signal of register" — has existed since §284
+ * and **has never appeared in a rendered frame**. `<Annotations>` is rendered
+ * nowhere and `annotationForPhrase` has no callers; the annotation director runs
+ * for walkthroughs and only its yes/no survives, the kind and stroke discarded.
+ *
+ * ## Why the mark lives with the type rather than at a computed box
+ *
+ * `annotationForPhrase` resolves a phrase to a box in the frame, which is right
+ * for pointing at a *captured region* — an external thing the composition did
+ * not lay out. For type the composition **is** the layout, and a box computed
+ * against a flex column is a guess that puts a wobbling line through the middle
+ * of a sentence the moment the text wraps differently. Wrapping the phrase in
+ * its own inline box and drawing under that is exact by construction, at any
+ * measure and any wrap.
+ *
+ * ## Drawn on, not faded in
+ *
+ * A stroke that appears at full length is a graphic; one that travels is a
+ * person with a pen, which is the whole reason the pack carries a wobble at
+ * all. It travels by clip rather than by dash offset — see the `clipPath`.
+ *
+ * ## The wobble is seeded, not random
+ *
+ * `Math.random()` in a Remotion component gives a different line on every frame,
+ * which reads as static rather than as a hand. Seeded from the phrase, the mark
+ * is identical on every frame of the beat and identical on a re-render.
+ */
+const Marked: React.FC<{
+  children: React.ReactNode;
+  mark: BeatMark;
+  colour: string;
+  /** 0..1, how much of the stroke is drawn. */
+  drawn: number;
+}> = ({ children, mark, colour, drawn }) => {
+  /* Deterministic jitter in [-1, 1] from the phrase and an offset. */
+  const jitter = (n: number) => {
+    let h = 2166136261;
+    for (let i = 0; i < mark.phrase.length; i += 1) h = Math.imul(h ^ mark.phrase.charCodeAt(i), 16777619);
+    h = Math.imul(h ^ n, 16777619);
+    return (((h >>> 0) % 2000) / 1000 - 1) * mark.wobble;
+  };
+
+  const path =
+    mark.kind === 'circle'
+      ? /* An open ring, drawn slightly wide of the word so it does not clip it. */
+        `M 2,${50 + jitter(1) * 8} C 2,${14 + jitter(2) * 10} 26,4 50,4 ` +
+        `C ${76 + jitter(3) * 4},4 98,${16 + jitter(4) * 8} 98,50 ` +
+        `C 98,${84 + jitter(5) * 8} ${74 + jitter(6) * 4},96 50,96 ` +
+        `C 24,96 2,${82 + jitter(7) * 8} 2,50`
+      : /*
+         * One pass under the word, sagging the way a hand sags.
+         *
+         * A single quadratic, deliberately. The first version chained `Q` into
+         * `T`, whose control point is a reflection — with `preserveAspectRatio
+         * ="none"` squashing the box to a third of the word's height, the
+         * reflected curve left the painted area and the underline rendered as
+         * two strokes with a hole under the middle of the word.
+         *
+         * The sag is small on purpose. A hand drawing under a word does not
+         * draw a bowl; the wobble that reads as a person is a few units of
+         * drift, and more than that reads as a mistake.
+         */
+        `M 3,${58 + jitter(1) * 6} Q 50,${74 + jitter(2) * 8} 97,${62 + jitter(3) * 6}`;
+
+  return (
+    <span style={{ position: 'relative', display: 'inline-block' }}>
+      {children}
+      <svg
+        viewBox="0 0 100 100"
+        preserveAspectRatio="none"
+        style={{
+          position: 'absolute',
+          left: mark.kind === 'circle' ? '-6%' : 0,
+          top: mark.kind === 'circle' ? '-14%' : '76%',
+          width: mark.kind === 'circle' ? '112%' : '100%',
+          height: mark.kind === 'circle' ? '128%' : '34%',
+          overflow: 'visible',
+          pointerEvents: 'none',
+          /*
+           * §415. Revealed by a clip, not by a dash offset.
+           *
+           * `pathLength={1}` with `strokeDasharray={1}` is the usual way to
+           * draw a stroke on, and it is unreliable here: `preserveAspectRatio
+           * ="none"` scales x and y differently, and the path length the
+           * browser computes under that transform does not match the one the
+           * dash pattern is normalised against. The stroke rendered in
+           * fragments — a line under "mist", a hole, a line under "ke".
+           *
+           * An inset clip is exact under any transform, and says what it means:
+           * show the left `drawn` fraction of the mark.
+           */
+          clipPath: `inset(-40% ${((1 - drawn) * 100).toFixed(2)}% -40% -10%)`,
+        }}
+      >
+        <path
+          d={path}
+          fill="none"
+          stroke={colour}
+          /*
+           * Scaled to the type it sits under. `non-scaling-stroke` makes the
+           * width a count of screen pixels, so the pack's 3 is hairline against
+           * a 90px headline and heavy against a caption. Four times the pack's
+           * weight is what reads as drawn at display sizes without becoming a
+           * highlighter.
+           */
+          strokeWidth={mark.stroke * 4}
+          strokeLinecap="round"
+          vectorEffect="non-scaling-stroke"
+        />
+      </svg>
+    </span>
+  );
+};
+
+/**
+ * The line, split around the marked phrase.
+ *
+ * Literal match, and no match means no mark. Nothing here searches for
+ * something close enough — a mark under the wrong words is worse than none,
+ * and the worker picked the phrase from this exact text.
+ */
+function splitAround(text: string, phrase: string): [string, string, string] | null {
+  const at = text.indexOf(phrase);
+  if (at === -1) return null;
+  return [text.slice(0, at), phrase, text.slice(at + phrase.length)];
+}
+
 /** One beat, drawn by its treatment. */
 const Beat: React.FC<{
   beat: NarrativeBeat;
@@ -225,6 +379,19 @@ const Beat: React.FC<{
   const drift = interpolate(frame, [0, fps * 6], [0, -14], { extrapolateRight: 'clamp' });
   const size = sizeFor(beat.text, beat.role);
 
+  /*
+   * §415. The mark is drawn after the line has settled.
+   *
+   * A stroke that arrives with the words competes with them; one that lands a
+   * beat later reads as somebody deciding that word mattered. Held until the
+   * entrance spring is done, then travelling over a third of a second.
+   */
+  const drawn = interpolate(frame, [fps * 0.45, fps * 0.8], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const parts = beat.mark ? splitAround(beat.text, beat.mark.phrase) : null;
+
   const line = (
     <span
       style={{
@@ -236,7 +403,17 @@ const Beat: React.FC<{
         ...face(type, 'display'),
       }}
     >
-      {beat.text}
+      {parts && beat.mark ? (
+        <>
+          {parts[0]}
+          <Marked mark={beat.mark} colour={palette.accent} drawn={drawn}>
+            {parts[1]}
+          </Marked>
+          {parts[2]}
+        </>
+      ) : (
+        beat.text
+      )}
     </span>
   );
 

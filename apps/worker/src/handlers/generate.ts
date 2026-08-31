@@ -98,13 +98,14 @@ import {
   type CreativeType,
   writeVoScript,
 } from '@halyard/core';
+import { resolveBrand } from '@halyard/render';
 import { chooseVideoComposition } from '@halyard/render/video-props';
 import { VIDEO_FORMATS, videoForFormat } from '@halyard/render/video';
 import { regateHookedBody, runHookStage } from '../hooks.js';
 import { openStage } from '../stage.js';
 import { recentTreatments } from '../treatmentRecency.js';
 import { alreadySaid } from '../alreadySaid.js';
-import { chooseQuizTreatments, treatmentsForBeats } from '@halyard/render/video';
+import { chooseQuizTreatments, motifFor, treatmentsForBeats } from '@halyard/render/video';
 
 /**
  * Target length for a voiceover script, in seconds.
@@ -120,6 +121,7 @@ import type { Job, HandlerContext } from '../poller.js';
 import { generateHeroImage } from '../heroImage.js';
 import { recentShots } from '../shotRecency.js';
 import { photographBeats } from '../beatPhotographs.js';
+import { markForBeat } from '../beatMark.js';
 import { pickProductShot } from '../productShot.js';
 import { FormatRejectedError, recentFormats, writeToFormat } from '../formatWriter.js';
 import { stagePiece } from '../screenplayStage.js';
@@ -2075,6 +2077,42 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                * image and this video's fallback for any beat whose photograph
                * did not come back.
                */
+              /*
+               * §415. A drawn mark on the word that lands, in the product's own
+               * hand.
+               *
+               * The motif pack has existed since §284 and has never appeared in
+               * a rendered frame: `<Annotations>` is rendered nowhere and the
+               * annotation director's `kind`, stroke and wobble are discarded
+               * where it does run. Decided here rather than in the composition,
+               * for §394's reason — a React component runs in a browser bundle
+               * and cannot read a brand.
+               *
+               * `emphasisWordFor` picks the last word that is not a stopword,
+               * which is the word a line lands on. No such word means no mark,
+               * which is the right answer rather than marking something
+               * arbitrary.
+               */
+              if (built.compositionId === 'Narrative') {
+                const motif = motifFor(resolveBrand(product.brand_tokens as never));
+                const marked = ((props as { beats?: Array<Record<string, unknown>> }).beats ?? []).map(
+                  (b) => {
+                    const mark = markForBeat(String(b.text ?? ''), motif);
+                    return mark ? { ...b, mark } : b;
+                  },
+                );
+                props = { ...props, beats: marked };
+                assets.log('marks drawn', {
+                  contentItemId,
+                  register: motif.register,
+                  because: motif.reason,
+                  marks: marked
+                    .map((b) => (b as { mark?: { phrase: string; kind: string } }).mark)
+                    .filter(Boolean)
+                    .map((m) => `${m!.kind} on "${m!.phrase}"`),
+                });
+              }
+
               if (built.compositionId === 'Narrative') {
                 const photographs = await photographBeats(assets, imageClient, llmFor(), {
                   productId,
