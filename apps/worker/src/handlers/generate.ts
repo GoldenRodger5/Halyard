@@ -3343,6 +3343,80 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
             }
           }
 
+          /**
+           * §432. A brief for a piece that had no plan.
+           *
+           * `creative_briefs` is written inside `if (plan)`, and a plan comes
+           * only from an artifact — six rows against forty-four content items.
+           * Everything that reads the brief therefore took a default for the
+           * formats that make most of the content:
+           *
+           *  · `tts` reads `target_seconds` and got 30 for every piece (§428
+           *    patched that at the read; this fixes it at the source).
+           *  · The typography recency reads `visual_direction ->> 'typography'`
+           *    across recent briefs, and saw six.
+           *  · The opening recency reads `visual_direction ->> 'opening'`, same.
+           *  · `review_media`'s creative gate reads the brief's language,
+           *    typography and opening, and reported them unmeasured.
+           *
+           * The decisions all exist by this point — the format, the beats, the
+           * typography, the opening, the caption shape. Writing them down is a
+           * record, not a derivation, which is the same argument §225 made for
+           * the plan.
+           */
+          if (!plan && composition && compositionFromFormat) {
+            const briefBeats =
+              (composition.props as { beats?: Array<{ seconds?: number; opening?: string }> })
+                .beats ?? [];
+            const seconds = briefBeats.reduce((total, b) => total + (Number(b.seconds) || 0), 0);
+            const formatBrief = await ctx.pool.query<{ id: string }>(
+              `insert into creative_briefs
+                 (product_id, account_id, platform, treatment, presentation_mode,
+                  target_seconds, aspect_ratio, beats, visual_direction,
+                  audio_direction, caption_direction, evidence, rationale)
+               values ($1,$2,$3,$4,$5,$6,$7,$8::jsonb,$9::jsonb,$10::jsonb,$11::jsonb,$12,$13)
+               returning id`,
+              [
+                productId,
+                account.id,
+                account.platform,
+                chosenFormat.format.id,
+                presentationFor(account.platform, subtype).mode,
+                seconds > 0 ? Math.round(seconds) : null,
+                renderAspect,
+                JSON.stringify(briefBeats),
+                JSON.stringify({
+                  language: DEFAULT_LANGUAGE,
+                  typography: typography?.system.id ?? null,
+                  opening: briefBeats[0]?.opening ?? null,
+                }),
+                /*
+                 * Empty rather than invented. The voice is directed in `tts`,
+                 * which is where the script and the lexicon are; writing a guess
+                 * here would put a decision nobody made into the record.
+                 */
+                JSON.stringify({}),
+                JSON.stringify({ shape: captionShape.shape }),
+                /* The sources the writer actually cited, in citation order. */
+                (written?.draft.slots ?? [])
+                  .map((s) => s.citation)
+                  .filter((c): c is string => Boolean(c)),
+                `${chosenFormat.format.name} for ${account.platform}. ${chosenFormat.reason}`,
+              ],
+            );
+            await ctx.pool.query('update content_items set brief_id = $2 where id = $1', [
+              contentItemId,
+              formatBrief.rows[0]!.id,
+            ]);
+            ctx.log('brief recorded', {
+              contentItemId,
+              treatment: chosenFormat.format.id,
+              targetSeconds: seconds > 0 ? Math.round(seconds) : null,
+              typography: typography?.system.id ?? null,
+              opening: briefBeats[0]?.opening ?? null,
+            });
+          }
+
           await ctx.enqueue(
             'tts',
             { contentItemId },

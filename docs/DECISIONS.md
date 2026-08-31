@@ -10861,3 +10861,35 @@ can stand on a photograph, by §422's density rule.
 
 Enabled on insert. A template registered and switched off is unreachable, and
 §395 already recorded what happens then.
+
+## 127 · A brief for a piece that had no plan
+
+**Chosen.** A `creative_brief` is written for format-driven pieces, not only for
+artifact-driven ones.
+
+**Why.** The insert sits inside `if (plan)`, and a plan comes only from an
+artifact — **six rows against forty-four content items**. Everything that reads
+the brief therefore took a default for the formats that make most of the
+content:
+
+| Reader | What it got |
+|---|---|
+| `tts` → `target_seconds` | 30 seconds for every piece, whatever its length |
+| typography recency | six briefs to rotate against |
+| opening recency | the same six |
+| `review_media`'s creative gate | language, typography and opening reported unmeasured |
+
+§428 patched the first of those *at the read*, which was right for a piece that
+genuinely has no brief and wrong as the general answer. This is the source.
+
+**A record, not a derivation.** By this point the format is chosen, the beats
+are built, the typography is selected, the opening is decided and the caption
+shape is chosen. Writing them down asserts nothing new — the same argument §225
+made when it started recording the plan.
+
+**`audio_direction` is left empty on purpose.** The voice is directed in `tts`,
+where the script and the lexicon are. Writing a guess here would put a decision
+nobody made into the record, and the brief is a record of decisions.
+
+**Evidence is the citations the writer actually used**, in citation order, not a
+restatement of the sources research offered — the piece cited what it cited.
