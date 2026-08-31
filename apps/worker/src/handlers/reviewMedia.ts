@@ -27,6 +27,7 @@ import {
   OpenAiVisionClient,
   runCoherenceQC,
   cutsPerMinuteFor,
+  POST_FORMAT_CATALOG,
   runCreativeQC,
   runRetentionQC,
   runVisualQC,
@@ -46,6 +47,8 @@ interface ItemRow {
   alt_text?: string | null;
   /** §205. The recorded creative plan: type, beat count, evidence, rationale. */
   creative?: { type?: string; beats?: number; evidence?: string[] } | null;
+  /** §413. The catalogue format — `history`, `quiz`, `transformation`. */
+  post_format?: string | null;
   id: string;
   product_id: string;
   platform: string;
@@ -114,6 +117,19 @@ export function keyTermsFor(item: {
  * them and the aspect-ratio rule would fire on every correct render.
  */
 /** Absolute change between consecutive samples. Empty in, empty out. */
+/**
+ * The larger of two change signals, position by position. §414.
+ *
+ * Uses the shorter length when they disagree, which cannot happen for two
+ * derivations of the same sample list but is the safe answer if it ever does.
+ */
+export function eitherSignalMoved(a: number[], b: number[]): number[] {
+  const n = Math.min(a.length, b.length);
+  const out: number[] = [];
+  for (let i = 0; i < n; i += 1) out.push(Math.max(a[i]!, b[i]!));
+  return out;
+}
+
 export function consecutiveDeltas(series: number[]): number[] {
   const out: number[] = [];
   for (let i = 1; i < series.length; i += 1) out.push(Math.abs(series[i]! - series[i - 1]!));
@@ -150,6 +166,9 @@ export async function reviewMediaHandler(
     `select id, product_id, platform, format, body, title, hashtags, category,
             vo_script, qc_results, product_artifact, status,
             account_id, alt_text,
+            /* §413. Which catalogue format this is, so the gates that only
+               apply to product-grounded pieces can tell. */
+            post_format,
             /* §205. The creative gate reads the plan, not the pixels. */
             generation_meta -> 'creative' as creative
        from content_items where id = $1`,
@@ -302,6 +321,19 @@ export async function reviewMediaHandler(
     creativeType: item.creative?.type ?? 'unknown',
     platform: item.platform,
     footageAvailable,
+    /*
+     * §413. Only a product-grounded format is expected to show the product.
+     *
+     * `unused_product_footage` is an error and failed the piece, on every
+     * format. Live, a `history` piece about why bread goes stale was failed for
+     * not showing RecipeFix footage — where showing it would have been the
+     * defect. Unknown formats keep the old behaviour rather than silently
+     * switching the rule off.
+     */
+    aboutTheProduct: item.post_format
+      ? (POST_FORMAT_CATALOG[item.post_format as keyof typeof POST_FORMAT_CATALOG]?.factuality ??
+          'product') === 'product'
+      : true,
     recentTypes: recentCreative.map((r) => r.type),
     /* §234. The creative record, so the gate judges more than beat structure. */
     visualLanguage: brief?.language ?? null,
@@ -416,11 +448,30 @@ export async function reviewMediaHandler(
      * Empty when nothing was recorded, and the gate then reports itself
      * unmeasured rather than passing — which is the rule everywhere else here.
      */
+    /*
+     * §414. From the render's own beats as well as the attached assets.
+     *
+     * Only the hero is added to `attached_asset_ids`; the per-beat photographs
+     * are referenced by `backgroundAssetId` on the render props, which is where
+     * the frames actually come from. Reading attachments alone found one
+     * subject out of five and would have measured the video against a picture
+     * it never shows.
+     */
     const { rows: subjectRows } = await ctx.pool.query<{ subject: string }>(
       `select distinct a.subject
-         from content_items ci
-         join assets a on a.id = any(ci.attached_asset_ids)
-        where ci.id = $1 and a.subject is not null`,
+         from assets a
+        where a.subject is not null
+          and (
+            a.id in (
+              select unnest(ci.attached_asset_ids) from content_items ci where ci.id = $1
+            )
+            or a.id::text in (
+              select jsonb_array_elements(r.input_props -> 'beats') ->> 'backgroundAssetId'
+                from renders r
+               where r.content_item_id = $1
+                 and jsonb_typeof(r.input_props -> 'beats') = 'array'
+            )
+          )`,
       [item.id],
     );
     const expectedSubjects = subjectRows.map((r) => r.subject);
@@ -520,7 +571,32 @@ export async function reviewMediaHandler(
          * gate, so every render over twenty seconds was about to be rejected by
          * its own pipeline. See `DECISIONS.md` §74.
          */
-        frameDelta: consecutiveDeltas(probe.frameContentRange),
+        /*
+         * §414. Whichever signal can see this content — not one of them.
+         *
+         * §74's tonal range fixed the card case: a light card with dark text
+         * barely moves `YAVG` while `YMIN` drops from 85 to 10. It breaks
+         * completely on a photograph. `signalstats` reports `YMIN=0 YMAX=255`
+         * on every frame of a real picture, so the range saturates at 1.0, its
+         * consecutive delta is **always exactly zero**, and the video reads as
+         * perfectly static however much the picture changes.
+         *
+         * Live, on the first piece with a photograph per beat: four completely
+         * different images, mean luminance 0.067 to 0.348 to 0.170 to 0.252,
+         * and the gate reported "longest static 19.3s" — the entire runtime.
+         * The pattern-interrupt rule is an error and `review_media` fails an
+         * item on an errored gate, so §407's whole point was about to be
+         * rejected by the check that exists to demand it.
+         *
+         * Neither proxy is right alone and each is right where the other is
+         * blind, so a beat changed if **either** says so. Taking the larger is
+         * not a fudge: they measure different properties of the same event, and
+         * a picture that changed has changed whichever one noticed.
+         */
+        frameDelta: eitherSignalMoved(
+          consecutiveDeltas(probe.frameContentRange),
+          consecutiveDeltas(probe.frameLuminance),
+        ),
       },
       {
         platform: item.platform,

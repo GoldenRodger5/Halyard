@@ -68,6 +68,26 @@ export interface CreativeQCInput {
    * never goes looking for a file, exactly as `planBeforeAfter` does not.
    */
   footageAvailable: boolean;
+  /**
+   * Whether this piece's claims are *about the product*. §413.
+   *
+   * `unused_product_footage` fires when a capture existed and no beat used it,
+   * and it fired on **every format**, at error severity, failing the piece. For
+   * a `transformation` or a `walkthrough` that is the rule working: the product
+   * doing the thing is the claim, and a card asserting it instead is weaker.
+   *
+   * For a `history` piece on why bread goes stale it is nonsense. Showing the
+   * app in an explainer about starch retrogradation would be the defect, not
+   * the fix — and the gate was failing the piece for declining to commit it.
+   *
+   * The same line §291 draws for claim verification and §405 for the caption
+   * prompt: a format whose factuality is not `product` is not about the
+   * artifact, and nothing downstream should assume it is.
+   *
+   * Defaults true, so a caller that does not say keeps the old behaviour rather
+   * than silently switching the gate off.
+   */
+  aboutTheProduct?: boolean;
   platform: string;
   durationSeconds?: number;
   /**
@@ -181,12 +201,12 @@ export function runCreativeQC(input: CreativeQCInput): CreativeQCResult {
    * technical fault — every frame is legal and the picture changes on cadence —
    * it is the creative decision the operator rejected by name.
    */
-  if (input.footageAvailable && footageBeats === 0) {
+  if (input.footageAvailable && footageBeats === 0 && input.aboutTheProduct !== false) {
     findings.push({
       rule: 'creative.unused_product_footage',
       severity: 'error',
       message:
-        'A recording of the product exists and this creative shows none of it — every beat is a text card.',
+        'A recording of the product exists and this creative, which is about the product, shows none of it.',
       detail:
         'A card claiming the product does something is an assertion; footage of it happening is the thing itself. ' +
         'Show the capture on the strongest beat.',

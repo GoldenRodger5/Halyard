@@ -10205,3 +10205,56 @@ survives into the gate.
 **Kept: zero `examined` on error.** A call that 400'd did not look at anything,
 so reporting the frame count would claim it looked and found nothing — a false
 endorsement, which is the worse error.
+
+## 108 · Only a piece about the product is expected to show the product
+
+**Chosen.** `creative.unused_product_footage` fires only when the format's
+factuality is `product`.
+
+**Why.** The rule is an error, and an errored gate sets
+`content_items.status = 'failed'`. It fired on every format.
+
+Live: a `history` piece on why bread goes stale — hook, mechanism with a
+temperature detail, actionable payoff, cited to Wikipedia, four distinct
+photographs — was **failed** for showing no RecipeFix footage. Showing the app
+in an explainer about starch retrogradation would have been the defect, not the
+fix. The gate was failing the piece for declining to commit an error.
+
+The same line §291 draws for claim verification and §405 for the caption prompt.
+The message also said *"every beat is a text card"*, which stopped being true at
+§407.
+
+**Defaults to firing.** A caller that cannot tell keeps the old behaviour; an
+error-severity rule must not switch itself off silently.
+
+## 109 · The static check was blind to photographs
+
+**Chosen.** A beat changed if **either** the mean luminance or the tonal range
+moved.
+
+**Why.** §74 replaced the mean with tonal range for a measured reason: Halyard's
+cards are a light ground with dark text, and swapping every word moves `YAVG` by
+0.004 — under the 0.01 that counts as the same picture — while `YMIN` drops from
+85 to 10.
+
+That signal is blind to what §407 introduced. `signalstats` reports
+`YMIN=0 YMAX=255` on **every frame of a real photograph**, so the range
+saturates at 1.0 and its consecutive delta is exactly zero however much the
+picture changes.
+
+Live, on the first piece with a photograph per beat: four completely different
+images, mean luminance 0.067 → 0.348 → 0.170 → 0.252, reported as *"longest
+static 19.3s"* — the entire runtime, 3 samples × 6.43s. The pattern-interrupt
+rule is an error and an errored gate fails the item, so §407's whole point was
+about to be rejected by the check that exists to demand it.
+
+**Rejected: reverting to the mean.** That un-fixes §74 and fails every card.
+
+**Rejected: averaging the two.** Halving a real change can push it under the
+bar. They measure different properties of the same event; a picture that changed
+has changed whichever one noticed, so the larger is the answer.
+
+**Also fixed: `expectedSubjects` read only attached assets.** The per-beat
+photographs are referenced by `backgroundAssetId` on the render props and only
+the hero is attached, so §409's oracle saw one subject of five and would have
+measured the video against a picture it never shows.
