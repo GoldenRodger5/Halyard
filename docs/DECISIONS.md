@@ -10893,3 +10893,35 @@ nobody made into the record, and the brief is a record of decisions.
 
 **Evidence is the citations the writer actually used**, in citation order, not a
 restatement of the sources research offered — the piece cited what it cited.
+
+### Retested, and it did not fire
+
+Four pieces briefed through the UI. The TikTok video got a brief and it was the
+**artifact path's** — `treatment: before_after`, artifact evidence,
+`caption_direction: {overflowHome}`. Mine writes a caption shape and did not
+run.
+
+The reason is the guard: `!plan`. RecipeFix always returns an artifact,
+`selectCreativePlan` succeeds on it, and the artifact branch writes the brief —
+so a format-driven video almost always has a plan and the new branch is close to
+dead code.
+
+**The real distribution, measured:**
+
+| media | items | with a brief |
+|---|---|---|
+| video | 37 | 10 |
+| image | 5 | **0** |
+| text | 11 | **0** |
+
+The gap is not format-versus-artifact, it is **video versus everything else**:
+both brief writers sit inside `if (needsVideo(format))`, so a carousel, a still
+and a text post can never have one. Typography recency, the caption-shape
+record and the creative gate's language and typography reads are all blank for
+sixteen of fifty-three pieces for that reason.
+
+Left as the next piece of work rather than restructured at the end of a long
+session, and recorded here so the next change is aimed at the right guard. The
+§432 branch stays: it is correct for the case it names, and it costs nothing.
+Claiming it fixed the gap would have been wrong — a fix that has not fired is a
+claim, which is exactly what §123 says.
