@@ -164,7 +164,7 @@ const upper = (c: 'none' | 'upper') => (c === 'upper' ? ('uppercase' as const) :
 
 function shell(
   input: LayoutInput,
-  opts: { justify: 'center' | 'flex-start' | 'space-between' },
+  opts: { justify: 'center' | 'flex-start' | 'flex-end' | 'space-between' },
   ...children: SatoriElement[]
 ): SatoriElement {
   const canvas = CANVAS[input.aspectRatio] ?? CANVAS['4:5']!;
@@ -183,7 +183,20 @@ function shell(
       paddingRight: 84,
       fontFamily: input.type.body.family,
     },
-    box({ flexDirection: 'column', flexGrow: 1, justifyContent: opts.justify }, ...children),
+    box(
+      {
+        flexDirection: 'column',
+        flexGrow: 1,
+        justifyContent: opts.justify,
+        /*
+         * §423. A bottom-anchored block would otherwise sit straight on top of
+         * the wordmark, which reads as the type having run out of room rather
+         * than as a composition resting on a base. Only where it can collide.
+         */
+        ...(opts.justify === 'flex-end' ? { marginBottom: 44 } : {}),
+      },
+      ...children,
+    ),
     input.wordmark
       ? text(input.wordmark, {
           fontFamily: input.type.label.family,
@@ -246,9 +259,25 @@ function headlineAt(input: LayoutInput, size: number, marginBottom: number): Sat
 
 /** The original composition: label, headline, supporting lines, centred. */
 function editorial(input: LayoutInput): SatoriElement {
+  /*
+   * §423. Bottom-anchored, like a page.
+   *
+   * Rendered at the size Instagram actually shows a 4:5 card — 420px wide on a
+   * phone — and every text layout was the same picture: a small block floating
+   * in the middle with a third of the card empty above and below it. It reads
+   * as a slide that is missing something.
+   *
+   * `photo_overlay` does not have the problem, and the reason is not the
+   * photograph: its content is *anchored*. A composition with a base looks
+   * decided; a centred block with air on both sides looks unresolved.
+   *
+   * So the anchor varies by layout, which fixes the composition and is a second
+   * axis of variety at the same time — five layouts that were all "centred
+   * block" are now four distinct shapes.
+   */
   return shell(
     input,
-    { justify: 'center' },
+    { justify: 'flex-end' },
     meta(input),
     headlineAt(input, 78, 36),
     bodyBlock(input, 36, 5),
@@ -280,9 +309,10 @@ function statement(input: LayoutInput): SatoriElement {
  * space that reads as deliberate rather than as a rendering accident.
  */
 function numbered(input: LayoutInput): SatoriElement {
+  /* §423. Top-anchored: the numeral leads, so it sits where the eye enters. */
   return shell(
     input,
-    { justify: 'center' },
+    { justify: 'flex-start' },
     text(String(input.index).padStart(2, '0'), {
       fontFamily: input.type.display.family,
       fontWeight: input.type.display.weight,
@@ -308,9 +338,10 @@ function numbered(input: LayoutInput): SatoriElement {
 
 /** Headline above a rule, support below it. The argument, visibly hinged. */
 function splitRule(input: LayoutInput): SatoriElement {
+  /* §423. Bottom-anchored; the rule needs something to sit above. */
   return shell(
     input,
-    { justify: 'center' },
+    { justify: 'flex-end' },
     meta(input, 28),
     headlineAt(input, 82, 32),
     box({

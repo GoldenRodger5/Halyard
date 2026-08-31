@@ -10569,3 +10569,37 @@ this, and asked for its history under a key nothing writes.
 **One regression, caught by looking.** Moving the ground onto a wrapper left the
 card path with no background and turned every still black. It was invisible to
 the type system and to every test; it took one contact sheet.
+
+## 120 · Five carousel layouts were the same composition
+
+**Chosen.** The text layouts anchor differently — `editorial` and `split_rule`
+to the foot, `numbered` to the head, `statement` centred.
+
+**Why.** Rendered at the size Instagram actually shows a 4:5 card — 420px wide
+on a phone, not the 1080 the renderer works in — and all five text layouts were
+one picture: a small block floating in the middle with a third of the card empty
+above and below. It reads as a slide that is missing something.
+
+`photo_overlay` does not have the problem, and the reason is not the photograph.
+Its content is **anchored**. A composition with a base looks decided; a centred
+block with air on both sides looks unresolved.
+
+So the anchor varies, which is a composition fix and a second axis of variety at
+once: five layouts that were all "centred block" are four distinct shapes.
+
+**A correction to my own first read.** At 1080 I judged the body type too small.
+At the size it is actually seen, 32px on a 1080 canvas renders about the size of
+Instagram's own caption text and is perfectly legible. The type was not the
+problem and changing it would have been a fix aimed at a number rather than at
+what a viewer sees. **Render at the size it is viewed, or the critique is about
+the wrong artefact.**
+
+**What this does not fix, and I am not claiming it does.** A text-only slide
+carrying a kicker, a headline and two short lines is *sparse* on a 4:5 canvas
+however it is anchored. The honest answers are more content per slide or a 1:1
+crop for text-only slides, and both are real decisions rather than adjustments.
+Recorded rather than done.
+
+**One defect introduced and caught by looking:** bottom-anchoring put the body
+straight onto the wordmark, which reads as the type having run out of room. A
+margin, applied only where a collision is possible.
