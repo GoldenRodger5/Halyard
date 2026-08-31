@@ -8,6 +8,35 @@ being told the same fact twice.
 
 ---
 
+## 0. The largest cause was not a novelty problem at all
+
+Found last, by running a `history` piece instead of reading about one: **`quiz`
+is the only format that has ever produced a piece.** Thirty-six content items,
+five of them quizzes, thirty-one with no `post_format` at all.
+
+`checkDraft` looks a slot up by `key:index` and `expandSlots` numbers each key
+from zero. A model writing the quiz — `question` and `answer` five times each —
+numbers per key and lands right. A model writing a format whose slots are all
+singular numbers them **globally**, and every slot after the first misses.
+`history` returned five correct slots with citations that verified against
+Britannica, and was refused as three-fifths empty. Three times. Then abandoned.
+
+So the honest ordering of "it keeps producing the same thing":
+
+1. Every piece was a quiz, because no other format could complete. §404.
+2. Every quiz asked about the same topic, because the novelty guard could not
+   fire. §403.
+3. Every topic yielded the same facts, because research had no exclusion list.
+   §401.
+4. Every piece looked the same, because one styling string produced every
+   photograph. §402.
+
+Levels 1-4 below were all real and all worth fixing. None of them would have
+been visible as *variety* while the format gate was quietly refusing four
+formats out of five.
+
+---
+
 ## 1. Four levels, and we enforce none of them
 
 A social team does not research a topic from scratch each time. They keep a file

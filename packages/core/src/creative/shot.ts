@@ -38,9 +38,17 @@
  * lie on a history piece. A refusal is declared here, in the open, rather than
  * left to a prompt to imply.
  *
+ * The refusal table is keyed on `PostFormatId` rather than `string`, which is
+ * not decoration. Its first draft refused `myth` — and the format is called
+ * `myth_fact`, so that entry was unreachable from the day it was written. A
+ * `string` key accepts a typo silently, which is the failure this whole file
+ * exists to undo.
+ *
  * The result is a pure function of its inputs, so a re-render reproduces the
  * picture rather than quietly shooting a new one.
  */
+
+import type { PostFormatId } from '../formats/catalog.js';
 
 /** Where the camera is. The decision a viewer reads first. */
 export const FRAMINGS = [
@@ -111,12 +119,16 @@ const SURFACE_PHRASE: Record<Surface, string> = {
  * Only genuine mismatches. A refusal that is really a preference removes
  * variety for no reason, and this file exists because variety was missing.
  */
-const REFUSED_FRAMINGS: Record<string, { framings: Framing[]; because: string }> = {
+const REFUSED_FRAMINGS: Partial<
+  Record<PostFormatId, { framings: Framing[]; because: string }>
+> = {
   /* A quiz asks; it does not demonstrate. Hands mid-action promise a method. */
   quiz: { framings: ['hands_at_work'], because: 'a quiz asks a question, it does not demonstrate one' },
-  /* Likewise a fact or a history piece: nobody is being shown how to do anything. */
+  poll: { framings: ['hands_at_work'], because: 'a poll asks a question, it does not demonstrate one' },
+  /* A story about where something came from: nobody is being shown how to do anything. */
   history: { framings: ['hands_at_work'], because: 'a history piece is not a demonstration' },
-  myth: { framings: ['hands_at_work'], because: 'a myth-buster is not a demonstration' },
+  origin: { framings: ['hands_at_work'], because: 'an origin story is not a demonstration' },
+  myth_fact: { framings: ['hands_at_work'], because: 'a myth-buster is not a demonstration' },
   /* A walkthrough is method. A wide empty table says nothing about method. */
   walkthrough: { framings: ['wide_table'], because: 'a walkthrough needs the work in frame, not the room' },
 };
@@ -186,7 +198,17 @@ export function chooseShot(input: {
 }): ShotChoice {
   const history = (input.recent ?? []).map(parseShot).filter((s): s is Shot => s !== null);
 
-  const refusal = input.format ? REFUSED_FRAMINGS[input.format] : undefined;
+  /*
+   * The caller's format is a plain string — it comes from a job payload — so
+   * the lookup is widened here rather than the table, which stays typed against
+   * the real ids. An unknown format refuses nothing, which is the right answer:
+   * a format nobody has written a rule for gets the whole vocabulary.
+   */
+  const refusal = input.format
+    ? (REFUSED_FRAMINGS as Record<string, { framings: Framing[]; because: string } | undefined>)[
+        input.format
+      ]
+    : undefined;
   const offered = FRAMINGS.filter((f) => !refusal?.framings.includes(f));
   /*
    * A format that refused everything would be a bug in the table above, not a

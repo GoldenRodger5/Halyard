@@ -16,6 +16,7 @@ import {
   shotDirection,
   shotId,
 } from './shot.js';
+import { POST_FORMATS } from '../formats/catalog.js';
 
 /** Shoot n pictures in a row, each seeing what the ones before it chose. */
 function series(n: number, format?: string): string[] {
@@ -58,13 +59,27 @@ describe('chooseShot', () => {
     expect(walkthrough).not.toContain('wide_table');
   });
 
+  it('refuses framings against real format ids, not near-misses', () => {
+    /*
+     * The table's first draft keyed a refusal on `myth`; the format is
+     * `myth_fact`, so the entry was unreachable from the day it was written.
+     * The type now catches that at compile time — this asserts the behaviour
+     * the type is protecting, so a widened key cannot quietly undo it.
+     */
+    const framings = series(FRAMINGS.length, 'myth_fact').map((id) => parseShot(id)!.framing);
+    expect(framings).not.toContain('hands_at_work');
+    /* And an id nobody wrote a rule for gets the whole vocabulary. */
+    const unknown = new Set(series(FRAMINGS.length, 'behind').map((id) => parseShot(id)!.framing));
+    expect(unknown.size).toBe(FRAMINGS.length);
+  });
+
   it('leaves every format at least two framings to rotate between', () => {
     /*
      * A refusal table that emptied a format would silently fall back to the
      * full vocabulary and un-refuse the framing it meant to forbid. One
      * framing left is no better: it is a constant, which is this bug again.
      */
-    for (const format of ['quiz', 'history', 'myth', 'walkthrough', 'tips', 'recipe']) {
+    for (const format of POST_FORMATS) {
       const framings = new Set(
         series(FRAMINGS.length, format).map((id) => parseShot(id)!.framing),
       );

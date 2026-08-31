@@ -9943,3 +9943,38 @@ be wrong beats an instruction that is usually followed.
 **Still honest about gaps.** A slot the model genuinely omitted is still absent
 and still reported — asserted by a test, because renumbering four slots to 0..3
 would otherwise fill four of five and hide the fifth.
+
+## 99 · The caption was about a different recipe than the video
+
+**Chosen.** The artifact block is included in the caption prompt only when the
+format's claims are actually about the artifact.
+
+**Why.** The block calls the artifact *"the only source of fact"* and hands over
+six thousand characters of raw JSON. `pieceBlock` — the lines the caption
+actually sits under — is about three hundred characters and makes no such claim
+on the model's attention.
+
+For a `transformation` that is right: the artifact is the subject. For a
+`history` or a `quiz`, grounded in its own researched and verified sources, the
+artifact is whatever the connector generated for that run, which is unrelated.
+
+Live, after §404 let `history` complete for the first time: a piece about the
+origins of sourdough — hook, turn and source all correct, cited to Britannica,
+verified by fetching the page — captioned *"Watery tofu sauce happens. Press 2
+lbs extra-firm tofu dry so edges brown and sauce stays thick."* The artifact for
+that run was Baked Pineapple Teriyaki Tofu, and the prompt told the model to
+believe it over everything else.
+
+**§291 had already decided this.** `verifyClaimsAgainstArtifact` is false for any
+format whose factuality is not `product`, and the caller has always passed it
+correctly. It governed what claims were *checked* against and never reached the
+prompt that writes them — so the writer was told to ground itself in a recipe
+whose claims would then be verified against something else entirely.
+
+**Rejected: making `pieceBlock` louder.** Longer, earlier, more emphatic. It
+would work often enough to look fixed and fail whenever the artifact was
+particularly concrete — and a caption about the wrong food is not a degradation,
+it is a wrong post. Removing the contradiction beats out-shouting it.
+
+**Default unchanged.** The flag is optional and undefined still includes the
+artifact, so nothing that relied on the old behaviour silently loses grounding.

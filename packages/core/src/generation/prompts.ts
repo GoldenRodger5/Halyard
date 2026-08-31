@@ -59,6 +59,14 @@ export interface CopywriterContext {
    * and absent wherever the caption genuinely is the whole post.
    */
   piece?: Array<{ key: string; text: string }> | null;
+  /**
+   * Whether this format's claims are *about* the artifact. §405.
+   *
+   * `false` for a quiz, a history, a myth-buster — anything grounded in its own
+   * researched sources rather than in product output. §291 already used this to
+   * decide what to verify claims against; the prompt never asked.
+   */
+  verifyClaimsAgainstArtifact?: boolean;
   artifact?: ProductArtifact | null;
   voice: {
     displayName: string;
@@ -220,13 +228,40 @@ complete one nobody expands.`,
     ? `\n## Series\nThis fills slot #${context.series.nextSequence} of "${context.series.name}". Keep the shape recognisable.`
     : '';
 
-  const artifactBlock = context.artifact
-    ? `\n## The artifact — real product output, the only source of fact\nHeadline: ${
-        context.artifact.headline
-      }\n\nHighlights:\n${context.artifact.highlights
-        .map((h) => `- (${h.sourcePath}) ${h.reason ?? h.note ?? h.text ?? `${h.before} → ${h.after}`}`)
-        .join('\n')}\n\nFull JSON:\n${JSON.stringify(context.artifact.raw, null, 2).slice(0, 6000)}`
-    : '\n## No artifact\nThis post is not built from product output. Make no factual claims about a transformation.';
+  /*
+   * §405. The artifact is the source of fact only for a format that is about
+   * the artifact.
+   *
+   * This block calls it *"the only source of fact"* and hands over six thousand
+   * characters of raw JSON. For a `history` or a `quiz` — grounded in its own
+   * researched, verified sources — that artifact is an unrelated recipe the
+   * connector happened to generate, and against a three-hundred-character
+   * `pieceBlock` it wins on sheer volume and on being called the only source of
+   * fact.
+   *
+   * Live: a piece about the origins of sourdough, correctly written and
+   * correctly cited, captioned *"Watery tofu sauce happens. Press 2 lbs
+   * extra-firm tofu dry…"* — because the artifact was Baked Pineapple Teriyaki
+   * Tofu and the prompt said to believe it.
+   *
+   * §291 already decided this: `verifyClaimsAgainstArtifact` is false for any
+   * format whose factuality is not `product`. That decision governed what
+   * claims were *checked* against and never reached the prompt that writes
+   * them.
+   */
+  const artifactIsTheSubject = context.verifyClaimsAgainstArtifact !== false;
+  const artifactBlock =
+    context.artifact && artifactIsTheSubject
+      ? `\n## The artifact — real product output, the only source of fact\nHeadline: ${
+          context.artifact.headline
+        }\n\nHighlights:\n${context.artifact.highlights
+          .map((h) => `- (${h.sourcePath}) ${h.reason ?? h.note ?? h.text ?? `${h.before} → ${h.after}`}`)
+          .join('\n')}\n\nFull JSON:\n${JSON.stringify(context.artifact.raw, null, 2).slice(0, 6000)}`
+      : context.piece?.length
+        ? '\n## No artifact\nThis post is not built from product output. It is grounded in the ' +
+          'lines above and the sources they cite. Write about those, and make no ' +
+          'factual claims about a transformation.'
+        : '\n## No artifact\nThis post is not built from product output. Make no factual claims about a transformation.';
 
   /**
    * §370. The piece itself, when there is one.
