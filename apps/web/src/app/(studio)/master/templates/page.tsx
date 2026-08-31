@@ -63,6 +63,31 @@ export default async function Templates() {
                       Disabled — {t.disabled_reason ?? 'no reason recorded, which is itself worth finding.'}
                     </span>
                   ) : null}
+                  {/*
+                    §395. The pool, not just the template.
+
+                    A template is a set of treatments — `Quiz` draws five, and
+                    so does `carousel_6`. Counting uses of the *template* says
+                    nothing about whether the pool is being used, and a pool
+                    with one treatment ever drawn is the variety machinery not
+                    working. That is the thing this screen exists to show and
+                    could not.
+                  */}
+                  {t.treatments.length > 0 ? (
+                    <span className="mt-1 flex flex-wrap gap-x-2.5 gap-y-0.5 font-data text-[10px] text-quiet">
+                      {t.treatments.map((x) => (
+                        <span key={x.treatment}>
+                          {x.treatment.replace(/_/g, ' ')}{' '}
+                          <b className="font-medium text-sink">{x.uses}</b>
+                        </span>
+                      ))}
+                    </span>
+                  ) : t.uses > 0 ? (
+                    <span className="mt-1 block text-[11.5px] leading-relaxed text-quiet">
+                      Drawn {t.uses} {t.uses === 1 ? 'time' : 'times'}, none of them recording a
+                      treatment — every one predates §394.
+                    </span>
+                  ) : null}
                 </span>
                 <span
                   className={cx(

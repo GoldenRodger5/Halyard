@@ -51,6 +51,26 @@ export function createPool(max = 12): pg.Pool {
  * at the same time race on `create extension`. An isolated database per file is
  * cheaper than serialising the whole suite.
  */
+/**
+ * §395. The most connections one suite may hold.
+ *
+ * Forty-two suites ask for a pool and their declared sizes total **228
+ * connections against a Postgres whose `max_connections` is 100**. It works
+ * only because Vitest runs a bounded number of files at once — and under a full
+ * parallel run enough of them overlap to exhaust the server, at which point
+ * suites do not fail so much as *go quiet*: `databaseAvailable()` returns false
+ * and they skip. Sixty-one tests went dark that way in one run, and a race
+ * test failed because it could not open its second connection.
+ *
+ * A test suite runs its queries one after another. Two connections is enough
+ * for any of them, and the handful that genuinely race need three. The number
+ * belongs to the operation rather than to each caller — decision 73's rule,
+ * applied to the other resource a suite consumes.
+ *
+ * §379's lesson underneath it: a suite that skips reports green.
+ */
+const MAX_CONNECTIONS_PER_SUITE = 4;
+
 export async function createIsolatedPool(suffix: string, max = 12): Promise<pg.Pool> {
   const base = new URL(TEST_DATABASE_URL);
   const dbName = `halyard_t_${suffix.replace(/[^a-z0-9_]/gi, '_').toLowerCase()}`;
@@ -62,7 +82,10 @@ export async function createIsolatedPool(suffix: string, max = 12): Promise<pg.P
   await admin.end();
 
   base.pathname = `/${dbName}`;
-  const pool = new pg.Pool({ connectionString: base.toString(), max });
+  const pool = new pg.Pool({
+    connectionString: base.toString(),
+    max: Math.min(max, MAX_CONNECTIONS_PER_SUITE),
+  });
   await migrateInto(pool);
   return pool;
 }

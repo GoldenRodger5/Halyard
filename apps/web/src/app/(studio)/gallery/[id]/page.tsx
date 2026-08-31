@@ -285,6 +285,36 @@ export default async function GalleryPiece({ params }: { params: Promise<{ id: s
           <RouteStrip route={route} />
         </Sheet>
 
+        {/*
+          §395. Why it looks like this.
+          
+          The variety machinery chooses a treatment per piece and an operator
+          could only see the answer by reading the database — so "why is this
+          one laid out differently" had nowhere to be asked. It is the question
+          the room is most likely to prompt, and the machinery's whole purpose
+          is visible only across pieces, which makes naming it per piece the
+          only way anybody notices it is working.
+        */}
+        {item.treatments.length > 0 ? (
+          <Sheet>
+            <Label>How it was drawn</Label>
+            <div className="flex flex-wrap gap-1.5">
+              {item.treatments.map((treatment) => (
+                <span
+                  key={treatment}
+                  className="rounded border border-rule2 px-1.5 py-0.5 font-data text-[10px] text-quiet"
+                >
+                  {treatment.replace(/_/g, ' ')}
+                </span>
+              ))}
+            </div>
+            <p className="mt-2 text-[11.5px] leading-relaxed text-quiet">
+              Chosen by what this piece can carry, then what has not been used lately — so the
+              next one of these does not look the same. Never at random.
+            </p>
+          </Sheet>
+        ) : null}
+
         <Sheet>
           <Label>Gates</Label>
           {gates.length === 0 ? (

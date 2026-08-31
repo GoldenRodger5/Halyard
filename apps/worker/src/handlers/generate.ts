@@ -48,6 +48,10 @@ import {
   chooseLayout,
   slidesForFormat,
   transformationDiffProps,
+  substitutionRatioProps,
+  chefNoteProps,
+  scalingMathProps,
+  chooseStill,
   type CarouselLayout,
   type SlideRole,
 } from '@halyard/render';
@@ -377,6 +381,28 @@ export function subjectFromFormat(
     if (text && text.length >= 12) return text;
   }
   return null;
+}
+
+/**
+ * §395. The serving counts a scaling card needs, from the artifact's own shape.
+ *
+ * Kept in the worker rather than in `@halyard/render`, because it reads a
+ * *product's* response — `originalServings` and `servings` are RecipeFix's
+ * words. The render package draws cards for any product and must not learn one
+ * product's vocabulary.
+ *
+ * Returns null when either number is missing or they are equal: a scaling card
+ * showing four servings becoming four servings is arithmetic about nothing.
+ */
+function scalingServings(
+  artifact: { raw?: unknown } | null,
+): { from: number; to: number } | null {
+  const raw = (artifact?.raw ?? {}) as Record<string, unknown>;
+  const from = Number(raw.originalServings);
+  const to = Number(raw.servings);
+  if (!Number.isFinite(from) || !Number.isFinite(to)) return null;
+  if (from <= 0 || to <= 0 || from === to) return null;
+  return { from, to };
 }
 
 export async function generateHandler(job: Job, ctx: HandlerContext): Promise<void> {
@@ -1439,14 +1465,67 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
 
         // Enqueue renders from the artifact, if it supports the template.
         if (artifact) {
-          const props = transformationDiffProps(artifact);
-          if (props && enabledTemplates.includes('transformation_diff_4x5')) {
+          /*
+           * §395. Four of these were built and unreachable.
+           *
+           * This named `transformation_diff_4x5` outright, so every
+           * product-grounded still was the same card — and `chefNoteProps`,
+           * `substitutionRatioProps` and `scalingMathProps` were exported code
+           * nothing called. Declared, built, never reached: the shape this
+           * codebase keeps finding.
+           *
+           * Every builder is offered; the ones that return null are artifacts
+           * that cannot fill that card and are never chosen. Then recency picks
+           * among what is left, so three stills in a week are three cards.
+           */
+          const stillRecency = await recentTreatments(ctx.pool, {
+            productId,
+            templateId: 'still',
+          });
+          const still = chooseStill({
+            candidates: [
+              { templateId: 'transformation_diff_4x5', props: transformationDiffProps(artifact) },
+              { templateId: 'substitution_ratio', props: substitutionRatioProps(artifact) },
+              { templateId: 'chef_note_quote', props: chefNoteProps(artifact) },
+              /*
+               * `scaling_math` needs the serving counts, which are on the raw
+               * artifact rather than the normalised one — a scaling card
+               * without them would render its arithmetic against nothing. No
+               * servings means the artifact was not scaled, so the card is not
+               * offered rather than filled with a guess.
+               */
+              { templateId: 'scaling_math', props: scalingServings(artifact)
+                  ? scalingMathProps(artifact, scalingServings(artifact)!)
+                  : null },
+            ],
+            enabled: enabledTemplates,
+            recent: stillRecency,
+          });
+
+          if (still) {
             const render = await ctx.pool.query<{ id: string }>(
-              `insert into renders (content_item_id, template_id, renderer, input_props, quality)
-               values ($1, 'transformation_diff_4x5', 'satori', $2, 'final') returning id`,
-              [contentItemId, { ...props, alt_text: draft.altText, typography: cardType }],
+              /*
+               * `treatment` is the template, recorded under a shared `still`
+               * key so the recency read spans the family rather than each card
+               * having a history of its own — which would let the four
+               * alternate in lockstep and never actually vary.
+               */
+              `insert into renders (content_item_id, template_id, renderer, input_props, quality, treatment)
+               values ($1, $2, 'satori', $3, 'final', $4) returning id`,
+              [
+                contentItemId,
+                still.templateId,
+                { ...still.props, alt_text: draft.altText, typography: cardType },
+                still.templateId,
+              ],
             );
             await ctx.enqueue('render', { renderId: render.rows[0]!.id }, { priority: 50 });
+            ctx.log('still chosen', {
+              contentItemId,
+              template: still.templateId,
+              because: still.reason,
+              recent: stillRecency,
+            });
           }
 
           /*
@@ -1537,7 +1616,23 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
             });
             const shotSlideIndex = slides.findIndex((s) => s.kicker === 'Why');
 
-            const usedLayouts: CarouselLayout[] = [];
+            /*
+             * §395. Seeded with what recent decks drew, not empty.
+             *
+             * §267's comment above already claims this recency runs "across the
+             * account" — and it never did, because the list started empty on
+             * every deck. Slide one of every carousel drew the same layout. The
+             * docstring described the behaviour somebody intended; this is the
+             * line that makes it true.
+             *
+             * Third appearance of the same defect (§394 fixed the quiz and the
+             * narrative). The rule was right in all three; nothing remembered
+             * its answer in any of them.
+             */
+            const usedLayouts: CarouselLayout[] = (await recentTreatments(ctx.pool, {
+              productId,
+              templateId: 'carousel_6',
+            })) as CarouselLayout[];
             for (const slide of slides) {
               const role: SlideRole =
                 slide.index === 1
@@ -1572,8 +1667,15 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
               usedLayouts.unshift(layout);
               ctx.log('carousel layout', { slide: slide.index, role, layout, because: reason });
               const render = await ctx.pool.query<{ id: string }>(
-                `insert into renders (content_item_id, template_id, renderer, input_props, slide_index, quality)
-                 values ($1, 'carousel_6', 'satori', $2, $3, 'final') returning id`,
+                /*
+                 * §395. `treatment` is the layout this slide drew, and it is
+                 * what lets the *next deck* look different. Recorded per slide
+                 * because a deck's variety is per slide; the recency read takes
+                 * the most recent regardless of which slide it came from, which
+                 * is right — a viewer scrolling does not know slide numbers.
+                 */
+                `insert into renders (content_item_id, template_id, renderer, input_props, slide_index, quality, treatment)
+                 values ($1, 'carousel_6', 'satori', $2, $3, 'final', $4) returning id`,
                 [
                   contentItemId,
                   {
@@ -1589,6 +1691,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                       : {}),
                   },
                   slide.index - 1,
+                  layout,
                 ],
               );
               await ctx.enqueue('render', { renderId: render.rows[0]!.id }, { priority: 50 });

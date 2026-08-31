@@ -20,7 +20,8 @@ import { PLATFORM_LABELS } from '@halyard/ui';
 import { Action, Label, Pill, Sheet, Tally, cx } from '@halyard/ui/studio';
 import { Deeper } from '@/components/studio/Deeper';
 import { accountBadge } from '@/lib/accountBadge';
-import { getAllAccounts, getSettings } from '@/lib/queries';
+import { getAllAccounts, getProducts, getSettings, type AccountRow } from '@/lib/queries';
+import { formatRelative } from '@/lib/format';
 import { runSelfTest } from '@/app/(studio)/master/actions';
 
 export const dynamic = 'force-dynamic';
@@ -34,7 +35,12 @@ const TONE_TO_LAMP = {
 } as const;
 
 export default async function TheRig() {
-  const [accounts, settings] = await Promise.all([getAllAccounts(), getSettings()]);
+  const [accounts, settings, products] = await Promise.all([
+    getAllAccounts(),
+    getSettings(),
+    getProducts(),
+  ]);
+  const timeZone = products[0]?.operator_timezone ?? 'UTC';
 
   /*
    * "Quiet" is the ordinary not-yet-connected state: no credential and nothing
@@ -177,9 +183,47 @@ export default async function TheRig() {
                 </p>
               ) : null}
 
+              {/*
+                §396. What the connection test found.
+                
+                `runSelfTest` has always written `last_self_test_ok` and
+                `last_self_test_detail` and revalidated this page — and this
+                page never displayed either, so clicking the button changed
+                nothing an operator could see. It reads as a broken control,
+                and it is the third shape of the same defect: work done, result
+                stored, nothing reading it.
+              */}
+              {account.last_self_test_at ? (
+                <p
+                  className={cx(
+                    'mt-2 max-w-[74ch] text-[12px] leading-relaxed',
+                    staleTest(account) ? 'text-quiet' : account.last_self_test_ok ? 'text-passed' : 'text-onair',
+                  )}
+                >
+                  <span className="font-data text-[10px] uppercase tracking-[0.07em]">
+                    {account.last_self_test_ok ? 'Passed' : 'Failed'}{' '}
+                    {formatRelative(account.last_self_test_at, timeZone)}
+                  </span>{' '}
+                  {account.last_self_test_detail}
+                  {/*
+                    An old pass beside a current failure is worse than no
+                    result: it says the account is fine while the row above
+                    says it is not.
+                  */}
+                  {staleTest(account) ? (
+                    <span className="mt-1 block text-[11.5px] text-parked">
+                      This ran before the error above, so it does not describe the account now.
+                      Run it again.
+                    </span>
+                  ) : null}
+                </p>
+              ) : null}
+
               <form action={runSelfTest} className="mt-2.5">
                 <input type="hidden" name="id" value={account.id} />
-                <Action tone="ghost" small>Run connection test</Action>
+                <Action tone="ghost" small>
+                  {account.last_self_test_at ? 'Test it again' : 'Run connection test'}
+                </Action>
               </form>
             </Sheet>
           );
@@ -259,4 +303,17 @@ function howLong(typicalWeeks: string | undefined): string {
   if (typicalWeeks === '0') return 'no wait';
   const numeric = /^([\d]+(?:\s*[–-]\s*\d+)?)(.*)$/.exec(typicalWeeks);
   return numeric ? `${numeric[1]} weeks${numeric[2]}` : typicalWeeks;
+}
+
+/**
+ * Whether the recorded test predates what is wrong now.
+ *
+ * A pass from last week beside a token that died yesterday is worse than no
+ * result at all — it tells an operator the account is healthy while the line
+ * above says it is not. `last_error` has no timestamp of its own, so the test
+ * is treated as stale whenever there is a current error and the test said
+ * everything was fine: the two cannot both be true.
+ */
+function staleTest(account: AccountRow): boolean {
+  return Boolean(account.last_error) && account.last_self_test_ok === true;
 }

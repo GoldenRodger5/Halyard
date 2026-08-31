@@ -307,3 +307,5 @@ function parseColor(color: string): [number, number, number] {
   // it produces a lower contrast estimate and therefore a stricter gate.
   return [250, 248, 243];
 }
+/* §395. Which still to draw, when several could carry the artifact. */
+export * from './chooseStill.js';

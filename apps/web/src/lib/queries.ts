@@ -254,6 +254,14 @@ export interface QueueItem {
   reject_reason: string | null;
   /** §393. When it was made. The Gallery sorts and labels the wall by this. */
   created_at: string;
+  /**
+   * §395. Which treatments this piece's renders drew.
+   *
+   * The variety machinery decides this and an operator could only see it by
+   * reading the database — so "why does this look like that" had no answer on
+   * any screen. Empty for renders made before §394 recorded it.
+   */
+  treatments: string[];
   /** §372. The screenplay, or null when the piece was never staged. */
   screenplay: Screenplay | null;
   /** §380. What did not fit the caption, and where it belongs. */
@@ -331,6 +339,7 @@ const QUEUE_SELECT = `
          coalesce(r.failed, 0) as render_failed,
          r.first_error         as render_error,
          coalesce(r.urls, '{}') as preview_urls,
+         coalesce(r.treatments, '{}') as treatments,
          coalesce(att.urls, '{}') as attached_urls
     from content_items ci
     join products p on p.id = ci.product_id
@@ -350,7 +359,10 @@ const QUEUE_SELECT = `
              count(*) filter (where rr.status = 'done')::int as done,
              count(*) filter (where rr.status = 'failed')::int as failed,
              min(rr.error) as first_error,
-             array_remove(array_agg(a.public_url order by rr.slide_index), null) as urls
+             array_remove(array_agg(a.public_url order by rr.slide_index), null) as urls,
+             -- §395. Distinct, because a six-slide deck drawing two layouts is
+             -- two treatments, not six.
+             array_remove(array_agg(distinct rr.treatment), null) as treatments
         from renders rr
         left join assets a on a.id = rr.output_asset_id
        where rr.content_item_id = ci.id and rr.quality = 'final'
@@ -661,13 +673,31 @@ export interface TemplateRow {
   enabled: boolean;
   disabled_reason: string | null;
   uses: number;
+  /**
+   * §395. The treatments this template has actually drawn, most used first.
+   *
+   * A template is a *pool*, not a look: `Quiz` draws five treatments and
+   * `carousel_6` draws five layouts. Counting uses of the template says nothing
+   * about whether the pool is being used, and a pool with one treatment ever
+   * drawn is the variety machinery not working — which is precisely what this
+   * screen should show and could not.
+   */
+  treatments: Array<{ treatment: string; uses: number }>;
 }
 
 export async function getTemplates(): Promise<TemplateRow[]> {
   return query<TemplateRow>(
     `select t.id, t.renderer, t.format, t.aspect_ratio, t.description, t.enabled,
             t.disabled_reason,
-            (select count(*)::int from renders r where r.template_id = t.id) as uses
+            (select count(*)::int from renders r where r.template_id = t.id) as uses,
+            coalesce(
+              (select jsonb_agg(x order by x.uses desc)
+                 from (select r.treatment, count(*)::int as uses
+                         from renders r
+                        where r.template_id = t.id and r.treatment is not null
+                        group by r.treatment) x),
+              '[]'::jsonb
+            ) as treatments
        from templates t
       order by t.renderer, t.id`,
   );

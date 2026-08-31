@@ -9638,3 +9638,66 @@ posting 150 times a year needs.
 schema, a database row and a coverage test; twenty of them is twenty times the
 surface for the same result. A treatment is a branch inside one composition,
 which is what §302 established and what this extends.
+
+## 89 · Variety is per post type, and every lane had the same defect
+
+**Chosen.** `docs/VARIETY_BY_POST_TYPE.md` scopes all ten post types. Carousel
+recency, a still chooser, and the treatment surfaced in the console.
+
+**Why.** Short video is one lane of four. An account posting every other day
+across X, Instagram, Pinterest and TikTok can have perfect video variety and
+still read as automated, because the other three lanes repeat.
+
+**Two levels, everywhere.** Variety is not one thing: **structure** is what a
+piece argues (the eleven formats) and **treatment** is how a frame is drawn.
+A format with one treatment always looks the same; a treatment with one format
+has nothing to say. They vary independently and every post type needs both.
+
+**What was found, per lane:**
+
+- **Carousel** — the same empty-history defect, third instance. §267's own
+  comment claimed the recency ran "across the account" and it never did, because
+  `usedLayouts` started empty on every deck. Slide one of every carousel drew
+  the same layout. The docstring described what somebody intended.
+- **Stills** — five templates registered, one named outright in the generator.
+  `chefNoteProps`, `substitutionRatioProps` and `scalingMathProps` were written,
+  exported, and called by nothing. Every product-grounded still was the same
+  card. `chooseStill` picks by fit then recency, and fit is not a preference
+  here: a template whose props cannot be built renders empty regions rather than
+  failing, which is how `substitution_ratio` once shipped a heading above
+  nothing at all.
+- **Text posts** — no notion of shape exists at all. Where the line breaks fall,
+  whether it opens on a question or a claim, one sentence or a short list. X and
+  Threads are text-first and every post has the same rhythm. Specced, not built.
+- **Pinterest** — one template.
+
+**Carousels are the surface where this costs most.** They carry the highest
+engagement of any Instagram format — 0.50% against 0.48% for Reels and 0.33%
+for stills — and they had the recency bug.
+
+**And the operator could not see any of it.** The machinery chose a treatment
+per piece and the answer lived only in the database, so "why does this look like
+that" had no answer on any screen. The Gallery piece names the treatment; Master
+▸ Templates shows the pool and what has actually been drawn — a pool with one
+treatment ever used is the machinery not working, which is exactly what that
+screen should show and could not.
+
+## 90 · The test suite was asking for 228 connections against a limit of 100
+
+**Chosen.** `createIsolatedPool` caps any suite at four connections.
+
+**Why.** Forty-two suites open an isolated pool and their declared sizes total
+228 against a Postgres whose `max_connections` is 100. It passed most of the
+time because Vitest runs a bounded number of files at once — and when enough
+overlapped, the server ran out.
+
+The failure mode is the bad one: a suite that cannot connect does not fail, it
+**goes quiet**. `databaseAvailable()` returns false and it skips. One run showed
+**one failure and sixty-one tests skipped**; capped, the same suite is 217 files
+and 3,228 tests with none skipped.
+
+A suite runs its queries one after another and needs two connections; the few
+that genuinely race need three. Four is the ceiling with room. The number
+belongs to the operation rather than to each caller — decision 73's rule applied
+to the other resource a suite consumes, and §379's underneath it: a suite that
+skips reports green.

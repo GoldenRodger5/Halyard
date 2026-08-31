@@ -1,5 +1,51 @@
 # Where Halyard is right now
 
+**2026-08-31 — variety across every post type, and the connection test now
+shows what it found.**
+
+`docs/VARIETY_BY_POST_TYPE.md` scopes all ten post types. Short video was one
+lane of four; an account posting every other day can have perfect video variety
+and still read as automated because the other three repeat.
+
+*The same defect in every lane.* Carousels were the third instance of §394's
+bug — §267's own comment claimed the recency ran "across the account" and it
+never did, because the list started empty on every deck. Slide one of every
+carousel drew the same layout.
+
+*Four still templates were unreachable.* The generator named
+`transformation_diff_4x5` outright, so every product-grounded still was the same
+card, and `chefNoteProps`, `substitutionRatioProps` and `scalingMathProps` were
+exported code nothing called. `chooseStill` picks by fit then recency — fit
+first because a template whose props cannot be built renders empty regions
+rather than failing. 15 of 22 real artifacts can fill the scaling card.
+
+*And none of it was visible.* The machinery chose a treatment per piece and the
+answer lived only in the database. The Gallery piece names it; Master ▸
+Templates shows the pool and what has actually been drawn. Decision 89.
+
+**The connection test now reports.** `runSelfTest` has always written
+`last_self_test_ok` and `last_self_test_detail` and revalidated the rig — and
+the rig never displayed either, so clicking changed nothing an operator could
+see. Work done, result stored, nothing reading it. **It immediately surfaced a
+real problem: the Instagram connection is missing four scopes** —
+`instagram_business_basic`, `_content_publish`, `_manage_comments`,
+`_manage_insights`. A stale pass beside a current failure is marked as stale
+rather than shown as health.
+
+*The suite was asking for 228 connections against a limit of 100.* Forty-two
+isolated pools. When enough overlapped the server ran out, and a suite that
+cannot connect does not fail — it skips. One run was 1 failure and 61 tests
+dark; capped at four per suite it is 217 files and 3,228 tests with none
+skipped. Decision 90.
+
+**Suite: 217 files, 3,228 tests, none skipped. Lint and typecheck clean.**
+
+Still specced, not built: caption shapes for text posts (the largest remaining
+gap — X and Threads are text-first and have no notion of shape at all), and two
+more Pinterest templates.
+
+---
+
 **2026-08-30 (late) — two videos briefed the same way are no longer the same
 video.**
 
