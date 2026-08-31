@@ -1914,6 +1914,9 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                     role,
                     visualLanguage: undefined,
                     bodyLineCount: slide.bodyLines.length,
+                    /* §424. `lead_emphasis` sets the headline as a label, and a
+                       long one wraps to two lines of small caps. */
+                    headlineWords: slide.headline.trim().split(/\s+/).filter(Boolean).length,
                     recentLayouts: usedLayouts,
                     hasImage: slideHasImage,
                   });

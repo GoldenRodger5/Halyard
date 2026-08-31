@@ -76,6 +76,19 @@ export function chooseLayout(input: {
   role: SlideRole;
   visualLanguage?: string;
   bodyLineCount: number;
+  /**
+   * Words in the headline. §424.
+   *
+   * `lead_emphasis` inverts the hierarchy — the headline is set small in caps
+   * as a label and the first body line takes the display size. That is a good
+   * move for a short headline and a bad one for a long one: rendered at the
+   * size a phone shows it, "REFRIGERATORS MAKE BREAD GO STALE FASTER" wraps to
+   * two lines of small caps and reads as a label that has outgrown its job.
+   *
+   * Optional, so a caller that does not know keeps the old behaviour rather
+   * than silently losing a layout.
+   */
+  headlineWords?: number;
   recentLayouts?: CarouselLayout[];
   /** §268. Whether a photograph is available for this slide. */
   hasImage?: boolean;
@@ -117,6 +130,18 @@ export function chooseLayout(input: {
     const fits = pool.filter((l) => ROOMY.includes(l));
     /* The fallback must respect the image constraint the pool was built for. */
     pool = fits.length > 0 ? fits : ROOMY.filter((l) => input.hasImage || !PHOTO_LAYOUTS.includes(l));
+  }
+
+  /*
+   * §424. An inversion needs something short to invert.
+   *
+   * Checked with the other content fits and before any preference, because a
+   * layout whose label wraps to two lines is not a stylistic choice — it is the
+   * layout failing at the one thing it exists to do.
+   */
+  if ((input.headlineWords ?? 0) > 7) {
+    const fits = pool.filter((l) => l !== 'lead_emphasis');
+    if (fits.length > 0) pool = fits;
   }
 
   /* The opening slide is the only one most people see; give it presence. */

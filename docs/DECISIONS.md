@@ -10603,3 +10603,56 @@ Recorded rather than done.
 **One defect introduced and caught by looking:** bottom-anchoring put the body
 straight onto the wordmark, which reads as the type having run out of room. A
 margin, applied only where a collision is possible.
+
+## 121 · Two of the five quiz treatments looked broken, and were my test
+
+**Recorded, because nearly reporting it was the error.**
+
+Rendered all five quiz treatments side by side. `versus` showed three options
+with the third overflowing its box and the fourth missing entirely; `spotlight`
+showed a question with no options at all. Both look like serious defects — a
+quiz whose options cannot be read is unanswerable.
+
+Neither happens. The preview passed `treatments` explicitly and bypassed
+`chooseQuizTemplate`, which already refuses both cases: `versus` requires
+`isTrueFalse` and is never offered for a four-option question, and `spotlight`
+declares `options: [0, 0]` so it draws only questions that genuinely have none.
+Checked before writing anything down: four options resolve to `stack`, five to
+`rail`, a true/false pair to `versus`.
+
+**The lesson is about the harness.** Forcing a treatment is the right way to
+*see* one, and it renders states the chooser exists to prevent. A preview that
+bypasses selection is showing what a component can be made to do, not what the
+system does — and a critique of the first is a bug report about nothing.
+
+## §425 · The rail gave the question 40% of the frame
+
+**Chosen.** `rail` splits 52/48 rather than 40/60.
+
+**Why.** `rail` is what a five-option question gets. At 40% of a 1080-wide frame
+the question column is 432px — about 180px on the phone this is watched on — and
+"Which flour holds a loaf together without gluten?" wrapped to four lines of
+display serif inside it. It reads as text squeezed beside a list rather than a
+question with its answers alongside.
+
+The options are short by construction: they are answer labels, not sentences. So
+the width belongs to the question. At 52% the same question sets in three
+comfortable lines and all five options still read.
+
+**Found by rendering the treatments at the size a viewer sees them**, which is
+the only view in which the proportion was wrong. At 1080 the column looks
+generous.
+
+## §424 · An inversion needs something short to invert
+
+**Chosen.** `lead_emphasis` is refused when the headline runs past seven words.
+
+**Why.** It sets the headline small in caps as a label and gives the display
+size to the first body line. That is a good move for a short headline and a bad
+one for a long one: at phone size, "REFRIGERATORS MAKE BREAD GO STALE FASTER"
+wraps to two lines of small caps and reads as a label that has outgrown its job.
+
+Checked with the other content fits and before any preference, because a layout
+whose label wraps is not a stylistic choice — it is the layout failing at the
+one thing it exists to do. Optional, so a caller that cannot measure keeps the
+old behaviour rather than silently losing a layout from the pool.

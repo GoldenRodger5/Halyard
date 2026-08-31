@@ -500,8 +500,21 @@ export const StackTemplate: React.FC<QuizTemplateProps> = (p) => (
  * viewer is giving three seconds to.
  */
 export const RailTemplate: React.FC<QuizTemplateProps> = (p) => (
-  <div style={{ display: 'flex', gap: 40, width: '100%', alignItems: 'flex-start' }}>
-    <div style={{ width: '40%', display: 'flex', flexDirection: 'column', gap: 20 }}>
+  /*
+   * §425. 52/48, not 40/60.
+   *
+   * `rail` is what a five-option question gets, and at 40% of a 1080-wide frame
+   * the question column is 432px — about 180px on the phone this is watched on.
+   * Rendered there, "Which flour holds a loaf together without gluten?" wrapped
+   * to four lines of display serif in that column, which reads as text squeezed
+   * beside a list rather than a question with a rail of answers next to it.
+   *
+   * The options are short by construction — they are answer labels — so the
+   * width belongs to the question. Found by rendering the treatments side by
+   * side at the size a viewer sees them.
+   */
+  <div style={{ display: 'flex', gap: 36, width: '100%', alignItems: 'flex-start' }}>
+    <div style={{ width: '52%', display: 'flex', flexDirection: 'column', gap: 20 }}>
       <Eyebrow index={p.index} total={p.total} palette={p.palette} type={p.type} />
       <span
         style={{
