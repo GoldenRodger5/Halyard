@@ -29,18 +29,32 @@ import type pg from 'pg';
  */
 export async function recentTreatments(
   pool: pg.Pool,
-  input: { productId: string; templateId: string; limit?: number },
+  input: { productId: string; templateId: string | string[]; limit?: number },
 ): Promise<string[]> {
+  /*
+   * §422. A family, not one id.
+   *
+   * The still chooser asked for `templateId: 'still'` — a family name — while
+   * the render rows carry the actual template, `transformation_diff_4x5`. The
+   * filter matched nothing, so the recency list was **always empty** and
+   * `chooseStill` fell to declaration order every time. Twenty-three stills in
+   * the database, twenty-three the same card.
+   *
+   * That is §394's defect inside §395's fix: the chooser was written to end
+   * exactly this, and its history was asked for under a key nothing writes.
+   * Accepting a list is what the caller needed all along.
+   */
+  const ids = Array.isArray(input.templateId) ? input.templateId : [input.templateId];
   const { rows } = await pool.query<{ treatment: string }>(
     `select r.treatment
        from renders r
        join content_items ci on ci.id = r.content_item_id
       where ci.product_id = $1
-        and r.template_id = $2
+        and r.template_id = any($2::text[])
         and r.treatment is not null
       order by r.created_at desc
       limit $3`,
-    [input.productId, input.templateId, input.limit ?? 8],
+    [input.productId, ids, input.limit ?? 8],
   );
   return rows.map((row) => row.treatment);
 }

@@ -35,6 +35,13 @@ export interface StillCandidate {
 export interface StillChoice {
   templateId: string;
   props: Record<string, unknown>;
+  /**
+   * Whether this still stands on the brand's cream or on a photograph. §422.
+   *
+   * `photo` only where the template is sparse enough to carry one — see
+   * `PHOTO_CAPABLE`. Recorded with the treatment so the next one can alternate.
+   */
+  ground: 'card' | 'photo';
   /** Why this one, in the operator's words. */
   reason: string;
 }
@@ -46,6 +53,21 @@ export interface StillChoice {
  * before-and-after, no quotable line, no ratio and no quantities has no card to
  * make, and inventing one would put an empty template in a feed.
  */
+/**
+ * Templates sparse enough to stand on a photograph. §422.
+ *
+ * Not a preference. Rendered side by side and looked at: a quote — one line and
+ * an attribution — over a photograph is the strongest thing this system makes,
+ * and the same photograph under `transformation_diff` loses the struck original
+ * and the reason line into the crust. Both were legible on cream.
+ *
+ * The rule is text density, and it is checked before recency because a card
+ * whose words cannot be read is not a card. `substitution_ratio` and
+ * `scaling_math` carry a label, a pair and an explanation each; they stay on
+ * cream, and that is the right answer rather than a limitation.
+ */
+const PHOTO_CAPABLE = new Set(['chef_note_quote']);
+
 export function chooseStill(input: {
   candidates: StillCandidate[];
   /** Templates the account has switched on. A template off is not a candidate. */
@@ -66,9 +88,19 @@ export function chooseStill(input: {
    * offered — which makes the choice a pure function of its inputs, so a
    * re-render produces the same card.
    */
+  /*
+   * §422. History entries are `template/ground`, so staleness is measured on
+   * the template half. Comparing whole entries would make `chef_note_quote/card`
+   * and `chef_note_quote/photo` two different templates, and the chooser would
+   * happily alternate one card's two grounds forever without ever reaching the
+   * other three.
+   */
+  const templateOf = (entry: string) => entry.split('/')[0]!;
+  const recentTemplates = recent.map(templateOf);
+
   const scored = fits
     .map((c, i) => {
-      const at = recent.indexOf(c.templateId);
+      const at = recentTemplates.indexOf(c.templateId);
       return { c, staleness: at === -1 ? Number.POSITIVE_INFINITY : at, offered: i };
     })
     .sort((a, b) => b.staleness - a.staleness || a.offered - b.offered);
@@ -76,11 +108,31 @@ export function chooseStill(input: {
   const winner = scored[0]!;
   const unused = winner.staleness === Number.POSITIVE_INFINITY;
 
+  /*
+   * §422. Cream or a photograph, which is a second axis of variety and not a
+   * replacement for the first. A feed of only photographs is its own monotony,
+   * and an information card is genuinely better on cream.
+   *
+   * Alternated against the same history: if the last time this template ran it
+   * stood on a photograph, this one is a card. Only where the template can take
+   * one at all.
+   */
+  const canPhoto = PHOTO_CAPABLE.has(winner.c.templateId);
+  const lastWasPhoto = recent[0]?.endsWith('/photo') === true;
+  const ground: 'card' | 'photo' = canPhoto && !lastWasPhoto ? 'photo' : 'card';
+
   return {
     templateId: winner.c.templateId,
     props: winner.c.props!,
-    reason: unused
-      ? `${winner.c.templateId} fits this artifact and has not been used recently.`
-      : `${winner.c.templateId} is the least recently used card this artifact can fill.`,
+    ground,
+    reason:
+      (unused
+        ? `${winner.c.templateId} fits this artifact and has not been used recently.`
+        : `${winner.c.templateId} is the least recently used card this artifact can fill.`) +
+      (canPhoto
+        ? ground === 'photo'
+          ? ' Standing it on the photograph; the last one was a card.'
+          : ' Keeping it on cream; the last one stood on a photograph.'
+        : ' This card carries too much text to stand on a photograph.'),
   };
 }

@@ -1704,9 +1704,21 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
            * that cannot fill that card and are never chosen. Then recency picks
            * among what is left, so three stills in a week are three cards.
            */
+          /*
+           * §422. The whole still family, because the render rows carry the
+           * actual template and this asked for the family name. It matched
+           * nothing, so the chooser had no history and every still was the
+           * first card in the list.
+           */
           const stillRecency = await recentTreatments(ctx.pool, {
             productId,
-            templateId: 'still',
+            templateId: [
+              'transformation_diff_4x5',
+              'transformation_diff_1x1',
+              'substitution_ratio',
+              'chef_note_quote',
+              'scaling_math',
+            ],
           });
           const still = chooseStill({
             candidates: [
@@ -1741,14 +1753,29 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
               [
                 contentItemId,
                 still.templateId,
-                { ...still.props, alt_text: draft.altText, typography: cardType },
-                still.templateId,
+                {
+                  ...still.props,
+                  alt_text: draft.altText,
+                  typography: cardType,
+                  /*
+                   * §422. The hero photograph, when this still is standing on
+                   * one. `render.ts` resolves the asset to a data URI, the same
+                   * route a carousel slide's image takes.
+                   */
+                  ...(still.ground === 'photo' && hero ? { imageAssetId: hero.assetId } : {}),
+                },
+                /*
+                 * §422. Template *and* ground, so the recency read can alternate
+                 * cream and photograph as well as rotating the four cards.
+                 */
+                `${still.templateId}/${still.ground}`,
               ],
             );
             await ctx.enqueue('render', { renderId: render.rows[0]!.id }, { priority: 50 });
             ctx.log('still chosen', {
               contentItemId,
               template: still.templateId,
+              ground: still.ground,
               because: still.reason,
               recent: stillRecency,
             });

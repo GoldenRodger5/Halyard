@@ -10527,3 +10527,45 @@ used last post must not come back because a job id happened to point at it.
 **Not a problem in normal operation**, where posts are days apart and the
 history is real. It is a problem exactly when an operator does what an operator
 does on their first day: brief three at once to see what comes out.
+
+## 119 · Every still was a text card, and the chooser had never had a history
+
+Two findings, both from rendering the cards and looking at them as somebody
+scrolling would.
+
+**Chosen.** A still can stand on a photograph where its text is sparse enough,
+and `chooseStill` alternates cream and photograph as a second axis of variety.
+
+**Why the ground.** Every still template renders through one `frame()` and it
+had exactly one ground: the brand's cream. So every product-grounded still
+Halyard has made is words on a card, on a surface where a text card competes
+with photographs of food and loses.
+
+The information on those cards is genuinely good — *"Doubling is not
+multiplication: salt and yeast scale to roughly 85 percent of linear"* is real
+and non-obvious. It was being published in a form that has to be read before it
+can be wanted.
+
+**Why only some templates.** Rendered side by side: a quote — one line and an
+attribution — over a photograph is the strongest thing this system makes, and
+the same photograph under `transformation_diff` loses the struck original and
+the reason line into the crust. Both are legible on cream. Density decides, so
+density is a declared fit and `PHOTO_CAPABLE` holds one template today.
+
+**The card is not a fallback.** A feed of only photographs is its own monotony
+and an information card is genuinely better on cream, so the ground alternates
+rather than being replaced.
+
+**And the chooser had no history.** `chooseStill`'s recency was read with
+`templateId: 'still'` — a family name — while the render rows carry the actual
+template. The filter matched nothing, the list was **always empty**, and the
+chooser fell to declaration order every time: twenty-three stills in the
+database, twenty-three `transformation_diff_4x5`.
+
+That is §394's defect living inside §395's fix. §395 was written to end exactly
+this, and asked for its history under a key nothing writes.
+`recentTreatments` takes a family now.
+
+**One regression, caught by looking.** Moving the ground onto a wrapper left the
+card path with no background and turned every still black. It was invisible to
+the type system and to every test; it took one contact sheet.

@@ -17,6 +17,14 @@ import { arrowRight, box, h, text, type SatoriElement } from './elements.js';
 export interface TemplateBase {
   brand: BrandTokens;
   aspectRatio: string;
+  /**
+   * §422. A photograph to stand this still on, instead of the brand's cream.
+   *
+   * Absent means the card, which is right for an information-dense template and
+   * is what every still has always been. The choice between them is variety in
+   * itself, not a replacement.
+   */
+  imageDataUri?: string;
   /** Small footer mark. Never a logo lockup; this is a feed, not a billboard. */
   wordmark?: string;
   /**
@@ -135,23 +143,52 @@ export interface CarouselSlideProps extends TemplateBase {
   screenshotCaption?: string;
 }
 
+/**
+ * §422. A still can stand on a photograph instead of on cream.
+ *
+ * Every still template renders through this frame, and it had exactly one
+ * ground: the brand's background colour. So every product-grounded still Halyard
+ * has ever made is a text card, on a surface — Instagram — where a text card
+ * competes with photographs of food and loses.
+ *
+ * The information on those cards is genuinely good. *"Doubling is not
+ * multiplication: salt and yeast scale to roughly 85 percent of linear"* is a
+ * real, non-obvious fact. It was being published in a form that has to be read
+ * before it can be wanted.
+ *
+ * The card is not wrong — it is right for an information-dense template, and a
+ * feed of only photographs is its own kind of monotony. So the ground is a
+ * *choice*, and choosing it is another axis of variety rather than a
+ * replacement for the one there was.
+ *
+ * Over a photograph the type goes light and a scrim carries it, exactly as
+ * §407 does for video: the ground is the scrim rather than the brand, so
+ * measuring the brand would answer the wrong question.
+ */
 function frame(props: TemplateBase, ...children: SatoriElement[]): SatoriElement {
   const canvas = CANVAS[props.aspectRatio] ?? CANVAS['1:1']!;
   const padding = paddingFor(props.aspectRatio, canvas.height);
+  const photo = props.imageDataUri;
 
-  return box(
+  const content = box(
     {
       width: canvas.width,
       height: canvas.height,
       flexDirection: 'column',
       justifyContent: 'space-between',
-      backgroundColor: props.brand.background,
-      color: props.brand.ink,
+      /*
+       * Transparent over a photograph, the brand's ground otherwise. Dropping
+       * this on the card path turned every still black — the ground moved to
+       * the photo wrapper and the card had no wrapper to move it to.
+       */
+      ...(photo ? {} : { backgroundColor: props.brand.background }),
+      color: photo ? '#FFFFFF' : props.brand.ink,
       paddingTop: padding.top,
       paddingBottom: padding.bottom,
       paddingLeft: 84,
       paddingRight: 84,
       fontFamily: props.brand.bodyFont,
+      ...(photo ? { position: 'absolute', top: 0, left: 0 } : {}),
     },
     box({ flexDirection: 'column', flexGrow: 1, justifyContent: 'center' }, ...children),
     props.wordmark
@@ -159,9 +196,55 @@ function frame(props: TemplateBase, ...children: SatoriElement[]): SatoriElement
           fontSize: 26,
           letterSpacing: 2,
           textTransform: 'uppercase',
-          color: props.brand.muted,
+          /*
+           * Over a photograph the muted brand grey disappears into the scrim.
+           * White at low opacity is the same relationship to its ground that
+           * `brand.muted` has to cream.
+           */
+          color: photo ? 'rgba(255,255,255,0.72)' : props.brand.muted,
         })
       : box({ height: 0 }),
+  );
+
+  if (!photo) return content;
+
+  return box(
+    {
+      width: canvas.width,
+      height: canvas.height,
+      display: 'flex',
+      position: 'relative',
+      backgroundColor: props.brand.background,
+    },
+    {
+      type: 'img',
+      props: {
+        src: photo,
+        style: {
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: canvas.width,
+          height: canvas.height,
+          objectFit: 'cover',
+        },
+      },
+    } as SatoriElement,
+    box({
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      width: canvas.width,
+      height: canvas.height,
+      /*
+       * Heavier at the foot, where the wordmark and the body sit, and never
+       * flat: a uniform wash reads as a filter over the picture rather than as
+       * a ground the type is standing on.
+       */
+      backgroundImage:
+        'linear-gradient(to bottom, rgba(0,0,0,0.34) 0%, rgba(0,0,0,0.58) 45%, rgba(0,0,0,0.74) 100%)',
+    }),
+    content,
   );
 }
 
