@@ -209,15 +209,48 @@ export async function ttsHandler(job: Job, ctx: HandlerContext, deps: TtsDeps = 
    * were read identically. Stability is a performance setting, not a quality
    * one, and which end of the range is right depends on the piece.
    */
+  /*
+   * §428. The real runtime, when there is no brief to state it.
+   *
+   * `target_seconds` comes from `creative_briefs`, and a brief is written only
+   * on the artifact-driven path — six rows against forty-four content items. So
+   * every format piece reached the voice director with `targetSeconds: 30`
+   * whatever its actual length, and stability and energy are chosen from it: a
+   * nineteen-second history and a forty-five-second walkthrough were read
+   * identically, and neither was thirty seconds.
+   *
+   * The piece knows its own length. `screenplay` carries the staged scenes with
+   * their durations, which is the same arithmetic the render uses, so it is the
+   * runtime rather than an estimate of one. The brief still wins where it
+   * exists — it is a decision, and this is a measurement of what was built.
+   */
+  const stagedSeconds = Array.isArray(
+    (item.screenplay as { scenes?: Array<{ seconds?: number }> } | null)?.scenes,
+  )
+    ? (item.screenplay as { scenes: Array<{ seconds?: number }> }).scenes.reduce(
+        (total, scene) => total + (Number(scene.seconds) || 0),
+        0,
+      )
+    : 0;
+
+  const targetSeconds = item.target_seconds
+    ? Number(item.target_seconds)
+    : stagedSeconds > 0
+      ? Math.round(stagedSeconds)
+      : 30;
+
   const voice = directVoice({
     platform: item.platform,
     visualLanguage: item.treatment ? (LANGUAGE_FOR_TREATMENT[item.treatment] ?? null) : null,
     emotionalAngle: item.emotional_angle,
-    targetSeconds: item.target_seconds ? Number(item.target_seconds) : 30,
+    targetSeconds,
   });
   ctx.log('voice direction', {
     energy: voice.energy,
     stability: voice.stability,
+    targetSeconds,
+    /* §428. Which of the three sources answered, so a default is visible. */
+    runtimeFrom: item.target_seconds ? 'brief' : stagedSeconds > 0 ? 'screenplay' : 'default',
     because: voice.reason,
   });
 

@@ -53,3 +53,39 @@ describe('splitting a long line', () => {
     expect(rejoined.replace(/\s+/g, ' ')).toBe(LONG.replace(/\s+/g, ' '));
   });
 });
+
+describe('§429 a comma is not always a clause boundary', () => {
+  it('does not break inside a noun phrase', () => {
+    /*
+     * Rendered and read: "it regulates yeast for a slow," / "steady rise, while
+     * strengthening gluten" — the break landed inside "a slow, steady rise", so
+     * one card ended on a dangling adjective and the next opened on one.
+     */
+    const line =
+      'But salt is the planned brake: it regulates yeast for a slow, steady rise while strengthening gluten.';
+    for (const part of splitLongLine(line, 7)) {
+      expect(part.trim()).not.toMatch(/\ba slow,?$/);
+      expect(part.trim()).not.toMatch(/^steady\b/);
+    }
+  });
+
+  it('still breaks where a clause genuinely follows', () => {
+    const line =
+      'Typical dough uses about two percent salt by flour weight, and that small amount changes fermentation speed.';
+    const parts = splitLongLine(line, 7);
+    expect(parts).toHaveLength(2);
+    expect(parts[1]).toMatch(/^and that small amount/);
+  });
+
+  it('still breaks at a colon or semicolon, which are never ambiguous', () => {
+    const line =
+      'Salt does two things at once: it slows the yeast and it strengthens the gluten network.';
+    expect(splitLongLine(line, 7)).toHaveLength(2);
+  });
+
+  it('keeps a line whole rather than breaking it badly', () => {
+    /* The safe direction: anything the rule rejects stays one card. */
+    const line = 'A warm, damp, slightly under-proofed dough will always spread before it sets.';
+    expect(splitLongLine(line, 7)).toEqual([line]);
+  });
+});

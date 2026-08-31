@@ -173,11 +173,41 @@ export function splitLongLine(text: string, seconds: number): string[] {
    */
   if (words.length < 10 || seconds < 3) return [text];
 
-  /* Clause boundaries, in the order a writer would break at. */
+  /*
+   * Clause boundaries — and a comma is only one when a clause follows it.
+   *
+   * The first version broke at any comma, and a comma is also what separates
+   * two adjectives. Rendered and read: "it regulates yeast for a slow," /
+   * "steady rise, while strengthening gluten" — the break landed inside the
+   * noun phrase "a slow, steady rise", so the first card ended on a dangling
+   * adjective and the second opened on one. §417 said "never breaks
+   * mid-clause" and this is exactly mid-clause.
+   *
+   * A clause needs something to start it. Requiring the next word to be a
+   * conjunction, a pronoun or a determiner is a small list and it is the honest
+   * test: "steady" cannot begin a clause, "and that small amount" can. Anything
+   * this rejects simply stays one card, which is the safe direction.
+   */
+  const STARTS_A_CLAUSE = new Set([
+    'and', 'but', 'so', 'or', 'yet', 'because', 'which', 'while', 'then', 'though',
+    'it', 'they', 'we', 'you', 'he', 'she', 'this', 'that', 'these', 'those',
+    'there', 'here', 'the', 'a', 'an', 'its', 'their', 'your',
+  ]);
+
   const breaks: number[] = [];
   const re = /[,;:]\s+|\s+(?:but|and then|so that|because|which|while)\s+/gi;
   for (let m = re.exec(text); m; m = re.exec(text)) {
-    breaks.push(m.index + (m[0].startsWith(',') || m[0].startsWith(';') || m[0].startsWith(':') ? 1 : 0));
+    const at = m.index + (/^[,;:]/.test(m[0]) ? 1 : 0);
+    /*
+     * A semicolon or colon always ends a clause; only a comma is ambiguous.
+     * The conjunction alternatives carry their own clause opener already.
+     */
+    if (m[0].startsWith(',')) {
+      const next = text.slice(m.index + m[0].length).trim().split(/\s+/)[0] ?? '';
+      const bare = next.toLowerCase().replace(/[^a-z']/g, '');
+      if (!STARTS_A_CLAUSE.has(bare)) continue;
+    }
+    breaks.push(at);
   }
   if (breaks.length === 0) return [text];
 

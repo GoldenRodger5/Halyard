@@ -10757,3 +10757,57 @@ setup teams, eight agents, dormant because nothing enqueues them.
 **`creative_briefs` holds 6 rows against 44 content items**, because the brief is
 written inside the artifact-driven branch. Typography reaches format pieces by
 another route and audio direction does not.
+
+## 125 · A comma is not always a clause boundary
+
+**Chosen.** §417 breaks at a comma only when the word after it can begin a
+clause.
+
+**Why.** Found by rendering a seven-beat `origin` piece and reading it. Two
+consecutive cards said:
+
+> *"But salt is the planned brake: it regulates yeast for a slow,"*
+> *"steady rise, while strengthening gluten so dough holds the gas."*
+
+The break landed inside the noun phrase *"a slow, steady rise"*. One card ends
+on a dangling adjective and the next opens on one. §417's own comment says it
+"never splits mid-clause" and this is exactly mid-clause: a comma is also what
+separates two adjectives.
+
+A clause needs something to start it, so the next word must be a conjunction, a
+pronoun or a determiner. `steady` cannot begin a clause; `and that small amount`
+can. A semicolon and a colon are never ambiguous and are unaffected.
+
+**Anything the rule rejects stays one card**, which is the safe direction — a
+line that is slightly long is better than a line broken in the wrong place.
+
+**This is §124's shape again**, and it is worth counting: §417 was written and
+tested against clause boundaries it chose, and met a sentence in production that
+its rule did not describe. The tests passed because they asserted the rule, not
+the world.
+
+## §428 · The voice director was told every piece was thirty seconds
+
+**Chosen.** The runtime comes from the brief, then the staged screenplay, then a
+default — and the log says which.
+
+**Why.** `directVoice` chooses energy and stability partly from the runtime, and
+the runtime came only from `creative_briefs.target_seconds`. A brief is written
+on the artifact path alone — six rows against forty-four content items — so
+every format piece arrived claiming thirty seconds whatever its real length. A
+nineteen-second history and a forty-five-second walkthrough were read
+identically, and neither was thirty.
+
+The piece knows its own length: `screenplay` carries the staged scenes with
+their durations, the same arithmetic the render uses. The brief still wins where
+it exists, because a brief is a decision and this is a measurement of what was
+built. A test asserts the runtime actually changes the direction — otherwise it
+would be bookkeeping.
+
+## §429 · Not wired, and not claimed
+
+`summariseShippedFeatures` has no caller, and `products.repo_config` for
+RecipeFix is `{}`. Wiring it would produce nothing, and there would be no way to
+retest it — so it stays recorded rather than half-built. A path completed
+against no data is the thing that produces "declared, typed, tested, never
+executed", which this file exists to record.
