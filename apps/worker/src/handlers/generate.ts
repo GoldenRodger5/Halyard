@@ -1301,6 +1301,9 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
             ),
           },
           recent: recentShapes.rows.map((r) => r.caption_shape),
+          /* §421. Ties spread across pieces briefed at once, which all read the
+             same empty history because they overlap. */
+          seed: job.id,
         });
         captionCtx.log('caption shape', {
           shape: captionShape.shape,

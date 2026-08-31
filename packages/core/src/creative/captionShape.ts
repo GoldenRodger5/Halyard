@@ -106,14 +106,41 @@ export interface CaptionShapeChoice {
 export function chooseCaptionShape(input: {
   fit: ShapeFit;
   recent?: readonly string[];
+  /**
+   * Something stable and unique to this piece — its job id will do. §421.
+   *
+   * Used **only** to break ties between shapes that are equally stale, which is
+   * every shape when the history is empty or short. Without it the first option
+   * always wins a tie, and three pieces briefed at once all choose `single`:
+   * they overlap, so each reads a history the others have not written to yet.
+   *
+   * Observed exactly that way — three Instagram posts briefed through the UI,
+   * two of them chose `single` saying "nothing has been written for this
+   * account yet", and only the third, which started after the first had
+   * committed, chose differently.
+   *
+   * A seed is an input, so this stays a pure function and a regenerated caption
+   * keeps its shape.
+   */
+  seed?: string;
 }): CaptionShapeChoice {
   const fits = shapesThatFit(input.fit);
   const recent = input.recent ?? [];
 
+  /* FNV-1a over the seed, so the spread is stable and not a random draw. */
+  let hash = 2166136261;
+  for (const ch of input.seed ?? '') hash = Math.imul(hash ^ ch.charCodeAt(0), 16777619);
+  const offset = input.seed ? (hash >>> 0) % Math.max(1, fits.length) : 0;
+
   const scored = fits
-    .map((shape, offered) => {
+    .map((shape, i) => {
       const at = recent.indexOf(shape);
-      return { shape, staleness: at === -1 ? Number.POSITIVE_INFINITY : at, offered };
+      return {
+        shape,
+        staleness: at === -1 ? Number.POSITIVE_INFINITY : at,
+        /* Rotated by the seed, so ties do not always fall to the first. */
+        offered: (i - offset + fits.length) % fits.length,
+      };
     })
     .sort((a, b) => b.staleness - a.staleness || a.offered - b.offered);
 

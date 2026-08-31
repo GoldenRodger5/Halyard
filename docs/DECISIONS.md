@@ -10500,3 +10500,30 @@ Measured before concluding: the five genuinely new ideas the proposer wrote
 score 0.41 to 0.55 novelty against nineteen used ones, well clear of the 0.15
 floor. The proposer is not repeating itself and the floor is not over-refusing;
 both suspicions were wrong and checking took one query.
+
+## 118 · Three pieces briefed at once all chose the same shape
+
+**Chosen.** A seed — the job id — breaks ties between shapes that are equally
+stale. It never outranks recency.
+
+**Why.** Three Instagram posts briefed through the UI, and two chose `single`
+saying *"nothing has been written for this account yet"*. They overlap: each
+reads a history the others have not written to, because the caption is chosen
+about two minutes before the row is inserted.
+
+Only the third, which started after the first had committed, chose differently —
+`list`, "list has not been used lately". The rule works; it was asked before
+there was anything to answer with.
+
+**Not a race to fix with a lock.** Serialising generation to make a recency read
+correct would trade throughput for a tie-break, and the underlying situation is
+honest: with no history, every fitting shape is equally valid. The defect is
+that "equally valid" resolved to "always the first".
+
+**A seed is an input**, so this stays a pure function and a regenerated caption
+keeps its shape. A test asserts the seed never beats a stale option — a shape
+used last post must not come back because a job id happened to point at it.
+
+**Not a problem in normal operation**, where posts are days apart and the
+history is real. It is a problem exactly when an operator does what an operator
+does on their first day: brief three at once to see what comes out.

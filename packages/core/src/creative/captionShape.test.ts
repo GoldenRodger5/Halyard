@@ -96,3 +96,39 @@ describe('choosing a shape', () => {
     expect(new Set(shapesThatFit(rich))).toEqual(new Set(CAPTION_SHAPES));
   });
 });
+
+describe('§421 pieces briefed at once', () => {
+  const rich2 = { itemCount: 5, hasTurn: true, hasSource: true, asksQuestion: true };
+
+  it('do not all choose the same shape when none has committed yet', () => {
+    /*
+     * Observed live: three Instagram posts briefed through the UI, two chose
+     * `single` saying "nothing has been written for this account yet". They
+     * overlap, so each reads a history the others have not written to.
+     */
+    const shapes = ['job-a', 'job-b', 'job-c', 'job-d'].map(
+      (seed) => chooseCaptionShape({ fit: rich2, recent: [], seed }).shape,
+    );
+    expect(new Set(shapes).size).toBeGreaterThan(1);
+  });
+
+  it('still prefers a stale shape over the seed', () => {
+    /*
+     * The seed breaks ties and never outranks recency — a shape used last post
+     * must not come back because a job id happened to point at it.
+     */
+    for (const seed of ['a', 'b', 'c', 'd', 'e', 'f']) {
+      const recent = ['single', 'list', 'question_open', 'receipt'];
+      expect(chooseCaptionShape({ fit: rich2, recent, seed }).shape).toBe('setup_turn');
+    }
+  });
+
+  it('is still a pure function of its inputs', () => {
+    const args = { fit: rich2, recent: ['single'], seed: 'job-a' } as const;
+    expect(chooseCaptionShape(args).shape).toBe(chooseCaptionShape(args).shape);
+  });
+
+  it('behaves exactly as before when no seed is given', () => {
+    expect(chooseCaptionShape({ fit: rich2, recent: [] }).shape).toBe('single');
+  });
+});
