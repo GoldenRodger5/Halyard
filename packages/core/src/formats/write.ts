@@ -99,6 +99,33 @@ export function briefFor(
   }
 
   /*
+   * §411. The rules this writing is judged by, stated before it is written.
+   *
+   * `checkDraft` runs `slopFilter` over every slot, and the brief never said
+   * so. The writer therefore discovered the house style one refusal at a time:
+   * live, a `history` piece spent two of its three attempts on citations and
+   * the third on a hype comparative it had never been told to avoid, and was
+   * abandoned. The attempt budget exists for genuine misses, not for teaching
+   * the rules.
+   *
+   * The four constructions are named individually because they are the ones
+   * `slopFilter` refuses outright and they are the ones a model reaches for
+   * unprompted. The banned-phrase list is not pasted in — forty-five phrases is
+   * a wall a model skims, and naming the *shape* refuses the whole family
+   * rather than the entries someone happened to list.
+   */
+  lines.push(
+    '',
+    'House style, which this will be refused for breaking:',
+    '- No "more than just X", "not just X but Y", "whether you\'re X or Y", or',
+    '  "that\'s where X comes in". These are the tells, and they are refused.',
+    '- No hype: nothing is a game changer, revolutionary, or a secret.',
+    '- No em dashes, no curly quotes, no emoji.',
+    '- Write the claim plainly. A sentence that survives having its adjectives',
+    '  removed is the sentence to write.',
+  );
+
+  /*
    * §401. Six, and only the openings. More becomes a wall of text the model
    * skims, and the opening is the part a viewer actually recognises.
    */

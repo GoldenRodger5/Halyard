@@ -10146,3 +10146,31 @@ specifics for every other format.
 The overlap test is not a weaker bar, it is the **other** bar. A slot carrying
 neither a specific nor a third of the claim's words is genuinely citing
 something it does not say, and is still refused.
+
+## 106 · An agent judged by a rule is told the rule
+
+**Chosen.** `briefFor` states the house style — the four refused constructions,
+the hype ban, the punctuation — before the writer writes.
+
+**Why.** `checkDraft` runs `slopFilter` over every slot, and the brief never
+said so. The writer discovered the style one refusal at a time.
+
+Live, on the run immediately after §410 unblocked citations: a `history` piece
+spent attempt one and two on citations, cleared them, and was refused on attempt
+three for a hype comparative — *"more than just ..."* — it had never been told
+to avoid. Abandoned, having written nothing wrong twice and then something it
+had no way to know was forbidden.
+
+The attempt budget is for genuine misses. Spending it teaching the rules means
+three attempts buys one real correction, and which rule a piece dies on is
+decided by the order the model happens to break them in.
+
+**Rejected: raising `MAX_FORMAT_ATTEMPTS`.** More attempts at rule-discovery is
+more model calls to learn something that could have been stated once, and it
+leaves the failure mode intact — a piece that breaks four rules still dies.
+
+**Rejected: pasting `BANNED_PHRASES`.** Forty-five phrases is a wall a model
+skims, and it refuses only the rows somebody happened to list. Naming the
+*shape* — "no hype", "no X-but-Y constructions" — refuses the family, including
+the entries nobody has thought of yet. A test asserts the list is not pasted in,
+because the obvious maintenance move is to paste it.
