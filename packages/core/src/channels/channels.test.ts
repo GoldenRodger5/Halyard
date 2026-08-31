@@ -55,9 +55,25 @@ describe('the channel catalogue', () => {
     expect(channelForPlatform('youtube')).toBe('short_video');
   });
 
-  it('returns null for a platform nothing serves yet', () => {
-    /* Pinterest and Facebook are deliberately deferred. */
-    expect(channelForPlatform('pinterest')).toBeNull();
+  it('serves Pinterest, which was half-deferred', () => {
+    /*
+     * §431. Pinterest was deliberately deferred here and offered everywhere
+     * else: a `pinterest_tall` template registered and enabled, an account
+     * connected with `supported_formats: {pin, image}`, a `pin` post type in
+     * the catalogue, and a Pin button on the Floor. `platformsForFormat`
+     * derives platforms from channels, so no format carried Pinterest and the
+     * Floor refused every attempt — "Tips cannot run on pinterest" — while
+     * still offering the button. Zero pins have ever been made, and not for
+     * want of trying: it was impossible.
+     *
+     * Deferring a platform is a fair decision. Deferring it in one file and
+     * offering it in four others is the state this replaces.
+     */
+    expect(channelForPlatform('pinterest')).toBe('pin');
+  });
+
+  it('still returns null for a platform genuinely nothing serves', () => {
+    /* Facebook remains deferred, and deferred all the way through. */
     expect(channelForPlatform('facebook')).toBeNull();
     expect(channelById('nope')).toBeNull();
   });

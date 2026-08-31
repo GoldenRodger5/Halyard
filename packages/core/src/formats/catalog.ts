@@ -201,7 +201,7 @@ export const POST_FORMAT_CATALOG: Record<PostFormatId, PostFormat> = {
     intent: 'One surprising true thing, told as a story with a turn.',
     pillar: 'entertain',
     factuality: 'sourced',
-    channels: ['short_video', 'text_post', 'long_video'],
+    channels: ['short_video', 'text_post', 'long_video', 'pin'],
     needsArtifact: false,
     targetSeconds: 35,
     slots: [
@@ -219,7 +219,7 @@ export const POST_FORMAT_CATALOG: Record<PostFormatId, PostFormat> = {
     intent: 'Three to five things, numbered, each one line. The highest save rate.',
     pillar: 'teach',
     factuality: 'craft',
-    channels: ['short_video', 'text_post', 'carousel'],
+    channels: ['short_video', 'text_post', 'carousel', 'pin'],
     needsArtifact: false,
     targetSeconds: 30,
     slots: [
@@ -247,7 +247,7 @@ export const POST_FORMAT_CATALOG: Record<PostFormatId, PostFormat> = {
      * would have produced a twenty-second video for a slot asking for eight
      * minutes. It comes back when there is something to render it into.
      */
-    channels: ['carousel'],
+    channels: ['carousel', 'pin'],
     needsArtifact: true,
     targetSeconds: 45,
     slots: [
@@ -264,7 +264,7 @@ export const POST_FORMAT_CATALOG: Record<PostFormatId, PostFormat> = {
     intent: 'A thing people believe that is true but misleading, corrected carefully.',
     pillar: 'warn',
     factuality: 'sourced',
-    channels: ['short_video', 'text_post', 'carousel'],
+    channels: ['short_video', 'text_post', 'carousel', 'pin'],
     needsArtifact: false,
     targetSeconds: 25,
     slots: [
@@ -286,7 +286,7 @@ export const POST_FORMAT_CATALOG: Record<PostFormatId, PostFormat> = {
      * comparison is a strong long-form shape and there is no composition for
      * one, so the channel comes back with the composition rather than before.
      */
-    channels: ['text_post', 'carousel'],
+    channels: ['text_post', 'carousel', 'pin'],
     needsArtifact: false,
     targetSeconds: 30,
     slots: [
@@ -303,7 +303,7 @@ export const POST_FORMAT_CATALOG: Record<PostFormatId, PostFormat> = {
     intent: 'How a thing got to be the way it is. The widest net in the family.',
     pillar: 'entertain',
     factuality: 'sourced',
-    channels: ['short_video', 'long_video'],
+    channels: ['short_video', 'long_video', 'pin'],
     needsArtifact: false,
     targetSeconds: 40,
     slots: [
@@ -400,7 +400,7 @@ export const POST_FORMAT_CATALOG: Record<PostFormatId, PostFormat> = {
     intent: 'The product doing its job: before, the change, and what it costs.',
     pillar: 'demonstrate',
     factuality: 'product',
-    channels: ['short_video', 'text_post', 'carousel'],
+    channels: ['short_video', 'text_post', 'carousel', 'pin'],
     needsArtifact: true,
     targetSeconds: 30,
     slots: [

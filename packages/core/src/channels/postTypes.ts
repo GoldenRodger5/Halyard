@@ -184,7 +184,14 @@ export const POST_TYPE_CATALOG: Record<PostTypeId, PostType> = {
     id: 'pin',
     name: 'Pin',
     intent: 'Keyword-forward, long half-life, and the link is the point.',
-    channel: 'carousel',
+    /*
+     * §431. Its own channel, not `carousel`.
+     *
+     * `carousel`'s platforms are Instagram alone, so a pin pointed at it could
+     * never reach Pinterest — and `platformsForFormat` derives from channels,
+     * so no format carried Pinterest and the Floor refused every pin.
+     */
+    channel: 'pin',
     media: 'image',
     requires: { format: 'pin', link: true },
   },

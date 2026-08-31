@@ -414,6 +414,17 @@ export function scalingMath(props: ScalingMathProps): SatoriElement {
 }
 
 /** Keyword-forward, long half-life. 2:3 (v1 §5.1). */
+export interface PinStackProps extends TemplateBase {
+  label: string;
+  title: string;
+  steps: string[];
+}
+
+export interface PinQuoteProps extends TemplateBase {
+  quote: string;
+  attribution?: string | null;
+}
+
 export function pinterestTall(props: PinterestTallProps): SatoriElement {
   return frame(
     { ...props, aspectRatio: '2:3' },
@@ -441,6 +452,82 @@ export function pinterestTall(props: PinterestTallProps): SatoriElement {
         ),
       ),
     ),
+  );
+}
+
+/**
+ * §430. A numbered stack, down a tall card.
+ *
+ * `VARIETY_BY_POST_TYPE.md` §3.2 asks for two more pins because "the same crop
+ * repeated is the whole feed" on Pinterest — a surface where a user sees a grid
+ * of cards at once and one shape repeated reads as a single advertiser.
+ *
+ * The move is different from `pinterest_tall`, not a rearrangement of it. That
+ * card leads with a title and supports it with bullets; this one **is** the
+ * list, numbered, with the title as a label above it. A reader saves a pin to
+ * come back to a sequence, and a sequence should look like one.
+ */
+export function pinStack(props: PinStackProps): SatoriElement {
+  return frame(
+    { ...props, aspectRatio: '2:3' },
+    kicker(props.label, props.brand),
+    text(props.title, {
+      fontFamily: props.brand.headingFont,
+      fontSize: 64,
+      lineHeight: 1.08,
+      marginBottom: 40,
+    }),
+    box(
+      { flexDirection: 'column' },
+      ...props.steps.slice(0, 5).map((step, i) =>
+        box(
+          { alignItems: 'flex-start', marginBottom: 26 },
+          /*
+           * The numeral is set in the display face at the size of the step it
+           * labels, so the column reads as a sequence rather than as bullets
+           * that happen to carry digits.
+           */
+          text(String(i + 1), {
+            fontFamily: props.brand.headingFont,
+            fontSize: 44,
+            color: props.brand.primary,
+            marginRight: 22,
+            /* Fixed width so two-digit steps do not shift the column. */
+            width: 54,
+          }),
+          text(step, { fontSize: 34, lineHeight: 1.32, flexGrow: 1 }),
+        ),
+      ),
+    ),
+  );
+}
+
+/**
+ * §430. A line worth saving, at size.
+ *
+ * The third pin shape, and the one that can stand on a photograph — the same
+ * density rule §422 settled for the stills: a quote is one line and an
+ * attribution, which a picture supports rather than fights.
+ */
+export function pinQuote(props: PinQuoteProps): SatoriElement {
+  return frame(
+    { ...props, aspectRatio: '2:3' },
+    text('\u201C', {
+      fontFamily: props.brand.headingFont,
+      fontSize: 120,
+      color: props.brand.primary,
+      lineHeight: 0.8,
+      marginBottom: 8,
+    }),
+    text(props.quote, {
+      fontFamily: props.brand.headingFont,
+      fontSize: 66,
+      lineHeight: 1.14,
+      marginBottom: 32,
+    }),
+    props.attribution
+      ? text(props.attribution, { fontSize: 30, color: props.imageDataUri ? 'rgba(255,255,255,0.72)' : props.brand.muted })
+      : box({ height: 0 }),
   );
 }
 
@@ -623,6 +710,8 @@ export const TEMPLATE_REGISTRY = {
   chef_note_quote: chefNoteQuote,
   scaling_math: scalingMath,
   pinterest_tall: pinterestTall,
+  pin_stack: pinStack,
+  pin_quote: pinQuote,
   carousel_6: carouselSlide,
   youtube_thumbnail: youtubeThumbnail,
 } as const;
@@ -650,6 +739,8 @@ export const TEMPLATE_REQUIRED_PROPS: Record<TemplateId, readonly string[]> = {
   chef_note_quote: ['quote'],
   scaling_math: ['fromServings', 'toServings', 'rows', 'note'],
   pinterest_tall: ['title', 'subtitle', 'bullets'],
+  pin_stack: ['label', 'title', 'steps'],
+  pin_quote: ['quote'],
   carousel_6: ['index', 'total', 'kicker', 'headline', 'bodyLines'],
   youtube_thumbnail: ['overlayText', 'fontSizePx'],
 };

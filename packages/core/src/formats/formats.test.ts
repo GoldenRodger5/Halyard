@@ -151,12 +151,20 @@ describe('choosing a format', () => {
 
   it('says a platform nothing serves is a gap, rather than inventing a shape', () => {
     /*
-     * Pinterest and Facebook are out of scope for now. The selector still has
-     * to return something, and it says plainly that this is a gap — silently
-     * picking a shape would make an unserved platform look served.
+     * The selector still has to return something, and it says plainly that this
+     * is a gap — silently picking a shape would make an unserved platform look
+     * served. Facebook is the remaining case; §431 gave Pinterest a channel.
      */
-    const { reason } = selectFormat({ platform: 'pinterest', hasArtifact: true });
+    const { reason } = selectFormat({ platform: 'facebook', hasArtifact: true });
     expect(reason).toContain('gap');
+  });
+
+  it('serves Pinterest now that it has a channel', () => {
+    /* §431. It was deferred here and offered in the UI, the template registry
+       and the account row. Zero pins had ever been made, because none could. */
+    const { format, reason } = selectFormat({ platform: 'pinterest', hasArtifact: true });
+    expect(format).toBeTruthy();
+    expect(reason).not.toContain('gap');
   });
 
   it('explains the choice', () => {

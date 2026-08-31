@@ -31,7 +31,7 @@
  */
 import { POST_FORMATS, POST_FORMAT_CATALOG, type PostFormatId } from '../formats/catalog.js';
 
-export const CHANNELS = ['short_video', 'text_post', 'carousel', 'long_video', 'story', 'reply'] as const;
+export const CHANNELS = ['short_video', 'text_post', 'carousel', 'long_video', 'story', 'reply', 'pin'] as const;
 export type ChannelId = (typeof CHANNELS)[number];
 
 /** What the opening has to accomplish, in the time it has. */
@@ -116,6 +116,48 @@ export const CHANNEL_CATALOG: Record<ChannelId, Channel> = {
     needsVoice: false,
     needsMotion: false,
     primaryAction: 'reply, or quote it',
+  },
+
+  /**
+   * §431. Pinterest had no channel, so nothing could be made for it.
+   *
+   * Pinterest is a connected platform with a template, a post type and a
+   * declared aspect ratio, and **no format could target it**: `platformsForFormat`
+   * derives platforms from a format's channels, and not one of the six channels
+   * listed Pinterest. The `pin` post type pointed at `carousel`, whose platforms
+   * are Instagram alone.
+   *
+   * So the Floor correctly refused every attempt — *"Tips cannot run on
+   * pinterest"* — and zero pins have ever been made. Not "never exercised":
+   * impossible. Found by briefing one through the UI and watching the button do
+   * nothing.
+   *
+   * ## Why a channel of its own rather than reusing carousel
+   *
+   * A pin is not a swipeable argument. It is a single tall card that has to
+   * survive being seen in a grid of other cards, and its reader is looking for
+   * something to keep — the save is the action, not the swipe. That is a
+   * different opening rule and a different primary action, which is exactly what
+   * a channel records.
+   */
+  pin: {
+    id: 'pin',
+    originates: true,
+    name: 'Pin',
+    intent: 'One tall card in a grid of them. The reader is looking for something worth keeping.',
+    platforms: ['pinterest'],
+    targetSeconds: null,
+    opening: {
+      /*
+       * A pin is scanned in a grid rather than played, so the decision is made
+       * on the card as a whole rather than in a first second.
+       */
+      decisionSeconds: 1,
+      rule: 'The card has to say what it is worth saving for while it is still thumbnail-sized.',
+    },
+    needsVoice: false,
+    needsMotion: false,
+    primaryAction: 'save it',
   },
 
   carousel: {

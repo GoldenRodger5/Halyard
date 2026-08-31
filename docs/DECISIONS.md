@@ -10811,3 +10811,53 @@ RecipeFix is `{}`. Wiring it would produce nothing, and there would be no way to
 retest it — so it stays recorded rather than half-built. A path completed
 against no data is the thing that produces "declared, typed, tested, never
 executed", which this file exists to record.
+
+## 126 · Pinterest was deferred in one file and offered in four others
+
+**Chosen.** A `pin` channel, `platforms: ['pinterest']`, and the seven formats
+that suit a save-oriented surface declare it.
+
+**Why.** `platformsForFormat` derives platforms from a format's channels, and
+none of the six channels listed Pinterest. The `pin` post type pointed at
+`carousel`, whose platforms are Instagram alone. So **no format could target
+Pinterest** and the Floor refused every attempt — *"Tips cannot run on
+pinterest. It carries: tiktok, instagram, youtube, x, threads."*
+
+Zero pins have ever been made, and not for want of trying: it was impossible.
+
+A test recorded this as intentional — *"Pinterest and Facebook are deliberately
+deferred"* — and deferring a platform is a fair decision. What is not fair is
+deferring it in `channels.ts` while offering it everywhere else: a
+`pinterest_tall` template registered and enabled, an account connected with
+`supported_formats: {pin, image}`, a `pin` post type in the catalogue, and a Pin
+button on the Floor that could never work. Facebook is deferred all the way
+through, which is the state Pinterest should have been in or out of.
+
+**Its own channel rather than reusing `carousel`.** A pin is not a swipeable
+argument. It is one tall card surviving a grid of other cards, read by someone
+looking for something to keep — a different opening rule and a different primary
+action, which is what a channel records.
+
+**Which formats.** Pinterest is saved for reference and how-to, so `tips`,
+`recipe`, `history`, `origin`, `comparison`, `transformation` and `myth_fact`
+declare it. `quiz` and `poll` are engagement mechanics that do not translate;
+`walkthrough` is a recording; `behind` is ephemeral.
+
+**Retested through the UI.** Before: the button did nothing and no job was
+created. After: `post format chosen — pinterest, tips, "Chosen by the
+operator."` The piece was written and captioned and then correctly refused with
+*"This Pinterest account has no boards. Every pin needs one, so create at least
+one board and re-sync before drafting pins."* `pinterest_boards` is empty — that
+is an operator action with a stated remedy, which is the right place for the
+chain to stop.
+
+## §430 · Two more pin shapes
+
+`VARIETY_BY_POST_TYPE.md` §3.2 asked for these, and they are different moves
+rather than rearrangements: `pinterest_tall` leads with a title and supports it
+with bullets; `pin_stack` **is** the list, numbered, because a reader saves a pin
+to come back to a sequence; `pin_quote` is one line at size and is the pin that
+can stand on a photograph, by §422's density rule.
+
+Enabled on insert. A template registered and switched off is unreachable, and
+§395 already recorded what happens then.

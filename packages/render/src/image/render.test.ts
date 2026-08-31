@@ -348,6 +348,9 @@ describe('required props are declared correctly', () => {
     title: 'A title',
     subtitle: 'A subtitle',
     bullets: ['One bullet'],
+    /* §430. The two pin shapes added for Pinterest range. */
+    label: 'The order matters',
+    steps: ['Swap the flour for a 1:1 blend.', 'Add fifteen percent more water.'],
     index: 1,
     total: 6,
     kicker: 'One change',
