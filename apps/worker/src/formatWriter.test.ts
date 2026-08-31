@@ -7,7 +7,12 @@
  */
 import { describe, expect, it, vi } from 'vitest';
 import { POST_FORMAT_CATALOG } from '@halyard/core';
-import { FormatRejectedError, MAX_FORMAT_ATTEMPTS, writeToFormat } from './formatWriter.js';
+import {
+  FormatRejectedError,
+  MAX_FORMAT_ATTEMPTS,
+  matchesResearchedFact,
+  writeToFormat,
+} from './formatWriter.js';
 
 /**
  * A source that says whatever the test needs, without touching the network.
@@ -207,5 +212,50 @@ describe('writing to a format', () => {
       { complete } as never,
     );
     expect(result.costUsd).toBeCloseTo(0.002, 5);
+  });
+});
+
+describe('§410 a specific is sufficient, not necessary', () => {
+  /* Carries a specific — 1728 — as `specificsOf` detects them: digits, or a
+     capitalised word mid-sentence. */
+  const dated =
+    'Gluten was first isolated by Beccari in 1728, separating it from wheat flour.';
+  const fact =
+    'Staling is caused by starch retrogradation, in which amylopectin recrystallises over time.';
+
+  it('accepts a line carrying the fact’s specific and nothing else', () => {
+    expect(matchesResearchedFact('It was 1728.', dated)).toBe(true);
+  });
+
+  it('now also accepts a paraphrase of a fact that has a specific', () => {
+    /*
+     * The old rule returned false the moment a fact carried any number or name
+     * and the citing line did not repeat one — so this exact sentence, which is
+     * the fact written for a viewer, was refused.
+     */
+    expect(
+      matchesResearchedFact('Gluten was first isolated from wheat flour.', dated),
+    ).toBe(true);
+  });
+
+  it('accepts an accurate paraphrase that carries no specific', () => {
+    /*
+     * Found live: a `history` piece on why bread goes stale was refused three
+     * times and abandoned on a line that was true and sourced, because the rule
+     * required a number or proper noun to appear verbatim.
+     */
+    expect(
+      matchesResearchedFact('Staling is caused by starch slowly recrystallising over time.', fact),
+    ).toBe(true);
+  });
+
+  it('still refuses a line that says something else entirely', () => {
+    expect(matchesResearchedFact('Keep bread in a paper bag on the counter.', fact)).toBe(false);
+  });
+
+  it('still refuses a line that merely shares grammar', () => {
+    expect(matchesResearchedFact('This is caused by something that happens over time.', fact)).toBe(
+      false,
+    );
   });
 });

@@ -46,10 +46,28 @@ export interface VisionClient {
 export const DESCRIBE_INSTRUCTION = [
   'Describe what is visibly present in this image, factually, in one or two sentences.',
   'Then list every piece of text you can read in it, exactly as written.',
+  /*
+   * §409. The depicted subject, named separately from everything else.
+   *
+   * `describes` is a sentence, and a sentence about a photograph with words on
+   * it inevitably describes the words too. That made every downstream check
+   * that wanted to know *what is pictured* unable to ask: `entirely_static`
+   * compares whole descriptions and needs them byte-identical, so six frames of
+   * one photograph carrying six different overlays are six different strings
+   * and the rule can never fire. It never has.
+   *
+   * A short noun phrase is still pure perception — "name the thing" is what a
+   * describer is for, and nothing here asks whether the thing is any good. It
+   * is the field that lets code ask "did the picture change" and "is the
+   * picture about what the piece is about" without a model judging either.
+   */
+  'Then name the main physical subject depicted, as a short noun phrase of two',
+  'to four words — "a sourdough loaf", "a bowl of flour". If the frame is a',
+  'text card, a blank ground or a logo with no depicted subject, answer "none".',
   'Do not judge the image. Do not comment on quality, style, composition or appeal.',
   'If you cannot tell what something is, say so rather than guessing.',
   '',
-  'Reply as JSON: {"describes": "...", "visibleText": ["...", "..."]}',
+  'Reply as JSON: {"describes": "...", "visibleText": ["...", "..."], "subject": "..."}',
 ].join('\n');
 
 interface ChatResponse {
@@ -128,7 +146,7 @@ export class OpenAiVisionClient implements VisionClient {
       throw new Error(`No description returned for the frame at ${image.atSeconds}s.`);
     }
 
-    let parsed: { describes?: string; visibleText?: unknown };
+    let parsed: { describes?: string; visibleText?: unknown; subject?: unknown };
     try {
       parsed = JSON.parse(text) as typeof parsed;
     } catch {
@@ -137,12 +155,22 @@ export class OpenAiVisionClient implements VisionClient {
       parsed = { describes: text, visibleText: [] };
     }
 
+    /*
+     * §409. Absent or "none" both mean *no depicted subject*, and null says so.
+     * A describer that did not answer must not be read as having answered
+     * "none" — the checks that consume this treat an unnamed subject as
+     * unmeasured rather than as an empty frame.
+     */
+    const named = typeof parsed.subject === 'string' ? parsed.subject.trim() : '';
+    const subject = !named || /^none$/i.test(named) ? null : named;
+
     return {
       atSeconds: image.atSeconds,
       describes: (parsed.describes ?? '').trim(),
       visibleText: Array.isArray(parsed.visibleText)
         ? parsed.visibleText.map((t) => String(t)).filter(Boolean)
         : [],
+      subject,
     };
   }
 }

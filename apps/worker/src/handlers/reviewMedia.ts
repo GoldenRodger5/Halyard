@@ -404,8 +404,30 @@ export async function reviewMediaHandler(
       [item.product_id],
     );
 
+    /**
+     * §409. What this piece asked its image model to photograph.
+     *
+     * The oracle for "does the picture make sense with the piece". Not derived
+     * from the script — a post about gluten illustrated with a loaf of bread is
+     * the job done right, and any comparison against the spoken words calls
+     * that a mismatch. Halyard chose these subjects and sent them to a
+     * generator, so what each frame was *supposed* to show is known exactly.
+     *
+     * Empty when nothing was recorded, and the gate then reports itself
+     * unmeasured rather than passing — which is the rule everywhere else here.
+     */
+    const { rows: subjectRows } = await ctx.pool.query<{ subject: string }>(
+      `select distinct a.subject
+         from content_items ci
+         join assets a on a.id = any(ci.attached_asset_ids)
+        where ci.id = $1 and a.subject is not null`,
+      [item.id],
+    );
+    const expectedSubjects = subjectRows.map((r) => r.subject);
+
     const intent: CoherenceIntent = {
       body: item.body,
+      expectedSubjects,
       // The script was always available on the item and was passed as null, so
       // every rule comparing what was said against what was scripted compared
       // against nothing.

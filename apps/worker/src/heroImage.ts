@@ -174,6 +174,8 @@ export async function generateHeroImage(
     tags: ['generated', `model:${image.model}`],
     /* §402. So the next picture can be shot differently. */
     shot: request.shot ? shotId(request.shot) : null,
+    /* §409. So the critic can check the frames show what was asked for. */
+    subject: request.subject,
     /*
      * Never `video` or `proof`. This is an illustration and the roles it may
      * appear in are the non-evidential ones; declaring it here keeps a later

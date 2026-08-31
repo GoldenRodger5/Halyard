@@ -131,24 +131,36 @@ function wordsOf(text: string): Set<string> {
 }
 
 export function matchesResearchedFact(citingText: string, factClaim: string): boolean {
+  /*
+   * The fact pins down something concrete. Carrying any one of those is the
+   * citation being honoured — a quiz answer is often the specific and nothing
+   * else, which is the correct way to write one.
+   */
   const specifics = specificsOf(factClaim);
-  if (specifics.size > 0) {
-    /*
-     * The fact pins down something concrete. Carrying any one of those is the
-     * citation being honoured — a quiz answer is often the specific and nothing
-     * else, which is the correct way to write one.
-     */
-    const haystack = citingText.toLowerCase();
-    for (const specific of specifics) {
-      if (haystack.includes(specific)) return true;
-    }
-    return false;
+  const haystack = citingText.toLowerCase();
+  for (const specific of specifics) {
+    if (haystack.includes(specific)) return true;
   }
 
   /*
-   * A qualitative fact with no numbers and no names. Wording is all there is,
-   * so the original overlap test stands — a third, because a piece built from a
-   * fact keeps its subject and discards its grammar.
+   * §410. A specific is *sufficient*, not *necessary*.
+   *
+   * This used to `return false` here, so a fact carrying any number or proper
+   * noun could only ever be cited by a line that repeated one of them. That
+   * refuses accurate paraphrase: a fact about amylopectin retrogradation, cited
+   * by "the starch slowly rearranges into a firmer structure", is the same
+   * claim written for a viewer and shares no specific at all.
+   *
+   * Found live — a `history` piece on why bread goes stale was refused three
+   * times and abandoned, with the model converging from five unsupported slots
+   * to one and being rejected on a line that was true and sourced. It is §400's
+   * shape a second time: a rule demanding surface overlap where correspondence
+   * of meaning is what a citation actually asserts.
+   *
+   * The overlap test below is not a weaker bar, it is the *other* bar. A third
+   * of the claim's content words is real evidence the slot is about the fact,
+   * and a slot that carries neither a specific nor a third of the words is
+   * genuinely citing something it does not say.
    */
   const claim = wordsOf(factClaim);
   if (claim.size === 0) return false;

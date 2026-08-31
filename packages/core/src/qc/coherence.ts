@@ -54,6 +54,16 @@ export interface FrameObservation {
   describes: string;
   /** Text burned into the frame, read literally. */
   visibleText: string[];
+  /**
+   * The main physical subject depicted, as a short noun phrase. §409.
+   *
+   * `null` for a frame with nothing depicted — a text card, a blank ground, a
+   * logo — **and** for a frame described before §409, which genuinely does not
+   * know. The two are the same answer here on purpose: neither can support a
+   * claim about what the picture showed, and the checks below treat an absent
+   * subject as unmeasured rather than as an empty frame.
+   */
+  subject?: string | null;
 }
 
 /** What a describer reports about the audio track. */
@@ -92,6 +102,21 @@ export interface CoherenceIntent {
    * the openings it exists to catch.
    */
   brandTerms?: string[];
+  /**
+   * The subjects the pipeline actually *asked* to photograph. §409.
+   *
+   * This is a real oracle, not a second opinion. Halyard chooses a photographic
+   * subject per beat and sends it to an image model, so "what was this frame
+   * supposed to show" is known exactly — it does not have to be inferred from
+   * the script, and inferring it is where a check like this would go wrong. A
+   * piece about gluten is rightly illustrated with a loaf of bread; a term
+   * comparison against the script would call that a mismatch, and it is the
+   * whole job done correctly.
+   *
+   * Empty or absent means the pipeline did not record what it asked for, and
+   * the check reports itself unmeasured rather than passing.
+   */
+  expectedSubjects?: string[];
 }
 
 export interface CoherenceInput {
@@ -338,13 +363,116 @@ export function runCoherenceQC(input: CoherenceInput): CoherenceResult {
   // delegated to a model: the describer says what it saw, and these rules
   // decide what that means.
   if (frames.length >= 3) {
+    /*
+     * §409. Compared on the **depicted subject**, not the whole description.
+     *
+     * This rule has existed since the gate did and has never once fired. It
+     * required every description to be byte-identical, and a description is a
+     * sentence about a frame that has words burned into it — six frames of one
+     * photograph carrying six different overlays are six different sentences.
+     * So the check that exists to catch "a still image with audio over it"
+     * could not catch it, and did not, on every video Halyard has made.
+     *
+     * `subject` is the describer naming what is pictured, separately from what
+     * is written. Frames with no named subject are excluded rather than
+     * counted as matching: a describer that did not answer has not told us the
+     * picture stayed the same.
+     */
+    const subjects = frames
+      .map((f) => (f.subject ? normalise(f.subject) : null))
+      .filter((s): s is string => s !== null);
+
+    /*
+     * Either signal is sufficient, and they are not redundant. Identical
+     * *descriptions* means the describer could not tell the frames apart at
+     * all — a card that never changes, which is the case the original rule was
+     * written for and the one it can actually see. Identical *subjects* means
+     * the picture never changed even though the words on it did, which is the
+     * far commoner shape and the one it was blind to.
+     */
+    const sameSubject = subjects.length >= 3 && new Set(subjects).size === 1;
     const descriptions = frames.map((f) => normalise(f.describes));
-    if (new Set(descriptions).size === 1) {
+    const sameDescription = new Set(descriptions).size === 1;
+
+    if (sameSubject || sameDescription) {
+      const shown = sameSubject
+        ? frames.find((f) => f.subject)!.subject
+        : frames[0]!.describes;
       findings.push({
         rule: 'visual_slop.entirely_static',
         severity: 'error',
-        message: `All ${frames.length} sampled frames are the same shot: ${frames[0]!.describes}`,
+        message: `All ${frames.length} sampled frames show the same shot: ${shown}`,
         fix: 'This is a still image with audio over it. The hook check only looks at the first second, so a video that never moves at all passes it.',
+      });
+    } else if (subjects.length >= 4 && new Set(subjects).size === 2) {
+      /*
+       * §409. Not static, and not enough. Every platform's own guidance is a
+       * visual reset every 1.5-4 seconds — TikTok 1.5-3, Reels 2.5-4, Shorts
+       * 3-5 — because "dead time, any moment where nothing new appears on
+       * screen" is what loses a feed viewer. Two pictures across a whole video
+       * is one reset.
+       *
+       * A warning rather than an error: two genuinely different shots is a
+       * defensible edit for a short piece, and this is the operator's call.
+       */
+      findings.push({
+        rule: 'visual_slop.thin_variety',
+        severity: 'warning',
+        message: `${subjects.length} sampled frames show only ${new Set(subjects).size} distinct subjects.`,
+        fix: 'Short-form wants a new picture every few seconds. Give each beat its own photograph.',
+      });
+    }
+
+    /*
+     * §409. Is the picture of what we asked for?
+     *
+     * The operator's question, in their words: *does the background make sense
+     * with the subject*. Answered against what the pipeline actually requested
+     * rather than against the script — because a piece about gluten
+     * photographed as a loaf of bread is the job done right, and any check that
+     * compares depicted subject to spoken words calls that a failure.
+     *
+     * The failure this catches is the real one: §406 rendered a `history` piece
+     * about sourdough using the artifact's beats, so the frames were a tofu
+     * dish while the voiceover was about ancient Egypt. Nothing noticed, and
+     * the gate told the operator the piece was coherent.
+     */
+    const expected = (input.intent.expectedSubjects ?? []).filter(
+        (subject) => subject.trim().length > 0,
+      );
+    const depicted = frames.filter((f) => f.subject);
+    if (expected.length > 0 && depicted.length > 0) {
+      const wanted = expected.map((subject) => new Set(contentWords(subject)));
+      const strays = depicted.filter((frame) => {
+        const seen = contentWords(frame.subject!);
+        if (seen.length === 0) return false;
+        return !wanted.some((want: Set<string>) => seen.some((word) => want.has(word)));
+      });
+
+      /*
+       * A majority, not any single frame. An image model given "a bowl of
+       * flour and water starter" may return something a describer calls "a
+       * glass jar", and one honest disagreement about a noun is not a piece
+       * about the wrong thing. Most of the frames showing something nobody
+       * asked for is.
+       */
+      if (strays.length > depicted.length / 2) {
+        findings.push({
+          rule: 'coherence.pictures_are_of_something_else',
+          severity: 'error',
+          message:
+            `${strays.length} of ${depicted.length} frames show something the piece never asked to ` +
+            `photograph — seen: ${[...new Set(strays.map((f) => f.subject))].slice(0, 3).join('; ')}. ` +
+            `Asked for: ${expected.slice(0, 3).join('; ')}.`,
+          fix: 'The frames are illustrating a different piece than the words. Check which beats the composition was given.',
+        });
+      }
+    } else if (expected.length === 0 && depicted.length > 0) {
+      findings.push({
+        rule: 'coherence.expected_subjects_not_recorded',
+        severity: 'warning',
+        message: 'Nothing recorded what these frames were supposed to show, so it was not checked.',
+        fix: 'The generator knows the subject it asked an image model for. Record it so this can be verified.',
       });
     }
 

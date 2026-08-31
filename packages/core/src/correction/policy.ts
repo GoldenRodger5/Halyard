@@ -115,6 +115,35 @@ const BY_RULE: Record<string, PolicyEntry> = {
     correctable: true,
   },
 
+  /*
+   * §409. The frames are illustrating a different piece than the words.
+   *
+   * Not `resequence_scenes`, which the `coherence` namespace fallback would
+   * have given it — reordering beats that are about the wrong subject produces
+   * the same wrong subject in a different order. The defect is upstream of the
+   * edit: the composition was handed content that is not this piece's, which is
+   * exactly what §406 was. It needs a person, because a pipeline that regrades
+   * its own wiring is the thing this codebase refuses.
+   */
+  'coherence.pictures_are_of_something_else': {
+    rootCause: 'The frames show subjects the piece never asked to photograph.',
+    component: 'creative_plan',
+    action: 'escalate',
+    correctable: false,
+  },
+
+  /*
+   * §409. Nothing recorded what the frames were meant to show, so the check did
+   * not run. Unmeasured, and `remeasure` is the honest action — there is no
+   * defect in the piece to correct, only a gap in what was written down.
+   */
+  'coherence.expected_subjects_not_recorded': {
+    rootCause: 'The generator did not record the subject it asked an image model for.',
+    component: 'measurement',
+    action: 'remeasure',
+    correctable: false,
+  },
+
   'creative.pacing_too_slow': {
     rootCause: 'Too few beats for the runtime, so the piece reads as a slideshow.',
     component: 'creative_plan',

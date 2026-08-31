@@ -10060,3 +10060,89 @@ reachable, and it returned **zero slides** — because every key it looks for is
 absent from a walkthrough. A builder that returns nothing is indistinguishable
 from a format with no builder, and the coverage check passes for both. The test
 now fills every slot from the catalogue and requires real output.
+
+## 103 · The critic could not see the two things that were wrong
+
+**Chosen.** The vision describer names the **depicted subject** separately from
+its description, and the coherence gate compares subjects rather than sentences.
+
+**Why.** `visual_slop.entirely_static` has existed since the gate did and has
+never fired once. It required every frame description to be byte-identical — and
+a description is a sentence about a frame with words burned into it, so six
+frames of one photograph carrying six different overlays are six different
+sentences. The rule that exists to catch *"this is a still image with audio over
+it"* could not catch it on any video Halyard has made.
+
+Naming the subject is still pure perception. The describer is already forbidden
+from judging; "name the thing" is what a describer is *for*, and it is the field
+that lets code ask "did the picture change" without a model deciding anything.
+
+**Both signals now fire the rule, and they are not redundant.** Identical
+*descriptions* means the describer could not tell the frames apart at all — a
+card that never changes, the case the original rule was written for. Identical
+*subjects* means the picture never changed although the words on it did, which
+is far commoner and was invisible.
+
+**Added: `visual_slop.thin_variety`.** Two pictures across a whole video is one
+visual reset. Every platform's guidance is a reset every 1.5-4 seconds. A
+warning, not an error — two genuinely different shots is a defensible edit and
+that is the operator's call.
+
+## 104 · What the picture was supposed to show is recorded, so it can be checked
+
+**Chosen.** `assets.subject` records what a generated image was asked to be a
+photograph of. `review_media` reads it back as `expectedSubjects`, and the
+coherence gate fails a piece whose frames mostly show something else.
+
+**Why.** This is the operator's own question — *does the background make sense
+with the subject* — and it cannot be answered by comparing what is depicted
+against the script. A post about gluten illustrated with a loaf of bread is the
+job done correctly, and any term comparison against the spoken words calls that
+a mismatch.
+
+But Halyard **chose** the subject and sent it to an image model, so what each
+frame was supposed to show is known exactly rather than inferred. That is a real
+oracle. A describer reporting something unrelated to what was requested is a
+checkable defect, and §406 was exactly that: a `history` piece on the origins of
+sourdough whose frames were a plate of teriyaki tofu, over which the gate
+reported *"coherent, 2 notes across 6 frames"*.
+
+**A majority, not any single frame.** An image model given "a bowl of flour and
+water starter" may return what a describer calls "a glass jar", and one honest
+disagreement about a noun is not a piece about the wrong thing.
+
+**Rejected: `resequence_scenes` as the correction.** The `coherence` namespace
+fallback would have given it that. Reordering beats that are about the wrong
+subject produces the same wrong subject in a different order — the defect is
+upstream of the edit, so it escalates to a person instead.
+
+**On the retention gate.** It had already caught this class: *"failed — 18.2s
+with no visual state change"*, four times, recorded as `warning` because §62 and
+§73 deliberately declined to make a non-blocking gate blocking. That deferral
+stands, and §73's warning — *do not close this by sampling harder*, because mean
+frame luminance cannot see a card whose text changes — is still correct. The
+subject signal answers the same question without touching it, and it is an
+error, so it blocks.
+
+## 105 · A specific is sufficient, not necessary
+
+**Chosen.** A citation is honoured when the citing line carries one of the
+fact's specifics **or** a third of its content words. It used to require the
+specific.
+
+**Why.** `matchesResearchedFact` returned false the moment a fact carried any
+number or capitalised name and the citing line did not repeat one. That refuses
+accurate paraphrase — and paraphrase is what writing a fact for a viewer *is*.
+
+Found live: a `history` piece on why bread goes stale was refused three times
+and abandoned, with the model converging from five unsupported slots to one and
+being rejected on a line that was true and sourced.
+
+This is §400's shape a second time: a rule demanding surface overlap where
+correspondence of meaning is what a citation asserts. §400 fixed it for the quiz
+by checking co-citing slots together; the same rule was still absolute about
+specifics for every other format.
+
+The overlap test is not a weaker bar, it is the **other** bar. A slot carrying
+neither a specific nor a third of the claim's words is genuinely citing
+something it does not say, and is still refused.

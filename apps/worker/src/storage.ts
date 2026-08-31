@@ -28,6 +28,8 @@ export interface UploadInput {
   tags?: string[];
   /** §402. How a generated image was shot, for the recency read. */
   shot?: string | null;
+  /** §409. What it was asked to be a photograph of, for the coherence oracle. */
+  subject?: string | null;
   usableFor?: string[];
   flowId?: string | null;
   appVersion?: string | null;
@@ -101,9 +103,9 @@ export async function uploadAsset(
     `insert into assets (product_id, kind, storage_path, mime_type, width, height,
                          duration_seconds, bytes, caption, alt_text, source, public_url,
                          tags, usable_for, flow_id, app_version, captured_at, source_url,
-                         original_filename, checksum, shot)
+                         original_filename, checksum, shot, subject)
      values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,
-             case when $15::text is null then null else now() end, $17,$18,$19,$20)
+             case when $15::text is null then null else now() end, $17,$18,$19,$20,$21)
      returning id`,
     [
       productId,
@@ -126,6 +128,7 @@ export async function uploadAsset(
       input.originalFilename ?? null,
       digest,
       input.shot ?? null,
+      input.subject ?? null,
     ],
   );
 
