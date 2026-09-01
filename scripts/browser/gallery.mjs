@@ -25,6 +25,18 @@ page.on('console', (m) => { if (m.type() === 'error') problems.push(`console: ${
 page.on('pageerror', (e) => problems.push(`pageerror: ${String(e).slice(0, 160)}`));
 page.on('response', (r) => { if (r.status() >= 500) problems.push(`${r.status()} ${r.url()}`); });
 
+/* PIECE=<id> opens one directly; otherwise the newest card in the queue. */
+const PIECE = process.env.PIECE;
+if (PIECE) {
+  await page.goto(`${BASE}/gallery/${PIECE}`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1500);
+  await shot('02-piece');
+  console.log('opened:', page.url());
+  console.log(problems.length === 0 ? 'no console errors, no 5xx' : `PROBLEMS:\n  ${problems.join('\n  ')}`);
+  await browser.close();
+  process.exit(0);
+}
+
 await page.goto(`${BASE}/gallery`, { waitUntil: 'networkidle' });
 await shot('01-gallery');
 

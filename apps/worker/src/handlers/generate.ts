@@ -1691,7 +1691,41 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
         }
 
         // Enqueue renders from the artifact, if it supports the template.
-        if (artifact) {
+        /*
+         * §435. A card about the artifact belongs only on a piece about the
+         * artifact.
+         *
+         * Found by opening a finished piece in the Gallery and reading it. A
+         * TikTok **quiz about baking soda** — "Same compound appears in
+         * MedlinePlus medicine info and Britannica fire-extinguisher entries" —
+         * carried a `chef_note_quote` card reading *"Dairy-free ricotta and
+         * mozzarella keep the classic creamy, melty feel of baked ziti."* The
+         * alt text underneath it described the quiz correctly. The card was
+         * built from that run's artifact, which was a ziti recipe.
+         *
+         * This is §405 on a surface §405 did not reach. The same line §291 draws
+         * for claim verification, §405 for the caption prompt and §413 for the
+         * footage gate: a format whose factuality is not `product` is not about
+         * the artifact, and nothing downstream may assume it is.
+         *
+         * **No card is the answer, not a different card.** The still templates
+         * are artifact-shaped — a swap, a ratio, a quotable line from the
+         * adaptation — and a quiz has none of those. Building one from the
+         * piece's own slots would be inventing a shape; omitting it leaves the
+         * video, which is what the piece actually is.
+         */
+        const stillIsAboutThisPiece = chosenFormat.format.factuality === 'product';
+        if (artifact && !stillIsAboutThisPiece) {
+          ctx.log('no still for this piece', {
+            contentItemId,
+            format: chosenFormat.format.id,
+            because:
+              `a ${chosenFormat.format.id} is not about the artifact, and every still ` +
+              `template draws the artifact`,
+          });
+        }
+
+        if (artifact && stillIsAboutThisPiece) {
           /*
            * §395. Four of these were built and unreachable.
            *

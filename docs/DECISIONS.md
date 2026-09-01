@@ -10997,3 +10997,52 @@ review_media"* rather than showing a tick; correction chips that disable
 themselves with a reason — *"4 more that this piece cannot take — this piece has
 no picture to replace"*; and a change box whose placeholder teaches by example,
 *"Why? It is a photo of flour and this is about bread."*
+
+## 130 · A quiz about baking soda carried a card about baked ziti
+
+**Chosen.** An artifact-drawn still is built only for a format whose factuality
+is `product`.
+
+**Why.** Found by opening a finished piece in the Gallery and reading it — the
+first time a rendered video piece had been looked at in the UI rather than as
+extracted frames.
+
+A TikTok **quiz about baking soda**, whose copy reads *"Same compound appears in
+MedlinePlus medicine info and Britannica fire-extinguisher entries"*, carried a
+`chef_note_quote` card reading:
+
+> *"Dairy-free ricotta and mozzarella keep the classic creamy, melty feel of
+> baked ziti, but the overall flavor is slightly lighter than the original dairy
+> version."*
+
+The alt text under it described the quiz correctly. The card was built from that
+run's artifact, which was a ziti recipe.
+
+This is §405 on a surface §405 did not reach. The same line §291 draws for claim
+verification, §405 for the caption prompt and §413 for the footage gate: a format
+whose factuality is not `product` is not about the artifact, and nothing
+downstream may assume it is. That line has now had to be drawn four times, in
+four places, because each consumer reached for the artifact independently.
+
+**No card, rather than a different card.** The still templates are
+artifact-shaped — a swap, a ratio, a quotable line from the adaptation — and a
+quiz has none of those. Building one from the piece's own slots would be
+inventing a shape; omitting it leaves the video, which is what the piece is. The
+refusal is logged with its reason rather than being silent.
+
+**A test guards the other direction**: if the rule ever refused every format,
+five still templates would be unreachable — which is §395's defect arriving from
+the opposite side.
+
+### What the screen gets right
+
+Recorded because it is genuinely good and only visible by opening it. The piece
+page carries a **"why it came out this way"** panel, described as *"collected
+from what each decision recorded, not written afterwards"*: the stages that ran,
+where the facts came from (*kept: 4, rejected: 11*), what the picture is of and
+why it can never stand as evidence, the treatment and how many were considered,
+the direction and its score, the opening frame, the type, the music — and
+**"refused along the way"**, which lists what was rejected and why.
+
+The gates panel shows `critic ✓ 6 frames reviewed, nothing raised` — §412's fix,
+visible to the operator, on a gate that had never once run before this session.
