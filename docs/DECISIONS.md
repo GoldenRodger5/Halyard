@@ -11081,3 +11081,57 @@ picker reads as "usable anywhere", so every one appeared for every format.
 Filtering on `kind` rather than on the `music_bed` tag because the tag caught
 six of the thirty-seven: the beds were only the visible half. 114 offered
 assets, now 77, and every one of them is something you could actually attach.
+
+## 132 · The screenwriter drives nothing
+
+**Recorded, not fixed** — the fix is a design decision, and naming it precisely
+is worth more than a rushed wire.
+
+`screenwriter.ts` opens: *"the agent that holds the whole piece… the only agent
+given the whole context at once — the product's brain, the format's shape, the
+channel's brief, the footage that exists, the marks the product uses — because
+composition is precisely the thing that cannot be decided one dimension at a
+time."*
+
+It is given all of that. It produces a staged screenplay, scene by scene.
+`checkScreenplay` validates every direction against what the machinery can
+execute. The Gallery renders it beautifully under *"what it was staged as"*.
+
+**And no renderer reads it.** `content_items.screenplay` is consumed by exactly
+three expressions, all in `tts.ts`: the bed mood, and the duration sum §428
+added. Measured on a real piece:
+
+| screenplay scene 2 carries | the Quiz render received |
+|---|---|
+| `move: "cut"` | — |
+| `score: "duck"` | — |
+| `ground: "colour"` | — |
+| `weight: "support"` | — |
+| `gestures: []` | — |
+| `seconds: 4.03` | — |
+| `onScreen: ["Q1", "Medicine type?"]` | — |
+| | `questions`, `title`, `treatments`, `presentation`, `alt_text` |
+
+Not one field crosses. The video is built by `videoForFormat`, a mechanical
+mapping of format slots — so the agent that exists *because composition cannot
+be decided one dimension at a time* is bypassed by a path that decides every
+dimension separately.
+
+This is the largest instance of the shape this file keeps recording, and it is
+different in kind from the others: the output is not merely unread, it is
+**superseded by a simpler mechanism that runs anyway**.
+
+## §437 · Every format declares a target length and nothing reads it
+
+Eleven formats declare `targetSeconds` — quiz 30, history 35, myth_fact 25, poll
+8. Nothing in the QC layer compares a finished render against it. The visual
+gate checks *platform* bounds, and TikTok permits ten minutes, so a quiz is
+legal at any length.
+
+Measured on the real renders: **53, 28, 25, 19, 19, 19 seconds**. The 53-second
+piece is a quiz, which declared 30 — 77% over its own target, and nothing said
+so.
+
+Length is not a cosmetic property. TikTok's bar for distribution is now a 70%+
+completion rate; at 53 seconds that asks a viewer for 37 seconds, and at 19 it
+asks for 13.
