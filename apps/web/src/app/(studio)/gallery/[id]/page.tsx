@@ -78,7 +78,22 @@ export default async function GalleryPiece({ params }: { params: Promise<{ id: s
   const route = routeFor(item);
   const gates = item.qc_results?.gates ?? [];
   const lamp = lampFor(item);
-  const picture = item.preview_urls[0];
+  /**
+   * §436. The video, when there is one, and it plays.
+   *
+   * `preview_urls` carries every finished render — the still card *and* the
+   * mp4 — and this took `[0]`, which is whichever the slide order returned
+   * first, then drew it with an `<img>`. So the operator approving a video was
+   * shown a still and could not watch the thing they were approving. Found by
+   * opening a rendered piece in the Gallery: a TikTok quiz with a completed
+   * 68-second render, and no player anywhere on the page.
+   *
+   * The video is preferred when one exists, because it is the piece; the still
+   * is a companion asset. Both remain in `preview_urls` for the strip below.
+   */
+  const isVideoUrl = (url: string) => /\.(mp4|webm|mov)(\?|$)/i.test(url);
+  const film = item.preview_urls.find(isVideoUrl) ?? null;
+  const picture = film ?? item.preview_urls.find((url) => !isVideoUrl(url)) ?? item.preview_urls[0];
 
   const rendering = item.render_total > 0 && item.render_done < item.render_total;
   const renderFailed = item.render_failed > 0;
@@ -124,7 +139,25 @@ export default async function GalleryPiece({ params }: { params: Promise<{ id: s
                 headline. The description belongs to the piece and is shown as
                 the piece's own field, not as fallback for a missing file.
               */
-              <img src={picture} alt="" className="w-full object-cover" style={{ color: 'transparent' }} />
+              film ? (
+                /*
+                  §436. Controls, and no autoplay. This is a review screen: the
+                  operator decides when to watch, and a page that starts playing
+                  audio on open is the wrong thing to hand somebody who has ten
+                  pieces to get through. `preload="metadata"` so the poster
+                  frame and duration appear without fetching the whole file.
+                */
+                <video
+                  src={film}
+                  controls
+                  preload="metadata"
+                  playsInline
+                  className="w-full"
+                  style={{ maxHeight: 620, backgroundColor: '#141D1C' }}
+                />
+              ) : (
+                <img src={picture} alt="" className="w-full object-cover" style={{ color: 'transparent' }} />
+              )
             ) : null}
             {!picture ? (
               <span className="absolute right-3 top-3 font-data text-[8px] uppercase tracking-[0.14em] text-[#5F7975]">

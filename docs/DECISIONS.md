@@ -11046,3 +11046,38 @@ the direction and its score, the opening frame, the type, the music — and
 
 The gates panel shows `critic ✓ 6 frames reviewed, nothing raised` — §412's fix,
 visible to the operator, on a gate that had never once run before this session.
+
+## 131 · The operator could not watch the video they were approving
+
+**Chosen.** The piece page plays the video when there is one, and the asset
+picker no longer offers audio.
+
+**Why the player.** `preview_urls` carries every finished render — the still
+card *and* the mp4 — and the page took `[0]`, whichever the slide order returned
+first, then drew it with an `<img>`. So a TikTok quiz with a completed
+fifty-two-second render showed a still and had no player anywhere on the page.
+The one thing an operator is being asked to judge was the one thing they could
+not see.
+
+The video is preferred when one exists, because it *is* the piece; the still is
+a companion asset. Verified in the browser rather than by reading the diff: one
+`<video>` element, `controls: true`, and the browser reporting 52.7 seconds of
+loaded media.
+
+**Controls, and no autoplay.** This is a review screen. A page that starts
+playing audio the moment it opens is the wrong thing to hand somebody with ten
+pieces to get through, and `preload="metadata"` gets the poster frame and the
+duration without fetching the file.
+
+**It fixed a second thing by accident.** The hero for that piece had been the
+`chef_note_quote` card — the baked-ziti card §130 removed for future pieces. The
+player shows the video's own opening frame, *"5 QUESTIONS — Take the Baking Soda
+Dare"*, which is what the piece is actually about.
+
+**Why audio left the picker.** A voiceover, a bed and a sound effect are all
+*mixed* — none is something an operator attaches to a post the way they attach a
+photograph. All thirty-seven audio assets carry `usable_for = '{}'`, which the
+picker reads as "usable anywhere", so every one appeared for every format.
+Filtering on `kind` rather than on the `music_bed` tag because the tag caught
+six of the thirty-seven: the beds were only the visible half. 114 offered
+assets, now 77, and every one of them is something you could actually attach.

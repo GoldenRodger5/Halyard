@@ -45,6 +45,18 @@ export async function AssetPicker({
          from assets
         where product_id = $1
           and archived_at is null
+          -- §436. Audio is never attachable media.
+          --
+          -- A voiceover, a bed and a sound effect are all *mixed* — none is
+          -- something an operator attaches to a post the way they attach a
+          -- photograph. All thirty-seven audio assets carry usable_for = '{}',
+          -- which this filter reads as "usable anywhere", so every one of them
+          -- appeared in the picker for every format. A text post with nothing
+          -- attached showed ten synthesised test beds.
+          --
+          -- Filtering on kind rather than on the music_bed tag because the tag
+          -- caught six of the thirty-seven: the beds were only the visible half.
+          and kind <> 'audio'
           and ($2::text is null or $2 = any(usable_for) or usable_for = '{}')
         order by (source = 'capture') desc, coalesce(captured_at, created_at) desc
         limit 40`,
