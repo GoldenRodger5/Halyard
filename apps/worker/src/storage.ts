@@ -40,7 +40,11 @@ export interface UploadInput {
 export interface UploadedAsset {
   id: string;
   storagePath: string;
-  publicUrl: string;
+  /**
+   * Where this asset can be fetched from, or null when nothing can serve it.
+   * §434. It used to be a `file://local/...` string that no browser will load.
+   */
+  publicUrl: string | null;
 }
 
 export async function uploadAsset(
@@ -63,7 +67,16 @@ export async function uploadAsset(
     productId = rows[0]?.product_id ?? null;
   }
 
-  let publicUrl = `file://local/${storagePath}`;
+  /*
+   * §434. Null until something can actually serve it.
+   *
+   * This defaulted to `file://local/${storagePath}`, which a browser refuses —
+   * "Not allowed to load local resource" — so an asset stored with neither
+   * Supabase nor a local directory rendered as a broken image in the Gallery
+   * for the life of the row. The comment below already said that was the thing
+   * to avoid.
+   */
+  let publicUrl: string | null = null;
 
   if (supabaseUrl && serviceKey) {
     const response = await fetch(
@@ -95,6 +108,21 @@ export async function uploadAsset(
       publicUrl = `/dev-assets/${path.basename(target)}`;
       ctx.log('storage not configured, wrote asset locally', { publicUrl });
     } else {
+      /*
+       * §434. No URL at all, rather than one that cannot load.
+       *
+       * The comment above says the point is to avoid recording an unusable
+       * `file://` URL, and this branch recorded exactly that: `publicUrl` keeps
+       * its `file://local/...` default and the browser refuses it — *"Not
+       * allowed to load local resource"* — so the Gallery shows a broken image
+       * for the life of the asset. Found by opening the Gallery and looking at
+       * it, which no test does.
+       *
+       * `null` is the honest value: this asset has no public URL. It is also
+       * the one every reader here already handles, because `public_url` has
+       * always been nullable.
+       */
+      /* Left null by the declaration above; nothing can serve this asset. */
       ctx.log('storage not configured, recording asset without upload', { storagePath });
     }
   }

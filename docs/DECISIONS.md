@@ -10959,3 +10959,41 @@ something that is not a video.
 **Text posts are still at zero** and that is the remaining half: a `caption_only`
 piece takes an earlier return and never reaches this point. Named rather than
 guessed at.
+
+## 129 · What the operator sees, opened and read
+
+**Chosen.** `scripts/browser/gallery.mjs` clicks into the Gallery and opens a
+piece, and two things it showed are fixed.
+
+**Why a second browser script.** `floor.mjs` proves a brief reaches the worker
+and proves nothing about what the operator then *sees*. Every visual defect this
+session found was found by looking at pixels rather than rows, and the Gallery
+had never been looked at.
+
+**The heading lied.** `AssetPicker` is a picker: it lists the product's library
+and rings the ones attached. Under a fixed heading of *"Media attached to this
+piece"*, a text post with **zero** attached assets showed ten `[TEST]` sound
+effects — and an operator reads that as ten sound effects on a text post. The
+data was right and the component was right; the label was wrong in one of its
+two states, and it now reads *"Attach media — nothing attached yet"*.
+
+**A `file://` URL that could never load.** `uploadAsset` defaulted `publicUrl`
+to `file://local/${storagePath}` and the branch with neither Supabase nor a
+local directory kept it. A browser refuses it — *"Not allowed to load local
+resource"* — so the asset renders as a broken image for the life of the row.
+The comment directly above already said avoiding exactly that was the point.
+`null` is the honest value and every reader already handles it.
+
+**One thing I nearly reported and should not have.** The first run showed
+`/dev-assets/...` 404ing, which looked like a serving defect. It was my own
+misconfiguration: `/dev-assets` is served from `apps/web/public/dev-assets`, and
+I had pointed `HALYARD_LOCAL_ASSET_DIR` at a scratch directory. Checked before
+writing it down.
+
+**What the screen gets right**, recorded because it is worth keeping: a
+*"how it got here"* dot track across res → write → art → gate → ok → air; a
+gates panel that says *"no media here — measured after render, by
+review_media"* rather than showing a tick; correction chips that disable
+themselves with a reason — *"4 more that this piece cannot take — this piece has
+no picture to replace"*; and a change box whose placeholder teaches by example,
+*"Why? It is a photo of flour and this is about bread."*

@@ -263,7 +263,21 @@ export default async function GalleryPiece({ params }: { params: Promise<{ id: s
         ) : null}
 
         <Sheet>
-          <Label>Media attached to this piece</Label>
+          {/*
+            §434. The heading has to be true in both states.
+            
+            `AssetPicker` is a picker: it lists the product's library and rings
+            the ones attached. Under a fixed heading of "Media attached to this
+            piece", a text post with nothing attached showed ten `[TEST]` sound
+            effects — and an operator reads that as ten sound effects on a text
+            post. Found by opening the Gallery and reading it, which no test
+            does; the data and the component were both correct.
+          */}
+          <Label>
+            {item.attached_asset_ids.length > 0
+              ? 'Media attached to this piece'
+              : 'Attach media — nothing attached yet'}
+          </Label>
           <AssetPicker
             contentItemId={item.id}
             productId={item.product_id}
