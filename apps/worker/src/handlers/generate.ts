@@ -1957,6 +1957,68 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
         }
 
         /**
+         * §433. A brief for a piece that is not a video.
+         *
+         * Both brief writers sit inside `if (needsVideo(format))`, so a
+         * carousel, a still and a text post could never have one. Measured
+         * rather than assumed: video 37 items and 10 briefs, image 5 and
+         * **zero**, text 11 and **zero**.
+         *
+         * The consequence is not bookkeeping. The typography recency read walks
+         * `creative_briefs.visual_direction ->> 'typography'`, so a deck drawn
+         * in a system never recorded there cannot stop the next deck reusing
+         * it; the caption shape has no second home; and `review_media`'s
+         * creative gate reads the brief's language and typography and reports
+         * them unmeasured for sixteen of fifty-three pieces.
+         *
+         * What a non-video brief does *not* carry is as important as what it
+         * does. There are no beats and no `target_seconds`, because a carousel
+         * has no runtime — writing a number there would invent one. Empty is
+         * the honest value and `null` says so.
+         */
+        if (!needsVideo(format)) {
+          const stillBrief = await ctx.pool.query<{ id: string }>(
+            `insert into creative_briefs
+               (product_id, account_id, platform, treatment, presentation_mode,
+                target_seconds, aspect_ratio, beats, visual_direction,
+                audio_direction, caption_direction, evidence, rationale)
+             values ($1,$2,$3,$4,$5,null,$6,'[]'::jsonb,$7::jsonb,'{}'::jsonb,$8::jsonb,$9,$10)
+             returning id`,
+            [
+              productId,
+              account.id,
+              account.platform,
+              chosenFormat.format.id,
+              presentationFor(account.platform, subtype).mode,
+              /* The canvas this piece is actually drawn on. */
+              resolvedType.postType.media === 'carousel' ? '4:5' : '1:1',
+              JSON.stringify({
+                /* The one visual decision a still or a deck actually makes. */
+                typography: cardType?.id ?? null,
+                language: null,
+                opening: null,
+              }),
+              JSON.stringify({ shape: captionShape.shape }),
+              (written?.draft.slots ?? [])
+                .map((s) => s.citation)
+                .filter((c): c is string => Boolean(c)),
+              `${chosenFormat.format.name} as ${format} for ${account.platform}. ${chosenFormat.reason}`,
+            ],
+          );
+          await ctx.pool.query('update content_items set brief_id = $2 where id = $1', [
+            contentItemId,
+            stillBrief.rows[0]!.id,
+          ]);
+          ctx.log('brief recorded', {
+            contentItemId,
+            treatment: chosenFormat.format.id,
+            media: format,
+            typography: cardType?.id ?? null,
+            shape: captionShape.shape,
+          });
+        }
+
+        /**
          * Video: a voiceover script, a Remotion render, and a `tts` job.
          *
          * The render row is created here but **not enqueued**. Its length and

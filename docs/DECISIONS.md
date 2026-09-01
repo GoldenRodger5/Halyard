@@ -10925,3 +10925,37 @@ session, and recorded here so the next change is aimed at the right guard. The
 §432 branch stays: it is correct for the case it names, and it costs nothing.
 Claiming it fixed the gap would have been wrong — a fix that has not fired is a
 claim, which is exactly what §123 says.
+
+## 128 · A brief for a piece that is not a video
+
+**Chosen.** A `creative_brief` is written for carousels, stills and text posts.
+
+**Why.** §127 aimed at the wrong guard, and the retest said so. Both brief
+writers sit inside `if (needsVideo(format))`, so the gap was never
+format-versus-artifact — it was **video versus everything else**:
+
+| media | items | with a brief |
+|---|---|---|
+| video | 37 | 10 |
+| image | 5 | **0** |
+| text | 11 | **0** |
+
+Not bookkeeping. The typography recency read walks
+`creative_briefs.visual_direction ->> 'typography'`, so a deck drawn in a system
+never recorded there cannot stop the next deck reusing it. `review_media`'s
+creative gate reads the brief's language and typography and reported them
+unmeasured for sixteen of fifty-three pieces.
+
+**What it deliberately does not carry.** No beats and no `target_seconds`,
+because a carousel has no runtime — a number there would be invented. `null`
+says unmeasured, as everywhere else here.
+
+**Retested.** Before: image 0 briefs, text 0. After briefing a still through the
+Floor: `brief recorded — treatment: origin, media: image, typography:
+creator_condensed, shape: receipt`, and the row reads `origin | (none) | 1:1 |
+creator_condensed | receipt`. The first brief in this system's life for
+something that is not a video.
+
+**Text posts are still at zero** and that is the remaining half: a `caption_only`
+piece takes an earlier return and never reaches this point. Named rather than
+guessed at.
