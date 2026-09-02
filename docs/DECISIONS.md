@@ -12863,3 +12863,32 @@ STATUS since 31 August is stale. Five enabled templates that have never drawn
 (`transformation_diff_1x1`, `scaling_math`, `SubstitutionExplainer`,
 `ScalingMath`, and the `transformation` format itself) are gated on an
 artifact, and that gate is open.
+
+## §514 · The subject was a seed, not a request
+
+`transformation` had never rendered. With the connector proved working (§513)
+it rendered on the first try — six carousel slides and a chef-note card for
+$0.22, and the opening slide is the best thing this system has produced: a
+full-bleed photograph of the dish with the headline over it.
+
+Of the wrong dish. Asked for *"Making classic shortcrust pastry dairy-free"*,
+it adapted **Easy Baked Ziti**.
+
+`chooseSample` picked from the Discover catalogue with
+`pool[stableIndex(spec.intent, pool.length)]` — it hashed the operator's words
+to an index. So the subject did decide, deterministically and arbitrarily, and
+the same subject would pick ziti every time. That is worse than a random
+choice, because it looks deliberate: everything downstream — the copy, the
+photograph, the caption — was coherent and about a dish nobody asked for.
+
+The catalogue carries titles, so the words can be matched rather than hashed.
+Best content-word overlap wins; the stable hash still breaks ties and still
+decides outright when the overlap is zero, which is the common case for a
+generic intent and is when spreading across the catalogue is right. `attempt`
+still walks past a candidate that could not be scraped (§148).
+
+Two details the tests pin down: the words every recipe title shares —
+*classic*, *easy*, *free*, *recipe* — are stopwords, or they would match
+everything; and a shared prefix is not a shared word, so *pastry* must not
+match *pasta*. The first version of one expectation was wrong rather than the
+code, which is its own small reminder to check which one is lying.

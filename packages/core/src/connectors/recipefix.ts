@@ -147,6 +147,36 @@ function normaliseDietary(value: unknown): string[] {
 }
 
 /** A deterministic index from a string, so the same intent samples the same recipe. */
+/**
+ * §514. Words a subject and a recipe title can share without meaning anything.
+ */
+const RECIPE_STOPWORDS = new Set([
+  'a', 'an', 'and', 'the', 'for', 'with', 'without', 'make', 'making', 'makes', 'how', 'to',
+  'your', 'this', 'that', 'best', 'easy', 'quick', 'classic', 'homemade', 'simple', 'perfect',
+  'recipe', 'recipes', 'free', 'style', 'into', 'from', 'using', 'turn', 'swap',
+]);
+
+function contentWords(text: string): string[] {
+  return text
+    .toLowerCase()
+    .split(/[^a-z]+/)
+    .filter((w) => w.length > 2 && !RECIPE_STOPWORDS.has(w));
+}
+
+/**
+ * §514. How well a catalogue title answers the subject that was asked for.
+ *
+ * Shared content words, counted. Zero means the title has nothing to do with
+ * the request, which is the common case for a generic intent and is exactly
+ * when the stable hash should keep deciding.
+ */
+export function titleMatchScore(intent: string, title: string | undefined): number {
+  if (!title) return 0;
+  const wanted = new Set(contentWords(intent));
+  if (wanted.size === 0) return 0;
+  return contentWords(title).filter((w) => wanted.has(w)).length;
+}
+
 function stableIndex(seed: string, length: number): number {
   let hash = 0;
   for (let i = 0; i < seed.length; i++) hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
@@ -257,7 +287,26 @@ export class RecipeFixConnector implements ProductConnector {
      * same URL spends a second credit to learn what the first already proved.
      * Same number of calls, and this one can actually succeed.
      */
-    const chosen = pool[(stableIndex(spec.intent, pool.length) + attempt) % pool.length]!;
+    /*
+     * §514. The subject is a request, not a seed.
+     *
+     * This hashed the intent to an index, so the operator's words chose a
+     * recipe *deterministically and arbitrarily*: asked to make "classic
+     * shortcrust pastry" dairy-free, it adapted **baked ziti** and published a
+     * carousel about it. Stable, repeatable, and about the wrong dish — which
+     * is worse than random, because it looks deliberate.
+     *
+     * The catalogue carries titles, so a real match is possible. Best overlap
+     * wins; on a tie or no overlap at all the stable hash decides exactly as
+     * before, which keeps a generic intent ("something for the weekend")
+     * spread across the catalogue instead of always landing on one entry.
+     * `attempt` still walks past a candidate that could not be scraped (§148),
+     * so a match that fails to adapt does not trap the retry on itself.
+     */
+    const scored = pool.map((r, i) => ({ r, i, score: titleMatchScore(spec.intent, r.title) }));
+    const best = Math.max(...scored.map((c) => c.score));
+    const matches = best > 0 ? scored.filter((c) => c.score === best) : scored;
+    const chosen = matches[(stableIndex(spec.intent, matches.length) + attempt) % matches.length]!.r;
     return {
       url: url ?? chosen.source_url!,
       ...(text ? { text } : {}),
