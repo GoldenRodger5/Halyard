@@ -2829,6 +2829,17 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                   .map((b, i) => ({ b, i }))
                   .filter(({ b }) => b.wantsFootage === true);
                 let footageDeclined: string[] = [];
+                if (stockFootage && footageBeats.length === 0) {
+                  /*
+                   * Perception, left to the model — but visible. A source that
+                   * is never asked for is the §444 shape again, one layer up,
+                   * and the only way to know the screenwriter is declining
+                   * rather than never being offered is to see this line.
+                   */
+                  ctx.log('footage available and no scene asked for it', {
+                    beats: allBeats.length,
+                  });
+                }
                 if (footageBeats.length > 0) {
                   const footage = await footageForBeats(assets, stockFootage, llmFor(), {
                     productId,
@@ -2935,6 +2946,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                       JSON.stringify({
                         grounds: {
                           beats: finalBeats.length,
+                          asked: footageBeats.length,
                           footage: moving,
                           photographs: photographed,
                           flat: finalBeats.length - moving - photographed,

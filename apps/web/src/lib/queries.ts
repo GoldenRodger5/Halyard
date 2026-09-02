@@ -298,6 +298,8 @@ export interface QueueItem {
    */
   grounds: {
     beats: number;
+    /** How many scenes the screenplay asked footage on. */
+    asked: number;
     footage: number;
     photographs: number;
     flat: number;

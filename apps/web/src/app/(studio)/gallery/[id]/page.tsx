@@ -329,11 +329,14 @@ export default async function GalleryPiece({ params }: { params: Promise<{ id: s
             <Label>What the frame does</Label>
             <p className="m-0 text-[12px] leading-relaxed text-quiet">
               {item.grounds.beats} beats:{' '}
-              <span className="text-ink">{item.grounds.footage} moving</span>,{' '}
+              <span className="text-ink">{item.grounds.footage} moving</span>
+              {item.grounds.asked > 0 ? ` of ${item.grounds.asked} asked` : ''},{' '}
               {item.grounds.photographs} photographed, {item.grounds.flat} flat.
               {item.grounds.source === null
                 ? ' No footage source is configured, so nothing could move.'
-                : ''}
+                : item.grounds.asked === 0
+                  ? ' The screenplay asked for none.'
+                  : ''}
             </p>
             {item.grounds.declined.length > 0 ? (
               <p className="m-0 mt-2 text-[11px] leading-relaxed text-lit">
