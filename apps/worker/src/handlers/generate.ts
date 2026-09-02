@@ -36,6 +36,7 @@ import {
   chooseShot,
   withContinuity,
   formatById,
+  shouldDraftMore,
   motionFor,
   chooseCaptionShape,
   OpenAIEmbeddingClient,
@@ -1075,6 +1076,28 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
       }
     }
 
+    /**
+     * §452. What is already waiting, per format.
+     *
+     * The scheduler's justification for the daily run says it is *"bounded by
+     * the per-run idea limit, the cadence ceilings, and
+     * settings.generation_enabled"*. This file did not contain the word
+     * cadence. Measured when that was noticed: 31 pieces pending approval, **0
+     * ever published**, 15 of them video against a ceiling of five a week.
+     *
+     * Counted once per idea rather than per account, because the ceiling is a
+     * property of the product's queue and not of one platform's share of it.
+     */
+    const { rows: backlogRows } = await ctx.pool.query<{ format: string; pending: string }>(
+      `select format, count(*)::text as pending
+         from content_items
+        where product_id = $1 and status = 'pending_approval'
+        group by format`,
+      [productId],
+    );
+    /* node-postgres returns count() as a string. */
+    const backlog = new Map(backlogRows.map((r) => [r.format, Number(r.pending)]));
+
     for (const account of accounts.rows) {
       if (account.persona !== 'brand') continue; // founder posts are composed, not generated
 
@@ -1106,6 +1129,39 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
          * because nothing has published.
          */
         const format = chooseFormat(account.platform, account.supported_formats ?? []);
+
+        /**
+         * §452. Stop drafting into a queue nobody can empty.
+         *
+         * A buffer, not a ban: two weeks of publishing headroom, and clearing
+         * the queue resumes it. Checked here rather than before the loop
+         * because the format is per account — a TikTok video and a Threads text
+         * post have completely different ceilings and one being full says
+         * nothing about the other.
+         *
+         * Deliberately *before* anything is bought. An idea claimed and a
+         * research pass run for a piece that should not have been drafted is
+         * the money this exists to stop.
+         */
+        /*
+         * An operator who asked for this piece gets it. The backlog rule is
+         * about the *daily* run spending money unasked; a person clicking Make
+         * has already decided the piece is worth having, and a system that
+         * refused a direct request because its own queue was full would be
+         * unusable.
+         */
+        const operatorAsked = Boolean(job.payload.onlyPlatform || job.payload.postFormat);
+        const room = operatorAsked
+          ? ({ draft: true, headroom: Number.POSITIVE_INFINITY } as const)
+          : shouldDraftMore(format, backlog.get(format) ?? 0);
+        if (!room.draft) {
+          ctx.log('queue is already full of this format', {
+            platform: account.platform,
+            format,
+            because: room.because,
+          });
+          continue;
+        }
 
         // One call per platform. Never one call producing all platforms.
         /**

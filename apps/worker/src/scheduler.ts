@@ -90,7 +90,13 @@ export const SCHEDULES: Schedule[] = [
     everyMinutes: 24 * 60,
     perProduct: true,
     priority: 30,
-    why: 'The daily draft run the product has always described. Bounded by the per-run idea limit, the cadence ceilings, and settings.generation_enabled, which this handler honours.',
+    /*
+     * §452. This sentence used to claim the run was bounded by "the cadence
+     * ceilings" and `generate.ts` did not contain the word. It does now, and
+     * the claim is true — which is the order those two things should have
+     * happened in.
+     */
+    why: 'The daily draft run the product has always described. Bounded by the per-run idea limit, settings.generation_enabled, and — since §452 — the per-format backlog ceiling, so it stops filling a queue nobody can empty.',
   },
   {
     /**

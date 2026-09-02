@@ -11476,3 +11476,42 @@ once there is a distribution to sit in.
 format's opening slot. Measured against every real opening, it flags exactly the
 two that §448's thumbnail rule already flags and nothing else — a second warning
 for the same thing is noise, not coverage.
+
+## §452 · Drafting into a queue nobody can empty
+
+The scheduler's justification for the daily generate run reads: *"Bounded by the
+per-run idea limit, **the cadence ceilings**, and `settings.generation_enabled`,
+which this handler honours."*
+
+`generate.ts` did not contain the word cadence.
+
+Measured when that was noticed: **31 pieces pending approval, 0 ever published**,
+15 of them video against a ceiling of five a week. Three weeks of backlog, and
+the daily run still adding — each video costing several image generations at
+$0.04 and a research pass, for a slot that does not exist.
+
+Expensive in three ways at once, and only the first is obvious:
+
+1. Money spent on work nobody can publish.
+2. A single operator's queue filling faster than one person can triage — the
+   digest already reads "Waiting for you: 28".
+3. **The best piece competing with filler.** A thirty-item queue is not a
+   library, it is a pile, and the piece that would have performed loses to
+   whichever one is nearest the top.
+
+`shouldDraftMore` caps the unapproved backlog at two weeks of publishing per
+format. One week would stop the system the first time an operator took a few
+days off; three is a month of drafts competing for the same slots. It is a
+**buffer, not a ban** — clearing the queue resumes it, and the check is per
+format because a full video queue says nothing about text.
+
+Checked before anything is bought: an idea claimed and a research pass run for a
+piece that should not have been drafted is exactly the money this exists to stop.
+
+**An operator who asks is never refused.** A person clicking Make has already
+decided the piece is worth having, and a system that declined a direct request
+because its own queue was full would be unusable. The rule governs the daily run
+spending money unasked.
+
+The scheduler's sentence is now true. That is the order those two things should
+have happened in.

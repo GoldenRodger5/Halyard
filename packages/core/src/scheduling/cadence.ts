@@ -81,6 +81,65 @@ export function checkCadence(
 }
 
 /**
+ * §452. How much unapproved work is worth holding, per format.
+ *
+ * Two weeks. One is too tight — an operator away for a few days would come back
+ * to a system that had stopped — and three is a month of drafts competing for
+ * the same slots, which is how the best piece in a queue loses to whichever one
+ * is nearest the top.
+ */
+export const BACKLOG_WEEKS = 2;
+
+/**
+ * §452. Whether it is worth drafting more of this format at all.
+ *
+ * `checkCadence` governs **publishing**: how much may go out this week.
+ * Nothing governed **drafting**, and the scheduler's own justification for the
+ * daily run claims otherwise — *"bounded by the per-run idea limit, the cadence
+ * ceilings, and settings.generation_enabled"*. `generate.ts` does not contain
+ * the word.
+ *
+ * Measured: 31 pieces pending approval, **0 ever published**, 15 of them video
+ * against a ceiling of five a week. Three weeks of backlog, and the daily run
+ * still adding — each video costing several image generations and a research
+ * pass, for a slot that does not exist.
+ *
+ * That is expensive in three ways at once. It spends money on work nobody can
+ * publish; it fills a single operator's queue faster than one person can
+ * triage; and it makes the best piece compete with filler, which is the one
+ * that actually costs reach.
+ *
+ * A *buffer*, not a ban. The queue should be full enough that a good day is
+ * never blocked on generation, and no fuller. Clearing the queue resumes it.
+ */
+export function shouldDraftMore(
+  format: string,
+  pendingApproval: number,
+  rules: CadenceRule[] = DEFAULT_CADENCE,
+  weeks = BACKLOG_WEEKS,
+): { draft: true; headroom: number } | { draft: false; because: string } {
+  const rule = rules.find((r) => r.format === format);
+  /*
+   * A format with no rule is unbounded, which is the same answer `checkCadence`
+   * gives and for the same reason: a limit nobody has decided is not a limit of
+   * zero.
+   */
+  if (!rule) return { draft: true, headroom: Number.POSITIVE_INFINITY };
+
+  const ceiling = rule.weeklyCeiling * weeks;
+  if (pendingApproval >= ceiling) {
+    return {
+      draft: false,
+      because:
+        `${pendingApproval} ${format} pieces are already waiting for approval, and ${format} ` +
+        `publishes at most ${rule.weeklyCeiling} a week — that is ${(pendingApproval / rule.weeklyCeiling).toFixed(1)} ` +
+        `weeks of queue. Drafting more spends money on a slot that does not exist.`,
+    };
+  }
+  return { draft: true, headroom: ceiling - pendingApproval };
+}
+
+/**
  * Formats that are behind their floor, worst first. The idea engine uses this to
  * bias selection the same way it uses mix debt — a format nobody is filling is a
  * debt, not a preference.
