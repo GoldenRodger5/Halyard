@@ -1908,3 +1908,36 @@ coverage.
   `Not authorized` — the CLI session needs re-authorising, and that cannot be
   done non-interactively. Everything is on `main`; one `vercel --prod` publishes
   it.
+
+
+## Where we are now — direction and length
+
+`docs/DIRECTION_SPEC.md` is the current plan of record for the creative path. It
+answers the length question and opens out into the agent line-up.
+
+**Shipped this pass.** Three stale platform constants corrected (§438): Reels
+90s → 180s in `visualQC.ts` *and* `instagram.ts`, Shorts 60s → 180s in
+`visualQC.ts`. `youtube.ts` had already fixed its own copy of the Shorts number
+and the other two places kept the old one. `gates.test.ts` had been asserting
+that the stale refusal was correct, so the suite defended the bug; that
+assertion is inverted and kept.
+
+**Specified, not built.** Twelve work items, W1–W12. The first four are one
+piece and should ship together:
+
+- **W1–W4 · Length as a budget.** `targetSeconds` is inert *and* unreachable —
+  `quiz` declares 30 seconds and its own slot budget implies 76. Replace it with
+  per-platform bands, flow the budget backwards into the writer as a word count,
+  and let repeating slots flex their count so a TikTok quiz is three sharp
+  questions rather than five truncated ones. Plus the Editor — the first agent
+  here that *removes* anything.
+- **W5–W6 · The screenplay directs the render.** §132's fix. Key `Scene` to the
+  format's slot instances so the join is exact, then demote the four directors
+  from deciders to executors. The screenplay must remain optional: a beat with
+  no scene renders as it does today.
+- **W7–W12.** Per-platform primary signals, the Hook Auditioner (five openings
+  scored, one kept), `lastVerified` on every third-party constant so §438 cannot
+  recur, the Continuity Director unifying five blind recency lists, four agents
+  folded, two unblocked.
+
+**Suite:** 2,929 passing, 467 skipped.

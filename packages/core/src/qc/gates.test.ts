@@ -98,7 +98,7 @@ describe('visual QC — v2 F.3', () => {
 
   it('applies platform duration bounds', () => {
     const long = runVisualQC(
-      { kind: 'video', width: 1080, height: 1920, durationSeconds: 95 },
+      { kind: 'video', width: 1080, height: 1920, durationSeconds: 185 },
       { aspectRatio: '9:16', platform: 'instagram', format: 'video' },
     );
     expect(long.findings.some((f) => f.rule === 'visual.duration')).toBe(true);
@@ -108,6 +108,37 @@ describe('visual QC — v2 F.3', () => {
       { aspectRatio: '9:16', platform: 'youtube', format: 'video' },
     );
     expect(short.findings.some((f) => f.rule === 'visual.duration')).toBe(false);
+  });
+
+  /*
+   * §438. This case is the correction itself, kept as a test.
+   *
+   * Both numbers were legal and both were being refused: Reels went from 90
+   * seconds to three minutes, Shorts from 60 to 180. The assertion above used
+   * to prove the 95-second refusal was *correct*, which is how a stale fact
+   * survives a green suite — the test agreed with the constant and neither
+   * agreed with the platform.
+   *
+   * These bounds are legality, not distribution. A 150-second Reel passes here
+   * and is still a bad piece; `docs/DIRECTION_SPEC.md` Part 1 is the band that
+   * decides that, and it is much tighter.
+   */
+  it('accepts the lengths the platforms raised their caps to', () => {
+    for (const [platform, seconds] of [
+      ['instagram', 95],
+      ['instagram', 170],
+      ['youtube', 95],
+      ['youtube', 170],
+    ] as const) {
+      const result = runVisualQC(
+        { kind: 'video', width: 1080, height: 1920, durationSeconds: seconds },
+        { aspectRatio: '9:16', platform, format: 'video' },
+      );
+      expect(
+        result.findings.some((f) => f.rule === 'visual.duration'),
+        `${seconds}s on ${platform}`,
+      ).toBe(false);
+    }
   });
 
   it('rejects loudness outside −14 LUFS ±1 and true peaks above −1 dBTP', () => {

@@ -78,7 +78,18 @@ export const INSTAGRAM_CONSTRAINTS: PlatformConstraints = {
   maxHashtags: 8,
   supportedFormats: ['image', 'carousel', 'video', 'story'],
   aspectRatios: ['1:1', '4:5', '9:16'],
-  video: { minSeconds: 5, maxSeconds: 90, codecs: ['h264', 'hevc'] },
+  /**
+   * §438. This said `maxSeconds: 90`, the Reels cap before Instagram raised it
+   * to three minutes — the same drift `youtube.ts` above already corrected for
+   * Shorts, in the same week, and this half was missed. A 150-second Reel is
+   * legal and was being rejected here as out of bounds.
+   *
+   * 180 rather than the true upload ceiling because past three minutes
+   * Instagram stops recommending a Reel to non-followers: a longer piece is
+   * accepted and not distributed, which is worse than refused. The tighter
+   * band a piece is actually built to lives in `docs/DIRECTION_SPEC.md` Part 1.
+   */
+  video: { minSeconds: 5, maxSeconds: 180, codecs: ['h264', 'hevc'] },
   image: { formats: ['image/jpeg', 'image/png'] },
   carousel: { min: 2, max: 10, sameAspectRatioRequired: true },
   linkStrategy: 'bio_only',

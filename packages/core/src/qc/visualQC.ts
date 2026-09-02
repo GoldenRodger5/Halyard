@@ -62,13 +62,27 @@ export interface VisualQCResult {
   summary: string;
 }
 
-/** Platform video bounds, from v2 Part A. */
+/**
+ * Platform video bounds — what the platform will *accept*, not what it rewards.
+ *
+ * §438. Two of these were written against v2 Part A and the platforms moved
+ * underneath them. Reels were 90 seconds and are now three minutes; Shorts were
+ * 60 and are now 180. Both were rejecting legal video as out of bounds.
+ *
+ * The three-minute ceiling on Instagram is a *legality* bound that happens to
+ * coincide with a distribution one: past three minutes Instagram stops
+ * recommending a Reel to non-followers, so a longer piece is accepted and not
+ * distributed. That it lands on the same number is a coincidence — see
+ * `docs/DIRECTION_SPEC.md` Part 1 for the distribution bands, which are much
+ * tighter than these and are the numbers a piece is actually built to.
+ *
+ * Bluesky is absent on purpose: the adapter carries images only, so a video
+ * bound there would describe a path that does not exist.
+ */
 export const VIDEO_BOUNDS: Record<string, { minSeconds: number; maxSeconds: number }> = {
-  // v2 A.3: Reels require 5 to 90 seconds.
-  instagram: { minSeconds: 5, maxSeconds: 90 },
+  instagram: { minSeconds: 5, maxSeconds: 180 },
   tiktok: { minSeconds: 3, maxSeconds: 600 },
-  // v2 A.6: Shorts are vertical 9:16 under 60 seconds.
-  youtube: { minSeconds: 3, maxSeconds: 60 },
+  youtube: { minSeconds: 3, maxSeconds: 180 },
   x: { minSeconds: 1, maxSeconds: 140 },
   threads: { minSeconds: 1, maxSeconds: 300 },
   pinterest: { minSeconds: 4, maxSeconds: 900 },

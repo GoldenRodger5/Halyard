@@ -11135,3 +11135,46 @@ so.
 Length is not a cosmetic property. TikTok's bar for distribution is now a 70%+
 completion rate; at 53 seconds that asks a viewer for 37 seconds, and at 19 it
 asks for 13.
+
+## §438 · The length nobody chose, and two caps the platforms moved
+
+Asked whether `targetSeconds` is arbitrary and whether TikTok could be longer.
+Both halves of the answer were more interesting than the question.
+
+**The caps were stale.** `VIDEO_BOUNDS` is the only thing in the system that
+checks a duration, and two of its entries described platforms that had changed:
+Reels went from 90 seconds to three minutes, Shorts from 60 to 180. Legal video
+was being refused as out of bounds.
+
+Worse, `youtube.ts` had **already corrected its own copy** of the Shorts number,
+with a comment explaining why — and `visualQC.ts` kept the stale one, and
+`instagram.ts` kept a stale Reels number of its own. One fact, three places, one
+corrected. This is Gotcha 1's shape applied to third-party constants, and the
+test suite could not catch it because `gates.test.ts` asserted that a 95-second
+Reel *should* be refused. The test agreed with the constant and neither agreed
+with the platform. That assertion is now inverted and kept, as the record of the
+correction.
+
+**`targetSeconds` is not arbitrary — it is unreachable.** Length is not chosen
+anywhere. It is arithmetic: `spokenSeconds = words/2.6 + 0.55` summed over every
+line, so `duration ≈ W/2.6 + 0.55N`. The word count is bounded by each slot's
+`maxWords`, which was set by editorial taste — and `targetSeconds`, four lines
+away in the same object, was also set by editorial taste. They were never
+reconciled with the arithmetic between them.
+
+For `quiz`: 180 maximum words over 12 lines implies **76 seconds**. It declares
+**30**. The declared target is not merely ignored; the format's own slot budget
+cannot produce it even at the shortest legal line.
+
+**So the answer to "can TikTok be longer" is no, and the platform that should be
+longer is Shorts.** TikTok's primary signal is completion — under 30s completes
+at 72%, 30–60s at 54% — so length costs the most exactly where we were longest.
+Shorts rewards 30–60s and our pieces run 19.
+
+**Rejected: raising `targetSeconds` to match reality.** That is a second inert
+number. The fix is that the budget must flow *backwards* into the writer as a
+word count, and where it will not fit, the format must flex its structure — a
+TikTok quiz is three questions, not five truncated ones. Specified in full in
+`docs/DIRECTION_SPEC.md`, which also carries the agent-by-agent review this
+opened out into: five agents folded, four demoted from deciders to executors,
+three unblocked, two redesigned, two new.
