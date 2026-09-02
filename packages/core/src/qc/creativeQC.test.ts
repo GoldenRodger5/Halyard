@@ -335,3 +335,34 @@ describe('the creative acceptance suite', () => {
     }
   });
 });
+
+describe('§478 licensed footage', () => {
+  const withClips: CreativeQCInput = {
+    ...textCardStack,
+    beats: textCardStack.beats.map((b, i) => (i === 1 || i === 2 ? { ...b, hasFootage: true } : b)),
+  };
+
+  it('is not a card, so it lowers the card share', () => {
+    expect(runCreativeQC(withClips).cardShare).toBeLessThan(runCreativeQC(textCardStack).cardShare);
+  });
+
+  it('is not the product, so a capture that went unused still fails the piece', () => {
+    const result = runCreativeQC(withClips);
+    expect(result.findings.map((f) => f.rule)).toContain('creative.unused_product_footage');
+  });
+
+  it('standing where proof belongs is fabricated evidence, named as a clip', () => {
+    const result = runCreativeQC({
+      ...textCardStack,
+      footageAvailable: false,
+      beats: [
+        { role: 'hook', emphasis: 'quick', wordCount: 5 },
+        { role: 'proof', emphasis: 'hold', wordCount: 6, imageProvenance: 'licensed', hasFootage: true },
+        { role: 'cta', emphasis: 'normal', wordCount: 4 },
+      ],
+    });
+    const finding = result.findings.find((f) => f.rule === 'creative.fabricated_evidence');
+    expect(finding?.message).toMatch(/licensed clip/);
+    expect(finding?.beatIndex).toBe(1);
+  });
+});

@@ -40,6 +40,8 @@ apps/web/public/uploads/
 # Cut product footage, written into the render bundle by the capture handler.
 # Regenerated on every capture and large; §163.
 packages/render/public/capture/
+# §478. Stock clips staged per render from the asset store, like captures.
+packages/render/public/stock/
 .vercel
 .env*
 supabase/.temp/

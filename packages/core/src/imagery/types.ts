@@ -39,7 +39,13 @@
  * `generated` — a model made it. **Illustration only.**
  * `operator`  — a human supplied it. Can evidence; a person took responsibility.
  */
-export type ImageProvenance = 'product' | 'captured' | 'generated' | 'operator';
+/**
+ * §478. `licensed` is a stock clip: somebody else's kitchen, used under a
+ * licence that permits it. It is illustration in exactly the sense `generated`
+ * is — it can show what flour looks like and can never show what the product
+ * did — and every rule that refuses `generated` as evidence refuses this too.
+ */
+export type ImageProvenance = 'product' | 'captured' | 'generated' | 'operator' | 'licensed';
 
 /**
  * What Halyard is allowed to *do* with a picture, which is a separate question

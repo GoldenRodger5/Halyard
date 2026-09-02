@@ -75,6 +75,38 @@ describe('checkScreenplay', () => {
     expect(check.problems.map((p) => p.rule)).toContain('no_footage');
   });
 
+  it('§478: footage and a product recording are gated separately', () => {
+    /* Stock b-roll makes `footage` possible and says nothing about the product. */
+    const stocked = { ...available, hasFootage: true };
+    const filmed = checkScreenplay(
+      play([
+        scene({ ground: 'footage', groundSubject: 'hands kneading dough', seconds: 20 }),
+        scene({ id: 's2', seconds: 10, weight: 'support' }),
+      ]),
+      stocked,
+    );
+    expect(filmed.problems.map((p) => p.rule)).not.toContain('no_footage');
+
+    const captured = checkScreenplay(
+      play([scene({ ground: 'product_capture', seconds: 20 }), scene({ id: 's2', seconds: 10, weight: 'support' })]),
+      stocked,
+    );
+    expect(captured.problems.map((p) => p.rule)).toContain('no_footage');
+    const allowed = checkScreenplay(
+      play([scene({ ground: 'product_capture', seconds: 20 }), scene({ id: 's2', seconds: 10, weight: 'support' })]),
+      { ...stocked, hasProductCapture: true },
+    );
+    expect(allowed.problems.map((p) => p.rule)).not.toContain('no_footage');
+  });
+
+  it('§478: a footage scene must say what the footage is of', () => {
+    const check = checkScreenplay(
+      play([scene({ ground: 'footage', groundSubject: null, seconds: 20 }), scene({ id: 's2', seconds: 10, weight: 'support' })]),
+      { ...available, hasFootage: true },
+    );
+    expect(check.problems.map((p) => p.rule)).toContain('footage_without_subject');
+  });
+
   it('refuses a gesture at something the frame cannot locate', () => {
     const check = checkScreenplay(
       play([

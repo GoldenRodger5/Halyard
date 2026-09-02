@@ -33,6 +33,7 @@ import { EVIDENTIAL_ROLES, type ImageProvenance } from '../imagery/types.js';
 export const MEDIA_SOURCES = [
   'app_capture',
   'real_footage',
+  'stock_footage',
   'product_still',
   'generated_still',
   'typographic',
@@ -56,6 +57,20 @@ export const MEDIA_SOURCE_INFO: Record<
     provenance: 'operator',
     motion: true,
     canEvidence: true,
+  },
+  /**
+   * §478. Licensed b-roll of the subject — real motion, somebody else's hands.
+   *
+   * Motion, and illustration only: it sits between `real_footage` (which the
+   * operator filmed and can evidence) and `generated_still` (which cannot). A
+   * stock clip of flour being sifted is exactly as much a claim about the
+   * product as a generated photograph of flour is, which is none.
+   */
+  stock_footage: {
+    label: 'Licensed footage of the subject, as illustration',
+    provenance: 'licensed',
+    motion: true,
+    canEvidence: false,
   },
   product_still: {
     label: 'A screenshot of the product',
@@ -83,6 +98,8 @@ export interface MediaInventory {
   appCaptures: number;
   /** Filmed footage somebody actually shot. */
   realFootage: number;
+  /** §478. Whether a licensed b-roll source is configured. Unbounded when it is. */
+  stockFootage: boolean;
   /** Stills of the product UI. */
   productStills: number;
   /** Whether generation is configured and affordable for this run. */
@@ -112,14 +129,15 @@ const PREFERENCE: Record<string, MediaSource[]> = {
   after: ['real_footage', 'app_capture', 'product_still', 'typographic'],
   change: ['app_capture', 'real_footage', 'product_still', 'typographic'],
   /* Explanatory beats: a picture helps and nothing needs proving. */
-  context: ['generated_still', 'real_footage', 'typographic'],
-  detail: ['generated_still', 'real_footage', 'typographic'],
+  context: ['generated_still', 'real_footage', 'stock_footage', 'typographic'],
+  detail: ['generated_still', 'real_footage', 'stock_footage', 'typographic'],
   cta: ['typographic', 'generated_still'],
 };
 
 const DEFAULT_PREFERENCE: MediaSource[] = [
   'generated_still',
   'real_footage',
+  'stock_footage',
   'app_capture',
   'typographic',
 ];
@@ -130,6 +148,8 @@ function available(source: MediaSource, inventory: MediaInventory): boolean {
       return inventory.appCaptures > 0;
     case 'real_footage':
       return inventory.realFootage > 0;
+    case 'stock_footage':
+      return inventory.stockFootage;
     case 'product_still':
       return inventory.productStills > 0;
     case 'generated_still':

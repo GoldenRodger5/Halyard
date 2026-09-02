@@ -180,8 +180,21 @@ export function checkScreenplay(
     locatable: readonly string[];
     /** What the channel allows, in seconds. */
     seconds: { min: number; max: number };
-    /** Whether real captured footage exists for this piece. */
+    /**
+     * Whether footage of a subject can be found for this piece.
+     *
+     * §478. Until now this meant "the operator filmed something", and was false
+     * on every piece ever staged. It now also means a licensed b-roll source is
+     * configured — either way, a `footage` scene can be honoured.
+     */
     hasFootage: boolean;
+    /**
+     * §478. Whether a recording of the *product* exists. Separate from
+     * `hasFootage` because stock can show hands and dough and never the app,
+     * and a check that let one stand for the other would render a blank frame
+     * where a scene expected the software.
+     */
+    hasProductCapture?: boolean;
     /**
      * §340. The content the format writer produced, which this piece must carry.
      *
@@ -380,13 +393,28 @@ export function checkScreenplay(
      * recording of the software; neither can be conjured, and the check that
      * covered one of them read as covering both.
      */
-    if ((scene.ground === 'product_capture' || scene.ground === 'footage') && !available.hasFootage) {
+    const footageMissing =
+      (scene.ground === 'footage' && !available.hasFootage) ||
+      (scene.ground === 'product_capture' && !(available.hasProductCapture ?? false));
+    if (footageMissing) {
       problems.push({
         scene: scene.id,
         rule: 'no_footage',
         detail:
           `The scene calls for ${scene.ground.replace('_', ' ')} and none exists. §163: there is ` +
           'no placeholder, because substituting one is a claim about something nobody filmed.',
+      });
+    }
+    /*
+     * §478. Footage is found by searching for its subject. A footage scene with
+     * no subject is a scene nobody can fill, and it would fall silently back to
+     * a photograph — a decision the screenplay did not make.
+     */
+    if (scene.ground === 'footage' && available.hasFootage && !scene.groundSubject?.trim()) {
+      problems.push({
+        scene: scene.id,
+        rule: 'footage_without_subject',
+        detail: 'The scene calls for footage and does not say of what. Name what is happening in `groundSubject`.',
       });
     }
 

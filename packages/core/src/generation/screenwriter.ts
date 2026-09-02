@@ -63,8 +63,10 @@ export interface ScreenwriterInput {
   /** §451. What this platform counts, and what follows from it for a writer. */
   primarySignal?: string;
   signalBrief?: readonly string[];
-  /** Whether real captured footage exists. */
+  /** §478. Whether footage of a subject can be found — licensed b-roll, or the operator's own. */
   hasFootage: boolean;
+  /** §478. Whether a recording of the product itself exists. Stock never is one. */
+  hasProductCapture?: boolean;
   /** The written content this piece has to carry, when a format supplied it. */
   slots?: Array<{ key: string; index: number; text: string }>;
 }
@@ -203,9 +205,31 @@ export async function writeScreenplay(
     input.locatable.length > 0
       ? `Things the frame can locate, and the only valid gesture targets: ${input.locatable.join(', ')}.`
       : 'Nothing in the frame can be located, so this piece has no gestures.',
+    /*
+     * §478. Two kinds of moving ground, told apart.
+     *
+     * Footage here is licensed b-roll: somebody's real hands, real dough, real
+     * steam. It is the native grammar of the medium and it is what makes a
+     * piece stop reading as a slideshow — and it can only ever illustrate. A
+     * scene whose line is about something *happening* wants it; a scene about
+     * a thing at rest wants a photograph; the scene that names the product can
+     * have neither, because nobody else's kitchen contains it.
+     */
     input.hasFootage
-      ? 'Real product footage exists and may be used as a ground.'
-      : 'No product footage exists. Never call for `product_capture`.',
+      ? [
+          'Footage can be found: licensed clips of real hands, real ingredients, real process. Use',
+          '`ground: "footage"` for a scene whose line is about something *happening* — kneading,',
+          'pouring, sifting, rising, sizzling, stirring, slicing — and `photograph` for a thing at',
+          'rest. Real motion beats a slow push on a still, so when a line describes a process,',
+          'prefer footage. Never footage for a scene that names or shows the product; a clip of',
+          "somebody else's kitchen cannot contain it. For a footage scene, `groundSubject` is a",
+          'search phrase for what is physically happening, three to six words, hands and',
+          'material, nothing abstract: "hands kneading bread dough", "flour sifted into a bowl".',
+        ].join(' ')
+      : 'No footage can be found. Never call for `footage`.',
+    input.hasProductCapture
+      ? 'A real recording of the product exists and `product_capture` may be used as a ground.'
+      : 'No recording of the product exists. Never call for `product_capture`.',
     input.slots?.length
       ? `\nThe written content this piece must carry, in order:\n${input.slots
           .map((s) => `- ${s.key}[${s.index}]: ${s.text}`)

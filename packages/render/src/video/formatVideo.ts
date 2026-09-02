@@ -265,6 +265,8 @@ export interface SceneDirection {
   move?: SceneMove;
   weight?: 'lead' | 'support' | 'aside';
   ground?: 'footage' | 'photograph' | 'colour' | 'product_capture';
+  /** §478. What the ground is *of*. For footage, the phrase the clip is found by. */
+  groundSubject?: string | null;
   /**
    * §446. What the screenplay wants marked on this beat, in the piece's words.
    *
@@ -409,6 +411,17 @@ function narrativeFrom(
          * overwritten by an image nobody asked for.
          */
         ...(staged?.ground === 'colour' ? { wantsFlatGround: true } : {}),
+        /*
+         * §478. A scene that asked for real motion. The worker finds the clip;
+         * the subject travels with the beat so the search is for what the
+         * screenplay meant, not for whatever noun the line happens to contain.
+         */
+        ...(staged?.ground === 'footage'
+          ? {
+              wantsFootage: true,
+              ...(staged.groundSubject ? { footageSubject: staged.groundSubject } : {}),
+            }
+          : {}),
         /*
          * §446. Only on the last part of a split line: a mark belongs to the
          * phrase, and a phrase that fell in the first half is found there by

@@ -1,5 +1,33 @@
 # Where Halyard is right now
 
+**2026-09-02 — a beat can play footage, and none has yet.**
+
+§478. The screenplay's `footage` ground has been refusable-only since it was
+written — `hasFootage` was false on every piece. Now:
+
+| | |
+|---|---|
+| source | Pexels, licensed portrait b-roll, `packages/core/src/imagery/stockFootage.ts` |
+| decides which beats | the screenwriter, told footage is for a line about something *happening* |
+| decides what it may carry | code: `licensed` provenance, never evidence, never the product (`namesTheProduct`) |
+| worker | `apps/worker/src/beatFootage.ts` mirrors `photographBeats`; a beat with a clip is not photographed |
+| render | `stageClip` into `public/stock/`, `<OffthreadVideo>` in a `<Loop>` under the same camera grammar |
+| proven | `scripts/preview-footage.ts` — still 2.25, clip 35.15 luma delta across one beat |
+
+**Needs one thing from the operator: `PEXELS_API_KEY` in the master `.env`,
+then `./scripts/env-sync`.** Free at pexels.com/api. Until it is set the
+pipeline is unchanged and the screenplay is told "no footage can be found".
+
+The tips run ("Keeping fresh herbs alive for two weeks") **failed at `tts`**: a
+stray native worker took the job with the container's model path
+(`/opt/models/…`) and whisper-cli died. That worker is gone (gotcha 13's query
+shows zero), the container is being rebuilt with today's code, and the piece
+needs re-running — nothing about the format has been shown to be wrong yet.
+
+Suites: 195 files / 2,976 tests pass without a database; 335 skip (gotcha 12).
+
+---
+
 **2026-08-31 — a piece now passes its own critics, and the loop has still never
 closed.**
 

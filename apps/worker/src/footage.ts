@@ -123,3 +123,32 @@ export async function stageFootage(
 
   return { staged, missing };
 }
+
+/**
+ * §478. A stored stock clip, on disk where the bundle can serve it.
+ *
+ * Same contract as `stageFootage`: present means untouched, absent means
+ * fetched from the asset store and the bundle invalidated so it is served.
+ * Returns the bundle-relative path, or null when the bytes could not be read —
+ * the caller lets the beat fall back to a still rather than failing the render.
+ */
+export async function stageClip(
+  ctx: HandlerContext,
+  asset: { id: string; storage_path: string | null; public_url: string | null },
+  readBytes: (storagePath: string | null, publicUrl: string | null) => Promise<Buffer | null>,
+): Promise<string | null> {
+  const file = `stock/${asset.id}.mp4`;
+  const target = footagePathOnDisk(file);
+  if (await exists(target)) return file;
+
+  const bytes = await readBytes(asset.storage_path, asset.public_url);
+  if (!bytes) {
+    ctx.log('stock clip could not be read back from storage', { assetId: asset.id });
+    return null;
+  }
+  await mkdir(path.dirname(target), { recursive: true });
+  await writeFile(target, bytes);
+  invalidateBundle();
+  ctx.log('staged stock footage into the render bundle', { file });
+  return file;
+}

@@ -96,6 +96,15 @@ describe('a screenplay scene changes the frames', () => {
     expect(bloated).toBeLessThan(12);
   });
 
+  it('§478: a scene asking for footage carries the request and its subject onto the beat', () => {
+    const beats = beatsOf({ 'setup:0': { ground: 'footage', groundSubject: 'hands kneading dough' } });
+    const setup = beats.find((b) => b.text === HISTORY[1]!.text)!;
+    expect(setup.wantsFootage).toBe(true);
+    expect(setup.footageSubject).toBe('hands kneading dough');
+    expect(setup.wantsFlatGround).toBeUndefined();
+    expect(beats.find((b) => b.text === HISTORY[0]!.text)!.wantsFootage).toBeUndefined();
+  });
+
   it('a scene asking for colour marks the beat as wanting no photograph', () => {
     const beats = beatsOf({ 'setup:0': { ground: 'colour' } });
     expect(beats.find((b) => b.text === HISTORY[1]!.text)!.wantsFlatGround).toBe(true);

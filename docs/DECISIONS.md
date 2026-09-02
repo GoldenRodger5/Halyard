@@ -12119,3 +12119,61 @@ Worth noting how this surfaced. The text critic's verdict was **stored on two
 pieces that then failed** — the critic ran, the piece died, and the finding
 survived. That is the shape of a well-behaved observer: it did its job, said
 what it saw, and had no opinion about whether the piece lived.
+
+## §478 · Real motion, from somebody else's camera
+
+Every video Halyard has produced is a stack of stills with a slow push. The
+architecture expected footage from the first day — `real_footage` is a media
+source, `footage` is a screenplay ground, `hasFootage` gates it — and nothing
+ever supplied any, because the only source anyone imagined was the operator
+filming something. `hasFootage` was `false` on every piece ever staged, and the
+screenwriter was told, every time, *"never call for footage"*.
+
+**Chosen: licensed stock b-roll (Pexels), as a media source with its own
+provenance.** A clip of hands kneading dough under a card is the native grammar
+of the medium; a real food account is made of exactly this. Pexels because its
+licence permits commercial use without attribution, its library is large enough
+that §444's rotation has something to rotate through, and its API filters by
+portrait orientation — the only orientation short video needs.
+
+**Rejected: generated video.** Animating our own still with an image-to-video
+model keeps the subject exact and *looks generated*, which is the one quality
+the operator has asked this system never to have. Rejected: Wikimedia Commons,
+which needs no key — its licences are mixed and several require attribution a
+social post cannot carry.
+
+Three rules, all in code:
+
+- **It is illustration.** `licensed` provenance, `canEvidence: false`. The media
+  director refuses it for `demo`, `proof`, `before`, `after`, `change` exactly
+  as it refuses a generated still, and `footageForBeats` refuses a subject that
+  names the product before any search runs — somebody else's kitchen cannot
+  contain the software, however good the search phrase.
+- **Two moving grounds, two gates.** `hasFootage` used to stand for both
+  `footage` and `product_capture`; with stock, the first is true while the
+  second is not. `checkScreenplay` now reads `hasProductCapture` separately, and
+  a footage scene with no `groundSubject` is refused as
+  `footage_without_subject` — a scene nobody can fill would otherwise fall
+  silently back to a photograph, a decision the screenplay did not make.
+- **The clip travels as a file, not as props.** A render row holding four
+  base64 images was the thing §407 avoided; a six-second clip is fifty times
+  larger. The worker stores it as an asset (`kind: 'footage'`, tagged
+  `pexels:<id>` for rotation) and `render.ts` stages it into the bundle's
+  `public/` at render time, the way §246 stages a capture. A beat longer than
+  its clip loops rather than freezing; the client ranks clips long enough to
+  cover the beat first so it rarely has to.
+
+The screenwriter decides *which* lines want motion: it is told that footage is
+for a line about something happening — kneading, pouring, sizzling — and a
+photograph for a thing at rest. That is perception. Everything above is the
+decision.
+
+**Verified by rendering, not by the type system.** `scripts/preview-footage.ts`
+renders the same beat on a still and on a clip under a `hold` and measures the
+luma delta between the beat's first and last frame: still 2.25, clip 35.15. The
+first probe, `testsrc2`, measured 3.13 while visibly playing — a colour chart
+with one moving bar is nearly a still to a whole-frame mean. The script says so.
+
+**What is not done.** No key is set, so no piece has carried real footage yet;
+without `PEXELS_API_KEY` the pipeline is exactly what it was, and the screenplay
+is told so honestly. The gallery does not yet show which beats moved.

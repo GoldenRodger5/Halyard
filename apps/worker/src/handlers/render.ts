@@ -24,14 +24,14 @@ import {
   footageSpansFor,
   type CapturedStep,
 } from '@halyard/core';
-import { stageFootage } from '../footage.js';
+import { footagePathOnDisk, stageClip, stageFootage } from '../footage.js';
 import { openStage } from '../stage.js';
 import { durationInFrames, type CaptionCue } from '@halyard/render/timing';
 import { hasFaststart, meanVolumeDb, muxAudioIntoVideo } from '../audio.js';
 import { PermanentJobFailure } from '../poller.js';
 import type { Job, HandlerContext } from '../poller.js';
 import { readAssetBytes, uploadAsset, type UploadedAsset } from '../storage.js';
-import { measureLowerLuminance, renderVideo } from '../video.js';
+import { extractFrame, measureLowerLuminance, renderVideo } from '../video.js';
 
 interface RenderRow {
   id: string;
@@ -382,7 +382,44 @@ async function renderVideoAsset(
   const beatProps = (render.input_props as { beats?: Array<Record<string, unknown>> }).beats;
   if (Array.isArray(beatProps)) {
     let photographed = 0;
+    let moving = 0;
     for (const beat of beatProps) {
+      /*
+       * §478. A beat with footage plays it; the photograph path below is what
+       * it falls back to if the clip cannot be staged. The clip goes into the
+       * bundle's public directory rather than the props, because a six-second
+       * clip as base64 in Postgres is the thing §407 avoided for stills, only
+       * fifty times larger.
+       */
+      const footageId = beat.footageAssetId as string | undefined;
+      if (footageId) {
+        const { rows } = await ctx.pool.query<{
+          id: string;
+          storage_path: string | null;
+          public_url: string | null;
+          duration_seconds: string | number | null;
+        }>('select id, storage_path, public_url, duration_seconds from assets where id = $1', [footageId]);
+        const clip = rows[0];
+        const file = clip ? await stageClip(ctx, clip, readAssetBytes) : null;
+        if (clip && file) {
+          beat.backgroundVideoFile = file;
+          if (clip.duration_seconds != null) beat.backgroundVideoSeconds = Number(clip.duration_seconds);
+          try {
+            const probe = path.join(work, `beat-footage-${moving}.png`);
+            await extractFrame(footagePathOnDisk(file), probe);
+            beat.backgroundLuminance = await measureLowerLuminance(probe);
+          } catch (error) {
+            ctx.log('could not measure a clip; type gets the default scrim', {
+              renderId: render.id,
+              error: error instanceof Error ? error.message : String(error),
+            });
+          }
+          moving += 1;
+          continue;
+        }
+        ctx.log('footage missing at render; beat falls back to a still', { renderId: render.id, assetId: footageId });
+      }
+
       const assetId = beat.backgroundAssetId as string | undefined;
       if (!assetId) continue;
       const { rows } = await ctx.pool.query<{
@@ -400,8 +437,8 @@ async function renderVideoAsset(
       beat.backgroundLuminance = await measureLowerLuminance(probe);
       photographed += 1;
     }
-    if (photographed > 0) {
-      ctx.log('beats photographed', { renderId: render.id, photographed, of: beatProps.length });
+    if (photographed > 0 || moving > 0) {
+      ctx.log('beats grounded', { renderId: render.id, photographed, moving, of: beatProps.length });
     }
   }
 

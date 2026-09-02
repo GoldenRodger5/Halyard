@@ -45,6 +45,11 @@ export interface CreativeQCBeat {
   emphasis: 'quick' | 'normal' | 'hold';
   /** Present when the beat plays captured footage. */
   hasMedia?: boolean;
+  /**
+   * §478. Present when the beat plays licensed footage. Motion, not evidence:
+   * it keeps the beat from being a card and satisfies nothing about the product.
+   */
+  hasFootage?: boolean;
   /** Words drawn on this beat, when known. */
   wordCount?: number;
   /**
@@ -55,7 +60,7 @@ export interface CreativeQCBeat {
    * correction, by a hand-edited render row, by a future caller — and a gate
    * is not.
    */
-  imageProvenance?: 'product' | 'captured' | 'generated' | 'operator';
+  imageProvenance?: 'product' | 'captured' | 'generated' | 'operator' | 'licensed';
 }
 
 export interface CreativeQCInput {
@@ -192,7 +197,9 @@ export function runCreativeQC(input: CreativeQCInput): CreativeQCResult {
   }
 
   const footageBeats = beats.filter((b) => b.hasMedia).length;
-  const cardShare = (beats.length - footageBeats) / beats.length;
+  /* §478. A licensed clip is not a card; it is also not the product. Two counts. */
+  const movingBeats = beats.filter((b) => b.hasMedia || b.hasFootage).length;
+  const cardShare = (beats.length - movingBeats) / beats.length;
 
   /*
    * The rule this gate exists for.
@@ -233,14 +240,14 @@ export function runCreativeQC(input: CreativeQCInput): CreativeQCResult {
    * this is the layer that cannot be bypassed.
    */
   beats.forEach((beat, index) => {
-    if (beat.imageProvenance !== 'generated') return;
+    if (beat.imageProvenance !== 'generated' && beat.imageProvenance !== 'licensed') return;
     if (!EVIDENTIAL_ROLES.includes(beat.role)) return;
     findings.push({
       rule: 'creative.fabricated_evidence',
       severity: 'error',
-      message: `Beat ${index + 1} is a "${beat.role}" backed by a generated image. That presents an invented picture as product evidence.`,
+      message: `Beat ${index + 1} is a "${beat.role}" backed by ${beat.imageProvenance === 'licensed' ? "a licensed clip of somebody else's kitchen" : 'a generated image'}. That presents a picture that is not the product as product evidence.`,
       detail:
-        'Generated imagery may illustrate and may never evidence. Use a product image or a capture here, or make the beat decorative.',
+        'Generated and licensed imagery may illustrate and may never evidence. Use a product image or a capture here, or make the beat decorative.',
       beatIndex: index,
       correction: 'replace_fabricated_image',
     });

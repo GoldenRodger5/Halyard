@@ -328,7 +328,7 @@ For each beat it builds, it looks up the scene by slot key. If there is one and
 | `seconds` | the beat's hold, clamped below by `spokenSeconds` so the VO cannot be cut off, and above by the Part 1 ceiling | `formatVideo.ts` |
 | `move` | Ken Burns direction and the transition into the beat | `narrative.tsx` `Ground` |
 | `weight` | type scale and emphasis (`lead` / `support` / `aside`) | `narrative.tsx` |
-| `ground` + `groundSubject` | photograph vs colour, and *what the photograph is of* | `generate.ts` `photographBeats` |
+| `ground` + `groundSubject` | footage vs photograph vs colour, and *what it is of* — footage since §478, licensed b-roll for a line about something happening | `generate.ts` `footageForBeats`, then `photographBeats` for the rest |
 | `score` | the bed envelope at the beat boundary | `tts.ts` / music director |
 | `gestures` | the marks, resolved to regions | `annotationDirector.ts` |
 

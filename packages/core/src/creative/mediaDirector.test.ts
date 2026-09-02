@@ -10,8 +10,8 @@ import { describe, expect, it } from 'vitest';
 import { MEDIA_SOURCES, MEDIA_SOURCE_INFO, chooseMediaSource } from './mediaDirector.js';
 import { EVIDENTIAL_ROLES } from '../imagery/types.js';
 
-const everything = { appCaptures: 3, realFootage: 2, productStills: 4, canGenerate: true };
-const nothing = { appCaptures: 0, realFootage: 0, productStills: 0, canGenerate: false };
+const everything = { appCaptures: 3, realFootage: 2, stockFootage: false, productStills: 4, canGenerate: true };
+const nothing = { appCaptures: 0, realFootage: 0, stockFootage: false, productStills: 0, canGenerate: false };
 
 describe('choosing a media source', () => {
   it('never puts a generated picture in a beat that must prove something', () => {
@@ -100,6 +100,30 @@ describe('choosing a media source', () => {
   it('describes every source it can return', () => {
     for (const source of MEDIA_SOURCES) {
       expect(MEDIA_SOURCE_INFO[source].label.length, source).toBeGreaterThan(5);
+    }
+  });
+});
+
+describe('§478 stock footage', () => {
+  const stocked = { appCaptures: 0, realFootage: 0, stockFootage: true, productStills: 0, canGenerate: true };
+
+  it('is available only when a source is configured', () => {
+    const possible = (c: { source: string; alternatives: string[] }) => [c.source, ...c.alternatives];
+    const without = chooseMediaSource({ role: 'context', inventory: { ...stocked, stockFootage: false } });
+    expect(possible(without)).not.toContain('stock_footage');
+    const withIt = chooseMediaSource({ role: 'context', inventory: stocked });
+    expect(possible(withIt)).toContain('stock_footage');
+  });
+
+  it('wins an explanatory beat that needs motion, over a generated still', () => {
+    const choice = chooseMediaSource({ role: 'context', inventory: stocked, needsMotion: true });
+    expect(choice.source).toBe('stock_footage');
+  });
+
+  it('never carries a demo or proof beat, because it cannot evidence anything', () => {
+    for (const role of ['demo', 'proof', 'before', 'after', 'change']) {
+      const choice = chooseMediaSource({ role, inventory: { ...stocked, canGenerate: false } });
+      expect(choice.source, role).not.toBe('stock_footage');
     }
   });
 });

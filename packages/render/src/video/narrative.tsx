@@ -23,7 +23,18 @@
  * means and why every format before this did.
  */
 import React from 'react';
-import { AbsoluteFill, Audio, Sequence, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
+import {
+  AbsoluteFill,
+  Audio,
+  Loop,
+  OffthreadVideo,
+  Sequence,
+  interpolate,
+  spring,
+  staticFile,
+  useCurrentFrame,
+  useVideoConfig,
+} from 'remotion';
 import type { BrandTokens } from '../brand.js';
 import type { RenderTypography } from '../image/templates.js';
 import { quizPalette, type QuizPalette } from './quizTemplates.js';
@@ -79,6 +90,18 @@ export interface NarrativeBeat {
    * given only one image.
    */
   backgroundDataUri?: string;
+  /**
+   * §478. A clip under this beat instead of a picture.
+   *
+   * A filename in the bundle's public directory, served with `staticFile` —
+   * the same way the walkthrough carries a capture. Not a data URI: a
+   * six-second clip is megabytes, and Remotion decodes a video file far more
+   * cheaply than it decodes a base64 string the size of one.
+   *
+   * When both are set the clip wins, because the still was a fallback that
+   * the worker computed before it knew whether footage would land.
+   */
+  backgroundVideoFile?: string;
   /** Measured brightness where the type sits on *this* beat's picture, 0..1. */
   backgroundLuminance?: number;
   /**
@@ -119,6 +142,17 @@ export interface NarrativeBeat {
    * nothing, and a piece that is photographs end to end has no punctuation.
    */
   wantsFlatGround?: boolean;
+  /**
+   * §478. The screenplay asked this beat for real motion, and of what. The
+   * worker resolves it to `footageAssetId`; the render handler stages that
+   * into `backgroundVideoFile`. Three fields because three different processes
+   * own the three steps, and each can be read back to see where it stopped.
+   */
+  wantsFootage?: boolean;
+  footageSubject?: string;
+  footageAssetId?: string;
+  /** The clip's length, so a beat longer than it loops rather than freezing. */
+  backgroundVideoSeconds?: number;
   /**
    * §446. What the screenplay asked to be marked on this beat.
    *
@@ -674,12 +708,16 @@ export function scrimStops(
 
 const Ground: React.FC<{
   src: string;
+  /** §478. A clip, served from the bundle's public dir. Wins over `src`. */
+  videoFile?: string;
+  videoSeconds?: number;
   luminance?: number;
   durationInFrames: number;
   anchor: 'top' | 'center' | 'bottom';
   /** §441. What the screenplay asked this beat's frame to do. */
   move?: SceneMove;
-}> = ({ src, luminance, durationInFrames, anchor, move }) => {
+}> = ({ src, videoFile, videoSeconds, luminance, durationInFrames, anchor, move }) => {
+  const { fps } = useVideoConfig();
   const frame = useCurrentFrame();
   /*
    * §441. The screenplay's `move`, or the push every beat used to get.
@@ -704,19 +742,52 @@ const Ground: React.FC<{
     .join(', ');
   return (
     <AbsoluteFill style={{ overflow: 'hidden' }}>
-      <img
-        src={src}
-        alt=""
-        style={{
-          position: 'absolute',
-          inset: 0,
-          width: '100%',
-          height: '100%',
-          objectFit: 'cover',
-          transform: `scale(${scale}) translateX(${panX.toFixed(3)}%)`,
-          transformOrigin: 'center center',
-        }}
-      />
+      {videoFile ? (
+        /*
+         * §478. Real motion. The camera grammar still applies on top of it —
+         * a `push_in` on footage that is itself moving reads as intent, and a
+         * `hold` lets the clip do the moving — so the same transform wraps
+         * both. Muted: the bed and the voice own the audio, and a clip's own
+         * sound under a narrator is the clearest tell of a stitched video.
+         */
+        <Loop
+          /*
+           * A beat longer than its clip would freeze on the last frame. Looping
+           * is the lesser tell, and the worker ranks clips long enough not to
+           * need it. Unknown length: loop the beat itself, which is a no-op.
+           */
+          durationInFrames={Math.max(1, Math.round((videoSeconds ?? durationInFrames / fps) * fps))}
+          layout="none"
+        >
+          <OffthreadVideo
+            src={staticFile(videoFile)}
+            muted
+            style={{
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              transform: `scale(${scale}) translateX(${panX.toFixed(3)}%)`,
+              transformOrigin: 'center center',
+            }}
+          />
+        </Loop>
+      ) : (
+        <img
+          src={src}
+          alt=""
+          style={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            transform: `scale(${scale}) translateX(${panX.toFixed(3)}%)`,
+            transformOrigin: 'center center',
+          }}
+        />
+      )}
       <AbsoluteFill style={{ backgroundImage: `linear-gradient(to bottom, ${stops})` }} />
     </AbsoluteFill>
   );
@@ -765,9 +836,11 @@ export const Narrative: React.FC<NarrativeProps> = ({
               §407. This beat's picture, or the piece's if it has none of its
               own. Inside the sequence, so it changes when the beat changes.
             */}
-            {beat.backgroundDataUri ?? backgroundDataUri ? (
+            {beat.backgroundVideoFile || (beat.backgroundDataUri ?? backgroundDataUri) ? (
               <Ground
-                src={(beat.backgroundDataUri ?? backgroundDataUri)!}
+                src={(beat.backgroundDataUri ?? backgroundDataUri) ?? ''}
+                {...(beat.backgroundVideoFile ? { videoFile: beat.backgroundVideoFile } : {})}
+                {...(beat.backgroundVideoSeconds ? { videoSeconds: beat.backgroundVideoSeconds } : {})}
                 luminance={beat.backgroundLuminance ?? backgroundLuminance}
                 durationInFrames={durationInFrames}
                 anchor={TYPE_ANCHOR[treatments[i]!]}
@@ -777,7 +850,11 @@ export const Narrative: React.FC<NarrativeProps> = ({
             <Beat
               beat={beat}
               treatment={treatments[i]!}
-              palette={beat.backgroundDataUri ?? backgroundDataUri ? overPhoto : overCard}
+              palette={
+                beat.backgroundVideoFile || (beat.backgroundDataUri ?? backgroundDataUri)
+                  ? overPhoto
+                  : overCard
+              }
               brand={brand}
               type={typography}
             />

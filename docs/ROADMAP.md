@@ -168,20 +168,26 @@ Nothing here is a Halyard change and all of it gates everything else.
 
 ### Then — finish short video
 
-9. **`tips` has never rendered.** Both causes are fixed; confirm.
-10. **A capture path for `walkthrough`.** The one format where the footage is the
+9. **`tips` has never rendered.** Both causes are fixed; the one run since
+   died on a stray native worker (gotcha 13), not on the format. Confirm.
+10. **Real motion — §478.** Built end to end and proven in a render; carries
+    no clip until `PEXELS_API_KEY` is set. Then: the first piece with footage
+    under a beat, through the three critic personas, and the gallery showing
+    which beats moved. This is the single largest "looks like a slideshow"
+    fix available and it is one key away.
+11. **A capture path for `walkthrough`.** The one format where the footage is the
     claim, and the product demo people actually want.
-11. **Series.** The largest *content* gap and the one a social team would name
+12. **Series.** The largest *content* gap and the one a social team would name
     first: a brand is a promise repeated. Halyard makes one-offs. Nothing knows
     what "episode 4" means, so nobody has a reason to follow rather than watch.
-12. **W11** — fold `creative-director`, `story-architect` and `concept-generator`
+13. **W11** — fold `creative-director`, `story-architect` and `concept-generator`
     into the screenwriter. Registry hygiene; changes nothing a viewer sees.
 
 ### Then — the next channel
 
-13. **Carousel** is the strongest second channel: highest save rate, no
+14. **Carousel** is the strongest second channel: highest save rate, no
     voiceover, no render pipeline, and `carousel_6` already exists.
-14. **Text** works and is cheap; it is the one that keeps an account alive
+15. **Text** works and is cheap; it is the one that keeps an account alive
     between videos.
 15. **Story** (`poll`, `behind`) — lowest production cost of anything here, and
     the only channel whose value is the *response*.

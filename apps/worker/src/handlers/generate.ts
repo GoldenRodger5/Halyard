@@ -50,6 +50,7 @@ import {
   supportFromConstraints,
   type PostTypeId,
   type Stage,
+  createStockFootageClient,
 } from '@halyard/core';
 import {
   carouselProps,
@@ -127,6 +128,7 @@ import { generateHeroImage } from '../heroImage.js';
 import { recentShots } from '../shotRecency.js';
 import { continuityFor } from '../continuity.js';
 import { photographBeats } from '../beatPhotographs.js';
+import { footageForBeats } from '../beatFootage.js';
 import { markForBeat } from '../beatMark.js';
 import { readPiece } from '../readPiece.js';
 
@@ -962,6 +964,12 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
     ? new OpenAiImageClient({ apiKey: process.env.OPENAI_API_KEY })
 
     : null;
+  /*
+   * §478. Real motion. Null when no PEXELS_API_KEY is set, which is a state,
+   * not an error: the screenplay is told footage cannot be found and asks for
+   * photographs, which is exactly what every piece before §478 was made of.
+   */
+  const stockFootage = createStockFootageClient();
 
 
   /**
@@ -1474,6 +1482,8 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                   channel: resolvedType.postType.channel,
                   /* §451. Where it is going, which decides its length and its shape. */
                   platform: account.platform,
+                  /* §478. Whether a `footage` scene can be honoured. */
+                  hasFootage: stockFootage !== null,
                   subject:
                     (job.payload.subject as string | undefined)?.trim() ||
                     subjectForImage(artifact, idea.title) ||
@@ -2532,6 +2542,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                     move: scene.move,
                     weight: scene.weight,
                     ground: scene.ground,
+                    groundSubject: scene.groundSubject,
                     /* §446. The phrases this scene earns a mark on, if any. */
                     gestures: scene.gestures.map((g) => g.target),
                   },
@@ -2807,8 +2818,49 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                   });
                 }
 
+                /*
+                 * §478. Footage first, for the beats the screenplay asked it
+                 * on; then photographs for the rest. A beat that gets a clip is
+                 * not photographed — the clip covers it, and the image would be
+                 * a paid generation nobody sees. A beat that asked and got none
+                 * falls through to the photograph path with the reason logged.
+                 */
+                const footageBeats = allBeats
+                  .map((b, i) => ({ b, i }))
+                  .filter(({ b }) => b.wantsFootage === true);
+                if (footageBeats.length > 0) {
+                  const footage = await footageForBeats(assets, stockFootage, llmFor(), {
+                    productId,
+                    contentItemId,
+                    productName: product.name,
+                    productContext: product.brief_summary ?? undefined,
+                    beats: footageBeats.map(({ b }) => ({
+                      text: String(b.text ?? ''),
+                      subject: (b.footageSubject as string | undefined) ?? null,
+                      ...(typeof b.seconds === 'number' ? { seconds: b.seconds } : {}),
+                    })),
+                  });
+                  for (const [k, { i }] of footageBeats.entries()) {
+                    const got = footage[k];
+                    if (got?.assetId) {
+                      allBeats[i] = {
+                        ...allBeats[i],
+                        footageAssetId: got.assetId,
+                        ...(got.seconds ? { backgroundVideoSeconds: got.seconds } : {}),
+                      };
+                    }
+                  }
+                  ctx.log('footage resolved', {
+                    asked: footageBeats.length,
+                    got: footage.filter((f) => f.assetId).length,
+                    declined: footage.filter((f) => !f.assetId).map((f) => f.reason),
+                  });
+                }
+
                 const groups: number[] = [];
                 for (const [i, b] of allBeats.entries()) {
+                  /* §478. Covered by a clip; no photograph needed. */
+                  if (b.footageAssetId) continue;
                   /**
                    * §441. A scene that asked for a flat ground gets one.
                    *

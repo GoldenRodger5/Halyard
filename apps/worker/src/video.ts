@@ -493,6 +493,17 @@ export function frameSampleTimes(durationSeconds: number): number[] {
  * rather than substituting a guess — an unmeasured background is not a mid-grey
  * one.
  */
+/**
+ * §478. One frame of a clip, as a PNG, so `measureLowerLuminance` can read a
+ * moving ground the way it reads a still. A second in, because the first frame
+ * of stock footage is often a fade from black.
+ */
+export async function extractFrame(clipPath: string, outPath: string, atSeconds = 1): Promise<void> {
+  await execFileAsync('ffmpeg', [
+    '-y', '-ss', String(atSeconds), '-i', clipPath, '-frames:v', '1', '-update', '1', outPath,
+  ]);
+}
+
 export async function measureLowerLuminance(
   imagePath: string,
   band = 0.45,

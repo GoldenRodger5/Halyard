@@ -399,6 +399,8 @@ export async function reviewMediaHandler(
         role: String(b.role ?? ''),
         emphasis: (b.emphasis as 'quick' | 'normal' | 'hold') ?? 'normal',
         hasMedia: Boolean(b.media),
+        /* §478. Licensed footage under the beat: moving, and not the product. */
+        hasFootage: Boolean(b.footageAssetId),
         wordCount: words ? words.split(/\s+/).length : 0,
       };
     }),

@@ -942,6 +942,7 @@ export const AGENT_REGISTRY: AgentContract[] = [
       marks: 'string[]',
       locatable: 'string[]',
       hasFootage: 'boolean',
+      hasProductCapture: 'boolean',
     },
     outputSchema: { screenplay: 'Screenplay', costUsd: 'number' },
     tools: [],
