@@ -4087,6 +4087,26 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
            * worth having — it means the brief and the gate disagree, which no
            * number of retries will settle.
            */
+          /**
+           * §454. Which rule, not merely which gate.
+           *
+           * §262 made this say *"copy: failed (1 violation)"* instead of
+           * "rejected by QC", which was the right direction and stopped one
+           * step short. Three pieces have now been lost to "1 violation" with
+           * no way to tell which one — and three consecutive attempts failing
+           * the *same* rule is the signal worth having, because it means the
+           * brief and the gate disagree and no further retry settles it.
+           *
+           * The copy gate carries its violations in `detail`; the summary is a
+           * count. Naming them costs nothing and is the difference between
+           * "captions sometimes fail" and a fixable fact.
+           */
+          const namedViolations = err.lastQc.gates
+            .filter((g) => g.status === 'failed' && g.gate === 'copy')
+            .flatMap((g) => {
+              const detail = g.detail as { errors?: Array<{ rule: string; message: string }> } | null;
+              return (detail?.errors ?? []).map((v) => `${v.rule} — ${v.message}`);
+            });
           const refusedBy = err.lastQc.gates
             .filter((g) => g.status === 'failed')
             .map((g) => `${g.gate}: ${g.summary}`);
@@ -4100,6 +4120,8 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
             idea: idea.id,
             attempts: err.attempts,
             refusedBy: refusedBy.length ? refusedBy : ['no gate reported failed'],
+            /* §454. The rules themselves, so a repeat failure is diagnosable. */
+            ...(namedViolations.length > 0 ? { rules: namedViolations } : {}),
             disowned: insertedItemId ?? 'nothing inserted yet',
           });
           continue;
