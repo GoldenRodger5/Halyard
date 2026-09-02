@@ -1,0 +1,25 @@
+# §506. What must never enter a build context.
+#
+# `apps/worker/Dockerfile` does `COPY apps/worker/ apps/worker/`, and there was
+# no ignore file — so every image ever built carried `apps/worker/.env`, which
+# `scripts/env-sync` writes with every credential this system holds. The
+# container gets its environment from `docker run --env-file` and from
+# Railway's own variables; the file has no business in a layer, where it
+# survives in the image history whatever a later step deletes.
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+
+# Weight, not secrecy: these make an upload slow and a build cache useless.
+.git
+**/node_modules
+**/dist
+**/.next
+**/.turbo
+.render-output
+apps/web/public/dev-assets
+supabase/.branches
+supabase/.temp

@@ -12691,3 +12691,22 @@ camera alone would call the *best-composed* footage beat motionless, and read
 a piece that never stops moving as restful. Both rules now include footage in
 the count, which is the same correction §487 made to pacing: a measurement is
 only as good as the thing it is divided by.
+
+## §506 · Every worker image ever built carried the env file
+
+`apps/worker/Dockerfile` does `COPY apps/worker/ apps/worker/` and the repo had
+no `.dockerignore`, so `apps/worker/.env` — which `scripts/env-sync` writes with
+every credential this system holds — went into a layer of every image, where it
+survives in the history whatever a later step removes. The container has never
+needed it: it takes its environment from `docker run --env-file` locally and
+from Railway's own variables in production.
+
+Found while looking at what a `railway up` would upload, which was the second
+finding: with no ignore file the build context was **1.8 GB** — `.git`,
+`node_modules`, `dev-assets` and `.render-output` — none of it used by a
+Dockerfile that installs its own dependencies from the lockfile. So the ignore
+file fixes a secret leak and a cache that could never hit, in the same four
+lines.
+
+Verified by building and looking inside: no `.env` in the image, and the
+§503 code present.
