@@ -84,6 +84,32 @@ export async function recentClipIds(
   );
 }
 
+/**
+ * §503. Which beats get the clips when more want them than the cap allows.
+ *
+ * The first live run asked for footage on **eight of eight** beats. Taking the
+ * first four gives a piece that moves for fifteen seconds and then stops dead;
+ * a piece that moved on all eight would be its own monotony, with nothing to
+ * cut against. A still between two clips is punctuation — the argument §444
+ * makes for a flat ground between photographs, one layer up.
+ *
+ * So the opening always moves, because on a completion-ranked platform the
+ * first second is the whole job, and the rest are spaced evenly through what
+ * remains rather than filling from the front. Deterministic: the same
+ * screenplay always picks the same beats.
+ */
+export function beatsToFilm(wanted: number, cap = MAX_FOOTAGE_BEATS): number[] {
+  if (wanted <= 0) return [];
+  if (wanted <= cap) return Array.from({ length: wanted }, (_, i) => i);
+  const chosen = [0];
+  const step = (wanted - 1) / (cap - 1);
+  for (let n = 1; n < cap; n += 1) {
+    const at = Math.round(n * step);
+    if (!chosen.includes(at) && at < wanted) chosen.push(at);
+  }
+  return chosen.sort((a, b) => a - b);
+}
+
 export async function footageForBeats(
   ctx: HandlerContext,
   client: StockFootageClient | null,
@@ -105,7 +131,14 @@ export async function footageForBeats(
   const avoid = await recentClipIds(ctx.pool, { productId: input.productId });
   const out: BeatFootage[] = [];
 
-  for (const beat of input.beats.slice(0, MAX_FOOTAGE_BEATS)) {
+  /* §503. Spread through the piece, not the first four. */
+  const filming = new Set(beatsToFilm(input.beats.length));
+
+  for (const [index, beat] of input.beats.entries()) {
+    if (!filming.has(index)) {
+      out.push(none(`past the ${MAX_FOOTAGE_BEATS}-clip cap; a still here, for contrast`));
+      continue;
+    }
     try {
       let subject = beat.subject?.trim() || null;
       if (!subject && beat.text.trim()) {
@@ -192,6 +225,5 @@ export async function footageForBeats(
     }
   }
 
-  while (out.length < input.beats.length) out.push(none(`past the ${MAX_FOOTAGE_BEATS}-clip cap`));
   return out;
 }

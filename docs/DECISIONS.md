@@ -12615,3 +12615,37 @@ this is the other direction, an unrunnable check reported as a failed one, and
 it is worse, because it sends somebody to fix a thing that is already right.
 Blast radius checked: Threads' adapter does not gate on stored scopes, and
 Instagram and TikTok, which do, receive theirs.
+
+## §501–§503 · The first live footage run, and what it taught
+
+`PEXELS_API_KEY` went in and a tips piece about searing a steak went through.
+Three things came back, in the order they matter.
+
+**The brief works.** The screenwriter asked for `ground: "footage"` on **eight
+of eight** beats — every line of a tips piece is an instruction, and every
+instruction is something happening. That is the §478 guidance landing exactly
+as written. It is also the part that would fail silently if it were ever
+deleted, so §501 asserts the sentences reach the model: remove them and
+nothing errors, the model simply stops asking, and the pipeline returns to
+stills with every test still green.
+
+**Postgres refused all eight clips.** The code wrote `kind: 'footage'`;
+`assets_kind_check` has never had that word and has always had `broll`, which
+nothing wrote. Gotcha 1 in another table — a list kept in TypeScript and in
+SQL, agreeing until the first insert. §502 uses the kind the schema has, and a
+test now reads the constraint out of the migrations and checks it against
+every kind `uploadAsset` is called with. Its first version read a *different*
+table's `kind` check and confidently reported that `audio` would be refused,
+which is why it now asserts it found `generated` and `broll` before believing
+anything else it says.
+
+**Eight moving beats is not the goal.** Filling from the front gives a piece
+that moves for fifteen seconds and then stops dead; filling all eight is its
+own monotony with nothing to cut against. §503 always films the opening —
+on a completion-ranked platform the first second is the whole job — and spaces
+the remaining clips through the piece. A still between two clips is
+punctuation, which is §444's argument one layer up.
+
+The grounds record earned its place here: the gallery said *asked 8, got 0,
+four refused by the constraint and four past the cap*, which is the entire
+diagnosis without opening a log.

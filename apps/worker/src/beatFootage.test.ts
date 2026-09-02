@@ -19,7 +19,7 @@ vi.mock('@halyard/core', async (importOriginal) => {
   };
 });
 
-const { footageForBeats, namesTheProduct, MAX_FOOTAGE_BEATS } = await import('./beatFootage.js');
+const { footageForBeats, namesTheProduct, beatsToFilm, MAX_FOOTAGE_BEATS } = await import('./beatFootage.js');
 
 function clip(id: string, seconds = 8): StockClip {
   return {
@@ -158,7 +158,42 @@ describe('§478 footageForBeats', () => {
     const beats = Array.from({ length: MAX_FOOTAGE_BEATS + 2 }, (_, i) => ({ text: `b${i}`, subject: 'flour' }));
     const out = await footageForBeats(ctx, client, llm, { ...base, beats }, okFetch);
     expect(out.filter((f) => f.assetId)).toHaveLength(MAX_FOOTAGE_BEATS);
-    expect(out.at(-1)!.reason).toMatch(/cap/);
+    expect(out.filter((f) => !f.assetId).every((f) => /cap/.test(f.reason ?? ''))).toBe(true);
+  });
+
+  it('§503: the opening always moves, and the rest are spread rather than front-loaded', async () => {
+    const { ctx } = ctxWith([]);
+    const { client } = clientReturning([clip('6')]);
+    const beats = Array.from({ length: 8 }, (_, i) => ({ text: `b${i}`, subject: 'flour' }));
+    const out = await footageForBeats(ctx, client, llm, { ...base, beats }, okFetch);
+    const filmed = out.map((f, i) => (f.assetId ? i : -1)).filter((i) => i >= 0);
+
+    expect(filmed[0]).toBe(0);
+    expect(filmed).toHaveLength(MAX_FOOTAGE_BEATS);
+    /* Not the first four in a row — something later in the piece moves too. */
+    expect(filmed.at(-1)).toBeGreaterThan(MAX_FOOTAGE_BEATS);
+  });
+});
+
+describe('§503 beatsToFilm', () => {
+  it('films everything when the piece is within the cap', () => {
+    expect(beatsToFilm(3, 4)).toEqual([0, 1, 2]);
+    expect(beatsToFilm(4, 4)).toEqual([0, 1, 2, 3]);
+  });
+  it('opens on motion and spreads the rest to the end', () => {
+    expect(beatsToFilm(8, 4)).toEqual([0, 2, 5, 7]);
+    expect(beatsToFilm(6, 3)).toEqual([0, 3, 5]);
+  });
+  it('is deterministic and never exceeds the cap', () => {
+    for (const n of [5, 7, 9, 12, 20]) {
+      const first = beatsToFilm(n);
+      expect(first).toEqual(beatsToFilm(n));
+      expect(first.length).toBeLessThanOrEqual(MAX_FOOTAGE_BEATS);
+      expect(Math.max(...first)).toBeLessThan(n);
+    }
+  });
+  it('has nothing to film when there are no beats', () => {
+    expect(beatsToFilm(0)).toEqual([]);
   });
 });
 
