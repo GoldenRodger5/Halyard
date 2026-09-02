@@ -38,6 +38,14 @@ job. Fund either account and the queue resumes. Validated on the rebuilt worker:
 a send from the UI dies on attempt 1 in five seconds with both providers
 named in the row.
 
+**Six of seven accounts are connected in production** (2 Sep): Instagram,
+TikTok, X @Recipe_Fix, YouTube and Threads hold credentials and pass their
+live read; Pinterest and the founder X account do not. All are drafts-only
+until each platform's review is granted, which is the intended state — nothing
+publishes for real yet. Threads reported a false failure until §500: it is the
+one provider that returns no `scope` on its tokens, and the self-test read an
+empty list as every scope missing.
+
 **Connections are now one screen (§497).** `/master` — also reachable by typing
 `/connections` or `/accounts` — lists every account with its real state and the
 buttons that change it: Connect, Reconnect, Test, Disconnect. Rows whose

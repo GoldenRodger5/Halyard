@@ -12578,3 +12578,40 @@ the constants. Three things came back:
    TikTok pre-audit forces `SELF_ONLY`. Both return a 200 from a publish. The
    sidebar badge deliberately does **not** count these — it counts credentials
    that *died*, because a badge that never clears stops being read.
+
+## §500 · A check that cannot be made is not a check that failed
+
+The operator connected Threads, the dashboard showed all four permissions
+granted, and Halyard's self-test said *"missing threads_basic,
+threads_content_publish, threads_manage_replies, threads_manage_insights"* —
+every scope it had asked for. There was nothing to fix, because nothing was
+wrong.
+
+Threads' token responses carry no `scope` field at all: not the
+authorization-code exchange, not the `th_exchange_token` upgrade, not the
+refresh. §180 had already noticed half of this and fell back to the short
+exchange's scopes, which are also absent, so a fully authorised account stored
+`scopes: []`. The self-test then read an empty list as *every required scope
+missing* and failed a working credential. Production confirms the reading:
+Instagram, TikTok, X and YouTube all report their scopes and all pass;
+Threads reports none and was the only failure.
+
+Two fixes, and the second is the general one.
+
+- **The refresh keeps what it knew.** `th_refresh_token` returns no scope
+  either, so every refresh erased whatever the exchange had recorded — §180's
+  door, one method along. A response that says nothing no longer overwrites
+  something.
+- **An unmeasurable check reports itself as unmeasured.** A provider that
+  reports a set can be checked against it; a provider that reports nothing
+  cannot be checked at all, and saying so is not the same as passing. The
+  check carries `unmeasured`, the summary says *"1 check not measured: scopes
+  granted"*, and the detail names what Halyard asked for so the operator can
+  compare it against the dashboard themselves. The live read — which the file
+  already called "the check that actually proves the credential" — decides.
+
+This is gotcha 6 inverted. That rule says a skipped gate is not a passed gate;
+this is the other direction, an unrunnable check reported as a failed one, and
+it is worse, because it sends somebody to fix a thing that is already right.
+Blast radius checked: Threads' adapter does not gate on stored scopes, and
+Instagram and TikTok, which do, receive theirs.

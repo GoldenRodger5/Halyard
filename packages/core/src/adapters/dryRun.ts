@@ -269,7 +269,18 @@ export async function dryRunPublish(
 export interface SelfTestResult {
   platform: string;
   ok: boolean;
-  checks: Array<{ name: string; ok: boolean; detail: string }>;
+  checks: Array<{
+    name: string;
+    ok: boolean;
+    detail: string;
+    /**
+     * §500. True when the check could not be made at all, rather than made and
+     * passed. A provider that does not report granted scopes leaves this one
+     * unmeasurable, and reporting that as a pass would be the inverse of
+     * gotcha 6 — an unrun check reading as a good one.
+     */
+    unmeasured?: boolean;
+  }>;
   /** The plain-language summary the accounts page shows. */
   summary: string;
 }
@@ -307,13 +318,35 @@ export async function selfTest(
       : 'no expiry recorded',
   });
 
+  /*
+   * §500. An empty scope list is silence, not a refusal.
+   *
+   * Threads' token responses carry no `scope` field at all — neither the
+   * authorization-code exchange nor the long-lived upgrade — so a fully
+   * authorised account stores `scopes: []`. This check read that as *every*
+   * required scope missing and failed a credential that works, on an account
+   * whose developer dashboard showed all four permissions granted. The
+   * operator saw "missing threads_basic, threads_content_publish, …" and had
+   * nothing to fix, because there was nothing wrong.
+   *
+   * A provider that reports a set can be checked against it; a provider that
+   * reports nothing cannot be checked at all. The live read below is what
+   * proves the grant either way, which is what it was always for.
+   */
   const granted = new Set(account.tokens.scopes ?? []);
   const missing = requiredScopes.filter((scope) => !granted.has(scope));
   if (requiredScopes.length > 0) {
+    const reported = granted.size > 0;
     checks.push({
       name: 'scopes granted',
-      ok: missing.length === 0,
-      detail: missing.length === 0 ? `${granted.size} scopes` : `missing ${missing.join(', ')}`,
+      ok: reported ? missing.length === 0 : true,
+      unmeasured: !reported,
+      detail: !reported
+        ? `${adapter.platform} does not report granted scopes on its tokens, so this cannot be checked. ` +
+          `Halyard asked for ${requiredScopes.join(', ')}; the live read is the proof.`
+        : missing.length === 0
+          ? `${granted.size} scopes`
+          : `missing ${missing.join(', ')}`,
     });
   }
 
@@ -330,6 +363,19 @@ export async function selfTest(
   }
 
   const failed = checks.filter((c) => !c.ok);
+  const unmeasured = checks.filter((c) => c.unmeasured);
+
+  /*
+   * §500. What could not be measured is said, never implied. A summary that
+   * reported only "credential is good" would let an unmeasurable check pass
+   * for a passing one — the shape gotcha 6 exists to refuse.
+   */
+  const caveat =
+    unmeasured.length > 0
+      ? ` ${unmeasured.length} check${unmeasured.length === 1 ? '' : 's'} not measured: ${unmeasured
+          .map((c) => c.name)
+          .join(', ')}.`
+      : '';
 
   return {
     platform: adapter.platform,
@@ -337,8 +383,8 @@ export async function selfTest(
     checks,
     summary:
       failed.length === 0
-        ? `${adapter.platform} credential is good.`
-        : `${adapter.platform}: ${failed.map((c) => c.name).join(', ')} failed. ${failed[0]!.detail}`,
+        ? `${adapter.platform} credential is good.${caveat}`
+        : `${adapter.platform}: ${failed.map((c) => c.name).join(', ')} failed. ${failed[0]!.detail}${caveat}`,
   };
 }
 

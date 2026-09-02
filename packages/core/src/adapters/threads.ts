@@ -123,7 +123,20 @@ export class ThreadsAdapter implements PlatformAdapter {
       { method: 'GET' },
       'Threads token refresh',
     )) as TokenResponse;
-    return { ...toTokenSet(refreshed), meta: tokens.meta };
+    /*
+     * §500. The same door §180 closed, one method along.
+     *
+     * `th_refresh_token` carries no `scope` either, so a refresh replaced
+     * whatever the exchange had recorded with an empty list — and a token that
+     * survives sixty days is refreshed many times. Whatever was known is kept
+     * when the response says nothing.
+     */
+    const next = toTokenSet(refreshed);
+    return {
+      ...next,
+      scopes: next.scopes.length > 0 ? next.scopes : tokens.scopes,
+      meta: tokens.meta,
+    };
   }
 
   async fetchIdentity(account: PublishAccount): Promise<PlatformIdentity> {
