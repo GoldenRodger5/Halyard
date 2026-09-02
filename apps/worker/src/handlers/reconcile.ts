@@ -166,11 +166,20 @@ async function sweepOrphans(ctx: HandlerContext): Promise<void> {
    * queue."* That was closed for the paths `generate` can see. A stage dying
    * hours later is not one of them.
    *
-   * Only when **nothing playable is left**: a carousel has several renders and
-   * one failing is not the piece failing, and an operator-attached asset is a
-   * real piece of media this system did not make. Both are checked rather than
-   * assumed, because failing a piece that still has something to publish is
-   * worse than the state being fixed.
+   * Only when **nothing publishable is left**, and "publishable" is a question
+   * about the piece's own format:
+   *
+   * - A carousel has several renders and one failing is not the piece failing.
+   * - An attached asset can carry a still, but **not a video**. The first
+   *   version of this exempted any piece with an attached asset, on the premise
+   *   that `attached_asset_ids` meant an operator had chosen something. It does
+   *   not: `generate` appends the hero image it made, so every video carried
+   *   one and the sweep would have fired for nothing, ever. Found by running it
+   *   against six real orphans and repairing none of them.
+   *
+   * So a video needs a finished render or an attached asset that is actually a
+   * video. Failing a piece that still has something to publish is worse than
+   * the state being repaired, and so is a sweep that never sweeps.
    */
   const orphanedItems = [
     ...new Set(renders.rows.map((r) => r.content_item_id).filter(Boolean)),
@@ -185,10 +194,15 @@ async function sweepOrphans(ctx: HandlerContext): Promise<void> {
                 )
           where ci.id = any($1::uuid[])
             and ci.status = 'pending_approval'
-            and coalesce(array_length(ci.attached_asset_ids, 1), 0) = 0
             and not exists (
               select 1 from renders ok
                where ok.content_item_id = ci.id and ok.status = 'done'
+            )
+            and not exists (
+              select 1
+                from unnest(ci.attached_asset_ids) aid
+                join assets a on a.id = aid
+               where ci.format <> 'video' or a.mime_type like 'video/%'
             )
           returning ci.id`,
         [orphanedItems],

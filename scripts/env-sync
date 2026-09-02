@@ -60,6 +60,11 @@ HALYARD_PUBLIC_URL BLOTATO_API_KEY
 RECIPEFIX_MCP_URL RECIPEFIX_MCP_TOKEN RECIPEFIX_WEB_URL
 EXPLORE_ACCOUNT_EMAIL EXPLORE_ACCOUNT_PASSWORD
 RESEND_API_KEY NEWSLETTER_FROM
+# §457. Caption timing. The container has its own path baked in and does not
+# need this; a worker run natively on a Mac has no /opt/models and every tts
+# job died on it, which blocked every render. Harmless in the container, where
+# the ENV in the Dockerfile still wins for the image's own copy.
+WHISPER_MODEL_PATH
 APP_STORE_KEY_ID APP_STORE_ISSUER_ID APP_STORE_PRIVATE_KEY APP_STORE_APP_ID
 SENTRY_DSN"
 

@@ -74,6 +74,19 @@ async function seedRender(ageHours: number): Promise<string> {
   return rows[0]!.id;
 }
 
+/** Attach an asset of a given media type to a piece. */
+async function attach(itemId: string, mimeType: string): Promise<void> {
+  const asset = await pool.query<{ id: string }>(
+    `insert into assets (product_id, kind, storage_path, mime_type, source)
+     values ('recipefix','generated',$1,$2,'generated') returning id`,
+    [`sweep/${mimeType.replace('/', '-')}-${Math.random().toString(36).slice(2)}`, mimeType],
+  );
+  await pool.query(
+    `update content_items set attached_asset_ids = array[$2::uuid] where id = $1`,
+    [itemId, asset.rows[0]!.id],
+  );
+}
+
 /** The content item a render belongs to. */
 const itemOf = async (renderId: string) =>
   (
@@ -186,14 +199,36 @@ d('orphaned renders', () => {
     expect(await statusOf(renderId)).toBe('failed');
   });
 
-  /* An operator-attached asset is real media this system did not make. */
-  it('leaves the piece alone when an operator attached something', async () => {
+  /**
+   * An attached still does not rescue a video.
+   *
+   * The first version of this rule exempted any piece with an attached asset,
+   * on the premise that `attached_asset_ids` meant an operator had chosen
+   * something. It does not — `generate` appends the hero image it made — so
+   * every video carried one and the sweep would never have fired. Caught by
+   * running it against six real orphans and repairing none of them.
+   */
+  it('still fails a video whose only attached asset is a still', async () => {
     const renderId = await seedRender(3);
     const itemId = await itemOf(renderId);
-    await pool.query(
-      `update content_items set attached_asset_ids = array[gen_random_uuid()] where id = $1`,
-      [itemId],
-    );
+    await attach(itemId, 'image/png');
+    await reconcileScheduleHandler(job(), context());
+    expect(await itemStatus(itemId)).toBe('failed');
+  });
+
+  it('leaves a video alone when a real video is attached', async () => {
+    const renderId = await seedRender(3);
+    const itemId = await itemOf(renderId);
+    await attach(itemId, 'video/mp4');
+    await reconcileScheduleHandler(job(), context());
+    expect(await itemStatus(itemId)).toBe('pending_approval');
+  });
+
+  it('leaves a still piece alone when a still is attached', async () => {
+    const renderId = await seedRender(3);
+    const itemId = await itemOf(renderId);
+    await pool.query(`update content_items set format = 'image' where id = $1`, [itemId]);
+    await attach(itemId, 'image/png');
     await reconcileScheduleHandler(job(), context());
     expect(await itemStatus(itemId)).toBe('pending_approval');
   });

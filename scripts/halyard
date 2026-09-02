@@ -152,6 +152,33 @@ if [[ ${#missing[@]} -gt 0 ]]; then
   c_info "generation, live product data, voice and changelog stay offline until these exist"
 fi
 
+# ── caption model ──────────────────────────────────────────────────────────
+#
+# §457. whisper.cpp needs a model file, and every `tts` job dies without one.
+#
+# The worker image downloads it to /opt/models at build time, so this never
+# came up in the container. A worker run natively on a Mac has no such path:
+# every tts job died on it, `tts` is what releases a render, and so **no video
+# ever rendered locally** — a system whose whole output is video, unverifiable
+# end to end, with the only symptom a dead job three layers down.
+#
+# 141MB, fetched once, from the same source whisper.cpp's own download script
+# uses. Skipped silently when it is already there.
+WHISPER_MODEL="${WHISPER_MODEL_PATH:-$HOME/.cache/halyard/models/ggml-base.en.bin}"
+if [[ ! -f "$WHISPER_MODEL" ]]; then
+  c_info "fetching the caption model (141MB, once)"
+  mkdir -p "$(dirname "$WHISPER_MODEL")"
+  if curl -fsSL --max-time 600 -o "$WHISPER_MODEL.part" \
+      https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin; then
+    mv "$WHISPER_MODEL.part" "$WHISPER_MODEL"
+    c_ok "caption model ready"
+  else
+    rm -f "$WHISPER_MODEL.part"
+    # Not fatal: the web app runs fine, and the failure is loud where it lands.
+    c_warn "could not fetch the caption model — voiceovers will fail, renders will not run"
+  fi
+fi
+
 # ── worker ─────────────────────────────────────────────────────────────────
 if [[ $WORKER -eq 1 ]]; then
   if ! command -v docker >/dev/null 2>&1; then

@@ -11644,3 +11644,33 @@ command is in CLAUDE.md gotcha 12 instead, with the `--maxWorkers=6` bound that
 keeps Postgres alive and the reason it is not optional.
 
 The finding was worth the exploration; the shipped default was not.
+
+## §457 · No video had ever rendered locally
+
+`whisper.cpp` needs a model file. The worker image downloads `base.en` to
+`/opt/models` at build time, so this never surfaced in the container. A worker
+run natively on a Mac has no such path — and the failure cascades three layers:
+
+`transcribeWords` throws → the `tts` job dies after three attempts → `tts` is
+what releases a render → **no video renders at all**, and the only symptom is a
+dead job nobody is looking at. Five pieces sat `pending_approval` with queued
+renders and no explanation.
+
+A system whose entire output is video, unverifiable end to end, because of a
+141MB file. `scripts/halyard` now fetches it once from the same source
+whisper.cpp's own download script uses, and `env-sync` passes
+`WHISPER_MODEL_PATH` to the worker.
+
+**Not made optional.** Whisper drives the burned-in captions and the audio QC
+that checks synthesis said what the script said, and 80% of viewers finish a
+video with captions. Degrading to a silent, caption-less video would ship the
+wrong thing quietly, which is worse than failing loudly. The fix is to have the
+model, not to stop needing it.
+
+**The sweep's own bug, found by running it.** §455's first version exempted any
+piece with an attached asset, reasoning that `attached_asset_ids` meant an
+operator had chosen something. It does not: `generate` appends the hero image it
+made, so every video carried one and the sweep would have fired for nothing,
+ever. Run against six real orphans it repaired none of them. "Publishable" is a
+question about the piece's own format — a video needs a finished render or an
+attached asset that is actually a video; a still piece is carried by a still.
