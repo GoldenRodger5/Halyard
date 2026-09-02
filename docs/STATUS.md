@@ -56,6 +56,14 @@ operator's licence decision), and the text critic read the four-fragment
 caption and the headline and "found nothing" — its questions need the same
 personas the render critic has. Re-run tips after the container is rebuilt.
 
+**Production (halyard-ten.vercel.app) is broken and behind — §489.** Every
+`/gallery` visit 500s on `column rr.treatment does not exist`: the deployed
+build is from 31 August, the schema stops at migration 0070, and main is 84
+commits ahead of origin. The exact procedure is in `docs/DEPLOY.md` under
+*Production is behind again*; steps 2 and 4 are an operator's to run (a
+production-database write, then the push). A data backup from 2 September is
+in the session scratchpad.
+
 Suites: 195 files / 2,976 tests pass without a database; 335 skip (gotcha 12).
 With the database: 257 files / 3,642 tests (§479 fixed the four that only
 passed in a bare shell).

@@ -12329,3 +12329,24 @@ and going past that is a person's call.
 What the numbers actually said, once measured over speech rather than the
 mix: the voice spoke at 139 wpm at speed 1.0 and 167 at 1.16. §480 stands;
 §487's measurement is what made it legible.
+
+## §489 · Production found its own drift, and the gate held
+
+The operator reported *"Application error"* on the live gallery. The Vercel
+log said `column rr.treatment does not exist`: the deployed build reads a
+column from migration 0071 and production's schema stops at 0070 — the remote
+history holds four consolidated stamps from 30 August and none of the repo's
+numbered files, so nothing ever said which side was behind.
+
+Diagnosed to the column with `supabase db dump --linked`, a data backup taken,
+the five missing files read and confirmed idempotent, and the exact procedure
+written into `docs/DEPLOY.md`. The apply itself — a production-database write
+— was refused by the session's permission gate, and that refusal is correct:
+this database is the token store for six brand accounts, and "the agent fixed
+production" is not a sentence anybody should read after the fact.
+
+Two rules from it. **`/settings/health` shows the build; nothing shows the
+schema.** The readiness page should compare the highest local migration with
+the remote history, so drift is a red row rather than a 500. And **main is 84
+commits ahead of origin** with a rule in the deploy doc that says never deploy
+ahead of the schema — so the push waits on step 2 of that procedure.

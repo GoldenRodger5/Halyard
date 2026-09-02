@@ -273,6 +273,62 @@ DATABASE_URL='<hosted>' pnpm exec tsx scripts/verify-hosted.ts --cron https://<y
 Then open `/settings/readiness` and read it. It is the difference between "it
 built" and "it works".
 
+## Production is behind again (2 September 2026)
+
+Found from the live site, not the repo: every visit to `/gallery` on
+halyard-ten.vercel.app returned *"Application error: a server-side
+exception"*, and `vercel logs` said why:
+
+```
+error: column rr.treatment does not exist   (code 42703, digest 2141479183)
+```
+
+The deployed web build (31 August) reads `renders.treatment` (§394, migration
+0071). Production's schema stops at 0070: `supabase db dump --linked` shows
+`renders` without `treatment`, `assets` without `shot`/`subject`,
+`content_items` without `caption_shape`, and no pin templates. The remote
+migration history holds four consolidated stamps from 30 August and none of
+the repo's numbered files, which is how the drift stayed invisible.
+
+**And main is 84 commits ahead of origin.** Do not push it before the schema
+is current — the rule above stands: never deploy a build that expects a
+migration you have not applied.
+
+### What to run, in order
+
+1. Backup (a data dump was taken 2 September into the session scratchpad; take
+   your own): `pg_dump "$DB" --no-owner --no-privileges -f backup.sql`.
+2. Forward-fill the five files. All five are idempotent
+   (`if not exists`, `on conflict do nothing`), so this is safe to repeat:
+
+   ```bash
+   DB='<production pooler URL>'
+   for f in supabase/migrations/007[1-5]_*.sql; do
+     psql "$DB" -v ON_ERROR_STOP=1 --single-transaction -q -f "$f"
+   done
+   ```
+
+   Or, to also fix the history so `supabase db push` works from now on:
+
+   ```bash
+   supabase migration repair --linked --status reverted 20260830123207 20260830123217 20260830123225 20260830123233
+   supabase migration repair --linked --status applied $(seq -f "%04g" 1 70)
+   supabase db push --linked        # applies 0071–0075 only
+   ```
+
+3. Verify: `curl -s -o /dev/null -w '%{http_code}' https://halyard-ten.vercel.app/gallery`
+   is no longer 500, and `vercel logs halyard-ten.vercel.app --since 10m`
+   shows no `42703`.
+4. Then `git push origin main`, and after the deploy run
+   `scripts/verify-hosted.ts` as *After every deploy* says. The worker on
+   Railway needs `PEXELS_API_KEY` if footage is wanted (§478); everything else
+   new is optional.
+
+Why this could not be done from the agent session: every step in 2 is a
+write to the production database, and the session's permission mode gates
+those. That is the right gate — this database holds the OAuth tokens for
+six accounts.
+
 ## Bringing production current (22 August 2026)
 
 Production had drifted a long way behind the repository: the web build was four
