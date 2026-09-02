@@ -122,7 +122,17 @@ Landmines learned the hard way. Each one cost real time.
     you are developing against, and that fails on a fresh clone with no API
     key, is worse than the skip it fixes. §456.
 
-13. **X publishing is billed per post** (~$0.015 without a link, ~$0.20 with). X v2 write endpoints return **402 credits-depleted** when the developer account has no credits.
+13. **Two workers will happily race each other, and only one has your fixes.**
+    A container from `./scripts/halyard` and a worker started by hand both poll
+    the same `jobs` table, and jobs land on whichever claims first. Cost real
+    time: images were written to `dev-assets` and the *audio for the same piece*
+    was not, because one worker had `HALYARD_LOCAL_ASSET_DIR` and the other did
+    not — which reads as a bug in the storage code and is not. Check with
+    `docker ps --filter name=halyard-worker` **and**
+    `ps -eo pid,command | grep "filter @halyard/worker"`; `pkill -f "tsx
+    src/index.ts"` matches neither. §465.
+
+14. **X publishing is billed per post** (~$0.015 without a link, ~$0.20 with). X v2 write endpoints return **402 credits-depleted** when the developer account has no credits.
 
 ---
 
