@@ -377,6 +377,55 @@ const BY_RULE: Record<string, PolicyEntry> = {
     action: 'escalate',
     correctable: false,
   },
+  /**
+   * §472. The scroller's findings, and why none of them is a copy edit.
+   *
+   * All three are about the *piece*, not its words. A video that reads as a
+   * card with words on it is not fixed by better words — it is fixed by
+   * planning a different piece, or it is not fixed at all. Escalating is the
+   * honest answer: an operator can decide the subject was thin, and no retry
+   * loop can.
+   */
+  'critic.scrolls_past': {
+    rootCause: 'Nothing in the opening earns the second the viewer would have to give it.',
+    component: 'creative_plan',
+    action: 'escalate',
+    correctable: false,
+  },
+  'critic.loses_you': {
+    rootCause: 'The middle of the piece stops giving a viewer a reason to stay.',
+    component: 'creative_plan',
+    action: 'escalate',
+    correctable: false,
+  },
+  'critic.looks_generated': {
+    rootCause: 'The piece reads as produced rather than made.',
+    component: 'creative_plan',
+    action: 'escalate',
+    correctable: false,
+  },
+
+  /**
+   * §472. The expert's findings, which are about the writing and *are* fixable.
+   *
+   * Overstatement is a sentence written too strongly — that is a rewrite. A
+   * piece that says nothing a competent cook does not know is a different
+   * problem: the *subject* was thin, and rewriting it produces the same
+   * obvious advice in new words.
+   */
+  'critic.overstated': {
+    rootCause: 'A claim is stated more strongly than the evidence behind it.',
+    component: 'copy',
+    action: 'revise_copy',
+    correctable: true,
+  },
+  'critic.not_worth_knowing': {
+    rootCause: 'The piece tells a competent reader something they already do.',
+    component: 'idea',
+    action: 'escalate',
+    correctable: false,
+  },
+
   'critic.reads_automated': {
     rootCause: 'The piece looks like a system filled in a shape rather than something a person made.',
     component: 'creative_plan',

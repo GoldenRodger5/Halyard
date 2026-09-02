@@ -11926,3 +11926,47 @@ whose words are in the HTML.
 
 A useful shape to remember: **a fix that improves one axis can fail the piece on
 another**, and the only way to see it is to run the thing again straight after.
+
+## §471-§472 · Three strays, and three people looking
+
+**§471. `ps` could not find the workers that were taking half the jobs.**
+Gotcha 13 already said two workers race; the check it gave does not find them,
+because the pnpm wrapper and the tsx child have different command lines and
+`pkill -f "tsx src/index.ts"` matches neither. Three native workers were running
+while `ps` reported none — and only the container had the asset mount, so a
+piece's images landed or did not depending on which worker claimed the job. That
+read as a storage bug for an hour.
+
+The database sees every worker whatever it is called:
+
+```sql
+select client_addr, count(*) from pg_stat_activity
+ where datname = 'halyard' and application_name like 'halyard-worker%'
+ group by 1;
+```
+
+`::1` is native, `127.0.0.1` is the container. Two rows means two workers.
+
+**§472. The critic was one person.** *"A demanding art director"* — the right
+stance for typography, composition and emphasis, and the wrong one for the two
+questions that decide whether a post works:
+
+- **Would anyone stop for this?** An art director judges a frame that has
+  already been looked at. A viewer in a feed gives it a quarter of a second and
+  is gone. Different judgements, and the second is the one that costs reach.
+- **Would somebody who knows the subject wince?** A piece can be beautifully set
+  and wrong, or beautifully set and trivial. Neither is visible to an eye
+  trained on craft — and *"MYTH: rest steak 5 to 10 minutes"* passed every
+  existing question.
+
+Three stances in one call, grouped and named, told explicitly **not to average
+them**: the value is that they disagree about the same frame. Findings carry
+who objected, derived from the rule rather than taken from the reply, because a
+model asked to label its own findings will mislabel some.
+
+Their policies differ in a way worth stating. The scroller's findings all
+**escalate** — a video that reads as a card with words on it is not fixed by
+better words, and no retry loop can decide the subject was thin. Of the cook's
+two, overstatement is a **rewrite** (a sentence written too strongly), while
+"a competent cook already does this" escalates, because rewriting produces the
+same obvious advice in new words.

@@ -9,6 +9,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import {
+  CRITIC_PERSONAS,
   CRITIC_QUESTIONS,
   criticSystemPrompt,
   parseCriticReply,
@@ -245,5 +246,60 @@ describe('a critic finding travels the whole loop', () => {
     };
     /* Not required, so a skip is an absence rather than a failure. */
     expect(defectsFrom([gate], policyFor)).toHaveLength(0);
+  });
+});
+
+/**
+ * §472. Three people looking, because they do not see the same failures.
+ *
+ * The critic was one persona — "a demanding art director" — which is the right
+ * stance for typography and the wrong one for the two questions that decide
+ * whether a post works: would anyone stop for this, and would somebody who
+ * knows the subject wince.
+ */
+describe('who is doing the looking', () => {
+  it('asks every question as somebody, and that somebody is defined', () => {
+    for (const q of CRITIC_QUESTIONS) {
+      expect(CRITIC_PERSONAS[q.persona], q.rule).toBeDefined();
+    }
+  });
+
+  it('gives every persona something to look for', () => {
+    for (const key of Object.keys(CRITIC_PERSONAS) as Array<keyof typeof CRITIC_PERSONAS>) {
+      expect(CRITIC_QUESTIONS.filter((q) => q.persona === key).length, key).toBeGreaterThan(0);
+    }
+  });
+
+  it('puts each stance in the prompt, named and separate', () => {
+    const prompt = criticSystemPrompt();
+    for (const persona of Object.values(CRITIC_PERSONAS)) {
+      expect(prompt).toContain(persona.name);
+      expect(prompt).toContain(persona.stance.slice(0, 40));
+    }
+    /* The value is the disagreement, so the prompt must not ask for a blend. */
+    expect(prompt).toMatch(/do not average them/i);
+  });
+
+  it('asks the two questions craft cannot see', () => {
+    const rules = CRITIC_QUESTIONS.map((q) => q.rule);
+    expect(rules).toContain('critic.scrolls_past');
+    expect(rules).toContain('critic.overstated');
+  });
+
+  /*
+   * Derived from the rule, never taken from the reply: a model asked to label
+   * its own findings will mislabel some, and the mapping is already known.
+   */
+  it('labels a finding with who objected, from the rule', () => {
+    const verdict = parseCriticReply(
+      {
+        findings: [
+          { rule: 'critic.scrolls_past', message: 'It is a card with words on it.', atSeconds: [0] },
+          { rule: 'critic.uniform_treatment', message: 'Every line is set the same.', atSeconds: [0] },
+        ],
+      },
+      [{ atSeconds: 0, bytes: new Uint8Array(), mimeType: 'image/png' }],
+    );
+    expect(verdict.findings.map((f) => f.persona)).toEqual(['scroller', 'art_director']);
   });
 });

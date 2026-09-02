@@ -53,6 +53,16 @@ export interface CriticFinding {
   message: string;
   /** Which frames show it. A finding with none is discarded. */
   atSeconds: number[];
+  /**
+   * §472. Who objected.
+   *
+   * Derived from the rule rather than taken from the reply — a model asked to
+   * label its own findings will mislabel some, and the mapping is already known
+   * here. Shown to an operator because *"the cook winced at this line"* is a
+   * different instruction from *"the composition is flat"*, and they are acted
+   * on differently.
+   */
+  persona: CriticPersona;
 }
 
 export interface CriticVerdict {
@@ -81,34 +91,80 @@ export interface CriticVerdict {
  * Exported because the prompt and the parser must agree on the rule ids, and
  * because a reader deserves to see what the critic was actually asked.
  */
-export const CRITIC_QUESTIONS: Array<{ rule: string; question: string }> = [
+/**
+ * §472. Who is looking, because they do not see the same failures.
+ *
+ * The critic was one persona — *"a demanding art director"* — and that is the
+ * right stance for typography, composition and emphasis. It is the wrong stance
+ * for the two questions that actually decide whether a post works:
+ *
+ * - **Would anyone stop for this?** An art director judges a frame that has
+ *   already been looked at. A viewer in a feed gives it a quarter of a second
+ *   and is gone. Those are different judgements and the second one is the one
+ *   that costs reach.
+ * - **Would somebody who knows the subject wince?** A piece can be beautifully
+ *   set and wrong, or beautifully set and trivial, and neither is visible to an
+ *   eye trained on craft.
+ *
+ * One call carrying three stances rather than three calls: distinct viewpoints
+ * are the point, tripling the cost of every render is not. Each finding is
+ * tagged with who objected, so an operator reads *"the cook winced"* rather
+ * than an anonymous complaint.
+ */
+export const CRITIC_PERSONAS = {
+  art_director: {
+    name: 'a demanding art director',
+    stance:
+      'You judge the frames as composition. You are looking for craft problems a viewer would feel but not articulate.',
+  },
+  scroller: {
+    name: 'someone scrolling a feed at speed',
+    stance:
+      'You are not trying to like this. You give the first frame about a quarter of a second and your thumb is already moving. You judge only whether anything here earns the next second, and whether the middle of it holds you or lets you go.',
+  },
+  cook: {
+    name: 'someone who actually knows this subject',
+    stance:
+      'You cook. You have read the arguments. You judge whether this is right, whether it is worth knowing, and whether it says anything a competent person does not already do. You wince at overstatement.',
+  },
+} as const;
+
+export type CriticPersona = keyof typeof CRITIC_PERSONAS;
+
+export const CRITIC_QUESTIONS: Array<{ rule: string; question: string; persona: CriticPersona }> = [
   {
     rule: 'critic.uniform_treatment',
+    persona: 'art_director' as const,
     question:
       'Is one type treatment — the same size, weight and position — used on every frame? Name the frames.',
   },
   {
     rule: 'critic.flat_emphasis',
+    persona: 'art_director' as const,
     question:
       'Does the emphasis stay the same even where the content changes importance, so nothing stands out?',
   },
   {
     rule: 'critic.accidental_space',
+    persona: 'art_director' as const,
     question:
       'Is there empty space that reads as a rendering accident rather than a composition choice?',
   },
   {
     rule: 'critic.weak_opening',
+    persona: 'art_director' as const,
     question:
       'From the first frame alone, would a viewer know what this is about and want the second?',
   },
   {
     rule: 'critic.interchangeable_frames',
+    persona: 'art_director' as const,
     question:
       'Do any two frames differ only in their words — the same layout refilled rather than a new idea?',
   },
   {
     rule: 'critic.covered_by_ui',
+    persona: 'art_director' as const,
     question:
       'Is anything important close enough to an edge that the platform’s own buttons or caption bar would cover it?',
   },
@@ -122,6 +178,7 @@ export const CRITIC_QUESTIONS: Array<{ rule: string; question: string }> = [
      * pic which we don't want".
      */
     rule: 'critic.unrelated_imagery',
+    persona: 'art_director' as const,
     question:
       'Does the photograph have anything to do with what the words say? Name the frame where it does not, and say what it shows instead.',
   },
@@ -132,13 +189,54 @@ export const CRITIC_QUESTIONS: Array<{ rule: string; question: string }> = [
      * whether the image is generic enough to have been used for anything.
      */
     rule: 'critic.stock_imagery',
+    persona: 'art_director' as const,
     question:
       'Could this photograph illustrate any post on this account rather than this one? A picture that fits everything was chosen for nothing.',
   },
   {
     rule: 'critic.reads_automated',
+    persona: 'art_director' as const,
     question:
       'Does this look like a person made it, or like a system filled in a shape? Say which frames give it away.',
+  },
+  /**
+   * §472. The feed test. An art director judges a frame that has already been
+   * looked at; this judges whether it ever is.
+   */
+  {
+    rule: 'critic.scrolls_past',
+    persona: 'scroller' as const,
+    question:
+      'Frame one, a quarter of a second, thumb already moving: is there anything here that stops it? If it reads as a nice card with words on it, say so.',
+  },
+  {
+    rule: 'critic.loses_you',
+    persona: 'scroller' as const,
+    question:
+      'Somewhere in the middle, does it stop giving you a reason to stay — a stretch where nothing new arrives, or a beat that says what the one before it already said? Name where you would have left.',
+  },
+  {
+    rule: 'critic.looks_generated',
+    persona: 'scroller' as const,
+    question:
+      'Does this look like it was made by a person or produced by a machine? Name the frame that gives it away.',
+  },
+
+  /**
+   * §472. The expert test. A piece can be beautifully set and wrong, and craft
+   * cannot see that.
+   */
+  {
+    rule: 'critic.overstated',
+    persona: 'cook' as const,
+    question:
+      'Is anything here stated more strongly than it deserves — a rule presented as always true, a mechanism simplified into something false? Quote the line.',
+  },
+  {
+    rule: 'critic.not_worth_knowing',
+    persona: 'cook' as const,
+    question:
+      'Would a competent cook already be doing this? If the whole piece is something obvious dressed as a discovery, say so.',
   },
 ];
 
@@ -151,15 +249,35 @@ export const CRITIC_QUESTIONS: Array<{ rule: string; question: string }> = [
 export const CRITIC_PROMPT_VERSION = 'creative_critic.v2';
 
 export function criticSystemPrompt(): string {
-  return `You are a demanding art director reviewing frames from one short social video.
+  /**
+   * §472. Three stances in one call, each answering only its own questions.
+   *
+   * Grouped and named rather than merged, because the value is the *difference*
+   * between them: an art director and a scrolling viewer disagree about the
+   * same frame, and a piece that satisfies both is a much stronger piece than
+   * one that satisfies an average of them.
+   */
+  const byPersona = (Object.keys(CRITIC_PERSONAS) as CriticPersona[])
+    .map((key) => {
+      const persona = CRITIC_PERSONAS[key];
+      const questions = CRITIC_QUESTIONS.filter((q) => q.persona === key);
+      if (questions.length === 0) return '';
+      return `## As ${persona.name}\n${persona.stance}\n\n${questions
+        .map((q) => `- [${q.rule}] ${q.question}`)
+        .join('\n')}`;
+    })
+    .filter(Boolean)
+    .join('\n\n');
 
-You are looking for craft problems a viewer would feel but not articulate. You
-are NOT checking facts, grammar, or brand rules — other systems do that, and
-duplicating them wastes the one thing you are here for.
+  return `You are reviewing frames from one short social video, three times over, as three
+different people. Answer as each of them in turn. They disagree, and that is the point —
+do not average them.
 
-Answer only these questions:
+You are NOT checking grammar or brand rules; other systems do that, and duplicating them
+wastes the one thing you are here for. Where you are asked about accuracy, judge only what
+the frames actually claim.
 
-${CRITIC_QUESTIONS.map((q, i) => `${i + 1}. [${q.rule}] ${q.question}`).join('\n')}
+${byPersona}
 
 Rules:
 - Report a problem ONLY if you can name the frames that show it. No frames, no finding.
@@ -216,6 +334,8 @@ export function parseCriticReply(
       severity: 'warning',
       message: item.message.trim(),
       atSeconds: cited,
+      /* §472. From the question, not from the reply. Non-null: `known` above. */
+      persona: CRITIC_QUESTIONS.find((q) => q.rule === item.rule)!.persona,
     });
   }
 
