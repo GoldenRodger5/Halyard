@@ -65,6 +65,30 @@ export interface RealPiece {
 
 export const REAL_PIECES: RealPiece[] = [
   {
+    /*
+     * The first tips piece that rendered (2026-09-02, TikTok). Every line
+     * concrete, the whole unreadable: one cryptic aside per tip, no sentence,
+     * no reason to watch, nothing to do. The pictures were good.
+     */
+    id: 'tips-herbs-caption-as-notes',
+    platform: 'tiktok',
+    format: 'tips',
+    caption: 'Dry leaves last longer\nThe inch is for cut stems.\nLeaf moisture is the weak link.\nBasil is the fridge exception.',
+    hashtags: ['freshherbstorage', 'cilantrostorage', 'parsleystorage', 'basilstorage'],
+    onScreen: [
+      'Keep Herbs Alive Two Weeks',
+      'Trim the stems, stand herbs in an inch of water, and keep leaves above the waterline.',
+      'Cover loosely with a bag, then refrigerate parsley, cilantro, dill, and mint upright to slow wilting.',
+      'Keep basil on the counter, away from cold air, and change water the moment it turns cloudy.',
+      'Most important: dry leaves. Any wet leaf can spoil the bunch before stems quit.',
+    ],
+    defects: [
+      { rule: 'structure.fragment_stack', because: 'Four five-word lines and no sentence.' },
+      { rule: 'structure.invites_nothing', because: 'No question, no ask, nothing to do.' },
+    ],
+    clean: false,
+  },
+  {
     id: 'eggplant-myth',
     platform: 'tiktok',
     format: 'myth_fact',

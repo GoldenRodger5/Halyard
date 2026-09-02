@@ -25,7 +25,27 @@ stray native worker took the job with the container's model path
 shows zero), the container is being rebuilt with today's code, and the piece
 needs re-running — nothing about the format has been shown to be wrong yet.
 
+**Then `tips` rendered** — 8 beats, all photographed, 32s, good pictures —
+and was critiqued as a scroller, an art director and a cook. Five classes of
+defect, each fixed at the class (§480–§484):
+
+| Seen | Class | Fix |
+|---|---|---|
+| 127 wpm, every piece since Aug 31 | the voice is slow and speed was "not a lever" | `voice_settings.speed` verified live, directed per energy |
+| story failed: "about freshherbstorage…" | hashtags were the gate's expectation | subject persisted and read first; plurals match |
+| caption = four fragments | prompt said what not to do; and error rules after line 1024 never counted | shape stated; `fragment_stack`; partition moved |
+| "dry leaves" → dead autumn leaves | subject agent saw the line alone | it sees the piece's subject; homonym rule |
+| VO opened "Keep Herbs Alive Two Weeks Trim…" | Title Case spoken, lines joined bare | `format.headline_case`; `joinSpoken` |
+
+Still open on that piece: no music bed (the seeded fixture file does not
+exist anywhere; generated music needs `ELEVENLABS_MUSIC_LICENSED=true`, an
+operator's licence decision), and the text critic read the four-fragment
+caption and the headline and "found nothing" — its questions need the same
+personas the render critic has. Re-run tips after the container is rebuilt.
+
 Suites: 195 files / 2,976 tests pass without a database; 335 skip (gotcha 12).
+With the database: 257 files / 3,642 tests (§479 fixed the four that only
+passed in a bare shell).
 
 ---
 

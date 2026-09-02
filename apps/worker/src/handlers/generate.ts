@@ -51,6 +51,7 @@ import {
   type PostTypeId,
   type Stage,
   createStockFootageClient,
+  joinSpoken,
 } from '@halyard/core';
 import {
   carouselProps,
@@ -1799,6 +1800,27 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
         );
 
         const contentItemId = inserted.rows[0]!.id;
+        /*
+         * §481. What this piece was asked to be about, in the operator's (or
+         * the idea's) words. The coherence gate reads it as the expectation
+         * the frames are checked against — the one source of intent the
+         * describer never saw. Hashtags used to stand in for it and became
+         * compounds no frame could contain.
+         */
+        await ctx.pool.query(
+          `update content_items
+              set generation_meta = coalesce(generation_meta, '{}'::jsonb) || $2::jsonb
+            where id = $1`,
+          [
+            contentItemId,
+            JSON.stringify({
+              subject:
+                (job.payload.subject as string | undefined)?.trim() ||
+                subjectForImage(artifact, idea.title) ||
+                idea.title,
+            }),
+          ],
+        );
         insertedItemId = contentItemId;
 
         /*
@@ -2846,6 +2868,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                     contentItemId,
                     productName: product.name,
                     productContext: product.brief_summary ?? undefined,
+                    pieceSubject: heroSubject ?? idea.title,
                     beats: footageBeats.map(({ b }) => ({
                       text: String(b.text ?? ''),
                       subject: (b.footageSubject as string | undefined) ?? null,
@@ -3250,7 +3273,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
 
           const vo = narrationAlreadyWritten
             ? {
-                script: formatNarration!.map((line) => line.text).join(' '),
+                script: joinSpoken(formatNarration!.map((line) => line.text)),
                 costUsd: 0,
                 qc: null as Awaited<ReturnType<typeof writeVoScript>>['qc'] | null,
                 attempts: 0,
@@ -3324,7 +3347,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                * every consumer that reads `vo_script` — the gates, the lexicon
                * check, the caption aligner — still has something true to read.
                */
-              formatNarration ? formatNarration.map((l) => l.text).join(' ') : vo.script,
+              formatNarration ? joinSpoken(formatNarration.map((l) => l.text)) : vo.script,
               /*
                * §354. The artifact path still has no timed lines, and this is
                * where the attempt stopped.

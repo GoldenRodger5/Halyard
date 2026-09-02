@@ -60,6 +60,8 @@ interface ItemRow {
   body: string;
   title: string | null;
   hashtags: string[];
+  /** §481. What the operator asked for, persisted by generate. */
+  subject: string | null;
   category: string;
   vo_script: string | null;
   qc_results: {
@@ -74,27 +76,49 @@ interface ItemRow {
 }
 
 /**
+ * Words a subject line carries that no frame could ever show. Function words,
+ * and the verbs and measures a subject is phrased with: "keeping fresh herbs
+ * alive for two weeks" is about herbs.
+ */
+const SUBJECT_NOISE = new Set([
+  'about', 'after', 'again', 'alive', 'always', 'before', 'being', 'better', 'could', 'does',
+  'every', 'first', 'fresh', 'from', 'going', 'good', 'have', 'here', 'into', 'keep', 'keeping',
+  'last', 'longer', 'made', 'make', 'making', 'more', 'most', 'much', 'need', 'never', 'only',
+  'other', 'over', 'really', 'right', 'should', 'since', 'some', 'still', 'than', 'that', 'their',
+  'them', 'then', 'there', 'these', 'they', 'thing', 'things', 'this', 'those', 'through', 'time',
+  'under', 'until', 'using', 'very', 'want', 'week', 'weeks', 'what', 'when', 'where', 'which',
+  'while', 'will', 'with', 'without', 'would', 'your', 'yours',
+]);
+
+/**
  * What the post is about, as a handful of terms.
  *
- * Taken from structured data — the artifact, the category, the title — rather
- * than extracted from the body prose. A gate that derives its own expectations
- * from the same text it is checking is grading its own homework, and the whole
- * design of this gate is that the expectation comes from somewhere the
- * describer never saw.
+ * Taken from structured data — the artifact, the subject the operator typed,
+ * the title — rather than extracted from the body prose. A gate that derives
+ * its own expectations from the same text it is checking is grading its own
+ * homework, and the whole design of this gate is that the expectation comes
+ * from somewhere the describer never saw.
+ *
+ * ## §481. Hashtags are the last resort, not the first
+ *
+ * They were the first source, on the reasoning that they were "the operator's
+ * own summary, already normalised". Since the hashtag brief asked for
+ * specificity they are generated compounds — `freshherbstorage`,
+ * `cilantrostorage` — and a compound is a term no frame description will ever
+ * contain, so the gate failed *story* on a piece whose every frame was herbs.
+ * The subject is what the operator actually asked for and it is persisted on
+ * the piece for exactly this; hashtags are used only when nothing else exists,
+ * and only the ones short enough to be a word.
  */
 export function keyTermsFor(item: {
   title: string | null;
   category: string;
   hashtags: string[];
   product_artifact: Record<string, unknown> | null;
+  /** The subject the piece was made from, when the pipeline recorded it. */
+  subject?: string | null;
 }): string[] {
   const terms = new Set<string>();
-
-  // Hashtags are the operator's own summary of the subject, already normalised.
-  for (const tag of item.hashtags ?? []) {
-    const cleaned = tag.replace(/^#/, '').trim();
-    if (cleaned.length > 2) terms.add(cleaned);
-  }
 
   // The artifact names the concrete thing this post is about.
   const artifact = item.product_artifact ?? {};
@@ -103,11 +127,24 @@ export function keyTermsFor(item: {
     if (typeof value === 'string' && value.trim().length > 2) terms.add(value.trim());
   }
 
-  // Fall back to the idea's title only if nothing structured exists, because a
-  // title is prose and prose makes noisy expectations.
-  if (terms.size === 0 && item.title) {
-    for (const word of item.title.split(/\s+/)) {
-      if (word.length > 4) terms.add(word.replace(/[^A-Za-z-]/g, ''));
+  const contentWordsOf = (text: string): string[] =>
+    text
+      .split(/\s+/)
+      .map((w) => w.replace(/[^A-Za-z-]/g, '').toLowerCase())
+      .filter((w) => w.length > 3 && !SUBJECT_NOISE.has(w));
+
+  // The subject is intent in the operator's words, and nobody describing a
+  // frame saw it.
+  if (item.subject) for (const word of contentWordsOf(item.subject)) terms.add(word);
+
+  // The title is prose and prose makes noisy expectations; only without a subject.
+  if (terms.size === 0 && item.title) for (const word of contentWordsOf(item.title)) terms.add(word);
+
+  // Hashtags last, and only the ones that could be one word.
+  if (terms.size === 0) {
+    for (const tag of item.hashtags ?? []) {
+      const cleaned = tag.replace(/^#/, '').trim();
+      if (cleaned.length > 2 && cleaned.length <= 12) terms.add(cleaned);
     }
   }
 
@@ -168,6 +205,7 @@ export async function reviewMediaHandler(
 
   const { rows } = await ctx.pool.query<ItemRow>(
     `select id, product_id, platform, format, body, title, hashtags, category,
+            generation_meta ->> 'subject' as subject,
             vo_script, qc_results, product_artifact, status,
             account_id, alt_text,
             /* §413. Which catalogue format this is, so the gates that only

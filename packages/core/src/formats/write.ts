@@ -397,6 +397,30 @@ export function checkDraft(
      * happens to be short is not a defect and the warning should mean
      * something when it fires.
      */
+    /*
+     * §484. Title Case is a headline, and the opening slot is *spoken*.
+     *
+     * "Keep Herbs Alive Two Weeks" is what a writer produces for a slot named
+     * `title`, and it went to the synthesiser as the first thing said. A person
+     * does not say a headline. Three or more capitalised content words in a
+     * line that opens the piece is that shape; an all-caps line is a different
+     * defect and left to its own rule.
+     */
+    if (slot.opensThePiece || slot.key === 'title') {
+      const content = got.text.split(/\s+/).filter((w) => w.replace(/[^A-Za-z]/g, '').length >= 4);
+      const capitalised = content.filter((w) => /^[A-Z][a-z]/.test(w));
+      if (content.length >= 3 && capitalised.length === content.length) {
+        problems.push({
+          rule: 'format.headline_case',
+          severity: 'error',
+          message:
+            `${slot.key} is in Title Case: "${got.text}". It is the first thing said aloud, ` +
+            'and nobody says a headline. Sentence case.',
+          slot: slot.key,
+        });
+      }
+    }
+
     if (budget && words > 0 && words < slot.maxWords * 0.5) {
       problems.push({
         rule: 'format.slot_too_short',

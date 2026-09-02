@@ -317,7 +317,15 @@ export const POST_FORMAT_CATALOG: Record<PostFormatId, PostFormat> = {
     needsArtifact: false,
     pace: 'standard',
     slots: [
-      { key: 'title', brief: 'What these tips are for. Specific, not "5 tips".', maxWords: 10, opensThePiece: true },
+      {
+        key: 'title',
+        /* §484. Spoken first, so it is a sentence somebody would say, not a headline. */
+        brief:
+          'What these tips are for, said the way a person would say it — it is the first thing heard. ' +
+          'Sentence case, never Title Case. Specific, not "5 tips".',
+        maxWords: 10,
+        opensThePiece: true,
+      },
             {
         key: 'tip',
         brief: 'One actionable instruction. Imperative mood.',

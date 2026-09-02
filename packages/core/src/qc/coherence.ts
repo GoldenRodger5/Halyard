@@ -189,7 +189,16 @@ export function termAppearsIn(term: string, haystack: string): boolean {
   const joined = normalise(term).replace(/[\s-]+/g, '');
   if (joined.length > 4 && hay.replace(/[\s-]+/g, '').includes(joined)) return true;
 
-  return words.every((word) => new RegExp(`(^|[^a-z0-9])${word}([^a-z0-9]|$)`).test(hay));
+  /*
+   * §481. "herbs" must find "six potted herb plants". A plural in the subject
+   * and a singular in the description are the same claim, and a gate that
+   * fails story on the letter s is not measuring story.
+   */
+  return words.every((word) => {
+    const base = word.replace(/(es|s)$/, '');
+    const stem = base.length >= 3 ? base : word;
+    return new RegExp(`(^|[^a-z0-9])${stem}(e?s)?([^a-z0-9]|$)`).test(hay);
+  });
 }
 
 /** Everything a viewer could see, as one searchable string. */

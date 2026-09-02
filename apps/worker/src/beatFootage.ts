@@ -94,6 +94,8 @@ export async function footageForBeats(
     productName: string;
     beats: FootageBeat[];
     productContext?: string;
+    /** §483. What the piece is about, so a line is read inside it. */
+    pieceSubject?: string;
   },
   fetchImpl: typeof fetch = fetch,
 ): Promise<BeatFootage[]> {
@@ -108,7 +110,7 @@ export async function footageForBeats(
       let subject = beat.subject?.trim() || null;
       if (!subject && beat.text.trim()) {
         const verdict = await photographicSubject(
-          { line: beat.text, productContext: input.productContext },
+          { line: beat.text, productContext: input.productContext, pieceSubject: input.pieceSubject },
           llm,
         ).catch(() => ({ subject: null, reason: 'the subject agent failed' }));
         subject = verdict.subject;

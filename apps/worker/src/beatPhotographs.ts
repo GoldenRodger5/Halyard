@@ -80,7 +80,8 @@ export async function photographBeats(
     let subject = input.fallbackSubject;
     if (line) {
       const verdict = await photographicSubject(
-        { line, productContext: input.productContext },
+        /* §483. The line read inside its piece, not as a homonym. */
+        { line, productContext: input.productContext, pieceSubject: input.fallbackSubject },
         llm,
       ).catch(() => ({ subject: null, reason: 'the subject agent failed' }));
       if (verdict.subject) subject = verdict.subject;

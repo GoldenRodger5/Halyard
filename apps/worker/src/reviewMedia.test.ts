@@ -117,17 +117,38 @@ async function attachVideo(contentItemId: string, filePath: string): Promise<voi
 }
 
 describe('keyTermsFor', () => {
-  it('prefers structured data over prose', () => {
+  it('prefers structured data over prose, and over hashtags', () => {
     const terms = keyTermsFor({
       title: 'Some long prose title about baking',
       category: 'education',
       hashtags: ['glutenfree', 'baking'],
       product_artifact: { dish: 'sourdough loaf' },
     });
-    expect(terms).toContain('glutenfree');
     expect(terms).toContain('sourdough loaf');
+    /* §481. Hashtags are the last resort: with an artifact they add nothing. */
+    expect(terms).not.toContain('glutenfree');
     // The title is only a fallback — prose makes noisy expectations.
     expect(terms).not.toContain('baking title');
+  });
+
+  it('§481: the subject is the expectation, and a compound hashtag never is', () => {
+    const terms = keyTermsFor({
+      title: null,
+      category: 'education',
+      hashtags: ['freshherbstorage', 'cilantrostorage', 'parsleystorage', 'basilstorage'],
+      product_artifact: null,
+      subject: 'Keeping fresh herbs alive for two weeks',
+    });
+    expect(terms).toEqual(['herbs']);
+
+    /* Without a subject, only a hashtag short enough to be a word survives. */
+    const fallback = keyTermsFor({
+      title: null,
+      category: 'education',
+      hashtags: ['freshherbstorage', 'basil'],
+      product_artifact: null,
+    });
+    expect(fallback).toEqual(['basil']);
   });
 
   it('falls back to the title only when there is nothing structured', () => {

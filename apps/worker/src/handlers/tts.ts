@@ -299,6 +299,8 @@ export async function ttsHandler(job: Job, ctx: HandlerContext, deps: TtsDeps = 
     /* §232. The directed performance, not the default one. */
     stability: voice.stability,
     similarityBoost: voice.similarityBoost,
+    /* §480. The read is slow at 1.0; this is the lever the pacing gate needed. */
+    speed: voice.speed,
     ...(voice.voiceId ? { voiceId: voice.voiceId } : {}),
   };
 

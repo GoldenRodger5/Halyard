@@ -131,6 +131,10 @@ function endsOnAFootnote(line: string): boolean {
   return FOOTNOTE_PREFIX.test(line) || FOOTNOTE_BARE_NAME.test(line);
 }
 
+/** §482. A caption of this many short lines, with none over this many words, is notes. */
+export const FRAGMENT_STACK_LINES = 3;
+export const FRAGMENT_STACK_WORDS = 8;
+
 export const CAPTION_ECHO_LIMIT = 0.66;
 
 /**
@@ -1017,7 +1021,6 @@ export function slopFilter(input: SlopFilterInput): SlopFilterResult {
     });
   }
 
-  const errors = violations.filter((v) => v.severity === 'error');
   /**
    * §450. A caption that transcribes the video wastes one of two channels.
    *
@@ -1081,6 +1084,33 @@ export function slopFilter(input: SlopFilterInput): SlopFilterResult {
    * A warning, and never on a voiceover: a narrator asking a rhetorical
    * question is a different craft and `spoken` already marks that case.
    */
+  /*
+   * §482. A caption written as notes.
+   *
+   * Four lines of five words each, one aside per tip, no sentence among them:
+   * "Dry leaves last longer / The inch is for cut stems / Leaf moisture is the
+   * weak link / Basil is the fridge exception." Every line is concrete and the
+   * whole is unreadable, because it is four hooks and no post. Three or more
+   * short lines with no sentence over eight words among them is that shape,
+   * whatever the words.
+   */
+  {
+    const lines = body
+      .split(/\n+/)
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0 && !/^#/.test(l));
+    const wordsOf = (l: string) => l.split(/\s+/).filter(Boolean).length;
+    if (lines.length >= FRAGMENT_STACK_LINES && lines.every((l) => wordsOf(l) <= FRAGMENT_STACK_WORDS)) {
+      push({
+        rule: 'structure.fragment_stack',
+        severity: 'error',
+        message:
+          `${lines.length} lines of ${FRAGMENT_STACK_WORDS} words or fewer and no sentence among them. ` +
+          'That is notes on a post, not a post — write it as one person saying one thing.',
+      });
+    }
+  }
+
   if (!spoken && !invitesAnything(body)) {
     push({
       rule: 'structure.invites_nothing',
@@ -1160,6 +1190,16 @@ export function slopFilter(input: SlopFilterInput): SlopFilterResult {
     }
   }
 
+  /*
+   * §482. Partitioned *after* the last rule, not in the middle of them.
+   *
+   * `errors` was taken a hundred and seventy lines up, before §450, §466 and
+   * this file's later rules ran — so any error-severity rule added after it
+   * was pushed, counted nowhere, and returned as a clean pass. The first such
+   * rule was `structure.fragment_stack`; the corpus caught it not firing on
+   * the very caption it was written from.
+   */
+  const errors = violations.filter((v) => v.severity === 'error');
   const warnings = violations.filter((v) => v.severity === 'warning');
 
   return {

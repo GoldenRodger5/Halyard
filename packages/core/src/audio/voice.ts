@@ -12,16 +12,24 @@
  *
  * ## What is directable and what is not
  *
- * ElevenLabs gives four levers that actually change delivery: the voice, the
- * model, stability, and similarity boost. It does **not** expose per-word
- * emphasis or a speed control on this endpoint, so those are achieved in the
- * script rather than in the request — a comma is a pause, a short sentence is
- * emphasis, and an em dash is a beat. That is why `deliveryNotes` exists: the
- * VO scriptwriter is told how to write for the delivery, instead of the
- * delivery being asked to do something the API cannot do.
+ * ElevenLabs gives five levers that actually change delivery: the voice, the
+ * model, stability, similarity boost and — since §480 — **speed**. It does not
+ * expose per-word emphasis, so that is achieved in the script rather than in
+ * the request: a comma is a pause, a short sentence is emphasis, and an em
+ * dash is a beat. That is why `deliveryNotes` exists: the VO scriptwriter is
+ * told how to write for the delivery, instead of the delivery being asked to
+ * do something the API cannot do.
  *
- * Pretending a `speed` parameter exists and silently dropping it would be the
- * same class of failure as a gate that never runs.
+ * ## §480. Speed exists now, and it was the lever every pacing failure needed
+ *
+ * This file said the endpoint had no speed control, which was true when it
+ * was written, and every format video since Aug 31 read at 94–137 words a
+ * minute against a 140–175 gate — the correction loop then *rewrote scripts*
+ * that were fine, because that was the only lever the policy knew. Verified
+ * live before changing anything: the same sentence took 5.02s at 1.0 and
+ * 4.21s at 1.2 (`voice_settings.speed`, range 0.7–1.2). The voice is simply a
+ * slow reader, so speed is directed per energy rather than left at the
+ * default, and the gate measures the result as it always did.
  */
 
 export type VoiceEnergy = 'calm' | 'warm' | 'bright' | 'urgent';
@@ -36,6 +44,8 @@ export interface VoiceDirection {
    */
   stability: number;
   similarityBoost: number;
+  /** §480. 0.7–1.2. The read this voice gives at 1.0 is ~127 wpm; 1.16 lands mid-band. */
+  speed: number;
   /**
    * How the script should be written for this delivery.
    *
@@ -97,10 +107,14 @@ export function voiceEnergyFor(input: VoiceInput): VoiceEnergy {
  * run, which is unusable for a brand voice that has to sound like one person
  * across sixty posts.
  */
-const SETTINGS: Record<VoiceEnergy, { stability: number; similarityBoost: number; notes: string[] }> = {
+const SETTINGS: Record<
+  VoiceEnergy,
+  { stability: number; similarityBoost: number; speed: number; notes: string[] }
+> = {
   calm: {
     stability: 0.7,
     similarityBoost: 0.85,
+    speed: 1.12,
     notes: [
       'Long sentences are fine. Let clauses breathe; use commas where a person would pause.',
       'No exclamation marks. The calm is doing the work.',
@@ -109,6 +123,7 @@ const SETTINGS: Record<VoiceEnergy, { stability: number; similarityBoost: number
   warm: {
     stability: 0.6,
     similarityBoost: 0.8,
+    speed: 1.16,
     notes: [
       'Write the way you would explain it to one person across a kitchen counter.',
       'Contractions throughout. "It is" reads as a press release.',
@@ -117,6 +132,7 @@ const SETTINGS: Record<VoiceEnergy, { stability: number; similarityBoost: number
   bright: {
     stability: 0.45,
     similarityBoost: 0.75,
+    speed: 1.2,
     notes: [
       'Short sentences. A five-word sentence is emphasis the synthesiser can actually hear.',
       'One em dash where the surprise lands — the pause is the joke.',
@@ -125,6 +141,7 @@ const SETTINGS: Record<VoiceEnergy, { stability: number; similarityBoost: number
   urgent: {
     stability: 0.35,
     similarityBoost: 0.7,
+    speed: 1.2,
     notes: [
       'Front-load. The verb belongs in the first four words.',
       'Fragments are allowed. Not every line needs a subject.',
@@ -154,6 +171,7 @@ export function directVoice(input: VoiceInput): VoiceDirection {
     voiceId: input.voiceId ?? null,
     energy,
     stability: settings.stability,
+    speed: settings.speed,
     similarityBoost: settings.similarityBoost,
     deliveryNotes: notes,
     reason: `${energy} delivery: ${

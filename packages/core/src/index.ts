@@ -28,6 +28,7 @@ export * from './platform/verified.js';
 export * from './generation/hookCraft.js';
 export * from './qc/textCritic.js';
 export * from './imagery/stockFootage.js';
+export * from './creative/narration.js';
 export * from './creative/continuity.js';
 export * from './generation/repairCopy.js';
 export * from './creative/captionShape.js';

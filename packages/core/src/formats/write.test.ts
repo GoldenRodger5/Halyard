@@ -285,3 +285,38 @@ describe('one name per thing', () => {
     expect(check.problems.some((p) => p.rule === 'format.two_names_one_thing')).toBe(true);
   });
 });
+
+describe('§484 the opening slot is spoken', () => {
+  const tips = POST_FORMAT_CATALOG.tips;
+  const draftWith = (title: string) => ({
+    formatId: 'tips',
+    slots: [
+      { key: 'title', index: 0, text: title },
+      { key: 'tip', index: 0, text: 'Trim the stems and stand them in an inch of water.' },
+      { key: 'tip', index: 1, text: 'Cover loosely with a bag and refrigerate upright.' },
+      { key: 'tip', index: 2, text: 'Keep basil on the counter, away from cold air.' },
+      { key: 'close', index: 0, text: 'Most important: dry the leaves before they go in.' },
+    ],
+  });
+
+  it('refuses a Title Case title, because nobody says a headline', () => {
+    const problem = checkDraft(tips, draftWith('Keep Herbs Alive Two Weeks')).problems.find(
+      (p) => p.rule === 'format.headline_case',
+    );
+    expect(problem?.severity).toBe('error');
+    expect(problem?.slot).toBe('title');
+  });
+
+  it('accepts sentence case, and a proper noun inside it', () => {
+    for (const title of ['Keep herbs alive for two weeks', 'How Parisian bakers keep herbs alive']) {
+      expect(
+        checkDraft(tips, draftWith(title)).problems.some((p) => p.rule === 'format.headline_case'),
+        title,
+      ).toBe(false);
+    }
+  });
+
+  it('tells the tips writer so in the brief', () => {
+    expect(tips.slots[0]!.brief).toMatch(/Sentence case/);
+  });
+});

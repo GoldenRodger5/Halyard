@@ -99,6 +99,8 @@ export interface SynthesisOptions {
    */
   stability?: number;
   similarityBoost?: number;
+  /** §480. 0.7–1.2, sent as `voice_settings.speed`. Omitted means the model's 1.0. */
+  speed?: number;
   /** ISO 639-1. Ignored by models that do not support the language. */
   languageCode?: string;
 }
@@ -173,6 +175,7 @@ export class ElevenLabsSpeechClient implements SpeechClient {
             stability: options.stability ?? 0.55,
             similarity_boost: options.similarityBoost ?? 0.8,
             use_speaker_boost: true,
+            ...(options.speed !== undefined ? { speed: options.speed } : {}),
           },
         }),
       },

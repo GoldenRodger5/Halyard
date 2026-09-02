@@ -31,6 +31,15 @@ export interface SubjectRequest {
   line: string;
   /** What the product is, so a subject suits the account rather than the topic alone. */
   productContext?: string;
+  /**
+   * §483. What the whole piece is about, so a line is read inside it.
+   *
+   * "Most important: dry leaves" in a piece about keeping herbs fresh means
+   * herb leaves patted dry with a towel. Read alone it was photographed as
+   * dead autumn foliage — a beautiful picture that argued with its line, on
+   * the beat the piece named as the one that mattered most.
+   */
+  pieceSubject?: string;
 }
 
 const SYSTEM = [
@@ -42,6 +51,11 @@ const SYSTEM = [
   '- It must be a physical, photographable thing. Not a concept, not a feeling, not a process.',
   '- If the line is about something abstract, choose the concrete thing it is about.',
   '  "How well do you know gluten?" is about bread and dough, not about knowledge.',
+  '- The line belongs to a piece, and the thing you name belongs to that piece\'s world. Read the',
+  '  line as the piece means it, never as a homonym: "dry leaves" in a piece about keeping herbs',
+  '  fresh is fresh herb leaves patted dry on a towel, not dried or fallen leaves. "Stock" in a',
+  '  piece about soup is a pot of broth, not a shelf of tins. When the line names a category, pick',
+  '  the specific thing the piece is about — parsley in a jar, not "vegetables".',
   '- No people, no hands, no text, no screens, no logos.',
   '- Do not restate the line. Do not explain. Reply with the phrase alone.',
 ].join('\n');
@@ -113,9 +127,13 @@ export async function photographicSubject(
   request: SubjectRequest,
   llm: LlmClient,
 ): Promise<SubjectVerdict> {
-  const user = request.productContext
-    ? `Product: ${request.productContext}\nLine: ${request.line}`
-    : `Line: ${request.line}`;
+  const user = [
+    request.productContext ? `Product: ${request.productContext}` : null,
+    request.pieceSubject ? `The piece is about: ${request.pieceSubject}` : null,
+    `Line: ${request.line}`,
+  ]
+    .filter(Boolean)
+    .join('\n');
 
   const reply = await llm.complete({
     system: SYSTEM,
@@ -128,7 +146,7 @@ export async function photographicSubject(
     maxTokens: 24,
     temperature: 0.4,
     model: CLASSIFY_MODEL,
-    promptVersion: 'photographic-subject@1',
+    promptVersion: 'photographic-subject@2',
   });
 
   return checkSubject(reply.text);

@@ -12200,3 +12200,75 @@ run, and it is the one that found these; a suite that is green only in the
 environment nobody develops in is measuring the wrong thing. And a test that
 silently depends on the absence of something is the same defect as code that
 does — §254's shape, in the tests.
+
+## §480 · Speed exists now, and it was the lever every pacing failure needed
+
+The voice director's file said ElevenLabs exposes no speed control, which was
+true when it was written. Every format video since Aug 31 read at **94–137
+words a minute** against a 140–175 gate; the correction loop then rewrote
+scripts that were fine, because rewriting was the only lever the policy knew.
+
+Verified live before changing anything: the same sentence took 5.02s at
+`voice_settings.speed` 1.0 and 4.21s at 1.2. The voice is a slow reader, so
+speed is now directed per energy (calm 1.12 … urgent 1.2) alongside stability,
+and the pacing gate measures the result as it always did. The rule was right
+and the world moved underneath it — §254's shape, and the reason the header of
+that file now says when it was last checked.
+
+## §481 · What a post is about is what was asked for, not its hashtags
+
+The coherence gate failed *story* on the first tips piece: *"the post is about
+freshherbstorage, cilantrostorage, parsleystorage, basilstorage, and none of it
+appears in any frame"* — over six frames of herbs. `keyTermsFor` took hashtags
+first, on the reasoning that they were the operator's own summary. Since the
+hashtag brief asked for specificity they are generated compounds, and a
+compound is a term no frame description will ever contain.
+
+The subject the operator typed (or the idea's title) is now persisted on the
+piece as `generation_meta.subject` and read first, stripped to its content
+words; the title is the fallback; hashtags are used only when nothing else
+exists and only when short enough to be one word. And a plural in the
+expectation now finds its singular in the description — *herbs* matches *six
+potted herb plants* — because a gate that fails story on the letter *s* is not
+measuring story.
+
+## §482 · A caption written as notes, and the rule that could not fire
+
+Told never to restate the on-screen lines, the writer produced four fragments,
+one cryptic aside per tip — *"Dry leaves last longer / The inch is for cut
+stems / Leaf moisture is the weak link / Basil is the fridge exception"* —
+concrete, and unreadable: four hooks and no post. The prompt now says what to
+do instead of what not to: one sentence that gives a reason to watch, at most
+one more thing, an invitation, whole sentences. `structure.fragment_stack`
+refuses three or more short lines with no sentence over eight words among
+them, and the caption is in the corpus.
+
+The corpus then found a bug older than the rule. `slopFilter` partitioned
+`errors` a hundred and seventy lines before its last rule ran, so **every
+error-severity rule added after that point was pushed, counted nowhere and
+returned as a pass**. The new rule was the first such rule. Partition moved to
+after the last rule. This is what the corpus is for: the rule was written from
+the defect, and the defect still passed.
+
+## §483 · A line is read inside its piece
+
+The close of the tips piece — *"Most important: dry leaves"* — was photographed
+as dead autumn foliage. Beautiful, and the opposite of the point: in a piece
+about keeping herbs fresh it means herb leaves patted dry. The subject agent
+was given the line alone and answered the homonym. It now also gets what the
+piece is about and is told that the thing it names belongs to that piece's
+world: *"stock"* in a soup piece is a pot of broth, not a shelf of tins. This
+is the cook persona's exact complaint, caught one stage earlier than the critic
+that would have had to fail the render.
+
+## §484 · The opening slot is spoken
+
+*"Keep Herbs Alive Two Weeks"* is what a writer produces for a slot named
+`title`, and it went to the synthesiser as the first thing said, with no full
+stop, so the voiceover record read *"Keep Herbs Alive Two Weeks Trim the
+stems…"*. Two fixes. `format.headline_case` refuses Title Case on the slot
+that opens a piece — nobody says a headline — and the tips brief now says the
+title is the first thing heard. And `joinSpoken` closes every narration line
+that does not end a sentence before the lines become the script the audio
+gate transcribes against, so a seam between lines is never counted as a
+mispronunciation.

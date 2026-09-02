@@ -356,7 +356,15 @@ Different words, not a vaguer subject. Generated captions have retreated into
 abstraction to avoid repeating: a video reading "BREAD / WEIGHED BY LAW" was
 captioned "Labels hide tradeoffs", which is both duller than the video and about
 nothing in particular. Stay as concrete as the piece — name the same real thing
-from a different angle.`
+from a different angle.
+
+And a caption is one post, not notes on one. Told not to restate the lines, a
+writer produced four fragments — "Dry leaves last longer / The inch is for cut
+stems / Leaf moisture is the weak link" — one cryptic aside per tip, which is
+four hooks and no post. Write it as a person would say it under their own
+video: a first sentence that gives someone a reason to watch, then at most one
+more thing — the detail that did not fit, or the question — and the invitation.
+Whole sentences. If it reads as a list, it is not a caption.`
       : '';
 
   /*
