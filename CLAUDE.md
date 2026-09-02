@@ -13,7 +13,7 @@ An autonomous social-content system that markets **RecipeFix** (and later Kinolo
 ```
 apps/web       Next.js, server-rendered, single operator. All screens + server actions.
 apps/worker    Poller + scheduler. Owns anything measured in minutes.
-packages/core  Domain logic. 21 modules — see below.
+packages/core  Domain logic. 37 modules — see below.
 packages/db    Schema types (generated), JOB_KINDS, job policy, test harness.
 packages/audit The Halyard Auditor (@halyard/audit).
 packages/render Satori image templates + Remotion compositions.
@@ -36,7 +36,7 @@ idea → generate → render/tts → review gates → queue (human approves) →
 | `apps/worker/src/scheduler.ts` | Everything periodic, each with a documented cadence |
 | `apps/worker/src/handlers/publish.ts` | The only path to a real post. Three idempotency layers. |
 | `packages/core/src/adapters/` | Seven platform adapters + `types.ts` (the publish contract) |
-| `packages/core/src/agents/registry.ts` | All 22 agents. Declares *intent*; the Auditor decides truth. |
+| `packages/core/src/agents/registry.ts` | All 41 agents. Declares *intent*; the Auditor decides truth. |
 | `packages/core/src/qc/index.ts` | `runAllGates` — the approval gate |
 | `packages/core/src/brain/` | P1 Product Brain: evidence → facts |
 | `packages/core/src/platform/` | P2 capability resolution + platform strategy |
@@ -45,6 +45,14 @@ idea → generate → render/tts → review gates → queue (human approves) →
 **Governing rule: _agents perceive, code decides._** Every judgement that can be made deterministically is made in code. Models are used only where perception or writing genuinely requires one. A model can never mark its own output verified.
 
 **Phases:** P0 agent OS + Auditor, P1 Product Brain, P2 Platform Intelligence — all merged. See `docs/HALYARD_IMPLEMENTATION_PLAN.md` for the full programme.
+
+**Direction (§438-§453).** How long a piece runs, and what happens when, are now
+decided rather than discovered. The platform owns a length band and a primary
+signal; the format owns a pace; the budget reaches the writer as a word count
+before it writes; and the screenplay finally drives the frames it has always
+described. `docs/DIRECTION_SPEC.md` is the plan of record — read it before
+touching `creative/length.ts`, `creative/editor.ts`, or the screenplay join in
+`formatVideo.ts`.
 
 ---
 
@@ -95,7 +103,7 @@ Landmines learned the hard way. Each one cost real time.
 ## Documentation habit (required, maintain without being asked)
 
 - `docs/STATUS.md` — where we are right now. Update when a meaningful piece of work finishes, and checkpoint before stopping or when context grows long.
-- `docs/DECISIONS.md` — append a numbered entry for every real decision: what was chosen, **why**, and what was rejected. 63 entries and counting; the highest-value document here.
+- `docs/DECISIONS.md` — append a numbered entry for every real decision: what was chosen, **why**, and what was rejected. Approaching 400 entries; the highest-value document here.
 - `docs/<feature>.md` — one file per non-trivial feature or investigation.
 - `docs/DESIGN_SYSTEM.md` — the palette, the type, and the reasoning behind each
   value. Every colour was solved against measured contrast; that reasoning lived
