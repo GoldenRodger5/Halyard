@@ -126,6 +126,20 @@ Nothing here is a Halyard change and all of it gates everything else.
 8. **The RecipeFix connector is down**, which blocks `transformation` and
    `recipe` — the two formats that demonstrate the actual product.
 
+### Done since this was written
+
+- **§466 — not one caption asked for anything.** Twelve real captions, zero
+  questions or invitations. The platform's `primarySignal` reached the format
+  writer and never the copywriter, which writes the line people reply to. Fixed
+  as *earn*, not *ask*. Found on the way: `question_density` refused **any**
+  question in a short caption, so between the two rules a short caption had no
+  legal form.
+- **§467 — the hook answered its own question.** *"Bread cuts prevent
+  blowouts"* is a mechanism, and a mechanism is the answer. Both narrative
+  formats now ask for the gap, not the explanation. Plus "And then" as the label
+  on every turn, and citation-shaped phrasing with nothing behind it
+  (*"Established by BBC Good Food"*, *"2021 salinity testing"*).
+
 ### Then — finish short video
 
 9. **`tips` has never rendered.** Both causes are fixed; confirm.
