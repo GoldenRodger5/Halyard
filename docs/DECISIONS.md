@@ -11674,3 +11674,26 @@ made, so every video carried one and the sweep would have fired for nothing,
 ever. Run against six real orphans it repaired none of them. "Publishable" is a
 question about the piece's own format — a video needs a finished render or an
 attached asset that is actually a video; a still piece is carried by a still.
+
+## §459 · Nowhere for the bytes to land
+
+With whisper in place (§457) the `tts` job finally succeeded and released a
+render — which then died three times on *"Voiceover asset audio/… could not be
+read."*
+
+`storage.ts` has had a local fallback since §434: with no Supabase Storage
+configured it writes asset bytes into the web app's public directory, so they
+are visible in the library. The more important half is that **the renderer reads
+them back off disk** — a video render loads the voiceover it is mixing.
+`HALYARD_LOCAL_ASSET_DIR` was set nowhere, so every asset was recorded with its
+bytes nowhere, and every render failed on the first one it tried to open.
+
+Three environment gaps in a row, each hiding the next: no whisper model → tts
+dies → no render is ever released → the missing asset directory is never
+reached. Each one invisible until the one above it was fixed, and none of them
+in a test.
+
+`scripts/halyard` now mounts the directory into the worker container and sets
+the variable, so the documented setup renders. The container writes where the
+web app serves from rather than into its own filesystem, which is the difference
+between an asset you can see and one that vanishes with the container.

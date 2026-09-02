@@ -202,7 +202,18 @@ if [[ $WORKER -eq 1 ]]; then
   c_info "building worker image (first build takes a few minutes)"
   docker build -q -t halyard-worker -f apps/worker/Dockerfile . >/dev/null
   docker rm -f halyard-worker >/dev/null 2>&1 || true
+  # §459. Somewhere for rendered bytes to land.
+  #
+  # With no Supabase Storage configured, `storage.ts` writes assets into the web
+  # app's public directory so they are visible and, more importantly, *readable
+  # by the renderer* — a video render reads the voiceover asset back off disk.
+  # Unset, every asset is recorded with no bytes anywhere and every render dies
+  # on "Voiceover asset ... could not be read". Mounted rather than baked in, so
+  # the container writes where the web app serves from.
+  mkdir -p "$REPO_ROOT/apps/web/public/dev-assets"
   docker run -d --name halyard-worker --add-host=host.docker.internal:host-gateway \
+    -v "$REPO_ROOT/apps/web/public/dev-assets:/assets" \
+    -e HALYARD_LOCAL_ASSET_DIR=/assets \
     --env-file "$WORKER_ENV_FILE" halyard-worker >/dev/null
   c_ok "worker running — docker logs -f halyard-worker"
 fi
