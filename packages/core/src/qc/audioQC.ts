@@ -19,6 +19,18 @@ export interface AudioProbe {
   /** Whisper's transcript of the generated audio. */
   transcript: string;
   durationSeconds: number;
+  /**
+   * §487. Seconds actually voiced, when the caller measured them.
+   *
+   * A format piece places each line on the composition's clock, so a
+   * thirty-second mix holds twenty seconds of speech and ten of designed
+   * silence. Pacing divided the words by the whole mix and read 131 wpm off a
+   * voice that, measured over its own clips, spoke at ~165 — and a faster read
+   * only widened the gaps. Words per minute is a property of speech, so it is
+   * measured over the speech; the silence is reported beside it, not folded
+   * into it.
+   */
+  spokenSeconds?: number;
   trailingSilenceMs?: number;
   leadingSilenceMs?: number;
 }
@@ -36,7 +48,10 @@ export interface AudioQCResult {
   passed: boolean;
   findings: AudioFinding[];
   wordErrorRate: number;
+  /** Over the voiced seconds when known, else the whole mix. */
   wordsPerMinute: number;
+  /** §487. Share of the mix that is not speech, 0..1, when the caller measured it. */
+  silenceShare?: number;
   /** Rendered for the queue: "WER 0.4%, 158 wpm, −14.1 LUFS". */
   summary: string;
 }
@@ -343,7 +358,15 @@ export function runAudioQC(probe: AudioProbe): AudioQCResult {
   }
 
   const scriptWords = tokenise(probe.script).length;
-  const wpm = probe.durationSeconds > 0 ? (scriptWords / probe.durationSeconds) * 60 : 0;
+  const paceOver =
+    probe.spokenSeconds !== undefined && probe.spokenSeconds > 0
+      ? Math.min(probe.spokenSeconds, probe.durationSeconds || probe.spokenSeconds)
+      : probe.durationSeconds;
+  const wpm = paceOver > 0 ? (scriptWords / paceOver) * 60 : 0;
+  const silenceShare =
+    probe.spokenSeconds !== undefined && probe.durationSeconds > 0
+      ? Math.max(0, Math.min(1, 1 - probe.spokenSeconds / probe.durationSeconds))
+      : undefined;
   if (wpm < MIN_WPM || wpm > MAX_WPM) {
     findings.push({
       rule: 'audio.pacing',
@@ -379,7 +402,10 @@ export function runAudioQC(probe: AudioProbe): AudioQCResult {
     findings,
     wordErrorRate: Number(wer.toFixed(4)),
     wordsPerMinute: Number(wpm.toFixed(0)),
-    summary: `WER ${(wer * 100).toFixed(1)}%, ${wpm.toFixed(0)} wpm`,
+    ...(silenceShare !== undefined ? { silenceShare: Number(silenceShare.toFixed(2)) } : {}),
+    summary:
+      `WER ${(wer * 100).toFixed(1)}%, ${wpm.toFixed(0)} wpm` +
+      (silenceShare !== undefined ? ` (${Math.round(silenceShare * 100)}% silence)` : ''),
   };
 }
 

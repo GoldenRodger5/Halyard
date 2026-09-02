@@ -37,6 +37,14 @@ defect, each fixed at the class (§480–§484):
 | "dry leaves" → dead autumn leaves | subject agent saw the line alone | it sees the piece's subject; homonym rule |
 | VO opened "Keep Herbs Alive Two Weeks Trim…" | Title Case spoken, lines joined bare | `format.headline_case`; `joinSpoken` |
 
+**Re-run after the fixes (piece `d50bee04`):** coherence *passed* ("coherent
+across 6 frames, showing herbs"), the close was photographed as herb leaves on
+a towel, the voice opened in sentence case with full stops, WER 0%, four
+pauses, the caption one real sentence. Two new classes surfaced and were
+fixed: the writer numbered the tips the render already numbers (§486, a
+repair), and pacing measured words over the whole mix so a faster read could
+not pass it (§487, measured over speech). Third run pending.
+
 Still open on that piece: no music bed (the seeded fixture file does not
 exist anywhere; generated music needs `ELEVENLABS_MUSIC_LICENSED=true`, an
 operator's licence decision), and the text critic read the four-fragment

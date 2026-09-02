@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { lexiconTermsUsed, normaliseForSpeech, wordErrorRate } from './audioQC.js';
+import { lexiconTermsUsed, normaliseForSpeech, runAudioQC, wordErrorRate } from './audioQC.js';
 
 /**
  * §137. `hit_count` was displayed and never written, so every term read zero.
@@ -113,5 +113,23 @@ describe('word boundaries that disagree without changing what was said', () => {
   it('does not fuse across an unbounded run', () => {
     // A cap, so two unrelated sequences cannot concatenate their way to a match.
     expect(wordErrorRate('abcdefgh', 'a b c d e f g h')).toBeGreaterThan(0);
+  });
+});
+
+describe('§487 pacing is a property of speech', () => {
+  const script = Array.from({ length: 55 }, (_, i) => `word${i}`).join(' ');
+  it('measures over the voiced seconds when the mix has designed silence', () => {
+    /* 55 words in 20s of speech inside a 30s mix: 165 wpm spoken, 110 over the mix. */
+    const result = runAudioQC({ script, transcript: script, durationSeconds: 30, spokenSeconds: 20 });
+    expect(result.wordsPerMinute).toBe(165);
+    expect(result.silenceShare).toBe(0.33);
+    expect(result.findings.some((f) => f.rule === 'audio.pacing')).toBe(false);
+    expect(result.summary).toMatch(/33% silence/);
+  });
+  it('still measures over the whole mix when nothing was measured', () => {
+    const result = runAudioQC({ script, transcript: script, durationSeconds: 30 });
+    expect(result.wordsPerMinute).toBe(110);
+    expect(result.silenceShare).toBeUndefined();
+    expect(result.findings.some((f) => f.rule === 'audio.pacing')).toBe(true);
   });
 });

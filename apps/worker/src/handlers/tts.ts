@@ -318,6 +318,8 @@ export async function ttsHandler(job: Job, ctx: HandlerContext, deps: TtsDeps = 
      * character count is the same, so this costs what one call would have; it
      * is more requests, not more money.
      */
+    /* §487. Seconds actually voiced, so pacing is measured over speech. */
+    let spokenSeconds: number | undefined;
     if (Array.isArray(item.vo_lines) && item.vo_lines.length > 0) {
       const lines = item.vo_lines as Array<{ atSeconds: number; text: string }>;
       const clips: Array<{ path: string; atSeconds: number }> = [];
@@ -336,6 +338,7 @@ export async function ttsHandler(job: Job, ctx: HandlerContext, deps: TtsDeps = 
           text: line.text,
         });
       }
+      spokenSeconds = measured.reduce((sum, m) => sum + m.durationSeconds, 0);
 
       /*
        * Overruns are reported, never silently shifted. Moving a line later
@@ -546,6 +549,7 @@ export async function ttsHandler(job: Job, ctx: HandlerContext, deps: TtsDeps = 
       script,
       transcript,
       durationSeconds: mix.durationSeconds,
+      ...(spokenSeconds !== undefined ? { spokenSeconds } : {}),
       trailingSilenceMs: silence.trailingMs,
       leadingSilenceMs: silence.leadingMs,
     });

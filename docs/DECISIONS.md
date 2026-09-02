@@ -12283,3 +12283,28 @@ now finds `pnpm` the way it already finds Postgres (under `~/.nvm`, then
 Homebrew) and refuses, before stopping anything, if it cannot. Same rule as
 §477: a dev launcher's failures should be loud and should leave the world as
 it found it.
+
+## §486 · A written number on a slot the render numbers
+
+The second tips render read *"1 · 1. Trim a half inch off stems"* — the
+numeral badge the composition draws for every repeating slot, and the "1." the
+writer put in the text — and the voice said "one." before each tip. A writer
+asked for five tips numbers them. That is transcription, not judgement, so it
+is a `repairDraft` repair (§287's line): the leading ordinal is stripped from
+any slot the format repeats, and reported. "1 leaf can spoil the bunch" on a
+non-repeating slot is a quantity and is left alone.
+
+## §487 · Pacing is a property of speech
+
+§480 made the voice read 16% faster and the pacing gate moved from 127 to 131
+words a minute. It was dividing the script by the **whole mix** — and a format
+piece places each line on the composition's clock, so a thirty-second mix
+holds twenty seconds of speech and ten of designed silence. A faster read only
+widened the gaps; the gate could not be passed by the thing it was asking for.
+
+`tts` already measured every placed line's voiced duration. The probe now
+carries the sum, pacing is measured over it, and the silence share is reported
+beside the number rather than folded into it — because a viewer hears the
+speech rate and sees the gaps, and they are two different complaints. Whether
+ten seconds of silence in thirty is *too much* is a retention question the
+beat clock already answers (§438, §449); it is not a pacing failure.

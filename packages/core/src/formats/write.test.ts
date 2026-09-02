@@ -8,7 +8,7 @@
  * attempt budget exists for genuine misses, not for teaching the rules.
  */
 import { describe, expect, it } from 'vitest';
-import { briefFor, checkDraft, checkOneNamePerThing } from './write.js';
+import { briefFor, checkDraft, checkOneNamePerThing, repairDraft } from './write.js';
 import { POST_FORMAT_CATALOG } from './catalog.js';
 import { bandFor, lengthBudgetFor } from '../creative/length.js';
 import { BANNED_PHRASES } from '../qc/slopFilter.js';
@@ -318,5 +318,30 @@ describe('§484 the opening slot is spoken', () => {
 
   it('tells the tips writer so in the brief', () => {
     expect(tips.slots[0]!.brief).toMatch(/Sentence case/);
+  });
+});
+
+describe('§486 a written number on a slot the render numbers', () => {
+  const tips = POST_FORMAT_CATALOG.tips;
+  it('strips the ordinal from repeating slots and says so', () => {
+    const { draft, repairs } = repairDraft(tips, {
+      formatId: 'tips',
+      slots: [
+        { key: 'title', index: 0, text: 'Fresh herbs can last two weeks' },
+        { key: 'tip', index: 0, text: '1. Trim a half inch off stems.' },
+        { key: 'tip', index: 1, text: 'Tip 2: Dry the leaves completely.' },
+        { key: 'tip', index: 2, text: '3) Change the water every two days.' },
+        { key: 'close', index: 0, text: '1 leaf can spoil the bunch.' },
+      ],
+    });
+    expect(draft.slots.map((s) => s.text)).toEqual([
+      'Fresh herbs can last two weeks',
+      'Trim a half inch off stems.',
+      'Dry the leaves completely.',
+      'Change the water every two days.',
+      /* Not a repeating slot, and "1 leaf" is a quantity, not an ordinal. */
+      '1 leaf can spoil the bunch.',
+    ]);
+    expect(repairs.filter((r) => /render numbers/.test(r.because))).toHaveLength(3);
   });
 });

@@ -783,6 +783,9 @@ export function checkFormatSpecific(format: PostFormat, draft: FormatDraft): Slo
  *
  * Returns what it changed, so a repaired draft is never a silent one.
  */
+/** "1. ", "1) ", "1: ", "Tip 1: ", "Step 3 - ", "#2 " — the shapes a numbered list arrives in. */
+const LEADING_ORDINAL = /^\s*(?:(?:tip|step|no\.?|number)\s*)?#?\d{1,2}\s*[.):\-–—]\s*/i;
+
 export interface SlotRepair {
   slot: string;
   from: string;
@@ -818,6 +821,29 @@ export function repairDraft(
         because: 'punctuation a platform mangles, replaced with its straight equivalent',
       });
       text = punctuated;
+    }
+
+    /*
+     * §486. A written ordinal on a slot the render numbers.
+     *
+     * The first tips render read "1 · 1. Trim a half inch off stems" — the
+     * numeral badge the composition draws for every repeating slot, and the
+     * "1." the writer put in the text — and the voice said "one." before each
+     * tip. A writer asked for five tips numbers them; that is transcription,
+     * not a judgement, and the render is the one that owns the number.
+     */
+    const spec = format.slots.find((f) => f.key === slot.key);
+    if (spec?.repeats && spec.repeats > 1) {
+      const unnumbered = text.replace(LEADING_ORDINAL, '');
+      if (unnumbered !== text && unnumbered.trim().length > 0) {
+        repairs.push({
+          slot: slot.key,
+          from: text,
+          to: unnumbered,
+          because: 'a written number on a slot the render numbers itself',
+        });
+        text = unnumbered;
+      }
     }
 
     return { ...slot, text };
