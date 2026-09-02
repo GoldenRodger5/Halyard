@@ -12308,3 +12308,24 @@ beside the number rather than folded into it — because a viewer hears the
 speech rate and sees the gaps, and they are two different complaints. Whether
 ten seconds of silence in thirty is *too much* is a retention question the
 beat clock already answers (§438, §449); it is not a pacing failure.
+
+## §488 · A correction that rewrites the voice away from the screen
+
+The third tips render went into a loop: tts, review, correct, tts, review,
+correct. `rewrite_vo_script` had fired — the first run had *refused* it, on the
+"too slow" branch — and it rewrote `vo_script` into freeform prose ("Your herbs
+need room to breathe…") and cleared the asset. `tts` then did what it does for
+a format piece: spoke the unchanged `vo_lines`, aligned the captions to the
+**new** script, and handed the gate a transcript of the old words against the
+new ones. WER 96.5%, and a piece whose captions disagree with its own audio.
+
+The applier was written for a freeform voiceover, before §306 made a format's
+narration *be* its written slots. It now checks for placed lines first and
+escalates: whatever the audio defect, the words are the slots' and only the
+slots can change them. Its "no speed control" branch was also stale since
+§480 and now says what is true — the voice is already at its directed speed,
+and going past that is a person's call.
+
+What the numbers actually said, once measured over speech rather than the
+mix: the voice spoke at 139 wpm at speed 1.0 and 167 at 1.16. §480 stands;
+§487's measurement is what made it legible.

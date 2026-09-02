@@ -204,16 +204,45 @@ export async function reviseCopy(
  *
  * ## Why a slow read is not correctable here
  *
- * The gate's own remedy for the low side is "regenerate at a higher speed", and
- * `SynthesisOptions` has no speed control — stability, similarity, voice and
- * model, and nothing else. There is no honest correction available, so it
- * escalates instead of pretending.
+ * The gate's own remedy for the low side is "regenerate at a higher speed".
+ * Since §480 the voice director already sets one per energy, so a read that is
+ * still slow is a voice decision, not a script one. It escalates instead of
+ * pretending a rewrite would change the rate.
  */
 export async function rewriteVoScript(
   ctx: HandlerContext,
   llm: LlmClient,
   input: Context,
 ): Promise<CorrectionOutcome> {
+  /*
+   * §488. A format piece's narration is its written slots, and cannot be
+   * rewritten on its own.
+   *
+   * §306 derives the read from the same slots the picture is built from, and
+   * `tts` places those lines (`vo_lines`) on the composition's clock. This
+   * applier rewrote `vo_script` and cleared the asset; `tts` then spoke the
+   * unchanged lines, aligned the captions to the *new* prose, and the gate
+   * compared the two — a piece whose captions disagree with its own audio,
+   * with a 96.5% "word error rate" that was really the loop measuring its own
+   * damage. Found on the third tips render. Whatever the audio defect is, the
+   * words are the slots' and only the slots can change them.
+   */
+  const { rows: narration } = await ctx.pool.query<{ vo_lines: unknown }>(
+    'select vo_lines from content_items where id = $1',
+    [input.contentItemId],
+  );
+  const lines = narration[0]?.vo_lines;
+  if (Array.isArray(lines) && lines.length > 0) {
+    return {
+      changed: [],
+      note: 'format narration',
+      escalate:
+        'This narration is the piece’s written slots, placed line by line (§306, §351). Rewriting the script ' +
+        'alone would leave the audio saying the screen’s lines while the captions and the gate follow new ' +
+        'prose. An audio defect on a format piece is corrected in the slots, or by a person.',
+    };
+  }
+
   const row = await draftContext(ctx, input.contentItemId);
   if (!row) return { changed: [], note: 'no context', escalate: 'The item could not be loaded.' };
 
@@ -223,7 +252,8 @@ export async function rewriteVoScript(
       changed: [],
       note: 'slow read',
       escalate:
-        'The read is too slow, and the gate’s own remedy is a higher synthesis speed. SynthesisOptions exposes no speed control, so there is no correction to apply — this needs a voice or model change, which is a person’s decision.',
+        'The read is too slow at the speed the voice director already set for this energy (§480). ' +
+        'Raising it further, or changing the voice, is a person’s decision — a script rewrite would not change the rate.',
     };
   }
 

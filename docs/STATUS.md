@@ -43,7 +43,12 @@ a towel, the voice opened in sentence case with full stops, WER 0%, four
 pauses, the caption one real sentence. Two new classes surfaced and were
 fixed: the writer numbered the tips the render already numbers (§486, a
 repair), and pacing measured words over the whole mix so a faster read could
-not pass it (§487, measured over speech). Third run pending.
+not pass it (§487, measured over speech). **Third run:** the §486 repair fired (three numbered tips stripped) — and the
+correction loop rewrote the narration away from the screen (§488): a corrector
+written for freeform voiceovers, never told that a format's narration is its
+slots. Refused now; the piece was failed with the reason. Measured over speech
+(§487): the voice reads 139 wpm at 1.0 and 167 at 1.16, so §480 holds. Fourth
+run pending after the rebuild.
 
 Still open on that piece: no music bed (the seeded fixture file does not
 exist anywhere; generated music needs `ELEVENLABS_MUSIC_LICENSED=true`, an
