@@ -191,3 +191,56 @@ describe('§347. cutting to the ceiling', () => {
     expect(fit.adjustments.some((a) => a.because.includes('ceiling'))).toBe(true);
   });
 });
+
+/**
+ * §468. A gesture needs somewhere to point.
+ *
+ * `generate.ts` never passed `locatable`, so it defaulted to `[]` — and the
+ * screenwriter's prompt turns an empty list into "Nothing in the frame can be
+ * located, so this piece has no gestures." Every screenplay was told, in so
+ * many words, that marks were impossible; §446 then honoured that exactly, and
+ * three consecutive pieces drew none.
+ */
+describe('gestures need a target the frame can locate', () => {
+  const staged = (gestures: Array<{ target: string; atSeconds: number; because: string }>) => ({
+    title: 'T',
+    format: 'history',
+    channel: 'short_video',
+    bedMood: 'warm',
+    scenes: [scene({ gestures })],
+  });
+
+  it('accepts a gesture pointing at something the frame draws', () => {
+    const check = checkScreenplay(staged([{ target: 'gluten', atSeconds: 1, because: 'the word it turns on' }]), {
+      marks: ['underline'],
+      locatable: ['gluten', 'sourdough'],
+      seconds: { min: 5, max: 60 },
+      hasFootage: false,
+    });
+    expect(check.problems.filter((p) => p.rule.includes('gesture'))).toEqual([]);
+  });
+
+  it('refuses a gesture pointing at something it cannot find', () => {
+    const check = checkScreenplay(staged([{ target: 'thermometer', atSeconds: 1, because: 'x' }]), {
+      marks: ['underline'],
+      locatable: ['gluten'],
+      seconds: { min: 5, max: 60 },
+      hasFootage: false,
+    });
+    expect(check.problems.some((p) => p.rule.includes('gesture'))).toBe(true);
+  });
+
+  /*
+   * The state that was live: an empty list is not "mark anything", it is "mark
+   * nothing", and the prompt says so out loud.
+   */
+  it('treats an empty locatable list as no gestures at all', () => {
+    const check = checkScreenplay(staged([{ target: 'gluten', atSeconds: 1, because: 'x' }]), {
+      marks: ['underline'],
+      locatable: [],
+      seconds: { min: 5, max: 60 },
+      hasFootage: false,
+    });
+    expect(check.problems.some((p) => p.rule.includes('gesture'))).toBe(true);
+  });
+});

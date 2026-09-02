@@ -11835,3 +11835,29 @@ rewrite, since a missing source cannot be written into existence. What is wrong
 here is the wording, so it is `revise_copy`, and it gets its own policy entry
 rather than a `claim` namespace fallback: a future rule about evidence must be
 decided on its own and must not inherit "just rewrite it" from this one.
+
+## §468 · The marks were forbidden, not timid
+
+Three consecutive pieces drew no marks at all, and it read as a cautious model
+being sensible. It was not.
+
+`generate.ts` never passed `locatable` to `stagePiece`, so it defaulted to `[]`
+— and the screenwriter's prompt turns an empty list into a flat statement:
+
+> *"Nothing in the frame can be located, so this piece has no gestures."*
+
+Every screenplay this system has ever written was told, in those words, that
+marks were impossible. §446 then honoured "no gestures" exactly as designed. The
+whole gesture path was dead by omission, one argument up from where anybody was
+looking.
+
+For a narrative piece the frame is type over a photograph and `markForBeat`
+matches a **phrase from the line**, so what the frame can locate is the words it
+is already drawing — the distinctive ones, because a viewer cannot be pointed at
+"because".
+
+The brief also changed. *"Most scenes have none"* is read as *none*, which is
+what happened; it now says most scenes have none **and one scene usually should**
+— nearly always the turn or the payoff. A piece with no mark anywhere is type on
+a card, and one drawn mark is what makes it look made by a person rather than
+generated.

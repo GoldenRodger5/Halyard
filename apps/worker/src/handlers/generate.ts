@@ -128,6 +128,23 @@ import { recentShots } from '../shotRecency.js';
 import { continuityFor } from '../continuity.js';
 import { photographBeats } from '../beatPhotographs.js';
 import { markForBeat } from '../beatMark.js';
+
+/**
+ * §468. Words long enough to look markable and too common to be worth marking.
+ *
+ * A gesture points the eye at the thing that matters. Offering "because" as a
+ * valid target invites a mark that means nothing, which is worse than none —
+ * the screenwriter's own brief says two marks at once point at neither.
+ */
+const MARK_STOPWORDS = new Set([
+  'about', 'after', 'again', 'against', 'because', 'been', 'before', 'being',
+  'between', 'could', 'doing', 'during', 'every', 'first', 'from', 'have',
+  'here', 'into', 'just', 'like', 'more', 'most', 'much', 'never', 'only',
+  'other', 'over', 'same', 'should', 'since', 'some', 'still', 'such', 'than',
+  'that', 'their', 'them', 'then', 'there', 'these', 'they', 'this', 'those',
+  'through', 'under', 'until', 'very', 'were', 'what', 'when', 'where',
+  'which', 'while', 'will', 'with', 'would', 'your', 'always', 'usually',
+]);
 import { pickProductShot } from '../productShot.js';
 import { FormatRejectedError, recentFormats, writeToFormat } from '../formatWriter.js';
 import { stagePiece } from '../screenplayStage.js';
@@ -1466,6 +1483,34 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                     index: slot.index,
                     text: slot.text,
                   })),
+                  /**
+                   * §468. What the frame can actually point at.
+                   *
+                   * Nothing passed `locatable`, so it defaulted to `[]` — and
+                   * the screenwriter's prompt turns an empty list into *"Nothing
+                   * in the frame can be located, so this piece has no
+                   * gestures."* Every screenplay this system has written was
+                   * therefore told, explicitly, that marks were impossible.
+                   *
+                   * §446 then honoured "no gestures" exactly as designed, so
+                   * three consecutive pieces drew none and it read as a
+                   * cautious model. It was not: the whole gesture path was dead
+                   * by omission, one argument up.
+                   *
+                   * For a narrative piece the frame is type over a photograph,
+                   * and `markForBeat` matches a **phrase from the line** — so
+                   * what the frame can locate is the words it is already
+                   * drawing. The distinctive ones, because "the" is not
+                   * something a viewer can be pointed at.
+                   */
+                  locatable: [
+                    ...new Set(
+                      written.draft.slots
+                        .flatMap((slot) => slot.text.match(/[A-Za-z][A-Za-z'-]{4,}/g) ?? [])
+                        .map((word) => word.toLowerCase())
+                        .filter((word) => !MARK_STOPWORDS.has(word)),
+                    ),
+                  ].slice(0, 40),
                 },
                 llmFor(),
               )
