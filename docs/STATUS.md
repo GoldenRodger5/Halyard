@@ -2059,9 +2059,11 @@ visible in five frames:
 
 ### What is still wrong with it
 
-- **Two adjacent frames are near-identical.** Beats three and four are both a
-  mound of flour on wood in the same light. The subjects differ on paper and the
-  pictures do not, which is exactly `critic.interchangeable_frames`.
+- ~~Two adjacent frames are near-identical.~~ **Checked, and by design.** Beats
+  three and four are one long line split by `splitLongLine`, and §417 holds one
+  photograph across a split so the second card reads as the same thought
+  continuing. The corpus lesson (§473) again: a confident hand critique, wrong
+  on inspection.
 - **One line trails off.** *"Then the chart does something rude: same
   all-purpose flour, same cup"* — an odd construction that stops rather than
   finishing, held for four seconds.
