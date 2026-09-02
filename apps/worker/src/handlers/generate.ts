@@ -52,6 +52,7 @@ import {
   type Stage,
   createStockFootageClient,
   joinSpoken,
+  isProviderExhausted,
 } from '@halyard/core';
 import {
   carouselProps,
@@ -2095,7 +2096,14 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
             ? { continuity: continuity.summary }
             : {}),
         });
-        const hero =
+        /*
+         * §491. A refusal on account grounds (no credits, bad key) is a fact
+         * about the run: fail the piece with the reason rather than retrying
+         * into the same answer three times.
+         */
+        let hero: Awaited<ReturnType<typeof generateHeroImage>>;
+        try {
+          hero =
           heroSubject && imageClient
             ? await generateHeroImage(assets, imageClient, {
                 subject: heroSubject,
@@ -2110,6 +2118,14 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                 contentItemId,
               })
             : null;
+        } catch (err) {
+          if (isProviderExhausted(err)) {
+            const why = `The image provider refused on account grounds: ${err.message}. A person has to act (credits, key) before any piece can be illustrated.`;
+            await disownPartialContentItem(ctx.pool, contentItemId, why);
+            throw new PermanentJobFailure(why, 'the image provider refuses on account grounds, which no retry changes');
+          }
+          throw err;
+        }
         if (hero) {
           await ctx.pool.query(
             `update content_items
@@ -2920,7 +2936,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                     photographed: groups.length,
                   });
                 }
-                const photographs = await photographBeats(assets, imageClient, llmFor(), {
+                const { photographs, providerExhausted } = await photographBeats(assets, imageClient, llmFor(), {
                   productId,
                   contentItemId,
                   format: chosenFormat.format.id,
@@ -2934,6 +2950,21 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                     ),
                   })),
                 });
+                /*
+                 * §491. A provider that cannot pay is not a fallback. The stills
+                 * this piece is missing would be the hero image repeated — one
+                 * photograph behind four text changes, §407's defect back as a
+                 * default — and every piece after it gets the same refusal. Fail
+                 * this one with the reason, and stop.
+                 */
+                if (providerExhausted) {
+                  const why = `The image provider refused on account grounds after ${
+                    photographs.filter((ph) => ph.assetId).length
+                  } of ${photographs.length} beats: ${providerExhausted}. A person has to act (credits, key) before any piece can be photographed.`;
+                  await disownPartialContentItem(ctx.pool, contentItemId, why);
+                  throw new PermanentJobFailure(why, 'the image provider refuses on account grounds, which no retry changes');
+                }
+
                 if (photographs.some((ph) => ph.assetId)) {
                   props = {
                     ...props,

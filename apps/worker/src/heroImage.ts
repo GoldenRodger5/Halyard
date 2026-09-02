@@ -43,6 +43,7 @@ import {
 } from '@halyard/core';
 import type { HandlerContext } from './poller.js';
 import { uploadAsset } from './storage.js';
+import { isProviderExhausted } from '@halyard/core';
 
 /**
  * How the picture should feel. Chosen from the piece's visual language so the
@@ -148,6 +149,12 @@ export async function generateHeroImage(
     assertIllustrative(prompt);
     image = await client.generate({ prompt, aspectRatio: request.aspectRatio, alt });
   } catch (err) {
+    /*
+     * §491. Not for a provider that has said the account cannot pay. That is
+     * a fact about the run, not about this picture; returning null here made
+     * the loop ask three more times and released a slideshow.
+     */
+    if (isProviderExhausted(err)) throw err;
     ctx.log('hero image not generated', {
       contentItemId: request.contentItemId,
       reason: (err as Error).message,

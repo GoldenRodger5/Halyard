@@ -12370,3 +12370,25 @@ The band is 140–175 and the honest measure puts this voice at its top at
 speed 1.0. So calm is 0.9, warm 0.95, bright 1.0, urgent 1.05 — the lever is
 real and stays; the direction reverses. The rule worth keeping is the one
 §487 found: a number is only a measurement of the thing it is divided by.
+
+## §491 · A provider that cannot pay is not a fallback
+
+OpenAI's credits ran out in the middle of photographing the fourth tips
+piece. The image client threw a generic error, `generateHeroImage` returned
+null — its documented behaviour for "an outage must not take the run down" —
+and the loop asked three more times. Six of nine beats fell back to the hero
+image: one photograph behind four text changes, §407's defect back as a
+default. Then `review_media` died on the same 429 after two attempts, and the
+piece sat in the approval queue with every media gate unmeasured. The
+`grounds` record said *3 photographed, 6 flat*; nothing acted on it.
+
+Two refusals look alike and mean different things. A timeout or a 503 is
+about the call, and falling back is right. A 401, 402, 403, or a 429 whose
+body says credits or quota, is about the *account*: the next call and the
+next piece get the same answer. `ProviderUnavailable` carries that verdict
+in code (`refusalIsExhausted`), the image and vision clients raise it, and
+each caller does the honest thing: `generateHeroImage` rethrows it,
+`photographBeats` stops at it, `generate` fails the piece with the reason,
+and `review_media` fails the piece instead of dying with it in the queue.
+The rule the operator gave for fallbacks — *sometimes it is better to send
+the error* — applied to the one place it had not been.

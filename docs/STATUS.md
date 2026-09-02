@@ -59,7 +59,10 @@ never slow (§490), so speeds are now 0.9–1.05. Its `review_media` died on
 **OpenAI 429 — no credits remaining**: the frame critic and every image
 generation are blocked until the OpenAI account is topped up. (The render also
 took six hours of wall clock because the Mac slept; the 900s timeout retry
-re-ran it in nine minutes, as designed.)
+re-ran it in nine minutes, as designed.) The same outage exposed §491: the
+loop kept asking a provider that had said "no credits", six beats fell back
+to one photograph, and the unreviewed slideshow reached the queue. Now a
+refusal on account grounds fails the piece with the reason and stops.
 
 Still open on that piece: no music bed (the seeded fixture file does not
 exist anywhere; generated music needs `ELEVENLABS_MUSIC_LICENSED=true`, an

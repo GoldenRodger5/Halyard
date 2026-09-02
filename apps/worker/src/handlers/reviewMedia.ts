@@ -41,9 +41,10 @@ import {
   type MediaProbe,
   type VisionClient,
   type VisualTarget,
+  isProviderExhausted,
 } from '@halyard/core';
 import { frameSampleTimes, probeVideo, sampleFrames } from '../video.js';
-import type { HandlerContext, Job } from '../poller.js';
+import { PermanentJobFailure, type HandlerContext, type Job } from '../poller.js';
 
 interface ItemRow {
   account_id?: string;
@@ -474,7 +475,29 @@ export async function reviewMediaHandler(
     let frames: FrameObservation[] = [];
     if (sampled.length > 0) {
       const client = vision ?? new OpenAiVisionClient();
-      frames = await client.describeFrames(sampled);
+      try {
+        frames = await client.describeFrames(sampled);
+      } catch (err) {
+        /*
+         * §491. A describer whose account cannot pay is not a retry. The job
+         * used to die after its attempts with the piece still in the approval
+         * queue and every media gate unmeasured — a slideshow nobody had
+         * looked at, waiting for a person to approve it. The piece is failed
+         * with the reason instead, so the queue holds only what was reviewed.
+         */
+        if (isProviderExhausted(err)) {
+          const why = `The frame describer refused on account grounds, so this piece was never reviewed: ${err.message}`;
+          await ctx.pool.query(
+            `update content_items
+                set status = 'failed',
+                    generation_meta = coalesce(generation_meta, '{}'::jsonb) || $2::jsonb
+              where id = $1 and status = 'pending_approval'`,
+            [contentItemId, JSON.stringify({ failed_because: why })],
+          );
+          throw new PermanentJobFailure(why, 'the vision provider refuses on account grounds, which no retry changes');
+        }
+        throw err;
+      }
     }
 
     /**

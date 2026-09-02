@@ -17,6 +17,7 @@
  * evidence says models are biased at.
  */
 import type { FrameObservation } from '../qc/coherence.js';
+import { providerRefusal } from './provider.js';
 
 export interface ImageInput {
   /** Raw bytes. PNG or JPEG. */
@@ -138,7 +139,8 @@ export class OpenAiVisionClient implements VisionClient {
 
     const data = (await response.json()) as ChatResponse;
     if (!response.ok) {
-      throw new Error(`Vision ${response.status}: ${data.error?.message ?? 'no reason given'}`);
+      /* §491. A dead account fails the review loudly rather than killing the job unmeasured. */
+      throw providerRefusal('openai-vision', response.status, data.error?.message ?? 'no reason given');
     }
 
     const text = data.choices?.[0]?.message?.content ?? '';

@@ -35,7 +35,7 @@
  * background rather than failing the run — one flat beat is a worse video, a
  * thrown error is no video.
  */
-import { photographicSubject, chooseShot, shotId, type ImageClient } from '@halyard/core';
+import { photographicSubject, chooseShot, shotId, isProviderExhausted, type ImageClient } from '@halyard/core';
 import type { HandlerContext } from './poller.js';
 import { generateHeroImage } from './heroImage.js';
 import { recentShots } from './shotRecency.js';
@@ -55,6 +55,18 @@ export interface BeatPhotograph {
   shot: string | null;
 }
 
+export interface BeatPhotographs {
+  photographs: BeatPhotograph[];
+  /**
+   * §491. Set when the image provider refused on account grounds — no
+   * credits, bad key — part-way through. The loop stops there rather than
+   * asking again, and the caller decides what a piece with this many stills
+   * missing is worth: nothing, usually, because the next piece gets the same
+   * answer and a person has to act first.
+   */
+  providerExhausted: string | null;
+}
+
 export async function photographBeats(
   ctx: HandlerContext,
   imageClient: ImageClient | null,
@@ -68,8 +80,10 @@ export async function photographBeats(
     beats: Array<{ text: string }>;
     productContext?: string;
   },
-): Promise<BeatPhotograph[]> {
-  if (!imageClient) return input.beats.map(() => ({ assetId: null, shot: null }));
+): Promise<BeatPhotographs> {
+  if (!imageClient) {
+    return { photographs: input.beats.map(() => ({ assetId: null, shot: null })), providerExhausted: null };
+  }
 
   /* Across pieces. Extended in-place below so it also rotates within this one. */
   const history = await recentShots(ctx.pool, { productId: input.productId });
@@ -90,12 +104,26 @@ export async function photographBeats(
     const shot = chooseShot({ format: input.format, recent: history });
     history.unshift(shotId(shot));
 
-    const image = await generateHeroImage(ctx, imageClient, {
-      subject,
-      shot,
-      aspectRatio: '9:16',
-      contentItemId: input.contentItemId,
-    });
+    let image: Awaited<ReturnType<typeof generateHeroImage>>;
+    try {
+      image = await generateHeroImage(ctx, imageClient, {
+        subject,
+        shot,
+        aspectRatio: '9:16',
+        contentItemId: input.contentItemId,
+      });
+    } catch (err) {
+      if (isProviderExhausted(err)) {
+        ctx.log('image provider refused on account grounds; photography stops here', {
+          contentItemId: input.contentItemId,
+          after: out.length,
+          reason: err.message,
+        });
+        while (out.length < input.beats.length) out.push({ assetId: null, shot: null });
+        return { photographs: out, providerExhausted: err.message };
+      }
+      throw err;
+    }
     out.push({ assetId: image?.assetId ?? null, shot: image ? shot.id : null });
     ctx.log('beat photographed', {
       contentItemId: input.contentItemId,
@@ -107,5 +135,5 @@ export async function photographBeats(
 
   /* Beats past the cap keep the piece background. Stated, not silently dropped. */
   while (out.length < input.beats.length) out.push({ assetId: null, shot: null });
-  return out;
+  return { photographs: out, providerExhausted: null };
 }

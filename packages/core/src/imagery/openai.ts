@@ -17,6 +17,7 @@ import {
   type ImageClient,
   type ImageRequest,
 } from './types.js';
+import { providerRefusal } from '../generation/provider.js';
 
 /** Sizes the API accepts, and the ratio each is closest to. */
 const SIZES: Record<string, string> = {
@@ -79,7 +80,8 @@ export class OpenAiImageClient implements ImageClient {
 
     if (!response.ok) {
       const detail = await response.text().catch(() => '');
-      throw new Error(`Image generation failed: HTTP ${response.status} ${detail.slice(0, 300)}`);
+      /* §491. Typed, so a dead account stops the run instead of one picture. */
+      throw providerRefusal('openai-image', response.status, `Image generation failed: ${detail}`);
     }
 
     const body = (await response.json()) as {
