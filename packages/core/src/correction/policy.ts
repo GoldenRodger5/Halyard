@@ -39,6 +39,27 @@ export interface PolicyEntry {
  * exceptions, each with the reason it is one.
  */
 const BY_RULE: Record<string, PolicyEntry> = {
+  /**
+   * §467. Borrowed authority is a wording defect, not an evidence one.
+   *
+   * *"Established by BBC Good Food"*, *"2021 salinity testing"* — the caption
+   * sounds more certain than anything it cited. The underlying fact may be
+   * perfectly sourced; `claims` and `format.uncited_claim` answer that
+   * separately, and they escalate rather than rewrite because a missing source
+   * cannot be written into existence.
+   *
+   * This one genuinely is fixed by writing the sentence again, so it is a
+   * `revise_copy` — and it gets its own entry rather than a `claim` namespace
+   * fallback, because a future `claim.*` rule about *evidence* must be decided
+   * on its own and must not inherit "just rewrite it" from this.
+   */
+  'claim.vague_authority': {
+    rootCause: 'The copy borrowed the cadence of a citation without naming a source.',
+    component: 'copy',
+    action: 'revise_copy',
+    correctable: true,
+  },
+
   /*
    * §205. A creative with no beats is not a badly planned piece — it is an
    * artifact that carried nothing any planner recognised as a story. Planning

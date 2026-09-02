@@ -11797,3 +11797,41 @@ job.
 new account is invisible among tens of millions of posts. The brief now asks for
 the specific thing a searcher would type: `breadscoring` finds people, `bread`
 does not.
+
+## §467 · Three defects a viewer sees and no gate did
+
+Read off four real pieces, in the order they cost the most.
+
+**The hook answered its own question.** *"Bread cuts prevent blowouts."*
+Accurate, flat, no preamble — it satisfies every word of the brief it was given.
+It is also a **mechanism**, which is the answer to the question the piece is
+about to spend thirty seconds on. Nothing is left to find out.
+
+Compare a hook from the same format that worked: *"Bread was once weighed by
+law."* Same length, same flatness, and it opens a gap instead of closing one.
+"The surprising fact" was read as "the fact", because surprise is the hard half
+and nothing said what skipping it costs. Both narrative formats now say so.
+
+**"And then" as the label on every turn.** The kicker is an eyebrow above the
+line, telling a viewer what *kind* of beat this is. "And then" says only that
+time passed, which is true of every beat in every story. `myth_fact` has always
+used "Actually" on the same beat and reads far better; `history` now does too,
+with "Everyone assumes" on the setup it breaks.
+
+**Authority-shaped phrasing with nothing behind it.** *"Established by BBC Good
+Food."* *"2021 salinity testing points to absorption, not heat."* Both borrow
+the cadence of a citation without being one — BBC Good Food is a recipe site and
+"established by" is what you write about a finding; "2021 salinity testing"
+names no study, no author, no publication. It is the shape a fabricated citation
+takes, and a reader who knows the field spots it instantly.
+
+This is the sharpest risk this product has. An account whose pitch is *"we know
+what is in your food"* cannot be caught sounding more certain than its evidence.
+Gotcha 9 is the same rule about metrics; this is it about prose.
+
+A **warning**, because the fact may be perfectly sourced — `claims` and
+`format.uncited_claim` answer that separately and *escalate* rather than
+rewrite, since a missing source cannot be written into existence. What is wrong
+here is the wording, so it is `revise_copy`, and it gets its own policy entry
+rather than a `claim` namespace fallback: a future rule about evidence must be
+decided on its own and must not inherit "just rewrite it" from this one.

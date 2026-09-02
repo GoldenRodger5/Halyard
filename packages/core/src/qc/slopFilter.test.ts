@@ -449,3 +449,61 @@ describe('question density is about a pattern, not a single question', () => {
     expect(result.warnings.some((v) => v.rule === 'structure.invites_nothing')).toBe(false);
   });
 });
+
+/**
+ * §467. Authority-shaped phrasing with nothing behind it.
+ *
+ * Two real captions: "Established by BBC Good Food" and "2021 salinity testing
+ * points to absorption, not heat." Both borrow the cadence of a citation
+ * without being one — and an account whose pitch is "we know what is in your
+ * food" cannot be caught sounding more certain than its evidence.
+ */
+describe('borrowed authority', () => {
+  const vague = (body: string) =>
+    slopFilter({ body, platform: 'x' }).warnings.find(
+      (v) => v.rule === 'claim.vague_authority',
+    );
+
+  it('catches the two that actually shipped', () => {
+    expect(vague('Salt is not for bitterness. Established by BBC Good Food.')).toBeDefined();
+    expect(
+      vague('Underseasoned noodles need timing: 2021 salinity testing points to absorption.'),
+    ).toBeDefined();
+  });
+
+  it('catches the classic hedges', () => {
+    expect(vague('Studies show that resting matters. Which do you do?')).toBeDefined();
+    expect(vague('According to science, salt is the key. Try it?')).toBeDefined();
+  });
+
+  it('leaves a real citation alone', () => {
+    expect(
+      vague('Beccari separated gluten from wheat flour in 1728. Which loaf do you bake?'),
+    ).toBeUndefined();
+    expect(
+      vague('Serious Eats measured this across twelve steaks. Worth a save?'),
+    ).toBeUndefined();
+  });
+
+  it('leaves a plain statement alone', () => {
+    expect(vague('Scoring gives oven spring a seam to open. Which way do you slash?')).toBeUndefined();
+  });
+
+  /*
+   * The fact may be perfectly sourced — `claims` and `format.uncited_claim`
+   * check that separately. What is wrong here is the wording.
+   */
+  it('is a warning, and says how to fix the wording', () => {
+    const v = vague('Established by BBC Good Food.')!;
+    expect(v.severity).toBe('warning');
+    expect(v.fix).toMatch(/name who/i);
+  });
+
+  it('flags once, not once per phrase', () => {
+    const all = slopFilter({
+      body: 'Studies show it. Experts agree. According to research, it is known.',
+      platform: 'x',
+    }).warnings.filter((v) => v.rule === 'claim.vague_authority');
+    expect(all).toHaveLength(1);
+  });
+});

@@ -526,8 +526,19 @@ const BUILDERS: Record<
     const source = pick(slots, 'source');
     return narrativeFrom([
       { role: 'hook', text: pick(slots, 'hook') ?? '', slotKey: 'hook:0' },
-      { role: 'setup', text: pick(slots, 'setup') ?? '', slotKey: 'setup:0' },
-      { role: 'turn', text: pick(slots, 'turn') ?? '', slotKey: 'turn:0', kicker: 'And then' },
+      /* §467. The setup is what everyone assumes, so the label says that. */
+      { role: 'setup', text: pick(slots, 'setup') ?? '', slotKey: 'setup:0', kicker: 'Everyone assumes' },
+      /*
+       * §467. "Actually" rather than "And then".
+       *
+       * The kicker is an eyebrow above the line and it is doing the work of
+       * telling a viewer what *kind* of beat this is. "And then" says only
+       * that time passed, which is true of every beat in every story. This is
+       * the turn — the moment the assumption in the setup breaks — and the
+       * label should say so. `myth_fact` has always used "Actually" on the same
+       * beat and it reads far better.
+       */
+      { role: 'turn', text: pick(slots, 'turn') ?? '', slotKey: 'turn:0', kicker: 'Actually' },
       { role: 'payoff', text: pick(slots, 'why_it_matters') ?? '', slotKey: 'why_it_matters:0', source },
     ], direction);
   },

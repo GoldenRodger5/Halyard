@@ -274,7 +274,32 @@ export const POST_FORMAT_CATALOG: Record<PostFormatId, PostFormat> = {
     needsArtifact: false,
     pace: 'unhurried',
     slots: [
-      { key: 'hook', brief: 'The surprising fact, stated flat. No preamble.', maxWords: 12, opensThePiece: true },
+      {
+        /**
+         * §467. Surprising, not merely true.
+         *
+         * Generated live: *"Bread cuts prevent blowouts."* That is accurate,
+         * it is stated flat, it has no preamble — it satisfies every word of
+         * the old brief. It is also a **mechanism**, and a mechanism is the
+         * answer to the question the piece is about to ask. Nothing is left to
+         * find out, so there is no reason to watch.
+         *
+         * Compare a hook from the same format that worked: *"Bread was once
+         * weighed by law."* Same length, same flatness, and it opens a gap
+         * instead of closing one.
+         *
+         * "The surprising fact" was read as "the fact", because surprise is the
+         * hard half and nothing said what it costs to skip it.
+         */
+        key: 'hook',
+        brief:
+          'The one thing here that would stop someone mid-scroll: strange, counterintuitive, ' +
+          'or so specific it is odd. Stated flat, no preamble. It opens the question the piece ' +
+          'answers — never the answer itself, and never the mechanism, because a viewer given ' +
+          'the explanation has no reason to stay for it.',
+        maxWords: 12,
+        opensThePiece: true,
+      },
       { key: 'setup', brief: 'What everyone assumes instead.', maxWords: 25 },
       { key: 'turn', brief: 'The thing that makes it surprising.', maxWords: 30, minWords: 14 },
       { key: 'why_it_matters', brief: 'Why it still matters to the reader today.', maxWords: 25 },
@@ -430,7 +455,15 @@ export const POST_FORMAT_CATALOG: Record<PostFormatId, PostFormat> = {
     needsArtifact: false,
     pace: 'unhurried',
     slots: [
-      { key: 'hook', brief: 'The thing everyone eats and nobody questions.', maxWords: 12, opensThePiece: true },
+      {
+        key: 'hook',
+        /* §467. As `history`: the gap, not the explanation that closes it. */
+        brief:
+          'The everyday thing nobody questions, named so plainly that its being here is the ' +
+          'surprise. Opens the question; never answers it.',
+        maxWords: 12,
+        opensThePiece: true,
+      },
       { key: 'before', brief: 'What it was before.', maxWords: 25 },
       { key: 'change', brief: 'What changed it, and who.', maxWords: 30, minWords: 14 },
       { key: 'now', brief: 'The version we have now, and what was lost.', maxWords: 25 },

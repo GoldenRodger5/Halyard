@@ -80,6 +80,34 @@ import { budgetFor, checkCopyBudget } from '../copy/budget.js';
  * — measured pieces sat at 60% (close, still saying something of its own) and
  * 89% (a transcript).
  */
+/**
+ * §467. Phrasings that sound like a citation and cite nothing.
+ *
+ * Ordered so the most specific message wins; the loop stops at the first match
+ * because one flag per caption is the useful amount.
+ */
+const VAGUE_AUTHORITY: ReadonlyArray<{ test: RegExp; message: string }> = [
+  {
+    /* "2021 salinity testing", "a 2019 study" with no author or publication. */
+    test: /\b(19|20)\d{2}\s+[a-z]+(\s+[a-z]+)?\s+(test(ing|s)?|stud(y|ies)|research|trial(s)?|data)\b/i,
+    message:
+      'A year and a field is not a citation. Name the study, the author or the publication, or drop the year.',
+  },
+  {
+    test: /\b(established|confirmed|proven|verified)\s+by\b/i,
+    message:
+      '"Established by" is the language of a finding, and it overstates a recipe site or a blog. Say who said it.',
+  },
+  {
+    test: /\b(studies show|research shows|science says|experts (say|agree)|it is (widely |well )?known|scientists (say|found)|research suggests)\b/i,
+    message: 'Authority with nobody behind it. Name the source or say the thing plainly.',
+  },
+  {
+    test: /\baccording to (science|research|studies|experts)\b/i,
+    message: '"According to science" cites nothing. Name who.',
+  },
+];
+
 export const CAPTION_ECHO_LIMIT = 0.66;
 
 /**
@@ -1039,6 +1067,43 @@ export function slopFilter(input: SlopFilterInput): SlopFilterResult {
       index: Math.max(0, body.length - 70),
       fix: 'End on something that earns a reply, a save or a rewatch — a real question about what the piece showed, or the one detail worth arguing with. Not "comment below".',
     });
+  }
+
+  /**
+   * §467. Authority-shaped phrasing with nothing behind it.
+   *
+   * Two real captions:
+   *
+   *   *"Established by BBC Good Food."*
+   *   *"2021 salinity testing points to absorption, not heat."*
+   *
+   * Both borrow the *cadence* of a citation without being one. BBC Good Food is
+   * a recipe site and "established by" is what you write about a finding, not a
+   * how-to. "2021 salinity testing" names no study, no author and no
+   * publication — it is the shape a fabricated citation takes, and a reader who
+   * knows the field spots it instantly.
+   *
+   * This is the sharpest possible risk for this particular product. An account
+   * whose entire pitch is *"we know what is in your food"* cannot be caught
+   * sounding more certain than its evidence. Gotcha 9 is the same rule about
+   * metrics; this is it about prose.
+   *
+   * A warning, not an error: the *fact* may be perfectly sourced — `claims` and
+   * `format.uncited_claim` check that separately. What is wrong is the wording,
+   * and the fix is to name the source or drop the flourish.
+   */
+  for (const vague of VAGUE_AUTHORITY) {
+    const found = body.match(vague.test);
+    if (!found) continue;
+    push({
+      rule: 'claim.vague_authority',
+      severity: 'warning',
+      message: vague.message,
+      excerpt: found[0].slice(0, 60),
+      index: found.index ?? 0,
+      fix: 'Name who, and when — or say the thing plainly without borrowing an authority you did not cite.',
+    });
+    break;
   }
 
   const warnings = violations.filter((v) => v.severity === 'warning');
