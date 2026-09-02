@@ -197,16 +197,58 @@ export function matchesResearchedFact(citingText: string, factClaim: string): bo
  * abstracts are server-rendered; `doi.org` goes because it resolves to whatever
  * the publisher happens to be.
  */
-const PREFERRED_SOURCE_DOMAINS = [
-  'pubmed.ncbi.nlm.nih.gov',
-  'fda.gov',
-  'usda.gov',
-  'efsa.europa.eu',
+/**
+ * §520. Where a claim about *this* product's subject can be checked.
+ *
+ * This was one hard-coded list — PubMed, the FDA, the USDA, Serious Eats,
+ * King Arthur — which is the right shelf for a recipe app and nonsense for
+ * anything else. Kinolog's first piece, on why people scroll for forty
+ * minutes without choosing a film, was sent to PubMed and had every source
+ * rejected at *0% term overlap*: the researcher doing its job perfectly
+ * against a library that could not contain the answer.
+ *
+ * The domains now come from the product. `GENERAL` is what holds for any
+ * subject — encyclopaedias and primary research — and each product adds the
+ * shelf its own claims live on. A product with no entry gets `GENERAL` alone,
+ * which is honest: a general reference is a weaker source than a specialist
+ * one, and handing it another product's shelf would be worse.
+ */
+const GENERAL_SOURCE_DOMAINS = [
   'britannica.com',
-  'seriouseats.com',
-  'cooksillustrated.com',
-  'kingarthurbaking.com',
+  'pubmed.ncbi.nlm.nih.gov',
+  'nature.com',
+  'sciencedirect.com',
 ];
+
+const PRODUCT_SOURCE_DOMAINS: Record<string, string[]> = {
+  /* Food science and technique, where a claim about an ingredient is settled. */
+  recipefix: [
+    'fda.gov',
+    'usda.gov',
+    'efsa.europa.eu',
+    'seriouseats.com',
+    'cooksillustrated.com',
+    'kingarthurbaking.com',
+  ],
+  /*
+   * Film reference, and the research on choosing. Kinolog's claims are about
+   * films, the people who log them, and why choice under abundance is hard —
+   * so a film database, a critical archive and the psychology of decision
+   * fatigue are the shelves, not a nutrition regulator.
+   */
+  kinolog: [
+    'imdb.com',
+    'themoviedb.org',
+    'bfi.org.uk',
+    'criterion.com',
+    'apa.org',
+    'jstor.org',
+  ],
+};
+
+export function preferredDomainsFor(productId: string): string[] {
+  return [...(PRODUCT_SOURCE_DOMAINS[productId] ?? []), ...GENERAL_SOURCE_DOMAINS];
+}
 
 export interface FormatWriteResult {
   draft: FormatDraft;
@@ -263,6 +305,8 @@ export async function writeToFormat(
     subject: string;
     audience: string;
     platform: string;
+    /** §520. Which product's shelf a claim about this subject can be checked on. */
+    productId: string;
     /**
      * §401. What this account has already said, so research finds something
      * else and the writer does not open the same way twice.
@@ -376,7 +420,7 @@ export async function writeToFormat(
          * *preference*, not a filter — research failing entirely is worse than
          * research citing a good general source.
          */
-        preferDomains: PREFERRED_SOURCE_DOMAINS,
+        preferDomains: preferredDomainsFor(context.productId),
         ...(context.alreadySaid?.claims.length
           ? { avoid: context.alreadySaid.claims }
           : {}),

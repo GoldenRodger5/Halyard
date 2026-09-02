@@ -1535,6 +1535,8 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                     subjectForImage(artifact, idea.title) ||
                     idea.title,
                   audience: product.brief_summary ?? 'the people this product is for',
+                  /* §520. So a claim is checked on this product's shelf, not a food one. */
+                  productId,
                   platform: account.platform,
                   /*
                    * §401. What this account has already said.

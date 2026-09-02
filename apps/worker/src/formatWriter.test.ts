@@ -54,7 +54,7 @@ describe('writing to a format', () => {
     const result = await writeToFormat(
       ctx(),
       tips,
-      { subject: 'bread', audience: 'bakers', platform: 'x' },
+      { subject: 'bread', audience: 'bakers', platform: 'x', productId: 'recipefix' },
       { complete } as never,
     );
     expect(result.attempts).toBe(1);
@@ -69,7 +69,7 @@ describe('writing to a format', () => {
     const result = await writeToFormat(
       ctx(),
       tips,
-      { subject: 'bread', audience: 'bakers', platform: 'x' },
+      { subject: 'bread', audience: 'bakers', platform: 'x', productId: 'recipefix' },
       { complete } as never,
     );
     expect(result.attempts).toBe(2);
@@ -82,7 +82,7 @@ describe('writing to a format', () => {
   it('refuses after the budget rather than returning a half-filled piece', async () => {
     const complete = vi.fn().mockResolvedValue(reply(fullTips.slice(0, 2)));
     await expect(
-      writeToFormat(ctx(), tips, { subject: 'b', audience: 'a', platform: 'x' }, { complete } as never),
+      writeToFormat(ctx(), tips, { subject: 'b', audience: 'a', platform: 'x', productId: 'recipefix' }, { complete } as never),
     ).rejects.toBeInstanceOf(FormatRejectedError);
     expect(complete).toHaveBeenCalledTimes(MAX_FORMAT_ATTEMPTS);
   });
@@ -97,7 +97,7 @@ describe('writing to a format', () => {
     const uncited = history.slots.map((s) => ({ key: s.key, index: 0, text: 'Something asserted.' }));
     const complete = vi.fn().mockResolvedValue(reply(uncited));
     await expect(
-      writeToFormat(ctx(), history, { subject: 'gluten', audience: 'a', platform: 'x' }, { complete } as never),
+      writeToFormat(ctx(), history, { subject: 'gluten', audience: 'a', platform: 'x', productId: 'recipefix' }, { complete } as never),
     ).rejects.toThrow(/not filled/);
   });
 
@@ -118,7 +118,7 @@ describe('writing to a format', () => {
       writeToFormat(
         ctx(),
         history,
-        { subject: 'gluten', audience: 'a', platform: 'x' },
+        { subject: 'gluten', audience: 'a', platform: 'x', productId: 'recipefix' },
         { complete } as never,
         sourceSaying('anything'),
       ),
@@ -139,7 +139,7 @@ describe('writing to a format', () => {
       writeToFormat(
         ctx(),
         history,
-        { subject: 'gluten', audience: 'a', platform: 'x' },
+        { subject: 'gluten', audience: 'a', platform: 'x', productId: 'recipefix' },
         { complete } as never,
         sourceMissing,
       ),
@@ -159,7 +159,7 @@ describe('writing to a format', () => {
       writeToFormat(
         ctx(),
         history,
-        { subject: 'gluten', audience: 'a', platform: 'x' },
+        { subject: 'gluten', audience: 'a', platform: 'x', productId: 'recipefix' },
         { complete } as never,
         sourceSaying('A guide to choosing running shoes for beginners.'),
       ),
@@ -178,7 +178,7 @@ describe('writing to a format', () => {
     const result = await writeToFormat(
       ctx(),
       history,
-      { subject: 'gluten', audience: 'a', platform: 'x' },
+      { subject: 'gluten', audience: 'a', platform: 'x', productId: 'recipefix' },
       { complete } as never,
       sourceSaying('In 1728 Beccari isolated gluten from wheat flour.'),
     );
@@ -194,7 +194,7 @@ describe('writing to a format', () => {
     const result = await writeToFormat(
       ctx(),
       tips,
-      { subject: 'b', audience: 'a', platform: 'x' },
+      { subject: 'b', audience: 'a', platform: 'x', productId: 'recipefix' },
       { complete } as never,
     );
     expect(result.attempts).toBe(2);
@@ -208,7 +208,7 @@ describe('writing to a format', () => {
     const result = await writeToFormat(
       ctx(),
       tips,
-      { subject: 'b', audience: 'a', platform: 'x' },
+      { subject: 'b', audience: 'a', platform: 'x', productId: 'recipefix' },
       { complete } as never,
     );
     expect(result.costUsd).toBeCloseTo(0.002, 5);

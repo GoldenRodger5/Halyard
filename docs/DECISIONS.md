@@ -12948,3 +12948,52 @@ The wider lesson is the operator's, and it is the fourth time today: the
 capability existed, was typed and declared, and no code path reached it —
 §478's footage ground, §499's registration guidance, §508's carousel branch,
 and now the product's own search.
+
+## §517–§520 · A second product proves what one product hides
+
+The operator's objection: *"remember we should not overfit to RecipeFix.
+RecipeFix happens to be the one we're testing with."* Kinolog is real — a
+product row, forty-nine facts and eight evidence pages, read off kinolog.app
+by the Product Brain. It had produced nothing, ever. Four reasons, and each
+one was invisible while only one product existed.
+
+**§517. No voice, no accounts.** `generate` throws `no brand voice configured`
+before it does anything, then iterates accounts to decide what to make.
+Kinolog had neither. `supabase/seeds/kinolog.sql` gives it a voice written
+from its own verified facts — *name the forty minutes of scrolling*, *say why
+a pick fits in the user's own terms*, *admit a miss*, and never *hidden gem*
+or *must-watch* — plus two `draft_only` accounts with no credential, which is
+where generation works and publishing does not.
+
+The schema caught the sloppy version of this: my first seed inserted facts
+citing no evidence and `product_facts_require_evidence` refused it outright.
+Gotcha 9 enforced in the database rather than remembered.
+
+**§518. Every format template belonged to RecipeFix.** `enabledTemplates`
+reads `product_id = $1 or product_id is null`, and everything except two pins
+was owned by `recipefix` — so Kinolog had `pin_stack`, `pin_quote`, and no way
+to render a video or a carousel at all. The split is not taste: `formatVideo`
+and `formatSlides` build Narrative, Quiz, Walkthrough and carousel_6 from
+**written slots**, while `artifactProps` builds the rest from a **recipe
+adaptation**. The first four are now available to any product, and a test
+reads both builders and holds the migration to them.
+
+**§519. A slide that is a label with nothing under it.** The chef-notes slide
+was pushed whenever a technique existed and its body built afterwards from
+optional fields, so a pastry carousel published `Chef notes / What to watch`
+and nothing else. The body is built first now and the slide only exists if
+something survives; with no technique title, a real note becomes the headline.
+§482's fragment stack, one surface along.
+
+**§520. The researcher was sent to the wrong library.** Kinolog's first piece —
+why people scroll for forty minutes without choosing a film — was researched
+against PubMed, the FDA and King Arthur Baking, and rejected every source at
+0% term overlap. The researcher was working perfectly against a shelf that
+could not hold the answer. Preferred domains now come from the product: film
+databases and decision research for Kinolog, food science for RecipeFix, and a
+general shelf underneath both. A product with no entry gets the general shelf
+only, never another product's.
+
+The pattern: **one product cannot show you what you have hard-coded.** Every
+one of these was a global constant standing in for a product-level fact, and
+each was invisible until something else asked for it.

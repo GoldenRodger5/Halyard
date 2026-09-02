@@ -129,14 +129,33 @@ export function carouselProps(
     });
   }
 
-  if (techniques.length > 0 || notes.length > 0) {
+  /*
+   * §519. A slide that is a label with nothing under it.
+   *
+   * This pushed a slide whenever a technique or note *existed*, and built the
+   * body afterwards — but `t.note` and `n.text` are optional, so the body
+   * could filter to empty while the headline fell back to the label "What to
+   * watch". The first pastry carousel published exactly that: three slides, of
+   * which one read `Chef notes / What to watch` and said nothing else. It is
+   * §482's fragment stack one surface along — a heading is not content, and a
+   * card carrying only a heading is worse than a card that is not there.
+   *
+   * So the body is built first and the slide only exists if something real
+   * survives. When there is no technique title, the first line of the body
+   * becomes the headline: a real sentence a reader can use, rather than a
+   * label promising one.
+   */
+  const noteBody = [
+    ...techniques.slice(0, 2).map((t) => trim(t.note ?? '', CAROUSEL_BODY_CHARS)),
+    ...notes.slice(0, 1).map((n) => trim(n.text ?? '', CAROUSEL_BODY_CHARS)),
+  ].filter(Boolean);
+  const noteTitle = techniques[0]?.title?.trim();
+
+  if (noteTitle || noteBody.length > 0) {
     slides.push({
       kicker: 'Chef notes',
-      headline: techniques[0]?.title ?? 'What to watch',
-      bodyLines: [
-        ...techniques.slice(0, 2).map((t) => trim(t.note ?? '', CAROUSEL_BODY_CHARS)),
-        ...notes.slice(0, 1).map((n) => trim(n.text ?? '', CAROUSEL_BODY_CHARS)),
-      ].filter(Boolean),
+      headline: noteTitle ?? noteBody[0]!,
+      bodyLines: noteTitle ? noteBody : noteBody.slice(1),
     });
   }
 
