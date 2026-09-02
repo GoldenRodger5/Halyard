@@ -305,6 +305,38 @@ export class RecipeFixConnector implements ProductConnector {
      */
     const scored = pool.map((r, i) => ({ r, i, score: titleMatchScore(spec.intent, r.title) }));
     const best = Math.max(...scored.map((c) => c.score));
+
+    /*
+     * §516. When the week's catalogue has nothing like it, ask the product.
+     *
+     * `get_discover_recipes` returns twenty-four recipes for the current week.
+     * Asked to make "classic shortcrust pastry" dairy-free it contained no
+     * pastry at all, so §514's title match scored zero everywhere and the
+     * stable hash adapted baked ziti — correct behaviour, wrong dish, and a
+     * carousel coherently about something nobody asked for.
+     *
+     * RecipeFix exposes `search_recipes`, which finds real recipes with real
+     * source URLs across the whole web, and nothing had ever called it. The
+     * search is the answer to the question the operator actually asked, and
+     * `adapt_recipe` already takes a `url`, so the found recipe flows through
+     * the existing path untouched.
+     *
+     * Only on a miss, because the search is metered (`searchesRemaining` comes
+     * back in every response) and the curated catalogue is the better source
+     * when it does have something. A failed or empty search falls through to
+     * the hash exactly as before — §515 then discloses the mismatch rather
+     * than hiding it.
+     */
+    if (best === 0 && titleMatchScore(spec.intent, spec.intent) > 0) {
+      const found = await this.searchForSubject(spec.intent, dietary);
+      if (found) {
+        return {
+          url: found.url,
+          dietary: dietary.length > 0 ? dietary : ['dairy-free'],
+        };
+      }
+    }
+
     const matches = best > 0 ? scored.filter((c) => c.score === best) : scored;
     const chosen = matches[(stableIndex(spec.intent, matches.length) + attempt) % matches.length]!.r;
     return {
@@ -323,6 +355,42 @@ export class RecipeFixConnector implements ProductConnector {
           }
         : {}),
     };
+  }
+
+  /**
+   * §516. The product's own recipe search, for a subject its catalogue misses.
+   *
+   * Returns the best title match among the results rather than the first,
+   * because a search for "shortcrust pastry" can lead with a pie that happens
+   * to use one. Null on any failure at all — an empty result, a shape that
+   * does not parse, a metered search that has run out — because the caller's
+   * fallback is a working recipe and a disclosure, which is better than an
+   * error, and this is an enrichment rather than a dependency.
+   */
+  private async searchForSubject(
+    intent: string,
+    dietary: string[],
+  ): Promise<{ url: string; title: string } | null> {
+    try {
+      const found = await this.client.callToolJson<{
+        results?: { results?: Array<{ title?: string; url?: string }> };
+      }>('search_recipes', {
+        query: intent,
+        ...(dietary.length > 0 ? { dietary } : {}),
+      });
+      const hits = (found.results?.results ?? []).filter(
+        (r): r is { title: string; url: string } => Boolean(r.url && r.title),
+      );
+      if (hits.length === 0) return null;
+
+      const ranked = hits
+        .map((r) => ({ r, score: titleMatchScore(intent, r.title) }))
+        .sort((a, b) => b.score - a.score);
+      /* A result that shares nothing with the request is not an answer to it. */
+      return ranked[0]!.score > 0 ? ranked[0]!.r : null;
+    } catch {
+      return null;
+    }
   }
 
   private async adaptWithRetry(spec: SampleSpec): Promise<RecipeFixAdaptation> {

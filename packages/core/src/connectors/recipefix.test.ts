@@ -395,3 +395,103 @@ describe('retrying a recipe the server cannot handle', () => {
     expect(artifact.highlights.length).toBeGreaterThan(0);
   });
 });
+
+/**
+ * §516. The catalogue is one week wide; the search is the whole product.
+ *
+ * These drive `chooseSample` through the no-url path, where the recipe is
+ * picked rather than supplied — the path that adapted baked ziti when the
+ * operator asked for shortcrust pastry.
+ */
+describe('§516 choosing a recipe the catalogue does not have', () => {
+  const catalogue = {
+    recipes: [
+      { source_url: 'https://x.test/ziti', suggested_diet: 'dairy-free', title: 'Easy Baked Ziti' },
+      { source_url: 'https://x.test/soup', suggested_diet: 'vegan', title: 'Tortilla Soup' },
+    ],
+  };
+  const searchHit = {
+    results: { results: [{ title: 'Shortcrust Pastry - dairy free', url: 'https://x.test/pastry' }] },
+  };
+
+  /** A client that answers each tool by name, and records what was asked. */
+  const clientFor = (search: unknown) => {
+    const calls: string[] = [];
+    const callToolJson = vi.fn(async (tool: string) => {
+      calls.push(tool);
+      if (tool === 'get_discover_recipes') return catalogue;
+      if (tool === 'search_recipes') {
+        if (search instanceof Error) throw search;
+        return search;
+      }
+      return adaptation;
+    });
+    return { calls, callToolJson };
+  };
+
+  it('searches the product when no catalogue title matches, and adapts what it finds', async () => {
+    const { calls, callToolJson } = clientFor(searchHit);
+    const connector = new RecipeFixConnector({
+      url: 'https://example.test/mcp',
+      client: { callToolJson, listTools: vi.fn() } as never,
+    });
+
+    await connector.generateSample({ intent: 'classic shortcrust pastry', params: {} });
+
+    expect(calls).toContain('search_recipes');
+    expect(callToolJson).toHaveBeenCalledWith(
+      'adapt_recipe',
+      expect.objectContaining({ url: 'https://x.test/pastry' }),
+    );
+  });
+
+  it('does not spend a metered search when the catalogue already answers', async () => {
+    const { calls, callToolJson } = clientFor(searchHit);
+    const connector = new RecipeFixConnector({
+      url: 'https://example.test/mcp',
+      client: { callToolJson, listTools: vi.fn() } as never,
+    });
+
+    await connector.generateSample({ intent: 'baked ziti for a crowd', params: {} });
+
+    expect(calls).not.toContain('search_recipes');
+    expect(callToolJson).toHaveBeenCalledWith(
+      'adapt_recipe',
+      expect.objectContaining({ url: 'https://x.test/ziti' }),
+    );
+  });
+
+  it('falls back to the catalogue when the search fails, rather than failing the piece', async () => {
+    const { callToolJson } = clientFor(new Error('search is metered and exhausted'));
+    const connector = new RecipeFixConnector({
+      url: 'https://example.test/mcp',
+      client: { callToolJson, listTools: vi.fn() } as never,
+    });
+
+    const artifact = await connector.generateSample({
+      intent: 'classic shortcrust pastry',
+      params: {},
+    });
+
+    expect(artifact.headline).toBeTruthy();
+    expect(callToolJson).toHaveBeenCalledWith('adapt_recipe', expect.objectContaining({ url: expect.any(String) }));
+  });
+
+  it('ignores a search result that shares nothing with the request', async () => {
+    const { callToolJson } = clientFor({
+      results: { results: [{ title: 'Chocolate Mousse', url: 'https://x.test/mousse' }] },
+    });
+    const connector = new RecipeFixConnector({
+      url: 'https://example.test/mcp',
+      client: { callToolJson, listTools: vi.fn() } as never,
+    });
+
+    await connector.generateSample({ intent: 'classic shortcrust pastry', params: {} });
+
+    /* The mousse is not an answer, so the catalogue's stable choice stands. */
+    expect(callToolJson).not.toHaveBeenCalledWith(
+      'adapt_recipe',
+      expect.objectContaining({ url: 'https://x.test/mousse' }),
+    );
+  });
+});

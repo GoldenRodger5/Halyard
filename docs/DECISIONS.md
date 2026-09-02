@@ -12918,3 +12918,33 @@ against itself answers that in one call.
 The pattern this closes is the one running everything today: the system was
 never lying, it just was not saying. §507's refused format, §513's boardless
 pin and this all end the same way — the machine knew, and the person did not.
+
+## §516 · The catalogue is one week wide; the product's search is not
+
+The operator's objection was the right one: *"i thought we had a smart AI
+system — shouldn't it recognise and use websites from online?"*
+
+It can, and it already could. `search_recipes(query, dietary, page)` is on the
+RecipeFix connector, finds real recipes with real source URLs from across the
+web, and **had never been called by anything**. `chooseSample` only ever read
+`get_discover_recipes`, twenty-four entries for the current week — so a
+request for shortcrust pastry fell to §514's hash and adapted baked ziti while
+a search for those exact words returns *"Shortcrust Pastry – dairy free"* with
+a URL, and `adapt_recipe` has always taken a `url`.
+
+Three rules keep it honest:
+
+- **Only on a miss.** The curated catalogue is the better source when it has
+  something, and the search is metered — every response carries
+  `searchesRemaining`. A subject the catalogue answers spends nothing.
+- **The best title match among the results, not the first.** A search for
+  "shortcrust pastry" can lead with a pie that merely uses one.
+- **A result sharing nothing with the request is not an answer.** It falls
+  through to the catalogue, and §515 then discloses the mismatch instead of
+  hiding it. A failed, empty or exhausted search does the same, because this
+  is an enrichment and not a dependency.
+
+The wider lesson is the operator's, and it is the fourth time today: the
+capability existed, was typed and declared, and no code path reached it —
+§478's footage ground, §499's registration guidance, §508's carousel branch,
+and now the product's own search.
