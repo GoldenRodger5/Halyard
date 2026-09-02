@@ -27,6 +27,7 @@ export * from './creative/editor.js';
 export * from './platform/verified.js';
 export * from './generation/hookCraft.js';
 export * from './creative/continuity.js';
+export * from './generation/repairCopy.js';
 export * from './creative/captionShape.js';
 export * from './generation/embed.js';
 export * from './creative/presentation.js';

@@ -11,6 +11,7 @@
  * A draft that fails a gate is regenerated with the violations fed back, up to a
  * ceiling — blind retry is a wasted call.
  */
+import { repairCopy, type CopyRepair } from './repairCopy.js';
 import { runAllGates, type QCResults } from '../qc/index.js';
 import { slopFilter, type SlopPlatform } from '../qc/slopFilter.js';
 import type { Claim } from '../qc/claimVerifier.js';
@@ -94,6 +95,15 @@ export interface Draft {
     costUsd: number;
     attempts: number;
   };
+  /**
+   * §449. What was fixed mechanically before the gate saw it.
+   *
+   * Reported rather than applied silently. An operator reading a caption that
+   * differs from what the model wrote should be able to find out why in one
+   * place, and "we quietly rewrite your copywriter's punctuation" is exactly
+   * the kind of thing that should be said out loud.
+   */
+  repairs: CopyRepair[];
 }
 
 /**
@@ -261,8 +271,26 @@ export async function writeDraft(request: DraftRequest, llm: LlmClient): Promise
       continue;
     }
 
-    const body = (raw.body ?? '').trim();
-    const hashtags = (raw.hashtags ?? []).map((h) => String(h).replace(/^#/, ''));
+    /**
+     * §449. Fix what a regex can fix, before spending an attempt arguing.
+     *
+     * Measured live: a `history` piece filled all five slots with zero
+     * warnings — researched, sourced, every citation fetched — and was thrown
+     * away because its caption failed the copy gate three times on one
+     * violation. The content was fine and the wrapper was not.
+     *
+     * `repairDraft` has done exactly this for format slots since §290. The
+     * caption path — the one that actually loses whole pieces — never got it.
+     * Only substitutions that cannot change what a sentence says; a banned
+     * phrase or a hype comparative is a judgement about writing and stays with
+     * the model, which is what the retry loop is for.
+     */
+    const repaired = repairCopy(
+      (raw.body ?? '').trim(),
+      (raw.hashtags ?? []).map((h) => String(h).replace(/^#/, '')),
+    );
+    const body = repaired.body;
+    const hashtags = repaired.hashtags;
     const claims: Claim[] = (raw.claims ?? [])
       .filter((c) => c && typeof c === 'object' && c.text)
       .map((c) => ({ text: c.text!, source: c.source ?? '' }));
@@ -310,6 +338,7 @@ export async function writeDraft(request: DraftRequest, llm: LlmClient): Promise
         hookPattern: raw.hook_pattern,
         qc,
         attempts: attempt,
+        repairs: repaired.repairs,
         generationMeta: {
           // What actually served it, not what was asked for. With a fallback
           // provider those differ — a request for DRAFT_MODEL is served by

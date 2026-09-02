@@ -105,6 +105,24 @@ export interface FormatSlot {
    */
   minWords?: number;
   /**
+   * §448. This slot's text is the first frame, which is the thumbnail.
+   *
+   * The single highest-leverage surface in a short video and the one nothing
+   * has ever checked. `retentionQC` has carried `first_frame_words` and
+   * `first_frame_contrast` since it was written, and both have reported
+   * `unmeasured` on **every video Halyard has ever made** — the reason given
+   * was "no OCR", and no OCR is needed: the words on frame one are this slot's
+   * text, sitting in the render props the whole time.
+   *
+   * Four to seven words is what survives a small preview. Our openings measure
+   * five to nine, so the rule that never ran would have caught two of the last
+   * seven. Declared rather than derived from `slots[0]` because "the first slot
+   * opens the piece" is an assumption that would break silently the first time
+   * a builder reordered its lines — `openingFrame.test.ts` holds the
+   * declaration to what the renderer actually puts on beat zero.
+   */
+  opensThePiece?: boolean;
+  /**
    * §341. Whether this slot makes a claim about the world.
    *
    * `factuality: 'sourced'` was applied to *every* slot in the format, so a
@@ -205,6 +223,7 @@ export const POST_FORMAT_CATALOG: Record<PostFormatId, PostFormat> = {
         key: 'title',
         brief: 'The challenge, as a dare. Under eight words.',
         maxWords: 8,
+        opensThePiece: true,
         /* §341. A dare asserts nothing, so it cites nothing. */
         asserts: false,
       },
@@ -255,7 +274,7 @@ export const POST_FORMAT_CATALOG: Record<PostFormatId, PostFormat> = {
     needsArtifact: false,
     pace: 'unhurried',
     slots: [
-      { key: 'hook', brief: 'The surprising fact, stated flat. No preamble.', maxWords: 12 },
+      { key: 'hook', brief: 'The surprising fact, stated flat. No preamble.', maxWords: 12, opensThePiece: true },
       { key: 'setup', brief: 'What everyone assumes instead.', maxWords: 25 },
       { key: 'turn', brief: 'The thing that makes it surprising.', maxWords: 30, minWords: 14 },
       { key: 'why_it_matters', brief: 'Why it still matters to the reader today.', maxWords: 25 },
@@ -273,7 +292,7 @@ export const POST_FORMAT_CATALOG: Record<PostFormatId, PostFormat> = {
     needsArtifact: false,
     pace: 'standard',
     slots: [
-      { key: 'title', brief: 'What these tips are for. Specific, not "5 tips".', maxWords: 10 },
+      { key: 'title', brief: 'What these tips are for. Specific, not "5 tips".', maxWords: 10, opensThePiece: true },
             {
         key: 'tip',
         brief: 'One actionable instruction. Imperative mood.',
@@ -325,7 +344,7 @@ export const POST_FORMAT_CATALOG: Record<PostFormatId, PostFormat> = {
     needsArtifact: false,
     pace: 'terse',
     slots: [
-      { key: 'myth', brief: 'The belief, stated as its believers would state it.', maxWords: 12 },
+      { key: 'myth', brief: 'The belief, stated as its believers would state it.', maxWords: 12, opensThePiece: true },
       { key: 'partly_true', brief: 'What is genuinely right about it. Concede first.', maxWords: 25 },
             {
         key: 'correction',
@@ -353,7 +372,7 @@ export const POST_FORMAT_CATALOG: Record<PostFormatId, PostFormat> = {
     needsArtifact: false,
     pace: 'standard',
     slots: [
-      { key: 'question', brief: 'The choice a reader is actually facing.', maxWords: 12 },
+      { key: 'question', brief: 'The choice a reader is actually facing.', maxWords: 12, opensThePiece: true },
       { key: 'option_a', brief: 'The first option and what it is good at.', maxWords: 22 },
       { key: 'option_b', brief: 'The second option and what it is good at.', maxWords: 22 },
       { key: 'verdict', brief: 'When to pick each. Never "it depends" alone.', maxWords: 25 },
@@ -370,7 +389,7 @@ export const POST_FORMAT_CATALOG: Record<PostFormatId, PostFormat> = {
     needsArtifact: false,
     pace: 'unhurried',
     slots: [
-      { key: 'hook', brief: 'The thing everyone eats and nobody questions.', maxWords: 12 },
+      { key: 'hook', brief: 'The thing everyone eats and nobody questions.', maxWords: 12, opensThePiece: true },
       { key: 'before', brief: 'What it was before.', maxWords: 25 },
       { key: 'change', brief: 'What changed it, and who.', maxWords: 30, minWords: 14 },
       { key: 'now', brief: 'The version we have now, and what was lost.', maxWords: 25 },
@@ -395,7 +414,7 @@ export const POST_FORMAT_CATALOG: Record<PostFormatId, PostFormat> = {
     needsArtifact: false,
     pace: 'terse',
     slots: [
-      { key: 'question', brief: 'A real either/or people disagree about. Not a quiz.', maxWords: 12 },
+      { key: 'question', brief: 'A real either/or people disagree about. Not a quiz.', maxWords: 12, opensThePiece: true },
       { key: 'option_a', brief: 'One side, in two or three words.', maxWords: 4 },
       { key: 'option_b', brief: 'The other side, same length.', maxWords: 4 },
     ],
@@ -417,7 +436,7 @@ export const POST_FORMAT_CATALOG: Record<PostFormatId, PostFormat> = {
     needsArtifact: false,
     pace: 'terse',
     slots: [
-      { key: 'moment', brief: 'What is happening, said plainly. No setup.', maxWords: 14 },
+      { key: 'moment', brief: 'What is happening, said plainly. No setup.', maxWords: 14, opensThePiece: true },
       { key: 'aside', brief: 'The honest remark a person would actually make.', maxWords: 18 },
     ],
   },
@@ -447,7 +466,7 @@ export const POST_FORMAT_CATALOG: Record<PostFormatId, PostFormat> = {
     needsCapture: true,
     pace: 'standard',
     slots: [
-      { key: 'title', brief: 'What is about to happen, in the viewer’s words.', maxWords: 10 },
+      { key: 'title', brief: 'What is about to happen, in the viewer’s words.', maxWords: 10, opensThePiece: true },
       {
         key: 'why',
         brief: 'Why anybody would want this. One line, no feature list.',
@@ -467,7 +486,7 @@ export const POST_FORMAT_CATALOG: Record<PostFormatId, PostFormat> = {
     needsArtifact: true,
     pace: 'standard',
     slots: [
-      { key: 'hook', brief: 'The problem, as the reader would say it.', maxWords: 12 },
+      { key: 'hook', brief: 'The problem, as the reader would say it.', maxWords: 12, opensThePiece: true },
       { key: 'before', brief: 'What the original does.', maxWords: 20 },
       { key: 'change', brief: 'The swap, precisely, with quantities.', maxWords: 22, minWords: 12 },
       { key: 'cost', brief: 'What is lost. Never omitted — it is the differentiator.', maxWords: 20 },

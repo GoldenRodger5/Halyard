@@ -11339,3 +11339,67 @@ be made on a day when nothing was adapted*. That is the whole reason the format
 family exists: it is what keeps an account posting. Skipped now when the
 operator named a format that does not need one, which is also strictly cheaper —
 a skipped adapt is a credit unspent.
+
+## §448 · The thumbnail nothing had ever looked at
+
+`retentionQC` has carried `first_frame_words` and `first_frame_contrast` since
+it was written. Both have reported **`unmeasured` on every video Halyard has
+ever made**, and the reason recorded for it is "no OCR".
+
+No OCR is needed. The words on frame one are the first beat's text, and they
+have been sitting in `renders.input_props` the whole time. The first three
+seconds drive roughly 80% of completion variance — a number `retentionQC`
+states in its own header — and the only rule about them has never once run.
+
+Measured across the last seven renders: openings of 5, 5, 6, 6, 6, 9 and 9
+words against a bar of 4-7. The rule that never ran would have caught two.
+
+Fixed at three points, in the order they are worth having:
+
+1. **The brief.** The opening slot is now declared (`opensThePiece`) and the
+   writer is told frame one is the thumbnail and what that costs. Said
+   separately from the slot's word ceiling, because a model handed "max 12
+   words" alongside every other slot treats it as one more layout limit.
+2. **The draft check**, as a warning — the ceiling is a craft judgement, and
+   failing a piece for it would spend a rewrite attempt the content might need.
+3. **The render audit**, which now has its input supplied and stops reporting
+   itself unmeasured.
+
+`firstFrameContrast` is deliberately still unsupplied. It could be modelled from
+the beat's `backgroundLuminance` and the palette, and that would be a
+calculation dressed as a measurement — §414 is the standing lesson, where a
+frame-mean signal could not see a light card with dark text.
+
+`opensThePiece` is **declared, not derived from `slots[0]`**, and held to the
+renderer by `openingFrame.test.ts`. "The first slot opens the piece" is an
+assumption that would break silently the first time a builder reordered its
+lines, and a thumbnail rule applied to the second beat still passes most of the
+time. Verified to fail when the declaration is moved.
+
+## §449 · An attempt spent on punctuation is an attempt the content needed
+
+A `history` piece filled all five slots on attempt two with **zero warnings** —
+researched, sourced, every citation fetched and read — and was then discarded
+because its *caption* failed the copy gate three times on one violation.
+`disowned: nothing inserted yet`. The content was fine; the wrapper was not, and
+the whole piece went in the bin along with the research that produced it.
+
+`buildFeedback` already names the rule and the fix, and it still failed three
+times — which is the signal this file already identifies: *three consecutive
+attempts failing the same rule means the brief and the gate disagree, and no
+number of retries will settle it.*
+
+An em dash is not a disagreement worth a model call. `repairDraft` has done
+exactly this for **format slots** since §290, deterministically, and the caption
+path — the one that actually loses whole pieces — never got the same treatment.
+
+`repairCopy` fixes only substitutions that **cannot change what a sentence
+says**: curly quotes, em and en dashes, a single-character ellipsis, a
+non-breaking space. An em dash becomes the comma it stands for and not a hyphen,
+which would read as a compound word. A banned phrase, a hype comparative, an
+uncited claim and a bad opening line are all judgements about *writing* and stay
+with the model — a regex doing a copywriter's job badly is worse than a retry.
+
+So this shrinks the set of things worth retrying rather than replacing the
+retry, and every repair is reported: an operator reading a caption that differs
+from what the model wrote can find out why in one place.

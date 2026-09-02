@@ -23,6 +23,7 @@
  */
 import { expandSlots, requiresCitation, type PostFormat } from './catalog.js';
 import type { FormatBudget } from '../creative/length.js';
+import { THUMBNAIL_WORDS } from '../qc/retentionQC.js';
 import { checkQuestion, planQuestion } from './quiz.js';
 import { isPostShaped, slopFilter } from '../qc/slopFilter.js';
 
@@ -127,6 +128,27 @@ export function briefFor(
     const maxWords = fitted ? fitted.maxWords : slot.maxWords;
     lines.push(
       `- ${slot.key}${count > 1 ? ` (${count} of them)` : ''}: ${slot.brief} Max ${maxWords} words.`,
+    );
+  }
+
+  /*
+   * §448. The opening slot is the thumbnail, and it is the only slot whose
+   * ceiling is about being *seen* rather than about fitting a card.
+   *
+   * Said separately from the slot line above because it is a different kind of
+   * constraint and a model handed "max 12 words" alongside every other slot
+   * treats it as one more layout limit. It is the frame that decides whether
+   * anything else is read.
+   */
+  const opening = format.slots.find((slot) => slot.opensThePiece);
+  if (opening) {
+    lines.push(
+      '',
+      `The ${opening.key} is frame one, which is the thumbnail — in a feed it is`,
+      `all most people will ever see of this. ${THUMBNAIL_WORDS.min} to ${THUMBNAIL_WORDS.max} words is`,
+      'what reads at a glance in a small preview. Write it to be understood with',
+      'no other line for context, and make it a statement rather than a question:',
+      'a question can be answered by scrolling past.',
     );
   }
 
@@ -294,6 +316,31 @@ export function checkDraft(
     }
 
     const words = wordCount(got.text);
+
+    /**
+     * §448. The thumbnail, checked while it is still cheap to change.
+     *
+     * `retentionQC` has carried `first_frame_words` since it was written and it
+     * has reported `unmeasured` on every video ever made here. The stated
+     * reason is that the gate has no OCR — but the words on frame one are this
+     * slot's text, and they are known before a single frame is rendered.
+     *
+     * A warning, not an error: the ceiling is a craft judgement and an
+     * eight-word opening is not a defect. The point is that an operator, and
+     * the rewrite loop, get told — a nine-word opening currently ships with
+     * nobody having looked, twice in the last seven pieces.
+     */
+    if (slot.opensThePiece && words > THUMBNAIL_WORDS.max) {
+      problems.push({
+        rule: 'format.thumbnail_too_long',
+        severity: 'warning',
+        message:
+          `${slot.key} is frame one and runs ${words} words; ${THUMBNAIL_WORDS.max} is what reads ` +
+          'at a glance in a feed preview.',
+        slot: slot.key,
+      });
+    }
+
     if (words > slot.maxWords) {
       problems.push({
         rule: 'format.slot_too_long',

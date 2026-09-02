@@ -99,8 +99,16 @@ export const STATIC_DELTA_THRESHOLD = 0.01;
  * is here so a bumper that is a black card is also caught as "not content".
  */
 export const EMPTY_FRAME_LUMINANCE_RANGE = 0.02;
-/** Frame 1 text: four to seven words. */
+/**
+ * Frame 1 text: four to seven words.
+ *
+ * §448. Also exported as `THUMBNAIL_WORDS` and read by the *writer's brief*,
+ * because this rule is worth a great deal more before the piece is written than
+ * after it is rendered — and for its whole existence it has only ever been
+ * asked afterwards, of a gate that had no way to answer.
+ */
 export const FIRST_FRAME_WORDS = { min: 4, max: 7 };
+export const THUMBNAIL_WORDS = FIRST_FRAME_WORDS;
 /** Loop endings: how similar the last frame must be to the first. */
 export const LOOP_SIMILARITY_THRESHOLD = 0.6;
 

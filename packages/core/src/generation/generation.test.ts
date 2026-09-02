@@ -192,9 +192,51 @@ describe('buildFeedback', () => {
     } catch (err) {
       captured = buildFeedback((err as DraftRejectedError).lastQc);
     }
-    expect(captured).toContain('punctuation.em_dash');
     expect(captured).toContain('phrase.banned');
     expect(captured).toContain('you wrote:');
+  });
+
+  /**
+   * §449. An attempt is spent on judgements, never on punctuation.
+   *
+   * This test used to assert that the feedback named `punctuation.em_dash`
+   * alongside the banned phrase — both from the same draft. It no longer does,
+   * and that is the change: the em dash is repaired before the gate sees it, so
+   * the model is asked about the one thing only a writer can fix.
+   *
+   * It matters because a whole `history` piece was lost this way: five slots
+   * filled with zero warnings, researched and sourced, discarded because the
+   * caption failed three times. Every attempt spent on a character costs an
+   * attempt the content might need.
+   */
+  it('does not spend an attempt on punctuation a regex can fix', async () => {
+    const llm = stubLlm([JSON.stringify({ body: 'A game changer — truly.', hashtags: [], claims: [] })]);
+    let captured = '';
+    try {
+      await writeDraft({ ...baseRequest, maxAttempts: 1 }, llm);
+    } catch (err) {
+      captured = buildFeedback((err as DraftRejectedError).lastQc);
+    }
+    expect(captured).not.toContain('punctuation.em_dash');
+  });
+
+  it('accepts a draft whose only fault was mechanical, rather than retrying it', async () => {
+    /*
+     * The same copy with the banned phrase removed: nothing left but an em
+     * dash. It used to fail three times and lose the piece; it now passes on
+     * the first attempt with the repair recorded.
+     */
+    const llm = stubLlm([
+      JSON.stringify({
+        body: 'Salt slows yeast — on purpose. The timing changes with it.',
+        hashtags: [],
+        claims: [],
+      }),
+    ]);
+    const draft = await writeDraft({ ...baseRequest, maxAttempts: 1 }, llm);
+    expect(draft.attempts).toBe(1);
+    expect(draft.body).not.toMatch(/—/);
+    expect(draft.repairs.map((r) => r.rule)).toContain('punctuation.em_dash');
   });
 });
 

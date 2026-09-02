@@ -196,6 +196,39 @@ export async function reviewMediaHandler(
   );
 
   /**
+   * §448. What frame one actually says.
+   *
+   * `retention.first_frame_words` has reported `unmeasured` on every video this
+   * system has ever made, and the reason recorded for it is "no OCR". No OCR is
+   * needed: the words on frame one are the first beat's text, and they have
+   * been sitting in `renders.input_props` the entire time. This is the same
+   * shape the decision record keeps finding — a rule that is correct, asked a
+   * question nothing supplied an answer to, while the answer was already
+   * stored.
+   *
+   * Read from the props rather than from the file because it is *exact*. OCR
+   * would recover the same string lossily and could only ever disagree with the
+   * thing that was actually drawn.
+   *
+   * `firstFrameContrast` is deliberately left unsupplied. It could be modelled
+   * from the beat's `backgroundLuminance` and the palette, and that would be a
+   * calculation dressed as a measurement — §414 is the standing lesson about
+   * exactly that, where a frame-mean signal could not see a light card with
+   * dark text. It stays honestly unmeasured.
+   */
+  const { rows: openingRows } = await ctx.pool.query<{ text: string | null }>(
+    `select r.input_props -> 'beats' -> 0 ->> 'text' as text
+       from renders r
+      where r.content_item_id = $1
+        and r.status = 'done'
+        and r.input_props -> 'beats' -> 0 ->> 'text' is not null
+      order by r.created_at desc
+      limit 1`,
+    [contentItemId],
+  );
+  const openingText = openingRows[0]?.text ?? null;
+
+  /**
    * Everything that will actually be published, not only what was rendered.
    *
    * `publish` sends `render_ids` **and** `attached_asset_ids`. This query only
@@ -599,6 +632,17 @@ export async function reviewMediaHandler(
          * not a fudge: they measure different properties of the same event, and
          * a picture that changed has changed whichever one noticed.
          */
+        /*
+         * §448. Spread, so a piece whose composition carries no beats — a quiz,
+         * a walkthrough — leaves the key absent and the rule keeps reporting
+         * itself unmeasured. Supplying zero there would fail every quiz for an
+         * empty thumbnail it does not have.
+         */
+        ...(openingText
+          ? {
+              firstFrameWordCount: openingText.trim().split(/\s+/).filter(Boolean).length,
+            }
+          : {}),
         frameDelta: eitherSignalMoved(
           consecutiveDeltas(probe.frameContentRange),
           consecutiveDeltas(probe.frameLuminance),

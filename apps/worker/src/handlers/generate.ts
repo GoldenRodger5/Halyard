@@ -1591,6 +1591,19 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
         const contentItemId = inserted.rows[0]!.id;
         insertedItemId = contentItemId;
 
+        /*
+         * §449. What was repaired mechanically rather than argued about.
+         *
+         * Silent only when there was nothing to fix, which is the common case.
+         */
+        if (draft.repairs.length > 0) {
+          captionCtx.log('copy repaired', {
+            contentItemId,
+            fixed: [...new Set(draft.repairs.map((r) => r.rule))],
+            because: 'punctuation a platform mangles; not worth an attempt or a model call',
+          });
+        }
+
         /**
          * §439/§440. What length this was built to, and what it cost to get
          * there — recorded on the item so the Gallery can show it.
