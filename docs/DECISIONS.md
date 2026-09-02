@@ -12814,3 +12814,26 @@ real one. Scraping the SQL was tried first and found an outdated
 `jobs_kind_check`: the constraint has been rewritten three times, so a regex
 lands on whichever definition it meets, which is how a test can be confidently
 wrong.
+
+## §512 · Sixty percent empty is not restraint
+
+With §509 and §511 fixed, the carousel read correctly — the opening slide
+carried its photograph, the tips counted from 01 — and each tip slide still
+had a numeral and two lines of type in the top third of a 4:5 frame above
+sixty percent bare cream. That reads as a slide that failed to load, not as
+minimalism.
+
+The cause was a decision that stopped being right when its input changed.
+§423 top-anchored the `numbered` layout so the numeral leads, which is correct
+*when a body flows down from it* — and a tips carousel gives each slide one
+instruction and no body at all. The `statement` layout centres for exactly
+this reason and its slides look finished; slide seven of the same deck proves
+it. So `numbered` centres when there is nothing under the headline and keeps
+its top anchor when there is.
+
+Worth noting how the test found its own bug first: it read `justifyContent`
+off the outer frame, which is always `space-between` because that is what
+holds the wordmark against the base, and reported `center` missing on a slide
+that was centred correctly. It now reads the content column — the child with
+`flexGrow` — and says so, because a test that measures the wrong node is a
+confident wrong answer, the same failure §502 and §510 each produced once.

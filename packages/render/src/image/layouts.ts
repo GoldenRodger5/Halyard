@@ -336,10 +336,20 @@ function statement(input: LayoutInput): SatoriElement {
  * space that reads as deliberate rather than as a rendering accident.
  */
 function numbered(input: LayoutInput): SatoriElement {
-  /* §423. Top-anchored: the numeral leads, so it sits where the eye enters. */
+  /*
+   * §423. Top-anchored: the numeral leads, so it sits where the eye enters.
+   *
+   * §512. Unless there is nothing under the headline to anchor to. A tips
+   * carousel gives each slide one instruction and no body, so the numeral and
+   * two lines of type sat in the top third of a 4:5 frame above sixty percent
+   * empty cream — which reads as a slide that failed to load rather than as
+   * restraint. The `statement` layout centres for exactly this reason and its
+   * slides look finished. With a body the top anchor is still right: the
+   * numeral leads and the text flows down from it.
+   */
   return shell(
     input,
-    { justify: 'flex-start' },
+    { justify: input.bodyLines.length > 0 ? 'flex-start' : 'center' },
     /* §509. The item's own number when it has one; the slide's otherwise. */
     text(String(input.ordinal ?? input.index).padStart(2, '0'), {
       fontFamily: input.type.display.family,

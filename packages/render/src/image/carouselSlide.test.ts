@@ -75,3 +75,29 @@ describe('§509 the number a reader counts', () => {
     expect(JSON.stringify(el)).toContain('03');
   });
 });
+
+describe('§512 a numbered slide with nothing under it', () => {
+  /**
+   * The content column's `justifyContent`.
+   *
+   * The outer frame is always `space-between` — it holds the wordmark against
+   * the base — so reading that node answers a different question than the one
+   * being asked. The composition is the first child, the one with `flexGrow`.
+   */
+  const justify = (el: unknown): string | undefined => {
+    const children = (el as { props?: { children?: unknown } }).props?.children;
+    const column = (Array.isArray(children) ? children : [children]).find(
+      (c) => (c as { props?: { style?: { flexGrow?: number } } })?.props?.style?.flexGrow === 1,
+    );
+    return (column as { props?: { style?: { justifyContent?: string } } })?.props?.style?.justifyContent;
+  };
+
+  it('centres when the slide is a numeral and a headline', () => {
+    expect(justify(carouselSlide(base({ layout: 'numbered', ordinal: 1 })))).toBe('center');
+  });
+
+  it('keeps the numeral leading when there is a body to flow under it', () => {
+    const el = carouselSlide(base({ layout: 'numbered', ordinal: 1, bodyLines: ['A supporting line.'] }));
+    expect(justify(el)).toBe('flex-start');
+  });
+});
