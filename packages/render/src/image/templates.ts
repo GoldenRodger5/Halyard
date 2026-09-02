@@ -129,6 +129,8 @@ export interface CarouselSlideProps extends TemplateBase {
   imageDataUri?: string;
   index: number;
   total: number;
+  /** §509. The nth of a run, when the slide is one. Falls back to `index`. */
+  ordinal?: number;
   kicker: string;
   headline: string;
   bodyLines: string[];
@@ -567,7 +569,30 @@ export function carouselSlide(props: CarouselSlideProps): SatoriElement {
    * slide carrying one falls back to the editorial column regardless of what
    * was chosen. The picture is the point on that slide.
    */
-  const layout: CarouselLayout = props.screenshotDataUri ? 'editorial' : (props.layout ?? 'editorial');
+  /*
+   * §511. A layout that cannot draw the picture it was given.
+   *
+   * Only `photo_lead` and `photo_overlay` render `imageDataUri`; the other five
+   * ignore it. The first carousel Halyard ever made attached its hero
+   * photograph to slide one — deliberately, because the opening slide is the
+   * one that has to stop a scroll — and `tipsSlides` pins that slide to
+   * `statement`. So the image was chosen, read out of storage, inlined as a
+   * data URI and silently dropped, and the slide published as type on a flat
+   * cream ground with two thirds of it empty.
+   *
+   * The same shape as the screenshot rule above it: what a slide *carries*
+   * decides the composition, because a picture nobody can see is worse than a
+   * picture nobody asked for. `photo_lead` rather than `photo_overlay` — the
+   * headline stays on its own ground, which is legible whatever the photograph
+   * turns out to be.
+   */
+  const drawsPhoto = (l: CarouselLayout): boolean => l === 'photo_lead' || l === 'photo_overlay';
+  const asked: CarouselLayout = props.layout ?? 'editorial';
+  const layout: CarouselLayout = props.screenshotDataUri
+    ? 'editorial'
+    : props.imageDataUri && !drawsPhoto(asked)
+      ? 'photo_lead'
+      : asked;
 
   return LAYOUT_RENDERERS[layout]({
     imageDataUri: props.imageDataUri,
@@ -579,6 +604,8 @@ export function carouselSlide(props: CarouselSlideProps): SatoriElement {
     bodyLines: props.bodyLines,
     index: props.index,
     total: props.total,
+    /* §509. The item's own number, when the builder knew one. */
+    ordinal: props.ordinal,
     wordmark: props.wordmark,
     extra,
   });

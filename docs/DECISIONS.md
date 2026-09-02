@@ -12781,3 +12781,36 @@ The lesson is the one §478 and §499 already taught, on a third piece of the
 system: a feature can be declared, typed, tested and enabled, and still have
 no path that reaches it. What found this was running it once and looking at
 what came out.
+
+## §509–§511 · What the first carousel actually looked like
+
+Seven slides rendered for $0.11, which is a sixth of a video. Then I looked at
+them, and three things were wrong.
+
+**§509. The numbers a reader counts were off by one.** The `numbered` layout
+drew `index` — the slide's position in the deck — so the first tip printed
+**02**, because a title slide came before it. Nobody counting tips ever saw a
+01. A `FormatSlide` now carries its own `ordinal`, set by the builder that
+knows which tip this is, and the layout prefers it. The recipe method steps had
+the same bug and the same fix.
+
+**§511. A layout that could not draw the picture it was handed.** Only
+`photo_lead` and `photo_overlay` render `imageDataUri`; the other five ignore
+it. The worker deliberately attaches the hero photograph to slide one — the
+slide that has to stop a scroll — and `tipsSlides` pins that slide to
+`statement`. So the image was chosen, read out of storage, inlined as a data
+URI and silently dropped, and the opening slide published as type on a flat
+cream ground with two thirds of it empty. A slide carrying a picture now uses a
+layout that draws one, the same way a slide carrying a screenshot already
+forced `editorial`. What a slide *carries* decides the composition, because a
+picture nobody can see is worse than a picture nobody asked for.
+
+**§510. A type import across a package line broke a build.** §494's budget
+guard imported `JobKind` from `@halyard/db`, which `@halyard/core` does not
+depend on, so `@halyard/render` — which reaches that file through the core
+barrel — failed to typecheck. The kind is a plain string there now, and a test
+reads `JOB_KINDS` out of the db package's source to prove every paid kind is a
+real one. Scraping the SQL was tried first and found an outdated
+`jobs_kind_check`: the constraint has been rewritten three times, so a regex
+lands on whichever definition it meets, which is how a test can be confidently
+wrong.

@@ -11,7 +11,18 @@
  * paused — a scheduled post is a promise already made, and it costs nothing
  * here (X's per-post billing is its own concern, gotcha 15).
  */
-import type { JobKind } from '@halyard/db';
+/*
+ * §510. The kind is a plain string here, not `JobKind` from `@halyard/db`.
+ *
+ * `@halyard/core` does not depend on the db package, and importing a type
+ * across that line broke `@halyard/render`'s typecheck — which reaches this
+ * file through the core barrel — with `Cannot find module '@halyard/db'`. The
+ * list below is the authority for *which kinds cost money*, which is a
+ * different question from which kinds exist; `budgetGuard.test.ts` pins the
+ * names, and the poller passes its own `JobKind` in, so a rename still fails
+ * there rather than silently ceasing to match.
+ */
+type JobKind = string;
 
 /** Job kinds that spend money on a provider before they finish. */
 export const PAID_JOB_KINDS: readonly JobKind[] = [

@@ -36,6 +36,16 @@ export interface FormatSlide {
   layout: CarouselLayout;
   index: number;
   total: number;
+  /**
+   * §509. What this slide is the *nth* of, when it is one of a run.
+   *
+   * The `numbered` layout drew `index` — the slide's position in the deck —
+   * so the first tip of a tips carousel printed **02**, because a title slide
+   * came before it. A reader counting tips saw 02, 03, 04 and never a 01. The
+   * builder knows which tip this is; the layout should not have to infer it
+   * from where the slide landed.
+   */
+  ordinal?: number;
 }
 
 function pick(slots: SlotValue[], key: string, index = 0): string | null {
@@ -165,7 +175,7 @@ function tipsSlides(slots: SlotValue[]): FormatSlide[] {
   if (title) {
     out.push({ kicker: 'Tips', headline: title, bodyLines: [], layout: 'statement', index: 0, total: 0 });
   }
-  for (const tip of all(slots, 'tip')) {
+  for (const [n, tip] of all(slots, 'tip').entries()) {
     out.push({
       kicker: 'Tip',
       headline: tip.text,
@@ -173,6 +183,8 @@ function tipsSlides(slots: SlotValue[]): FormatSlide[] {
       layout: 'numbered',
       index: 0,
       total: 0,
+      /* §509. The tip's own number, not its position in the deck. */
+      ordinal: n + 1,
     });
   }
   const close = pick(slots, 'close');
@@ -232,8 +244,8 @@ function recipeSlides(slots: SlotValue[]): FormatSlide[] {
     out.push({ kicker: 'What you need', headline: 'Ingredients', bodyLines: ingredients.slice(0, 8), layout: 'editorial', index: 0, total: 0 });
   }
   const steps = all(slots, 'step');
-  for (const step of steps) {
-    out.push({ kicker: 'Method', headline: step.text, bodyLines: [], layout: 'numbered', index: 0, total: 0 });
+  for (const [n, step] of steps.entries()) {
+    out.push({ kicker: 'Method', headline: step.text, bodyLines: [], layout: 'numbered', index: 0, total: 0, ordinal: n + 1 });
   }
   const note = pick(slots, 'note');
   if (note) out.push({ kicker: 'Watch out', headline: 'The common mistake', bodyLines: [note], layout: 'split_rule', index: 0, total: 0 });

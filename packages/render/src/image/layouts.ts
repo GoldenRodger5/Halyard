@@ -181,6 +181,8 @@ export interface LayoutInput {
   bodyLines: string[];
   index: number;
   total: number;
+  /** §509. The nth of a run, when the slide is one. `numbered` prefers it. */
+  ordinal?: number;
   wordmark?: string;
   extra?: SatoriElement;
 }
@@ -338,7 +340,8 @@ function numbered(input: LayoutInput): SatoriElement {
   return shell(
     input,
     { justify: 'flex-start' },
-    text(String(input.index).padStart(2, '0'), {
+    /* §509. The item's own number when it has one; the slide's otherwise. */
+    text(String(input.ordinal ?? input.index).padStart(2, '0'), {
       fontFamily: input.type.display.family,
       fontWeight: input.type.display.weight,
       fontSize: 240,
