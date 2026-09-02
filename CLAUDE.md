@@ -76,7 +76,19 @@ Landmines learned the hard way. Each one cost real time.
     test, then fails at render time with `UnhandledSchemeError`. Worker-side
     preparation belongs in `apps/worker`, not in the render package. §145.
 
-11. **X publishing is billed per post** (~$0.015 without a link, ~$0.20 with). X v2 write endpoints return **402 credits-depleted** when the developer account has no credits.
+11. **Running the worker locally takes two things that are not obvious.** It
+    reads `apps/worker/.env` only because `docker run --env-file` passes it —
+    `pnpm --filter @halyard/worker start` loads nothing, and fails on
+    `SUPABASE_DB_URL is not set` while `DATABASE_URL` sits in that file
+    unread. Source it first, and override `DATABASE_URL` to the `localhost`
+    form, since env-sync rewrites it to `host.docker.internal` for the
+    container. Second: a worker backgrounded from a shell dies when that shell
+    exits, silently, mid-job — leaving a `generate` row stuck in `running`
+    until the poller reclaims it. Use `nohup ... < /dev/null &` with a script
+    that `cd`s and `exec`s. `pkill -f "tsx src/index.ts"` does not match it;
+    find it with `ps -eo pid,command | grep halyard`.
+
+12. **X publishing is billed per post** (~$0.015 without a link, ~$0.20 with). X v2 write endpoints return **402 credits-depleted** when the developer account has no credits.
 
 ---
 
