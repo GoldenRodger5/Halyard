@@ -29,7 +29,14 @@ is being done *now*, in order, and why. Update it when a step lands.
    Directory of `.`, which had failed every deploy since 31 August (§495).
    Fixed and redeployed; `/gallery` is 200. Five accounts now hold working
    credentials in production (§500).
-3. **Real motion — key in, first clip in flight.** The operator added
+3. **Real motion — done 2 Sep, proven in a render.** A steak-searing tips
+   piece carries four licensed clips across nine beats and plays them. What it
+   took: §502 (the schema's own `broll` kind), §503 (spread the clips, open on
+   motion), §504 (a video ground needs longer than a still to decode).
+   Remaining: let the three critic personas judge a moving piece, and watch
+   whether footage helps or hurts once anything publishes.
+
+   *Superseded detail:* **key in, first clip in flight.** The operator added
    `PEXELS_API_KEY`. First live run: the screenwriter asked for footage on
    **eight of eight beats**, so the brief works; all eight stores were refused
    because the code wrote `kind: 'footage'` where the schema has always said

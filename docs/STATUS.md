@@ -1,5 +1,19 @@
 # Where Halyard is right now
 
+**2026-09-02 — a piece carries real footage.** A tips piece on searing a steak:
+the screenwriter asked for `ground: 'footage'` on nine of nine beats, four
+licensed clips landed (a chef patting the steak dry, tongs lowering it into the
+pan, the crust releasing), five beats kept photographs. It renders, the clips
+play under the type, and the lines match what is happening on screen. $0.43,
+23 calls. `§478` is no longer theoretical.
+
+| | |
+|---|---|
+| what moved | 4 of 9 beats, measured 12.3 luma delta inside a beat against ~2.25 for a still |
+| what it cost | $0.43 — three images, four clips (free), voice, vision, model |
+| caption | "Steak crust going soft? Water spends heat becoming steam before browning. The boring fix is the towel, not the flame." |
+| found on the way | `kind: 'footage'` refused by Postgres (§502), clips filling from the front (§503), Remotion's 30s asset timeout (§504) |
+
 **2026-09-02 — a beat can play footage, and none has yet.**
 
 §478. The screenplay's `footage` ground has been refusable-only since it was
