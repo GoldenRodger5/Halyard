@@ -352,6 +352,23 @@ export default async function GalleryPiece({ params }: { params: Promise<{ id: s
           </Sheet>
         ) : null}
 
+        {/*
+          §515. Said before anything else about the piece: if the subject went
+          unmatched, everything below is coherently about a different dish, and
+          an operator should not have to work that out from the pictures.
+        */}
+        {item.subject_unmatched ? (
+          <Sheet tone="lit">
+            <Label>This is not what you asked for</Label>
+            <p className="m-0 max-w-[74ch] text-[12.5px] leading-relaxed">
+              You asked for <span className="text-ink">{item.subject_unmatched.asked}</span>, and
+              nothing in this week&apos;s recipe catalogue matched it. The piece adapts{' '}
+              <span className="text-ink">{item.subject_unmatched.adapted}</span> instead. It is
+              coherent and well made, and it is about a different dish.
+            </p>
+          </Sheet>
+        ) : null}
+
         {item.grounds ? (
           <Sheet>
             <Label>What the frame does</Label>

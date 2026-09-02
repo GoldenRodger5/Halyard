@@ -53,6 +53,7 @@ import {
   createStockFootageClient,
   joinSpoken,
   isProviderExhausted,
+  titleMatchScore,
 } from '@halyard/core';
 import {
   carouselProps,
@@ -1109,6 +1110,10 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
 
     let artifact: ProductArtifact | null = null;
 
+    /* §515. Set when the operator named a dish the catalogue does not have. */
+
+    let subjectUnmatched: { asked: string; adapted: string } | null = null;
+
     /**
      * §447. A format that does not need an artifact does not wait for one.
      *
@@ -1145,6 +1150,42 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
           intent: `${idea.title}. ${idea.angle}`,
           params: (job.payload.sampleParams as Record<string, unknown>) ?? {},
         });
+
+        /*
+         * §515. When the catalogue has nothing like what was asked for, say so.
+         *
+         * §514 made the operator's subject choose the recipe by matching its
+         * words against the catalogue's titles. It cannot conjure one that is
+         * not there: asked for "classic shortcrust pastry", a 24-recipe
+         * Discover catalogue containing no pastry falls back to the stable
+         * hash and adapts Easy Baked Ziti. Everything downstream is then
+         * coherent and about a dish nobody asked for, which is the shape §514
+         * called worse than random because it looks deliberate.
+         *
+         * Not a refusal: a generic subject legitimately matches nothing and
+         * should still produce a piece. It is a *disclosure* — the piece
+         * records that its subject went unmatched, so an operator reading the
+         * gallery sees why it is about something else instead of wondering.
+         */
+        const askedSubject = (job.payload.subject as string | undefined)?.trim();
+        if (askedSubject && artifact) {
+          const named = titleMatchScore(askedSubject, askedSubject) > 0;
+          const matched = titleMatchScore(askedSubject, artifact.headline) > 0;
+          if (named && !matched) {
+            subjectUnmatched = {
+              asked: askedSubject,
+              adapted: artifact.headline,
+            };
+            ctx.log('the catalogue had nothing like the subject', {
+              asked: askedSubject,
+              adapted: artifact.headline,
+              because:
+                'The recipe is chosen from this week\'s Discover catalogue by matching the ' +
+                'subject against its titles. Nothing matched, so the stable fallback chose. ' +
+                'The piece is about the adapted recipe, not the subject.',
+            });
+          }
+        }
       } catch (err) {
         if (err instanceof ConnectorUnavailableError) {
           /*
@@ -1874,6 +1915,12 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                 idea.title,
               /* §494. The job that paid for this piece, for `content_item_costs`. */
               jobId: job.id,
+              /*
+               * §515. Recorded on the piece, not only in a log line, because
+               * the operator reading the gallery is the one who needs to know
+               * their subject went unmatched.
+               */
+              ...(subjectUnmatched ? { subject_unmatched: subjectUnmatched } : {}),
             }),
           ],
         );

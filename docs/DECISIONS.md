@@ -12892,3 +12892,29 @@ Two details the tests pin down: the words every recipe title shares —
 everything; and a shared prefix is not a shared word, so *pastry* must not
 match *pasta*. The first version of one expectation was wrong rather than the
 code, which is its own small reminder to check which one is lying.
+
+## §515 · The catalogue cannot conjure what it does not have
+
+§514 made the operator's subject choose the recipe by matching its words
+against the Discover catalogue's titles. Re-running the same request produced
+baked ziti again — and this time correctly, because the catalogue holds
+twenty-four recipes and **not one of them is a pastry**. Best overlap was zero
+everywhere, so the stable hash decided, which is exactly what it is for.
+
+The behaviour was right and the outcome was still wrong. The operator asked
+for shortcrust pastry and got a well-made carousel about baked ziti with
+nothing anywhere saying why.
+
+Not a refusal — a generic subject ("something for the weekend") legitimately
+matches nothing and should still produce a piece. A **disclosure**: when the
+subject names something specific and no catalogue title shares a word with it,
+the piece records `subject_unmatched` and the gallery leads with *"This is not
+what you asked for"*, naming both the request and what was adapted instead.
+
+The distinction that makes it work is cheap: a subject with content words is
+asking for something, and a subject without them is not. `titleMatchScore`
+against itself answers that in one call.
+
+The pattern this closes is the one running everything today: the system was
+never lying, it just was not saying. §507's refused format, §513's boardless
+pin and this all end the same way — the machine knew, and the person did not.

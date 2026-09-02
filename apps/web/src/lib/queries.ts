@@ -326,6 +326,12 @@ export interface QueueItem {
     declined: string[];
     source: string | null;
   } | null;
+  /**
+   * §515. Set when the operator named a dish this week's catalogue does not
+   * have, so the piece is about something else. Null when the subject matched
+   * or was generic enough not to ask for anything in particular.
+   */
+  subject_unmatched: { asked: string; adapted: string } | null;
   /** §362. The line written when this was rejected, which trains the voice. */
   reject_reason: string | null;
   /** §393. When it was made. The Gallery sorts and labels the wall by this. */
@@ -383,6 +389,8 @@ const QUEUE_SELECT = `
          ci.generation_meta -> 'read' as read_verdict,
          -- §478. Which beats moved, which were photographed, which stayed flat.
          ci.generation_meta -> 'grounds' as grounds,
+         -- §515. Whether the subject the operator typed reached the artifact.
+         ci.generation_meta -> 'subject_unmatched' as subject_unmatched,
          ci.reject_reason,
          -- §372. What this piece was staged from, so the review screen can show
          -- what it was meant to be beside what it became.
