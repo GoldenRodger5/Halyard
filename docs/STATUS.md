@@ -38,6 +38,13 @@ job. Fund either account and the queue resumes. Validated on the rebuilt worker:
 a send from the UI dies on attempt 1 in five seconds with both providers
 named in the row.
 
+**Connections are now one screen (§497).** `/master` — also reachable by typing
+`/connections` or `/accounts` — lists every account with its real state and the
+buttons that change it: Connect, Reconnect, Test, Disconnect. Rows whose
+developer app is not registered say which variables are missing and show the
+callback URL to paste, from `registrationFor`, which existed and was rendered
+nowhere until now (§499). Checked on a 1440px laptop and a 390px phone.
+
 **Operator items, in order:** fund OpenAI (it is the configured primary, and
 images and the frame critic need it) and/or Anthropic; run the production forward-fill in `docs/DEPLOY.md` and then push
 main (§489); `PEXELS_API_KEY` for footage (below); a music licence decision

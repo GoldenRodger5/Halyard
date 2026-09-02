@@ -26,7 +26,7 @@ export default async function Rundown() {
         <p className="max-w-prose text-sm leading-relaxed text-quiet">
           Nothing is scheduled and no slot is configured, so there is nothing to run. Slots come
           from the scheduler; a platform with no account has none.{' '}
-          <Link href="/master" className="text-lit underline">The rig</Link> shows what is
+          <Link href="/master" className="text-lit underline">Connections</Link> shows what is
           connected.
         </p>
       </Sheet>

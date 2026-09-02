@@ -12512,3 +12512,69 @@ herbs"*. Before today the same piece cost about $1.20.
    and re-synthesises — one TTS call, no model call, the screen and the voice
    still saying the same thing. It escalates only when the API's own range is
    exhausted, and only for pacing; every other audio defect still refuses.
+
+## §497 · Connections, on one screen, with the buttons on it
+
+The operator's words: *"its so confusing and hidden right now and the ui is
+bad at this. i want simple place i go to, see the connections, tells me active
+or not but i have option to reconnect it and to disconnect."*
+
+They were right, and the shape of the failure is worth recording. `/master`
+showed a full card for every account that **had** a credential and collapsed
+the rest into a list with nothing to click — so the five platforms that were
+not connected, which is the whole reason anyone opens the page, offered
+nothing. Connecting happened at a URL nothing linked to
+(`/api/oauth/<platform>/start`). Reconnecting had no button anywhere.
+`disconnectAccount` existed, was tested, and had no caller. The screen was
+built around the accounts that were *interesting* rather than the ones that
+needed work.
+
+Now: one row per account, the same shape in every state — lamp, platform,
+handle, one sentence of what is true, and the buttons that change it. The
+words and which buttons are honest come from `connectionView` in core, so
+every state is covered by a test rather than by clicking: connected, drafts
+only behind a review, expired, failing, never connected, and marked past
+review with no credential at all (gotcha 5, which this row finally says out
+loud — *"a review is not a connection"*).
+
+The rule the screen keeps: **never offer a button that cannot work.** Five of
+seven platforms have no developer app registered, so their OAuth start answers
+with a JSON error. Those rows say which variables are missing instead.
+
+Also: `/connections` and `/accounts` redirect here, because those are the
+words somebody types.
+
+## §498 · The console was set in the font it replaced
+
+§382 named three faces for the studio — Bricolage Grotesque, IBM Plex Sans,
+JetBrains Mono — and every component asks for them by class. But `body` still
+resolved to `--font-sans`, which is Inter, the face the studio had replaced.
+So all the *unclassed* text on every screen — paragraphs, list items, form
+labels, most of what an operator actually reads — was Inter, sitting beside
+headings in Bricolage. Two families that were never chosen together, on every
+page, for a whole migration. `body` now takes `--font-body`, plus the
+`-0.005em` of tracking Plex wants at these sizes. `DESIGN_SYSTEM.md` had also
+still documented the old pair, and now documents what actually renders.
+
+## §499 · What the docs said, checked against what we send
+
+Read the six platforms' current developer documentation rather than trusting
+the constants. Three things came back:
+
+1. **X's posting scopes were incomplete.** `media.write` is now its own scope
+   and we did not request it. The grant would have succeeded, text posts would
+   have succeeded, and the first post carrying a rendered image — which is
+   nearly every post this system makes — would have failed at upload, after
+   the operator had already connected. Added.
+2. **`registrationFor` covered seven platforms and was rendered nowhere.** The
+   dashboard path, the exact callback URL to paste, and the settings that make
+   a grant work all existed in `oauthRegistration.ts`, tested, unreachable —
+   the same *declared, tested, never executed* shape as §478's footage ground.
+   It is now the "What this platform needs" block on the row that needs it,
+   with the callback URL derived from where the app actually answers so the
+   value on screen is the one that will work.
+3. **The review-gate table was already right**, including the two false
+   successes worth naming: Pinterest Trial makes every pin sandbox-only and
+   TikTok pre-audit forces `SELF_ONLY`. Both return a 200 from a publish. The
+   sidebar badge deliberately does **not** count these — it counts credentials
+   that *died*, because a badge that never clears stops being read.

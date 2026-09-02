@@ -88,13 +88,22 @@ tint is what the product actually renders.
 
 | Face | Where | Why |
 |---|---|---|
-| **Instrument Serif** | `h1`, `.font-serif` — page titles, the next-action band, section headings | It is the one thing that stops this reading as a dashboard. Weight 400 only. |
-| **Inter** | Everything else | Body, controls, labels |
-| **System mono** | Gates, prompt versions, screenplays, raw operator input | Anything the operator should read as *data* rather than as prose |
+| **Bricolage Grotesque** | `.font-display` — room titles, platform names, anything that names a thing | Optical sizing, and a slightly mechanical grotesque: it reads as a studio label rather than as a web heading. |
+| **IBM Plex Sans** | `body`, and everything not asking for another face | Body, controls, labels. A humanist sans that stays legible at 12px, which is most of this interface. |
+| **JetBrains Mono** | `.font-data` — gates, prompt versions, screenplays, numbers in columns, raw operator input | Anything the operator should read as *data* rather than as prose |
+| **Instrument Serif** | The render templates only | It survives in the video and card compositions; the console no longer uses it. |
+
+**§498.** `body` resolved to Inter for a whole migration after §382 named the
+three faces above, so unclassed text — which is most of what anyone reads —
+was set in the face the studio had replaced, beside headings in the new one.
+Two families that were never chosen together, on every screen. The body now
+takes `--font-body`, and `-0.005em` of tracking, which is what Plex wants at
+these sizes.
 
 The mono face is doing real work and is easy to lose: a QC gate line, a
 screenplay, and the raw text of a Daily Take are all things where the exact
-characters matter. Setting them in Inter would make them look like commentary.
+characters matter. Setting them in the body face would make them look like
+commentary.
 
 ---
 

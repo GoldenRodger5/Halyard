@@ -117,7 +117,17 @@ export function needsRefresh(expiresAt: Date | null | undefined, leadMinutes = 6
 /** Scopes each platform needs, kept beside the adapters that use them. */
 export const PLATFORM_SCOPES: Record<string, string[]> = {
   // X: OAuth2 PKCE with refresh tokens (v1 §7).
-  x: ['tweet.read', 'tweet.write', 'users.read', 'offline.access'],
+  /*
+   * §499. `media.write` is not optional for this product.
+   *
+   * X's v2 media upload is its own scope, added after this list was written,
+   * and Halyard attaches a rendered image or video to essentially every post.
+   * Without it the OAuth grant succeeds, text posts succeed, and the first
+   * post carrying a picture fails at upload — the worst place to discover a
+   * missing scope, because re-granting means the operator reconnecting.
+   * Confirmed against docs.x.com/resources/fundamentals/authentication.
+   */
+  x: ['tweet.read', 'tweet.write', 'users.read', 'media.write', 'offline.access'],
   /*
    * §184. Instagram Login scopes, and only the four with a call site.
    *

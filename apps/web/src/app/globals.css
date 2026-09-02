@@ -139,7 +139,19 @@
   body {
     background-color: var(--color-canvas);
     color: var(--color-ink);
-    font-family: var(--font-sans);
+    /*
+      §498. The studio's own body face, not the one it replaced.
+
+      §382 moved the console to Bricolage Grotesque, IBM Plex Sans and
+      JetBrains Mono, and every studio component asks for them by class — but
+      `body` still resolved to Inter, so all the *unclassed* text on every
+      screen (paragraphs, list items, form labels, most of what an operator
+      actually reads) was set in the old face while the headings beside it were
+      set in the new one. Two families that were never chosen together, on
+      every page.
+    */
+    font-family: var(--font-body);
+    letter-spacing: -0.005em;
   }
 
   h1,

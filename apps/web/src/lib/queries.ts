@@ -49,6 +49,7 @@ export async function getSettings(): Promise<Settings> {
 }
 
 export async function getNavCounts(): Promise<{
+  connectionsNeedingYou: number;
   pendingApproval: number;
   inboxPending: number;
   failed: number;
@@ -61,6 +62,7 @@ export async function getNavCounts(): Promise<{
     failed: string;
     scheduled_today: string;
     stories_waiting: string;
+    connections_needing_you: string;
   }>(
     `select
        (select count(*) from content_items where status = 'pending_approval')            as pending,
@@ -70,7 +72,18 @@ export async function getNavCounts(): Promise<{
          where status in ('approved','scheduled')
            and scheduled_at::date = (now() at time zone 'utc')::date)                    as scheduled_today,
        (select count(*) from rss_items
-         where status in ('new','surfaced') and expires_at > now())                   as stories_waiting`,
+         where status in ('new','surfaced') and expires_at > now())                   as stories_waiting,
+       /*
+        * §499. A connection an operator has to act on: it held a credential
+        * and the credential died. Deliberately narrower than the Connections
+        * screen's own reckoning, which knows about developer apps and review
+        * gates — a badge should count what is *broken*, not what is merely
+        * unfinished, or it reads as an alarm that never clears.
+        */
+       (select count(*) from social_accounts
+         where access_token_enc is not null
+           and (last_error is not null
+                or (token_expires_at is not null and token_expires_at < now())))       as connections_needing_you`,
   );
   return {
     pendingApproval: Number(row?.pending ?? 0),
@@ -78,6 +91,7 @@ export async function getNavCounts(): Promise<{
     failed: Number(row?.failed ?? 0),
     scheduledToday: Number(row?.scheduled_today ?? 0),
     storiesWaiting: Number(row?.stories_waiting ?? 0),
+    connectionsNeedingYou: Number(row?.connections_needing_you ?? 0),
   };
 }
 

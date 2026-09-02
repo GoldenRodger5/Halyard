@@ -235,7 +235,7 @@ export default async function CallSheet() {
       </div>
 
       <Sheet>
-        <Label>The rig</Label>
+        <Label>Connections</Label>
         <ul>
           {accounts.map((a, i) => {
             const b = badges[i]!;

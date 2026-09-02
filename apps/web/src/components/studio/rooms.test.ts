@@ -154,8 +154,20 @@ describe('the rooms', () => {
         /* `[id]` is a drill-down, reached from its room rather than by a link. */
         if (entry.name.startsWith('[') || entry.name.startsWith('(')) continue;
         const childHref = `${href}/${entry.name}`;
-        if (existsSync(join(dir, entry.name, 'page.tsx')) && !linked.has(childHref)) {
-          orphans.push(childHref);
+        const page = join(dir, entry.name, 'page.tsx');
+        if (existsSync(page) && !linked.has(childHref)) {
+          /*
+           * §497. An alias is not an orphan.
+           *
+           * `/connections` and `/accounts` exist precisely to be *typed* — they
+           * are the words an operator reaches for, and they redirect to the
+           * room that answers them. A page whose whole body is a redirect has
+           * no screen of its own to be stranded on, which is the thing this
+           * check exists to prevent. Detected from the source rather than
+           * listed here, so the next alias needs no edit.
+           */
+          const isAlias = /redirect\(\s*['"`]\//.test(readFileSync(page, 'utf8'));
+          if (!isAlias) orphans.push(childHref);
         }
         walk(join(dir, entry.name), childHref);
       }

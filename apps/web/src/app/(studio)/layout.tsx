@@ -72,7 +72,12 @@ export default async function StudioLayout({ children }: { children: React.React
         tint: (p.brand_tokens as { primary?: string } | null)?.primary ?? null,
       }))}
       currentProductId={current?.id}
-      counts={{ '/gallery': counts.pendingApproval, '/wires': counts.inboxPending }}
+      counts={{
+        '/gallery': counts.pendingApproval,
+        '/wires': counts.inboxPending,
+        /* §499. So a dead credential is visible from any room, not only from Master Control. */
+        '/master': counts.connectionsNeedingYou,
+      }}
     >
       {children}
     </StudioShell>

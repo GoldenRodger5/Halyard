@@ -135,7 +135,7 @@ export const ROOMS: Room[] = [
     question: 'Is it wired up, and does it know the product?',
     number: 7,
     tabs: [
-      { href: '/master', label: 'The rig', hint: 'What is connected, and what is stopping the rest' },
+      { href: '/master', label: 'Connections', hint: 'Connect, reconnect or disconnect an account' },
       { href: '/master/rules', label: 'Platform rules', hint: 'What a review actually unlocks' },
       { href: '/master/crew', label: 'The crew', hint: 'Forty agents, and the state the Auditor derived' },
       { href: '/master/product', label: 'The product', hint: 'What Halyard believes, and what backs it' },
