@@ -365,7 +365,20 @@ export function runCreativeQC(input: CreativeQCInput): CreativeQCResult {
    * corrections.
    */
   if (input.motions && input.motions.length > 0) {
-    const moving = input.motions.filter((m) => m.camera !== 'still' || m.entrance !== 'none').length;
+    /*
+     * §505. What the viewer sees move, not what the camera was told to do.
+     *
+     * This counted camera moves and entrances only, which was the whole story
+     * while every ground was a still. A beat carrying licensed footage moves
+     * whatever its camera does — and the right camera for such a beat is
+     * `hold`, because a push on an already-moving clip is two motions
+     * fighting. Counting only the camera would therefore call the best-composed
+     * footage beat motionless, and read a piece that never stops moving as
+     * restful.
+     */
+    const moving = input.motions.filter(
+      (m, i) => m.camera !== 'still' || m.entrance !== 'none' || beats[i]?.hasFootage === true,
+    ).length;
     const share = moving / input.motions.length;
     if (share === 0) {
       findings.push({

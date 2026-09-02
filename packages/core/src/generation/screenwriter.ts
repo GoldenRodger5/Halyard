@@ -225,6 +225,12 @@ export async function writeScreenplay(
           "somebody else's kitchen cannot contain it. For a footage scene, `groundSubject` is a",
           'search phrase for what is physically happening, three to six words, hands and',
           'material, nothing abstract: "hands kneading bread dough", "flour sifted into a bowl".',
+          '',
+          '§505. A footage scene already moves, so its camera usually holds. Give a footage scene',
+          '`move: "hold"` unless the move is doing something the clip is not — a push on a clip',
+          'that is already moving is two motions fighting, and it is the clearest mark of an',
+          'amateur edit. Save `push_in`, `drift` and `cut` for the photographs, where the camera',
+          'is the only thing that can move.',
         ].join(' ')
       : 'No footage can be found. Never call for `footage`.',
     input.hasProductCapture

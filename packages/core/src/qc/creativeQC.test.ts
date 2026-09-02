@@ -366,3 +366,45 @@ describe('§478 licensed footage', () => {
     expect(finding?.beatIndex).toBe(1);
   });
 });
+
+describe('§505 motion density counts what the viewer sees', () => {
+  const motions = (cameras: string[]) =>
+    cameras.map((camera) => ({ camera, entrance: 'none', transitionOut: 'cut' }));
+
+  const piece = (cameras: string[], footageAt: number[]): CreativeQCInput => ({
+    ...textCardStack,
+    footageAvailable: false,
+    beats: cameras.map((_, i) => ({
+      role: i === 0 ? 'hook' : 'change',
+      emphasis: 'normal' as const,
+      wordCount: 8,
+      ...(footageAt.includes(i) ? { hasFootage: true } : {}),
+    })),
+    motions: motions(cameras),
+  });
+
+  const rules = (input: CreativeQCInput) => runCreativeQC(input).findings.map((f) => f.rule);
+
+  it('a still camera over a moving clip is not a motionless beat', () => {
+    /* Four beats, cameras all still — but every one carries footage. */
+    expect(rules(piece(['still', 'still', 'still', 'still'], [0, 1, 2, 3]))).not.toContain(
+      'creative.no_motion',
+    );
+  });
+
+  it('still cameras with no footage anywhere is still a slideshow', () => {
+    expect(rules(piece(['still', 'still', 'still', 'still'], []))).toContain('creative.no_motion');
+  });
+
+  it('footage on every beat plus camera moves reads as constant motion', () => {
+    expect(rules(piece(['push_in', 'still', 'drift', 'still'], [1, 3]))).toContain(
+      'creative.constant_motion',
+    );
+  });
+
+  it('a piece that alternates a moving clip with a held still is not flagged either way', () => {
+    const found = rules(piece(['still', 'push_in', 'still', 'still'], [0]));
+    expect(found).not.toContain('creative.no_motion');
+    expect(found).not.toContain('creative.constant_motion');
+  });
+});

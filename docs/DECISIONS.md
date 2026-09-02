@@ -12668,3 +12668,26 @@ timeout was wrong, not because the file was big, and picture quality is not
 the thing to trade for it. The test that caught this was the one asserting the
 client never takes the 4K master; it started failing the other way, which is
 what a bound written from both sides is for.
+
+## §505 · When the clip moves, the camera holds
+
+The first piece with real footage passed its critic, its copy gate and — at
+142 words a minute, which is §496's derivation landing inside the band on the
+first try — its audio. The creative gate raised one warning worth acting on:
+*"Every beat moves."*
+
+It was right for a reason it could not see. Two of the four footage beats had
+been given a `cut` camera move on top of a clip that was already moving, which
+is two motions fighting and the clearest mark of an amateur edit. The
+screenwriter now knows: **a footage scene already moves, so its camera usually
+holds**; `push_in`, `drift` and `cut` are for the photographs, where the camera
+is the only thing that can move.
+
+And the gate now counts what a viewer sees rather than what the camera was
+told to do. `creative.no_motion` and `creative.constant_motion` counted camera
+moves and entrances, which was the whole story while every ground was a still.
+A beat carrying footage moves whatever its camera does — so counting the
+camera alone would call the *best-composed* footage beat motionless, and read
+a piece that never stops moving as restful. Both rules now include footage in
+the count, which is the same correction §487 made to pacing: a measurement is
+only as good as the thing it is divided by.

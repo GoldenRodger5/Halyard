@@ -70,6 +70,16 @@ describe('§501 the footage brief reaches the model', () => {
     expect(prompt).toMatch(/groundSubject/);
   });
 
+  it('§505: tells the writer a footage scene already moves, so its camera holds', async () => {
+    const { llm, prompts } = capturing();
+    await writeScreenplay(input({ hasFootage: true }), llm);
+    const prompt = prompts.join('\n');
+    expect(prompt).toMatch(/already moves/);
+    expect(prompt).toMatch(/move: "hold"/);
+    /* And where the camera moves *are* the motion. */
+    expect(prompt).toMatch(/push_in.*photographs|photographs, where the camera/);
+  });
+
   it('refuses footage for the product, because a stock clip cannot contain it', async () => {
     const { llm, prompts } = capturing();
     await writeScreenplay(input({ hasFootage: true }), llm);
