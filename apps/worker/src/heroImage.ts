@@ -42,7 +42,8 @@ import {
   type Shot,
 } from '@halyard/core';
 import type { HandlerContext } from './poller.js';
-import { uploadAsset } from './storage.js';
+import { readAssetBytes, uploadAsset } from './storage.js';
+import { recordPaidCall } from './paidCalls.js';
 import { isProviderExhausted } from '@halyard/core';
 
 /**
@@ -64,6 +65,8 @@ const MOOD_FOR_LANGUAGE: Record<string, string> = {
 const DEFAULT_MOOD = 'natural light, honest and unstyled, shallow depth of field';
 
 export interface HeroImageRequest {
+  /** §494. Scopes photograph reuse to this product's own library. */
+  productId?: string;
   /** What the picture is of, in plain words. Never the product's interface. */
   subject: string;
   /**
@@ -139,6 +142,46 @@ export async function generateHeroImage(
   const prompt = heroPrompt(request);
   const alt = heroAlt(request.subject);
 
+  /*
+   * §494. A photograph already taken of this subject is used before another
+   * is bought. Six test runs of one subject bought forty-odd images of herbs
+   * in jars; the third would have done. Rotated by least-recently-used so the
+   * same picture does not lead two consecutive pieces, and bounded by age so a
+   * product that has changed its look does not keep its old one forever.
+   */
+  const reuseDays = Number(process.env.HALYARD_PHOTO_REUSE_DAYS ?? 30);
+  if (reuseDays > 0 && request.subject.trim()) {
+    const { rows } = await ctx.pool.query<{
+      id: string;
+      storage_path: string | null;
+      public_url: string | null;
+      mime_type: string;
+    }>(
+      `select id, storage_path, public_url, mime_type from assets
+        where kind = 'generated' and archived_at is null
+          and lower(subject) = lower($1)
+          and ($2::text is null or product_id = $2)
+          and created_at > now() - make_interval(days => $3)
+        order by last_used_at asc nulls first, created_at desc
+        limit 1`,
+      [request.subject.trim(), request.productId ?? null, reuseDays],
+    );
+    const found = rows[0];
+    if (found) {
+      const bytes = await readAssetBytes(found.storage_path, found.public_url);
+      if (bytes) {
+        await ctx.pool.query('update assets set last_used_at = now() where id = $1', [found.id]);
+        ctx.log('photograph reused', {
+          contentItemId: request.contentItemId,
+          assetId: found.id,
+          subject: request.subject,
+          because: `an image of this subject from the last ${reuseDays} days exists; nothing was bought`,
+        });
+        return { assetId: found.id, bytes, mimeType: found.mime_type, costUsd: 0 };
+      }
+    }
+  }
+
   let image: GeneratedImage;
   try {
     /*
@@ -207,6 +250,16 @@ export async function generateHeroImage(
     because:
       `A photograph of ${request.subject}, because that is the physical thing this piece is about. ` +
       'It is illustration and carries `generated` provenance, so it can never stand as evidence for a claim about the product.',
+  });
+
+  /* §494. Bought, so the ledger knows. */
+  await recordPaidCall(ctx.pool, {
+    agentId: 'image-generator',
+    jobId: ctx.jobId,
+    model: 'gpt-image-1',
+    costUsd: image.costUsd,
+    units: { images: 1, subject: request.subject.slice(0, 80) },
+    estimate: true,
   });
 
   return { assetId: stored.id, bytes, mimeType: image.mimeType, costUsd: image.costUsd };

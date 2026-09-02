@@ -56,3 +56,11 @@ export function providerRefusal(provider: string, status: number, body: string):
 export function isProviderExhausted(err: unknown): err is ProviderUnavailable {
   return err instanceof ProviderUnavailable && err.exhausted;
 }
+
+/** §494. What one paid call cost, reported to whoever keeps the ledger. */
+export interface ProviderUsage {
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+  costUsd: number;
+}

@@ -26,13 +26,16 @@ export interface Settings {
   learning_min_posts_per_category: number;
   /** null means keep everything — the absence of a policy, not a policy. */
   log_retention_days: number | null;
+  /** §494. Paid job kinds wait for tomorrow once today's ledger passes this. */
+  daily_budget_usd: number;
 }
 
 export async function getSettings(): Promise<Settings> {
   return (
     (await one<Settings>(
       `select publishing_enabled, publishing_disabled_reason, generation_enabled,
-              learning_min_posts_per_category, log_retention_days
+              learning_min_posts_per_category, log_retention_days,
+              daily_budget_usd::float as daily_budget_usd
          from settings where id = true`,
     )) ?? {
       publishing_enabled: false,
@@ -40,6 +43,7 @@ export async function getSettings(): Promise<Settings> {
       generation_enabled: true,
       learning_min_posts_per_category: 20,
       log_retention_days: null,
+      daily_budget_usd: 5,
     }
   );
 }
@@ -241,6 +245,8 @@ export interface QueueItem {
   render_total: number;
   render_done: number;
   render_failed: number;
+  /** §494. Every paid call attributed to this piece, in USD, from the ledger. */
+  cost_usd: number;
   render_error: string | null;
   preview_urls: string[];
   artifact_headline: string | null;
@@ -404,7 +410,8 @@ const QUEUE_SELECT = `
          r.first_error         as render_error,
          coalesce(r.urls, '{}') as preview_urls,
          coalesce(r.treatments, '{}') as treatments,
-         coalesce(att.urls, '{}') as attached_urls
+         coalesce(att.urls, '{}') as attached_urls,
+         coalesce(cc.usd, 0)::float as cost_usd
     from content_items ci
     join products p on p.id = ci.product_id
     left join social_accounts sa on sa.id = ci.account_id
@@ -436,6 +443,7 @@ const QUEUE_SELECT = `
         from assets a
        where a.id = any(ci.attached_asset_ids)
     ) att on true
+    left join content_item_costs cc on cc.content_item_id = ci.id
 `;
 
 export async function getQueue(filters: {
@@ -1189,4 +1197,44 @@ export async function getReplyHistory(): Promise<ReplyHistory> {
         ? null
         : Math.round(Number(row.median_latency)),
   };
+}
+
+/**
+ * §494. What one piece cost, by who spent it.
+ *
+ * The ledger attributes a paid call to a piece through the job that made it —
+ * downstream jobs carry the item id, the generate job is remembered on the
+ * piece — so this is the sum the operator sees before approving.
+ */
+export async function getPieceCosts(
+  contentItemId: string,
+): Promise<{ total: number; byAgent: Array<{ agent: string; calls: number; usd: number; estimate: boolean }> }> {
+  const rows = await query<{ agent: string; calls: string; usd: string; estimate: boolean }>(
+    `select r.agent_id as agent,
+            count(*)::text as calls,
+            sum(r.cost_usd)::text as usd,
+            bool_or(coalesce((r.output_ref ->> 'estimate')::boolean, false)) as estimate
+       from content_items ci
+       join jobs j on j.payload ->> 'contentItemId' = ci.id::text
+                   or j.id::text = ci.generation_meta ->> 'jobId'
+       join agent_runs r on r.trigger = 'job' and r.trigger_ref = j.id::text and r.cost_usd is not null
+      where ci.id = $1
+      group by r.agent_id
+      order by sum(r.cost_usd) desc`,
+    [contentItemId],
+  );
+  const byAgent = rows.map((r) => ({ agent: r.agent, calls: Number(r.calls), usd: Number(r.usd), estimate: r.estimate }));
+  return { total: byAgent.reduce((t, a) => t + a.usd, 0), byAgent };
+}
+
+/** §494. Today's paid calls against the daily budget, for the readiness row and the system page. */
+export async function getSpendToday(): Promise<{ spentUsd: number; budgetUsd: number; calls: number }> {
+  const row = await one<{ spent: string | null; calls: string; budget: string }>(
+    `select (select sum(cost_usd)::text from agent_runs
+              where started_at >= date_trunc('day', now()) and cost_usd is not null) as spent,
+            (select count(*)::text from agent_runs
+              where started_at >= date_trunc('day', now()) and cost_usd is not null) as calls,
+            (select daily_budget_usd::text from settings where id = true) as budget`,
+  );
+  return { spentUsd: Number(row?.spent ?? 0), budgetUsd: Number(row?.budget ?? 5), calls: Number(row?.calls ?? 0) };
 }

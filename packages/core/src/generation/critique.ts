@@ -16,6 +16,8 @@ import {
   type CriticFrame,
   type CriticVerdict,
 } from '../qc/critic.js';
+import { openAiChatCostUsd } from './openai.js';
+import type { ProviderUsage } from './provider.js';
 import type { ImageInput } from './vision.js';
 
 export interface CriticClient {
@@ -37,7 +39,9 @@ export const CRITIC_MODEL = 'gpt-5.5';
 interface ChatResponse {
   choices?: Array<{ message?: { content?: string | null } }>;
   error?: { message?: string };
+  usage?: { prompt_tokens?: number; completion_tokens?: number };
 }
+
 
 export class OpenAiCriticClient implements CriticClient {
   private readonly apiKey: string;
@@ -48,6 +52,8 @@ export class OpenAiCriticClient implements CriticClient {
     apiKey = process.env.OPENAI_API_KEY,
     fetchImpl: typeof fetch = fetch,
     model = CRITIC_MODEL,
+    /** §494. Called after every successful call with what it cost. */
+    private readonly onUsage?: (usage: ProviderUsage) => void,
   ) {
     const key = apiKey?.trim();
     if (!key) throw new Error('OPENAI_API_KEY is not set, so the critic cannot look at frames.');
@@ -112,6 +118,12 @@ export class OpenAiCriticClient implements CriticClient {
       const body = (await response.json()) as ChatResponse;
       if (!response.ok || body.error) {
         throw new Error(body.error?.message ?? `HTTP ${response.status}`);
+      }
+
+      if (body.usage && this.onUsage) {
+        const inputTokens = body.usage.prompt_tokens ?? 0;
+        const outputTokens = body.usage.completion_tokens ?? 0;
+        this.onUsage({ model: this.model, inputTokens, outputTokens, costUsd: openAiChatCostUsd(this.model, inputTokens, outputTokens) });
       }
 
       const text = body.choices?.[0]?.message?.content ?? '';

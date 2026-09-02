@@ -13,9 +13,9 @@
 import { Action, Label, Sheet, cx } from '@halyard/ui/studio';
 import { Deeper } from '@/components/studio/Deeper';
 import { getSystemHealth } from '@/lib/agentQueries';
-import { getNavCounts, getSettings } from '@/lib/queries';
+import { getNavCounts, getSettings, getSpendToday } from '@/lib/queries';
 import { query } from '@/lib/db';
-import { setGeneration, setKillSwitch } from '@/app/(studio)/master/system/actions';
+import { setDailyBudget, setGeneration, setKillSwitch } from '@/app/(studio)/master/system/actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,7 +27,7 @@ const STATE: Record<string, { label: string; tone: string }> = {
 };
 
 export default async function System() {
-  const [checks, settings, counts, jobs, deaths] = await Promise.all([
+  const [checks, settings, counts, jobs, deaths, spend] = await Promise.all([
     getSystemHealth(),
     getSettings(),
     getNavCounts(),
@@ -58,6 +58,7 @@ export default async function System() {
       order by count(*) desc
       limit 8`,
     ),
+    getSpendToday(),
   ]);
 
   const unknown = checks.filter((c) => c.state === 'unknown').length;
@@ -103,6 +104,33 @@ export default async function System() {
           <input type="hidden" name="enabled" value={settings.generation_enabled ? '0' : '1'} />
           <Action tone="ghost" small>
             {settings.generation_enabled ? 'Stop generating' : 'Start generating'}
+          </Action>
+        </form>
+      </Sheet>
+
+      {/* §494. The day's spend and its ceiling, beside the switch that spends it. */}
+      <Sheet tone={spend.spentUsd >= spend.budgetUsd ? 'lit' : 'plain'}>
+        <Label>Spend today</Label>
+        <p className="max-w-[74ch] text-[13px] leading-relaxed">
+          <span className="font-data tabular-nums">${spend.spentUsd.toFixed(2)}</span> of a{' '}
+          <span className="font-data tabular-nums">${spend.budgetUsd.toFixed(2)}</span> daily budget,
+          across {spend.calls} paid calls — model, images, frame review, voice.
+          {spend.spentUsd >= spend.budgetUsd
+            ? ' Paid work is waiting for tomorrow. Raise the budget to continue today.'
+            : ''}
+        </p>
+        <form action={setDailyBudget} className="mt-2.5 flex items-center gap-2">
+          <input
+            type="number"
+            name="budget"
+            min="0"
+            step="0.5"
+            defaultValue={spend.budgetUsd}
+            className="w-24 rounded border border-rule2 bg-transparent px-2 py-1 font-data text-[12px] tabular-nums"
+            aria-label="Daily budget in US dollars"
+          />
+          <Action tone="ghost" small>
+            Set daily budget
           </Action>
         </form>
       </Sheet>

@@ -27,6 +27,7 @@
  * happily, and the only symptom is that nobody hears anything.
  */
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { recordPaidCall } from '../paidCalls.js';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import {
@@ -543,6 +544,21 @@ export async function ttsHandler(job: Job, ctx: HandlerContext, deps: TtsDeps = 
       })),
       script,
       durationSeconds: mix.durationSeconds,
+    });
+
+    /*
+     * §494. The voice is paid per character. ElevenLabs bills in plan credits
+     * rather than dollars, so this is a list-price estimate — the Creator plan
+     * works out near $0.22 per thousand characters — marked as such, and
+     * overridable with ELEVENLABS_USD_PER_1K_CHARS when the plan differs.
+     */
+    await recordPaidCall(ctx.pool, {
+      agentId: 'voice-synthesis',
+      jobId: ctx.jobId,
+      model: 'elevenlabs',
+      costUsd: (script.length / 1000) * Number(process.env.ELEVENLABS_USD_PER_1K_CHARS ?? 0.22),
+      units: { characters: script.length },
+      estimate: true,
     });
 
     const qc = runAudioQC({

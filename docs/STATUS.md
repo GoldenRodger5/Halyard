@@ -15,6 +15,12 @@ written — `hasFootage` was false on every piece. Now:
 | proven | `scripts/preview-footage.ts` — still 2.25, clip 35.15 luma delta across one beat |
 | shown | gallery *What the frame does*: moving / photographed / flat, and why footage was declined |
 
+**Cost (§494).** The $20 day was eighty high-quality images the ledger never
+saw. Now: every paid call recorded, images at medium, photographs reused by
+subject, a $5/day budget that pauses paid work, per-piece cost on every
+gallery card and a breakdown on the detail page, concept batches capped.
+`docs/PLAN.md` is the plan of record.
+
 **Nothing can generate right now: both model accounts are out of credits.**
 OpenAI answers "no credits remaining" (chat, images, vision — probed 2 Sep)
 and Anthropic "credit balance is too low". `LLM_PROVIDER=openai` with

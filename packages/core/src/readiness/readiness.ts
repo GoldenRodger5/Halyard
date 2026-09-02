@@ -77,6 +77,9 @@ export interface ReadinessInput {
      * which is itself worth a warning, never a pass.
      */
     schemaMissing?: SchemaExpectation[];
+    /** §494. Today's ledger against the daily budget. Undefined when not read. */
+    spendTodayUsd?: number;
+    dailyBudgetUsd?: number;
   };
   attribution: {
     utmStampedPosts: number;
@@ -357,6 +360,24 @@ function pipelineSection(input: ReadinessInput): ReadinessSection {
         ? undefined
         : 'Nothing generates, renders, publishes or collects without it. Start it with ./scripts/halyard --worker.',
   });
+
+  /* §494. Money is the pipeline resource that runs out silently. */
+  if (p.spendTodayUsd !== undefined && p.dailyBudgetUsd !== undefined) {
+    const share = p.dailyBudgetUsd > 0 ? p.spendTodayUsd / p.dailyBudgetUsd : 1;
+    checks.push({
+      id: 'pipeline.spend',
+      label: "Today's spend is inside the budget",
+      state: share >= 1 ? 'fail' : share >= 0.8 ? 'warn' : 'pass',
+      detail: `$${p.spendTodayUsd.toFixed(2)} of $${p.dailyBudgetUsd.toFixed(2)} today.`,
+      fix:
+        share >= 1
+          ? 'Paid work is waiting for tomorrow. Raise the daily budget on /master/system to continue today, knowingly.'
+          : share >= 0.8
+            ? 'Close to the ceiling; the next generate may wait for tomorrow.'
+            : undefined,
+      needsYou: share >= 1,
+    });
+  }
 
   checks.push({
     id: 'pipeline.dead',

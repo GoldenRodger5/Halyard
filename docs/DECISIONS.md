@@ -12422,3 +12422,39 @@ refused that way; the poller treats an exhausted refusal as permanent for
 any job kind; and ElevenLabs gets the same treatment. The queue stops on
 the first attempt with *"fund one and the queue resumes on its own"*, which
 is true — nothing is marked failed that a topped-up account would not fix.
+
+## §494 · Twenty dollars, and the ledger said three
+
+The operator read a billing page: ~$20 in twelve hours. `agent_runs` — the
+only record of spend — said $2.29 for the day. The difference was **eighty
+images** on `gpt-image-1` with no `quality` sent, so the provider chose
+*auto*, which resolves to *high*: about $0.25 a portrait image against the
+$0.04 constant the code logged. Testing multiplied it (six re-runs of one
+herbs subject bought forty pictures of herbs in jars), but the multiplier
+was an unrecorded price, not the model calls.
+
+Five changes, in the order they matter:
+
+1. **Every paid call is in the ledger.** Images, the frame describer, the
+   critic and the voice now write `agent_runs` rows like model calls, with
+   units in `output_ref` and estimates marked. `content_item_costs` sums a
+   piece; the gallery card shows it; the detail page breaks it down by who
+   spent it. The generate job is remembered on the piece as
+   `generation_meta.jobId` so its calls attribute too.
+2. **Image quality is `medium`, explicitly, and priced by quality and size.**
+   A 9:16 social frame covers-and-crops the picture under type and a scrim;
+   medium is indistinguishable there and a quarter of the price.
+3. **A photograph of a subject is reused before another is bought** —
+   least-recently-used within thirty days, per product. Re-runs of a subject
+   now cost the voice and the words, not the pictures.
+4. **A daily budget** (`settings.daily_budget_usd`, default $5). Paid job
+   kinds wait for five past midnight once the ledger passes it — paused, not
+   failed, and never publishing. The readiness page and the system page say
+   so; the budget is raised knowingly, in one field.
+5. **Concept batches are bounded to three a day.** Every generate enqueued
+   one and every test re-run made a new idea: thirty-eight strategy-grade
+   calls a day to concepts nobody opened.
+
+Targets written into `docs/PLAN.md`: under $0.60 per finished short video,
+under $5 a day unless raised. The rule: a price the code does not record is
+a price the operator discovers.

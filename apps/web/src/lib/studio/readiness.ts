@@ -32,7 +32,7 @@ export interface Readiness {
 export async function readReadiness(): Promise<Readiness> {
   const product = await getCurrentProduct();
 
-  const [onboarding, accounts, worker, jobs, renders, flows, pipeline, attribution, settings, columns] =
+  const [onboarding, accounts, worker, jobs, renders, flows, pipeline, attribution, settings, columns, spend] =
     await Promise.all([
       product
         ? one<{
@@ -100,6 +100,12 @@ export async function readReadiness(): Promise<Readiness> {
             and (table_name, column_name) in (${SCHEMA_EXPECTATIONS.map((_, i) => `($${i * 2 + 1}, $${i * 2 + 2})`).join(', ')})`,
         SCHEMA_EXPECTATIONS.flatMap((e) => [e.table, e.column]),
       ).catch(() => null),
+      /* §494. Today's ledger and the ceiling it runs under. */
+      one<{ spent: string | null; budget: string | null }>(
+        `select (select sum(cost_usd)::text from agent_runs
+                  where started_at >= date_trunc('day', now()) and cost_usd is not null) as spent,
+                (select daily_budget_usd::text from settings where id = true) as budget`,
+      ).catch(() => null),
     ]);
 
   const totalRenders = Number(renders?.total ?? 0);
@@ -153,6 +159,7 @@ export async function readReadiness(): Promise<Readiness> {
       flowsNeverRun: Math.max(0, 3 - flows.length),
       pendingApproval: Number(pipeline?.pending ?? 0),
       ...(columns ? { schemaMissing: missingSchema(columns) } : {}),
+      ...(spend ? { spendTodayUsd: Number(spend.spent ?? 0), dailyBudgetUsd: Number(spend.budget ?? 5) } : {}),
     },
     attribution: {
       utmStampedPosts: Number(attribution?.stamped ?? 0),

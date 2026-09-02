@@ -10,7 +10,8 @@
  * handler's problem.
  */
 import { writeFile } from 'node:fs/promises';
-import { isProviderExhausted } from '@halyard/core';
+import { budgetDecision, isProviderExhausted, PAID_JOB_KINDS } from '@halyard/core';
+import { spentTodayUsd } from './paidCalls.js';
 import type pg from 'pg';
 import { JOB_POLICY, type JobKind } from '@halyard/db';
 import { scrubString } from '@halyard/core';
@@ -63,6 +64,8 @@ export type JobHandler = (job: Job, ctx: HandlerContext) => Promise<void>;
 export interface HandlerContext {
   pool: pg.Pool;
   workerId: string;
+  /** §494. The job this context serves, so a paid call can be attributed to it. */
+  jobId?: string;
   log: (message: string, detail?: Record<string, unknown>) => void;
   /** Enqueue follow-on work from inside a handler. */
   enqueue: (kind: JobKind, payload: Record<string, unknown>, options?: EnqueueOptions) => Promise<void>;
@@ -188,6 +191,7 @@ export class Poller {
     const context: HandlerContext = {
       pool: this.pool,
       workerId: this.workerId,
+      jobId: job.id,
       log: (message, detail) => {
         this.log(message, { ...detail, jobId: job.id, ...(stage ? { stage } : {}) });
         void this.pool
@@ -258,6 +262,43 @@ export class Poller {
           .catch(() => undefined);
       }
       return true;
+    }
+
+    /*
+     * §494. Paid work waits when the day's budget is spent. Paused, not
+     * failed: the job goes back to the queue for a few minutes past midnight,
+     * and nothing needs re-sending. Publishing and collection are never paid
+     * kinds and never wait.
+     */
+    if (PAID_JOB_KINDS.includes(job.kind)) {
+      const [spent, budgetRow] = await Promise.all([
+        spentTodayUsd(this.pool),
+        this.pool.query<{ daily_budget_usd: string }>('select daily_budget_usd from settings where id = true'),
+      ]);
+      const decision = budgetDecision({
+        kind: job.kind,
+        spentTodayUsd: spent,
+        dailyBudgetUsd: Number(budgetRow.rows[0]?.daily_budget_usd ?? 5),
+      });
+      if (!decision.proceed) {
+        await this.pool.query(
+          `update jobs
+              set status = 'queued', locked_at = null, locked_by = null,
+                  attempts = greatest(attempts - 1, 0),
+                  run_after = date_trunc('day', now()) + interval '1 day 5 minutes',
+                  last_error = $2
+            where id = $1`,
+          [job.id, decision.because ?? 'daily budget reached'],
+        );
+        this.log('budget paused', {
+          kind: job.kind,
+          jobId: job.id,
+          spentUsd: decision.spentUsd,
+          budgetUsd: decision.budgetUsd,
+          because: decision.because,
+        });
+        return true;
+      }
     }
 
     const startedAt = Date.now();

@@ -1086,11 +1086,26 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
      * `generate` for this idea takes the highest-scoring buildable concept when
      * nobody has. Deduped per idea so a retry does not buy a second batch.
      */
-    await ctx.enqueue(
-      'generate_concepts',
-      { productId, ideaId: idea.id },
-      { dedupeKey: `concepts:${idea.id}`, priority: 40 },
+    /*
+     * §494. Bounded per day. Every generate enqueued a batch and every test
+     * re-run made a new idea, so thirty-eight strategy-grade calls a day went
+     * to concepts nobody opened. Three batches a day is more than an operator
+     * chooses from; the Floor's own button is not bounded, because that is a
+     * person asking.
+     */
+    const { rows: batchesToday } = await ctx.pool.query<{ n: string }>(
+      `select count(*)::text as n from jobs
+        where kind = 'generate_concepts' and created_at >= date_trunc('day', now())`,
     );
+    if (Number(batchesToday[0]?.n ?? 0) < 3) {
+      await ctx.enqueue(
+        'generate_concepts',
+        { productId, ideaId: idea.id },
+        { dedupeKey: `concepts:${idea.id}`, priority: 40 },
+      );
+    } else {
+      ctx.log('concept batch skipped: three already today', { ideaId: idea.id });
+    }
 
     let artifact: ProductArtifact | null = null;
 
@@ -1819,6 +1834,8 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                 (job.payload.subject as string | undefined)?.trim() ||
                 subjectForImage(artifact, idea.title) ||
                 idea.title,
+              /* §494. The job that paid for this piece, for `content_item_costs`. */
+              jobId: job.id,
             }),
           ],
         );
@@ -2108,6 +2125,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
             ? await generateHeroImage(assets, imageClient, {
                 subject: heroSubject,
                 shot,
+                productId,
                 /*
                  * §351. From the post type's own canvas rather than from the
                  * platform. A carousel is 4:5 wherever it is posted, and a

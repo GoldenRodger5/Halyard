@@ -87,3 +87,12 @@ export async function exportData(): Promise<void> {
 
   revalidatePath('/master/system');
 }
+
+/** §494. The ceiling paid work waits under. Zero means no paid work today. */
+export async function setDailyBudget(formData: FormData): Promise<void> {
+  await requireOperator();
+  const budget = Number(formData.get('budget'));
+  if (!Number.isFinite(budget) || budget < 0 || budget > 1000) return;
+  await query('update settings set daily_budget_usd = $1 where id = true', [budget]);
+  revalidatePath('/master/system');
+}

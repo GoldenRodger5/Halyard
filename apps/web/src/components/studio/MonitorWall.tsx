@@ -118,6 +118,15 @@ export function Monitor({ item, selected }: { item: QueueItem; selected?: boolea
           which is exactly what the readiness check warns about. Age is the one
           fact that makes the wall triageable, and it is one field.
         */}
+        {/* §494. What it cost, from the ledger. The operator sees the price before approving. */}
+        {item.cost_usd > 0 ? (
+          <span
+            className="shrink-0 font-data text-[8px] tabular-nums text-[#7C918C]"
+            title={`API cost of this piece: $${item.cost_usd.toFixed(2)}`}
+          >
+            ${item.cost_usd.toFixed(2)}
+          </span>
+        ) : null}
         <span
           className={cx(
             'shrink-0 font-data text-[8px] tabular-nums',

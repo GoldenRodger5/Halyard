@@ -111,6 +111,7 @@ export async function photographBeats(
         shot,
         aspectRatio: '9:16',
         contentItemId: input.contentItemId,
+        productId: input.productId,
       });
     } catch (err) {
       if (isProviderExhausted(err)) {

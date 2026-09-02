@@ -31,7 +31,7 @@ import { PieceAccountPanel } from '@/components/PieceAccountPanel';
 import { TikTokPanel } from '@/components/TikTokPanel';
 import { lampFor, opening } from '@/components/studio/MonitorWall';
 import { routeFor } from '@/lib/studio/route';
-import { getProducts, getQueueItem, getTikTokPanel } from '@/lib/queries';
+import { getPieceCosts, getProducts, getQueueItem, getTikTokPanel } from '@/lib/queries';
 import { formatInOperatorTz } from '@/lib/format';
 import {
   adjustItem,
@@ -64,6 +64,8 @@ export default async function GalleryPiece({ params }: { params: Promise<{ id: s
   const { id } = await params;
   const item = await getQueueItem(id);
   if (!item) notFound();
+  /* §494. What this piece cost, by who spent it. */
+  const costs = await getPieceCosts(id);
 
   const products = await getProducts();
   const timeZone = products[0]?.operator_timezone ?? 'UTC';
@@ -324,6 +326,32 @@ export default async function GalleryPiece({ params }: { params: Promise<{ id: s
           that found nothing — three different problems with three different
           fixes, and the same picture.
         */}
+        {/*
+          §494. The price, before the approval. Every paid call attributed to
+          this piece — model, images, frame review, voice — with estimates
+          marked, so "$0.58" can be read as what it is.
+        */}
+        {costs.byAgent.length > 0 ? (
+          <Sheet>
+            <Label>What this cost</Label>
+            <p className="m-0 text-[12px] leading-relaxed text-quiet">
+              <span className="font-data tabular-nums text-ink">${costs.total.toFixed(2)}</span> in API
+              calls{costs.byAgent.some((a) => a.estimate) ? ', part of it estimated at list price' : ''}.
+            </p>
+            <ul className="m-0 mt-2 flex list-none flex-col gap-0.5 p-0 font-data text-[10.5px] text-quiet">
+              {costs.byAgent.map((a) => (
+                <li key={a.agent} className="flex justify-between gap-3 tabular-nums">
+                  <span>
+                    {a.agent} · {a.calls} {a.calls === 1 ? 'call' : 'calls'}
+                    {a.estimate ? ' · est.' : ''}
+                  </span>
+                  <span>${a.usd.toFixed(2)}</span>
+                </li>
+              ))}
+            </ul>
+          </Sheet>
+        ) : null}
+
         {item.grounds ? (
           <Sheet>
             <Label>What the frame does</Label>

@@ -39,6 +39,7 @@ export function testContext(overrides: Partial<HandlerContext> = {}): TestContex
   const build = (stage: string | null): TestContext => ({
     pool: undefined as unknown as pg.Pool,
     workerId: 'test-worker',
+    jobId: 'test-job',
     log: (message: string, detail?: Record<string, unknown>) => {
       logs.push(message);
       entries.push({ message, detail, stage });

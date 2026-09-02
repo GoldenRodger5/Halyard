@@ -18,6 +18,8 @@
  */
 import type { FrameObservation } from '../qc/coherence.js';
 import { providerRefusal } from './provider.js';
+import { openAiChatCostUsd } from './openai.js';
+import type { ProviderUsage } from './provider.js';
 
 export interface ImageInput {
   /** Raw bytes. PNG or JPEG. */
@@ -74,7 +76,9 @@ export const DESCRIBE_INSTRUCTION = [
 interface ChatResponse {
   choices?: Array<{ message?: { content?: string | null } }>;
   error?: { message?: string };
+  usage?: { prompt_tokens?: number; completion_tokens?: number };
 }
+
 
 const API = 'https://api.openai.com/v1/chat/completions';
 
@@ -90,6 +94,8 @@ export class OpenAiVisionClient implements VisionClient {
     apiKey = process.env.OPENAI_API_KEY,
     fetchImpl: typeof fetch = fetch,
     model = VISION_MODEL,
+    /** §494. Called after every successful call with what it cost. */
+    private readonly onUsage?: (usage: ProviderUsage) => void,
   ) {
     const key = apiKey?.trim();
     if (!key) throw new Error('OPENAI_API_KEY is not set, so frames cannot be described.');
@@ -141,6 +147,12 @@ export class OpenAiVisionClient implements VisionClient {
     if (!response.ok) {
       /* §491. A dead account fails the review loudly rather than killing the job unmeasured. */
       throw providerRefusal('openai-vision', response.status, data.error?.message ?? 'no reason given');
+    }
+
+    if (data.usage && this.onUsage) {
+      const inputTokens = data.usage.prompt_tokens ?? 0;
+      const outputTokens = data.usage.completion_tokens ?? 0;
+      this.onUsage({ model: this.model, inputTokens, outputTokens, costUsd: openAiChatCostUsd(this.model, inputTokens, outputTokens) });
     }
 
     const text = data.choices?.[0]?.message?.content ?? '';

@@ -18,6 +18,7 @@
  * comparison that happens in code afterwards.
  */
 import { readFile, unlink, writeFile } from 'node:fs/promises';
+import { recordPaidCall } from '../paidCalls.js';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import {
@@ -474,7 +475,18 @@ export async function reviewMediaHandler(
 
     let frames: FrameObservation[] = [];
     if (sampled.length > 0) {
-      const client = vision ?? new OpenAiVisionClient();
+      const client =
+        vision ??
+        new OpenAiVisionClient(undefined, undefined, undefined, (usage) =>
+          void recordPaidCall(ctx.pool, {
+            agentId: 'vision-describer',
+            team: 'quality',
+            jobId: job.id,
+            model: usage.model,
+            costUsd: usage.costUsd,
+            units: { inputTokens: usage.inputTokens, outputTokens: usage.outputTokens, frames: sampled.length },
+          }),
+        );
       try {
         frames = await client.describeFrames(sampled);
       } catch (err) {
@@ -519,7 +531,18 @@ export async function reviewMediaHandler(
     let criticVerdict = null as Awaited<ReturnType<CriticClient['critique']>> | null;
     if (sampled.length > 0) {
       try {
-        const criticClient = critic ?? new OpenAiCriticClient();
+        const criticClient =
+          critic ??
+          new OpenAiCriticClient(undefined, undefined, undefined, (usage) =>
+            void recordPaidCall(ctx.pool, {
+              agentId: 'creative-critic',
+              team: 'quality',
+              jobId: job.id,
+              model: usage.model,
+              costUsd: usage.costUsd,
+              units: { inputTokens: usage.inputTokens, outputTokens: usage.outputTokens, frames: sampled.length },
+            }),
+          );
         criticVerdict = await criticClient.critique(
           sampled.map((frame, i) => ({ ...frame, visibleText: frames[i]?.visibleText ?? [] })),
         );

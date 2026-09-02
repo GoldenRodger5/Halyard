@@ -31,13 +31,44 @@ const SIZES: Record<string, string> = {
 export const IMAGE_MODEL = 'gpt-image-1';
 
 /** Roughly, per image at these sizes. Recorded so a run's spend is visible. */
-const COST_PER_IMAGE_USD = 0.04;
+/**
+ * §494. What a `gpt-image-1` image costs, by quality and size, in USD.
+ *
+ * This file carried a single constant, 0.04, and never sent `quality` — so the
+ * provider chose *auto*, which resolves to **high**, and every portrait image
+ * cost about six times what the ledger said. Eighty images in a day of
+ * testing was most of a twenty-dollar bill that the recorded numbers put at
+ * three. Published list prices, per image; rounded up, so an estimate errs on
+ * the side the operator would rather it err on.
+ */
+export type ImageQuality = 'low' | 'medium' | 'high';
+export const IMAGE_PRICE_USD: Record<ImageQuality, Record<string, number>> = {
+  low: { '1024x1024': 0.011, '1024x1536': 0.016, '1536x1024': 0.016 },
+  medium: { '1024x1024': 0.042, '1024x1536': 0.063, '1536x1024': 0.063 },
+  high: { '1024x1024': 0.167, '1024x1536': 0.25, '1536x1024': 0.25 },
+};
+export function imagePriceUsd(quality: ImageQuality, size: string): number {
+  return IMAGE_PRICE_USD[quality][size] ?? IMAGE_PRICE_USD[quality]['1024x1536']!;
+}
+
+/**
+ * Medium, on purpose. A 9:16 social frame covers-and-crops a 1024×1536 image
+ * under type and a scrim; medium is indistinguishable there and costs a
+ * quarter of high. `IMAGE_QUALITY` overrides it for a deliberate run.
+ */
+export const DEFAULT_IMAGE_QUALITY: ImageQuality = 'medium';
+export function imageQualityFrom(env: NodeJS.ProcessEnv = process.env): ImageQuality {
+  const q = env.IMAGE_QUALITY?.trim().toLowerCase();
+  return q === 'low' || q === 'medium' || q === 'high' ? q : DEFAULT_IMAGE_QUALITY;
+}
 
 export interface OpenAiImageOptions {
   apiKey: string;
   model?: string;
   /** Injected in tests so no network is needed. */
   fetchImpl?: typeof fetch;
+  /** §494. Defaults to `IMAGE_QUALITY`, else medium. */
+  quality?: ImageQuality;
 }
 
 export class OpenAiImageClient implements ImageClient {
@@ -50,6 +81,7 @@ export class OpenAiImageClient implements ImageClient {
     const fetchImpl = this.options.fetchImpl ?? fetch;
     const model = this.options.model ?? IMAGE_MODEL;
     const size = SIZES[request.aspectRatio] ?? SIZES['1:1']!;
+    const quality = this.options.quality ?? imageQualityFrom();
 
     const response = await fetchImpl('https://api.openai.com/v1/images/generations', {
       method: 'POST',
@@ -61,6 +93,7 @@ export class OpenAiImageClient implements ImageClient {
         model,
         prompt: request.prompt,
         size,
+        quality,
         n: 1,
         /*
          * §268. `response_format` is **not** sent, and that is deliberate.
@@ -101,7 +134,7 @@ export class OpenAiImageClient implements ImageClient {
       prompt: request.prompt,
       alt: request.alt,
       model,
-      costUsd: COST_PER_IMAGE_USD,
+      costUsd: imagePriceUsd(quality, size),
     };
   }
 }

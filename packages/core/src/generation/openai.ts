@@ -82,6 +82,12 @@ const PRICING_PER_MTOK: Record<string, { input: number; output: number }> = {
   'gpt-5-mini': { input: 0.25, output: 2 },
 };
 
+/** §494. USD for one chat call on an OpenAI model, from the table above; unknown models priced as gpt-5.5. */
+export function openAiChatCostUsd(model: string, inputTokens: number, outputTokens: number): number {
+  const pricing = PRICING_PER_MTOK[model] ?? PRICING_PER_MTOK['gpt-5.5'] ?? { input: 1.75, output: 14 };
+  return Number(((inputTokens / 1_000_000) * pricing.input + (outputTokens / 1_000_000) * pricing.output).toFixed(6));
+}
+
 const API = 'https://api.openai.com/v1/chat/completions';
 
 interface ChatResponse {
