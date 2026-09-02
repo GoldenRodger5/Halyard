@@ -12069,3 +12069,32 @@ at this line"* is acted on differently from *"the composition is flat"*.
 
 `examined` is what separates *"read it and found nothing"* from *"never ran"*.
 The panel says so out loud, because a quiet critic must never read as approval.
+
+## §476 · An opening the writer would not shorten
+
+§454's rule-naming paid for itself on its first use. A caption failed three
+times and the log finally said which rule:
+
+> `structure.opening_line — Opening line is 18 words. Ceiling is 12.`
+
+The rule is stated plainly in the writer's own brief — *"Opening line: twelve
+words maximum. The hook is the first three to five words."* So this is not
+§411's shape, where the writer discovered the house style one refusal at a time.
+The brief and the gate agreed, the writer was told, and it wrote 18 anyway,
+three times. §449 identifies that as the point where retries settle nothing.
+
+It is also, often, not a writing problem. An 18-word opening usually contains a
+clause boundary, and moving the full stop there produces a short hook and a
+second sentence with **every word kept and nothing rephrased**. That is
+copy-editing, which is what `repairCopy` is for, and it is the same operation
+`splitLongLine` performs on a beat.
+
+**The limit is the interesting part.** Splitting *"A, because B"* at the comma
+produces *"Because B."* — a fragment, and a conspicuous one. A subordinating
+conjunction or a relative pronoun binds its clause to the one before it, and
+moving a full stop in front of it does not release it. So the repair splits only
+where the tail can stand as a sentence, which makes it fire less often.
+
+That is the right trade. What it declines is a sentence that genuinely needs a
+writer, and declining says so by leaving the gate to refuse it — a repair that
+produced fragments would be worse than the overrun it fixed.

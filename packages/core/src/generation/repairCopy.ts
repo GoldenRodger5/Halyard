@@ -141,6 +141,19 @@ export function repairCopy(body: string, hashtags: string[] = []): RepairedCopy 
     text = tidied;
   }
 
+  /* §476. The opening, if it is over the ceiling and can be split cleanly. */
+  const shortened = splitLongOpening(text);
+  if (shortened) {
+    repairs.push({
+      rule: 'structure.opening_line',
+      from: text,
+      to: shortened,
+      because:
+        'the opening sentence ran past the twelve-word ceiling and had a clause boundary inside it, so the full stop moved there',
+    });
+    text = shortened;
+  }
+
   /*
    * Hashtags get the same punctuation treatment: a curly apostrophe in a tag
    * makes it a different tag, which is a silent reach problem rather than a
@@ -151,6 +164,81 @@ export function repairCopy(body: string, hashtags: string[] = []): RepairedCopy 
   );
 
   return { body: text, hashtags: repairedTags, repairs };
+}
+
+/**
+ * §476. An opening sentence over the ceiling, split at its own clause boundary.
+ *
+ * Measured: a caption whose first sentence ran **18 words against a ceiling of
+ * 12**, refused three times, piece abandoned — with the rule stated plainly in
+ * the writer's own brief ("Opening line: twelve words maximum"). The brief and
+ * the gate agreed and the writer did not comply, which §449 identifies as the
+ * point where further retries settle nothing.
+ *
+ * It is also, very often, not a writing problem. An 18-word opening usually
+ * contains a clause boundary, and putting a full stop there produces a short
+ * hook and a second sentence — every word kept, nothing rephrased. That is
+ * copy-editing, which is what this module is for, and it is the same operation
+ * `splitLongLine` performs on a beat.
+ *
+ * Only where the split leaves a head that is actually a hook: three words or
+ * more, and under the ceiling. Where it does not, the sentence is genuinely too
+ * long and needs a writer, so it is left alone and the gate refuses it.
+ */
+const OPENING_CEILING_WORDS = 12;
+
+function splitLongOpening(body: string): string | null {
+  const trimmed = body.trimStart();
+  const firstBreak = trimmed.search(/[.!?](\s|$)/);
+  const opening = firstBreak === -1 ? trimmed : trimmed.slice(0, firstBreak + 1);
+  const openingWords = opening.trim().split(/\s+/).filter(Boolean).length;
+  if (openingWords <= OPENING_CEILING_WORDS) return null;
+
+  /*
+   * Candidate boundaries inside the opening only. A colon is excluded: it
+   * introduces what follows, and a full stop after it breaks the sentence's
+   * own logic.
+   */
+  const boundaries: number[] = [];
+  const re = /,\s+|;\s+|\s+—\s+/g;
+  for (let m = re.exec(opening); m; m = re.exec(opening)) boundaries.push(m.index);
+  if (boundaries.length === 0) return null;
+
+  /* The last boundary that still leaves a head inside the ceiling. */
+  let chosen = -1;
+  for (const at of boundaries) {
+    const head = opening.slice(0, at).trim();
+    const headWords = head.split(/\s+/).filter(Boolean).length;
+    if (headWords >= 3 && headWords <= OPENING_CEILING_WORDS) chosen = at;
+  }
+  if (chosen === -1) return null;
+
+  const head = opening.slice(0, chosen).trim().replace(/[,;]$/, '');
+  const tail = opening.slice(chosen).replace(/^[,;\s—]+/, '').trim();
+  if (tail.split(/\s+/).filter(Boolean).length < 3) return null;
+
+  /**
+   * The tail has to be able to stand as a sentence.
+   *
+   * Splitting *"Cast iron was a wedding gift, because a good pan outlasted the
+   * marriage"* at the comma produces *"Because a good pan outlasted the
+   * marriage."* — a fragment, and a conspicuous one. A subordinating
+   * conjunction or a relative pronoun binds the clause to the one before it,
+   * and moving a full stop in front of it does not release it.
+   *
+   * This makes the repair fire less often, and that is the right trade: what it
+   * declines is a sentence that genuinely needs a writer, and it says so by
+   * leaving the gate to refuse it. A repair that produced fragments would be
+   * worse than the overrun it fixed.
+   */
+  const BINDS_TO_THE_CLAUSE_BEFORE =
+    /^(because|which|who|whom|whose|that|so that|although|though|while|whilst|since|unless|until|when|whenever|where|whereas|if|as)\b/i;
+  if (BINDS_TO_THE_CLAUSE_BEFORE.test(tail)) return null;
+
+  /* Sentence case on the tail, since it is now a sentence. */
+  const tailSentence = tail.charAt(0).toUpperCase() + tail.slice(1);
+  const rest = firstBreak === -1 ? '' : trimmed.slice(firstBreak + 1);
+  return `${head}. ${tailSentence}${rest}`;
 }
 
 /** One line for the log: what was fixed without spending an attempt. */

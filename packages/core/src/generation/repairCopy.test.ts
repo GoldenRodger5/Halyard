@@ -82,3 +82,61 @@ describe('mechanical copy repair', () => {
     expect(describeRepairs(out.repairs)).toMatch(/^Repaired /);
   });
 });
+
+/**
+ * §476. An opening over the ceiling, split at its own clause boundary.
+ *
+ * Measured: a caption whose first sentence ran 18 words against a ceiling of
+ * 12, refused three times, piece abandoned — with the rule stated plainly in
+ * the writer's own brief. The brief and the gate agreed and the writer did not
+ * comply, which §449 identifies as the point where retries settle nothing.
+ */
+describe('an opening sentence past the ceiling', () => {
+  const errorsFor = (body: string) =>
+    slopFilter({ body, platform: 'tiktok', hashtags: ['a', 'b', 'c'] }).errors.map((e) => e.rule);
+
+  it('turns copy the gate refuses into copy it accepts', () => {
+    const long =
+      'Cast iron was once a wedding gift, and a good pan outlasted the marriage itself. Which do you own?';
+    expect(errorsFor(long)).toContain('structure.opening_line');
+    expect(errorsFor(repairCopy(long).body)).not.toContain('structure.opening_line');
+  });
+
+  it('splits at a semicolon too', () => {
+    const long =
+      'Cast iron was once a wedding gift; a good pan outlasted the marriage itself easily. Worth a save?';
+    expect(errorsFor(repairCopy(long).body)).not.toContain('structure.opening_line');
+  });
+
+  /**
+   * The limit, and it is deliberate. Splitting "A, because B" produces
+   * "Because B." — a fragment, and a conspicuous one. What this declines is a
+   * sentence that genuinely needs a writer, and it says so by leaving the gate
+   * to refuse it.
+   */
+  it('refuses to split where the tail cannot stand alone', () => {
+    const long =
+      'Cast iron was a wedding gift, because a good pan outlasted the marriage itself. Which one do you own?';
+    expect(repairCopy(long).body).toBe(long);
+    expect(errorsFor(repairCopy(long).body)).toContain('structure.opening_line');
+  });
+
+  it('leaves an opening already inside the ceiling alone', () => {
+    const fine = 'Yeast is not the sour part. The tang comes from bacteria. Which starter do you keep?';
+    expect(repairCopy(fine).body).toBe(fine);
+  });
+
+  it('keeps every word it moves a full stop past', () => {
+    const long =
+      'Cast iron was once a wedding gift, and a good pan outlasted the marriage itself. Which do you own?';
+    const words = (t: string) => t.toLowerCase().match(/[a-z]+/g) ?? [];
+    expect(words(repairCopy(long).body)).toEqual(words(long));
+  });
+
+  it('says what it did and why', () => {
+    const long =
+      'Cast iron was once a wedding gift, and a good pan outlasted the marriage itself. Which do you own?';
+    const repair = repairCopy(long).repairs.find((r) => r.rule === 'structure.opening_line')!;
+    expect(repair.because).toMatch(/clause boundary/);
+  });
+});
