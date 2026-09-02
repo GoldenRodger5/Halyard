@@ -16,6 +16,7 @@
  *   4. A hook that promises something the body does not deliver is clickbait,
  *      and it trains an audience to distrust the account (I.5).
  */
+import { scoreHookCraft } from './hookCraft.js';
 import { extractJson, type LlmClient, CLASSIFY_MODEL, DRAFT_MODEL } from './llm.js';
 
 // ── I.2 — the taxonomy ─────────────────────────────────────────────────────
@@ -292,10 +293,33 @@ export function surfaceBestVariants(
     }))
     .sort((a, b) => b.score - a.score);
 
+  /**
+   * §443. Every variant is judged; only the surfacing stops at the limit.
+   *
+   * This loop used to `break` out entirely once five were kept, so anything
+   * ranked below the fifth was never examined and never appeared in
+   * `rejected`. That was invisible while every variant tied at 0.5 and the
+   * order was whatever the model emitted — craft scoring reorders them, and a
+   * genuinely bad hook now sorts to the bottom, which is exactly where it
+   * stopped being reported.
+   *
+   * The reasons are the point: this module's own header says *"returns the
+   * reason rather than a boolean, because the reason is what makes the next
+   * generation better"*. A reason that is only produced for the variants that
+   * happened to rank high is a reason for the wrong half of the set.
+   */
   for (const { variant } of scored) {
     const problem = findHookProblem(variant, context);
     if (problem) {
       rejected.push({ variant, ...problem });
+      continue;
+    }
+    if (surfaced.length >= limit) {
+      rejected.push({
+        variant,
+        rule: 'hook.below_the_cut',
+        reason: `Sound, and ${limit} better-built variants ranked above it.`,
+      });
       continue;
     }
 
@@ -332,7 +356,6 @@ export function surfaceBestVariants(
       ...variant,
       ...predictStopRate(variant, history, context.format ?? 'unknown', context.platform),
     });
-    if (surfaced.length >= limit) break;
   }
 
   return { surfaced, rejected };
@@ -345,8 +368,26 @@ function scoreVariant(
   platform?: string,
 ): number {
   const match = matchPerformance(history, variant.hookType, format, platform);
-  // With no data every type is equal, which is the honest position.
-  if (!match || match.samples < 3) return 0.5;
+  /**
+   * §443. With no data, rank on craft rather than on nothing.
+   *
+   * "With no data every type is equal" was the honest position about
+   * *performance* and it is still true — this does not touch that. But it also
+   * meant every one of the eight variants scored exactly 0.5, so the sort was
+   * stable-by-emission-order and the strongest hook won only by luck. Halyard
+   * has measured nothing (gotcha 9, and correctly), so that is not a cold-start
+   * case that ends; it is every generation, forever, until something publishes.
+   *
+   * `scoreHookCraft` is not a performance prediction and must never be read as
+   * one. It grades how the line is *built* — whether it names something
+   * concrete, whether that thing is in the first three words, whether it opens
+   * on a phrasing that now reads as filler — which is checkable by reading it
+   * and true regardless of what any platform later reports.
+   *
+   * The moment three real observations exist for a type, they win outright.
+   * An opinion yields to a measurement; that is the whole ordering here.
+   */
+  if (!match || match.samples < 3) return scoreHookCraft(variant.textHook).score;
   return match.viewThroughRate;
 }
 

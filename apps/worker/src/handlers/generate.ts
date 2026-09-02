@@ -34,6 +34,7 @@ import {
   type SlopPlatform,
   photographicSubject,
   chooseShot,
+  withContinuity,
   motionFor,
   chooseCaptionShape,
   OpenAIEmbeddingClient,
@@ -122,6 +123,7 @@ import { PermanentJobFailure } from '../poller.js';
 import type { Job, HandlerContext } from '../poller.js';
 import { generateHeroImage } from '../heroImage.js';
 import { recentShots } from '../shotRecency.js';
+import { continuityFor } from '../continuity.js';
 import { photographBeats } from '../beatPhotographs.js';
 import { markForBeat } from '../beatMark.js';
 import { pickProductShot } from '../productShot.js';
@@ -1280,6 +1282,25 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
          * gap and the least obvious, because nothing renders: every individual
          * caption is fine and the account still reads as automated.
          */
+        /**
+         * §444. One reading of the account, consulted by every chooser.
+         *
+         * Five recency mechanisms each rotated their own vocabulary in
+         * ignorance of the other four and of anything but the immediately
+         * previous piece — so five individually varied pieces could be
+         * collectively monotonous, which is the original repetition complaint
+         * one level up. Read once here and passed down; the choosers still
+         * decide.
+         */
+        const continuity = await continuityFor(ctx.pool, { productId });
+        if (continuity.overused.length > 0) {
+          ctx.log('account continuity', {
+            productId,
+            overused: continuity.summary,
+            axes: [...new Set(continuity.overused.map((r) => r.axis))],
+          });
+        }
+
         const recentShapes = await ctx.pool.query<{ caption_shape: string }>(
           `select caption_shape from content_items
             where product_id = $1 and caption_shape is not null
@@ -1301,7 +1322,12 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
               (s) => (s as { isQuestion?: boolean }).isQuestion === true,
             ),
           },
-          recent: recentShapes.rows.map((r) => r.caption_shape),
+          /* §444. Widened with the account's shape, not only the last piece's. */
+          recent: withContinuity(
+            recentShapes.rows.map((r) => r.caption_shape),
+            continuity,
+            'caption_shape',
+          ),
           /* §421. Ties spread across pieces briefed at once, which all read the
              same empty history because they overlap. */
           seed: job.id,
@@ -1310,6 +1336,9 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
           shape: captionShape.shape,
           because: captionShape.reason,
           alternatives: captionShape.alternatives,
+          ...(continuity.overused.some((r) => r.axis === 'caption_shape')
+            ? { continuity: continuity.summary }
+            : {}),
         });
 
         const draft = await writeDraft(
@@ -1700,14 +1729,30 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
          * framing, light and surface, each rotated against what this product
          * actually shot recently.
          */
+        /**
+         * §444. The account's look, not only the last picture's.
+         *
+         * `chooseShot` picks the framing least recently *used*, which cannot
+         * see three overhead flat-lays in the last eight if a macro detail sat
+         * between two of them: the axis reads as varied and the grid does not.
+         * `withContinuity` prepends anything over-represented, so the existing
+         * rotation demotes it by the mechanism it already has.
+         */
         const shot = chooseShot({
           format: chosenFormat.format.id,
-          recent: await recentShots(ctx.pool, { productId }),
+          recent: withContinuity(
+            await recentShots(ctx.pool, { productId }),
+            continuity,
+            'framing',
+          ),
         });
         assets.log('shot chosen', {
           contentItemId,
           shot: shot.id,
           because: shot.reason,
+          ...(continuity.overused.some((r) => r.axis === 'framing')
+            ? { continuity: continuity.summary }
+            : {}),
         });
         const hero =
           heroSubject && imageClient
@@ -2396,6 +2441,35 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                  */
                 const allBeats =
                   (props as { beats?: Array<Record<string, unknown>> }).beats ?? [];
+                /**
+                 * §444. A screenplay that turned every picture off has not
+                 * made a decision.
+                 *
+                 * Measured on the first live run of §441: the screenwriter
+                 * returned `ground: 'colour'` on all four scenes and the piece
+                 * rendered with **zero photographs** — a stack of flat text
+                 * cards, which is precisely what §407 fixed and what
+                 * `coherence.entirely_static` and
+                 * `retention.no_pattern_interrupt` both exist to refuse.
+                 *
+                 * A flat ground is punctuation. Punctuation everywhere is not
+                 * emphasis, it is the absence of it, and it is far more likely
+                 * to be the model taking the parser's default than a director
+                 * calling for a wall of cards. So the direction is honoured
+                 * where it is a *choice* and ignored where it is unanimous —
+                 * the same reasoning that keeps the payoff held however the
+                 * screenplay weights the beats.
+                 */
+                const flatRequests = allBeats.filter((b) => b.wantsFlatGround === true).length;
+                const flatIsUnanimous = flatRequests > 0 && flatRequests === allBeats.length;
+                if (flatIsUnanimous) {
+                  ctx.log('every scene asked for a flat ground, so none did', {
+                    beats: allBeats.length,
+                    because:
+                      'A piece with no picture on any beat fails the pattern-interrupt rule and reads as a slide deck. Treated as the screenplay declining to choose.',
+                  });
+                }
+
                 const groups: number[] = [];
                 for (const [i, b] of allBeats.entries()) {
                   /**
@@ -2411,14 +2485,13 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                    * nothing, and a piece that is photographs end to end has no
                    * punctuation. Skipping it also saves a generation.
                    */
-                  if (b.wantsFlatGround === true) continue;
+                  if (b.wantsFlatGround === true && !flatIsUnanimous) continue;
                   const g = (b.photographGroup as number | undefined) ?? i;
                   if (!groups.includes(g)) groups.push(g);
                 }
-                const flatGrounds = allBeats.filter((b) => b.wantsFlatGround === true).length;
-                if (flatGrounds > 0) {
+                if (flatRequests > 0 && !flatIsUnanimous) {
                   ctx.log('screenplay called for flat ground', {
-                    beats: flatGrounds,
+                    beats: flatRequests,
                     photographed: groups.length,
                   });
                 }
