@@ -33,6 +33,7 @@ import {
   bandFor,
   channelForPlatform,
   formatById,
+  PLATFORM_STRATEGIES,
   runVisualQC,
   type CoherenceIntent,
   type FrameObservation,
@@ -552,6 +553,8 @@ export async function reviewMediaHandler(
      * `unmeasured` and drop the gate to `warning` rather than passing quietly,
      * because a skipped check is not a passed check.
      */
+    const strategy =
+      PLATFORM_STRATEGIES[item.platform as keyof typeof PLATFORM_STRATEGIES] ?? null;
     const retention = runRetentionQC(
       {
         fps: probe.fps ?? 30,
@@ -603,9 +606,25 @@ export async function reviewMediaHandler(
       },
       {
         platform: item.platform,
-        // TikTok and Reels reward replays. Declared so the loop rule reports as
-        // unmeasured where it matters rather than being silently irrelevant.
-        loopReady: item.platform === 'tiktok' || item.platform === 'instagram',
+        /**
+         * §445. Derived from what the platform counts, not from a hand list.
+         *
+         * `loopReady: platform === 'tiktok' || platform === 'instagram'` was
+         * correct and was a second place the same fact lived — the shape
+         * gotcha 1 describes. A platform added to `PLATFORM_STRATEGIES` with
+         * `completion` as its signal now gets the loop rule automatically,
+         * rather than getting it whenever somebody remembers this line.
+         */
+        loopReady: strategy?.primarySignal === 'completion' || strategy?.primarySignal === 'saves',
+        /*
+         * §445. Twelve on a completion-ranked platform rather than fifteen.
+         * The research ceiling is one interrupt every 10-15s; where finishing
+         * *is* the ranking signal, the tighter end of that band is the one
+         * that matters and the looser one is a rule that rarely fires.
+         */
+        ...(strategy?.primarySignal === 'completion'
+          ? { maxSecondsBetweenInterrupts: 12 }
+          : {}),
         /**
          * §439. How long this should have run, on this platform.
          *

@@ -6,6 +6,8 @@
  * probe does not become "unsupported", and a strategy cannot recommend
  * something the account cannot do.
  */
+import { PRIMARY_SIGNALS } from './strategy.js';
+import { bandFor } from '../creative/length.js';
 import { describe, expect, it } from 'vitest';
 import {
   CAPABILITY_ACTIONS,
@@ -793,5 +795,50 @@ describe('declarations that are not derivable from a method name', () => {
     for (const platform of ['x', 'threads', 'instagram', 'tiktok', 'pinterest'] as const) {
       expect(adapterDeclares(platform, 'scheduling')).toBe(false);
     }
+  });
+});
+
+/**
+ * §445. The strategic model, actually reaching content.
+ *
+ * `PLATFORM_STRATEGIES` has described all seven platforms since P2 and was read
+ * by exactly one thing: a page in the web app that *displays* it. So the
+ * strategy was written down, kept current, shown to an operator, and never once
+ * changed a piece of content — the shape this codebase keeps recording, applied
+ * to its own strategy layer.
+ */
+describe('what each platform counts', () => {
+  it('gives every platform a primary signal and a brief a writer can act on', () => {
+    for (const strategy of Object.values(PLATFORM_STRATEGIES)) {
+      expect(PRIMARY_SIGNALS, strategy.platform).toContain(strategy.primarySignal);
+      expect(strategy.signalBrief.length, strategy.platform).toBeGreaterThan(1);
+      for (const line of strategy.signalBrief) {
+        /* Instructions, not description. A sentence a writer can do something with. */
+        expect(line.length, `${strategy.platform}: ${line}`).toBeGreaterThan(30);
+      }
+    }
+  });
+
+  it('does not give every platform the same brief, which would be the bug it fixes', () => {
+    const briefs = Object.values(PLATFORM_STRATEGIES).map((s) => s.signalBrief.join('|'));
+    expect(new Set(briefs).size).toBe(briefs.length);
+  });
+
+  it('separates the two video platforms that were being treated identically', () => {
+    expect(PLATFORM_STRATEGIES.tiktok.primarySignal).toBe('completion');
+    expect(PLATFORM_STRATEGIES.youtube.primarySignal).toBe('post_view_engagement');
+    expect(PLATFORM_STRATEGIES.instagram.primarySignal).toBe('saves');
+  });
+
+  it('agrees with the length bands, which were derived from the same reading', () => {
+    /*
+     * The platform that ranks on completion must have the tightest band of the
+     * three video platforms. If these two ever disagree, one of them is wrong
+     * and it is worth failing rather than shipping a piece built to a target
+     * that contradicts its own brief.
+     */
+    const target = (platform: string) => bandFor(platform, 'short_video')!.targetSeconds;
+    expect(target('tiktok')).toBeLessThan(target('youtube'));
+    expect(PLATFORM_STRATEGIES.tiktok.primarySignal).toBe('completion');
   });
 });

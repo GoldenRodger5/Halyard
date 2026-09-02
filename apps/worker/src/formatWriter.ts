@@ -23,6 +23,7 @@ import {
   bandFor,
   channelForPlatform,
   lengthBudgetFor,
+  PLATFORM_STRATEGIES,
   checkDraft,
   expandSlots,
   repairDraft,
@@ -277,6 +278,13 @@ export async function writeToFormat(
       ? { recentOpenings: context.alreadySaid.openings }
       : {}),
     ...(budget ? { budget } : {}),
+    /* §445. What this platform counts, in words a writer can act on. */
+    ...(PLATFORM_STRATEGIES[context.platform as keyof typeof PLATFORM_STRATEGIES]
+      ? {
+          signalBrief:
+            PLATFORM_STRATEGIES[context.platform as keyof typeof PLATFORM_STRATEGIES]!.signalBrief,
+        }
+      : {}),
   });
   let totalCost = 0;
 

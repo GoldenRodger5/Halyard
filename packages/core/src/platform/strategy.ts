@@ -61,10 +61,55 @@ export interface PlatformNorm {
   why: string;
 }
 
+/**
+ * §445. The one thing this platform's distribution actually turns on.
+ *
+ * Every platform here has been getting the same piece with a different caption,
+ * which is what a scheduler does rather than what a social team does. The
+ * difference between them is not tone, it is **what they count** — and that
+ * changes the piece rather than the wrapper around it:
+ *
+ * - `completion` (TikTok) ranks on finishing, so length costs more here than
+ *   anywhere and the payoff is withheld to the last third.
+ * - `saves` (Reels) ranks on keeping, so the payoff must be worth returning to
+ *   — a number, a rule, a list — and legible with the sound off, because most
+ *   of that audience never turns it on.
+ * - `post_view_engagement` (Shorts) ranks on what happens *after* the watch, so
+ *   the close is a question and the title carries the search terms.
+ * - `replies` (X, Threads) ranks on conversation, so the copy opens a question
+ *   it does not answer.
+ * - `search` (Pinterest) ranks on being found, so the words are the asset.
+ * - `chronological_reach` (Bluesky) does not rank at all, so timing is the
+ *   whole lever.
+ *
+ * These are not moods. Each names a different thing to optimise, and what
+ * follows from it is written per platform as `signalBrief`.
+ */
+export const PRIMARY_SIGNALS = [
+  'completion',
+  'saves',
+  'post_view_engagement',
+  'replies',
+  'search',
+  'chronological_reach',
+] as const;
+export type PrimarySignal = (typeof PRIMARY_SIGNALS)[number];
+
 export interface PlatformStrategy {
   platform: PlatformId;
   /** How the audience arrives at content here. Drives everything below. */
   discovery: 'feed' | 'search_index' | 'following_graph' | 'recommendation_engine';
+  /** §445. What this platform counts. */
+  primarySignal: PrimarySignal;
+  /**
+   * What making the piece for that signal means, for a writer.
+   *
+   * Written as instructions rather than description, because this reaches a
+   * prompt. "Reels reward saves" is a fact about the platform; "the payoff has
+   * to be worth keeping — a number, a rule, a list somebody would come back to"
+   * is something a writer can act on, and they are not the same sentence.
+   */
+  signalBrief: string[];
   /** What a person is doing when they encounter a post here. */
   audienceBehaviour: PlatformNorm;
   /** When posting tends to land, and how confident that is. */
@@ -91,6 +136,12 @@ export const PLATFORM_STRATEGIES: Record<PlatformId, PlatformStrategy> = {
   x: {
     platform: 'x',
     discovery: 'following_graph',
+    primarySignal: 'replies',
+    signalBrief: [
+      'Open a question this post does not answer. A reply is worth more here than a like.',
+      'One idea. A thread of caveats is a thread nobody replies to.',
+      'The link goes in the first reply, never the body.',
+    ],
     audienceBehaviour: {
       claim: 'Read in short bursts, mostly by people who already follow the account.',
       basis: 'industry_heuristic',
@@ -125,6 +176,12 @@ export const PLATFORM_STRATEGIES: Record<PlatformId, PlatformStrategy> = {
   instagram: {
     platform: 'instagram',
     discovery: 'recommendation_engine',
+    primarySignal: 'saves',
+    signalBrief: [
+      'The payoff has to be worth keeping: a number, a rule, a list somebody would come back to.',
+      'Assume the sound is off. Every claim has to be legible on screen, not only spoken.',
+      'The first frame is the thumbnail and decides whether anything else is read.',
+    ],
     audienceBehaviour: {
       claim: 'Browsed visually; the first frame decides whether anything else is read.',
       basis: 'industry_heuristic',
@@ -164,6 +221,11 @@ export const PLATFORM_STRATEGIES: Record<PlatformId, PlatformStrategy> = {
   threads: {
     platform: 'threads',
     discovery: 'recommendation_engine',
+    primarySignal: 'replies',
+    signalBrief: [
+      'Posts that open a question outperform posts that close one.',
+      'Conversational register. A press release does not get replies.',
+    ],
     audienceBehaviour: {
       claim: 'Conversational; posts that open a question outperform posts that close one.',
       basis: 'industry_heuristic',
@@ -198,6 +260,11 @@ export const PLATFORM_STRATEGIES: Record<PlatformId, PlatformStrategy> = {
   pinterest: {
     platform: 'pinterest',
     discovery: 'search_index',
+    primarySignal: 'search',
+    signalBrief: [
+      'People arrive searching for a solution. Say what it solves, in their words.',
+      'The words are the asset. A beautiful pin nobody searches for is not found.',
+    ],
     audienceBehaviour: {
       claim: 'People arrive searching for a solution, not browsing a feed.',
       basis: 'platform_fact',
@@ -232,6 +299,13 @@ export const PLATFORM_STRATEGIES: Record<PlatformId, PlatformStrategy> = {
   tiktok: {
     platform: 'tiktok',
     discovery: 'recommendation_engine',
+    primarySignal: 'completion',
+    signalBrief: [
+      'Completion decides reach. Shorter is better here than anywhere, and every second has to earn itself.',
+      'Withhold the payoff until the last third. A piece that answers in the first line has no reason to be finished.',
+      'End near where it began, so a replay reads as continuation. Replays are the strongest watch signal there is.',
+      'Something on screen changes at least every twelve seconds.',
+    ],
     audienceBehaviour: {
       claim: 'Reach is decided almost entirely by retention in the first seconds, not by followers.',
       basis: 'industry_heuristic',
@@ -266,6 +340,12 @@ export const PLATFORM_STRATEGIES: Record<PlatformId, PlatformStrategy> = {
   youtube: {
     platform: 'youtube',
     discovery: 'search_index',
+    primarySignal: 'post_view_engagement',
+    signalBrief: [
+      'Half the audience arrived from a search, so they have already decided to watch. Use the room.',
+      'The title carries the search terms. It does work captions do elsewhere.',
+      'Close on a question. What happens after the watch is what ranks here.',
+    ],
     audienceBehaviour: {
       claim: 'Half search, half recommendation; titles do work that captions do elsewhere.',
       basis: 'industry_heuristic',
@@ -300,6 +380,11 @@ export const PLATFORM_STRATEGIES: Record<PlatformId, PlatformStrategy> = {
   bluesky: {
     platform: 'bluesky',
     discovery: 'following_graph',
+    primarySignal: 'chronological_reach',
+    signalBrief: [
+      'Chronological, so nothing recovers a bad posting time. Timing is the whole lever.',
+      'Longer text is tolerated here and nowhere else in this set.',
+    ],
     audienceBehaviour: {
       claim: 'Small, chronological, and unusually tolerant of longer text.',
       basis: 'industry_heuristic',

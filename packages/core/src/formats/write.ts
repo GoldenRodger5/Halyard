@@ -94,6 +94,21 @@ export function briefFor(
      * platform in hand.
      */
     budget?: FormatBudget;
+    /**
+     * §445. What this platform counts, as instructions.
+     *
+     * `PLATFORM_STRATEGIES` has held a strategic model of all seven platforms
+     * since P2 and exactly one thing read it — a page in the web app that
+     * *displays* it. So the strategy was written down, kept current, shown to
+     * an operator, and never once changed a piece of content.
+     *
+     * These lines are the half a writer can act on. TikTok ranks on completion
+     * and Shorts on what happens after the watch, and a piece written for one
+     * is genuinely a different piece from one written for the other — which is
+     * what a social team means by "per platform", as opposed to the same post
+     * with a different caption.
+     */
+    signalBrief?: string[];
   },
 ): string {
   const lines = [
@@ -169,6 +184,14 @@ export function briefFor(
     '- Write the claim plainly. A sentence that survives having its adjectives',
     '  removed is the sentence to write.',
   );
+
+  if (context.signalBrief?.length) {
+    lines.push(
+      '',
+      `What ${context.platform} actually rewards, which decides how this is written:`,
+      ...context.signalBrief.map((line) => `- ${line}`),
+    );
+  }
 
   /*
    * §401. Six, and only the openings. More becomes a wall of text the model
