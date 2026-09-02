@@ -20,7 +20,9 @@ OpenAI answers "no credits remaining" (chat, images, vision — probed 2 Sep)
 and Anthropic "credit balance is too low". `LLM_PROVIDER=openai` with
 Anthropic as fallback is already the configuration (§398); §493 makes the
 double refusal a single dead job with the reason instead of three retries per
-job. Fund either account and the queue resumes.
+job. Fund either account and the queue resumes. Validated on the rebuilt worker:
+a send from the UI dies on attempt 1 in five seconds with both providers
+named in the row.
 
 **Operator items, in order:** fund OpenAI (it is the configured primary, and
 images and the frame critic need it) and/or Anthropic; run the production forward-fill in `docs/DEPLOY.md` and then push
