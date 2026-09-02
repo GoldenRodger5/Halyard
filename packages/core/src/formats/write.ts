@@ -126,8 +126,27 @@ export function briefFor(
     const fitted = budgeted.get(slot.key);
     const count = fitted ? fitted.repeats : (slot.repeats ?? 1);
     const maxWords = fitted ? fitted.maxWords : slot.maxWords;
+    /**
+     * §458. A target, not a ceiling — where a budget decided the number.
+     *
+     * "Max N words" is read as a limit to stay well under, and the writer does:
+     * measured on a real TikTok history, **44 words written against a 90-word
+     * budget**, 49% of it. The piece rendered at 22.6 seconds against a
+     * 40-second target — inside the band and nowhere near the length that
+     * performs, with more than half the runtime unused.
+     *
+     * The budgeted number is not a limit. It *is* the runtime: every word is
+     * spoken, so writing half of them makes a piece half as long. Saying "about
+     * N" is the whole difference, and it costs nothing.
+     *
+     * The format's own `maxWords` stays a ceiling when there is no budget —
+     * there the number really is a limit, because nothing has reasoned about
+     * how long the piece should be.
+     */
     lines.push(
-      `- ${slot.key}${count > 1 ? ` (${count} of them)` : ''}: ${slot.brief} Max ${maxWords} words.`,
+      fitted
+        ? `- ${slot.key}${count > 1 ? ` (${count} of them)` : ''}: ${slot.brief} Write about ${maxWords} words.`
+        : `- ${slot.key}${count > 1 ? ` (${count} of them)` : ''}: ${slot.brief} Max ${maxWords} words.`,
     );
   }
 
@@ -168,7 +187,17 @@ export function briefFor(
       `aloud at about 2.6 words a second, so the word counts above are the runtime:`,
       `written to them this runs about ${Math.round(predictedSeconds)}s.`,
       band.because,
-      'Do not write to the ceiling and trim. Write the short version.',
+      /*
+       * §458. Both directions, because only one of them was ever a risk.
+       *
+       * The original said "do not write to the ceiling and trim" and the writer
+       * obliged so thoroughly that pieces came in at half their runtime. Coming
+       * up short is not a smaller version of the same mistake — it is the one
+       * that actually happened, and it costs the room the platform rewards.
+       */
+      'Those counts are a target and not a limit. Coming in well under them makes',
+      'the piece too short to be worth watching, which costs more than running long.',
+      'Write the short version of each line, but write all of it.',
     );
     if (reduced.length > 0) {
       lines.push(
@@ -337,6 +366,33 @@ export function checkDraft(
         message:
           `${slot.key} is frame one and runs ${words} words; ${THUMBNAIL_WORDS.max} is what reads ` +
           'at a glance in a feed preview.',
+        slot: slot.key,
+      });
+    }
+
+    /**
+     * §458. Coming in short, which is the failure that actually happens.
+     *
+     * `format.slot_too_long` has existed since this file was written and there
+     * was never a counterpart. Measured across real renders: every piece landed
+     * 20-43% under its target, because a writer told "max N words" writes half
+     * of N. A TikTok history budgeted for 40 seconds rendered at 22.6.
+     *
+     * Only against a *budget*, never against the format's own ceiling: without
+     * a budget `maxWords` is a limit that nothing reasoned about, and demanding
+     * a piece fill it would be inventing a target from a layout constraint.
+     *
+     * Half is the bar rather than something tighter, because a good line that
+     * happens to be short is not a defect and the warning should mean
+     * something when it fires.
+     */
+    if (budget && words > 0 && words < slot.maxWords * 0.5) {
+      problems.push({
+        rule: 'format.slot_too_short',
+        severity: 'warning',
+        message:
+          `${slot.key} runs ${words} words against a ${slot.maxWords}-word budget. ` +
+          'That word count is the runtime, so half of it is half the piece.',
         slot: slot.key,
       });
     }

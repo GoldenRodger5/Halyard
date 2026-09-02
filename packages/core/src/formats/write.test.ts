@@ -10,6 +10,7 @@
 import { describe, expect, it } from 'vitest';
 import { briefFor, checkDraft } from './write.js';
 import { POST_FORMAT_CATALOG } from './catalog.js';
+import { bandFor, lengthBudgetFor } from '../creative/length.js';
 import { BANNED_PHRASES } from '../qc/slopFilter.js';
 
 const brief = briefFor(POST_FORMAT_CATALOG.history, {
@@ -135,5 +136,91 @@ describe('the opening slot is the thumbnail', () => {
     const check = checkDraft(history, draft);
     expect(check.problems.some((p) => p.rule === 'format.thumbnail_too_long')).toBe(true);
     expect(check.problems.filter((p) => p.severity === 'error')).toEqual([]);
+  });
+});
+
+/**
+ * §458. The word budget is a target, and coming up short is the failure that
+ * actually happened.
+ *
+ * Measured on real renders: 44 words written against a 90-word budget, and a
+ * piece budgeted for 40 seconds that rendered at 22.6. `format.slot_too_long`
+ * had existed since this file was written; nothing watched the other direction.
+ */
+describe('writing to the budget rather than under it', () => {
+  const history = POST_FORMAT_CATALOG.history;
+  const band = bandFor('tiktok', 'short_video', history.pace)!;
+  const budget = lengthBudgetFor(history, band);
+
+  it('asks for about N words when a budget decided N', () => {
+    const brief = briefFor(history, {
+      subject: 'cast iron',
+      audience: 'cooks',
+      platform: 'tiktok',
+      budget,
+    });
+    expect(brief).toMatch(/Write about \d+ words/);
+    expect(brief).toMatch(/a target and not a limit/);
+    expect(brief).not.toMatch(/- hook:.*Max \d+ words/);
+  });
+
+  it('still calls it a maximum when nothing budgeted it', () => {
+    const brief = briefFor(history, {
+      subject: 'cast iron',
+      audience: 'cooks',
+      platform: 'tiktok',
+    });
+    expect(brief).toMatch(/Max \d+ words/);
+    expect(brief).not.toMatch(/Write about \d+ words/);
+  });
+
+  it('warns on a slot written at half its budget', () => {
+    const draft = {
+      formatId: 'history',
+      slots: history.slots.map((s) => ({
+        key: s.key,
+        index: 0,
+        /* Four words against budgets of 10 to 25. */
+        text: 'Your pan wears oil',
+        citation: 'https://example.org/a',
+      })),
+    };
+    const problems = checkDraft(history, draft, budget).problems.filter(
+      (p) => p.rule === 'format.slot_too_short',
+    );
+    expect(problems.length).toBeGreaterThan(0);
+    expect(problems[0]!.severity).toBe('warning');
+    expect(problems[0]!.message).toMatch(/that word count is the runtime/i);
+  });
+
+  it('says nothing when the piece was written to its budget', () => {
+    const draft = {
+      formatId: 'history',
+      slots: budget.slots.map((s) => ({
+        key: s.key,
+        index: 0,
+        text: Array.from({ length: s.maxWords }, (_, i) => `word${i}`).join(' '),
+        citation: 'https://example.org/a',
+      })),
+    };
+    expect(
+      checkDraft(history, draft, budget).problems.some(
+        (p) => p.rule === 'format.slot_too_short',
+      ),
+    ).toBe(false);
+  });
+
+  /*
+   * Without a budget, `maxWords` is a layout constraint nothing reasoned about.
+   * Demanding a piece fill it would invent a target from a card's edge.
+   */
+  it('never judges shortness against a ceiling nobody chose', () => {
+    const draft = {
+      formatId: 'history',
+      slots: [{ key: 'hook', index: 0, text: 'Two words', citation: 'https://example.org/a' }],
+    };
+    expect(
+      checkDraft(history, draft).problems.some((p) => p.rule === 'format.slot_too_short'),
+    ).toBe(false);
   });
 });
