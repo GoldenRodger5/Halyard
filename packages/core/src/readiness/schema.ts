@@ -1,7 +1,7 @@
 /**
  * §492. The columns this build reads that a database might not have.
  *
- * `/settings/health` shows the build; nothing showed the schema. Production
+ * `/master/system` shows the build; nothing showed the schema. Production
  * ran a build that read `renders.treatment` against a database that stopped
  * one migration short of it, and every gallery visit was a 500 with a digest
  * nobody could read (§489). Migrations are additive and the deploy doc says

@@ -238,6 +238,15 @@ d('reviewMediaHandler', () => {
 
   it.skipIf(!hasVideo)('fails an item whose footage is of something else', async () => {
     const id = await seedItem({ hashtags: ['sourdoughstarter'] });
+    /*
+     * §481. Intent is the subject the piece was made from, not a compound
+     * hashtag — `sourdoughstarter` is exactly the kind of term no frame
+     * description can contain, and the gate no longer reads it as one.
+     */
+    await pool.query(
+      `update content_items set generation_meta = '{"subject":"a sourdough starter"}'::jsonb where id = $1`,
+      [id],
+    );
     await attachVideo(id, VIDEO);
 
     await reviewMediaHandler(
