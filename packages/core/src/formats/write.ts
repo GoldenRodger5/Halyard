@@ -271,6 +271,17 @@ export function briefFor(
       'government page, a journal abstract, a standards body. Choose a fact you',
       'can actually link, rather than the most interesting one you can recall.',
       'If you cannot link it, choose a different fact.',
+      '',
+      /*
+       * §470. The page has to be *readable*, not merely reachable. An MDPI
+       * article returned HTTP 200 and matched zero claim words three times
+       * running, because its text is rendered in JavaScript — the fetcher saw
+       * navigation and nothing else, and the piece was abandoned.
+       */
+      'The page is read as plain HTML. A publisher portal that renders its text in',
+      'JavaScript fetches successfully and reads as empty, which fails the citation even',
+      'though the source is real. Prefer a page whose words are in the HTML: a PubMed',
+      'abstract, a government page, an encyclopaedia entry.',
     );
   }
 

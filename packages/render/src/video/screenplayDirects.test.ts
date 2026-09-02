@@ -78,12 +78,22 @@ describe('a screenplay scene changes the frames', () => {
     expect(squeezed).toBe(plain);
   });
 
+  /**
+   * §470. Twice the read is a stall, not a held moment.
+   *
+   * Measured in a finished render: a beat held 12.86 seconds — exactly the old
+   * 2× cap — on a single line, with two frames eight seconds apart identical.
+   * That breaches TikTok's own pattern-interrupt ceiling of twelve seconds by
+   * itself.
+   */
   it('never lets a direction leave dead air', () => {
     const plain = beatsOf().find((b) => b.text === HISTORY[1]!.text)!.seconds;
     const bloated = beatsOf({ 'setup:0': { seconds: 90 } }).find(
       (b) => b.text === HISTORY[1]!.text,
     )!.seconds;
-    expect(bloated).toBeLessThanOrEqual(plain * 2 + 0.01);
+    expect(bloated).toBeLessThanOrEqual(plain * 1.4 + 0.01);
+    /* And no beat may reach the interrupt ceiling on its own. */
+    expect(bloated).toBeLessThan(12);
   });
 
   it('a scene asking for colour marks the beat as wanting no photograph', () => {

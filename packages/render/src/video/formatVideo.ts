@@ -345,13 +345,23 @@ function narrativeFrom(
      * available here and is silent until someone watches the file. So the
      * direction may lengthen a beat and may never shorten it below the read.
      *
-     * Capped at twice the read for the same reason in the other direction: a
-     * screenplay asking for twelve seconds on a four-word line is a model
-     * mis-counting, not an artistic choice, and the result is dead air.
+     * Capped for the same reason in the other direction: a screenplay asking
+     * for twelve seconds on a four-word line is a model mis-counting, not an
+     * artistic choice, and the result is dead air.
+     *
+     * §470. The cap was twice the read, and twice is a stall. Measured in a
+     * finished render: a beat held **12.86 seconds** — exactly 2× — on a single
+     * line, and two frames eight seconds apart were identical. That is not a
+     * held moment, it is a stopped video, and it breaches TikTok's own
+     * pattern-interrupt ceiling of twelve seconds all by itself.
+     *
+     * 1.4× leaves room to hold a line for emphasis and none to stall on it. The
+     * floor is unchanged and is the one that must never move: a beat shorter
+     * than its narration cuts the voice off mid-word.
      */
     const seconds =
       typeof staged?.seconds === 'number' && Number.isFinite(staged.seconds)
-        ? Number(Math.min(read * 2, Math.max(read, staged.seconds)).toFixed(2))
+        ? Number(Math.min(read * 1.4, Math.max(read, staged.seconds)).toFixed(2))
         : read;
     /* Only the first, so a format with two payoffs still lands once. */
     const isHeld = !held && line.role === heldRole;

@@ -183,17 +183,29 @@ export function matchesResearchedFact(citingText: string, factClaim: string): bo
  * Deliberately short and deliberately not exclusive. A long list reads as a
  * filter to a model and produces refusals; these are the places a food claim is
  * actually settled, and everything else remains allowed.
+ *
+ * **§470. Every one of these serves readable HTML, and that is the constraint
+ * that matters most.** The first version of this list preferred `doi.org` and,
+ * through it, journal portals. Measured on the next run: an MDPI article
+ * fetched HTTP 200 and matched **zero** of five claim words, three times, and
+ * the piece was abandoned — those pages render their text in JavaScript, so the
+ * verifier reads navigation furniture and correctly concludes the source does
+ * not support the claim.
+ *
+ * A preferred source that cannot be *verified* is worse than a general one that
+ * can: it fails the piece rather than weakening it. PubMed stays because its
+ * abstracts are server-rendered; `doi.org` goes because it resolves to whatever
+ * the publisher happens to be.
  */
 const PREFERRED_SOURCE_DOMAINS = [
   'pubmed.ncbi.nlm.nih.gov',
-  'doi.org',
   'fda.gov',
   'usda.gov',
   'efsa.europa.eu',
-  '.edu',
   'britannica.com',
   'seriouseats.com',
   'cooksillustrated.com',
+  'kingarthurbaking.com',
 ];
 
 export interface FormatWriteResult {

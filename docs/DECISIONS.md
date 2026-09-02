@@ -11893,3 +11893,36 @@ One implementation note worth keeping: the footnote test is **two** regexes. The
 prefix test ("Source:", "Established by") must be case-insensitive; the bare-name
 test must not be, because made case-insensitive it matches almost any short
 closing line — including the good ones this rule exists to protect.
+
+## §470 · Two caps, and a preference that made things worse
+
+**A beat held 12.86 seconds.** Measured in a finished render: one line, held for
+exactly twice its reading time, with two sampled frames eight seconds apart
+identical. §441 capped a screenplay's `seconds` at 2× the read to stop dead air
+and 2× *is* dead air — it also breaches TikTok's own pattern-interrupt ceiling
+of twelve seconds on a single beat. 1.4× leaves room to hold a line for emphasis
+and none to stall on it. The floor is unchanged and must never move: a beat
+shorter than its narration cuts the voice off mid-word.
+
+**And §469's source preference actively broke the next run.** Having wired
+`preferDomains` for the first time, the list led with `doi.org` — and through it,
+journal portals. The result, measured immediately:
+
+```
+citation checked  mdpi.com/2076-3921/9/2/77  status 200  matched 0  missing 5
+citation checked  mdpi.com/2076-3921/9/2/77  status 200  matched 0  missing 9
+format could not be filled, piece abandoned
+```
+
+Those pages render their text in JavaScript. The fetch succeeds, the verifier
+reads navigation furniture, and it correctly concludes the source does not
+support the claim. **A preferred source that cannot be verified is worse than a
+general one that can**: it fails the piece rather than weakening it.
+
+`doi.org` is gone — it resolves to whatever publisher happens to hold the paper.
+PubMed stays, because its abstracts are server-rendered. And the researcher is
+now told the constraint directly: the page is read as plain HTML, so prefer one
+whose words are in the HTML.
+
+A useful shape to remember: **a fix that improves one axis can fail the piece on
+another**, and the only way to see it is to run the thing again straight after.
