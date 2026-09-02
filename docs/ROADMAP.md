@@ -150,6 +150,22 @@ Nothing here is a Halyard change and all of it gates everything else.
   on screen. Also wired `preferDomains`, which `research()` has accepted since it
   was written and no caller ever supplied.
 
+- **§471-§473 — the critic became three people, and got a corpus.** The critic
+  was one persona, an art director, which is the wrong stance for *would anyone
+  stop for this* and *would a cook wince*. Now three, told not to average them.
+  And `__fixtures__/realPieces.ts` holds real output with what is wrong with each
+  piece — including rows that should pass, which is the only way to show a rule
+  is quiet. It corrected the hand critique on its first run.
+- **§474-§475 — critique before the render.** Every defect found by reading real
+  output this session was visible in the *text*; all were found after a render,
+  because that is where the only critic lived. The text critic reads the written
+  piece for one call instead of a render, three image generations and a
+  voiceover.
+- **§476 — an opening the writer would not shorten.** 18 words against a ceiling
+  of 12, three times, with the rule in its own brief. Repaired by moving the full
+  stop to a clause boundary — but only where the tail can stand as a sentence,
+  because splitting *"A, because B"* produces a fragment.
+
 ### Then — finish short video
 
 9. **`tips` has never rendered.** Both causes are fixed; confirm.
