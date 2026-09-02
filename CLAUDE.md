@@ -36,7 +36,7 @@ idea → generate → render/tts → review gates → queue (human approves) →
 | `apps/worker/src/scheduler.ts` | Everything periodic, each with a documented cadence |
 | `apps/worker/src/handlers/publish.ts` | The only path to a real post. Three idempotency layers. |
 | `packages/core/src/adapters/` | Seven platform adapters + `types.ts` (the publish contract) |
-| `packages/core/src/agents/registry.ts` | All 41 agents. Declares *intent*; the Auditor decides truth. |
+| `packages/core/src/agents/registry.ts` | All 42 agents. Declares *intent*; the Auditor decides truth. |
 | `packages/core/src/qc/index.ts` | `runAllGates` — the approval gate |
 | `packages/core/src/brain/` | P1 Product Brain: evidence → facts |
 | `packages/core/src/platform/` | P2 capability resolution + platform strategy |
@@ -159,7 +159,15 @@ Landmines learned the hard way. Each one cost real time.
     (`refusalIsExhausted`), and the poller treats that as permanent for any
     job kind. When adding a client, type its refusal. §491, §493.
 
-15. **X publishing is billed per post** (~$0.015 without a link, ~$0.20 with). X v2 write endpoints return **402 credits-depleted** when the developer account has no credits.
+15. **A price the code does not record is a price the operator discovers on a
+    billing page.** Images, the frame describer, the critic and the voice were
+    paid for and written nowhere; the ledger said $3 on a $20 day, because
+    `gpt-image-1` with no `quality` sent is *high* at ~$0.25 a portrait. Every
+    paid call now writes `agent_runs` through `recordPaidCall`, and a
+    `settings.daily_budget_usd` pauses paid job kinds. When adding anything
+    that costs money, record it there or it does not exist. §494.
+
+16. **X publishing is billed per post** (~$0.015 without a link, ~$0.20 with). X v2 write endpoints return **402 credits-depleted** when the developer account has no credits.
 
 ---
 
