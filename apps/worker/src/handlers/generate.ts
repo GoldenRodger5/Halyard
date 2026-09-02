@@ -997,13 +997,23 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
    */
   const roomAnywhere =
     operatorAsked ||
-    accounts.rows.some(
-      (account) =>
-        account.persona === 'brand' &&
-        (account.supported_formats ?? []).some(
-          (candidate) => shouldDraftMore(candidate, backlog.get(candidate) ?? 0).draft,
-        ),
-    );
+    accounts.rows.some((account) => {
+      if (account.persona !== 'brand') return false;
+      const supported = account.supported_formats ?? [];
+      /**
+       * An account that declares no formats is a different problem, and the
+       * loop below reports it by name — "cannot take any format Halyard
+       * produces". Treating it as *no room* would return here first and blame
+       * a full queue for a broken account, which is a worse answer than the
+       * true one and hides the account that needs reconnecting.
+       *
+       * Caught by a test that had been skipping for want of a database. This
+       * guard is about how much work is waiting; it has nothing to say about an
+       * account that can carry none of it.
+       */
+      if (supported.length === 0) return true;
+      return supported.some((candidate) => shouldDraftMore(candidate, backlog.get(candidate) ?? 0).draft);
+    });
 
   if (!roomAnywhere) {
     ctx.log('every connected account is already backed up, nothing drafted', {

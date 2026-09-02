@@ -11586,3 +11586,61 @@ far safer than tracking down every reader of it.
 same vocabulary; the union makes a post type asking for media nothing can
 produce a compile error instead of a piece that quietly comes out as the wrong
 thing.
+
+## §455 · The piece goes with its render
+
+`sweepOrphans` has failed orphaned renders since §261 and left their content
+items `pending_approval` — so the queue kept showing an approvable video whose
+only render had just been marked failed, with nothing on the row to say why.
+
+Found by asking why five pending videos had no finished render. The chain: every
+`tts` job died on a missing whisper model (`/opt/models/ggml-base.en.bin` does
+not exist on this machine), `tts` is what releases a render, the sweep correctly
+orphaned them — and every piece still looked ready to post.
+
+§258's rule, one layer out: *"an abort anywhere in that tail leaves a row that
+looks finished — a video with no video, sitting in the approval queue."* That
+was closed for the paths `generate` can see. A stage dying hours later is not
+one of them.
+
+Only when **nothing playable is left**: a carousel has several renders and one
+failing is not the piece failing, and an operator-attached asset is real media
+this system did not make. Both are checked rather than assumed, because failing
+a piece that still has something to publish is worse than the state being fixed.
+An operator's own decision is never overwritten.
+
+## §456 · A third of the suite had been dark
+
+`pnpm vitest run` reports "3,060 passed, **471 skipped**". The skips are
+forty-three suites that call `createIsolatedPool`, and they skip because
+`databaseAvailable()` returns false — nothing puts `DATABASE_URL` in the shell,
+because gotcha 2 again: Next reads `.env.local`, the worker gets `--env-file`,
+and neither reaches vitest.
+
+`testDb.ts`'s own header warns about exactly this: *"suites do not fail so much
+as go quiet"*, written after sixty-one tests went dark in one run. It then
+happened to thirteen percent of the suite, permanently, reported as a number in
+a summary line nobody reads as a warning.
+
+Running them found a real regression **on the first attempt** — §452's
+`roomAnywhere` guard treated an account with no declared formats as *no room*,
+returning before the loop could report the actual problem ("cannot take any
+format Halyard produces"). A full queue blamed for a broken account.
+
+**Rejected: wiring it into `vitest.config.ts`.** It was built, and it did two
+things a default must not:
+
+- **It killed local Postgres.** Forty-three suites each create and migrate a
+  database and open up to four connections against a `max_connections` of 100.
+  Postgres died without releasing `postmaster.pid`, and brew then refused to
+  restart it because an unrelated process had reused the recorded PID — a
+  fifteen-minute recovery in the middle of a test run.
+- **It fails on a fresh clone.** Three tests in `generate.test.ts` reach code
+  that requires a model provider and throw without `ANTHROPIC_API_KEY`.
+
+A default that can take down the database you are developing against, and that
+fails for anyone without credentials, is worse than the skip it fixes. The
+command is in CLAUDE.md gotcha 12 instead, with the `--maxWorkers=6` bound that
+keeps Postgres alive and the reason it is not optional.
+
+The finding was worth the exploration; the shipped default was not.

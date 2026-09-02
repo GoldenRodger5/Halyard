@@ -96,7 +96,33 @@ Landmines learned the hard way. Each one cost real time.
     that `cd`s and `exec`s. `pkill -f "tsx src/index.ts"` does not match it;
     find it with `ps -eo pid,command | grep halyard`.
 
-12. **X publishing is billed per post** (~$0.015 without a link, ~$0.20 with). X v2 write endpoints return **402 credits-depleted** when the developer account has no credits.
+12. **A third of the suite skips silently unless a database is reachable.**
+    `pnpm vitest run` reports "3,060 passed, 471 skipped" and the skips are
+    forty-three suites that call `createIsolatedPool` — `databaseAvailable()`
+    returns false because nothing puts `DATABASE_URL` in the shell (gotcha 2
+    again: Next reads `.env.local`, the worker gets `--env-file`, neither
+    reaches vitest). Run them with the environment sourced:
+
+    ```
+    set -a; . ./apps/web/.env.local; set +a
+    TEST_DATABASE_URL="$DATABASE_URL" pnpm vitest run --maxWorkers=6
+    ```
+
+    `--maxWorkers=6` is not optional. Forty-three suites each **create and
+    migrate a database** and open up to four connections against a
+    `max_connections` of 100; at the default worker count this killed local
+    Postgres outright, and it died without releasing `postmaster.pid` — after
+    which brew refused to restart it because an unrelated process had reused
+    the recorded PID. Clear it with
+    `rm /opt/homebrew/var/postgresql@17/postmaster.pid`.
+
+    Three tests in `generate.test.ts` additionally need `ANTHROPIC_API_KEY`,
+    which sourcing the env file supplies. This is *not* wired into
+    `vitest.config.ts` on purpose: a default that can take down the database
+    you are developing against, and that fails on a fresh clone with no API
+    key, is worse than the skip it fixes. §456.
+
+13. **X publishing is billed per post** (~$0.015 without a link, ~$0.20 with). X v2 write endpoints return **402 credits-depleted** when the developer account has no credits.
 
 ---
 

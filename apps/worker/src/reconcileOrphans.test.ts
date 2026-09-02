@@ -74,6 +74,19 @@ async function seedRender(ageHours: number): Promise<string> {
   return rows[0]!.id;
 }
 
+/** The content item a render belongs to. */
+const itemOf = async (renderId: string) =>
+  (
+    await pool.query<{ content_item_id: string }>(
+      'select content_item_id from renders where id = $1',
+      [renderId],
+    )
+  ).rows[0]!.content_item_id;
+
+const itemStatus = async (id: string) =>
+  (await pool.query<{ status: string }>('select status from content_items where id = $1', [id]))
+    .rows[0]!.status;
+
 const statusOf = async (id: string) =>
   (await pool.query<{ status: string }>('select status from renders where id = $1', [id])).rows[0]!
     .status;
@@ -128,6 +141,72 @@ d('orphaned renders', () => {
     await pool.query(`update renders set status = 'done' where id = $1`, [id]);
     await reconcileScheduleHandler(job(), context());
     expect(await statusOf(id)).toBe('done');
+  });
+
+  /**
+   * §455. The piece goes with its render, or an operator approves a video
+   * that does not exist.
+   *
+   * This sweep has failed orphaned renders since §261 and left their content
+   * items `pending_approval`. Found live: five pending videos with no finished
+   * render, every `tts` job dead on a missing whisper model, every piece still
+   * showing as ready to post.
+   */
+  it('fails the piece when its only render was orphaned', async () => {
+    const renderId = await seedRender(3);
+    const itemId = await itemOf(renderId);
+    await reconcileScheduleHandler(job(), context());
+
+    const item = await pool.query<{ status: string; why: string | null }>(
+      `select status, generation_meta ->> 'failed_because' as why
+         from content_items where id = $1`,
+      [itemId],
+    );
+    expect(item.rows[0]!.status).toBe('failed');
+    expect(item.rows[0]!.why).toMatch(/nothing to publish/i);
+  });
+
+  /*
+   * A carousel has several renders and one failing is not the piece failing.
+   * Failing a piece that still has something to publish is worse than the
+   * state being repaired.
+   */
+  it('leaves the piece alone when another render finished', async () => {
+    const renderId = await seedRender(3);
+    const itemId = await itemOf(renderId);
+    await pool.query(
+      `insert into renders (content_item_id, template_id, renderer, input_props, quality, status)
+       values ($1,'TransformationDiff','remotion','{}','final','done')`,
+      [itemId],
+    );
+    await reconcileScheduleHandler(job(), context());
+
+    expect(await itemStatus(itemId)).toBe('pending_approval');
+    /* And the orphan itself was still repaired. */
+    expect(await statusOf(renderId)).toBe('failed');
+  });
+
+  /* An operator-attached asset is real media this system did not make. */
+  it('leaves the piece alone when an operator attached something', async () => {
+    const renderId = await seedRender(3);
+    const itemId = await itemOf(renderId);
+    await pool.query(
+      `update content_items set attached_asset_ids = array[gen_random_uuid()] where id = $1`,
+      [itemId],
+    );
+    await reconcileScheduleHandler(job(), context());
+    expect(await itemStatus(itemId)).toBe('pending_approval');
+  });
+
+  it('never resurrects a piece an operator already decided on', async () => {
+    const renderId = await seedRender(3);
+    const itemId = await itemOf(renderId);
+    /* Rejected rather than approved: a TikTok piece cannot be approved
+       without publish choices, and rejected is the same property — an operator
+       has decided, and a sweep must not overwrite that with its own verdict. */
+    await pool.query(`update content_items set status = 'rejected' where id = $1`, [itemId]);
+    await reconcileScheduleHandler(job(), context());
+    expect(await itemStatus(itemId)).toBe('rejected');
   });
 });
 

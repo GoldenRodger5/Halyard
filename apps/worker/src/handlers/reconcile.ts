@@ -135,7 +135,7 @@ async function sweepOrphans(ctx: HandlerContext): Promise<void> {
    * job on purpose, so a video is never rendered before its audio exists). A
    * render with no job is therefore one whose releasing stage never ran.
    */
-  const renders = await ctx.pool.query<{ id: string }>(
+  const renders = await ctx.pool.query<{ id: string; content_item_id: string | null }>(
     `update renders r
         set status = 'failed',
             error = 'Orphaned: queued with no render job, and the stage that releases it never ran.'
@@ -146,9 +146,54 @@ async function sweepOrphans(ctx: HandlerContext): Promise<void> {
            where j.payload->>'renderId' = r.id::text
              and j.status in ('queued','running')
         )
-      returning r.id`,
+      returning r.id, r.content_item_id`,
     [ORPHAN_AFTER_HOURS],
   );
+
+  /**
+   * §455. The piece goes with its render, or an operator approves a video
+   * that does not exist.
+   *
+   * This sweep has failed orphaned *renders* since §261 and left their content
+   * items `pending_approval` — so the queue kept showing an approvable video
+   * whose only render had just been marked failed, with nothing on the row to
+   * say so. Found by asking why five pending videos had no finished render:
+   * every `tts` job had died on a missing whisper model, the renders were
+   * correctly orphaned, and every piece still looked ready to post.
+   *
+   * `§258`'s rule, one layer out: *"an abort anywhere in that tail leaves a row
+   * that looks finished — a video with no video, sitting in the approval
+   * queue."* That was closed for the paths `generate` can see. A stage dying
+   * hours later is not one of them.
+   *
+   * Only when **nothing playable is left**: a carousel has several renders and
+   * one failing is not the piece failing, and an operator-attached asset is a
+   * real piece of media this system did not make. Both are checked rather than
+   * assumed, because failing a piece that still has something to publish is
+   * worse than the state being fixed.
+   */
+  const orphanedItems = [
+    ...new Set(renders.rows.map((r) => r.content_item_id).filter(Boolean)),
+  ];
+  const failedItems = orphanedItems.length
+    ? await ctx.pool.query<{ id: string }>(
+        `update content_items ci
+            set status = 'failed',
+                generation_meta = coalesce(ci.generation_meta, '{}'::jsonb) || jsonb_build_object(
+                  'failed_because',
+                  'Every render for this piece was orphaned: queued with no job, and the stage that releases them never ran. There is nothing to publish.'
+                )
+          where ci.id = any($1::uuid[])
+            and ci.status = 'pending_approval'
+            and coalesce(array_length(ci.attached_asset_ids, 1), 0) = 0
+            and not exists (
+              select 1 from renders ok
+               where ok.content_item_id = ci.id and ok.status = 'done'
+            )
+          returning ci.id`,
+        [orphanedItems],
+      )
+    : { rows: [] as Array<{ id: string }> };
 
   /*
    * `generate` claims an idea before spending anything on it (§78/§87), and
@@ -203,11 +248,13 @@ async function sweepOrphans(ctx: HandlerContext): Promise<void> {
     [ORPHAN_AFTER_HOURS],
   );
 
-  if (renders.rowCount || ideas.rowCount || closed.rowCount) {
+  if (renders.rowCount || ideas.rowCount || closed.rowCount || failedItems.rows.length) {
     ctx.log('swept orphaned rows', {
       renders: renders.rowCount ?? 0,
       ideas: ideas.rowCount ?? 0,
       closed: closed.rowCount ?? 0,
+      /* §455. Pieces that had nothing left to publish once their renders went. */
+      pieces: failedItems.rows.length,
       olderThanHours: ORPHAN_AFTER_HOURS,
       note: 'each one is a stage that died without disowning its rows',
     });
