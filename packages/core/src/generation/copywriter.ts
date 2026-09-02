@@ -303,6 +303,12 @@ export async function writeDraft(request: DraftRequest, llm: LlmClient): Promise
         extraBannedPhrases: request.contentRules.bannedPhrases,
         forbiddenClaims: request.contentRules.forbiddenClaims,
         longForm: request.platform === 'youtube',
+        /*
+         * §450. What the viewer will already be reading, so the gate can tell a
+         * caption from a transcript. Absent for a text post, where the caption
+         * *is* the piece and there is no second channel to waste.
+         */
+        ...(request.piece?.length ? { onScreen: request.piece.map((s) => s.text) } : {}),
       },
       /*
        * §291. Claims are checked against the artifact only when the piece is

@@ -11403,3 +11403,40 @@ with the model — a regex doing a copywriter's job badly is worse than a retry.
 So this shrinks the set of things worth retrying rather than replacing the
 retry, and every repair is reported: an operator reading a caption that differs
 from what the model wrote can find out why in one place.
+
+## §450 · The caption was a transcript of the video
+
+Measured on real published-ready pieces: **88.9%** of one caption's distinctive
+words were also on screen, 60% on another. At that point a viewer who reads has
+no reason to watch and a viewer who watches has no reason to read — one of two
+channels spent on what the other already did.
+
+The system already enforces this rule **one level down**. `screenwriter.ts`:
+*"SPOKEN and ON SCREEN are different. A viewer reads four words and hears
+fourteen. Never put the same sentence in both — that is a caption being read
+aloud, and it is the single clearest sign a machine made the video."* Between
+the caption and the video, nothing applied it.
+
+And the instruction that existed was **too narrow in a way that produced the
+defect**. §370 added *"Do not restate the first line — the reader is about to
+see it."* The writer obeyed it exactly: it did not restate the first line, and
+restated all the others. A rule scoped to one line, applied to a piece with
+five.
+
+Two changes, and the second is the one that will hold:
+
+- The instruction now names the whole piece and, more importantly, says **what
+  to write instead** — the thing that did not fit, the question the piece
+  raises, the detail a viewer wants after watching. "Do not do X" with no
+  alternative produces a caption that avoids X and says nothing.
+- `structure.caption_echoes_screen`, deterministic, because `retentionQC`'s own
+  header states the principle: *a suggestion in a prompt is followed most of the
+  time and a QC rule is followed every time.*
+
+The bar is two thirds, not a half. A caption legitimately names its own subject,
+so sharing a noun and its neighbours is correct writing rather than repetition —
+the 60% piece was still saying something of its own and is left alone, the 89%
+one is not. Verified against both.
+
+**A warning, never an error.** §449 is one section old and its lesson is exactly
+what failing a caption costs.

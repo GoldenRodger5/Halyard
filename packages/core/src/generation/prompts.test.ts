@@ -37,16 +37,24 @@ describe('the caption knows what it is captioning', () => {
     expect(user).toContain('1728, by Jacopo Beccari.');
   });
 
-  it('tells it not to restate the opening', () => {
+  it('tells it not to restate the piece — any of it, not only the opening', () => {
     /*
-     * A caption that repeats the first card spends the one line a scroller
-     * reads on something they are about to see anyway.
+     * §450. This asserted "Do not restate the first line", which is what the
+     * prompt used to say and is why the writer restated all the others: 88.9%
+     * of one real caption's distinctive words were also on screen.
+     *
+     * The rule the piece itself is written to — never the same sentence in two
+     * channels — now applies to the caption as well, and says what to write
+     * instead, because "do not do X" without an alternative produces a caption
+     * that avoids X and says nothing.
      */
     const { user } = buildCopywriterPrompt({
       ...base,
       piece: [{ key: 'q1', text: 'What year was gluten first identified?' }],
     });
-    expect(user).toContain('Do not restate the first line');
+    expect(user).toContain('Do not restate these lines');
+    expect(user).toContain('any of them');
+    expect(user).toMatch(/did not fit|ask the question/);
   });
 
   it('says nothing at all when there is no piece', () => {

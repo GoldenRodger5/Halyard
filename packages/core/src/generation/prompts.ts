@@ -289,7 +289,14 @@ complete one nobody expands.`,
     context.piece && context.piece.length > 0
       ? `\n## The piece this caption goes under\nThese are its actual lines, in order:\n${context.piece
           .map((slot) => `- ${slot.key}: ${slot.text}`)
-          .join('\n')}\n\nWrite a caption that earns the watch. Do not restate the first line — the reader is about to see it.`
+          .join('\n')}\n\nWrite a caption that earns the watch.
+
+The caption and the video are two channels doing two different jobs, and this
+is the rule the piece itself is written to: never put the same sentence in both.
+Do not restate these lines — any of them. The reader is about to see all of it.
+Say the thing that did not fit, ask the question the piece raises, or give the
+one detail a viewer would want after watching. A caption that transcribes the
+video spends one of your two channels on something the other one already did.`
       : '';
 
   /*

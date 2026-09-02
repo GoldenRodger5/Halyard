@@ -71,6 +71,33 @@ export type SlopPlatform =
 
 import { budgetFor, checkCopyBudget } from '../copy/budget.js';
 
+/**
+ * §450. Above this share, a caption is a transcript rather than a companion.
+ *
+ * Two thirds, not a half. A caption legitimately names what the piece is about,
+ * so a subject noun and a couple of its neighbours appearing in both is correct
+ * writing, not repetition. The bar is set where a caption stops adding anything
+ * — measured pieces sat at 60% (close, still saying something of its own) and
+ * 89% (a transcript).
+ */
+export const CAPTION_ECHO_LIMIT = 0.66;
+
+/**
+ * Words long enough to look like content and too common to be any.
+ *
+ * Without this, "because", "through" and "different" count as shared meaning
+ * and every caption reads as an echo of every video.
+ */
+const CAPTION_ECHO_STOPWORDS = new Set([
+  'about', 'after', 'again', 'against', 'because', 'been', 'before', 'being',
+  'between', 'both', 'could', 'does', 'doing', 'down', 'during', 'each',
+  'from', 'have', 'here', 'into', 'just', 'like', 'more', 'most', 'much',
+  'only', 'other', 'over', 'same', 'should', 'some', 'still', 'such', 'than',
+  'that', 'their', 'them', 'then', 'there', 'these', 'they', 'this', 'those',
+  'through', 'under', 'until', 'very', 'were', 'what', 'when', 'where',
+  'which', 'while', 'will', 'with', 'would', 'your', 'different', 'actually',
+]);
+
 export interface SlopFilterInput {
   body: string;
   platform: SlopPlatform;
@@ -100,6 +127,13 @@ export interface SlopFilterInput {
    * loop, while `writeVoScript` ran neither.
    */
   spoken?: boolean;
+  /**
+   * §450. What the viewer will already be reading on screen.
+   *
+   * The lines of the piece this caption goes under. Absent for a text post,
+   * where there is no second channel and the caption *is* the piece.
+   */
+  onScreen?: string[];
 }
 
 // ───────────────────────────────────────────────────────────────────────────
@@ -413,7 +447,7 @@ function excerptAround(text: string, index: number, span = 48): string {
 // ───────────────────────────────────────────────────────────────────────────
 
 export function slopFilter(input: SlopFilterInput): SlopFilterResult {
-  const { body, platform, hashtags = [], longForm = false, spoken = false } = input;
+  const { body, platform, hashtags = [], longForm = false, spoken = false, onScreen } = input;
   const violations: SlopViolation[] = [];
   const push = (v: SlopViolation) => violations.push(v);
 
@@ -898,6 +932,53 @@ export function slopFilter(input: SlopFilterInput): SlopFilterResult {
   }
 
   const errors = violations.filter((v) => v.severity === 'error');
+  /**
+   * §450. A caption that transcribes the video wastes one of two channels.
+   *
+   * The screenwriter has enforced exactly this rule one level down since §335:
+   * *"SPOKEN and ON SCREEN are different. Never put the same sentence in both —
+   * that is a caption being read aloud, and it is the single clearest sign a
+   * machine made the video."* Nothing applied it between the **caption** and
+   * the video, and the prompt's own instruction was too narrow: it said do not
+   * restate *the first line*, so the writer restated all of them.
+   *
+   * Measured on real pieces: 88.9% of one caption's distinctive words were also
+   * on screen, 60% on another. At that point a viewer who reads has no reason
+   * to watch and a viewer who watches has no reason to read.
+   *
+   * Some overlap is correct and expected — a caption about herbs says "herbs".
+   * So this counts only words long enough to be *content*, and the bar is set
+   * where a caption stops adding anything rather than where it first repeats.
+   *
+   * A warning, never an error. §449 is the standing lesson about what failing a
+   * caption costs: a whole researched piece, binned over its wrapper.
+   */
+  if (!spoken && onScreen && onScreen.length > 0) {
+    const distinctive = (text: string) =>
+      new Set(
+        (text.toLowerCase().match(/[a-z][a-z'-]{3,}/g) ?? []).filter(
+          (w) => !CAPTION_ECHO_STOPWORDS.has(w),
+        ),
+      );
+    const caption = distinctive(body);
+    const screen = distinctive(onScreen.join(' '));
+    if (caption.size >= 4 && screen.size > 0) {
+      let shared = 0;
+      for (const word of caption) if (screen.has(word)) shared += 1;
+      const overlap = shared / caption.size;
+      if (overlap > CAPTION_ECHO_LIMIT) {
+        push({
+          rule: 'structure.caption_echoes_screen',
+          severity: 'warning',
+          message: `${Math.round(overlap * 100)}% of this caption is already on screen.`,
+          excerpt: body.slice(0, 80),
+          index: 0,
+          fix: 'The caption and the video are two channels doing two jobs. Say the thing that did not fit, or ask the question the video raises. A caption that transcribes it spends one of them.',
+        });
+      }
+    }
+  }
+
   const warnings = violations.filter((v) => v.severity === 'warning');
 
   return {

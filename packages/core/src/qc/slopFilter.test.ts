@@ -268,3 +268,81 @@ describe('length against the platform ceiling', () => {
     }
   });
 });
+
+/**
+ * §450. A caption that transcribes the video wastes one of two channels.
+ *
+ * The screenwriter has enforced this rule between spoken and on-screen since
+ * §335 — *"never put the same sentence in both… the single clearest sign a
+ * machine made the video"* — and nothing applied it between the caption and the
+ * video. Measured on real pieces: 88.9% of one caption's distinctive words were
+ * also on screen.
+ */
+describe('a caption is not a transcript', () => {
+  const ON_SCREEN = [
+    'Searing meat seals in juices',
+    'The crust forms from the Maillard reaction, not from sealing',
+    'Moisture leaves a steak throughout cooking whatever you do first',
+  ];
+  const check = (body: string, onScreen = ON_SCREEN) =>
+    slopFilter({ body, platform: 'tiktok', hashtags: [], onScreen });
+
+  const echoed = (r: ReturnType<typeof slopFilter>) =>
+    [...r.errors, ...r.warnings].some((v) => v.rule === 'structure.caption_echoes_screen');
+
+  it('catches a caption that repeats the piece back', () => {
+    const result = check(
+      'Searing meat seals in juices is wrong. The crust forms from the Maillard reaction, not from sealing, and moisture leaves a steak throughout cooking.',
+    );
+    expect(echoed(result)).toBe(true);
+  });
+
+  it('leaves a caption that does its own job alone', () => {
+    const result = check(
+      'Sixty years of kitchen advice traced back to one chemist who never tested it. Which one did you believe longest?',
+    );
+    expect(echoed(result)).toBe(false);
+  });
+
+  /*
+   * A caption naming its own subject is correct writing. If sharing a noun were
+   * enough to trip this, every caption would read as an echo of every video.
+   */
+  it('allows a caption to name the same subject', () => {
+    const result = check(
+      'Everything you were told about searing came from a chemist who never ran the experiment. The comments are going to be a war.',
+    );
+    expect(echoed(result)).toBe(false);
+  });
+
+  it('says nothing when there is no second channel', () => {
+    expect(echoed(slopFilter({ body: ON_SCREEN.join(' '), platform: 'x', hashtags: [] }))).toBe(
+      false,
+    );
+    expect(echoed(check(ON_SCREEN.join(' '), []))).toBe(false);
+  });
+
+  it('does not judge a caption too short to measure', () => {
+    expect(echoed(check('Searing seals juices'))).toBe(false);
+  });
+
+  /*
+   * §449's lesson: a whole researched piece was binned because its caption
+   * failed three times. This rule must never be the reason a piece is lost.
+   */
+  it('is a warning and never fails a piece', () => {
+    const result = check(
+      'Searing meat seals in juices is wrong. The crust forms from the Maillard reaction, not from sealing, and moisture leaves a steak throughout cooking.',
+    );
+    expect(result.errors.some((v) => v.rule === 'structure.caption_echoes_screen')).toBe(false);
+    expect(result.warnings.some((v) => v.rule === 'structure.caption_echoes_screen')).toBe(true);
+  });
+
+  it('says what to write instead, not only what is wrong', () => {
+    const violation = check(
+      'Searing meat seals in juices is wrong. The crust forms from the Maillard reaction, not from sealing, and moisture leaves a steak throughout cooking.',
+    ).warnings.find((v) => v.rule === 'structure.caption_echoes_screen')!;
+    expect(violation.fix).toMatch(/did not fit|question/);
+    expect(violation.message).toMatch(/%/);
+  });
+});
