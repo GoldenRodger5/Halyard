@@ -326,3 +326,39 @@ describe('§291 — whose claims a piece is making', () => {
     }
   });
 });
+
+/**
+ * §460. Two briefs that were read exactly as written and produced bad pieces.
+ *
+ * Both found by reading real output rather than by a gate: a "myth" that was
+ * correct advice, and a concession that conceded to a fact standing near the
+ * belief rather than to the belief.
+ */
+describe('the myth format asks for a myth', () => {
+  const myth = POST_FORMAT_CATALOG.myth_fact;
+  const slot = (key: string) => myth.slots.find((s) => s.key === key)!;
+
+  it('requires the belief to be wrong, not merely stated in its own voice', () => {
+    /* "as its believers would state it" described the voice and nothing else. */
+    expect(slot('myth').brief).toMatch(/wrong or seriously misleading/i);
+    expect(slot('myth').brief).toMatch(/pick another/i);
+  });
+
+  it('requires the concession to concede to the belief', () => {
+    expect(slot('partly_true').brief).toMatch(/the belief itself/i);
+    expect(slot('partly_true').brief).toMatch(/nearby fact/i);
+  });
+
+  it('refuses the capitulation that was actually generated', () => {
+    /* "PARTLY TRUE — Yes. Serious Eats gives that range." */
+    expect(slot('partly_true').brief).toMatch(/never open with "yes"/i);
+  });
+
+  /*
+   * The correction is what makes the myth a myth, so it keeps its floor: a
+   * correction short enough to be a footnote is the shape §460 is about.
+   */
+  it('keeps a floor under the correction, which is the payoff', () => {
+    expect(slot('correction').minWords).toBeGreaterThanOrEqual(12);
+  });
+});

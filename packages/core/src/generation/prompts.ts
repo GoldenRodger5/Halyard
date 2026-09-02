@@ -296,7 +296,13 @@ is the rule the piece itself is written to: never put the same sentence in both.
 Do not restate these lines — any of them. The reader is about to see all of it.
 Say the thing that did not fit, ask the question the piece raises, or give the
 one detail a viewer would want after watching. A caption that transcribes the
-video spends one of your two channels on something the other one already did.`
+video spends one of your two channels on something the other one already did.
+
+Different words, not a vaguer subject. Generated captions have retreated into
+abstraction to avoid repeating: a video reading "BREAD / WEIGHED BY LAW" was
+captioned "Labels hide tradeoffs", which is both duller than the video and about
+nothing in particular. Stay as concrete as the piece — name the same real thing
+from a different angle.`
       : '';
 
   /*

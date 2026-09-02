@@ -344,8 +344,49 @@ export const POST_FORMAT_CATALOG: Record<PostFormatId, PostFormat> = {
     needsArtifact: false,
     pace: 'terse',
     slots: [
-      { key: 'myth', brief: 'The belief, stated as its believers would state it.', maxWords: 12, opensThePiece: true },
-      { key: 'partly_true', brief: 'What is genuinely right about it. Concede first.', maxWords: 25 },
+      {
+        /**
+         * §460. It has to be wrong, and the piece has to show that.
+         *
+         * Generated live: *"MYTH — Rest steak 5 to 10 minutes"*, conceded with
+         * *"PARTLY TRUE — Yes. Serious Eats gives that range."* Resting steak
+         * is correct advice. Calling a true thing a myth and then agreeing with
+         * it is not a myth-buster, it is a technicality dressed as one — and on
+         * a food account it reads as contrarian-for-clicks, which costs exactly
+         * the authority this product sells.
+         *
+         * The brief said only "as its believers would state it", which describes
+         * the *voice* and never required the belief to be mistaken.
+         */
+        key: 'myth',
+        brief:
+          'A belief that is actually wrong or seriously misleading, stated as its believers ' +
+          'would state it. The correction below must contradict it. If the advice is simply ' +
+          'correct and you would only be adding a footnote, this is not a myth: pick another.',
+        maxWords: 12,
+        opensThePiece: true,
+      },
+      {
+        /**
+         * §460. Concede to the belief, not to a fact standing near it.
+         *
+         * Generated live, for the myth *"oil stops pasta from sticking"*:
+         * *"PARTLY TRUE — Oil and water do not mix into one uniform liquid."*
+         * That is true, it is about oil, and it concedes nothing — a viewer
+         * reads it and thinks "so?". The rhythm of the format breaks in its
+         * second beat, which is where a viewer is still deciding.
+         *
+         * "What is genuinely right about it" was read as "a right thing in the
+         * vicinity". It has to be the part of *the belief* that holds.
+         */
+        key: 'partly_true',
+        brief:
+          'The part of that belief which genuinely holds — why a sensible person came to ' +
+          'think it. Concede to the belief itself, not to a nearby fact: if it does not ' +
+          'begin to explain why people believe the myth, it is the wrong concession. ' +
+          'Never open with "Yes".',
+        maxWords: 25,
+      },
             {
         key: 'correction',
         brief: 'What it misses, and what follows from that.',
