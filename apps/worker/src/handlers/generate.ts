@@ -1302,6 +1302,8 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                   productId,
                   format: chosenFormat.format,
                   channel: resolvedType.postType.channel,
+                  /* §451. Where it is going, which decides its length and its shape. */
+                  platform: account.platform,
                   subject:
                     (job.payload.subject as string | undefined)?.trim() ||
                     subjectForImage(artifact, idea.title) ||

@@ -38,6 +38,8 @@ import {
   type LlmClient,
   type PostFormat,
   type Screenplay,
+  bandFor,
+  PLATFORM_STRATEGIES,
 } from '@halyard/core';
 import { motifFor } from '@halyard/render/video';
 import { resolveBrand } from '@halyard/render';
@@ -55,6 +57,18 @@ export interface StageRequest {
   locatable?: readonly string[];
   /** Whether real captured footage exists to use as a ground. */
   hasFootage?: boolean;
+  /**
+   * §451. Where this is going, which decides both how long it runs and what
+   * composing it *well* means.
+   *
+   * The screenwriter has only ever been told its `channel` — a `short_video`,
+   * generically, 15 to 45 seconds. So it staged for an average of TikTok,
+   * Reels and Shorts and could not know that one of them ranks on finishing and
+   * another on what happens afterwards. Two of the three most consequential
+   * facts about a piece were being withheld from the one agent whose whole job
+   * is holding the piece in mind at once.
+   */
+  platform?: string;
 }
 
 export interface StageResult {
@@ -85,7 +99,27 @@ export async function stagePiece(
   }
 
   const channel = CHANNEL_CATALOG[request.channel];
-  const seconds = channel.targetSeconds ?? { min: 15, max: 45 };
+  /**
+   * §451. The platform's band, not the channel's generic range.
+   *
+   * `channel.targetSeconds` is 15 to 45 for every short video everywhere, and
+   * §439 replaced exactly that kind of number with one derived from what a
+   * platform rewards. The screenplay's `seconds` are the piece's runtime, so
+   * staging to the generic range while the writer wrote to a 40-second budget
+   * put the two halves of one piece on different clocks.
+   *
+   * Falls back to the channel where no band is known — Pinterest and Bluesky
+   * carry no video, and a piece there is honestly outside this model.
+   */
+  const band = request.platform
+    ? bandFor(request.platform, request.channel, request.format.pace)
+    : null;
+  const seconds = band
+    ? { min: Math.round(band.floorSeconds), max: Math.round(band.ceilingSeconds) }
+    : (channel.targetSeconds ?? { min: 15, max: 45 });
+  const strategy = request.platform
+    ? (PLATFORM_STRATEGIES[request.platform as keyof typeof PLATFORM_STRATEGIES] ?? null)
+    : null;
 
   const { rows: facts } = await ctx.pool.query<{
     category: string;
@@ -114,6 +148,11 @@ export async function stagePiece(
         marks: motif.marks,
         locatable: request.locatable ?? [],
         hasFootage: request.hasFootage ?? false,
+        /* §451. What this platform counts, so the composition can serve it. */
+        ...(band ? { targetSeconds: band.targetSeconds } : {}),
+        ...(strategy
+          ? { primarySignal: strategy.primarySignal, signalBrief: strategy.signalBrief }
+          : {}),
       },
       llm,
     );

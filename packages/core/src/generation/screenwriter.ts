@@ -52,6 +52,17 @@ export interface ScreenwriterInput {
   marks: readonly string[];
   /** Regions the frame can locate, in the piece's own words (§331). */
   locatable: readonly string[];
+  /**
+   * §451. What the piece should actually run, from the platform's band.
+   *
+   * Distinct from `seconds`, which is the legal range. A screenplay told only
+   * "between 12 and 55 seconds" writes to the middle of it; told the target it
+   * writes to the target.
+   */
+  targetSeconds?: number;
+  /** §451. What this platform counts, and what follows from it for a writer. */
+  primarySignal?: string;
+  signalBrief?: readonly string[];
   /** Whether real captured footage exists. */
   hasFootage: boolean;
   /** The written content this piece has to carry, when a format supplied it. */
@@ -122,6 +133,11 @@ function systemPrompt(staging: boolean): string {
     '  the piece turns. A bed that does the same thing throughout is a bed nobody notices, which',
     '  is a waste of the one channel that sets mood without spending a word.',
     '',
+    '- THE LAST SCENE is where a replay is won or lost. On a platform that ranks on completion,',
+    '  bring the ground back to what the first scene showed: an ending that reads as a',
+    '  continuation of the opening earns a second watch, and replays are the strongest watch',
+    '  signal there is. Say so in `groundSubject` — the same subject, not a new one.',
+    '',
     '- MOVEMENT follows meaning. `hold` on a moment that needs reading; `push_in` on a reveal;',
     '  `cut` when the subject changes. Movement applied evenly is motion sickness.',
     '',
@@ -175,7 +191,12 @@ export async function writeScreenplay(
     input.vocabulary?.length ? `\nThe product's own words: ${input.vocabulary.join(', ')}` : '',
     `\nSubject: ${input.subject}`,
     `Format: ${input.format}. Channel: ${input.channel}.`,
-    `Length: between ${input.seconds.min} and ${input.seconds.max} seconds.`,
+    input.targetSeconds
+      ? `Length: about ${input.targetSeconds} seconds. The scene seconds must sum to roughly that, and never past ${input.seconds.max}.`
+      : `Length: between ${input.seconds.min} and ${input.seconds.max} seconds.`,
+    input.signalBrief?.length
+      ? `\n${input.channel === 'short_video' ? 'This is going to ' + (input.primarySignal === 'completion' ? 'a platform that ranks on people finishing it' : input.primarySignal === 'saves' ? 'a platform that ranks on people keeping it' : input.primarySignal === 'post_view_engagement' ? 'a platform that ranks on what happens after the watch' : 'this platform') + '.' : ''}\nWhat it rewards, which decides how you compose this:\n${input.signalBrief.map((l) => `- ${l}`).join('\n')}`
+      : '',
     `Marks available for gestures: ${input.marks.join(', ')}.`,
     input.locatable.length > 0
       ? `Things the frame can locate, and the only valid gesture targets: ${input.locatable.join(', ')}.`

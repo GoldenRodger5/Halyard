@@ -11440,3 +11440,39 @@ one is not. Verified against both.
 
 **A warning, never an error.** §449 is one section old and its lesson is exactly
 what failing a caption costs.
+
+## §451 · The director was staging blind
+
+`writeScreenplay` — the agent that exists because *"composition is precisely the
+thing that cannot be decided one dimension at a time"* — was told its `channel`
+and not its **platform**. So it staged for an average of TikTok, Reels and
+Shorts, and could not know that one of them ranks on people finishing and
+another on what happens afterwards.
+
+Two consequences, both now fixed by passing one field:
+
+- **It was on a different clock from the writer.** `channel.targetSeconds` is 15
+  to 45 for every short video everywhere. §439 replaced exactly that kind of
+  number, so the writer wrote to a 40-second budget while the screenplay staged
+  to a generic range — the two halves of one piece, timed separately.
+- **It could not compose for the thing that decides reach.** §445 gave every
+  platform a `primarySignal` and a brief; the screenwriter never saw either.
+
+The instruction that follows is the one worth having: on a platform that ranks
+on completion, **the last scene returns to the first scene's ground**. An ending
+that reads as a continuation of the opening earns a second watch, and replays
+are the strongest watch signal available — `retentionQC` has said so since it
+was written and nothing acted on it.
+
+**Rejected: a `not_loop_ready` gate.** `frameSampleTimes` never samples the last
+frame, so the rule has always reported `unmeasured`; supplying it would be easy
+and would then warn on essentially every piece, because none of them loop. A
+gate that fires on everything is not information — the module's own header says
+a gate that fails everything is worse than one that passes everything, because
+the first gets switched off. The composition is the fix; the gate can follow
+once there is a distribution to sit in.
+
+**Also checked and deliberately not built:** applying `scoreHookCraft` to the
+format's opening slot. Measured against every real opening, it flags exactly the
+two that §448's thumbnail rule already flags and nothing else — a second warning
+for the same thing is noise, not coverage.
