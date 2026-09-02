@@ -1910,34 +1910,71 @@ coverage.
   it.
 
 
+
 ## Where we are now — direction and length
 
-`docs/DIRECTION_SPEC.md` is the current plan of record for the creative path. It
-answers the length question and opens out into the agent line-up.
+`docs/DIRECTION_SPEC.md` is the plan of record for the creative path. **W1-W10
+and W12 are built and live; W11 remains.** Every item below was verified by
+driving the studio in a browser and reading the worker log, not only by tests.
 
-**Shipped this pass.** Three stale platform constants corrected (§438): Reels
-90s → 180s in `visualQC.ts` *and* `instagram.ts`, Shorts 60s → 180s in
-`visualQC.ts`. `youtube.ts` had already fixed its own copy of the Shorts number
-and the other two places kept the old one. `gates.test.ts` had been asserting
-that the stale refusal was correct, so the suite defended the bug; that
-assertion is inverted and kept.
+**Length is now decided rather than discovered (§438-§440).** `targetSeconds`
+was inert *and* unreachable — `quiz` declared 30 seconds out of slot ceilings
+implying 82. The platform owns a band (TikTok 32s/55s ceiling, Shorts 48/90,
+Reels 26/45), the format owns a pace, and the budget inverts into a word count
+that reaches the writer before it writes. Where the words will not fit the
+structure flexes. Live: a TikTok quiz cuts to three questions at 33s; the same
+catalogue's YouTube tips keeps five at 47s. Same system, genuinely different
+pieces. `retention.length_band` catches what still ships long, and the Editor —
+the first agent here that removes anything — cuts structure, never prose.
 
-**Specified, not built.** Twelve work items, W1–W12. The first four are one
-piece and should ship together:
+**The screenplay directs the render (§441, §446).** §132's fix. `Scene.slotKey`
+joins a scene to its beat exactly, so `move`, `weight`, `seconds` and `ground`
+reach frames for the first time. Verified live: *"screenplay directs the render,
+myth_fact, scenes 4 of 4, moves hold/settle/push_in"*. The screenplay is a
+director that **can be absent** — an undirected beat renders as before, which is
+what made this safe on the only path that works.
 
-- **W1–W4 · Length as a budget.** `targetSeconds` is inert *and* unreachable —
-  `quiz` declares 30 seconds and its own slot budget implies 76. Replace it with
-  per-platform bands, flow the budget backwards into the writer as a word count,
-  and let repeating slots flex their count so a TikTok quiz is three sharp
-  questions rather than five truncated ones. Plus the Editor — the first agent
-  here that *removes* anything.
-- **W5–W6 · The screenplay directs the render.** §132's fix. Key `Scene` to the
-  format's slot instances so the join is exact, then demote the four directors
-  from deciders to executors. The screenplay must remain optional: a beat with
-  no scene renders as it does today.
-- **W7–W12.** Per-platform primary signals, the Hook Auditioner (five openings
-  scored, one kept), `lastVerified` on every third-party constant so §438 cannot
-  recur, the Continuity Director unifying five blind recency lists, four agents
-  folded, two unblocked.
+**Three stale platform caps corrected (§438), and dated so it cannot recur
+(§442).** Reels 90s → 180s in two places, Shorts 60 → 180. `youtube.ts` had
+already fixed its own copy and the other two kept the old one, while
+`gates.test.ts` asserted the stale refusal was *correct* — a green suite proving
+nothing. `VERIFIED_CONSTANTS` now dates every fact about somebody else's product
+and fails after a year.
 
-**Suite:** 2,929 passing, 467 skipped.
+**Also:** the hook audition became one (§443) — every variant scored 0.5 with no
+published data, so the strongest hook won by luck; the account now has a look
+(§444) — five recency mechanisms that could not see each other; and what each
+platform counts finally reaches the writing (§445) — `PLATFORM_STRATEGIES` had
+been read by one page that displays it.
+
+### Found by running it, not by reading it
+
+Both of these were invisible to types, tests and docs, and both surfaced within
+minutes of driving the UI:
+
+- **A screenplay that turned every picture off.** The first live §441 run
+  returned `ground: 'colour'` on all four scenes and rendered zero photographs —
+  a slide deck, which is what §407 fixed. Unanimous flat ground is now read as
+  the screenplay declining to choose.
+- **A connector outage stopping the formats that exist to survive one (§447).**
+  `generateSample` ran whenever a connector existed, so a RecipeFix edge-function
+  failure blocked `tips`, `history`, `quiz` and `myth_fact` — all of which
+  declare `needsArtifact: false` *precisely because they can be made on a day
+  when nothing was adapted*. It also returned silently: a critical notification
+  went to the operator while the job log read "briefed idea written" then "job
+  done".
+
+### What is left
+
+- **W11** — fold `creative-director`, `story-architect` and `concept-generator`
+  into the screenwriter. Registry hygiene; changes nothing a viewer sees.
+- **The caption copywriter refuses pieces the format writer filled cleanly.** A
+  `history` run filled all five slots with zero warnings and was then discarded
+  after three caption attempts failed the copy gate on one violation. The
+  piece's *content* was fine and the whole thing was thrown away. Worth a look.
+- The RecipeFix connector's `adapt_recipe` edge function is returning non-2xx,
+  so `transformation` and `recipe` cannot be made until that is fixed. External.
+- Two agents blocked outside the code: the Sound Designer on procurement, the
+  Thumbnail Director on a YouTube OAuth scope. Both statuses are honest.
+
+**Suite:** 3,022 passing, 467 skipped. Lint clean.

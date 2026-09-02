@@ -424,7 +424,7 @@ not mean its output is *read*, which is the distinction §132 turns on.
 | platform-creative-director | exercised | **Extend** with `primarySignal` (Part 3). |
 | photographic-subject | exercised | **Sound.** Drives the per-beat photography that fixed the stale-background complaint. |
 | hook-generator | partial | **Redesign** — see §5.3. Generic hooks now actively signal low quality. |
-| vo-scriptwriter | partial | After Part 2 the screenplay carries `spoken`. **Fold into the screenwriter** or delete. |
+| vo-scriptwriter | partial | **Corrected on inspection: keep.** The plan assumed it was redundant once the screenplay carried `spoken`. It is not on the generate path at all — the format's narration is assembled mechanically from the same gated slots the video is built from (§306), and `writeVoScript`'s only callers are in `correction/rewrite.ts`, rewriting a voiceover an operator rejected. A different surface, doing a job nothing else does. |
 | sound-director | **blocked** | **Correctly blocked** — on procurement, not code. §5.2. |
 | thumbnail-director | **blocked** | **Correctly blocked** — on a YouTube scope the channel has not granted. Refuses by naming the scope rather than spending a request on a 403, which is the right behaviour. |
 | auto-clip | **blocked** | Blocked on source footage. **Leave blocked**, honestly. |
@@ -455,9 +455,12 @@ not mean its output is *read*, which is the distinction §132 turns on.
 **Out of scope for this document** — they serve a different surface and none of
 them is on the generate path. Reviewed only to confirm that.
 
-**Net:** five agents folded or deleted, four demoted to executors, three
-unblocked, two redesigned, two genuinely new. Forty agents becomes roughly
-thirty-four, and the ones that remain each have a reader.
+**Net, as built:** four directors now execute a screenplay rather than deciding
+independently, one agent redesigned (`hook-generator` → craft audition), two
+genuinely new (Editor, Continuity Director), two confirmed correctly blocked on
+things outside the code, and one — `vo-scriptwriter` — confirmed to belong where
+it is. Three remain to fold, which changes the registry and nothing a viewer
+sees, and is the right thing to leave until last.
 
 ---
 
@@ -581,7 +584,7 @@ Ordered so that each one is shippable alone and each is verifiable in the UI.
 | **W8** ✅ | Hook Auditioner (§5.3) | Highest ratio of gain to work of anything here | Five openings scored and recorded; the kept one is the highest scorer |
 | **W9** ✅ | `lastVerified` on every third-party constant | §438 must not recur | A test fails when any constant is over 180 days unverified |
 | **W10** ✅ | Continuity Director (§5.4) | The variety complaint, one level up | Eight consecutive pieces show no axis repeating more than twice |
-| **W11** | Fold `creative-director`, `story-architect`, `vo-scriptwriter`, `concept-generator` | Fewer agents, each with a reader | Registry count drops; the Auditor reports no orphans |
+| **W11** ⏳ | Fold `creative-director`, `story-architect`, `concept-generator` | Fewer agents, each with a reader | Registry count drops; the Auditor reports no orphans. **Not done, and deliberately last:** it is a refactor of three working agents with no change to what a viewer sees, and one of the four originally listed — `vo-scriptwriter` — turned out on inspection to belong exactly where it is. |
 | **W12** ✅ | Investigate the two blocked agents | Both declared blocked; the plan assumed wrongly that both were cheap | **Neither is a code gap.** Sound Designer is blocked on procurement (no licensed effects, and synthesising them would fabricate an interaction — gotcha 9). Thumbnail Director is blocked on a YouTube OAuth scope the channel has not granted, and refuses by naming the scope rather than spending a request on a 403. Both statuses are honest and stay as they are. |
 
 W1–W4 are one coherent piece of work and should ship together. W5–W6 are the
