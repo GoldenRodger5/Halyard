@@ -11,7 +11,15 @@
  * where the reads live now.
  */
 import 'server-only';
-import { assessReadiness, sentryConfig, summarise, type ReadinessSection, type ReadinessVerdict } from '@halyard/core';
+import {
+  assessReadiness,
+  missingSchema,
+  SCHEMA_EXPECTATIONS,
+  sentryConfig,
+  summarise,
+  type ReadinessSection,
+  type ReadinessVerdict,
+} from '@halyard/core';
 import { getCurrentProduct, type ProductRow } from '@/lib/queries';
 import { one, query } from '@/lib/db';
 
@@ -24,7 +32,7 @@ export interface Readiness {
 export async function readReadiness(): Promise<Readiness> {
   const product = await getCurrentProduct();
 
-  const [onboarding, accounts, worker, jobs, renders, flows, pipeline, attribution, settings] =
+  const [onboarding, accounts, worker, jobs, renders, flows, pipeline, attribution, settings, columns] =
     await Promise.all([
       product
         ? one<{
@@ -84,6 +92,14 @@ export async function readReadiness(): Promise<Readiness> {
       one<{ publishing_enabled: boolean }>(
         'select publishing_enabled from settings where id = true',
       ),
+      /* §492. Which of the columns this build reads the database actually has. */
+      query<{ table: string; column: string }>(
+        `select table_name as "table", column_name as "column"
+           from information_schema.columns
+          where table_schema = 'public'
+            and (table_name, column_name) in (${SCHEMA_EXPECTATIONS.map((_, i) => `($${i * 2 + 1}, $${i * 2 + 2})`).join(', ')})`,
+        SCHEMA_EXPECTATIONS.flatMap((e) => [e.table, e.column]),
+      ).catch(() => null),
     ]);
 
   const totalRenders = Number(renders?.total ?? 0);
@@ -136,6 +152,7 @@ export async function readReadiness(): Promise<Readiness> {
       flowsBroken: flows.filter((f) => !f.ok).length,
       flowsNeverRun: Math.max(0, 3 - flows.length),
       pendingApproval: Number(pipeline?.pending ?? 0),
+      ...(columns ? { schemaMissing: missingSchema(columns) } : {}),
     },
     attribution: {
       utmStampedPosts: Number(attribution?.stamped ?? 0),

@@ -76,7 +76,8 @@ build is from 31 August, the schema stops at migration 0070, and main is 84
 commits ahead of origin. The exact procedure is in `docs/DEPLOY.md` under
 *Production is behind again*; steps 2 and 4 are an operator's to run (a
 production-database write, then the push). A data backup from 2 September is
-in the session scratchpad.
+in the session scratchpad. Once deployed, the readiness page shows schema
+drift as a red row naming the migration (§492).
 
 Suites: 195 files / 2,976 tests pass without a database; 335 skip (gotcha 12).
 With the database: 257 files / 3,642 tests (§479 fixed the four that only

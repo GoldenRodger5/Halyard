@@ -1,3 +1,4 @@
+import { SCHEMA_EXPECTATIONS, type SchemaExpectation } from './schema.js';
 /**
  * The readiness gate. Milestone 47 Part B.
  *
@@ -70,6 +71,12 @@ export interface ReadinessInput {
     flowsBroken: number;
     flowsNeverRun: number;
     pendingApproval: number;
+    /**
+     * §492. Columns this build reads that the database does not have, as
+     * `missingSchema` reports them. Undefined when the caller could not ask —
+     * which is itself worth a warning, never a pass.
+     */
+    schemaMissing?: SchemaExpectation[];
   };
   attribution: {
     utmStampedPosts: number;
@@ -308,6 +315,29 @@ function accountsSection(input: ReadinessInput): ReadinessSection {
 function pipelineSection(input: ReadinessInput): ReadinessSection {
   const p = input.pipeline;
   const checks: ReadinessCheck[] = [];
+
+  /*
+   * §492. First, because everything below reads the database this build was
+   * written for. Production served a 500 on every gallery visit for want of
+   * one column (§489), and no screen said so.
+   */
+  const missing = p.schemaMissing;
+  checks.push({
+    id: 'pipeline.schema',
+    label: 'The database has every column this build reads',
+    state: missing === undefined ? 'warn' : missing.length === 0 ? 'pass' : 'fail',
+    detail:
+      missing === undefined
+        ? 'Could not ask the database which columns it has.'
+        : missing.length === 0
+          ? `All ${SCHEMA_EXPECTATIONS.length} recent columns present.`
+          : `Missing ${missing.map((m) => `${m.table}.${m.column} (migration ${m.migration}, read by ${m.readBy})`).join('; ')}.`,
+    fix:
+      missing && missing.length > 0
+        ? `Apply ${[...new Set(missing.map((m) => `supabase/migrations/${m.migration}_*.sql`))].join(', ')} to this database — see docs/DEPLOY.md, "Production is behind again". Until then the pages that read these columns fail with a server error.`
+        : undefined,
+    needsYou: missing !== undefined && missing.length > 0,
+  });
 
   checks.push({
     id: 'pipeline.worker',

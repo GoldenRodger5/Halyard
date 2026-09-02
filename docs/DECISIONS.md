@@ -12392,3 +12392,14 @@ each caller does the honest thing: `generateHeroImage` rethrows it,
 and `review_media` fails the piece instead of dying with it in the queue.
 The rule the operator gave for fallbacks — *sometimes it is better to send
 the error* — applied to the one place it had not been.
+
+## §492 · Schema drift is a red row, not a digest
+
+§489's lesson made concrete. `SCHEMA_EXPECTATIONS` lists the columns this
+build reads that a deployed database could plausibly lack, each with the
+migration that adds it; the readiness page asks `information_schema` for
+them and shows *"The database has every column this build reads"* — a red
+row naming the file to apply when one is missing, a warning (never a pass)
+when the database could not be asked. A test keeps every entry honest
+against the migration it cites. Add a row when a migration adds a hot-path
+column; drop it once no deployed database could predate it.
