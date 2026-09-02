@@ -981,15 +981,28 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
    * run spending money unasked.
    */
   const operatorAsked = Boolean(job.payload.onlyPlatform || job.payload.postFormat);
+  /**
+   * Every media kind an account could produce, not the one it prefers.
+   *
+   * The first version asked `chooseFormat` — and §453 then established that the
+   * preference list is a guess which can differ from what the piece turns out
+   * to be. A run where every account's *preferred* format was full would have
+   * returned here without drafting, while the format it would actually have
+   * made had room.
+   *
+   * So the guard is deliberately permissive: it exists to stop a run that can
+   * produce nothing at all, and being wrong in that direction costs a purchase.
+   * The precise per-format decision is made after the post type resolves, which
+   * is where it can be right.
+   */
   const roomAnywhere =
     operatorAsked ||
     accounts.rows.some(
       (account) =>
         account.persona === 'brand' &&
-        shouldDraftMore(
-          chooseFormat(account.platform, account.supported_formats ?? []),
-          backlog.get(chooseFormat(account.platform, account.supported_formats ?? [])) ?? 0,
-        ).draft,
+        (account.supported_formats ?? []).some(
+          (candidate) => shouldDraftMore(candidate, backlog.get(candidate) ?? 0).draft,
+        ),
     );
 
   if (!roomAnywhere) {
