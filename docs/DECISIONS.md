@@ -12176,4 +12176,7 @@ with one moving bar is nearly a still to a whole-frame mean. The script says so.
 
 **What is not done.** No key is set, so no piece has carried real footage yet;
 without `PEXELS_API_KEY` the pipeline is exactly what it was, and the screenplay
-is told so honestly. The gallery does not yet show which beats moved.
+is told so honestly. The gallery's *What the frame does* reads a `grounds`
+record beside the length decision — moving, photographed, flat, and the reason
+each footage request was declined — so a slideshow can be told apart from a
+choice, a missing key, and an empty search without opening the worker's log.

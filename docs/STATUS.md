@@ -13,6 +13,7 @@ written — `hasFootage` was false on every piece. Now:
 | worker | `apps/worker/src/beatFootage.ts` mirrors `photographBeats`; a beat with a clip is not photographed |
 | render | `stageClip` into `public/stock/`, `<OffthreadVideo>` in a `<Loop>` under the same camera grammar |
 | proven | `scripts/preview-footage.ts` — still 2.25, clip 35.15 luma delta across one beat |
+| shown | gallery *What the frame does*: moving / photographed / flat, and why footage was declined |
 
 **Needs one thing from the operator: `PEXELS_API_KEY` in the master `.env`,
 then `./scripts/env-sync`.** Free at pexels.com/api. Until it is set the

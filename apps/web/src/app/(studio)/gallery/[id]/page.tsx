@@ -318,6 +318,31 @@ export default async function GalleryPiece({ params }: { params: Promise<{ id: s
           </Sheet>
         ) : null}
 
+        {/*
+          §478. What the frame does. An operator looking at a slideshow should
+          be able to see whether that was a choice, a missing key, or a search
+          that found nothing — three different problems with three different
+          fixes, and the same picture.
+        */}
+        {item.grounds ? (
+          <Sheet>
+            <Label>What the frame does</Label>
+            <p className="m-0 text-[12px] leading-relaxed text-quiet">
+              {item.grounds.beats} beats:{' '}
+              <span className="text-ink">{item.grounds.footage} moving</span>,{' '}
+              {item.grounds.photographs} photographed, {item.grounds.flat} flat.
+              {item.grounds.source === null
+                ? ' No footage source is configured, so nothing could move.'
+                : ''}
+            </p>
+            {item.grounds.declined.length > 0 ? (
+              <p className="m-0 mt-2 text-[11px] leading-relaxed text-lit">
+                Asked for footage and kept a still: {item.grounds.declined.join('; ')}.
+              </p>
+            ) : null}
+          </Sheet>
+        ) : null}
+
         {item.screenplay?.scenes?.length ? (
           <Sheet>
             <Label>What it was staged as</Label>

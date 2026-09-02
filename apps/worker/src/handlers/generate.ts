@@ -2828,6 +2828,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                 const footageBeats = allBeats
                   .map((b, i) => ({ b, i }))
                   .filter(({ b }) => b.wantsFootage === true);
+                let footageDeclined: string[] = [];
                 if (footageBeats.length > 0) {
                   const footage = await footageForBeats(assets, stockFootage, llmFor(), {
                     productId,
@@ -2850,10 +2851,11 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                       };
                     }
                   }
+                  footageDeclined = footage.flatMap((f) => (f.assetId || !f.reason ? [] : [f.reason]));
                   ctx.log('footage resolved', {
                     asked: footageBeats.length,
                     got: footage.filter((f) => f.assetId).length,
-                    declined: footage.filter((f) => !f.assetId).map((f) => f.reason),
+                    declined: footageDeclined,
                   });
                 }
 
@@ -2908,6 +2910,40 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                       return assetId ? { ...b, backgroundAssetId: assetId } : b;
                     }),
                   };
+                }
+
+                /*
+                 * §478. What the frame does, recorded where the gallery reads
+                 * it. A slideshow is three different problems with the same
+                 * picture — a screenplay that chose flat, a key that is not
+                 * set, a search that found nothing — and an operator should
+                 * see which without reading worker logs.
+                 */
+                {
+                  const finalBeats =
+                    (props as { beats?: Array<Record<string, unknown>> }).beats ?? [];
+                  const moving = finalBeats.filter((b) => b.footageAssetId).length;
+                  const photographed = finalBeats.filter(
+                    (b) => !b.footageAssetId && b.backgroundAssetId,
+                  ).length;
+                  await ctx.pool.query(
+                    `update content_items
+                        set generation_meta = coalesce(generation_meta, '{}'::jsonb) || $2::jsonb
+                      where id = $1`,
+                    [
+                      contentItemId,
+                      JSON.stringify({
+                        grounds: {
+                          beats: finalBeats.length,
+                          footage: moving,
+                          photographs: photographed,
+                          flat: finalBeats.length - moving - photographed,
+                          declined: footageDeclined,
+                          source: stockFootage ? 'pexels' : null,
+                        },
+                      }),
+                    ],
+                  );
                 }
               }
 

@@ -291,6 +291,19 @@ export interface QueueItem {
       stillOver: boolean;
     };
   } | null;
+  /**
+   * §478. What the frame does under each beat: real motion, a photograph, or
+   * a flat card — and why the beats that asked for footage did not get it.
+   * Null on pieces made before footage existed, and on anything not a video.
+   */
+  grounds: {
+    beats: number;
+    footage: number;
+    photographs: number;
+    flat: number;
+    declined: string[];
+    source: string | null;
+  } | null;
   /** §362. The line written when this was rejected, which trains the voice. */
   reject_reason: string | null;
   /** §393. When it was made. The Gallery sorts and labels the wall by this. */
@@ -346,6 +359,8 @@ const QUEUE_SELECT = `
          ci.generation_meta -> 'length' as length_decision,
          -- §475. What three readers said about the words, before it was made.
          ci.generation_meta -> 'read' as read_verdict,
+         -- §478. Which beats moved, which were photographed, which stayed flat.
+         ci.generation_meta -> 'grounds' as grounds,
          ci.reject_reason,
          -- §372. What this piece was staged from, so the review screen can show
          -- what it was meant to be beside what it became.
