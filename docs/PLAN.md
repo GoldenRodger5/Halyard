@@ -24,11 +24,18 @@ is being done *now*, in order, and why. Update it when a step lands.
 
 1. **Cost programme — done 2 Sep (§494).** Ledger, budget guard, image
    quality, photo reuse, cadence, per-piece cost in the UI. Details in §3.
-2. **Production recovery (operator, 2 commands).** See §5. Then push main
-   (now 90+ commits ahead), then verify the live gallery.
-3. **Real motion, first real clip.** Operator adds `PEXELS_API_KEY` (free);
-   the next tips or history piece carries footage on its process beats; the
-   three critic personas judge it; §4 says where footage belongs.
+2. **Production recovery — done 2 Sep.** Migrations 0071–0076 applied and the
+   branch pushed by the operator; the actual blocker was a Vercel Root
+   Directory of `.`, which had failed every deploy since 31 August (§495).
+   Fixed and redeployed; `/gallery` is 200. Five accounts now hold working
+   credentials in production (§500).
+3. **Real motion — key in, first clip in flight.** The operator added
+   `PEXELS_API_KEY`. First live run: the screenwriter asked for footage on
+   **eight of eight beats**, so the brief works; all eight stores were refused
+   because the code wrote `kind: 'footage'` where the schema has always said
+   `broll` (§502). Fixed, guarded by a test that reads the constraint, and
+   re-running. Next: the three critic personas judge a piece that actually
+   moves.
 4. **Fund one model account and re-run the tips matrix** (TikTok/Instagram/
    YouTube) under the budget guard, reading the per-post cost on each card.
 5. **Then the roadmap resumes:** walkthrough capture, series, carousel.
@@ -91,10 +98,7 @@ in the master `.env` → `./scripts/env-sync` → restart the worker.
 
 ## 5. Only the operator can do these
 
-1. **Fund a model account.** OpenAI is the configured primary
-   (https://platform.openai.com/settings/organization/billing) — it also
-   serves images and the frame critic; or Anthropic
-   (https://console.anthropic.com/settings/billing). Either resumes the queue.
+1. ~~Fund a model account.~~ **Done** — OpenAI funded 2 Sep.
 2. **Bring production's schema current**, from the repo root, with the pooler
    URL from Supabase → Project Settings → Database:
    ```bash
