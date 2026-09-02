@@ -154,7 +154,15 @@ export async function footageForBeats(
       const stored = await uploadAsset(ctx, {
         bytes,
         mimeType: 'video/mp4',
-        kind: 'footage',
+        /*
+         * §502. `broll`, which the schema has always had and nothing has ever
+         * written. The first live footage run stored eight clips as `footage`
+         * and Postgres refused all eight — `assets_kind_check` is a list of
+         * allowed kinds, and inventing a ninth word for a concept the column
+         * already names is gotcha 1 in a different table. The screenwriter had
+         * done its part: it asked for footage on eight of eight beats.
+         */
+        kind: 'broll',
         width: clip.width,
         height: clip.height,
         durationSeconds: clip.durationSeconds,

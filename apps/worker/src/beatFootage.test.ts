@@ -87,7 +87,7 @@ describe('§478 footageForBeats', () => {
     expect(searches[0]![1]).toMatchObject({ minSeconds: 5.5 });
     expect(out[0]).toMatchObject({ assetId: 'asset-1', clipId: '41', seconds: 9, reason: null });
     expect(uploads[0]).toMatchObject({
-      kind: 'footage',
+      kind: 'broll',
       mimeType: 'video/mp4',
       source: 'licensed',
       subject: 'hands kneading dough',
