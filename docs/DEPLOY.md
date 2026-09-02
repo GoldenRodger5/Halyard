@@ -249,6 +249,22 @@ baked in at build time, so they cannot drift from what is actually running.
 The product this system markets ran sixteen days out of sync with its own
 repository because nothing anywhere surfaced that. This is the fix.
 
+## The worker deploys by upload, not by push (§506)
+
+Railway is **not** connected to GitHub for this project. `git push` deploys the
+web app on Vercel and does nothing to the worker; `railway redeploy` rebuilds
+whatever was last uploaded, which is how production ran 30 August's code for
+three days while every push looked successful. The worker ships with:
+
+```bash
+railway up --detach          # uploads this directory and builds the Dockerfile
+railway logs                 # it should be polling within a minute
+```
+
+`.railwayignore` and `.dockerignore` both exist and must stay in step: without
+them the upload is 1.8 GB and Cloudflare refuses it with a 413, and the image
+carries `apps/worker/.env` in a layer.
+
 ## Rolling back
 
 ```bash

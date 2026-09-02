@@ -52,6 +52,10 @@ job. Fund either account and the queue resumes. Validated on the rebuilt worker:
 a send from the UI dies on attempt 1 in five seconds with both providers
 named in the row.
 
+**The production worker runs today's code** (2 Sep, §506). It had been on 30
+August's build because Railway deploys by upload, not by push — `railway up`
+is the command, and it now has `PEXELS_API_KEY` too.
+
 **Six of seven accounts are connected in production** (2 Sep): Instagram,
 TikTok, X @Recipe_Fix, YouTube and Threads hold credentials and pass their
 live read; Pinterest and the founder X account do not. All are drafts-only

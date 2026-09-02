@@ -1,0 +1,23 @@
+# §506. What `railway up` must not upload.
+#
+# Railway's uploader reads this file, not `.dockerignore`, and with neither in
+# place the first `railway up` was refused by Cloudflare with 413 Payload Too
+# Large — 1.8 GB of `.git`, `node_modules`, generated media and render output,
+# none of which the Dockerfile uses. Kept in step with `.dockerignore`: what
+# the build does not read, the upload does not carry.
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+
+.git
+**/node_modules
+**/dist
+**/.next
+**/.turbo
+.render-output
+apps/web/public/dev-assets
+supabase/.branches
+supabase/.temp

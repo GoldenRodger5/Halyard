@@ -12710,3 +12710,10 @@ lines.
 
 Verified by building and looking inside: no `.env` in the image, and the
 §503 code present.
+
+**And Railway reads its own ignore file.** `railway up` refused the first
+upload with a Cloudflare **413 Payload Too Large** — the uploader honours
+`.railwayignore`, not `.dockerignore`, so both exist and say the same thing.
+Railway is not connected to GitHub here: it deploys whatever `railway up`
+sends, which is why `railway redeploy` had faithfully rebuilt the source from
+30 August and why production had been three days behind every push.
