@@ -273,6 +273,20 @@ DATABASE_URL='<hosted>' pnpm exec tsx scripts/verify-hosted.ts --cron https://<y
 Then open `/settings/readiness` and read it. It is the difference between "it
 built" and "it works".
 
+## The Root Directory (2 September 2026, §495)
+
+Vercel's project setting **Root Directory must be `apps/web`**. Left at `.`
+every deploy fails with *"No Next.js version detected"* — and a failed deploy
+leaves the previous build serving, so the site looks fine and simply stops
+receiving changes. It sat that way for two days.
+
+Check it before blaming anything else:
+
+```bash
+cd apps/web && vercel project inspect web | grep -i "root directory"
+vercel ls | head -3        # ● Error on the newest row means nothing shipped
+```
+
 ## Production is behind again (2 September 2026)
 
 Found from the live site, not the repo: every visit to `/gallery` on
@@ -318,7 +332,8 @@ migration you have not applied.
 
 3. Verify: `curl -s -o /dev/null -w '%{http_code}' https://halyard-ten.vercel.app/gallery`
    is no longer 500, and `vercel logs halyard-ten.vercel.app --since 10m`
-   shows no `42703`.
+   shows no `42703`. **Done 2 September**: migrations 0071–0076 applied, the
+   Root Directory corrected, redeployed, `/gallery` 200.
 4. Then `git push origin main`, and after the deploy run
    `scripts/verify-hosted.ts` as *After every deploy* says. The worker on
    Railway needs `PEXELS_API_KEY` if footage is wanted (§478); everything else

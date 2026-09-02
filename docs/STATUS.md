@@ -85,7 +85,12 @@ operator's licence decision), and the text critic read the four-fragment
 caption and the headline and "found nothing" — its questions need the same
 personas the render critic has. Re-run tips after the container is rebuilt.
 
-**Production (halyard-ten.vercel.app) is broken and behind — §489.** Every
+**Production is live again (§489, §495).** Migrations 0071–0076 applied, 95
+commits pushed, and the real blocker found: the Vercel Root Directory was `.`,
+so every deploy since 31 August had failed and production was serving a stale
+build. Set to `apps/web`, redeployed, `/gallery` 200.
+
+~~**Production (halyard-ten.vercel.app) is broken and behind — §489.**~~ Every
 `/gallery` visit 500s on `column rr.treatment does not exist`: the deployed
 build is from 31 August, the schema stops at migration 0070, and main is 84
 commits ahead of origin. The exact procedure is in `docs/DEPLOY.md` under

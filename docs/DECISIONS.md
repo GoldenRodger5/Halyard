@@ -12458,3 +12458,25 @@ Five changes, in the order they matter:
 Targets written into `docs/PLAN.md`: under $0.60 per finished short video,
 under $5 a day unless raised. The rule: a price the code does not record is
 a price the operator discovers.
+
+## §495 · Two faults wearing one symptom
+
+The live gallery threw *"Application error"*. §489 found the schema behind and
+that was true — but applying the migrations and pushing 95 commits did not
+fix it, because **every deploy since at least 31 August had failed**. The
+project's Root Directory was `.`, so Vercel looked for Next.js in the
+monorepo root and refused: *"No Next.js version detected"*. Production was
+serving a build from before the schema drift began, which is why the drift
+was visible at all.
+
+Fixed both: Root Directory set to `apps/web` (via the projects API, since it
+is a dashboard setting), then a redeploy of the failed build — ready in two
+minutes, `/gallery` now 200 and asking for a sign-in.
+
+The lesson is about diagnosis, not either fault. A 500 on one route made the
+schema the obvious suspect and it *was* a real defect; the deploy pipeline
+being silently broken for two days was a second one, invisible because a
+failed deploy leaves the previous build serving happily. `/master/system`
+shows the running build; nothing showed that the *last three deploys had
+failed*. Worth a readiness row: the newest deployment's state, beside the
+schema row §492 added.
