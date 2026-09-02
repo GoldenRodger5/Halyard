@@ -7,6 +7,7 @@ import { checkScreenplay, fitScreenplay, printScreenplay, type Screenplay } from
 
 const scene = (over: Partial<Screenplay['scenes'][number]> = {}): Screenplay['scenes'][number] => ({
   id: 's1',
+  slotKey: null,
   role: 'hook',
   weight: 'lead',
   seconds: 4,

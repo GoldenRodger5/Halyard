@@ -23,7 +23,7 @@
  * Gotcha 10: this package is webpacked for the browser by Remotion.
  */
 import type { SlotValue } from '../image/formatSlides.js';
-import type { BeatRole, NarrativeBeat } from './narrative.js';
+import type { BeatRole, NarrativeBeat, SceneMove } from './narrative.js';
 import {
   QUIZ_COUNTDOWN_SECONDS,
   QUIZ_QUESTION_SECONDS,
@@ -231,8 +231,52 @@ export function splitLongLine(text: string, seconds: number): string[] {
   return [head, tail];
 }
 
+/**
+ * §441. One screenplay scene, as plain data this bundle can hold.
+ *
+ * Mirrors the fields of `Scene` in `@halyard/core` that change what is
+ * rendered. Restated rather than imported — gotcha 10 — and held to the
+ * original by `screenplayMove.test.ts`.
+ *
+ * `spoken`, `onScreen` and `direction` are deliberately absent: what is said
+ * and what is read come from the written slots, which are gated, and a
+ * screenplay that could replace them would be a second copywriter with none of
+ * the first one's checks (§340). This carries *staging* only.
+ */
+export interface SceneDirection {
+  /** How long the screenplay wants this beat to hold. */
+  seconds?: number;
+  move?: SceneMove;
+  weight?: 'lead' | 'support' | 'aside';
+  ground?: 'footage' | 'photograph' | 'colour' | 'product_capture';
+}
+
+/** How a scene's weight reads as beat emphasis. */
+const WEIGHT_EMPHASIS: Record<'lead' | 'support' | 'aside', 'quick' | 'normal' | 'hold'> = {
+  lead: 'hold',
+  support: 'normal',
+  aside: 'quick',
+};
+
 function narrativeFrom(
-  lines: Array<{ role: BeatRole; text: string; kicker?: string | null; source?: string | null }>,
+  lines: Array<{
+    role: BeatRole;
+    text: string;
+    kicker?: string | null;
+    source?: string | null;
+    /** §441. `key:index`, so a screenplay scene can be found for this line. */
+    slotKey?: string;
+  }>,
+  /**
+   * §441. The screenplay's staging, keyed by `key:index`.
+   *
+   * Optional, and absent every direction falls back to what this function
+   * decided on its own — which is what every render did before, and is still
+   * right for a piece with no screenplay. **The screenplay is a director that
+   * can be absent**, which is the only version of this that is safe to ship on
+   * the one path that currently works.
+   */
+  direction?: Record<string, SceneDirection>,
 ): FormatVideo | null {
   const usable = lines.filter((l) => l.text.trim().length > 0);
   if (usable.length === 0) return null;
@@ -260,7 +304,25 @@ function narrativeFrom(
   const narration: NarrationLine[] = [];
   let at = 0;
   for (const line of usable) {
-    const seconds = secondsToRead(line.text);
+    const staged = line.slotKey ? direction?.[line.slotKey] : undefined;
+    const read = secondsToRead(line.text);
+    /**
+     * §441. The screenplay's hold, floored by what is actually said over it.
+     *
+     * The screenwriter is told the arithmetic and does it, but a model asked
+     * for a number will sometimes give a short one, and a beat shorter than its
+     * own narration cuts the voice off mid-word — which is the worst failure
+     * available here and is silent until someone watches the file. So the
+     * direction may lengthen a beat and may never shorten it below the read.
+     *
+     * Capped at twice the read for the same reason in the other direction: a
+     * screenplay asking for twelve seconds on a four-word line is a model
+     * mis-counting, not an artistic choice, and the result is dead air.
+     */
+    const seconds =
+      typeof staged?.seconds === 'number' && Number.isFinite(staged.seconds)
+        ? Number(Math.min(read * 2, Math.max(read, staged.seconds)).toFixed(2))
+        : read;
     /* Only the first, so a format with two payoffs still lands once. */
     const isHeld = !held && line.role === heldRole;
     if (isHeld) held = true;
@@ -284,8 +346,29 @@ function narrativeFrom(
         /* The citation closes it, so it belongs to the last. */
         source: i === parts.length - 1 ? (line.source ?? null) : null,
         seconds: Number(((seconds * part.length) / chars).toFixed(2)),
-        emphasis: isHeld && i === parts.length - 1 ? 'hold' : line.role === 'hook' ? 'quick' : 'normal',
+        /*
+         * §441. The screenplay's weight where it gave one, and the derived
+         * emphasis otherwise. The payoff still holds regardless: `no_payoff` is
+         * an error and a screenplay that made every scene an aside would fail
+         * the piece rather than merely flatten it.
+         */
+        emphasis:
+          isHeld && i === parts.length - 1
+            ? 'hold'
+            : staged?.weight
+              ? WEIGHT_EMPHASIS[staged.weight]
+              : line.role === 'hook'
+                ? 'quick'
+                : 'normal',
         photographGroup: group,
+        ...(staged?.move ? { move: staged.move } : {}),
+        /*
+         * §441. A scene that asked for a flat ground gets no photograph. The
+         * worker reads this to decide which beats to photograph at all, which
+         * is the difference between a direction being honoured and being
+         * overwritten by an image nobody asked for.
+         */
+        ...(staged?.ground === 'colour' ? { wantsFlatGround: true } : {}),
       });
     });
     /*
@@ -300,7 +383,10 @@ function narrativeFrom(
   return { compositionId: 'Narrative', props: { beats }, narration };
 }
 
-const BUILDERS: Record<string, (slots: SlotValue[]) => FormatVideo | null> = {
+const BUILDERS: Record<
+  string,
+  (slots: SlotValue[], direction?: Record<string, SceneDirection>) => FormatVideo | null
+> = {
   quiz(slots) {
     const questions = all(slots, 'question');
     const answers = all(slots, 'answer');
@@ -397,14 +483,14 @@ const BUILDERS: Record<string, (slots: SlotValue[]) => FormatVideo | null> = {
    * A story with a turn. The turn is the beat the whole piece exists for, so it
    * gets a treatment that lands and the beats around it stay out of its way.
    */
-  history(slots) {
+  history(slots, direction) {
     const source = pick(slots, 'source');
     return narrativeFrom([
-      { role: 'hook', text: pick(slots, 'hook') ?? '' },
-      { role: 'setup', text: pick(slots, 'setup') ?? '' },
-      { role: 'turn', text: pick(slots, 'turn') ?? '', kicker: 'And then' },
-      { role: 'payoff', text: pick(slots, 'why_it_matters') ?? '', source },
-    ]);
+      { role: 'hook', text: pick(slots, 'hook') ?? '', slotKey: 'hook:0' },
+      { role: 'setup', text: pick(slots, 'setup') ?? '', slotKey: 'setup:0' },
+      { role: 'turn', text: pick(slots, 'turn') ?? '', slotKey: 'turn:0', kicker: 'And then' },
+      { role: 'payoff', text: pick(slots, 'why_it_matters') ?? '', slotKey: 'why_it_matters:0', source },
+    ], direction);
   },
 
   /**
@@ -412,17 +498,18 @@ const BUILDERS: Record<string, (slots: SlotValue[]) => FormatVideo | null> = {
    * exists — a tip whose number is set small throws away the thing a viewer
    * uses to keep their place.
    */
-  tips(slots) {
+  tips(slots, direction) {
     const tips = all(slots, 'tip');
     return narrativeFrom([
-      { role: 'hook', text: pick(slots, 'title') ?? '' },
+      { role: 'hook', text: pick(slots, 'title') ?? '', slotKey: 'title:0' },
       ...tips.map((tip, i) => ({
         role: 'detail' as BeatRole,
         text: tip.text,
+        slotKey: `tip:${tip.index}`,
         kicker: String(i + 1),
       })),
-      { role: 'close', text: pick(slots, 'close') ?? '' },
-    ]);
+      { role: 'close', text: pick(slots, 'close') ?? '', slotKey: 'close:0' },
+    ], direction);
   },
 
   /**
@@ -439,13 +526,13 @@ const BUILDERS: Record<string, (slots: SlotValue[]) => FormatVideo | null> = {
    * `This one` are the kickers because the reader's job changes at each: first
    * weigh, then decide.
    */
-  comparison(slots) {
+  comparison(slots, direction) {
     return narrativeFrom([
-      { role: 'hook', text: pick(slots, 'question') ?? '' },
-      { role: 'setup', text: pick(slots, 'option_a') ?? '', kicker: 'Option A' },
-      { role: 'detail', text: pick(slots, 'option_b') ?? '', kicker: 'Versus' },
-      { role: 'payoff', text: pick(slots, 'verdict') ?? '', kicker: 'This one' },
-    ]);
+      { role: 'hook', text: pick(slots, 'question') ?? '', slotKey: 'question:0' },
+      { role: 'setup', text: pick(slots, 'option_a') ?? '', slotKey: 'option_a:0', kicker: 'Option A' },
+      { role: 'detail', text: pick(slots, 'option_b') ?? '', slotKey: 'option_b:0', kicker: 'Versus' },
+      { role: 'payoff', text: pick(slots, 'verdict') ?? '', slotKey: 'verdict:0', kicker: 'This one' },
+    ], direction);
   },
 
   /**
@@ -456,12 +543,12 @@ const BUILDERS: Record<string, (slots: SlotValue[]) => FormatVideo | null> = {
    * settled it would remove the reason to reply. So there is no `payoff` role
    * here, which is a real difference from `comparison` and not an omission.
    */
-  poll(slots) {
+  poll(slots, direction) {
     return narrativeFrom([
-      { role: 'hook', text: pick(slots, 'question') ?? '' },
-      { role: 'setup', text: pick(slots, 'option_a') ?? '', kicker: 'One' },
-      { role: 'detail', text: pick(slots, 'option_b') ?? '', kicker: 'Or' },
-    ]);
+      { role: 'hook', text: pick(slots, 'question') ?? '', slotKey: 'question:0' },
+      { role: 'setup', text: pick(slots, 'option_a') ?? '', slotKey: 'option_a:0', kicker: 'One' },
+      { role: 'detail', text: pick(slots, 'option_b') ?? '', slotKey: 'option_b:0', kicker: 'Or' },
+    ], direction);
   },
 
   /**
@@ -472,22 +559,22 @@ const BUILDERS: Record<string, (slots: SlotValue[]) => FormatVideo | null> = {
    * long stops being an aside and becomes an explanation, which is the register
    * this format exists to avoid.
    */
-  behind(slots) {
+  behind(slots, direction) {
     const aside = pick(slots, 'aside');
     return narrativeFrom([
-      { role: 'hook', text: pick(slots, 'moment') ?? '' },
-      ...(aside ? [{ role: 'payoff' as BeatRole, text: aside, kicker: 'Honestly' }] : []),
-    ]);
+      { role: 'hook', text: pick(slots, 'moment') ?? '', slotKey: 'moment:0' },
+      ...(aside ? [{ role: 'payoff' as BeatRole, text: aside, slotKey: 'aside:0', kicker: 'Honestly' }] : []),
+    ], direction);
   },
 
-  myth_fact(slots) {
+  myth_fact(slots, direction) {
     const source = pick(slots, 'source');
     const partly = pick(slots, 'partly_true');
     return narrativeFrom([
-      { role: 'hook', text: pick(slots, 'myth') ?? '', kicker: 'Myth' },
-      ...(partly ? [{ role: 'setup' as BeatRole, text: partly, kicker: 'Partly true' }] : []),
-      { role: 'turn', text: pick(slots, 'correction') ?? '', kicker: 'Actually', source },
-    ]);
+      { role: 'hook', text: pick(slots, 'myth') ?? '', slotKey: 'myth:0', kicker: 'Myth' },
+      ...(partly ? [{ role: 'setup' as BeatRole, text: partly, slotKey: 'partly_true:0', kicker: 'Partly true' }] : []),
+      { role: 'turn', text: pick(slots, 'correction') ?? '', slotKey: 'correction:0', kicker: 'Actually', source },
+    ], direction);
   },
 
   /**
@@ -525,14 +612,14 @@ const BUILDERS: Record<string, (slots: SlotValue[]) => FormatVideo | null> = {
   },
 
   /** Where a thing came from, what changed, where it is now. */
-  origin(slots) {
+  origin(slots, direction) {
     const source = pick(slots, 'source');
     return narrativeFrom([
-      { role: 'hook', text: pick(slots, 'hook') ?? '' },
-      { role: 'setup', text: pick(slots, 'before') ?? '', kicker: 'Before' },
-      { role: 'turn', text: pick(slots, 'change') ?? '', kicker: 'What changed' },
-      { role: 'payoff', text: pick(slots, 'now') ?? '', kicker: 'Now', source },
-    ]);
+      { role: 'hook', text: pick(slots, 'hook') ?? '', slotKey: 'hook:0' },
+      { role: 'setup', text: pick(slots, 'before') ?? '', slotKey: 'before:0', kicker: 'Before' },
+      { role: 'turn', text: pick(slots, 'change') ?? '', slotKey: 'change:0', kicker: 'What changed' },
+      { role: 'payoff', text: pick(slots, 'now') ?? '', slotKey: 'now:0', kicker: 'Now', source },
+    ], direction);
   },
 };
 
@@ -543,10 +630,15 @@ const BUILDERS: Record<string, (slots: SlotValue[]) => FormatVideo | null> = {
  * artifact-driven path: that is how a quiz becomes a transformation post and
  * nobody finds out.
  */
-export function videoForFormat(formatId: string, slots: SlotValue[]): FormatVideo | null {
+export function videoForFormat(
+  formatId: string,
+  slots: SlotValue[],
+  /** §441. The screenplay's staging, keyed `key:index`. Absent is legal. */
+  direction?: Record<string, SceneDirection>,
+): FormatVideo | null {
   const build = BUILDERS[formatId];
   if (!build) return null;
-  return build(slots);
+  return build(slots, direction);
 }
 
 /** Which formats have a video composition. Asserted against the catalogue. */

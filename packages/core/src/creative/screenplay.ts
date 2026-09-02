@@ -88,6 +88,31 @@ export interface Gesture {
 
 export interface Scene {
   id: string;
+  /**
+   * §441. Which written line this scene stages: `question:2`, `close:0`.
+   *
+   * The whole reason the screenplay drove nothing (§132). Every field a scene
+   * carries — `move`, `weight`, `ground`, `score`, `seconds`, `gestures` — was
+   * validated, stored, and rendered in the Gallery, and not one reached the
+   * renderer, because there was **no way to say which rendered beat a scene was
+   * about**. `videoForFormat` builds beats from slots; the screenplay described
+   * scenes; nothing connected the two.
+   *
+   * A fuzzy match on text was the obvious bridge and is the wrong one: the
+   * screenwriter is explicitly allowed to shorten a line for the screen ("You
+   * may shorten a line for the screen. You may not change what it says"), so
+   * the two strings legitimately differ, and a matcher tuned to that would fail
+   * silently in exactly the cases staging did the most work.
+   *
+   * So the key is carried instead. It is the same `key:index` pair
+   * `expandSlots` numbers and `checkDraft` looks up — one identifier, three
+   * readers, no third opinion about which line is which.
+   *
+   * Null for a drafting screenplay, where no slots existed to stage. Such a
+   * screenplay directs nothing and never could; it is the first draft of a
+   * piece rather than the staging of one.
+   */
+  slotKey: string | null;
   role: BeatRole;
   weight: SceneWeight;
   /** How long it holds. The screenplay's most consequential number. */
@@ -273,6 +298,45 @@ export function checkScreenplay(
             'not replace it.',
         });
       }
+    }
+  }
+
+  /**
+   * §441. The keys that carry direction to the screen, checked like any other
+   * direction: can the machinery downstream execute it?
+   *
+   * A `slotKey` naming a line this piece does not have is exactly the shape
+   * this function exists to refuse — a direction that validates, stores,
+   * displays, and then reaches nothing. It is worse than a missing key, because
+   * a missing key is honestly inert and a wrong one looks connected.
+   *
+   * Two keys on the same line is the other half: the second silently wins and
+   * the first scene's staging is discarded, which is invisible in the output.
+   */
+  if (available.slots && available.slots.length > 0) {
+    const real = new Set(available.slots.map((slot) => `${slot.key}:${slot.index}`));
+    const claimed = new Map<string, string>();
+    for (const scene of screenplay.scenes) {
+      if (!scene.slotKey) continue;
+      if (!real.has(scene.slotKey)) {
+        problems.push({
+          scene: scene.id,
+          rule: 'unknown_slot_key',
+          detail:
+            `slotKey "${scene.slotKey}" names no line in this piece. ` +
+            `The lines are: ${[...real].join(', ')}.`,
+        });
+        continue;
+      }
+      const already = claimed.get(scene.slotKey);
+      if (already) {
+        problems.push({
+          scene: scene.id,
+          rule: 'duplicate_slot_key',
+          detail: `"${scene.slotKey}" is already staged by scene ${already}. One line, one scene.`,
+        });
+      }
+      claimed.set(scene.slotKey, scene.id);
     }
   }
 

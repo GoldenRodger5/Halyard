@@ -93,7 +93,63 @@ export interface NarrativeBeat {
    * a stopword, or a piece whose brand has no pen, gets clean type.
    */
   mark?: BeatMark;
+  /**
+   * §441. What the frame does across this beat, from the screenplay.
+   *
+   * The Ground moved one way on every beat of every piece ever rendered: a
+   * 1.00 to 1.06 push, forever, because nothing told it otherwise. The
+   * screenwriter has been writing `move` since §335 — `hold` on a moment that
+   * needs reading, `push_in` on a reveal, `cut` when the subject changes — and
+   * the field never left the database.
+   *
+   * Absent means the previous behaviour exactly, which is right for a piece
+   * with no screenplay and for the Remotion studio, where there is none.
+   */
+  move?: SceneMove;
+  /**
+   * §441. The screenplay asked for a flat ground on this beat.
+   *
+   * Read by the *worker*, which decides which beats get a photograph, not by
+   * this component — by the time props are built the decision has been made.
+   * It travels on the beat because that is where the direction landed and
+   * because a field carried nowhere is a direction that cannot be honoured.
+   *
+   * A screenplay that calls for `colour` is usually calling for a breath: a
+   * flat card between two photographed beats is a pattern interrupt that costs
+   * nothing, and a piece that is photographs end to end has no punctuation.
+   */
+  wantsFlatGround?: boolean;
 }
+
+/**
+ * §441. What the frame does across a scene. Mirrors `Move` in `@halyard/core`.
+ *
+ * Restated rather than imported: gotcha 10, this bundle is webpacked for the
+ * browser and the core barrel pulls `node:crypto`. `screenplayMove.test.ts`
+ * holds the two lists to each other.
+ */
+export const SCENE_MOVES = ['hold', 'push_in', 'drift', 'cut', 'settle'] as const;
+export type SceneMove = (typeof SCENE_MOVES)[number];
+
+/**
+ * How each direction reads as camera movement.
+ *
+ * `from`/`to` are scale; `drift` also pans, because a drift that only scales is
+ * a slow push by another name. `hold` is genuinely still — the point of asking
+ * for it is that a viewer reading a long line should not be moving.
+ */
+export const MOVE_GRAMMAR: Record<SceneMove, { from: number; to: number; panX: number }> = {
+  /* Still. A reader needs a stationary frame. */
+  hold: { from: 1.02, to: 1.02, panX: 0 },
+  /* The reveal. Harder than the old default, because it now means something. */
+  push_in: { from: 1, to: 1.09, panX: 0 },
+  /* Lateral, barely scaling. Reads as time passing rather than as emphasis. */
+  drift: { from: 1.05, to: 1.05, panX: 2.2 },
+  /* A new subject. Starts wide and settles fast, so the cut lands. */
+  cut: { from: 1.08, to: 1.03, panX: 0 },
+  /* Coming to rest. The close. */
+  settle: { from: 1.04, to: 1, panX: 0 },
+};
 
 /** A mark on a phrase of a line: what to draw, where, and in whose hand. */
 export interface BeatMark {
@@ -604,10 +660,25 @@ const Ground: React.FC<{
   luminance?: number;
   durationInFrames: number;
   anchor: 'top' | 'center' | 'bottom';
-}> = ({ src, luminance, durationInFrames, anchor }) => {
+  /** §441. What the screenplay asked this beat's frame to do. */
+  move?: SceneMove;
+}> = ({ src, luminance, durationInFrames, anchor, move }) => {
   const frame = useCurrentFrame();
-  /* 1.00 → 1.06 across the beat. Enough to read as alive, not as a zoom. */
-  const scale = interpolate(frame, [0, Math.max(1, durationInFrames)], [1, 1.06], {
+  /*
+   * §441. The screenplay's `move`, or the push every beat used to get.
+   *
+   * `push_in` is deliberately the *old* default made slightly stronger rather
+   * than kept identical: when every beat pushed, the push carried no meaning
+   * and had to be gentle enough not to tire. Now that it marks a reveal, it can
+   * be a reveal.
+   */
+  const grammar = MOVE_GRAMMAR[move ?? 'push_in'];
+  const span: [number, number] = [0, Math.max(1, durationInFrames)];
+  const scale = interpolate(frame, span, [grammar.from, grammar.to], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const panX = interpolate(frame, span, [-grammar.panX, grammar.panX], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
@@ -625,7 +696,7 @@ const Ground: React.FC<{
           width: '100%',
           height: '100%',
           objectFit: 'cover',
-          transform: `scale(${scale})`,
+          transform: `scale(${scale}) translateX(${panX.toFixed(3)}%)`,
           transformOrigin: 'center center',
         }}
       />
@@ -683,6 +754,7 @@ export const Narrative: React.FC<NarrativeProps> = ({
                 luminance={beat.backgroundLuminance ?? backgroundLuminance}
                 durationInFrames={durationInFrames}
                 anchor={TYPE_ANCHOR[treatments[i]!]}
+                {...(beat.move ? { move: beat.move } : {})}
               />
             ) : null}
             <Beat

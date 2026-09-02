@@ -81,6 +81,14 @@ function systemPrompt(staging: boolean): string {
         '- You may shorten a line for the screen. You may not change what it says.',
         '- A quiz reveals its answers. If the content has answers, they are scenes.',
         '',
+        '- SLOTKEY is how your direction reaches the screen, and it is the most important field',
+        '  you write. Each written line below is labelled `key[index]`. Every scene that stages',
+        '  one must carry that label back as `slotKey`, written `key:index` — `question[2]`',
+        '  becomes `"slotKey":"question:2"`. A scene with the wrong key directs the wrong beat;',
+        '  a scene with none is read as a note and directs nothing.',
+        '- One scene per written line, in the order they are given. Do not merge two lines into',
+        '  one scene and do not split one line across two.',
+        '',
       ]
     : [
         'No content has been written for this piece, so you are drafting it. Everything you write',
@@ -132,7 +140,7 @@ function systemPrompt(staging: boolean): string {
     '',
     'Reply with JSON only:',
     '{"title": "...", "bedMood": "calm|warm|bright|playful|tense|driving|confident",',
-    ' "scenes": [{"id":"s1","role":"hook|setup|turn|detail|payoff|close",',
+    ' "scenes": [{"id":"s1","slotKey":"question:0","role":"hook|setup|turn|detail|payoff|close",',
     '   "weight":"lead|support|aside","seconds":3.5,',
     '   "spoken":"what the voice says, or null","onScreen":["what is read"],',
     '   "direction":"what is happening, in prose",',
@@ -231,6 +239,16 @@ export function parseScreenplay(text: string): Screenplay {
       const gestures = Array.isArray(scene.gestures) ? scene.gestures : [];
       return {
         id: String(scene.id ?? `s${i + 1}`),
+        /*
+         * §441. Normalised to `key:index` and validated only for *shape* here.
+         * Whether the key names a line this piece actually has is
+         * `checkScreenplay`'s question, because that is where every other
+         * "can this direction be executed" check already lives.
+         */
+        slotKey:
+          typeof scene.slotKey === 'string' && /^[a-z_]+:\d+$/.test(scene.slotKey.trim())
+            ? scene.slotKey.trim()
+            : null,
         role: String(scene.role ?? 'detail') as Screenplay['scenes'][number]['role'],
         weight: (['lead', 'support', 'aside'].includes(String(scene.weight))
           ? String(scene.weight)

@@ -2148,6 +2148,57 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
           let formatNarration: Array<{ atSeconds: number; text: string }> | null = null;
           if (written && VIDEO_FORMATS.includes(chosenFormat.format.id)) {
             /* §313. The draft written once above, not a second call. */
+            /**
+             * §441. The screenplay, finally directing something.
+             *
+             * §132 measured this exactly: of `move`, `weight`, `ground`,
+             * `score`, `seconds` and `gestures`, not one field crossed into the
+             * render. The screenwriter was given the whole piece at once
+             * precisely because composition cannot be decided one dimension at
+             * a time, and then a mechanical slot mapping decided every
+             * dimension separately and shipped.
+             *
+             * The join is `slotKey`, which is the same `key:index` the writer,
+             * the draft check and `expandSlots` already use — not a fuzzy match
+             * on text, because the screenwriter is explicitly allowed to
+             * shorten a line for the screen, so the two strings legitimately
+             * differ in exactly the cases staging did the most work.
+             *
+             * Scenes with no key are skipped rather than guessed at. An
+             * undirected beat renders as it did before, which is what makes
+             * this safe to put on the only path that currently works.
+             */
+            const direction = Object.fromEntries(
+              (staged?.screenplay.scenes ?? [])
+                .filter((scene) => scene.slotKey)
+                .map((scene) => [
+                  scene.slotKey!,
+                  {
+                    seconds: scene.seconds,
+                    move: scene.move,
+                    weight: scene.weight,
+                    ground: scene.ground,
+                  },
+                ]),
+            );
+            if (Object.keys(direction).length > 0) {
+              ctx.log('screenplay directs the render', {
+                format: chosenFormat.format.id,
+                scenes: Object.keys(direction).length,
+                of: written.draft.slots.length,
+                moves: [...new Set(Object.values(direction).map((d) => d.move))],
+              });
+            } else if (staged) {
+              /*
+               * A screenplay that staged nothing is worth saying out loud. It
+               * is the §132 condition returning, and it is silent otherwise.
+               */
+              ctx.log('screenplay carries no slot keys, so it directs nothing', {
+                format: chosenFormat.format.id,
+                scenes: staged.screenplay.scenes.length,
+              });
+            }
+
             const built = videoForFormat(
               chosenFormat.format.id,
               written.draft.slots.map((slot) => ({
@@ -2156,6 +2207,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                 text: slot.text,
                 citation: slot.citation ?? null,
               })),
+              direction,
             );
             if (!built) {
               throw new Error(
@@ -2346,8 +2398,29 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                   (props as { beats?: Array<Record<string, unknown>> }).beats ?? [];
                 const groups: number[] = [];
                 for (const [i, b] of allBeats.entries()) {
+                  /**
+                   * §441. A scene that asked for a flat ground gets one.
+                   *
+                   * The screenwriter has been calling for `ground: 'colour'`
+                   * since §335 and every beat got a photograph regardless,
+                   * which is the difference between a direction being honoured
+                   * and being overwritten by an image nobody asked for.
+                   *
+                   * It is usually asking for a breath: a flat card between two
+                   * photographed beats is a pattern interrupt that costs
+                   * nothing, and a piece that is photographs end to end has no
+                   * punctuation. Skipping it also saves a generation.
+                   */
+                  if (b.wantsFlatGround === true) continue;
                   const g = (b.photographGroup as number | undefined) ?? i;
                   if (!groups.includes(g)) groups.push(g);
+                }
+                const flatGrounds = allBeats.filter((b) => b.wantsFlatGround === true).length;
+                if (flatGrounds > 0) {
+                  ctx.log('screenplay called for flat ground', {
+                    beats: flatGrounds,
+                    photographed: groups.length,
+                  });
                 }
                 const photographs = await photographBeats(assets, imageClient, llmFor(), {
                   productId,
