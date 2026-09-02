@@ -47,6 +47,12 @@ if [ -n "$duplicates" ]; then
   exit 1
 fi
 
+# §457 was wrong to add WHISPER_MODEL_PATH here and §462 removes it.
+# `docker run --env-file` **overrides** the image's own `ENV`, so exporting the
+# host's model path handed the container a file it cannot see and every tts job
+# died on it — the same failure the variable was added to fix, moved from the
+# native run into the container. The image bakes its own path at /opt/models;
+# a native run needs the variable in its own shell and not in this file.
 WORKER_KEYS="DATABASE_URL WORKER_ID TOKEN_ENCRYPTION_KEY
 ANTHROPIC_API_KEY OPENAI_API_KEY LLM_PROVIDER
 ELEVENLABS_API_KEY ELEVENLABS_VOICE_ID ELEVENLABS_MUSIC_LICENSED
@@ -60,11 +66,6 @@ HALYARD_PUBLIC_URL BLOTATO_API_KEY
 RECIPEFIX_MCP_URL RECIPEFIX_MCP_TOKEN RECIPEFIX_WEB_URL
 EXPLORE_ACCOUNT_EMAIL EXPLORE_ACCOUNT_PASSWORD
 RESEND_API_KEY NEWSLETTER_FROM
-# §457. Caption timing. The container has its own path baked in and does not
-# need this; a worker run natively on a Mac has no /opt/models and every tts
-# job died on it, which blocked every render. Harmless in the container, where
-# the ENV in the Dockerfile still wins for the image's own copy.
-WHISPER_MODEL_PATH
 APP_STORE_KEY_ID APP_STORE_ISSUER_ID APP_STORE_PRIVATE_KEY APP_STORE_APP_ID
 SENTRY_DSN"
 
