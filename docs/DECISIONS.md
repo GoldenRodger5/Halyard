@@ -11697,3 +11697,29 @@ in a test.
 the variable, so the documented setup renders. The container writes where the
 web app serves from rather than into its own filesystem, which is the difference
 between an asset you can see and one that vanishes with the container.
+
+## §461 · The digest named the operator as the bottleneck when they were not
+
+Every morning the digest printed *"Nothing publishes until you approve it"*
+whenever anything was waiting. Measured against the real account table:
+
+```
+0 of 6 accounts can receive a post.
+  pinterest   Not connected        youtube   Not connected
+  tiktok      Not connected        threads   Not connected
+  x           Reconnection needed  instagram Waiting on platform approval
+```
+
+Approving all twenty-eight waiting pieces would have published nothing, and the
+digest would have said the same sentence the next morning, and the one after.
+That is the whole reason `halyard_empirical` is zero everywhere — not a design
+decision waiting on data, a system pointed at the wrong task.
+
+The digest now leads with the credential when nothing can publish, names each
+platform and the one action it needs, and only asks for approvals when
+approving would send something somewhere.
+
+Read through `accountStatus` rather than off `capability_state`, because gotcha
+5 — `live` means "an operator marked this past platform review" and an account
+can read `live` with no credential at all. One does: the `x` account marked
+`live` holds no token.

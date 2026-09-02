@@ -28,7 +28,7 @@
  * instead — visible on the dashboard, which is where an operator already looks.
  * Nothing is silently dropped and nothing pretends to have been sent.
  */
-import { sendNewsletter } from '@halyard/core';
+import { accountStatus, sendNewsletter } from '@halyard/core';
 import type { Job, HandlerContext } from '../poller.js';
 import { notify } from './publish.js';
 
@@ -39,6 +39,21 @@ export interface DigestCounts {
   failedJobs: number;
   deadJobs: number;
   workerSeenMinutesAgo: number | null;
+  /**
+   * §461. Accounts that could actually receive a post right now.
+   *
+   * The digest said *"Nothing publishes until you approve it"* whenever
+   * anything was waiting, which names the operator as the bottleneck. Measured
+   * on the real account table: **one** of seven accounts holds a live
+   * credential. Approving all twenty-eight waiting pieces would have published
+   * nothing, and the digest would have said the same sentence the next morning.
+   *
+   * Gotcha 5 is the reason this cannot be read off `capability_state`: an
+   * account marked `live` can have no token at all, and one here does.
+   */
+  publishableAccounts: number;
+  /** Platforms that cannot receive a post, and the one thing each needs. */
+  blockedAccounts: Array<{ platform: string; because: string }>;
 }
 
 /**
@@ -76,10 +91,92 @@ export function renderDigest(counts: DigestCounts, productName: string): string 
         ? `Worker:               last seen ${counts.workerSeenMinutesAgo}m ago — likely dead`
         : 'Worker:               alive',
   );
-  if (counts.awaitingApproval > 0) {
-    lines.push('', 'Nothing publishes until you approve it.');
+  /**
+   * §461. The real bottleneck first.
+   *
+   * "Nothing publishes until you approve it" is true only when approving would
+   * publish something. With no connected account it is worse than useless: it
+   * points at the one task that would change nothing, every morning.
+   */
+  if (counts.publishableAccounts === 0) {
+    lines.push(
+      '',
+      'NOTHING CAN PUBLISH. No connected account can receive a post, so approving',
+      'these would not send them anywhere.',
+    );
+    for (const blocked of counts.blockedAccounts) {
+      lines.push(`  ${blocked.platform.padEnd(12)}${blocked.because}`);
+    }
+  } else {
+    if (counts.blockedAccounts.length > 0) {
+      lines.push('', 'These platforms cannot receive a post:');
+      for (const blocked of counts.blockedAccounts) {
+        lines.push(`  ${blocked.platform.padEnd(12)}${blocked.because}`);
+      }
+    }
+    if (counts.awaitingApproval > 0) {
+      lines.push('', 'Nothing publishes until you approve it.');
+    }
   }
   return lines.join('\n');
+}
+
+/**
+ * §461. Which accounts could actually receive a post, and why the rest cannot.
+ *
+ * Read through `accountStatus` rather than off `capability_state`, because
+ * gotcha 5: `live` means "an operator marked this past platform review" and an
+ * account can read `live` with no credential at all. One does here.
+ */
+async function publishability(
+  ctx: HandlerContext,
+  productId: string,
+): Promise<Pick<DigestCounts, 'publishableAccounts' | 'blockedAccounts'>> {
+  const { rows } = await ctx.pool.query<{
+    platform: string;
+    persona: string;
+    capability_state: string;
+    has_token: boolean;
+    identity_confirmed_at: Date | null;
+    handle: string | null;
+  }>(
+    `select platform, persona, capability_state,
+            (access_token_enc is not null) as has_token,
+            identity_confirmed_at, handle
+       from social_accounts
+      where product_id = $1`,
+    [productId],
+  );
+
+  const blocked: Array<{ platform: string; because: string }> = [];
+  let publishable = 0;
+
+  for (const row of rows) {
+    const view = accountStatus({
+      platform: row.platform,
+      persona: row.persona,
+      account: {
+        capabilityState: row.capability_state,
+        hasToken: row.has_token,
+        identityConfirmedAt: row.identity_confirmed_at,
+        handle: row.handle ?? '',
+      },
+    } as never);
+    if (view.canPublish) {
+      publishable += 1;
+      continue;
+    }
+    /*
+     * The label rather than the full explanation: this is a status line in a
+     * plain-text mail, and the screen it points at carries the detail.
+     */
+    blocked.push({
+      platform: row.platform,
+      because: view.actionLabel ? `${view.label} — ${view.actionLabel}` : view.label,
+    });
+  }
+
+  return { publishableAccounts: publishable, blockedAccounts: blocked };
 }
 
 export async function digestHandler(job: Job, ctx: HandlerContext): Promise<void> {
@@ -124,6 +221,7 @@ export async function digestHandler(job: Job, ctx: HandlerContext): Promise<void
     failedJobs: Number(row.failed),
     deadJobs: Number(row.dead),
     workerSeenMinutesAgo: row.worker_minutes === null ? null : Number(row.worker_minutes),
+    ...(await publishability(ctx, productId)),
   };
 
   if (!digestIsWorthSending(counts)) {

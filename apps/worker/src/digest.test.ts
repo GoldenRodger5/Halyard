@@ -28,6 +28,9 @@ const QUIET: DigestCounts = {
   failedJobs: 0,
   deadJobs: 0,
   workerSeenMinutesAgo: 1,
+  /* §461. A healthy account, so the quiet baseline stays quiet. */
+  publishableAccounts: 1,
+  blockedAccounts: [],
 };
 
 beforeAll(async () => {
@@ -197,5 +200,62 @@ d('purge_logs', () => {
     await pool.query('update settings set log_retention_days = 30 where id = true');
     await HANDLERS.purge_logs!({ id: 'j', kind: 'purge_logs', payload: {} } as never, ctx());
     expect((await pool.query('select 1 from jobs')).rows).toHaveLength(1);
+  });
+});
+
+/**
+ * §461. The digest named the operator as the bottleneck when they were not.
+ *
+ * "Nothing publishes until you approve it" was printed whenever anything was
+ * waiting. Measured on the real account table: one of seven accounts held a
+ * live credential, so approving all twenty-eight waiting pieces would have
+ * published nothing — and the same sentence would have appeared the next
+ * morning, and the one after.
+ */
+describe('what is actually stopping a post', () => {
+  const waiting: DigestCounts = { ...QUIET, awaitingApproval: 28 };
+
+  it('leads with the credential when nothing can publish at all', () => {
+    const body = renderDigest(
+      {
+        ...waiting,
+        publishableAccounts: 0,
+        blockedAccounts: [
+          { platform: 'tiktok', because: 'Not connected — Connect' },
+          { platform: 'youtube', because: 'Not connected — Connect' },
+        ],
+      },
+      'RecipeFix',
+    );
+    expect(body).toMatch(/NOTHING CAN PUBLISH/);
+    expect(body).toMatch(/would not send them anywhere/);
+    expect(body).toMatch(/tiktok\s+Not connected/);
+    /* And does not point at the queue, which is not the thing to fix. */
+    expect(body).not.toMatch(/Nothing publishes until you approve it/);
+  });
+
+  it('still asks for approvals when something can receive them', () => {
+    const body = renderDigest({ ...waiting, publishableAccounts: 2 }, 'RecipeFix');
+    expect(body).toMatch(/Nothing publishes until you approve it/);
+    expect(body).not.toMatch(/NOTHING CAN PUBLISH/);
+  });
+
+  it('names the partly-blocked platforms without burying the approval ask', () => {
+    const body = renderDigest(
+      {
+        ...waiting,
+        publishableAccounts: 1,
+        blockedAccounts: [{ platform: 'threads', because: 'Needs sign-in — Connect' }],
+      },
+      'RecipeFix',
+    );
+    expect(body).toMatch(/These platforms cannot receive a post/);
+    expect(body).toMatch(/threads\s+Needs sign-in/);
+    expect(body).toMatch(/Nothing publishes until you approve it/);
+  });
+
+  it('says nothing about blockers when every account is healthy', () => {
+    const body = renderDigest({ ...waiting, publishableAccounts: 3 }, 'RecipeFix');
+    expect(body).not.toMatch(/cannot receive a post/);
   });
 });
