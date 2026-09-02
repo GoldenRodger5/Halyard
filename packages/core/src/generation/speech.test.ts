@@ -4,7 +4,7 @@
  * Weighted towards the refusal paths, because those are the ones that decide
  * whether a missing credential becomes a loud failure or a silent video.
  */
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   clampMusicLength,
   ElevenLabsMusicClient,
@@ -20,6 +20,28 @@ const audio = (): Response =>
     status: 200,
     headers: { 'content-type': 'audio/mpeg' },
   });
+
+/**
+ * §479. The clients fall back to the environment when an option is absent —
+ * right for production, and the reason these refusal tests made real
+ * synthesis requests (and got 401s) whenever the suite ran with the env file
+ * sourced, which is how gotcha 12 says to run it. A refusal test has to mean
+ * "no credential anywhere", so the environment is emptied for its duration.
+ */
+const CREDENTIALS = ['ELEVENLABS_API_KEY', 'ELEVENLABS_VOICE_ID'] as const;
+const saved: Partial<Record<(typeof CREDENTIALS)[number], string>> = {};
+beforeEach(() => {
+  for (const key of CREDENTIALS) {
+    if (process.env[key] !== undefined) saved[key] = process.env[key];
+    delete process.env[key];
+  }
+});
+afterEach(() => {
+  for (const key of CREDENTIALS) {
+    if (saved[key] !== undefined) process.env[key] = saved[key];
+    delete saved[key];
+  }
+});
 
 describe('ElevenLabsSpeechClient', () => {
   it('refuses without a key rather than returning silence', async () => {

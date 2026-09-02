@@ -66,7 +66,18 @@ const confirming: ProbeRunner = async ({ provider }) => ({
 
 d('a probe that cannot run', () => {
   it('records an observation and writes no capability at all', async () => {
-    await verifyCapabilityHandler(job(), context(), { apiKey: null });
+    /*
+     * §479. `apiKey: null` falls through to BLOTATO_API_KEY, so with the env
+     * file sourced this test made a real, 401ing request. "Cannot run" means
+     * no credential anywhere.
+     */
+    const savedKey = process.env.BLOTATO_API_KEY;
+    delete process.env.BLOTATO_API_KEY;
+    try {
+      await verifyCapabilityHandler(job(), context(), { apiKey: null });
+    } finally {
+      if (savedKey !== undefined) process.env.BLOTATO_API_KEY = savedKey;
+    }
 
     const probes = await pool.query<{ outcome: string; detail: string }>(
       'select outcome, detail from capability_probes',

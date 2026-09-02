@@ -12180,3 +12180,23 @@ is told so honestly. The gallery's *What the frame does* reads a `grounds`
 record beside the length decision — moving, photographed, flat, and the reason
 each footage request was declined — so a slideshow can be told apart from a
 choice, a missing key, and an empty search without opening the worker's log.
+
+## §479 · A refusal test that can reach the network is not a refusal test
+
+Running the suite the way gotcha 12 says to — env file sourced, so the
+database suites run — failed four tests that pass in a bare shell. Three
+speech-client tests titled *"refuses without a key"* and one capability probe
+titled *"a probe that cannot run"* had all made **real requests** and been
+refused with a 401, because the clients fall back to the environment when an
+option is absent and the sourced file supplies the real credential.
+
+The fallback is right: production wants `ELEVENLABS_API_KEY` from the
+environment. The tests were wrong: "without a key" has to mean *no credential
+anywhere*, and a test that only holds in an empty environment holds by
+accident. Each now strips the credential for its own duration and restores it.
+
+Two things worth keeping from this. The full-with-database run is the honest
+run, and it is the one that found these; a suite that is green only in the
+environment nobody develops in is measuring the wrong thing. And a test that
+silently depends on the absence of something is the same defect as code that
+does — §254's shape, in the tests.

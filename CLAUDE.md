@@ -117,7 +117,10 @@ Landmines learned the hard way. Each one cost real time.
     `rm /opt/homebrew/var/postgresql@17/postmaster.pid`.
 
     Three tests in `generate.test.ts` additionally need `ANTHROPIC_API_KEY`,
-    which sourcing the env file supplies. This is *not* wired into
+    which sourcing the env file supplies. Sourcing it also supplies every
+    *other* real credential, and clients fall back to the environment — so a
+    "refuses without a key" test must strip the variable for its own duration
+    or it makes a real request and fails on a 401. §479. This is *not* wired into
     `vitest.config.ts` on purpose: a default that can take down the database
     you are developing against, and that fails on a fresh clone with no API
     key, is worse than the skip it fixes. §456.
