@@ -507,3 +507,49 @@ describe('borrowed authority', () => {
     expect(all).toHaveLength(1);
   });
 });
+
+/**
+ * §469. The caption does not end on a footnote.
+ *
+ * Real output, verbatim, as the last line of a TikTok caption: "Wikipedia,
+ * Sourdough." and "Established by BBC Good Food". The last line is where a
+ * reply, a save and a follow are earned — and the piece is already carrying its
+ * source on screen, under the line that makes the claim.
+ */
+describe('a caption does not end on its citation', () => {
+  const endsOnSource = (body: string) =>
+    slopFilter({ body, platform: 'tiktok', hashtags: ['a', 'b', 'c'] }).warnings.some(
+      (v) => v.rule === 'structure.ends_on_a_citation',
+    );
+
+  it('catches the two that shipped', () => {
+    expect(endsOnSource('Sharp loaf, wrong suspect.\n\nThe acid producers explain it.\n\nWikipedia, Sourdough.')).toBe(true);
+    expect(endsOnSource('Salt is not for bitterness\n\nEstablished by BBC Good Food')).toBe(true);
+  });
+
+  it('catches a "Source:" line', () => {
+    expect(endsOnSource('Scoring gives a seam to open.\n\nSource: King Arthur Baking')).toBe(true);
+  });
+
+  /* Citing inside a sentence is good writing, not a footnote. */
+  it('leaves an inline citation alone', () => {
+    expect(endsOnSource('Serious Eats measured this across twelve steaks. Worth a save?')).toBe(
+      false,
+    );
+  });
+
+  it('leaves a real closing line alone', () => {
+    expect(
+      endsOnSource('Sharp loaf, wrong suspect.\n\nThe acid producers explain it. Which starter do you keep?'),
+    ).toBe(false);
+  });
+
+  it('says where the source belongs instead', () => {
+    const v = slopFilter({
+      body: 'The acid producers explain it.\n\nWikipedia, Sourdough.',
+      platform: 'tiktok',
+      hashtags: ['a', 'b', 'c'],
+    }).warnings.find((x) => x.rule === 'structure.ends_on_a_citation')!;
+    expect(v.fix).toMatch(/already shows its source on screen/);
+  });
+});

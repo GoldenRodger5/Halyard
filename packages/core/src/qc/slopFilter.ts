@@ -108,6 +108,29 @@ const VAGUE_AUTHORITY: ReadonlyArray<{ test: RegExp; message: string }> = [
   },
 ];
 
+/**
+ * §469. A last line that is provenance rather than writing.
+ *
+ * Matched on the *whole* short line, not on a mention: a caption that says
+ * "Serious Eats measured this across twelve steaks" is citing inside a
+ * sentence, which is good writing. What this catches is the bare tag-line.
+ */
+const FOOTNOTE_PREFIX =
+  /^(sources?|via|from|per|ref|credit|established|confirmed|verified|documented)\b/i;
+
+/**
+ * A bare name, and nothing else, on its own line: *"Wikipedia, Sourdough."*
+ *
+ * Case-sensitive on purpose, and separate from the prefix test above. Made
+ * case-insensitive to catch "Source:", this would match almost any short
+ * closing line — including the good ones this rule exists to protect.
+ */
+const FOOTNOTE_BARE_NAME = /^[A-Z][\w' ]{2,28}(,\s*[\w' ]{2,28})?\.?$/;
+
+function endsOnAFootnote(line: string): boolean {
+  return FOOTNOTE_PREFIX.test(line) || FOOTNOTE_BARE_NAME.test(line);
+}
+
 export const CAPTION_ECHO_LIMIT = 0.66;
 
 /**
@@ -1104,6 +1127,37 @@ export function slopFilter(input: SlopFilterInput): SlopFilterResult {
       fix: 'Name who, and when — or say the thing plainly without borrowing an authority you did not cite.',
     });
     break;
+  }
+
+  /**
+   * §469. The caption does not end on a footnote.
+   *
+   * Real output, verbatim, as the last line of a TikTok caption:
+   *
+   *   *"Wikipedia, Sourdough."*
+   *   *"Established by BBC Good Food."*
+   *
+   * The last line of a caption is the most valuable line in the post — it is
+   * where the reply, the save and the follow are earned (§466). Spending it on
+   * provenance gives that away, and the piece is **already carrying its source
+   * on screen**: the `source` slot renders under the payoff. This is §450's
+   * rule about two channels doing two jobs, applied to the citation.
+   *
+   * Not an argument against citing. Cite in the piece, where a viewer sees it
+   * while the claim is still on screen.
+   */
+  if (!spoken) {
+    const lastLine = body.trim().split(/\n+/).filter((l) => l.trim().length > 0).pop() ?? '';
+    if (lastLine && endsOnAFootnote(lastLine) && lastLine.split(/\s+/).length <= 8) {
+      push({
+        rule: 'structure.ends_on_a_citation',
+        severity: 'warning',
+        message: `The caption ends on a citation: "${lastLine.slice(0, 50)}".`,
+        excerpt: lastLine.slice(0, 60),
+        index: Math.max(0, body.lastIndexOf(lastLine)),
+        fix: 'The piece already shows its source on screen. Spend the last line on something that earns a reply, a save or a rewatch.',
+      });
+    }
   }
 
   const warnings = violations.filter((v) => v.severity === 'warning');

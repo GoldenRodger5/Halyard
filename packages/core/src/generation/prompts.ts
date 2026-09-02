@@ -193,6 +193,17 @@ export function buildCopywriterPrompt(context: CopywriterContext): {
         'which are the tells of an account nobody engages with. Ask a real question about\n' +
         'what the piece just showed, or leave the one detail worth arguing with.'
       : '',
+    /*
+     * §469. The source is already on screen; the last line is worth more.
+     *
+     * Real captions ended "Wikipedia, Sourdough." and "Established by BBC Good
+     * Food" — provenance spent in the one place a reply is earned, while the
+     * piece was already rendering its citation under the payoff.
+     */
+    'The piece already shows its source on screen, under the line that makes the claim.',
+    'Do not repeat it here, and never end on one — the last line of a caption is where',
+    'a reply is earned. Naming a source inside a sentence is fine; a citation on its own',
+    'line is a footnote.',
     `Hashtags: ${limits.min} to ${limits.max}.`,
     /*
      * §466. Generic single words are not discovery, they are noise.

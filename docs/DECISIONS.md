@@ -11861,3 +11861,35 @@ what happened; it now says most scenes have none **and one scene usually should*
 — nearly always the turn or the payoff. A piece with no mark anywhere is type on
 a card, and one drawn mark is what makes it look made by a person rather than
 generated.
+
+## §469 · The caption ended on a footnote
+
+Real output, verbatim, as the last line of a TikTok caption:
+
+> *"Wikipedia, Sourdough."*
+> *"Established by BBC Good Food."*
+
+The last line of a caption is the most valuable line in the post — §466 is about
+what it should be doing — and both of these spent it on provenance. Worse, the
+piece was **already carrying its source on screen**: the `source` slot renders
+under the line that makes the claim, where a viewer sees it while the claim is
+still there. This is §450's rule about two channels doing two jobs, applied to
+the citation.
+
+Not an argument against citing. Citing *inside a sentence* is good writing —
+*"Serious Eats measured this across twelve steaks"* is left alone. What is
+refused is the bare tag-line.
+
+**And `preferDomains` had never been supplied.** `research()` has accepted it
+since it was written and no caller passed one, so every search ranked domains
+equally and the citations that came back were whatever the model reached for —
+Wikipedia most often. Wikipedia is not banned, and should not be: for a
+historical fact it is exactly what the format's own brief asks for. But an
+account whose pitch is that it knows what is in your food is stronger citing the
+people who measured it. A short preference list, not a filter, because research
+failing entirely is worse than research citing a good general source.
+
+One implementation note worth keeping: the footnote test is **two** regexes. The
+prefix test ("Source:", "Established by") must be case-insensitive; the bare-name
+test must not be, because made case-insensitive it matches almost any short
+closing line — including the good ones this rule exists to protect.

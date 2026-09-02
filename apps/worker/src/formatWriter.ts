@@ -177,6 +177,25 @@ export function matchesResearchedFact(citingText: string, factClaim: string): bo
   return shared / claim.size >= 0.34;
 }
 
+/**
+ * §469. Sources worth reaching for first, most authoritative first.
+ *
+ * Deliberately short and deliberately not exclusive. A long list reads as a
+ * filter to a model and produces refusals; these are the places a food claim is
+ * actually settled, and everything else remains allowed.
+ */
+const PREFERRED_SOURCE_DOMAINS = [
+  'pubmed.ncbi.nlm.nih.gov',
+  'doi.org',
+  'fda.gov',
+  'usda.gov',
+  'efsa.europa.eu',
+  '.edu',
+  'britannica.com',
+  'seriouseats.com',
+  'cooksillustrated.com',
+];
+
 export interface FormatWriteResult {
   draft: FormatDraft;
   attempts: number;
@@ -323,6 +342,22 @@ export async function writeToFormat(
         subject: context.subject,
         productContext: context.audience,
         want: Math.max(3, expandSlots(format, budget?.slots).filter((slot) => slot.asserts !== false).length),
+        /**
+         * §469. Where to look first, which nothing had ever said.
+         *
+         * `research()` has taken `preferDomains` since it was written and no
+         * caller supplied it, so every search ranked domains equally and the
+         * citations that came back were whatever the model reached for —
+         * Wikipedia most often.
+         *
+         * Wikipedia is not banned and should not be: for a historical fact it
+         * is exactly what the format's own brief asks for ("an encyclopaedia
+         * entry"). But an account whose pitch is that it knows what is in your
+         * food is stronger citing the people who measured it, and this is a
+         * *preference*, not a filter — research failing entirely is worse than
+         * research citing a good general source.
+         */
+        preferDomains: PREFERRED_SOURCE_DOMAINS,
         ...(context.alreadySaid?.claims.length
           ? { avoid: context.alreadySaid.claims }
           : {}),
