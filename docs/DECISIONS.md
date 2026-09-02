@@ -12272,3 +12272,14 @@ title is the first thing heard. And `joinSpoken` closes every narration line
 that does not end a sentence before the lines become the script the audio
 gate transcribes against, so a seam between lines is never counted as a
 mispronunciation.
+
+## §485 · A launcher that kills first and checks second
+
+`./scripts/halyard --worker` frees port 3200 and then `exec`s `pnpm` — and in a
+shell without nvm on `PATH` the second step died with `pnpm: not found`, having
+already killed the running web app. Twice in one session the operator-path
+test then failed against nothing, which reads as the app crashing. The script
+now finds `pnpm` the way it already finds Postgres (under `~/.nvm`, then
+Homebrew) and refuses, before stopping anything, if it cannot. Same rule as
+§477: a dev launcher's failures should be loud and should leave the world as
+it found it.

@@ -55,6 +55,20 @@ if ! command -v pg_isready >/dev/null 2>&1; then
   done
 fi
 
+# nvm keeps node and pnpm out of a non-interactive shell's PATH. Find them the
+# same way, and refuse *before* anything below kills a running dev server —
+# this script once freed port 3200 and then died on `exec: pnpm: not found`,
+# which left no web app at all and read as the app having crashed. §485.
+if ! command -v pnpm >/dev/null 2>&1; then
+  for candidate in "$HOME"/.nvm/versions/node/*/bin /opt/homebrew/bin /usr/local/bin; do
+    [[ -x "$candidate/pnpm" ]] && export PATH="$candidate:$PATH" && break
+  done
+fi
+if ! command -v pnpm >/dev/null 2>&1; then
+  c_err "pnpm is not on PATH and was not found under ~/.nvm — nothing has been stopped or started"
+  exit 1
+fi
+
 # ── stop ───────────────────────────────────────────────────────────────────
 if [[ $STOP -eq 1 ]]; then
   if lsof -ti :"$PORT" >/dev/null 2>&1; then
