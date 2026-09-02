@@ -1,5 +1,23 @@
 # Where Halyard is right now
 
+**2026-09-02 — the carousel channel works, and production runs today's code.**
+Instagram carousels had never rendered once: the branch was unreachable
+(§508). Now a tips deck is seven slides for **$0.11**, a sixth of a video —
+a photograph leading slide one, tips counting 01 to 05, each slide balanced.
+Migration 0077 and the whole day's work are deployed; the production worker's
+heartbeat is seconds old.
+
+| Channel | State | Per piece |
+|---|---|---|
+| Short video | proven, with real licensed footage (§478) | ~$0.43 |
+| Carousel | proven today (§508–§512) | ~$0.11–0.18 |
+| Text, pin | built, unproven | — |
+
+What running it once found, that 3,000 tests did not: an unreachable branch,
+tip numbers off by one, a photograph inlined and dropped by a layout that
+draws none, sixty percent empty slides, and a cross-package type import that
+broke the render build.
+
 **2026-09-02 — a piece carries real footage.** A tips piece on searing a steak:
 the screenwriter asked for `ground: 'footage'` on nine of nine beats, four
 licensed clips landed (a chef patting the steak dry, tongs lowering it into the

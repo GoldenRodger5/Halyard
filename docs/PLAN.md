@@ -45,7 +45,9 @@ is being done *now*, in order, and why. Update it when a step lands.
    moves.
 4. **Fund one model account and re-run the tips matrix** (TikTok/Instagram/
    YouTube) under the budget guard, reading the per-post cost on each card.
-5. **Then the roadmap resumes:** walkthrough capture, series, carousel.
+5. **Carousel — done 2 Sep** (§508–§512). Proven on Instagram at $0.11 a deck.
+6. **Then the roadmap resumes:** walkthrough capture, series, and the format
+   matrix across the three video platforms.
 
 ## 3. Cost: what happened and what changes
 
