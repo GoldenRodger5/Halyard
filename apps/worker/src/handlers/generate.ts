@@ -2280,177 +2280,211 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
             });
           }
 
-          /*
-           * §351. Whether this piece *is* a carousel, not whether the platform
-           * happens to be Instagram.
-           *
-           * The old condition was a platform test standing in for a media
-           * question, so Threads and TikTok — both of which carry carousels —
-           * could never receive one, and an Instagram Reel took the carousel
-           * branch whenever the template was enabled. §349 made the question
-           * answerable; this is where it gets asked.
-           */
-          if (
-            resolvedType.postType.media === 'carousel' &&
-            enabledTemplates.includes('carousel_6')
-          ) {
-            /**
-             * §281. The deck comes from the format when the format has one.
-             *
-             * `transformation` keeps the artifact-driven path: it *is* the
-             * product demonstration, `carouselProps` already builds it from the
-             * artifact's own swaps and notes, and that path is proven. Every
-             * other format is a structure the artifact cannot fill on its own,
-             * so it is written to its slots and rendered from them.
-             *
-             * A format that cannot be filled refuses the whole piece rather
-             * than falling back to the artifact deck. A quiz that quietly
-             * becomes a transformation post is a worse outcome than no post: it
-             * is the format system appearing to work while doing nothing.
-             */
-            let slides = carouselProps(artifact);
-            if (written) {
-              /* §313. The draft written once above, not a second call. */
-              const built = slidesForFormat(
-                chosenFormat.format.id,
-                written.draft.slots.map((slot) => ({
-                  key: slot.key,
-                  index: slot.index,
-                  text: slot.text,
-                  citation: slot.citation ?? null,
-                })),
-              );
-              if (built.length === 0) {
-                /*
-                 * A catalogue entry with no renderer. Refused loudly rather
-                 * than silently substituted, because a plausible default is
-                 * how the gap would stay hidden.
-                 */
-                throw new Error(
-                  `${chosenFormat.format.id} filled its slots and has no slide builder.`,
-                );
-              }
-              slides = built as never;
-              ctx.log('deck built from format', {
-                contentItemId,
-                format: chosenFormat.format.id,
-                slides: built.length,
-                attempts: written.attempts,
-              });
-            }
-            /*
-             * §267. A composition per slide, not one for the deck.
-             *
-             * `usedLayouts` accumulates as the deck is built, so the recency
-             * rule runs *within* the carousel as well as across the account:
-             * six consecutive slides in one shape is the thing a viewer
-             * actually notices, and it is what the first production carousel
-             * did.
-             */
-            /**
-             * §273. A real screenshot of the product, on the slide that
-             * explains how it works.
-             *
-             * Captured, not generated — which is the whole point. A screenshot
-             * is the only image in the deck that may evidence a claim about the
-             * software, because `captured` is in `EVIDENTIAL_PROVENANCE` and
-             * `generated` is not. The hero photograph sets the scene; this
-             * shows the thing actually happening.
-             *
-             * Placed on the mechanism slide (`Why`) rather than the opener: the
-             * first slide has to stop a scroll and a UI screenshot does not,
-             * but by slide three or four a reader has asked "how" and a picture
-             * of the answer is worth more than another sentence.
-             */
-            const shot = await pickProductShot(ctx, {
-              productId,
-              preferFlow: 'adapt_and_reveal',
-            });
-            const shotSlideIndex = slides.findIndex((s) => s.kicker === 'Why');
+        }
 
-            /*
-             * §395. Seeded with what recent decks drew, not empty.
-             *
-             * §267's comment above already claims this recency runs "across the
-             * account" — and it never did, because the list started empty on
-             * every deck. Slide one of every carousel drew the same layout. The
-             * docstring described the behaviour somebody intended; this is the
-             * line that makes it true.
-             *
-             * Third appearance of the same defect (§394 fixed the quiz and the
-             * narrative). The rule was right in all three; nothing remembered
-             * its answer in any of them.
-             */
-            const usedLayouts: CarouselLayout[] = (await recentTreatments(ctx.pool, {
-              productId,
-              templateId: 'carousel_6',
-            })) as CarouselLayout[];
-            for (const slide of slides) {
-              const role: SlideRole =
-                slide.index === 1
-                  ? 'hook'
-                  : slide.index === slides.length
-                    ? 'close'
-                    : slide.index === 2
-                      ? 'problem'
-                      : 'detail';
+        /*
+         * §508. A carousel does not need an artifact.
+         *
+         * This block sat inside `if (artifact && stillIsAboutThisPiece)`,
+         * which asks whether to draw a still card *of the product*. A
+         * carousel built from a format's written slots needs neither.
+         * `tips`, `myth_fact` and `comparison` all declare `carousel` in
+         * the catalogue and all have slide builders, and none of them is
+         * about the artifact — so the branch could never run for any of
+         * them, and `carousel_6` had rendered exactly zero times since it
+         * was written. Declared, typed, tested, unreachable.
+         */
+        /*
+         * §351. Whether this piece *is* a carousel, not whether the platform
+         * happens to be Instagram.
+         *
+         * The old condition was a platform test standing in for a media
+         * question, so Threads and TikTok — both of which carry carousels —
+         * could never receive one, and an Instagram Reel took the carousel
+         * branch whenever the template was enabled. §349 made the question
+         * answerable; this is where it gets asked.
+         */
+        if (
+          resolvedType.postType.media === 'carousel' &&
+          enabledTemplates.includes('carousel_6')
+        ) {
+          /**
+           * §281. The deck comes from the format when the format has one.
+           *
+           * `transformation` keeps the artifact-driven path: it *is* the
+           * product demonstration, `carouselProps` already builds it from the
+           * artifact's own swaps and notes, and that path is proven. Every
+           * other format is a structure the artifact cannot fill on its own,
+           * so it is written to its slots and rendered from them.
+           *
+           * A format that cannot be filled refuses the whole piece rather
+           * than falling back to the artifact deck. A quiz that quietly
+           * becomes a transformation post is a worse outcome than no post: it
+           * is the format system appearing to work while doing nothing.
+           */
+          /*
+           * §508. The artifact deck is the fallback, not the starting point.
+           *
+           * This read `carouselProps(artifact)` first and overwrote it when a
+           * format had written slots — harmless while the whole block sat
+           * inside `if (artifact && …)` and unreachable without one. Out here
+           * `artifact` is legitimately null for every format that is not
+           * about the product, so the format's own deck is what gets built
+           * and the artifact deck answers only when nothing was written.
+           */
+          let slides: ReturnType<typeof carouselProps> = artifact ? carouselProps(artifact) : [];
+          if (written) {
+            /* §313. The draft written once above, not a second call. */
+            const built = slidesForFormat(
+              chosenFormat.format.id,
+              written.draft.slots.map((slot) => ({
+                key: slot.key,
+                index: slot.index,
+                text: slot.text,
+                citation: slot.citation ?? null,
+              })),
+            );
+            if (built.length === 0) {
               /*
-               * Only the opening slide gets the photograph. A carousel where
-               * every card is the same picture is worse than one with a strong
-               * opener and typographic support behind it.
+               * A catalogue entry with no renderer. Refused loudly rather
+               * than silently substituted, because a plausible default is
+               * how the gap would stay hidden.
                */
-              const slideHasImage = Boolean(hero) && slide.index === 1;
-              /*
-               * A format pins the layouts that carry its meaning — a quiz
-               * question must be the loud one and its answer the quiet one, or
-               * the contrast that *is* the format is gone. Only an
-               * artifact-driven deck leaves the choice open.
-               */
-              const pinned = (slide as { layout?: CarouselLayout }).layout;
-              const { layout, reason } = pinned
-                ? { layout: pinned, reason: `Pinned by the ${chosenFormat.format.id} format.` }
-                : chooseLayout({
-                    role,
-                    visualLanguage: undefined,
-                    bodyLineCount: slide.bodyLines.length,
-                    /* §424. `lead_emphasis` sets the headline as a label, and a
-                       long one wraps to two lines of small caps. */
-                    headlineWords: slide.headline.trim().split(/\s+/).filter(Boolean).length,
-                    recentLayouts: usedLayouts,
-                    hasImage: slideHasImage,
-                  });
-              usedLayouts.unshift(layout);
-              ctx.log('carousel layout', { slide: slide.index, role, layout, because: reason });
-              const render = await ctx.pool.query<{ id: string }>(
-                /*
-                 * §395. `treatment` is the layout this slide drew, and it is
-                 * what lets the *next deck* look different. Recorded per slide
-                 * because a deck's variety is per slide; the recency read takes
-                 * the most recent regardless of which slide it came from, which
-                 * is right — a viewer scrolling does not know slide numbers.
-                 */
-                `insert into renders (content_item_id, template_id, renderer, input_props, slide_index, quality, treatment)
-                 values ($1, 'carousel_6', 'satori', $2, $3, 'final', $4) returning id`,
-                [
-                  contentItemId,
-                  {
-                    ...slide,
-                    typography: cardType,
-                    layout,
-                    ...(slideHasImage ? { imageAssetId: hero!.assetId } : {}),
-                    ...(shot && shotSlideIndex >= 0 && slide.index - 1 === shotSlideIndex
-                      ? {
-                          screenshotAssetId: shot.assetId,
-                          screenshotCaption: shot.caption ?? undefined,
-                        }
-                      : {}),
-                  },
-                  slide.index - 1,
-                  layout,
-                ],
+              throw new Error(
+                `${chosenFormat.format.id} filled its slots and has no slide builder.`,
               );
-              await ctx.enqueue('render', { renderId: render.rows[0]!.id }, { priority: 50 });
             }
+            slides = built as never;
+            ctx.log('deck built from format', {
+              contentItemId,
+              format: chosenFormat.format.id,
+              slides: built.length,
+              attempts: written.attempts,
+            });
+          }
+          if (slides.length === 0) {
+            /*
+             * §508. Neither a written deck nor an artifact one. Refused
+             * loudly: a carousel post type that renders zero slides is the
+             * silence this whole section exists to end.
+             */
+            throw new Error(
+              `${chosenFormat.format.id} is a carousel post with neither written slots nor an artifact to build slides from.`,
+            );
+          }
+
+          /*
+           * §267. A composition per slide, not one for the deck.
+           *
+           * `usedLayouts` accumulates as the deck is built, so the recency
+           * rule runs *within* the carousel as well as across the account:
+           * six consecutive slides in one shape is the thing a viewer
+           * actually notices, and it is what the first production carousel
+           * did.
+           */
+          /**
+           * §273. A real screenshot of the product, on the slide that
+           * explains how it works.
+           *
+           * Captured, not generated — which is the whole point. A screenshot
+           * is the only image in the deck that may evidence a claim about the
+           * software, because `captured` is in `EVIDENTIAL_PROVENANCE` and
+           * `generated` is not. The hero photograph sets the scene; this
+           * shows the thing actually happening.
+           *
+           * Placed on the mechanism slide (`Why`) rather than the opener: the
+           * first slide has to stop a scroll and a UI screenshot does not,
+           * but by slide three or four a reader has asked "how" and a picture
+           * of the answer is worth more than another sentence.
+           */
+          const shot = await pickProductShot(ctx, {
+            productId,
+            preferFlow: 'adapt_and_reveal',
+          });
+          const shotSlideIndex = slides.findIndex((s) => s.kicker === 'Why');
+
+          /*
+           * §395. Seeded with what recent decks drew, not empty.
+           *
+           * §267's comment above already claims this recency runs "across the
+           * account" — and it never did, because the list started empty on
+           * every deck. Slide one of every carousel drew the same layout. The
+           * docstring described the behaviour somebody intended; this is the
+           * line that makes it true.
+           *
+           * Third appearance of the same defect (§394 fixed the quiz and the
+           * narrative). The rule was right in all three; nothing remembered
+           * its answer in any of them.
+           */
+          const usedLayouts: CarouselLayout[] = (await recentTreatments(ctx.pool, {
+            productId,
+            templateId: 'carousel_6',
+          })) as CarouselLayout[];
+          for (const slide of slides) {
+            const role: SlideRole =
+              slide.index === 1
+                ? 'hook'
+                : slide.index === slides.length
+                  ? 'close'
+                  : slide.index === 2
+                    ? 'problem'
+                    : 'detail';
+            /*
+             * Only the opening slide gets the photograph. A carousel where
+             * every card is the same picture is worse than one with a strong
+             * opener and typographic support behind it.
+             */
+            const slideHasImage = Boolean(hero) && slide.index === 1;
+            /*
+             * A format pins the layouts that carry its meaning — a quiz
+             * question must be the loud one and its answer the quiet one, or
+             * the contrast that *is* the format is gone. Only an
+             * artifact-driven deck leaves the choice open.
+             */
+            const pinned = (slide as { layout?: CarouselLayout }).layout;
+            const { layout, reason } = pinned
+              ? { layout: pinned, reason: `Pinned by the ${chosenFormat.format.id} format.` }
+              : chooseLayout({
+                  role,
+                  visualLanguage: undefined,
+                  bodyLineCount: slide.bodyLines.length,
+                  /* §424. `lead_emphasis` sets the headline as a label, and a
+                     long one wraps to two lines of small caps. */
+                  headlineWords: slide.headline.trim().split(/\s+/).filter(Boolean).length,
+                  recentLayouts: usedLayouts,
+                  hasImage: slideHasImage,
+                });
+            usedLayouts.unshift(layout);
+            ctx.log('carousel layout', { slide: slide.index, role, layout, because: reason });
+            const render = await ctx.pool.query<{ id: string }>(
+              /*
+               * §395. `treatment` is the layout this slide drew, and it is
+               * what lets the *next deck* look different. Recorded per slide
+               * because a deck's variety is per slide; the recency read takes
+               * the most recent regardless of which slide it came from, which
+               * is right — a viewer scrolling does not know slide numbers.
+               */
+              `insert into renders (content_item_id, template_id, renderer, input_props, slide_index, quality, treatment)
+               values ($1, 'carousel_6', 'satori', $2, $3, 'final', $4) returning id`,
+              [
+                contentItemId,
+                {
+                  ...slide,
+                  typography: cardType,
+                  layout,
+                  ...(slideHasImage ? { imageAssetId: hero!.assetId } : {}),
+                  ...(shot && shotSlideIndex >= 0 && slide.index - 1 === shotSlideIndex
+                    ? {
+                        screenshotAssetId: shot.assetId,
+                        screenshotCaption: shot.caption ?? undefined,
+                      }
+                    : {}),
+                },
+                slide.index - 1,
+                layout,
+              ],
+            );
+            await ctx.enqueue('render', { renderId: render.rows[0]!.id }, { priority: 50 });
           }
         }
 

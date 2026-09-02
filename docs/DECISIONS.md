@@ -12749,3 +12749,35 @@ things fell out of it:
   `comment` and `social_account` as refused, which are `entity_type` values
   three columns along; it now reads the kind position only, and asserts that
   it does.
+
+## §508 · The carousel channel could never run
+
+`carousel_6` was written, enabled, given a slide builder for eleven formats,
+wired into `generate`, and had rendered **zero times**. The first carousel ever
+sent from the Floor produced a caption, a cost of $0.18 and no slides at all.
+
+The branch was nested inside `if (artifact && stillIsAboutThisPiece)` — a
+question about whether to draw a still card *of the product*. A carousel built
+from a format's written slots needs neither an artifact nor a product-shaped
+format: `tips`, `myth_fact` and `comparison` all declare `carousel` in the
+catalogue, all have slide builders, and none of them is about the artifact. So
+the only formats that could reach the branch were `transformation` and
+`recipe`, which are exactly the two that use the artifact deck it already had.
+The whole format-driven carousel path — §281's work — was unreachable from the
+day it was written.
+
+Moved out to sit beside the video branch, where the question it asks is the
+one it answers: *is this post a carousel, and is the template enabled*. Two
+things follow from being outside the gate:
+
+- **The artifact deck is now the fallback, not the starting point.** `artifact`
+  is legitimately null out here, so the format's own deck is built first and
+  `carouselProps` answers only when nothing was written.
+- **A deck with no slides refuses loudly.** Zero slides on a carousel post is
+  the exact silence this section exists to end, and a plausible empty render
+  is how it would stay hidden for another two hundred decisions.
+
+The lesson is the one §478 and §499 already taught, on a third piece of the
+system: a feature can be declared, typed, tested and enabled, and still have
+no path that reaches it. What found this was running it once and looking at
+what came out.
