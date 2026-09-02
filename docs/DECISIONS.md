@@ -11548,3 +11548,41 @@ recorded from it.
 the image ceiling measures the wrong queue, so the check now runs after
 resolution — everything between the two is pure, so nothing is bought waiting
 for it.
+
+## §454 · Name the rule, not the gate
+
+§262 made a rejection say *"copy: failed (1 violation)"* instead of "rejected by
+QC". That was the right direction and stopped one step short: three pieces have
+now been lost to "1 violation" with no way to tell which one.
+
+Three consecutive attempts failing the **same** rule is the signal worth having,
+because it means the brief and the gate disagree and no further retry settles
+it — this file says so in §449 and could not act on it, because the rule was
+never written down. The copy gate carries its violations in `detail`; the
+summary is only a count.
+
+## §453 (second half) · Fixing the row was not fixing the pipeline
+
+The first fix changed what was **written** and not what **ran**. `needsVideo(format)`
+— which gates the voiceover, the render, and the entire screenplay-driven frame
+path — was still reading `chooseFormat`'s pre-resolution guess.
+
+So after the fix the Instagram row said `video` and the pipeline behaved like an
+image: drafted, no voiceover, no render enqueued, the screenplay staged and then
+never consulted. That is **worse than before**, because the two now disagreed in
+the opposite direction and the row looked right.
+
+Found by asking why a piece that had just been proved correct produced no render
+— and the answer was in a log line I had read past twice: `"brief recorded",
+media: "image"`, on a row marked video.
+
+Rather than thread a second name through forty call sites, the guess is now
+`guessedFormat` and `format` **is** the resolved value, so every existing
+reference is correct by construction. Renaming the wrong thing is cheaper and
+far safer than tracking down every reader of it.
+
+`PostType.requires.format` is also now typed `ContentFormat` rather than
+`string`. A `string` let the authority and the guess drift silently inside the
+same vocabulary; the union makes a post type asking for media nothing can
+produce a compile error instead of a piece that quietly comes out as the wrong
+thing.
