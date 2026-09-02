@@ -12717,3 +12717,35 @@ upload with a Cloudflare **413 Payload Too Large** — the uploader honours
 Railway is not connected to GitHub here: it deploys whatever `railway up`
 sends, which is why `railway redeploy` had faithfully rebuilt the source from
 30 August and why production had been three days behind every push.
+
+## §507 · A piece refused before it existed left no trace
+
+The first carousel ever sent from the Floor — `myth_fact` on Instagram,
+"Searing meat does not seal in juices" — produced nothing. Not a failure:
+the researcher kept two facts, rejected Cook's Illustrated because only 42% of
+the claim's terms appeared on the page, and the format was then refused three
+times for `format.uncited_claim`. That is the citation rule working exactly as
+gotcha 9 demands.
+
+The defect is what the operator saw: **silence**. The refusal happens *before*
+the content item is inserted, so `disownPartialItem` had no row to mark,
+nothing appeared in the Gallery, no notification was written, and the job
+finished `done`. A run that spends a research pass and three writing attempts
+and then says nothing is indistinguishable from a broken button — and the
+reason existed the whole time, in `job_events`, which is a developer's surface.
+
+So a refused format now writes a `generation_refused` notification naming the
+subject, the attempts and the rule, deduped per idea and format. Two smaller
+things fell out of it:
+
+- **`FormatRejectedError` did not name the format it refused**, so the handler
+  that most needed it could not reach it. It carries `formatId` now.
+- **A third table with two lists.** `notifications_kind_check` is the same
+  shape as `jobs_kind_check` (gotcha 1) and `assets_kind_check` (§502): a kind
+  added in code without a migration typechecks and fails at the first insert —
+  and for notifications that means a message nobody receives about a failure
+  nobody sees. Migration 0077 adds the kind, and a test reads the constraint
+  and checks it against every kind the code writes. Its first version reported
+  `comment` and `social_account` as refused, which are `entity_type` values
+  three columns along; it now reads the kind position only, and asserts that
+  it does.

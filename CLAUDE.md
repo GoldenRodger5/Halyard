@@ -79,6 +79,15 @@ The rule that would have prevented both:
 
 Landmines learned the hard way. Each one cost real time.
 
+1. **Three tables keep a list of allowed values in Postgres and a free string
+   in TypeScript, and they agree until the first insert.** `jobs.kind`
+   (below), `assets.kind` (§502 — the code invented `footage` where the schema
+   has always had `broll`, and eight downloaded clips were refused), and
+   `notifications.kind` (§507 — a kind nobody can insert is a message nobody
+   receives). `assetKinds.test.ts` and `notificationKinds.test.ts` read the
+   constraint out of the migrations and check it against every literal the
+   code writes. When adding a value, add it in both places.
+
 1. **`JOB_KINDS` (TypeScript) and `jobs_kind_check` (Postgres) are the same list written twice.** Adding to one typechecks cleanly and fails at the first insert. `handlerCoverage.test.ts` is the only thing that catches it. Migrations 0024, 0028, 0031 all exist because of this.
 
 2. **Next reads `apps/web/.env.local`, not the repo-root `.env`.** The worker reads `apps/worker/.env` via `docker run --env-file`. Neither can see a file at the repo root, so credentials put there are invisible until you run **`./scripts/env-sync`**, which generates both from the master `.env` (and rewrites `DATABASE_URL` to `host.docker.internal` for the container). Edit the master, then sync.

@@ -236,6 +236,13 @@ export class FormatRejectedError extends Error {
     message: string,
     readonly problems: SlotProblem[],
     readonly attempts: number,
+    /**
+     * §507. Which format was refused. An error about a format that does not
+     * name it forces every handler to reconstruct it from its own scope, and
+     * the one that most needed it — the notification telling an operator why
+     * nothing appeared — could not reach it at all.
+     */
+    readonly formatId: string = 'unknown',
   ) {
     super(message);
     this.name = 'FormatRejectedError';
@@ -640,6 +647,7 @@ export async function writeToFormat(
     `The ${format.name.toLowerCase()} format was not filled after ${MAX_FORMAT_ATTEMPTS} attempts.${why ? ` ${why}` : ''}`,
     last,
     MAX_FORMAT_ATTEMPTS,
+    format.id,
   );
 }
 

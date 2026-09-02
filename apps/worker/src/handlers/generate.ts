@@ -4422,6 +4422,37 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
          */
         if (err instanceof FormatRejectedError) {
           await disownPartialItem(err.message);
+          /*
+           * §507. Tell the operator, because there may be no row to tell them.
+           *
+           * `disownPartialItem` marks the content item failed with the reason —
+           * and the refusal usually happens *before* the item is inserted, so
+           * there is nothing to mark. The first carousel ever sent from the
+           * Floor ended exactly there: the citation rule refused three drafts,
+           * correctly, and the operator saw no piece, no failure and no
+           * explanation. A run that spends a research pass and three writing
+           * attempts and then says nothing is indistinguishable from a broken
+           * button.
+           *
+           * Deduped per idea and format so a retried subject does not stack.
+           */
+          const firstError = err.problems.find((p) => p.severity === 'error');
+          await ctx.pool
+            .query(
+              `insert into notifications (kind, severity, title, body, dedupe_key)
+               values ('generation_refused', 'warning', $1, $2, $3)
+               on conflict (dedupe_key) do nothing`,
+              [
+                `${err.formatId} could not be filled for ${account.platform}`,
+                `"${idea.title}" was refused after ${err.attempts} ` +
+                  `${err.attempts === 1 ? 'attempt' : 'attempts'}. ` +
+                  `${firstError?.message ?? 'No error was recorded, which is itself a gap.'} ` +
+                  'Nothing was drafted, which is the format system refusing to publish something it ' +
+                  'could not stand behind. A different subject, or one with a citable source, is the fix.',
+                `format_refused:${idea.id}:${err.formatId}`,
+              ],
+            )
+            .catch(() => undefined);
           ctx.log('format could not be filled, piece abandoned', {
             platform: account.platform,
             idea: idea.id,
