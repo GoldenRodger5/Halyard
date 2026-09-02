@@ -12403,3 +12403,22 @@ row naming the file to apply when one is missing, a warning (never a pass)
 when the database could not be asked. A test keeps every entry honest
 against the migration it cites. Add a row when a migration adds a hot-path
 column; drop it once no deployed database could predate it.
+
+## §493 · When every provider has said no, say so once
+
+Both model accounts ran out on the same afternoon. `LLM_PROVIDER=openai`
+was already set and §398's fallback client already existed, so a generate
+asked OpenAI ("no credits remaining", 429), fell back to Anthropic ("credit
+balance is too low", **400**), and failed — then retried the whole thing
+twice more, and `generate_concepts` did the same, and every scheduled job
+after them would have too. The row an operator reads showed only the last
+vendor's 400.
+
+§491's vocabulary now reaches the LLM clients and the poller. Anthropic's
+SDK error and OpenAI's response are typed with `refusalIsExhausted`, which
+learned that a 400 whose body says *credit* is the account; the fallback
+client raises one exhausted error naming every provider when all of them
+refused that way; the poller treats an exhausted refusal as permanent for
+any job kind; and ElevenLabs gets the same treatment. The queue stops on
+the first attempt with *"fund one and the queue resumes on its own"*, which
+is true — nothing is marked failed that a topped-up account would not fix.

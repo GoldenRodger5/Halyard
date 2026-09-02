@@ -6,6 +6,7 @@
  * strategy, a cheaper one for the per-platform drafts that run many times a day.
  */
 import Anthropic from '@anthropic-ai/sdk';
+import { providerRefusal, refusalIsExhausted } from './provider.js';
 
 export interface LlmMessage {
   role: 'user' | 'assistant';
@@ -248,9 +249,20 @@ export class AnthropicLlmClient implements LlmClient {
      * and returns exactly the `Message` that `create` would have returned, so
      * nothing downstream changes.
      */
-    const response = await this.client.messages
-      .stream(buildMessageParams(request, model))
-      .finalMessage();
+    let response: Anthropic.Message;
+    try {
+      response = await this.client.messages.stream(buildMessageParams(request, model)).finalMessage();
+    } catch (err) {
+      /*
+       * §493. "Your credit balance is too low" arrives as a 400. Typed here so
+       * the fallback client can tell a dead account from a bad request, and
+       * the poller can stop retrying into the same answer.
+       */
+      if (err instanceof Anthropic.APIError && refusalIsExhausted(err.status ?? 0, err.message)) {
+        throw providerRefusal('anthropic', err.status ?? 0, err.message);
+      }
+      throw err;
+    }
 
     const text = response.content
       .filter((block): block is Anthropic.TextBlock => block.type === 'text')

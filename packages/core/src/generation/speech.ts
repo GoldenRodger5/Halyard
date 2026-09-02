@@ -1,3 +1,4 @@
+import { providerRefusal, refusalIsExhausted } from './provider.js';
 /**
  * Voiceover and music, via ElevenLabs.
  *
@@ -182,10 +183,12 @@ export class ElevenLabsSpeechClient implements SpeechClient {
     );
 
     if (!response.ok) {
-      throw new SpeechUnavailableError(
-        `ElevenLabs refused the synthesis request — ${await readError(response)}`,
-        'api',
-      );
+      const detail = await readError(response);
+      /* §493. A dead account is permanent for every job; a bad request is this one's. */
+      if (refusalIsExhausted(response.status, detail)) {
+        throw providerRefusal('elevenlabs', response.status, `synthesis refused — ${detail}`);
+      }
+      throw new SpeechUnavailableError(`ElevenLabs refused the synthesis request — ${detail}`, 'api');
     }
 
     const bytes = Buffer.from(await response.arrayBuffer());

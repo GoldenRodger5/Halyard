@@ -7,7 +7,8 @@
  * credits counted as available.
  */
 import { describe, expect, it, vi } from 'vitest';
-import { FallbackLlmClient, worthFallingBackOn } from './fallback.js';
+import { ProviderUnavailable, isProviderExhausted } from './provider.js';
+import { FallbackLlmClient, type FallbackEntry, worthFallingBackOn } from './fallback.js';
 import type { LlmClient, LlmResponse } from './llm.js';
 
 const answered = (name: string): LlmResponse =>
@@ -125,5 +126,35 @@ describe('falling back is a provider choice, never a quality one', () => {
       entry('openai', fails('insufficient_quota')),
     ]);
     await expect(client.complete({ messages: [] } as never)).rejects.toThrow();
+  });
+});
+
+describe('§493 every provider refused on account grounds', () => {
+  const refusing = (name: string, status: number, message: string): FallbackEntry => ({
+    name,
+    client: { complete: async () => { throw new ProviderUnavailable(name, status, message, true); } },
+    modelFor: (m) => m,
+  });
+  const request = { system: 's', messages: [], promptVersion: 'v' };
+
+  it('raises one exhausted error naming both, so the poller stops retrying', async () => {
+    const client = new FallbackLlmClient([
+      refusing('openai', 429, 'You have no credits remaining'),
+      refusing('anthropic', 400, 'Your credit balance is too low'),
+    ]);
+    const err = await client.complete(request).catch((e: unknown) => e);
+    expect(isProviderExhausted(err)).toBe(true);
+    expect((err as Error).message).toMatch(/openai and anthropic/);
+    expect((err as Error).message).toMatch(/Fund one/);
+  });
+
+  it('still surfaces a plain failure from the last provider as itself', async () => {
+    const client = new FallbackLlmClient([
+      refusing('openai', 429, 'You have no credits remaining'),
+      { name: 'anthropic', client: { complete: async () => { throw new Error('overloaded'); } }, modelFor: (m) => m },
+    ]);
+    const err = await client.complete(request).catch((e: unknown) => e);
+    expect(isProviderExhausted(err)).toBe(false);
+    expect((err as Error).message).toBe('overloaded');
   });
 });

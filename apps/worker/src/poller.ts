@@ -10,6 +10,7 @@
  * handler's problem.
  */
 import { writeFile } from 'node:fs/promises';
+import { isProviderExhausted } from '@halyard/core';
 import type pg from 'pg';
 import { JOB_POLICY, type JobKind } from '@halyard/db';
 import { scrubString } from '@halyard/core';
@@ -287,7 +288,14 @@ export class Poller {
      * response and a duplicate abort all get worse with repetition, and until
      * now each one burned its full allowance regardless.
      */
-    const permanent = error instanceof PermanentJobFailure;
+    /*
+     * §493. A provider that has said the account cannot pay is permanent for
+     * every job, not just the one that noticed. Anthropic's "credit balance is
+     * too low" burned three attempts on generate and three on generate_concepts
+     * before this branch existed, and would have burned three more on every
+     * scheduled job after them.
+     */
+    const permanent = error instanceof PermanentJobFailure || isProviderExhausted(error);
     const exhausted = job.attempts >= job.max_attempts || permanent;
 
     // Sentry gets the stack and the release tag; the row below gets the message.
@@ -335,7 +343,15 @@ export class Poller {
       error: scrubString(error.message).slice(0, 500),
       // Said out loud, because "dead after one attempt" otherwise reads as a
       // broken retry policy rather than a deliberate one.
-      ...(permanent ? { permanent: true, why: error.reason } : {}),
+      ...(permanent
+        ? {
+            permanent: true,
+            why:
+              error instanceof PermanentJobFailure
+                ? error.reason
+                : 'the provider refuses on account grounds, which no retry changes (§493)',
+          }
+        : {}),
     });
   }
 

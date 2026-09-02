@@ -27,6 +27,7 @@
  * list that has to be maintained by somebody who remembers it exists.
  */
 import type { LlmClient, LlmRequest, LlmResponse } from './llm.js';
+import { providerRefusal, refusalIsExhausted } from './provider.js';
 
 /**
  * Strategy work: idea generation, the performance analyst, co-pilot reasoning.
@@ -245,6 +246,8 @@ export class OpenAiLlmClient implements LlmClient {
       return this.send(rest, attempt + 1);
     }
 
+    /* §493. A dead account is typed, so the fallback and the poller can act on it. */
+    if (refusalIsExhausted(response.status, message)) throw providerRefusal('openai', response.status, message);
     throw new Error(`OpenAI ${response.status}: ${message}`);
   }
 }

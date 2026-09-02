@@ -6,6 +6,12 @@ describe('§491 telling a dead account from a bad moment', () => {
     expect(refusalIsExhausted(429, '{"error":{"message":"You have no credits remaining."}}')).toBe(true);
     expect(refusalIsExhausted(429, 'insufficient_quota')).toBe(true);
   });
+  it('a 400 that says the balance is too low is the account — Anthropic phrases it that way', () => {
+    expect(
+      refusalIsExhausted(400, '{"type":"error","error":{"message":"Your credit balance is too low to access the Anthropic API."}}'),
+    ).toBe(true);
+    expect(refusalIsExhausted(400, 'max_tokens must be a positive integer')).toBe(false);
+  });
   it('a 429 that is only rate limiting is the moment', () => {
     expect(refusalIsExhausted(429, 'Rate limit reached for requests, please try again in 20s')).toBe(false);
   });

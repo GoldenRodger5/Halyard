@@ -29,6 +29,7 @@
  * it on, which is what `modelsFor` has always been for.
  */
 import type { LlmClient, LlmRequest, LlmResponse } from './llm.js';
+import { ProviderUnavailable, isProviderExhausted } from './provider.js';
 
 export interface FallbackEntry {
   /** For logs and for the operator: which provider this is. */
@@ -85,6 +86,7 @@ export class FallbackLlmClient implements LlmClient {
 
   async complete(request: LlmRequest): Promise<LlmResponse> {
     let lastError: unknown;
+    const failures: Array<{ name: string; error: unknown }> = [];
 
     for (const [i, entry] of this.entries.entries()) {
       try {
@@ -94,8 +96,26 @@ export class FallbackLlmClient implements LlmClient {
         });
       } catch (error) {
         lastError = error;
+        failures.push({ name: entry.name, error });
 
         const next = this.entries[i + 1];
+        /*
+         * §493. When every provider has refused on account grounds, the
+         * answer is one typed error naming all of them — so the poller marks
+         * the job dead on the first attempt and the row says "fund an
+         * account", not the last vendor's 400 three times over.
+         */
+        if (!next && failures.every((f) => isProviderExhausted(f.error))) {
+          const last = error as ProviderUnavailable;
+          throw new ProviderUnavailable(
+            failures.map((f) => f.name).join(' and '),
+            last.status,
+            `every configured provider refused on account grounds — ${failures
+              .map((f) => `${f.name}: ${(f.error as Error).message.slice(0, 160)}`)
+              .join('; ')}. Fund one and the queue resumes on its own.`,
+            true,
+          );
+        }
         if (!next || !worthFallingBackOn(error)) throw error;
 
         this.onFallback?.(

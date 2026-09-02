@@ -34,10 +34,18 @@ export class ProviderUnavailable extends Error {
 const EXHAUSTED_STATUSES = new Set([401, 402, 403]);
 const EXHAUSTED_MESSAGE = /credit|quota|billing|insufficient|exceeded your current|payment/i;
 
-/** Whether a refusal with this status and body means the account, not the call, is the problem. */
+/**
+ * Whether a refusal with this status and body means the account, not the
+ * call, is the problem.
+ *
+ * Providers do not agree on the status. OpenAI says 429 for "no credits
+ * remaining"; Anthropic says **400** for "your credit balance is too low".
+ * So any client error whose body talks about credit, quota or billing is the
+ * account, and 401/402/403 are the account whatever the body says.
+ */
 export function refusalIsExhausted(status: number, body: string): boolean {
   if (EXHAUSTED_STATUSES.has(status)) return true;
-  return status === 429 && EXHAUSTED_MESSAGE.test(body);
+  return status >= 400 && status < 500 && EXHAUSTED_MESSAGE.test(body);
 }
 
 export function providerRefusal(provider: string, status: number, body: string): ProviderUnavailable {

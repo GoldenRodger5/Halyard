@@ -15,8 +15,15 @@ written — `hasFootage` was false on every piece. Now:
 | proven | `scripts/preview-footage.ts` — still 2.25, clip 35.15 luma delta across one beat |
 | shown | gallery *What the frame does*: moving / photographed / flat, and why footage was declined |
 
-**Operator items, in order:** add OpenAI credits (images and the frame critic
-are down); run the production forward-fill in `docs/DEPLOY.md` and then push
+**Nothing can generate right now: both model accounts are out of credits.**
+OpenAI answers "no credits remaining" (chat, images, vision — probed 2 Sep)
+and Anthropic "credit balance is too low". `LLM_PROVIDER=openai` with
+Anthropic as fallback is already the configuration (§398); §493 makes the
+double refusal a single dead job with the reason instead of three retries per
+job. Fund either account and the queue resumes.
+
+**Operator items, in order:** fund OpenAI (it is the configured primary, and
+images and the frame critic need it) and/or Anthropic; run the production forward-fill in `docs/DEPLOY.md` and then push
 main (§489); `PEXELS_API_KEY` for footage (below); a music licence decision
 (`ELEVENLABS_MUSIC_LICENSED`).
 
