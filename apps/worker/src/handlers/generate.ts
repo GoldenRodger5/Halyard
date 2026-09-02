@@ -1162,7 +1162,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
          * for either was an image neither could publish. Invisible so far only
          * because nothing has published.
          */
-        const format = chooseFormat(account.platform, account.supported_formats ?? []);
+        const guessedFormat = chooseFormat(account.platform, account.supported_formats ?? []);
 
         /**
          * §452. Stop drafting into a queue nobody can empty.
@@ -1272,13 +1272,13 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
          * needs before a post type exists, and it is still the right answer for
          * a platform whose preference is its only signal.
          */
-        const mediaFormat = resolvedType.postType.requires.format;
-        if (mediaFormat !== format) {
+        const format = resolvedType.postType.requires.format;
+        if (format !== guessedFormat) {
           ctx.log('media format resolved', {
             platform: account.platform,
-            from: format,
-            to: mediaFormat,
-            because: `${resolvedType.postType.name} needs ${mediaFormat}; the platform preference list guessed ${format} before the post type was known.`,
+            from: guessedFormat,
+            to: format,
+            because: `${resolvedType.postType.name} needs ${format}; the platform preference list guessed ${guessedFormat} before the post type was known.`,
           });
         }
 
@@ -1294,11 +1294,11 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
          */
         const room = operatorAsked
           ? ({ draft: true, headroom: Number.POSITIVE_INFINITY } as const)
-          : shouldDraftMore(mediaFormat, backlog.get(mediaFormat) ?? 0);
+          : shouldDraftMore(format, backlog.get(format) ?? 0);
         if (!room.draft) {
           ctx.log('queue is already full of this format', {
             platform: account.platform,
-            format: mediaFormat,
+            format,
             because: room.because,
           });
           continue;
@@ -1693,8 +1693,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
             account.id,
             account.platform,
             account.persona,
-            /* §453. The media the resolved post type needs. */
-            mediaFormat,
+            format,
             idea.category,
             draft.body,
             draft.title ?? null,

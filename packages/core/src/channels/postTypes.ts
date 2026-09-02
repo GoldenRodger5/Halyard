@@ -41,6 +41,7 @@
  */
 import type { ChannelId } from './channels.js';
 import type { MediaKind } from '../creative/productionPlan.js';
+import type { ContentFormat } from '../generation/formatChoice.js';
 
 export const POST_TYPES = [
   'caption_only',
@@ -73,8 +74,23 @@ export interface PostType {
    * second list.
    */
   requires: {
-    /** A value from the adapter's `supportedFormats`. */
-    format: string;
+    /**
+     * A value from the adapter's `supportedFormats`.
+     *
+     * §453. Typed as `ContentFormat` rather than `string`, because this is the
+     * authority on what a piece is **made of** and `chooseFormat` was quietly
+     * disagreeing with it. Instagram's preference list put `image` first, so
+     * every Instagram piece — including one an operator asked for as a Short
+     * video, staged as a short video, and given a Reels length band — ran
+     * `needsVideo(format) === false` and skipped the voiceover and the render
+     * entirely.
+     *
+     * A `string` here let the two drift silently. The union makes them the same
+     * vocabulary, so a post type asking for a media kind nothing can produce is
+     * a compile error rather than a piece that quietly comes out as the wrong
+     * thing.
+     */
+    format: ContentFormat;
     /** True when the piece is several media in one post. */
     carousel?: boolean;
     /** True when the post carries an outbound link in the post itself. */
