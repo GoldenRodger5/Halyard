@@ -20,16 +20,23 @@
  * told how to write for the delivery, instead of the delivery being asked to
  * do something the API cannot do.
  *
- * ## §480. Speed exists now, and it was the lever every pacing failure needed
+ * ## §480 / §490. Speed exists, and the read was never slow
  *
- * This file said the endpoint had no speed control, which was true when it
- * was written, and every format video since Aug 31 read at 94–137 words a
- * minute against a 140–175 gate — the correction loop then *rewrote scripts*
- * that were fine, because that was the only lever the policy knew. Verified
- * live before changing anything: the same sentence took 5.02s at 1.0 and
- * 4.21s at 1.2 (`voice_settings.speed`, range 0.7–1.2). The voice is simply a
- * slow reader, so speed is directed per energy rather than left at the
- * default, and the gate measures the result as it always did.
+ * This file said the endpoint had no speed control; that was true when it was
+ * written, and `voice_settings.speed` (0.7–1.2) exists now — verified live.
+ * §480 then raised every energy above 1.0 because the pacing gate read 127
+ * wpm. That number was the script divided by the **whole mix**, designed
+ * silences included. Measured four ways since (§487, §490):
+ *
+ *     over the mix              127 wpm   what the gate used to read
+ *     over caption spans        139       whisper stretches words across gaps
+ *     over clip durations       179       what the gate reads now (§487)
+ *     over silence-trimmed span 220       pure articulation
+ *
+ * The middle two are the honest ones for "words per minute" as a listener
+ * means it, and they put this voice at the *top* of the 140–175 band at 1.0.
+ * So speed is directed slightly under 1.0 for the slower energies, and the
+ * gate measures the result over the voiced seconds.
  */
 
 export type VoiceEnergy = 'calm' | 'warm' | 'bright' | 'urgent';
@@ -44,7 +51,7 @@ export interface VoiceDirection {
    */
   stability: number;
   similarityBoost: number;
-  /** §480. 0.7–1.2. The read this voice gives at 1.0 is ~127 wpm; 1.16 lands mid-band. */
+  /** §490. 0.7–1.2. Over clip durations this voice reads ~180 wpm at 1.0, so calm and warm sit under it. */
   speed: number;
   /**
    * How the script should be written for this delivery.
@@ -114,7 +121,7 @@ const SETTINGS: Record<
   calm: {
     stability: 0.7,
     similarityBoost: 0.85,
-    speed: 1.12,
+    speed: 0.9,
     notes: [
       'Long sentences are fine. Let clauses breathe; use commas where a person would pause.',
       'No exclamation marks. The calm is doing the work.',
@@ -123,7 +130,7 @@ const SETTINGS: Record<
   warm: {
     stability: 0.6,
     similarityBoost: 0.8,
-    speed: 1.16,
+    speed: 0.95,
     notes: [
       'Write the way you would explain it to one person across a kitchen counter.',
       'Contractions throughout. "It is" reads as a press release.',
@@ -132,7 +139,7 @@ const SETTINGS: Record<
   bright: {
     stability: 0.45,
     similarityBoost: 0.75,
-    speed: 1.2,
+    speed: 1.0,
     notes: [
       'Short sentences. A five-word sentence is emphasis the synthesiser can actually hear.',
       'One em dash where the surprise lands — the pause is the joke.',
@@ -141,7 +148,7 @@ const SETTINGS: Record<
   urgent: {
     stability: 0.35,
     similarityBoost: 0.7,
-    speed: 1.2,
+    speed: 1.05,
     notes: [
       'Front-load. The verb belongs in the first four words.',
       'Fragments are allowed. Not every line needs a subject.',

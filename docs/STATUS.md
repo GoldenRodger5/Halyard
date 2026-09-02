@@ -15,6 +15,11 @@ written — `hasFootage` was false on every piece. Now:
 | proven | `scripts/preview-footage.ts` — still 2.25, clip 35.15 luma delta across one beat |
 | shown | gallery *What the frame does*: moving / photographed / flat, and why footage was declined |
 
+**Operator items, in order:** add OpenAI credits (images and the frame critic
+are down); run the production forward-fill in `docs/DEPLOY.md` and then push
+main (§489); `PEXELS_API_KEY` for footage (below); a music licence decision
+(`ELEVENLABS_MUSIC_LICENSED`).
+
 **Needs one thing from the operator: `PEXELS_API_KEY` in the master `.env`,
 then `./scripts/env-sync`.** Free at pexels.com/api. Until it is set the
 pipeline is unchanged and the screenplay is told "no footage can be found".
@@ -47,8 +52,14 @@ not pass it (§487, measured over speech). **Third run:** the §486 repair fired
 correction loop rewrote the narration away from the screen (§488): a corrector
 written for freeform voiceovers, never told that a format's narration is its
 slots. Refused now; the piece was failed with the reason. Measured over speech
-(§487): the voice reads 139 wpm at 1.0 and 167 at 1.16, so §480 holds. Fourth
-run pending after the rebuild.
+(§487): the voice reads 139 wpm at 1.0 and 167 at 1.16, so §480 holds. **Fourth
+run:** caption prose, VO the slots, WER 0%, no numerals — and 214 wpm over the
+voiced seconds, which is the honest number §487 exists to give: this voice was
+never slow (§490), so speeds are now 0.9–1.05. Its `review_media` died on
+**OpenAI 429 — no credits remaining**: the frame critic and every image
+generation are blocked until the OpenAI account is topped up. (The render also
+took six hours of wall clock because the Mac slept; the 900s timeout retry
+re-ran it in nine minutes, as designed.)
 
 Still open on that piece: no music bed (the seeded fixture file does not
 exist anywhere; generated music needs `ELEVENLABS_MUSIC_LICENSED=true`, an

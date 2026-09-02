@@ -12350,3 +12350,23 @@ schema.** The readiness page should compare the highest local migration with
 the remote history, so drift is a red row rather than a 500. And **main is 84
 commits ahead of origin** with a rule in the deploy doc that says never deploy
 ahead of the schema — so the push waits on step 2 of that procedure.
+
+## §490 · The read was never slow
+
+§480 raised every voice speed above 1.0 because the pacing gate read 127 words
+a minute. That was the script over the whole mix (§487). Once the gate measured
+over the voiced seconds, the fourth tips render read **214 wpm** — and the
+same sentence, synthesised at 1.0 and silence-trimmed, articulates at 220.
+Four measurements of one voice:
+
+| over | wpm | what it means |
+|---|---|---|
+| the mix | 127 | designed silences counted as slow speech |
+| whisper's caption spans | 139 | words stretched across gaps |
+| clip durations | 179 | speech with its own pauses — what the gate reads now |
+| silence-trimmed span | 220 | pure articulation |
+
+The band is 140–175 and the honest measure puts this voice at its top at
+speed 1.0. So calm is 0.9, warm 0.95, bright 1.0, urgent 1.05 — the lever is
+real and stays; the direction reverses. The rule worth keeping is the one
+§487 found: a number is only a measurement of the thing it is divided by.
