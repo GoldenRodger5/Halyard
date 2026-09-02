@@ -1201,6 +1201,44 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
     for (const account of accounts.rows) {
       if (account.persona !== 'brand') continue; // founder posts are composed, not generated
 
+      /*
+       * §513. What cannot possibly publish is refused before it is written.
+       *
+       * `board_id` is required by every API that publishes a pin, and the
+       * check for it sat after the research and the copy — because *routing*
+       * a pin genuinely needs the draft to match a board by its tags. But
+       * whether this account has **any** board is knowable before a word is
+       * written, and when it has none no draft can help. The first Pinterest
+       * pin ever attempted spent a research pass and a full format fill to
+       * learn that the account has no boards at all.
+       *
+       * Only the empty case is hoisted. A board that exists but matches
+       * nothing is still a routing decision and still needs the draft.
+       */
+      if (account.platform === 'pinterest') {
+        const { rows: boards } = await ctx.pool.query<{ n: string }>(
+          'select count(*)::text as n from pinterest_boards where account_id = $1',
+          [account.id],
+        );
+        if (Number(boards[0]?.n ?? 0) === 0) {
+          ctx.log('pinterest has no boards, nothing drafted', {
+            platform: account.platform,
+            because:
+              'Every pin needs a board id at publish time, and this account has none. ' +
+              'Writing a pin first would spend a research pass on something that cannot be filed.',
+          });
+          await notify(
+            ctx,
+            'connector_down',
+            'warning',
+            'Pinterest has no boards',
+            `This Pinterest account has no boards, so no pin can be filed. Connect Pinterest and create ` +
+              'at least one board, then re-sync. Nothing was drafted, and nothing was spent.',
+          );
+          continue;
+        }
+      }
+
       /**
        * §258. The row exists long before the piece does.
        *

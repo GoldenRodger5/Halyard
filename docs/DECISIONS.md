@@ -12837,3 +12837,29 @@ holds the wordmark against the base, and reported `center` missing on a slide
 that was centred correctly. It now reads the content column — the child with
 `flexGrow` — and says so, because a test that measures the wrong node is a
 confident wrong answer, the same failure §502 and §510 each produced once.
+
+## §513 · What cannot publish is refused before it is written
+
+The first Pinterest pin ever attempted was refused, correctly: *"This
+Pinterest account has no boards. Every pin needs one."* `board_id` is required
+by every API that files a pin, and a queue full of pins that cannot publish is
+worse than an empty one.
+
+It refused **after** the research pass and a full format fill, having spent
+about five cents to learn something knowable before a word was written. The
+routing itself genuinely needs the draft — a board is matched by the piece's
+own tags — but *whether the account has any board at all* does not. Only the
+empty case is hoisted; a board that exists and matches nothing is still a
+routing decision.
+
+This is §494's shape again, one guard along: the backlog check had to be
+lifted above the credit spend for the same reason. The rule that keeps
+falling out: **a precondition that does not depend on the work belongs before
+the work.**
+
+Worth recording what the run also proved. The RecipeFix connector is *not*
+broken — `adapt_recipe` returns a valid adaptation, so the note carried in
+STATUS since 31 August is stale. Five enabled templates that have never drawn
+(`transformation_diff_1x1`, `scaling_math`, `SubstitutionExplainer`,
+`ScalingMath`, and the `transformation` format itself) are gated on an
+artifact, and that gate is open.
