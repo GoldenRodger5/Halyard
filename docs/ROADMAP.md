@@ -140,6 +140,16 @@ Nothing here is a Halyard change and all of it gates everything else.
   on every turn, and citation-shaped phrasing with nothing behind it
   (*"Established by BBC Good Food"*, *"2021 salinity testing"*).
 
+- **§468 — the marks were forbidden, not timid.** `generate.ts` never passed
+  `locatable`, so the screenwriter was told *"Nothing in the frame can be
+  located, so this piece has no gestures"* on every piece it has ever staged.
+  §446 then honoured that exactly. The gesture path was dead one argument up
+  from where anyone was looking.
+- **§469 — the caption ended on a footnote.** *"Wikipedia, Sourdough."* spent
+  the most valuable line in the post on provenance the piece was already showing
+  on screen. Also wired `preferDomains`, which `research()` has accepted since it
+  was written and no caller ever supplied.
+
 ### Then — finish short video
 
 9. **`tips` has never rendered.** Both causes are fixed; confirm.
