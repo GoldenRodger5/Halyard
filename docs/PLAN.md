@@ -68,6 +68,10 @@ consumed during testing.
 Targets: **< $0.60 per finished short video** at medium quality with reuse;
 **< $5/day** by default, raised deliberately in `/settings`.
 
+**Measured 2 September, first funded run:** $0.42 for a complete tips piece —
+three images at $0.063, one reused free, voice $0.077, vision $0.010, model
+calls $0.11. Nineteen calls. Under target.
+
 ## 4. Real motion: when the agents should reach for it
 
 `footage` (licensed b-roll) belongs on a line about something **happening** —

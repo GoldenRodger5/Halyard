@@ -296,12 +296,23 @@ export async function ttsHandler(job: Job, ctx: HandlerContext, deps: TtsDeps = 
   const narrationPath = path.join(work, 'narration.mp3');
   const mixPath = path.join(work, 'mix.mp3');
 
+  /*
+   * §496. A speed the correction loop asked for, if it did. Recorded below
+   * with what it produced, so the next correction reasons from a measurement
+   * rather than from a default it cannot see.
+   */
+  const { rows: speedRows } = await ctx.pool.query<{ speed: string | null }>(
+    `select generation_meta -> 'voice' ->> 'speed' as speed from content_items where id = $1`,
+    [contentItemId],
+  );
+  const speedOverride = speedRows[0]?.speed ? Number(speedRows[0].speed) : null;
+
   const voiceSettings = {
     /* §232. The directed performance, not the default one. */
     stability: voice.stability,
     similarityBoost: voice.similarityBoost,
-    /* §480. The read is slow at 1.0; this is the lever the pacing gate needed. */
-    speed: voice.speed,
+    /* §480/§496. Derived from the energy's target rate, or set by a correction. */
+    speed: speedOverride ?? voice.speed,
     ...(voice.voiceId ? { voiceId: voice.voiceId } : {}),
   };
 
@@ -569,6 +580,17 @@ export async function ttsHandler(job: Job, ctx: HandlerContext, deps: TtsDeps = 
       trailingSilenceMs: silence.trailingMs,
       leadingSilenceMs: silence.leadingMs,
     });
+
+    /* §496. What was actually spoken at what speed, for the correction loop. */
+    await ctx.pool.query(
+      `update content_items
+          set generation_meta = coalesce(generation_meta, '{}'::jsonb) || $2::jsonb
+        where id = $1`,
+      [
+        contentItemId,
+        JSON.stringify({ voice: { speed: speedOverride ?? voice.speed, energy: voice.energy } }),
+      ],
+    );
 
     const asset = await uploadAsset(ctx, {
       bytes: await readFileBuffer(mixPath),

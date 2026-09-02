@@ -112,6 +112,8 @@ export async function photographBeats(
         aspectRatio: '9:16',
         contentItemId: input.contentItemId,
         productId: input.productId,
+        /* §496. Never hand this piece a picture it is already showing. */
+        avoidAssetIds: out.flatMap((p) => (p.assetId ? [p.assetId] : [])),
       });
     } catch (err) {
       if (isProviderExhausted(err)) {

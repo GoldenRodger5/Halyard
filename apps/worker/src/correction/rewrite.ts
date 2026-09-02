@@ -30,6 +30,7 @@ import {
   type Defect,
   type LlmClient,
 } from '@halyard/core';
+import { MAX_WPM, MIN_WPM } from '@halyard/core';
 import { copywriterDontRules } from '../handlers/generate.js';
 import type { HandlerContext } from '../poller.js';
 import type { CorrectionOutcome } from './apply.js';
@@ -233,6 +234,57 @@ export async function rewriteVoScript(
   );
   const lines = narration[0]?.vo_lines;
   if (Array.isArray(lines) && lines.length > 0) {
+    /*
+     * §496. Pacing has a real lever that is not the words.
+     *
+     * The words of a format piece are its written slots and may not be
+     * rewritten (below). The *rate* they are read at is a synthesis
+     * parameter, so a piece that came out at 184 wpm against a 175 ceiling is
+     * corrected by asking for a slower read and synthesising again — one TTS
+     * call, no model call, and the screen and the voice still say the same
+     * thing. Derived from what was measured, not guessed: the new speed is
+     * the old one scaled by the ratio of the target rate to the measured one.
+     */
+    const pacingDefect = input.defects.find((d) => d.rule === 'audio.pacing');
+    if (pacingDefect) {
+      const { rows: measuredRows } = await ctx.pool.query<{ wpm: string | null; speed: string | null }>(
+        `select qc_results -> 'audio' ->> 'wordsPerMinute' as wpm,
+                generation_meta -> 'voice' ->> 'speed' as speed
+           from content_items where id = $1`,
+        [input.contentItemId],
+      );
+      const measuredWpm = Number(measuredRows[0]?.wpm ?? 0);
+      const currentSpeed = Number(measuredRows[0]?.speed ?? 0);
+      if (measuredWpm > 0 && currentSpeed > 0) {
+        const target = Math.min(MAX_WPM, Math.max(MIN_WPM, (MIN_WPM + MAX_WPM) / 2));
+        const next = Number(Math.min(1.2, Math.max(0.7, currentSpeed * (target / measuredWpm))).toFixed(2));
+        if (Math.abs(next - currentSpeed) < 0.02) {
+          return {
+            changed: [],
+            note: 'speed already at the limit',
+            escalate:
+              `The read measured ${measuredWpm} wpm at speed ${currentSpeed}, and the synthesiser's own range ` +
+              'cannot move it further. This needs a different voice, which is a person’s choice.',
+          };
+        }
+        await ctx.pool.query(
+          `update content_items
+              set generation_meta = jsonb_set(
+                    coalesce(generation_meta, '{}'::jsonb), '{voice,speed}', to_jsonb($2::numeric), true),
+                  vo_asset_id = null
+            where id = $1`,
+          [input.contentItemId, next],
+        );
+        const requeued = await requeueFinalRenders(ctx, input.contentItemId);
+        return {
+          changed: ['voiceover'],
+          note:
+            `Read measured ${measuredWpm} wpm at speed ${currentSpeed}; re-synthesising at ${next} to land near ` +
+            `${target} wpm. ${requeued} render(s) requeued. The words are unchanged.`,
+        };
+      }
+    }
+
     return {
       changed: [],
       note: 'format narration',

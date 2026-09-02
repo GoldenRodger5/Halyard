@@ -12480,3 +12480,35 @@ failed deploy leaves the previous build serving happily. `/master/system`
 shows the running build; nothing showed that the *last three deploys had
 failed*. Worth a readiness row: the newest deployment's state, beside the
 schema row §492 added.
+
+## §496 · Three defects the first funded run showed
+
+One tips piece, $0.42, read frame by frame. What it proved and what it found.
+
+**Proved.** The ledger works end to end: nineteen calls, three images at
+medium ($0.063 each), one photograph reused instead of bought, voice and
+vision recorded, and the gallery card showing the total. The caption came out
+as a person would write it — *"One inch. Not more."* then one real detail and
+a question — and copy passed with zero flags, coherence passed *"showing
+herbs"*. Before today the same piece cost about $1.20.
+
+**Found, and fixed:**
+
+1. **Reuse could hand a piece its own picture twice.** Reuse matches on
+   subject and two beats of one piece often share one, so the second beat
+   would get the first beat's exact photograph — §407's defect arriving
+   through the door built to save money. Reuse now excludes assets this piece
+   is already showing.
+2. **Speed was being set by hand, twice, against numbers measured over
+   different things.** It is derived now: one measured constant
+   (`ARTICULATION_WPM_AT_1 = 194`, this voice at speed 1.0 over voiced
+   seconds), a target rate per energy inside the 140–175 band, and the speed
+   is the ratio. A test asserts every energy lands inside the gate. When the
+   voice changes, one number changes.
+3. **A pacing miss killed a format piece.** §488 rightly refuses to rewrite
+   slot-derived narration, so `audio.pacing` had no correction and the piece
+   failed at 184 wpm. But the *rate* is not the words: the corrector now
+   scales the synthesis speed by the ratio of the target to the measured rate
+   and re-synthesises — one TTS call, no model call, the screen and the voice
+   still saying the same thing. It escalates only when the API's own range is
+   exhausted, and only for pacing; every other audio defect still refuses.

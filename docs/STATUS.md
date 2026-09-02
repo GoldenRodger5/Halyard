@@ -15,6 +15,14 @@ written — `hasFootage` was false on every piece. Now:
 | proven | `scripts/preview-footage.ts` — still 2.25, clip 35.15 luma delta across one beat |
 | shown | gallery *What the frame does*: moving / photographed / flat, and why footage was declined |
 
+**First funded run measured $0.42** for a complete tips piece (19 calls, 3
+images at medium, 1 photograph reused free) — under the $0.60 target and about
+a third of what it would have cost yesterday. It also found three defects,
+fixed in §496: reuse could repeat a picture inside one piece; the voice speed
+was set by hand and is now derived from a measured articulation rate; and a
+pacing miss now re-synthesises at a corrected speed instead of failing the
+piece.
+
 **Cost (§494).** The $20 day was eighty high-quality images the ledger never
 saw. Now: every paid call recorded, images at medium, photographs reused by
 subject, a $5/day budget that pauses paid work, per-piece cost on every

@@ -20,23 +20,21 @@
  * told how to write for the delivery, instead of the delivery being asked to
  * do something the API cannot do.
  *
- * ## §480 / §490. Speed exists, and the read was never slow
+ * ## §480 / §490 / §496. Speed is derived, not guessed
  *
- * This file said the endpoint had no speed control; that was true when it was
- * written, and `voice_settings.speed` (0.7–1.2) exists now — verified live.
- * §480 then raised every energy above 1.0 because the pacing gate read 127
- * wpm. That number was the script divided by the **whole mix**, designed
- * silences included. Measured four ways since (§487, §490):
+ * The endpoint has a `speed` (0.7–1.2), verified live. Twice this session it
+ * was set by hand and twice it was wrong, because the number it was aimed at
+ * was measured over different things — the whole mix (127 wpm), whisper's
+ * caption spans (139), the clips themselves (184). §487 settled the
+ * measurement: **words over the seconds actually voiced**, which is the rate a
+ * listener hears.
  *
- *     over the mix              127 wpm   what the gate used to read
- *     over caption spans        139       whisper stretches words across gaps
- *     over clip durations       179       what the gate reads now (§487)
- *     over silence-trimmed span 220       pure articulation
+ * So the speed is now computed rather than chosen. One measured constant says
+ * how fast this voice articulates at speed 1.0; each energy names a target
+ * inside the gate's 140–175 band; the speed is the ratio. When the voice or
+ * the model changes, one number changes and every energy follows.
  *
- * The middle two are the honest ones for "words per minute" as a listener
- * means it, and they put this voice at the *top* of the 140–175 band at 1.0.
- * So speed is directed slightly under 1.0 for the slower energies, and the
- * gate measures the result over the voiced seconds.
+ *     ARTICULATION_WPM_AT_1 = 194   measured 2 Sep: 184 wpm at speed 0.95
  */
 
 export type VoiceEnergy = 'calm' | 'warm' | 'bright' | 'urgent';
@@ -51,7 +49,7 @@ export interface VoiceDirection {
    */
   stability: number;
   similarityBoost: number;
-  /** §490. 0.7–1.2. Over clip durations this voice reads ~180 wpm at 1.0, so calm and warm sit under it. */
+  /** §496. 0.7–1.2, derived from the energy's target rate and the measured articulation. */
   speed: number;
   /**
    * How the script should be written for this delivery.
@@ -114,14 +112,34 @@ export function voiceEnergyFor(input: VoiceInput): VoiceEnergy {
  * run, which is unusable for a brand voice that has to sound like one person
  * across sixty posts.
  */
+/**
+ * §496. How fast this voice articulates at `speed: 1.0`, in words per minute
+ * over voiced seconds. Measured, not assumed: a tips piece read 184 wpm at
+ * speed 0.95 (`content_item_costs`-era run, 2 September). Re-measure from
+ * `qc_results.audio.wordsPerMinute` after a voice or model change and update
+ * this one number.
+ */
+export const ARTICULATION_WPM_AT_1 = 194;
+
+/** ElevenLabs accepts 0.7–1.2 and degrades outside it. */
+const SPEED_FLOOR = 0.7;
+const SPEED_CEILING = 1.2;
+
+/** Speed that lands this voice on a target rate, clamped to what the API takes. */
+export function speedForWpm(targetWpm: number, articulationWpm = ARTICULATION_WPM_AT_1): number {
+  const raw = targetWpm / articulationWpm;
+  return Number(Math.min(SPEED_CEILING, Math.max(SPEED_FLOOR, raw)).toFixed(2));
+}
+
 const SETTINGS: Record<
   VoiceEnergy,
-  { stability: number; similarityBoost: number; speed: number; notes: string[] }
+  { stability: number; similarityBoost: number; targetWpm: number; notes: string[] }
 > = {
   calm: {
     stability: 0.7,
     similarityBoost: 0.85,
-    speed: 0.9,
+    /* §496. Inside the 140-175 band; the pace rises with the energy. */
+    targetWpm: 152,
     notes: [
       'Long sentences are fine. Let clauses breathe; use commas where a person would pause.',
       'No exclamation marks. The calm is doing the work.',
@@ -130,7 +148,8 @@ const SETTINGS: Record<
   warm: {
     stability: 0.6,
     similarityBoost: 0.8,
-    speed: 0.95,
+    /* §496. Inside the 140-175 band; the pace rises with the energy. */
+    targetWpm: 160,
     notes: [
       'Write the way you would explain it to one person across a kitchen counter.',
       'Contractions throughout. "It is" reads as a press release.',
@@ -139,7 +158,8 @@ const SETTINGS: Record<
   bright: {
     stability: 0.45,
     similarityBoost: 0.75,
-    speed: 1.0,
+    /* §496. Inside the 140-175 band; the pace rises with the energy. */
+    targetWpm: 168,
     notes: [
       'Short sentences. A five-word sentence is emphasis the synthesiser can actually hear.',
       'One em dash where the surprise lands — the pause is the joke.',
@@ -148,7 +168,8 @@ const SETTINGS: Record<
   urgent: {
     stability: 0.35,
     similarityBoost: 0.7,
-    speed: 1.05,
+    /* §496. Inside the 140-175 band; the pace rises with the energy. */
+    targetWpm: 172,
     notes: [
       'Front-load. The verb belongs in the first four words.',
       'Fragments are allowed. Not every line needs a subject.',
@@ -178,7 +199,7 @@ export function directVoice(input: VoiceInput): VoiceDirection {
     voiceId: input.voiceId ?? null,
     energy,
     stability: settings.stability,
-    speed: settings.speed,
+    speed: speedForWpm(settings.targetWpm),
     similarityBoost: settings.similarityBoost,
     deliveryNotes: notes,
     reason: `${energy} delivery: ${

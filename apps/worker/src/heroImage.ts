@@ -67,6 +67,15 @@ const DEFAULT_MOOD = 'natural light, honest and unstyled, shallow depth of field
 export interface HeroImageRequest {
   /** §494. Scopes photograph reuse to this product's own library. */
   productId?: string;
+  /**
+   * §496. Assets this piece has already used, which reuse must not hand back.
+   *
+   * Reuse matches on subject, and two beats of one piece often share a
+   * subject — so without this the second beat gets the first beat's exact
+   * photograph and the piece is one still behind two text changes, which is
+   * §407's defect arriving through the door built to save money.
+   */
+  avoidAssetIds?: readonly string[];
   /** What the picture is of, in plain words. Never the product's interface. */
   subject: string;
   /**
@@ -162,9 +171,10 @@ export async function generateHeroImage(
           and lower(subject) = lower($1)
           and ($2::text is null or product_id = $2)
           and created_at > now() - make_interval(days => $3)
+          and not (id = any($4::uuid[]))
         order by last_used_at asc nulls first, created_at desc
         limit 1`,
-      [request.subject.trim(), request.productId ?? null, reuseDays],
+      [request.subject.trim(), request.productId ?? null, reuseDays, request.avoidAssetIds ?? []],
     );
     const found = rows[0];
     if (found) {
