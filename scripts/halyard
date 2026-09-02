@@ -211,9 +211,32 @@ if [[ $WORKER -eq 1 ]]; then
   # on "Voiceover asset ... could not be read". Mounted rather than baked in, so
   # the container writes where the web app serves from.
   mkdir -p "$REPO_ROOT/apps/web/public/dev-assets"
+  # §477. A local container is not a deployment, and the image cannot tell.
+  #
+  # The Dockerfile sets NODE_ENV=production, and `publicBaseUrl` refuses to
+  # generate under it without a publicly reachable HALYARD_PUBLIC_URL — because
+  # a published post carrying a localhost link is a real and silent failure, and
+  # no QC gate reads link_url.
+  #
+  # That guard is right for a deployed worker and wrong here: this script runs
+  # the worker *locally*, nothing publishes from it, and inheriting the flag
+  # meant the documented local setup could not draft anything at all. Every
+  # generate threw before writing a row.
+  #
+  # Overridden only for this local run. Set HALYARD_PUBLIC_URL in the master
+  # .env when there is a deployed web origin, and the guard does its job again
+  # everywhere it should.
+  if [[ -z "${HALYARD_PUBLIC_URL:-}" ]] && ! grep -q '^HALYARD_PUBLIC_URL=.' "$WORKER_ENV_FILE" 2>/dev/null; then
+    c_warn "HALYARD_PUBLIC_URL is unset — running the worker as development so it can draft"
+    c_info "set it in .env before deploying, or published links will point nowhere"
+    LOCAL_ENV=(-e NODE_ENV=development)
+  else
+    LOCAL_ENV=()
+  fi
   docker run -d --name halyard-worker --add-host=host.docker.internal:host-gateway \
     -v "$REPO_ROOT/apps/web/public/dev-assets:/assets" \
     -e HALYARD_LOCAL_ASSET_DIR=/assets \
+    "${LOCAL_ENV[@]}" \
     --env-file "$WORKER_ENV_FILE" halyard-worker >/dev/null
   c_ok "worker running — docker logs -f halyard-worker"
 fi

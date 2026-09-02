@@ -12098,3 +12098,24 @@ where the tail can stand as a sentence, which makes it fire less often.
 That is the right trade. What it declines is a sentence that genuinely needs a
 writer, and declining says so by leaving the gate to refuse it — a repair that
 produced fragments would be worse than the overrun it fixed.
+
+## §477 · A local container is not a deployment, and the image cannot tell
+
+The Dockerfile sets `NODE_ENV=production`, and `publicBaseUrl` refuses to
+generate under it without a publicly reachable `HALYARD_PUBLIC_URL`. That guard
+is right: a published post carrying a `localhost` link is a real and silent
+failure, and no QC gate reads `link_url`.
+
+It is wrong for `./scripts/halyard`, which runs the worker **locally** and
+publishes nothing. Inheriting the flag meant the documented local setup could
+not draft at all — every generate threw `PermanentJobFailure` after the research,
+the writing and the text critic had all run, and wrote no row.
+
+Overridden only for that local run, and *loudly*: the script says the variable
+is unset and that published links will point nowhere until it is set. Where a
+deployed web origin exists, the guard does its job again everywhere it should.
+
+Worth noting how this surfaced. The text critic's verdict was **stored on two
+pieces that then failed** — the critic ran, the piece died, and the finding
+survived. That is the shape of a well-behaved observer: it did its job, said
+what it saw, and had no opinion about whether the piece lived.
