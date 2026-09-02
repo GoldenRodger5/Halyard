@@ -12040,3 +12040,32 @@ both escalate to a person.
 And like the frame critic it may never pass anything. `examined` separates
 *"read it and found nothing"* from *"never ran"*, because silence is not
 approval.
+
+## §475 · The critic, called
+
+§474 built the text critic. This is the caller — without one it would have been
+the eleventh entry in this file's *declared, never executed* column, which would
+have been a particularly poor joke.
+
+It runs after the caption is written and **before anything is rendered**. That
+is the entire point: every question it asks is answerable from the words, so
+asking here costs one call instead of a render, three image generations and a
+voiceover.
+
+**Never fatal, and never a pass.** A critic that could fail a piece would be a
+model marking a model's work, which this codebase refuses everywhere else. A
+critic whose outage stops production is worse than no critic. So it observes,
+its verdict is stored on the piece, and the operator decides.
+
+Failure is *named*, not swallowed. §412 is the standing lesson: the frame critic
+returned HTTP 400 on every request for its entire existence while reporting "no
+frames were available", because a caught error with a plausible message is
+indistinguishable from a quiet success.
+
+The Gallery shows it above the length panel, because it is the one to read
+first — a piece a cook calls overstated is a different decision from one that is
+nine seconds long. Each finding names **who objected**, since *"the cook winced
+at this line"* is acted on differently from *"the composition is flat"*.
+
+`examined` is what separates *"read it and found nothing"* from *"never ran"*.
+The panel says so out loud, because a quiet critic must never read as approval.

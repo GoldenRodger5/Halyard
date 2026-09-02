@@ -128,6 +128,7 @@ import { recentShots } from '../shotRecency.js';
 import { continuityFor } from '../continuity.js';
 import { photographBeats } from '../beatPhotographs.js';
 import { markForBeat } from '../beatMark.js';
+import { readPiece } from '../readPiece.js';
 
 /**
  * §468. Words long enough to look markable and too common to be worth marking.
@@ -1813,6 +1814,47 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
          * disagree with, which is the only kind of automated decision worth
          * making on someone's behalf.
          */
+        /**
+         * §475. Read the piece, now that both halves of it exist.
+         *
+         * After the caption and **before anything is rendered**, which is the
+         * whole point: every defect this critic asks about is answerable from
+         * the words, and asking here costs one call rather than a render.
+         *
+         * Never fatal. A critic that could fail a piece would be a model
+         * marking a model's work, and a critic whose outage stops production is
+         * worse than no critic. It observes; the operator decides.
+         */
+        if (written && written.draft.slots.length > 0) {
+          const read = await readPiece(
+            openStage(ctx, 'qc'),
+            {
+              format: chosenFormat.format.id,
+              platform: account.platform,
+              lines: written.draft.slots.map((slot) => ({ key: slot.key, text: slot.text })),
+              caption: draft.body,
+            },
+            llmFor(),
+          );
+          if (read) {
+            await ctx.pool.query(
+              `update content_items
+                  set generation_meta = coalesce(generation_meta, '{}'::jsonb) || $2::jsonb
+                where id = $1`,
+              [
+                contentItemId,
+                JSON.stringify({
+                  read: {
+                    examined: read.examined,
+                    summary: read.summary,
+                    findings: read.findings,
+                  },
+                }),
+              ],
+            );
+          }
+        }
+
         if (written?.budget) {
           await ctx.pool.query(
             `update content_items

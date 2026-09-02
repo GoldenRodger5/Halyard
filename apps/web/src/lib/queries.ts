@@ -257,6 +257,23 @@ export interface QueueItem {
    * platform has no band — Pinterest and Bluesky carry no video. Both are real
    * states and neither is a zero.
    */
+  /**
+   * §475. The text critic's verdict, read before anything was rendered.
+   *
+   * Null on a piece with no written slots — a transformation, a text post — and
+   * on any piece made before the critic existed. Both are "did not run", which
+   * is not the same as "found nothing": `examined` is what tells them apart.
+   */
+  read_verdict: {
+    examined: number;
+    summary: string;
+    findings: Array<{
+      rule: string;
+      persona: string;
+      message: string;
+      slot: string | null;
+    }>;
+  } | null;
   length_decision: {
     platform: string;
     target: number;
@@ -327,6 +344,8 @@ const QUEUE_SELECT = `
          -- took to get it there. An operator approving a three-question quiz
          -- should be able to read why it is not five.
          ci.generation_meta -> 'length' as length_decision,
+         -- §475. What three readers said about the words, before it was made.
+         ci.generation_meta -> 'read' as read_verdict,
          ci.reject_reason,
          -- §372. What this piece was staged from, so the review screen can show
          -- what it was meant to be beside what it became.

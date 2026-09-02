@@ -239,6 +239,39 @@ export default async function GalleryPiece({ params }: { params: Promise<{ id: s
         ) : null}
 
         {/*
+          §475. What three readers said, before it was made.
+
+          Shown above the length panel because it is the one an operator should
+          read first: a piece that a cook says is overstated is a different
+          decision from one that is nine seconds too long. Each finding names
+          who objected, because "the cook winced at this line" is acted on
+          differently from "the composition is flat".
+        */}
+        {item.read_verdict && item.read_verdict.findings.length > 0 ? (
+          <Sheet>
+            <Label>What three readers said</Label>
+            <ul className="m-0 mt-1 list-none space-y-2 p-0">
+              {item.read_verdict.findings.map((finding) => (
+                <li key={finding.rule} className="text-[12px] leading-relaxed text-quiet">
+                  <span className="font-data text-[10.5px] uppercase tracking-wide text-lit">
+                    {finding.persona.replace(/_/g, ' ')}
+                  </span>
+                  {finding.slot ? (
+                    <span className="font-data text-[10.5px] text-quiet"> · {finding.slot}</span>
+                  ) : null}
+                  <br />
+                  {finding.message}
+                </li>
+              ))}
+            </ul>
+            <p className="m-0 mt-3 text-[11px] text-quiet">
+              Read before anything was rendered. Nobody here can approve a piece — silence
+              would have meant nothing was worth saying, not that it is good.
+            </p>
+          </Sheet>
+        ) : null}
+
+        {/*
           §439/§440. How long this was built to be, and what that cost.
 
           An operator approving a three-question quiz has no way to know it is
