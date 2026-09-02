@@ -17,7 +17,7 @@
  * costing a migration every few months.
  */
 import { describe, expect, it } from 'vitest';
-import { videoForFormat, type SceneDirection } from './formatVideo.js';
+import { splitLongLine, videoForFormat, type SceneDirection } from './formatVideo.js';
 import { MOVE_GRAMMAR, SCENE_MOVES, type NarrativeBeat } from './narrative.js';
 
 const HISTORY = [
@@ -190,5 +190,48 @@ describe('a screenplay scene changes the frames', () => {
         `${format} did not carry a slotKey, so its screenplay directs nothing`,
       ).toBe(true);
     }
+  });
+});
+
+/**
+ * §463. A card does not end on the punctuation that split it.
+ *
+ * Seen in the first end-to-end render: a four-second card reading "Modern
+ * varieties are much less bitter;" — a sentence that looks cut off, on the beat
+ * carrying the piece's turn.
+ */
+describe('splitting a line for two cards', () => {
+  const split = (text: string) => splitLongLine(text, 6);
+
+  it('does not leave a semicolon hanging at the end of a card', () => {
+    const [head] = split(
+      'Modern varieties are much less bitter; salt mainly helps frying by reducing oil absorption.',
+    );
+    expect(head).toBe('Modern varieties are much less bitter');
+  });
+
+  it('does not leave a comma hanging either', () => {
+    const [head] = split(
+      'Heat changes fat from liquid into a slick, and that hardened surface is the seasoning.',
+    );
+    expect(head).toBe('Heat changes fat from liquid into a slick');
+  });
+
+  /* A colon still means something: it introduces the card that follows. */
+  it('keeps a colon, which is doing a job', () => {
+    const [head] = split('There is one rule that matters: stir the pasta in the first two minutes.');
+    expect(head).toBe('There is one rule that matters:');
+  });
+
+  it('never changes a line it did not split', () => {
+    const line = 'Salting eggplant removes bitterness';
+    expect(split(line)).toEqual([line]);
+  });
+
+  it('leaves the second card exactly as written', () => {
+    const [, tail] = split(
+      'Modern varieties are much less bitter; salt mainly helps frying by reducing oil absorption.',
+    );
+    expect(tail).toBe('salt mainly helps frying by reducing oil absorption.');
   });
 });

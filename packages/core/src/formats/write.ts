@@ -480,6 +480,7 @@ export function checkDraft(
    * finding, and this is where it gets closed.
    */
   problems.push(...checkFormatSpecific(format, draft));
+  problems.push(...checkOneNamePerThing(draft));
 
   if (missing.length > 0) {
     problems.push({
@@ -819,4 +820,65 @@ export function repairDraft(
   }
 
   return { draft: { ...draft, slots: rebased }, repairs };
+}
+
+
+/**
+ * §464. One name per thing, across the whole piece.
+ *
+ * Seen in the first end-to-end render: the hook read *"Salting eggplant removes
+ * bitterness"* and the very next card read *"Yes, aubergines used to be salted
+ * and rinsed."* Two names for one vegetable, four seconds apart, on an account
+ * whose entire pitch is that it knows what is in your food.
+ *
+ * A viewer does not think "interesting dialectal variation". They think the
+ * writer was not paying attention — and on a piece *correcting* somebody else's
+ * mistake, that is the worst possible moment to look careless.
+ *
+ * Deliberately **not** a locale rule. Halyard does not know whether an account
+ * is American or British, and guessing would be worse than useless: it would
+ * "correct" a British brand into American English. What is wrong regardless of
+ * locale is using **both**, and that is all this refuses.
+ *
+ * A warning, not an error. §449 is the standing lesson about what failing a
+ * piece for a wording judgement costs, and the fix here is a one-word rewrite
+ * that the retry loop handles well when it is told.
+ */
+const SAME_THING_DIFFERENT_NAME: ReadonlyArray<readonly [string, string]> = [
+  ['eggplant', 'aubergine'],
+  ['zucchini', 'courgette'],
+  ['cilantro', 'coriander'],
+  ['arugula', 'rocket'],
+  ['scallion', 'spring onion'],
+  ['shrimp', 'prawn'],
+  ['skillet', 'frying pan'],
+  ['broiler', 'grill'],
+  ['confectioners sugar', 'icing sugar'],
+  ['all purpose flour', 'plain flour'],
+  ['heavy cream', 'double cream'],
+  ['baking soda', 'bicarbonate of soda'],
+  ['molasses', 'treacle'],
+  ['cookie', 'biscuit'],
+  ['candy', 'sweets'],
+];
+
+export function checkOneNamePerThing(draft: FormatDraft): SlotProblem[] {
+  /* Plural-tolerant: "aubergines" must match "aubergine". */
+  const text = draft.slots.map((s) => s.text).join(' ').toLowerCase();
+  const has = (term: string) =>
+    new RegExp(`\\b${term.replace(/ /g, '\\s+')}s?\\b`, 'i').test(text);
+
+  const problems: SlotProblem[] = [];
+  for (const [a, b] of SAME_THING_DIFFERENT_NAME) {
+    if (has(a) && has(b)) {
+      problems.push({
+        rule: 'format.two_names_one_thing',
+        severity: 'warning',
+        message:
+          `This piece calls the same thing "${a}" and "${b}". Pick one and use it throughout — ` +
+          'two names four seconds apart reads as carelessness, on a piece whose point is that it knows better.',
+      });
+    }
+  }
+  return problems;
 }

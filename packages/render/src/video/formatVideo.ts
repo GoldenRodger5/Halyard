@@ -224,7 +224,23 @@ export function splitLongLine(text: string, seconds: number): string[] {
   const middle = text.length / 2;
   const at = breaks.reduce((best, b) => (Math.abs(b - middle) < Math.abs(best - middle) ? b : best));
 
-  const head = text.slice(0, at).trim();
+  /**
+   * §463. A card does not end on the punctuation that split it.
+   *
+   * Seen in the first end-to-end render: a beat reading *"Modern varieties are
+   * much less bitter;"* — a full card, held for four seconds, ending on a
+   * semicolon. It reads as a sentence that was cut off, which is exactly the
+   * impression a piece cannot afford on the beat that carries its turn.
+   *
+   * A comma is the same in a quieter way: *"Heat changes fat from liquid into a
+   * slick,"* is a fragment wearing a comma. Both marks exist to join two
+   * clauses that are now on two cards, so the join has nothing left to do.
+   *
+   * A **colon** is kept, because it is the one that still means something: it
+   * introduces what the next card says, and *"There is one rule that matters:"*
+   * is a card doing its job.
+   */
+  const head = text.slice(0, at).trim().replace(/[,;]$/, '');
   const tail = text.slice(at).trim().replace(/^(?:but|and then|so that|because|which|while)\s+/i, (w) => w);
   /* A part shorter than three words is a fragment, not a moment. */
   if (head.split(/\s+/).length < 3 || tail.split(/\s+/).length < 3) return [text];

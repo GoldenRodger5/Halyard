@@ -17,7 +17,13 @@ describe('splitting a long line', () => {
   it('breaks a long, slow line at its clause boundary', () => {
     const parts = splitLongLine(LONG, 6);
     expect(parts).toHaveLength(2);
-    expect(parts[0]).toBe('Staling is a chemical and physical process,');
+    /*
+     * §463. Without the comma. It exists to join two clauses that are now on
+     * two cards, so it has nothing left to join — and a card ending on a comma
+     * reads as a sentence cut off. Seen in the first end-to-end render as
+     * "Modern varieties are much less bitter;", held for four seconds.
+     */
+    expect(parts[0]).toBe('Staling is a chemical and physical process');
     expect(parts[1]).toBe('and it runs fastest at temperatures just above freezing.');
   });
 
@@ -48,9 +54,19 @@ describe('splitting a long line', () => {
     expect(parts.every((p) => p.trim().split(/\s+/).length >= 3)).toBe(true);
   });
 
+  /*
+   * §463. Words, which is what this test has always been named for. It
+   * asserted characters, so dropping the joining comma read as data loss — the
+   * comma is punctuation whose job ended when the clauses were separated.
+   */
   it('loses no words', () => {
+    const words = (t: string) => t.toLowerCase().match(/[a-z]+/g) ?? [];
+    expect(words(splitLongLine(LONG, 6).join(' '))).toEqual(words(LONG));
+  });
+
+  it('keeps every character except the joining punctuation', () => {
     const rejoined = splitLongLine(LONG, 6).join(' ');
-    expect(rejoined.replace(/\s+/g, ' ')).toBe(LONG.replace(/\s+/g, ' '));
+    expect(LONG.replace(/,/g, '')).toBe(rejoined);
   });
 });
 

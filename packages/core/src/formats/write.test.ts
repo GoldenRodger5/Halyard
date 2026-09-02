@@ -8,7 +8,7 @@
  * attempt budget exists for genuine misses, not for teaching the rules.
  */
 import { describe, expect, it } from 'vitest';
-import { briefFor, checkDraft } from './write.js';
+import { briefFor, checkDraft, checkOneNamePerThing } from './write.js';
 import { POST_FORMAT_CATALOG } from './catalog.js';
 import { bandFor, lengthBudgetFor } from '../creative/length.js';
 import { BANNED_PHRASES } from '../qc/slopFilter.js';
@@ -222,5 +222,66 @@ describe('writing to the budget rather than under it', () => {
     expect(
       checkDraft(history, draft).problems.some((p) => p.rule === 'format.slot_too_short'),
     ).toBe(false);
+  });
+});
+
+/**
+ * §464. One name per thing.
+ *
+ * The first end-to-end render read "Salting eggplant removes bitterness" and,
+ * four seconds later, "Yes, aubergines used to be salted and rinsed." A viewer
+ * does not read that as dialect; they read it as carelessness — on a piece
+ * whose whole point is correcting somebody else's mistake.
+ */
+describe('one name per thing', () => {
+  const draft = (texts: string[]) => ({
+    formatId: 'myth_fact',
+    slots: texts.map((text, index) => ({ key: `s${index}`, index: 0, text })),
+  });
+  const found = (texts: string[]) =>
+    checkOneNamePerThing(draft(texts)).map((p) => p.rule);
+
+  it('catches the two the render actually shipped', () => {
+    expect(
+      found(['Salting eggplant removes bitterness', 'Yes, aubergines used to be salted']),
+    ).toContain('format.two_names_one_thing');
+  });
+
+  it('matches across plurals, which is how it appeared', () => {
+    expect(found(['one courgette', 'two zucchinis'])).toContain('format.two_names_one_thing');
+  });
+
+  it('says nothing when the piece picks one and keeps it', () => {
+    expect(found(['Salting eggplant removes bitterness', 'Eggplants are less bitter now'])).toEqual(
+      [],
+    );
+    expect(found(['Aubergines used to be salted', 'Modern aubergines are milder'])).toEqual([]);
+  });
+
+  /*
+   * Not a locale rule. Halyard does not know whether an account is American or
+   * British, and "correcting" a British brand into American English would be
+   * worse than the problem.
+   */
+  it('never prefers one dialect over the other', () => {
+    expect(found(['A skillet is best here'])).toEqual([]);
+    expect(found(['A frying pan is best here'])).toEqual([]);
+  });
+
+  it('is a warning, because the fix is one word', () => {
+    const problems = checkOneNamePerThing(draft(['eggplant', 'aubergine']));
+    expect(problems[0]!.severity).toBe('warning');
+    expect(problems[0]!.message).toMatch(/pick one/i);
+  });
+
+  it('runs as part of the draft check, not only on its own', () => {
+    const check = checkDraft(POST_FORMAT_CATALOG.myth_fact, {
+      formatId: 'myth_fact',
+      slots: [
+        { key: 'myth', index: 0, text: 'Salting eggplant removes bitterness', citation: 'https://example.org/a' },
+        { key: 'partly_true', index: 0, text: 'Aubergines were salted for that', citation: 'https://example.org/a' },
+      ],
+    });
+    expect(check.problems.some((p) => p.rule === 'format.two_names_one_thing')).toBe(true);
   });
 });

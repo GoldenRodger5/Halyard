@@ -11723,3 +11723,37 @@ Read through `accountStatus` rather than off `capability_state`, because gotcha
 5 — `live` means "an operator marked this past platform review" and an account
 can read `live` with no credential at all. One does: the `x` account marked
 `live` holds no token.
+
+## §463-§464 · What the first finished video actually looked like
+
+The whisper model (§457) and the asset directory (§459) between them produced
+the first end-to-end render in this system's history: 1080×1920, h264, AAC,
+18.1 seconds, a real file on disk. Four frames pulled out of it, read as a
+viewer:
+
+**Good.** The typography is genuinely elegant — Instrument Serif, a clear
+hierarchy, the kicker in the brand's terracotta. It does not look like AI slop.
+The MYTH → PARTLY TRUE → ACTUALLY structure is legible at a glance.
+
+**§463. A card ending on a semicolon.** *"Modern varieties are much less
+bitter;"* — held for four seconds, on the beat carrying the turn. `splitLongLine`
+breaks a long line at a clause boundary and left the joining punctuation on the
+head, so the card reads as a sentence that was cut off. A comma does the same
+thing more quietly. A **colon** is kept: it introduces the card that follows and
+is the one mark still doing a job.
+
+**§464. Two names for one vegetable, four seconds apart.** The hook read
+*"Salting eggplant removes bitterness"*; the next card read *"Yes, aubergines
+used to be salted."* A viewer does not read that as dialect. They read it as
+carelessness — on a piece whose entire point is correcting somebody else's
+mistake, which is the worst available moment to look careless.
+
+Deliberately **not** a locale rule: Halyard does not know whether an account is
+American or British, and guessing would "correct" a British brand into American
+English. Using *both* is wrong regardless, and that is all it refuses.
+
+**Still open, and the largest of them.** Every frame is a flat cream card. The
+piece has **no photographs at all** — the images were generated and recorded
+with their bytes nowhere, because that run predated §459. A text-only slide deck
+is what §407 exists to prevent and what `coherence.entirely_static` exists to
+refuse. The next render with assets landing will show whether it is fixed.
