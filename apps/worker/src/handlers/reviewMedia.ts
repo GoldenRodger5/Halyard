@@ -30,6 +30,9 @@ import {
   POST_FORMAT_CATALOG,
   runCreativeQC,
   runRetentionQC,
+  bandFor,
+  channelForPlatform,
+  formatById,
   runVisualQC,
   type CoherenceIntent,
   type FrameObservation,
@@ -603,6 +606,27 @@ export async function reviewMediaHandler(
         // TikTok and Reels reward replays. Declared so the loop rule reports as
         // unmeasured where it matters rather than being silently irrelevant.
         loopReady: item.platform === 'tiktok' || item.platform === 'instagram',
+        /**
+         * §439. How long this should have run, on this platform.
+         *
+         * Spread rather than assigned so an unknown platform or an unmapped
+         * channel leaves the key *absent*, which is what makes the rule report
+         * itself unmeasured instead of approving any length. Gotcha 6 is the
+         * standing lesson and `retention.length_band` is written for exactly
+         * this shape.
+         *
+         * The pace comes from the catalogue format when there is one; a piece
+         * with no `post_format` — an older item, an ad-hoc render — still gets
+         * the platform's standard band, which is the right default because the
+         * band is the platform's fact and the pace is only a modifier on it.
+         */
+        ...(() => {
+          const channel = channelForPlatform(item.platform, item.format);
+          if (!channel) return {};
+          const format = item.post_format ? formatById(item.post_format) : null;
+          const band = bandFor(item.platform, channel, format?.pace ?? 'standard');
+          return band ? { band } : {};
+        })(),
       },
     );
 

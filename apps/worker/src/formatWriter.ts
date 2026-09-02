@@ -20,9 +20,15 @@
  */
 import {
   briefFor,
+  bandFor,
+  channelForPlatform,
+  lengthBudgetFor,
   checkDraft,
   expandSlots,
   repairDraft,
+  cutToBudget,
+  type EditResult,
+  type FormatBudget,
   research,
   parseDraft,
   requiresCitation,
@@ -175,6 +181,22 @@ export interface FormatWriteResult {
   attempts: number;
   costUsd: number;
   problems: SlotProblem[];
+  /**
+   * §439. What length this was written to, and what it cost.
+   *
+   * Returned rather than kept internal because the render has to hold the same
+   * budget the writer was given — a piece briefed for three questions and
+   * rendered with five is the half-wiring this system keeps producing. Null
+   * when no band is known for the platform, which is honest and not a default.
+   */
+  budget: FormatBudget | null;
+  /**
+   * §440. What the editor removed to make the piece fit, and what that bought.
+   *
+   * Null when no band is known, which is the same state `budget` reports and
+   * for the same reason: there is nothing to fit to.
+   */
+  edit: EditResult | null;
 }
 
 export class FormatRejectedError extends Error {
@@ -222,11 +244,39 @@ export async function writeToFormat(
    */
   fetchImpl: typeof fetch = fetch,
 ): Promise<FormatWriteResult> {
+  /**
+   * §439. The length budget, resolved before a word is written.
+   *
+   * This is the whole point of the model: the duration is decided here, in
+   * arithmetic, and handed to the writer as a word count — rather than emerging
+   * from whatever the writer happened to produce and being discovered at render
+   * time, which is what produced a 53-second piece from a 30-second format.
+   *
+   * Null where no band is known. That is a real state — Pinterest and Bluesky
+   * have no video band — and it means the previous behaviour, not a guess.
+   */
+  const channel = channelForPlatform(context.platform, 'video');
+  const band = channel ? bandFor(context.platform, channel, format.pace) : null;
+  const budget = band ? lengthBudgetFor(format, band) : null;
+  if (budget) {
+    ctx.log('length budget', {
+      format: format.id,
+      platform: context.platform,
+      target: budget.band.targetSeconds,
+      predicted: budget.predictedSeconds,
+      meetsTarget: budget.meetsTarget,
+      ...(budget.reduced.length > 0
+        ? { cut: budget.reduced.map((r) => `${r.key} ${r.from}->${r.to}`) }
+        : {}),
+    });
+  }
+
   const system = briefFor(format, {
     ...context,
     ...(context.alreadySaid?.openings.length
       ? { recentOpenings: context.alreadySaid.openings }
       : {}),
+    ...(budget ? { budget } : {}),
   });
   let totalCost = 0;
 
@@ -264,7 +314,7 @@ export async function writeToFormat(
       {
         subject: context.subject,
         productContext: context.audience,
-        want: Math.max(3, expandSlots(format).filter((slot) => slot.asserts !== false).length),
+        want: Math.max(3, expandSlots(format, budget?.slots).filter((slot) => slot.asserts !== false).length),
         ...(context.alreadySaid?.claims.length
           ? { avoid: context.alreadySaid.claims }
           : {}),
@@ -345,7 +395,7 @@ export async function writeToFormat(
       parsed = repaired.draft;
     }
 
-    const check = checkDraft(format, parsed);
+    const check = checkDraft(format, parsed, budget ?? undefined);
     last = check.problems;
 
     /**
@@ -459,7 +509,41 @@ export async function writeToFormat(
             ? `Every slot of the ${format.id} format filled on the first attempt.`
             : `The ${format.id} format filled on attempt ${attempt}; the earlier ones were refused and rewritten with the problems named.`,
       });
-      return { draft: parsed, attempts: attempt, costUsd: totalCost, problems: check.problems };
+      /**
+       * §440. The editor, last, on a draft that already passed.
+       *
+       * Deliberately after the check rather than instead of it: a piece that
+       * is over length is not a *defective* piece, it is a long one, and the
+       * writer should not lose an attempt to arithmetic it cannot see. The
+       * budget in its brief is the first line of defence and shapes the
+       * writing; this is the second and only removes.
+       *
+       * Everything it takes is logged and returned, because a silently shorter
+       * video teaches an operator nothing about why.
+       */
+      if (band) {
+        const edit = cutToBudget(format, parsed.slots, band);
+        if (edit.cut.length > 0 || edit.stillOver) {
+          ctx.log('editor', {
+            format: format.id,
+            before: edit.beforeSeconds,
+            after: edit.afterSeconds,
+            cut: edit.cut.map((c) => `${c.what} (${c.saved}s)`),
+            ...(edit.stillOver
+              ? { stillOver: `${edit.afterSeconds}s against a ${band.ceilingSeconds}s ceiling` }
+              : {}),
+          });
+        }
+        return {
+          draft: { ...parsed, slots: edit.slots },
+          attempts: attempt,
+          costUsd: totalCost,
+          problems: check.problems,
+          budget,
+          edit,
+        };
+      }
+      return { draft: parsed, attempts: attempt, costUsd: totalCost, problems: check.problems, budget, edit: null };
     }
 
     feedback = check.problems

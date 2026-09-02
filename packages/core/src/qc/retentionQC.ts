@@ -17,6 +17,8 @@
  */
 
 /** v2 F.3 already covers dimensions and loudness; this covers attention. */
+import type { LengthBand } from '../creative/length.js';
+
 export interface RetentionProbe {
   fps: number;
   durationSeconds: number;
@@ -43,6 +45,16 @@ export interface RetentionTarget {
   loopReady?: boolean;
   /** Seconds. 15 is the ceiling from the research. */
   maxSecondsBetweenInterrupts?: number;
+  /**
+   * §439. How long this piece should have run, on this platform.
+   *
+   * Absent means no band is known for the platform, and the rule reports
+   * itself unmeasured rather than passing — gotcha 6. It is deliberately not
+   * defaulted: "we do not know what length suits Pinterest" is a true and
+   * useful thing for a gate to say, and a default would replace it with a
+   * confident wrong answer.
+   */
+  band?: LengthBand;
 }
 
 export interface RetentionFinding {
@@ -191,6 +203,50 @@ export function runRetentionQC(
     });
   }
 
+  // ── Length ───────────────────────────────────────────────────────────────
+  //
+  // §439/§437. Eleven formats declared a `targetSeconds` and nothing compared a
+  // finished render against it. The visual gate checks *legality* and TikTok
+  // permits ten minutes, so a thirty-second quiz was legal at fifty-three and
+  // nothing said so.
+  //
+  // Length is not cosmetic. TikTok's distribution bar is a ~70% completion
+  // rate: at 53 seconds that asks a viewer for 37 seconds, and at 19 it asks
+  // for 13. Over the ceiling is an error because the piece will not be
+  // distributed; under the floor is a warning because a short piece still
+  // reaches people and is merely leaving room unused.
+  if (target.band) {
+    const { floorSeconds, targetSeconds, ceilingSeconds, because } = target.band;
+    const ran = probe.durationSeconds;
+    if (ran > ceilingSeconds) {
+      findings.push({
+        rule: 'retention.length_band',
+        severity: 'error',
+        message: `${ran.toFixed(1)}s runs past ${target.platform}'s ${ceilingSeconds}s ceiling; the target is ${targetSeconds}s.`,
+        detail: because,
+      });
+    } else if (ran < floorSeconds) {
+      findings.push({
+        rule: 'retention.length_band',
+        severity: 'warning',
+        message: `${ran.toFixed(1)}s is under ${target.platform}'s ${floorSeconds}s floor; the target is ${targetSeconds}s.`,
+        detail: because,
+      });
+    } else if (ran > targetSeconds * 1.25) {
+      /*
+       * Between the target and the ceiling is where most overruns land, and
+       * saying nothing there is how a piece drifts twenty seconds long one
+       * beat at a time. A warning, because it is still distributed.
+       */
+      findings.push({
+        rule: 'retention.over_target',
+        severity: 'warning',
+        message: `${ran.toFixed(1)}s against a ${targetSeconds}s target on ${target.platform}.`,
+        detail: because,
+      });
+    }
+  }
+
   // ── Loop endings ─────────────────────────────────────────────────────────
   if (target.loopReady && probe.loopSimilarity !== undefined) {
     if (probe.loopSimilarity < LOOP_SIMILARITY_THRESHOLD) {
@@ -217,6 +273,11 @@ export function runRetentionQC(
   if (target.loopReady && probe.loopSimilarity === undefined) {
     unmeasured.push('retention.not_loop_ready');
   }
+  /*
+   * §439. No band, no answer — and saying so is the point. A gate that treats
+   * "unknown platform" as "any length is fine" is the shape gotcha 6 describes.
+   */
+  if (!target.band) unmeasured.push('retention.length_band');
 
   const errors = findings.filter((f) => f.severity === 'error');
 

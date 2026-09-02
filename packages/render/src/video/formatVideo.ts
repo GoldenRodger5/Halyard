@@ -136,6 +136,15 @@ function optionsFor(
  * Floored at 2.2s: below that a beat reads as a flicker however few words it
  * has, and a viewer who cannot finish reading a line has not received it.
  */
+/**
+ * §439. Exported under a test-only name so `lengthAgreement.test.ts` can hold
+ * it against `@halyard/core`'s copy. The two must not drift, and they cannot be
+ * one function — gotcha 10 explains why in that test's header.
+ */
+export function secondsToReadForTest(text: string): number {
+  return secondsToRead(text);
+}
+
 function secondsToRead(text: string): number {
   /* §312. The same speech model the quiz uses, plus a moment to land. */
   return Math.max(2.2, Number((spokenSeconds(text) + 0.5).toFixed(2)));

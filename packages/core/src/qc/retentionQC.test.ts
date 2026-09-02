@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { bandFor } from '../creative/length.js';
 import {
   FIRST_FRAME_WORDS,
   MAX_SECONDS_BETWEEN_INTERRUPTS,
@@ -221,7 +222,7 @@ describe('rules that could not run are named, not omitted', () => {
         firstFrameContrast: 7,
         loopSimilarity: 0.8,
       },
-      { platform: 'tiktok', loopReady: true },
+      { platform: 'tiktok', loopReady: true, band: bandFor('tiktok', 'short_video')! },
     );
     expect(result.unmeasured).toEqual([]);
     expect(result.summary).not.toMatch(/not measured/);
@@ -339,5 +340,77 @@ describe('the motion signal, against real renders', () => {
     );
     expect(result.findings.map((f) => f.rule)).toContain('retention.no_pattern_interrupt');
     expect(result.passed).toBe(false);
+  });
+});
+
+/**
+ * §439/§437. The rule that would have caught the 53-second quiz.
+ *
+ * Eleven formats declared a target length and nothing compared a render against
+ * one. The visual gate checks legality, and TikTok permits ten minutes, so a
+ * quiz that declared thirty seconds was legal at fifty-three.
+ */
+describe('length against the platform band', () => {
+  const probe = (durationSeconds: number) => ({
+    fps: 30,
+    durationSeconds,
+    frameLuminance: Array.from({ length: 12 }, (_, i) => 0.3 + (i % 2) * 0.2),
+  });
+
+  it('fails a render past the ceiling', () => {
+    const result = runRetentionQC(probe(72), {
+      platform: 'tiktok',
+      band: bandFor('tiktok', 'short_video')!,
+    });
+    const finding = result.findings.find((f) => f.rule === 'retention.length_band');
+    expect(finding?.severity).toBe('error');
+    expect(result.passed).toBe(false);
+  });
+
+  it('warns rather than fails between the target and the ceiling', () => {
+    /* The real 53-second quiz: past its 32s target, inside TikTok's 55s ceiling. */
+    const result = runRetentionQC(probe(53), {
+      platform: 'tiktok',
+      band: bandFor('tiktok', 'short_video')!,
+    });
+    const finding = result.findings.find((f) => f.rule === 'retention.over_target');
+    expect(finding?.severity).toBe('warning');
+    expect(result.findings.some((f) => f.rule === 'retention.length_band')).toBe(false);
+  });
+
+  it('warns on a piece under the floor, which is leaving room unused', () => {
+    const result = runRetentionQC(probe(9), {
+      platform: 'tiktok',
+      band: bandFor('tiktok', 'short_video')!,
+    });
+    expect(result.findings.find((f) => f.rule === 'retention.length_band')?.severity).toBe(
+      'warning',
+    );
+  });
+
+  it('says nothing about a render inside the band', () => {
+    const result = runRetentionQC(probe(31), {
+      platform: 'tiktok',
+      band: bandFor('tiktok', 'short_video')!,
+    });
+    expect(result.findings.some((f) => f.rule.startsWith('retention.length'))).toBe(false);
+    expect(result.findings.some((f) => f.rule === 'retention.over_target')).toBe(false);
+  });
+
+  it('reports itself unmeasured with no band, rather than passing an unknown platform', () => {
+    const result = runRetentionQC(probe(400), { platform: 'pinterest' });
+    expect(result.unmeasured).toContain('retention.length_band');
+    expect(result.summary).toMatch(/not measured/);
+    /* And it did not quietly approve four hundred seconds. */
+    expect(result.findings.some((f) => f.rule === 'retention.length_band')).toBe(false);
+  });
+
+  it('carries the reasoning, so an operator reads why and not only what', () => {
+    const result = runRetentionQC(probe(72), {
+      platform: 'tiktok',
+      band: bandFor('tiktok', 'short_video')!,
+    });
+    const finding = result.findings.find((f) => f.rule === 'retention.length_band')!;
+    expect(finding.detail).toMatch(/completion/i);
   });
 });

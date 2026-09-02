@@ -22,6 +22,7 @@
  * which is indistinguishable from a true one until someone checks.
  */
 import { expandSlots, requiresCitation, type PostFormat } from './catalog.js';
+import type { FormatBudget } from '../creative/length.js';
 import { checkQuestion, planQuestion } from './quiz.js';
 import { isPostShaped, slopFilter } from '../qc/slopFilter.js';
 
@@ -80,6 +81,19 @@ export function briefFor(
      * does not. Research exclusion fixes the substance; this fixes the shape.
      */
     recentOpenings?: string[];
+    /**
+     * §439. How long each slot has, on this platform, for this piece.
+     *
+     * The writer decides the duration — length is `words / 2.6 + 1.05` per
+     * line and nothing else — and until now it was never told what duration it
+     * was writing to. `quiz` declared thirty seconds and briefed a structure
+     * whose ceilings imply seventy-six, so it wrote seventy-six.
+     *
+     * Optional, and absent means the format's own maxima: the previous
+     * behaviour, and the right answer for a carousel or a caller with no
+     * platform in hand.
+     */
+    budget?: FormatBudget;
   },
 ): string {
   const lines = [
@@ -91,11 +105,42 @@ export function briefFor(
     'Fill exactly these slots:',
   ];
 
+  const budgeted = new Map((context.budget?.slots ?? []).map((b) => [b.key, b]));
   for (const slot of format.slots) {
-    const count = slot.repeats ?? 1;
+    const fitted = budgeted.get(slot.key);
+    const count = fitted ? fitted.repeats : (slot.repeats ?? 1);
+    const maxWords = fitted ? fitted.maxWords : slot.maxWords;
     lines.push(
-      `- ${slot.key}${count > 1 ? ` (${count} of them)` : ''}: ${slot.brief} Max ${slot.maxWords} words.`,
+      `- ${slot.key}${count > 1 ? ` (${count} of them)` : ''}: ${slot.brief} Max ${maxWords} words.`,
     );
+  }
+
+  /*
+   * §439. Why the ceilings are what they are, said once.
+   *
+   * A model handed a tighter-than-usual limit with no reason writes the same
+   * sentence and trims the end off it. Told that the limit *is* the runtime and
+   * that the platform ranks on finishing, it writes a shorter sentence — which
+   * is a different and much better thing.
+   */
+  if (context.budget) {
+    const { band, predictedSeconds, reduced } = context.budget;
+    lines.push(
+      '',
+      `This is a ${band.targetSeconds}s piece for ${context.platform}. Every word is spoken`,
+      `aloud at about 2.6 words a second, so the word counts above are the runtime:`,
+      `written to them this runs about ${Math.round(predictedSeconds)}s.`,
+      band.because,
+      'Do not write to the ceiling and trim. Write the short version.',
+    );
+    if (reduced.length > 0) {
+      lines.push(
+        '',
+        `This platform affords fewer of some slots than the format allows: ` +
+          reduced.map((r) => `${r.key} is ${r.to}, not ${r.from}`).join('; ') + '.',
+        'Choose the strongest, not the first. There is no partial credit for the ones left out.',
+      );
+    }
   }
 
   /*
@@ -197,9 +242,21 @@ export function looksCitable(citation: string | null | undefined): boolean {
  * uncited claim is a defect, and prose that runs three words long is a
  * judgement.
  */
-export function checkDraft(format: PostFormat, draft: FormatDraft): FormatCheck {
+export function checkDraft(
+  format: PostFormat,
+  draft: FormatDraft,
+  /**
+   * §439. The same budget the brief was written from.
+   *
+   * Checking against the format's maxima while the writer was briefed on the
+   * budget's would make every budgeted piece pass a check it was never asked
+   * to meet — the exact half-wiring this codebase keeps recording. One budget,
+   * read by the brief, the check and the render.
+   */
+  budget?: FormatBudget,
+): FormatCheck {
   const problems: SlotProblem[] = [];
-  const wanted = expandSlots(format);
+  const wanted = expandSlots(format, budget?.slots);
   const filled = new Map<string, FilledSlot>();
   for (const slot of draft.slots) {
     filled.set(`${slot.key}:${slot.index}`, slot);

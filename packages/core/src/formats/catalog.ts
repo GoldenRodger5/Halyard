@@ -43,6 +43,7 @@
  * video or as a carousel, which is its `PostFormat`.
  */
 import { platformsForFormat, type ChannelId } from '../channels/channels.js';
+import type { Pace } from '../creative/length.js';
 
 export const POST_FORMATS = [
   'quiz',
@@ -79,8 +80,30 @@ export interface FormatSlot {
   brief: string;
   /** Hard ceiling. Slots are for cards and cards have edges. */
   maxWords: number;
-  /** How many of this slot a piece has. A quiz has five questions. */
+  /** How many of this slot a piece has, at most. A quiz has five questions. */
   repeats?: number;
+  /**
+   * §439. The fewest of this slot that is still this format.
+   *
+   * A quiz is not a quiz with one question and it is perfectly a quiz with
+   * three. Which of the two it gets is a *platform* decision — 32 seconds on
+   * TikTok affords three, 48 on Shorts affords five — so the format declares
+   * the range and `budgetFor` picks the point.
+   *
+   * Absent means the count is fixed and the budget must find its seconds
+   * elsewhere. Slots that must move together — a question and its answer —
+   * declare the same range, which is what keeps a reveal attached to the thing
+   * it reveals.
+   */
+  repeatsMin?: number;
+  /**
+   * §439. The floor below which this slot stops being the thing it is.
+   *
+   * The budget scales every ceiling by one factor, and without a floor a tight
+   * platform produces five-word quiz questions, which is a word game rather
+   * than a quiz. Defaults to 45% of `maxWords`, never below three.
+   */
+  minWords?: number;
   /**
    * §341. Whether this slot makes a claim about the world.
    *
@@ -150,8 +173,21 @@ export interface PostFormat {
    * through that there is nothing to render into.
    */
   needsCapture?: boolean;
-  /** Roughly, for a vertical video. Carousels ignore it. */
-  targetSeconds: number;
+  /**
+   * §439. How much room this shape needs, as a multiplier on the platform band.
+   *
+   * This replaces `targetSeconds`, which declared an absolute duration that
+   * nothing read and that the format's own slot ceilings could not reach —
+   * `quiz` asked for 30 seconds out of a structure implying 76.
+   *
+   * Absolute is the wrong kind of number for a format to hold. How long a piece
+   * should be is a distribution question and distribution belongs to the
+   * platform: the same quiz is 32 seconds on TikTok, where completion is the
+   * ranking signal, and 48 on Shorts, where half the audience arrived from a
+   * search and has already decided to watch. What the *format* knows is whether
+   * its shape is hurried or roomy, and that is all this says.
+   */
+  pace: Pace;
 }
 
 export const POST_FORMAT_CATALOG: Record<PostFormatId, PostFormat> = {
@@ -163,7 +199,7 @@ export const POST_FORMAT_CATALOG: Record<PostFormatId, PostFormat> = {
     factuality: 'sourced',
     channels: ['short_video'],
     needsArtifact: false,
-    targetSeconds: 30,
+    pace: 'standard',
     slots: [
       {
         key: 'title',
@@ -176,14 +212,28 @@ export const POST_FORMAT_CATALOG: Record<PostFormatId, PostFormat> = {
         key: 'question',
         brief: 'A question with one unambiguous answer and a real source. Not a matter of opinion.',
         maxWords: 14,
+        /*
+         * §439. Eight, not the 30% default of four. A four-word quiz question
+         * is a word association game: it has no room to state the subject and
+         * the constraint at once, which is what makes an answer checkable.
+         * Where a platform's band cannot afford eight, `budgetFor` reports an
+         * overrun and the pairing is refused — which is the right answer. A
+         * quiz does not belong everywhere.
+         */
+        minWords: 8,
         repeats: 5,
+        /* Moves in step with `answer`, so a reveal never loses its question. */
+        repeatsMin: 3,
         isQuestion: true,
       },
       {
         key: 'answer',
         brief: 'The answer, then one clause of why it is interesting.',
         maxWords: 18,
+        /* The answer plus its "one clause of why", which is the whole payoff. */
+        minWords: 10,
         repeats: 5,
+        repeatsMin: 3,
       },
       {
         key: 'close',
@@ -203,11 +253,11 @@ export const POST_FORMAT_CATALOG: Record<PostFormatId, PostFormat> = {
     factuality: 'sourced',
     channels: ['short_video', 'text_post', 'long_video', 'pin'],
     needsArtifact: false,
-    targetSeconds: 35,
+    pace: 'unhurried',
     slots: [
       { key: 'hook', brief: 'The surprising fact, stated flat. No preamble.', maxWords: 12 },
       { key: 'setup', brief: 'What everyone assumes instead.', maxWords: 25 },
-      { key: 'turn', brief: 'The thing that makes it surprising.', maxWords: 30 },
+      { key: 'turn', brief: 'The thing that makes it surprising.', maxWords: 30, minWords: 14 },
       { key: 'why_it_matters', brief: 'Why it still matters to the reader today.', maxWords: 25 },
       { key: 'source', brief: 'Who established this and when. A real citation.', maxWords: 15 },
     ],
@@ -221,10 +271,17 @@ export const POST_FORMAT_CATALOG: Record<PostFormatId, PostFormat> = {
     factuality: 'craft',
     channels: ['short_video', 'text_post', 'carousel', 'pin'],
     needsArtifact: false,
-    targetSeconds: 30,
+    pace: 'standard',
     slots: [
       { key: 'title', brief: 'What these tips are for. Specific, not "5 tips".', maxWords: 10 },
-      { key: 'tip', brief: 'One actionable instruction. Imperative mood.', maxWords: 16, repeats: 5 },
+            {
+        key: 'tip',
+        brief: 'One actionable instruction. Imperative mood.',
+        maxWords: 16,
+        repeats: 5,
+        /* The intent line above already promised "three to five". */
+        repeatsMin: 3,
+      },
       { key: 'close', brief: 'The one that matters most, named.', maxWords: 14 },
     ],
   },
@@ -249,11 +306,11 @@ export const POST_FORMAT_CATALOG: Record<PostFormatId, PostFormat> = {
      */
     channels: ['carousel', 'pin'],
     needsArtifact: true,
-    targetSeconds: 45,
+    pace: 'standard',
     slots: [
       { key: 'title', brief: 'What it is. Plain, searchable, no adjectives.', maxWords: 8 },
-      { key: 'ingredient', brief: 'One ingredient with its quantity.', maxWords: 10, repeats: 8 },
-      { key: 'step', brief: 'One step, imperative, with the thing to watch for.', maxWords: 20, repeats: 6 },
+      { key: 'ingredient', brief: 'One ingredient with its quantity.', maxWords: 10, repeats: 8, repeatsMin: 4 },
+      { key: 'step', brief: 'One step, imperative, with the thing to watch for.', maxWords: 20, repeats: 6, repeatsMin: 3 },
       { key: 'note', brief: 'The one mistake people make.', maxWords: 20 },
     ],
   },
@@ -266,11 +323,17 @@ export const POST_FORMAT_CATALOG: Record<PostFormatId, PostFormat> = {
     factuality: 'sourced',
     channels: ['short_video', 'text_post', 'carousel', 'pin'],
     needsArtifact: false,
-    targetSeconds: 25,
+    pace: 'terse',
     slots: [
       { key: 'myth', brief: 'The belief, stated as its believers would state it.', maxWords: 12 },
       { key: 'partly_true', brief: 'What is genuinely right about it. Concede first.', maxWords: 25 },
-      { key: 'correction', brief: 'What it misses, and what follows from that.', maxWords: 30 },
+            {
+        key: 'correction',
+        brief: 'What it misses, and what follows from that.',
+        maxWords: 30,
+        /* The payoff of the format. Everything before it is setup. */
+        minWords: 14,
+      },
       { key: 'source', brief: 'Who says so. A real citation.', maxWords: 15 },
     ],
   },
@@ -288,7 +351,7 @@ export const POST_FORMAT_CATALOG: Record<PostFormatId, PostFormat> = {
      */
     channels: ['text_post', 'carousel', 'pin'],
     needsArtifact: false,
-    targetSeconds: 30,
+    pace: 'standard',
     slots: [
       { key: 'question', brief: 'The choice a reader is actually facing.', maxWords: 12 },
       { key: 'option_a', brief: 'The first option and what it is good at.', maxWords: 22 },
@@ -305,11 +368,11 @@ export const POST_FORMAT_CATALOG: Record<PostFormatId, PostFormat> = {
     factuality: 'sourced',
     channels: ['short_video', 'long_video', 'pin'],
     needsArtifact: false,
-    targetSeconds: 40,
+    pace: 'unhurried',
     slots: [
       { key: 'hook', brief: 'The thing everyone eats and nobody questions.', maxWords: 12 },
       { key: 'before', brief: 'What it was before.', maxWords: 25 },
-      { key: 'change', brief: 'What changed it, and who.', maxWords: 30 },
+      { key: 'change', brief: 'What changed it, and who.', maxWords: 30, minWords: 14 },
       { key: 'now', brief: 'The version we have now, and what was lost.', maxWords: 25 },
       { key: 'source', brief: 'Who established this. A real citation.', maxWords: 15 },
     ],
@@ -330,7 +393,7 @@ export const POST_FORMAT_CATALOG: Record<PostFormatId, PostFormat> = {
     factuality: 'craft',
     channels: ['story'],
     needsArtifact: false,
-    targetSeconds: 8,
+    pace: 'terse',
     slots: [
       { key: 'question', brief: 'A real either/or people disagree about. Not a quiz.', maxWords: 12 },
       { key: 'option_a', brief: 'One side, in two or three words.', maxWords: 4 },
@@ -352,7 +415,7 @@ export const POST_FORMAT_CATALOG: Record<PostFormatId, PostFormat> = {
     factuality: 'craft',
     channels: ['story'],
     needsArtifact: false,
-    targetSeconds: 12,
+    pace: 'terse',
     slots: [
       { key: 'moment', brief: 'What is happening, said plainly. No setup.', maxWords: 14 },
       { key: 'aside', brief: 'The honest remark a person would actually make.', maxWords: 18 },
@@ -382,7 +445,7 @@ export const POST_FORMAT_CATALOG: Record<PostFormatId, PostFormat> = {
     channels: ['short_video'],
     needsArtifact: false,
     needsCapture: true,
-    targetSeconds: 25,
+    pace: 'standard',
     slots: [
       { key: 'title', brief: 'What is about to happen, in the viewer’s words.', maxWords: 10 },
       {
@@ -402,11 +465,11 @@ export const POST_FORMAT_CATALOG: Record<PostFormatId, PostFormat> = {
     factuality: 'product',
     channels: ['short_video', 'text_post', 'carousel', 'pin'],
     needsArtifact: true,
-    targetSeconds: 30,
+    pace: 'standard',
     slots: [
       { key: 'hook', brief: 'The problem, as the reader would say it.', maxWords: 12 },
       { key: 'before', brief: 'What the original does.', maxWords: 20 },
-      { key: 'change', brief: 'The swap, precisely, with quantities.', maxWords: 22 },
+      { key: 'change', brief: 'The swap, precisely, with quantities.', maxWords: 22, minWords: 12 },
       { key: 'cost', brief: 'What is lost. Never omitted — it is the differentiator.', maxWords: 20 },
     ],
   },
@@ -450,11 +513,28 @@ export function requiresCitation(format: PostFormat): boolean {
  * completeness check counts. A quiz asks for five questions, not one slot with
  * a number attached.
  */
-export function expandSlots(format: PostFormat): Array<FormatSlot & { index: number }> {
+export function expandSlots(
+  format: PostFormat,
+  /**
+   * §439. What the length budget decided this piece gets.
+   *
+   * Optional, and absent means the format's own maxima — which is the previous
+   * behaviour exactly, and the right answer for a caller with no platform in
+   * hand (a carousel, a coverage test, the composer's picker).
+   *
+   * When present it overrides both the count and the word ceiling, so the
+   * writer's brief, the draft check and the render all read one budget rather
+   * than three opinions about how long the piece is.
+   */
+  budget?: Array<{ key: string; repeats: number; maxWords: number }>,
+): Array<FormatSlot & { index: number }> {
+  const byKey = new Map((budget ?? []).map((b) => [b.key, b]));
   const out: Array<FormatSlot & { index: number }> = [];
   for (const slot of format.slots) {
-    const times = slot.repeats ?? 1;
-    for (let i = 0; i < times; i += 1) out.push({ ...slot, index: i });
+    const chosen = byKey.get(slot.key);
+    const times = chosen ? chosen.repeats : (slot.repeats ?? 1);
+    const maxWords = chosen ? chosen.maxWords : slot.maxWords;
+    for (let i = 0; i < times; i += 1) out.push({ ...slot, maxWords, index: i });
   }
   return out;
 }

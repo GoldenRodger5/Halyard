@@ -238,6 +238,53 @@ export default async function GalleryPiece({ params }: { params: Promise<{ id: s
           </Sheet>
         ) : null}
 
+        {/*
+          §439/§440. How long this was built to be, and what that cost.
+
+          An operator approving a three-question quiz has no way to know it is
+          not a five-question one, and a system that silently shortens work on
+          someone's behalf earns distrust faster than one that ships something
+          imperfect. Every number here is the one the writer was briefed with,
+          so the piece and its explanation cannot drift apart.
+        */}
+        {item.length_decision ? (
+          <Sheet>
+            <Label>How long, and why</Label>
+            <p className="m-0 text-[12px] leading-relaxed text-quiet">
+              Built for {item.length_decision.platform} at{' '}
+              <span className="text-ink">{item.length_decision.target}s</span>{' '}
+              ({item.length_decision.pace} pace, ceiling {item.length_decision.ceiling}s).
+              Written to about {Math.round(item.length_decision.predicted)}s.
+              {!item.length_decision.meetsTarget
+                ? ' The format\u2019s own minimum costs more than the target affords.'
+                : ''}
+            </p>
+            <p className="m-0 mt-2 text-[11px] leading-relaxed text-quiet">
+              {item.length_decision.because}
+            </p>
+            {item.length_decision.reduced.length > 0 ? (
+              <p className="m-0 mt-2 text-[12px] leading-relaxed text-lit">
+                This platform affords fewer slots than the format allows:{' '}
+                {item.length_decision.reduced
+                  .map((r) => `${r.key} is ${r.to}, not ${r.from}`)
+                  .join('; ')}
+                .
+              </p>
+            ) : null}
+            {item.length_decision.edited ? (
+              <p className="m-0 mt-2 text-[12px] leading-relaxed text-lit">
+                The editor cut{' '}
+                {item.length_decision.edited.cut.map((c) => c.what).join(', ')} —{' '}
+                {item.length_decision.edited.before.toFixed(1)}s down to{' '}
+                {item.length_decision.edited.after.toFixed(1)}s
+                {item.length_decision.edited.stillOver
+                  ? ', which is still over the ceiling.'
+                  : '.'}
+              </p>
+            ) : null}
+          </Sheet>
+        ) : null}
+
         {item.screenplay?.scenes?.length ? (
           <Sheet>
             <Label>What it was staged as</Label>

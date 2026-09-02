@@ -250,6 +250,30 @@ export interface QueueItem {
   attached_urls: string[];
   /** §362. Why generation gave up, from `generation_meta`. Null when it did not. */
   failed_because: string | null;
+  /**
+   * §439/§440. The length decision: what this was built to and what was cut.
+   *
+   * Null on every piece made before the budget existed, and on any piece whose
+   * platform has no band — Pinterest and Bluesky carry no video. Both are real
+   * states and neither is a zero.
+   */
+  length_decision: {
+    platform: string;
+    target: number;
+    ceiling: number;
+    floor: number;
+    because: string;
+    predicted: number;
+    meetsTarget: boolean;
+    pace: string;
+    reduced: Array<{ key: string; from: number; to: number }>;
+    edited?: {
+      before: number;
+      after: number;
+      cut: Array<{ what: string; because: string; saved: number }>;
+      stillOver: boolean;
+    };
+  } | null;
   /** §362. The line written when this was rejected, which trains the voice. */
   reject_reason: string | null;
   /** §393. When it was made. The Gallery sorts and labels the wall by this. */
@@ -299,6 +323,10 @@ const QUEUE_SELECT = `
          -- is fed back into the voice as a negative example and was never shown
          -- to the person who wrote it.
          ci.generation_meta ->> 'failed_because' as failed_because,
+         -- §439/§440. What length this piece was built to, and what the editor
+         -- took to get it there. An operator approving a three-question quiz
+         -- should be able to read why it is not five.
+         ci.generation_meta -> 'length' as length_decision,
          ci.reject_reason,
          -- §372. What this piece was staged from, so the review screen can show
          -- what it was meant to be beside what it became.

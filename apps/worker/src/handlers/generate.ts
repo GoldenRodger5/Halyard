@@ -1507,6 +1507,50 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
         const contentItemId = inserted.rows[0]!.id;
         insertedItemId = contentItemId;
 
+        /**
+         * §439/§440. What length this was built to, and what it cost to get
+         * there — recorded on the item so the Gallery can show it.
+         *
+         * A piece that is quietly three questions instead of five teaches an
+         * operator nothing. "Cut question 5 and answer 5 — 47.2s against a 55s
+         * ceiling on TikTok, target 32s" is a sentence a person can agree or
+         * disagree with, which is the only kind of automated decision worth
+         * making on someone's behalf.
+         */
+        if (written?.budget) {
+          await ctx.pool.query(
+            `update content_items
+                set generation_meta = coalesce(generation_meta, '{}'::jsonb) || $2::jsonb
+              where id = $1`,
+            [
+              contentItemId,
+              JSON.stringify({
+                length: {
+                  platform: account.platform,
+                  target: written.budget.band.targetSeconds,
+                  ceiling: written.budget.band.ceilingSeconds,
+                  floor: written.budget.band.floorSeconds,
+                  because: written.budget.band.because,
+                  predicted: written.budget.predictedSeconds,
+                  meetsTarget: written.budget.meetsTarget,
+                  pace: chosenFormat.format.pace,
+                  reduced: written.budget.reduced,
+                  ...(written.edit && written.edit.cut.length > 0
+                    ? {
+                        edited: {
+                          before: written.edit.beforeSeconds,
+                          after: written.edit.afterSeconds,
+                          cut: written.edit.cut,
+                          stillOver: written.edit.stillOver,
+                        },
+                      }
+                    : {}),
+                },
+              }),
+            ],
+          );
+        }
+
         // The published link points at Halyard's router, not at the destination,
         // so the device decision happens at click time and the click is counted.
         await ctx.pool.query('update content_items set link_url = $2 where id = $1', [
