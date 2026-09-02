@@ -56,6 +56,25 @@ touching `creative/length.ts`, `creative/editor.ts`, or the screenplay join in
 
 ---
 
+## Never print a secret, and never trust a redaction you wrote in the same breath
+
+Two credentials reached a transcript this way in one session. The second time
+was `railway variables`, whose output is a **table** — values wrap across
+lines behind `│`, so a `sed 's/=.*/=<redacted>/'` filter matched nothing and
+every key printed in full, including the Supabase password that guards six
+accounts' OAuth tokens.
+
+The rule that would have prevented both:
+
+- **Never run a command that prints an environment, even filtered.** To learn
+  whether a variable is set, ask for a count and nothing else:
+  `railway variables | grep -c PEXELS`, `grep -c '^KEY=.' .env`.
+- **To set a secret, let the shell expand it** — write
+  `railway variables --set "KEY=$KEY"`, never the literal value, so the
+  command text carries the name and the runtime carries the value.
+- A redaction is only safe if it was tested against the exact output format
+  first. Assume it was not.
+
 ## Gotchas
 
 Landmines learned the hard way. Each one cost real time.
