@@ -27,11 +27,50 @@ export interface BeatMark {
  * did" — has no word that lands, and underlining an arbitrary one is worse than
  * clean type.
  */
-export function markForBeat(text: string, motif: MotifPack): BeatMark | null {
+export function markForBeat(
+  text: string,
+  motif: MotifPack,
+  /**
+   * §446. Phrases the screenplay asked to be marked, in the piece's own words.
+   *
+   * The screenwriter names *what to point at* rather than where — resolving a
+   * label to something drawable is this side's job, and a screenplay carrying
+   * word offsets would be a screenplay that had to know how the line renders.
+   *
+   * A target is honoured only if it actually appears in this line. A phrase the
+   * screenplay named for a different beat, or shortened for the screen, must
+   * not silently mark the nearest word instead: that is a mark pointing at
+   * something nobody chose, which is worse than none. Falls through to the
+   * emphasis word, which is what an undirected beat gets.
+   */
+  targets?: readonly string[],
+): BeatMark | null {
+  const words = text.trim().split(/\s+/).filter(Boolean);
+
+  const bare = (w: string) =>
+    w.replace(/^[^\p{L}\p{N}]+/u, '').replace(/[^\p{L}\p{N}]+$/u, '').toLowerCase();
+
+  for (const target of targets ?? []) {
+    const wanted = bare(target);
+    if (wanted.length === 0) continue;
+    /* A single word from the line, matched exactly rather than by inclusion. */
+    const found = words.findIndex((w) => bare(w) === wanted);
+    if (found !== -1) return drawMark(words[found]!, motif);
+    /*
+     * A multi-word target: mark its last word, which is where a phrase lands.
+     * Marking every word of a phrase is a highlighter, not a gesture.
+     */
+    const parts = wanted.split(/\s+/);
+    if (parts.length > 1) {
+      const last = parts[parts.length - 1]!;
+      const at = words.findIndex((w) => bare(w) === last);
+      if (at !== -1) return drawMark(words[at]!, motif);
+    }
+  }
+
   const at = emphasisWordFor(text);
   if (at === undefined) return null;
 
-  const words = text.trim().split(/\s+/).filter(Boolean);
   const raw = words[at];
   if (!raw) return null;
 
@@ -43,6 +82,11 @@ export function markForBeat(text: string, motif: MotifPack): BeatMark | null {
    * Leading punctuation goes too — an opening quote or bracket is not part of
    * the word either.
    */
+  return drawMark(raw, motif);
+}
+
+/** One word, drawn in the product's hand. */
+function drawMark(raw: string, motif: MotifPack): BeatMark | null {
   const phrase = raw.replace(/^[^\p{L}\p{N}]+/u, '').replace(/[^\p{L}\p{N}]+$/u, '');
   if (phrase.length === 0) return null;
 

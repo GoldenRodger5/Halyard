@@ -249,6 +249,20 @@ export interface SceneDirection {
   move?: SceneMove;
   weight?: 'lead' | 'support' | 'aside';
   ground?: 'footage' | 'photograph' | 'colour' | 'product_capture';
+  /**
+   * §446. What the screenplay wants marked on this beat, in the piece's words.
+   *
+   * An empty array is a **decision**, not an absence: the screenwriter's own
+   * brief says *"a gesture is earned, not decorative… most scenes have none"*,
+   * and `markForBeat` was drawing one on the last non-stopword of every line.
+   * So the screenplay called for marks on one scene in four and the render put
+   * a circle on all four — which is the state a mark exists to avoid, since a
+   * mark on everything points at nothing.
+   *
+   * Undefined means no screenplay staged this beat, and the mechanical mark
+   * stands. The two are different and the difference is the whole rule.
+   */
+  gestures?: string[];
 }
 
 /** How a scene's weight reads as beat emphasis. */
@@ -369,6 +383,15 @@ function narrativeFrom(
          * overwritten by an image nobody asked for.
          */
         ...(staged?.ground === 'colour' ? { wantsFlatGround: true } : {}),
+        /*
+         * §446. Only on the last part of a split line: a mark belongs to the
+         * phrase, and a phrase that fell in the first half is found there by
+         * the literal match downstream. Carried as `directed` so the worker can
+         * tell "the screenplay said none" from "no screenplay ran".
+         */
+        ...(staged?.gestures
+          ? { markTargets: i === parts.length - 1 ? staged.gestures : [], markDirected: true }
+          : {}),
       });
     });
     /*

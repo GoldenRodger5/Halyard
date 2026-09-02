@@ -119,6 +119,23 @@ export interface NarrativeBeat {
    * nothing, and a piece that is photographs end to end has no punctuation.
    */
   wantsFlatGround?: boolean;
+  /**
+   * §446. What the screenplay asked to be marked on this beat.
+   *
+   * Read by the *worker*, which resolves a target phrase to a `mark` using the
+   * product's motif pack. Empty means the screenplay looked at this beat and
+   * decided it earns nothing.
+   */
+  markTargets?: string[];
+  /**
+   * Whether a screenplay staged this beat at all.
+   *
+   * The distinction `markTargets: []` cannot carry on its own: "no marks here"
+   * and "nobody decided" produce the same empty array and must produce
+   * different renders — the first is a clean line, the second is the
+   * mechanical mark that every beat used to get.
+   */
+  markDirected?: boolean;
 }
 
 /**

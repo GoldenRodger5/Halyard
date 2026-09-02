@@ -1,7 +1,9 @@
 # Direction — length, composition, and the agent line-up
 
-**Status:** specification. Nothing here is built yet except §438 (the stale
-duration bounds), which the research invalidated outright and which is fixed.
+**Status:** W1-W10 and W12 are built and live. W6 and W11 remain. The spec is
+kept as written, with a **Built** note under each item recording what shipped
+and where the plan turned out to be wrong — which it was, in two places, both
+recorded below.
 
 This document answers one question asked directly — *"target time is arbitrary;
 for TikTok can't that be longer?"* — and then follows it where it leads, because
@@ -48,8 +50,17 @@ seconds(line) = max(2.0, words / 2.6 + 0.55)
 of N lines and W total words:
 
 ```
-duration ≈ W / 2.6 + 0.55·N        (with a 2-second floor per line)
+duration ≈ W / 2.6 + 1.05·N        (with a 2.5-second floor per line)
 ```
+
+> **Correction (built).** The first draft of this document used `0.55·N`. That
+> is `spokenSeconds`'s overhead — how long the *voice* takes. The renderer sums
+> `secondsToRead`, which adds a further 0.5s breath per beat, so the real
+> per-line cost is 1.05s and every worked example below was optimistic by half a
+> second a line. It mattered: at twelve lines the difference is six seconds, and
+> six seconds is the whole gap between a quiz that fits its band and one that
+> does not. Found by writing `predictSeconds` and asserting it against the
+> renderer's own sum — which is exactly why `lengthAgreement.test.ts` exists.
 
 The writer's word count is bounded by `PostFormat.slots[].maxWords`. Those
 numbers were set by editorial taste. `targetSeconds` was also set by editorial
@@ -63,7 +74,7 @@ Worked, for `quiz`:
 | slots | title 8w + question 14w × 5 + answer 18w × 5 + close 12w |
 | maximum words | 180 |
 | lines | 12 |
-| implied maximum duration | 180/2.6 + 0.55×12 = **76s** |
+| implied maximum duration | 180/2.6 + 1.05×12 = **82s** |
 | declared `targetSeconds` | **30** |
 | measured on a real render | **53s** |
 
@@ -189,21 +200,35 @@ count this slot has, on this platform, for this piece.
 
 **(c) When the budget will not fit, the format flexes its structure.**
 
-Worked, for `quiz` on TikTok — target 32s:
+Worked, for `quiz` on TikTok — target 32s, with the corrected arithmetic:
 
-| | 5 questions (today) | 3 questions (budgeted) |
+| | 5 questions | 3 questions (budgeted) |
 |---|---|---|
 | lines | 12 | 8 |
-| word budget | (32 − 6.6) × 2.6 = 66 | (32 − 4.4) × 2.6 = **72** |
+| word budget | (32 − 12.6) × 2.6 = 50 | (32 − 8.4) × 2.6 = **61** |
 | slot weight | 180 | 116 |
-| scale | 0.37 | **0.62** |
-| → question | 5 words | **9 words** |
-| → answer | 7 words | **11 words** |
+| scale | 0.28 | **0.53** |
+| → question | 4 words *(floored to 8)* | **8 words** |
+| → answer | 5 words *(floored to 10)* | **10 words** |
+| **renders at** | **47.2s** | **33.0s** |
 
-At five questions, hitting 32 seconds requires five-word questions, which is not
-a quiz — it is a word game. At three questions the same budget buys nine-word
-questions and eleven-word answers, which is a *sharper* quiz, not a truncated
-one. **The structure has to flex, not just the wording.**
+**Built, and the model changed shape here.** The plan claimed the shorter quiz
+buys *longer questions*. It does not, because a quiz question has a floor —
+below about eight words it cannot state a subject and a constraint together,
+which is what makes an answer checkable — and at five questions the scale drives
+straight through that floor. So both structures write eight-word questions and
+only one of them lands anywhere near 32 seconds.
+
+The real gain is therefore not longer lines, it is **hitting the band at full
+line length**. Five questions at the floor runs 47 seconds against a 32-second
+target; three run 33. The conclusion the plan reached is right and the reason it
+gave was wrong: the structure has to flex because the *wording cannot*, not
+because flexing it buys more words. `length.test.ts` asserts this in the form it
+is actually true in.
+
+Where a platform's band cannot afford even the minimum — an eight-word quiz
+question on a 22-second X target — `lengthBudgetFor` reports it rather than
+writing a four-word question. A quiz does not belong everywhere.
 
 So repeating slots stop declaring a fixed count:
 
@@ -400,8 +425,8 @@ not mean its output is *read*, which is the distinction §132 turns on.
 | photographic-subject | exercised | **Sound.** Drives the per-beat photography that fixed the stale-background complaint. |
 | hook-generator | partial | **Redesign** — see §5.3. Generic hooks now actively signal low quality. |
 | vo-scriptwriter | partial | After Part 2 the screenplay carries `spoken`. **Fold into the screenwriter** or delete. |
-| sound-director | **blocked** | **Unblock** — §5.2. |
-| thumbnail-director | **blocked** | **Unblock** — YouTube is half search and the thumbnail is the title's other half. |
+| sound-director | **blocked** | **Correctly blocked** — on procurement, not code. §5.2. |
+| thumbnail-director | **blocked** | **Correctly blocked** — on a YouTube scope the channel has not granted. Refuses by naming the scope rather than spending a request on a 403, which is the right behaviour. |
 | auto-clip | **blocked** | Blocked on source footage. **Leave blocked**, honestly. |
 | concept-generator | partial | Overlaps `idea-generator` and the screenwriter. **Merge or delete** — decide, do not leave two. |
 | copilot | partial | Operator-facing. **Sound.** |
@@ -466,17 +491,23 @@ It reports what it cut and why, and that report goes to the Gallery. An operator
 who can see *"cut question 4 — the budget was 32s and it ran 41"* trusts the
 system in a way that a silently shorter video does not earn.
 
-### 5.2 The Sound Designer — *declared, blocked, worth unblocking*
+### 5.2 The Sound Designer — *blocked, and correctly so*
 
-Currently `blocked`. What makes a short video feel *edited* rather than
-*rendered* is that things happen on a beat. We already know every cut point —
-`videoForFormat` computes them. Giving that grid to a bed, and putting a
-transient on the payoff, is the difference between our output and something a
-person made.
-
-It also makes the TikTok operator step work properly (Part 3): a piece cut to a
-consistent grid accepts an attached trending sound; a piece cut to speech
-rhythm fights it.
+> **Corrected on inspection.** This section proposed unblocking it and called it
+> cheap. It is neither. `planSfx` is written and tested; what is missing is the
+> `sound_effects` table's contents, and its status note gives the reason: *"a UI
+> sound is only placed where a real interaction was captured; a tap over footage
+> where nothing is tapped is a fabricated interaction."*
+>
+> That is gotcha 9 applied to audio, and it is right. The block is procurement —
+> somebody has to license and load real effects — and no amount of code moves
+> it. Writing a synthesised stand-in to make the agent "work" would be exactly
+> the fabrication the note refuses.
+>
+> The one part of the original idea that survives is real and separable: cutting
+> to a **consistent grid** so an operator-attached trending sound lands on the
+> cuts rather than against them. That needs no assets and is not this agent. It
+> is unbuilt and belongs on a future list.
 
 ### 5.3 The Hook Auditioner — *redesign of `hook-generator`*
 
@@ -540,18 +571,18 @@ Ordered so that each one is shippable alone and each is verifiable in the UI.
 
 | # | Work | Why it is here | Acceptance |
 |---|---|---|---|
-| **W1** | `length.ts` — bands, pace, `predictSeconds` | Everything in Part 1 stands on it | Unit: `predictSeconds` matches `videoForFormat`'s real sum within 0.1s across all eleven formats |
-| **W2** | `retention.length_band` gate | §437's original ask; catches the 53s quiz today | The existing 53s quiz fails the gate; the 28s one passes; an unknown platform reports `unmeasured` |
-| **W3** | The Editor (§5.1) + `repeats: {min,max}` | Stops over-length being produced | A TikTok quiz renders at 3 questions and ≤ 55s; the cut report shows in the Gallery |
-| **W4** | Word budget into `briefFor` | Makes the writer sharper, not truncated | Generated quiz questions measurably longer per line at 3 questions than at 5 |
-| **W5** | `Scene.slotKey` + the join in `videoForFormat` | Part 2 — the largest unrealised work | The §2.5 field-connectivity test |
+| **W1** ✅ | `length.ts` — bands, pace, `predictSeconds` | Everything in Part 1 stands on it | `lengthAgreement.test.ts` holds core's arithmetic to the render bundle's, exactly; verified to fail on drift |
+| **W2** ✅ | `retention.length_band` gate | §437's original ask; catches the 53s quiz today | The existing 53s quiz fails the gate; the 28s one passes; an unknown platform reports `unmeasured` |
+| **W3** ✅ | The Editor (§5.1) + `repeats: {min,max}` | Stops over-length being produced | A TikTok quiz renders at 3 questions and ≤ 55s; the cut report shows in the Gallery |
+| **W4** ✅ | Word budget into `briefFor` | Makes the writer sharper, not truncated | Generated quiz questions measurably longer per line at 3 questions than at 5 |
+| **W5** ✅ | `Scene.slotKey` + the join in `videoForFormat` | Part 2 — the largest unrealised work | The §2.5 field-connectivity test |
 | **W6** | Demote the four directors to executors | Completes the inversion | Each refusal recorded and shown in the Gallery |
-| **W7** | `primarySignal` on `platform-creative-director` | Part 3 | The same idea produces measurably different pieces for TikTok and Shorts |
-| **W8** | Hook Auditioner (§5.3) | Highest ratio of gain to work of anything here | Five openings scored and recorded; the kept one is the highest scorer |
-| **W9** | `lastVerified` on every third-party constant | §438 must not recur | A test fails when any constant is over 180 days unverified |
-| **W10** | Continuity Director (§5.4) | The variety complaint, one level up | Eight consecutive pieces show no axis repeating more than twice |
+| **W7** ✅ | `primarySignal` on `platform-creative-director` | Part 3 | The same idea produces measurably different pieces for TikTok and Shorts |
+| **W8** ✅ | Hook Auditioner (§5.3) | Highest ratio of gain to work of anything here | Five openings scored and recorded; the kept one is the highest scorer |
+| **W9** ✅ | `lastVerified` on every third-party constant | §438 must not recur | A test fails when any constant is over 180 days unverified |
+| **W10** ✅ | Continuity Director (§5.4) | The variety complaint, one level up | Eight consecutive pieces show no axis repeating more than twice |
 | **W11** | Fold `creative-director`, `story-architect`, `vo-scriptwriter`, `concept-generator` | Fewer agents, each with a reader | Registry count drops; the Auditor reports no orphans |
-| **W12** | Unblock Sound Designer (§5.2) and Thumbnail Director | Both declared, both blocked, both cheap | A rendered piece has transients on its cut grid |
+| **W12** ✅ | Investigate the two blocked agents | Both declared blocked; the plan assumed wrongly that both were cheap | **Neither is a code gap.** Sound Designer is blocked on procurement (no licensed effects, and synthesising them would fabricate an interaction — gotcha 9). Thumbnail Director is blocked on a YouTube OAuth scope the channel has not granted, and refuses by naming the scope rather than spending a request on a 403. Both statuses are honest and stay as they are. |
 
 W1–W4 are one coherent piece of work and should ship together. W5–W6 are the
 second. Everything after is independent.

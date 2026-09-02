@@ -11178,3 +11178,164 @@ TikTok quiz is three questions, not five truncated ones. Specified in full in
 `docs/DIRECTION_SPEC.md`, which also carries the agent-by-agent review this
 opened out into: five agents folded, four demoted from deciders to executors,
 three unblocked, two redesigned, two new.
+
+## §439 · Length becomes a budget the writer is given
+
+`targetSeconds` was inert *and* unreachable — §438 has the arithmetic. Replaced
+with a model that runs the other way round.
+
+**The platform owns the band, the format owns its pace, and the budget flows
+backwards into the writer as a word count.** TikTok is 32s against a 55s ceiling
+because completion is its ranking signal; Shorts is 48/90 because half that
+audience arrived from a search and has already decided to watch. A format
+declares `terse`/`standard`/`unhurried`, never a duration, because how long a
+piece should be is a distribution question and distribution belongs to the
+platform.
+
+**The claim the plan got wrong.** `docs/DIRECTION_SPEC.md` argued the shorter
+quiz buys *longer questions*. It does not. A quiz question has a floor of eight
+words — below that it cannot state a subject and a constraint together, which is
+what makes an answer checkable — and at five questions the scale drives straight
+through it. Both structures write eight-word questions; only one lands near 32
+seconds. The conclusion was right and the reason was wrong: **the structure
+flexes because the wording cannot.** Corrected in the spec and in the test,
+which now asserts the thing that is true.
+
+Rejected: raising `targetSeconds` to match reality, which is a second inert
+number.
+
+Gotcha 10 forbids sharing the arithmetic with `@halyard/render`, so it is
+duplicated and guarded the way gotcha 1 says to guard a duplicate —
+`lengthAgreement.test.ts`, verified to fail on a changed constant.
+
+## §440 · The editor, the first agent here that removes anything
+
+Every agent in Halyard adds: the researcher adds facts, the writer words, the
+hook generator an opening, the annotation director marks. Nothing has ever taken
+anything out, which is the mechanical reason a thirty-second format rendered at
+fifty-three. A pipeline of adders stops when it runs out of stages, not when the
+piece is the right size.
+
+It cuts **structure**, never prose — shortening a sentence is writing, and
+writing is a model's job. If dropping every droppable instance still overruns,
+it says so and changes nothing further. Everything it takes is reported and
+reaches the Gallery, because a quietly shorter video teaches an operator nothing.
+
+## §441 · The screenplay directs the render
+
+§132's fix. The missing piece was not a mechanism, it was an **identifier**:
+`Scene.slotKey`, the same `key:index` the writer, `checkDraft` and `expandSlots`
+already use.
+
+Rejected: matching scenes to beats by text. The screenwriter is explicitly
+allowed to shorten a line for the screen, so the two strings legitimately differ
+— in exactly the cases staging did the most work.
+
+`move` now drives the camera (every beat of every render pushed 1.00→1.06
+forever because nothing told it otherwise), `weight` drives emphasis, `seconds`
+drives the hold — floored by what is spoken over it so a direction can never cut
+the voice off, capped at twice the read so it cannot leave dead air — and
+`ground: 'colour'` means the beat gets no photograph.
+
+**The screenplay is a director that can be absent.** An undirected beat renders
+exactly as before, which is the only version of this that is safe to put on the
+one path that works. Quiz and walkthrough keep their own compositions: a quiz's
+timing is the countdown mechanic, not a staging choice.
+
+`screenplayDirects.test.ts` is the guard, and it is the shape that would have
+caught §132: change a scene's value, assert the props change. A field that can
+be changed with no effect is not connected, whatever its type says.
+
+**Live on the first run, it broke something.** The screenwriter returned
+`ground: 'colour'` on all four scenes and the piece rendered with zero
+photographs — a slide deck, which is what §407 fixed and what
+`coherence.entirely_static` exists to refuse. A flat ground is punctuation;
+punctuation everywhere is its absence. Unanimous flat ground is now read as the
+screenplay declining to choose. The same shape as §426: wiring an agent on broke
+a rule that had been holding.
+
+## §443 · The hook audition was not one
+
+`scoreVariant` returns 0.5 whenever there is no measured performance, and
+Halyard has published nothing (gotcha 9, correctly), so all eight variants tied
+and the sort kept the model's emission order. The strongest hook won by luck,
+every time, forever — this is not a cold start that ends.
+
+`scoreHookCraft` ranks on how a line is **built**, never on how it will perform:
+whether it names something checkable, whether that thing is in the first three
+words, whether it opens on a phrasing that now reads as filler, whether it is a
+question a viewer answers by scrolling. Not a performance claim, and the moment
+three real observations exist for a hook type they win outright.
+
+Found while wiring it: `surfaceBestVariants` broke out of its loop at five, so
+anything below the cut was never examined and never explained. Invisible while
+everything tied; craft scoring sorts bad hooks to the bottom, which is exactly
+where they stopped being reported. Every variant is judged now; only the
+surfacing stops at the limit.
+
+## §444 · The account has a look, and nothing was holding it
+
+Five recency mechanisms — §293, §302, §395, §402, §419 — each rotate their own
+vocabulary in ignorance of the other four, and none sees past the immediately
+previous piece. So three overhead flat-lays in the last eight read as varied if
+a macro detail sat between two of them, and five individually varied pieces can
+be collectively monotonous. That is the original repetition complaint one level
+up.
+
+`readContinuity` reads every axis at once. A **run** of three counts at any
+window length; a **share** only once there are five pieces on that axis, because
+two of four is a coin landing twice. Fed back through `withContinuity`, which
+prepends over-represented values so the existing rotations demote them by the
+mechanism they already have — a widening rather than a rewrite.
+
+Shots and pieces are counted in separate windows: a piece has one caption shape
+and, since §407, one photograph *per beat*, so counting them together would
+report a framing as "3 of 8" when it was 3 of 26.
+
+## §445 · What each platform counts reaches the writing
+
+`PLATFORM_STRATEGIES` has modelled all seven platforms since P2 and was read by
+exactly one thing: a page in the web app that **displays** it. The strategy was
+written down, kept current, shown to an operator, and never once changed a piece
+of content.
+
+`primarySignal` names what a platform actually ranks on and `signalBrief` says
+what follows, as instructions rather than description — "Reels reward saves" is
+a fact, "the payoff has to be worth keeping: a number, a rule, a list somebody
+would come back to" is something a writer can act on. The same idea now produces
+genuinely different pieces rather than one piece with three captions.
+
+Also removed a second home for one fact: `reviewMedia`'s `loopReady` was a hand
+list of two platform names, now derived from the signal.
+
+## §446 · A mark on everything points at nothing
+
+`markForBeat` drew a mark on the last non-stopword of **every** beat, while the
+screenwriter's own brief says *"a gesture is earned, not decorative… most scenes
+have none. Two marks at once point at neither."* Measured live: gestures called
+for on one scene of four, circles rendered on all four.
+
+Three states now, and they are genuinely different: no screenplay staged this
+beat → the mechanical mark, which is right for a piece with no screenplay;
+staged with a target → mark that phrase; staged with none → a clean line, on
+purpose. A target that does not appear in the line falls through rather than
+marking the nearest word, because a mark pointing at something nobody chose is
+worse than none.
+
+## §447 · A connector outage stopped the formats that exist to survive one
+
+Two findings from one live run that produced nothing and said nothing.
+
+**The silent return.** `ConnectorUnavailableError` raised a critical notification
+and returned with no `ctx.log`, so the job's event trail read "briefed idea
+written" then "job done" with sixty seconds between them — indistinguishable
+from a successful run that drafted nothing. The notification is for the person;
+the log is for anyone asking why a batch came back empty, and both need telling.
+
+**The larger one.** `generateSample` ran whenever a connector existed, so a
+RecipeFix edge-function outage stopped `tips`, `history`, `quiz` and `myth_fact`
+— every one of which declares `needsArtifact: false` *precisely because it can
+be made on a day when nothing was adapted*. That is the whole reason the format
+family exists: it is what keeps an account posting. Skipped now when the
+operator named a format that does not need one, which is also strictly cheaper —
+a skipped adapt is a credit unspent.

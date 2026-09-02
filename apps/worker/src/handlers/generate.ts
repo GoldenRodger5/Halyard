@@ -35,6 +35,7 @@ import {
   photographicSubject,
   chooseShot,
   withContinuity,
+  formatById,
   motionFor,
   chooseCaptionShape,
   OpenAIEmbeddingClient,
@@ -985,7 +986,37 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
 
     let artifact: ProductArtifact | null = null;
 
-    if (connector) {
+    /**
+     * §447. A format that does not need an artifact does not wait for one.
+     *
+     * `generateSample` ran unconditionally whenever a connector existed, so a
+     * connector outage stopped *every* format — including `tips`, `history`,
+     * `quiz` and `myth_fact`, all of which declare `needsArtifact: false`
+     * precisely because they can be made on a day when nothing was adapted.
+     * That is the whole reason the format family exists: **it is what keeps an
+     * account posting.**
+     *
+     * Measured: a RecipeFix edge-function outage took sixty seconds and
+     * produced nothing for a `tips` piece that never needed a recipe.
+     *
+     * Only when the operator named the format, because only then is it known
+     * this early — the scheduler's own path picks a format per account, later,
+     * and still calls for a sample. Skipping is also strictly cheaper: a
+     * skipped adapt is a credit unspent, so the failure direction here is
+     * saving money rather than losing it.
+     */
+    const askedFormat = job.payload.postFormat
+      ? formatById(String(job.payload.postFormat))
+      : null;
+    const artifactIsNeeded = !askedFormat || askedFormat.needsArtifact;
+    if (connector && !artifactIsNeeded) {
+      ctx.log('no artifact needed for this format, connector not called', {
+        format: askedFormat.id,
+        because: `${askedFormat.name} is made from its own sources, so an adapted recipe would be spent and unused.`,
+      });
+    }
+
+    if (connector && artifactIsNeeded) {
       try {
         artifact = await connector.generateSample({
           intent: `${idea.title}. ${idea.angle}`,
@@ -1014,6 +1045,30 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
             `${product.name} connector unreachable`,
             `${err.message} Generation is paused for this product; the queue is unaffected.`,
           );
+          /**
+           * §447. Say so in the job's own log, not only in a notification.
+           *
+           * This `return` was silent. The operator got a critical alert, and
+           * the job's event trail read "briefed idea written" then "job done"
+           * with sixty seconds of nothing between them — which is exactly what
+           * a successful run that produced nothing looks like. Found while
+           * watching a YouTube piece produce no content item and no error.
+           *
+           * The two audiences are different and both need telling: the
+           * notification is for the person, this is for anyone reading why a
+           * batch came back empty.
+           */
+          ctx.log('connector unreachable, generation paused for this product', {
+            productId,
+            ideaId: idea.id,
+            because: err.message,
+            /*
+             * Named because it is the surprising part: the claim is held on
+             * purpose. A timeout does not prove nothing was spent, and
+             * releasing would let the retry buy the same credit again.
+             */
+            claim: 'held, because a timeout does not prove nothing was spent',
+          });
           return;
         }
         throw err;
@@ -2223,6 +2278,8 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                     move: scene.move,
                     weight: scene.weight,
                     ground: scene.ground,
+                    /* §446. The phrases this scene earns a mark on, if any. */
+                    gestures: scene.gestures.map((g) => g.target),
                   },
                 ]),
             );
@@ -2413,6 +2470,32 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                 const motif = motifFor(resolveBrand(product.brand_tokens as never));
                 const marked = ((props as { beats?: Array<Record<string, unknown>> }).beats ?? []).map(
                   (b) => {
+                    /**
+                     * §446. The screenplay decides which beats earn a mark.
+                     *
+                     * `markForBeat` marks the last non-stopword of every line,
+                     * on every beat, which is exactly what a mark exists to
+                     * avoid: the screenwriter's own brief says *"a gesture is
+                     * earned, not decorative. Mark something only when the
+                     * voice is referring to it… most scenes have none. Two
+                     * marks at once point at neither."*
+                     *
+                     * Measured live: the screenplay called for gestures on one
+                     * scene and the render circled a word on all four.
+                     *
+                     * Three states, and they are genuinely different:
+                     *  · no screenplay staged this beat → the mechanical mark,
+                     *    which is what every render did before and is right for
+                     *    a piece with no screenplay;
+                     *  · staged with a target → mark that phrase;
+                     *  · staged with none → a clean line, on purpose.
+                     */
+                    const targets = b.markTargets as string[] | undefined;
+                    if (b.markDirected === true) {
+                      if (!targets || targets.length === 0) return b;
+                      const mark = markForBeat(String(b.text ?? ''), motif, targets);
+                      return mark ? { ...b, mark } : b;
+                    }
                     const mark = markForBeat(String(b.text ?? ''), motif);
                     return mark ? { ...b, mark } : b;
                   },

@@ -70,3 +70,55 @@ describe('which word a beat marks', () => {
     }
   });
 });
+
+/**
+ * §446. The screenplay decides which beats earn a mark.
+ *
+ * `markForBeat` drew one on the last non-stopword of every line, on every beat
+ * — which is precisely what a mark exists to avoid. The screenwriter's own
+ * brief says *"a gesture is earned, not decorative… most scenes have none. Two
+ * marks at once point at neither."* Measured live: gestures on one scene of
+ * four, circles on all four.
+ */
+describe('a mark the screenplay asked for', () => {
+  const motif = { register: 'drawn' as const, marks: ['circle', 'underline'], wobble: 0.3, stroke: 6, reason: 'test' };
+
+  it('marks the phrase the screenplay named, not the word the rule would pick', () => {
+    const line = 'Searing does not seal in any juices at all';
+    const mechanical = markForBeat(line, motif as never)!;
+    const directed = markForBeat(line, motif as never, ['searing'])!;
+    expect(directed.phrase).toBe('Searing');
+    expect(mechanical.phrase).not.toBe('Searing');
+  });
+
+  it('marks the last word of a multi-word target, not every word of it', () => {
+    const mark = markForBeat('The Maillard reaction is what browns it', motif as never, [
+      'Maillard reaction',
+    ])!;
+    expect(mark.phrase).toBe('reaction');
+  });
+
+  /*
+   * The screenwriter may shorten a line for the screen, so a target can name
+   * something this beat does not contain. Marking the nearest word instead
+   * would point at something nobody chose.
+   */
+  it('falls through to the emphasis word when the target is not in this line', () => {
+    const line = 'Searing does not seal in any juices';
+    expect(markForBeat(line, motif as never, ['thermometer'])!.phrase).toBe(
+      markForBeat(line, motif as never)!.phrase,
+    );
+  });
+
+  it('ignores an empty target rather than marking the first word', () => {
+    const line = 'Searing does not seal in any juices';
+    expect(markForBeat(line, motif as never, ['', '   '])!.phrase).toBe(
+      markForBeat(line, motif as never)!.phrase,
+    );
+  });
+
+  it('takes the first target it can actually find', () => {
+    const line = 'Searing does not seal in any juices';
+    expect(markForBeat(line, motif as never, ['nowhere', 'seal'])!.phrase).toBe('seal');
+  });
+});

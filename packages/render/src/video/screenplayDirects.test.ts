@@ -144,7 +144,7 @@ describe('a screenplay scene changes the frames', () => {
    * a time instead of all of them.
    */
   it('every narrative format labels its lines', () => {
-    const CASES: Record<string, Array<{ key: string; index: number; text: string }>> = {
+    const CASES: Record<string, Array<{ key: string; index: number; text: string; citation?: string }>> = {
       history: HISTORY,
       tips: [
         { key: 'title', index: 0, text: 'Three ways to keep bread from going stale' },
