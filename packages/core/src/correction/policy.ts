@@ -431,6 +431,64 @@ const BY_RULE: Record<string, PolicyEntry> = {
     correctable: false,
   },
 
+  /**
+   * §474. The text critic's findings, and why they split three ways.
+   *
+   * These are judgements about the *writing*, read before anything is drawn —
+   * so unlike the frame critic's findings, most of them genuinely are a
+   * rewrite. Where they are not, it is because the problem is upstream of the
+   * words, and rewriting produces a better sentence about the same thin idea.
+   */
+  'text.hook_closes_the_gap': {
+    rootCause: 'The opening line answers the question the piece was about to ask.',
+    component: 'copy',
+    action: 'revise_copy',
+    correctable: true,
+  },
+  'text.overstated': {
+    rootCause: 'A claim is written more strongly than what stands behind it.',
+    component: 'copy',
+    action: 'revise_copy',
+    correctable: true,
+  },
+  'text.concession_concedes_nothing': {
+    rootCause: 'The piece concedes to a fact standing near the belief rather than to the belief.',
+    component: 'copy',
+    action: 'revise_copy',
+    correctable: true,
+  },
+  'text.reads_as_written_by_a_machine': {
+    rootCause: 'A line reads as assembled rather than said.',
+    component: 'copy',
+    action: 'revise_copy',
+    correctable: true,
+  },
+  'text.payoff_is_not_a_payoff': {
+    rootCause: 'The piece stops rather than landing.',
+    component: 'copy',
+    action: 'revise_copy',
+    correctable: true,
+  },
+
+  /*
+   * The two that are not about the words. A myth that is not a misconception is
+   * the *wrong subject*, and a piece with nothing at stake was thin before a
+   * word was written — rewriting either produces a better sentence about the
+   * same mistake, which is why both escalate to a person.
+   */
+  'text.not_a_misconception': {
+    rootCause: 'The piece calls something a myth that is not wrong.',
+    component: 'creative_plan',
+    action: 'escalate',
+    correctable: false,
+  },
+  'text.nothing_at_stake': {
+    rootCause: 'The subject carries nothing a viewer could not have guessed.',
+    component: 'creative_plan',
+    action: 'escalate',
+    correctable: false,
+  },
+
   'critic.reads_automated': {
     rootCause: 'The piece looks like a system filled in a shape rather than something a person made.',
     component: 'creative_plan',

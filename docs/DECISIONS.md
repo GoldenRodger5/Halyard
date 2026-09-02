@@ -12002,3 +12002,41 @@ work**, which is a caption doing its own job and exactly what §450 asks for.
 That is the argument for the whole file. Four pieces read by hand produced a
 confident wrong call, and running every rule over the real text found it in one
 pass.
+
+## §474 · Reading the piece before it is made
+
+`critic.ts` looks at **frames**, so it runs in `review_media` — after a render
+costing minutes of compute, several image generations and a voiceover. That is
+the right place for questions that need pixels: monotonous type, something under
+the platform's buttons, a photograph that does not match the words.
+
+It is the wrong place for everything else, and everything else turned out to be
+most of it. Of the defects found by reading real output this session —
+
+> a myth that was true · a concession that conceded nothing · a hook that
+> answered its own question · "eggplant" and "aubergines" four seconds apart ·
+> a caption ending on "Wikipedia, Sourdough" · not one caption that asked for
+> anything
+
+— **every one was visible in the text.** None needed a frame. All were found
+after a render, because that is where the only critic lived.
+
+Text is free to judge. `textCritic.ts` reads the written piece — the lines in
+order and the caption under them — using the same three personas, and the frame
+critic keeps the questions that genuinely need frames.
+
+**Not a second copy gate.** `slopFilter` owns the rules that can be *stated* and
+runs every time at no cost. This owns the judgements that cannot be stated:
+whether a hook opens a gap or closes it, whether a concession concedes, whether
+a myth is actually wrong. The prompt says so explicitly, because a critic that
+drifts into spellchecking stops being read.
+
+The policies split three ways, which is the useful part. Most are a **rewrite** —
+they are about the words. Two are not: a myth that is not a misconception is the
+*wrong subject*, and a piece with nothing at stake was thin before a word was
+written. Rewriting either produces a better sentence about the same mistake, so
+both escalate to a person.
+
+And like the frame critic it may never pass anything. `examined` separates
+*"read it and found nothing"* from *"never ran"*, because silence is not
+approval.
