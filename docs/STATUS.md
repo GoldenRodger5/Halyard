@@ -1995,6 +1995,27 @@ gate that fires on everything is not information — the composition is the fix)
 and hook-craft scoring on the opening slot (it flags exactly what §448 already
 flags).
 
+### Two things found by reading the system's own claims
+
+- **§452 — drafting into a queue nobody can empty.** The scheduler's
+  justification for the daily run says it is *"bounded by ... the cadence
+  ceilings"*. `generate.ts` did not contain the word. Measured: 31 pieces
+  pending approval, **0 ever published**, 15 of them video against a ceiling of
+  five a week — three weeks of backlog, still growing at several image
+  generations a piece. Now capped at two weeks of publishing headroom per
+  format, checked before the RecipeFix credit is spent, and never applied to an
+  operator who asked directly.
+- **§453 — Instagram had never made a video.** `chooseFormat` picks the media
+  kind from a static preference list *before the post type is resolved*, and
+  nothing reconciled them. An operator asking for a Short video got a
+  `short_video` post type, a screenplay staged for one, a Reels length band, a
+  voiceover — and a row saying `format: 'image'`. All seven Instagram pieces in
+  the database were images. It survived because TikTok and YouTube declare only
+  `video`, so the guess was right everywhere it could be checked.
+
+Verified live after the fix: `media format resolved: instagram, from image, to
+video`.
+
 ### What is left
 
 - **W11** — fold `creative-director`, `story-architect` and `concept-generator`
@@ -2004,7 +2025,8 @@ flags).
   Every other format is unaffected since §447.
 - Two agents blocked outside the code: the Sound Designer on procurement, the
   Thumbnail Director on a YouTube OAuth scope. Both statuses are honest.
-- Nothing loops yet. §451 asks the screenwriter for it; whether it obeys is
-  worth watching on the next few pieces.
+- **Nothing has ever been published.** Every number in this document is about
+  what the system makes, not what it achieved — `halyard_empirical` is still
+  zero everywhere, by design.
 
-**Suite:** 3,049 passing, 467 skipped. Lint clean.
+**Suite:** 3,060 passing, 467 skipped. Lint clean.
