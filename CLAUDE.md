@@ -129,8 +129,22 @@ Landmines learned the hard way. Each one cost real time.
     was not, because one worker had `HALYARD_LOCAL_ASSET_DIR` and the other did
     not — which reads as a bug in the storage code and is not. Check with
     `docker ps --filter name=halyard-worker` **and**
-    `ps -eo pid,command | grep "filter @halyard/worker"`; `pkill -f "tsx
-    src/index.ts"` matches neither. §465.
+    `ps -eo pid,command | grep "[s]rc/index.ts"` — the pnpm wrapper and the tsx
+    child have different command lines and `pkill -f "tsx src/index.ts"` matches
+    neither.
+
+    **The reliable check is the database, because it sees every worker whatever
+    it is called:**
+
+    ```sql
+    select client_addr, count(*) from pg_stat_activity
+     where datname = 'halyard' and application_name like 'halyard-worker%'
+     group by 1;
+    ```
+
+    Two rows means two workers. `::1` is a native process on the host; the
+    container arrives as `127.0.0.1`. Found three strays this way after `ps` had
+    reported none, and they were silently taking half the jobs. §465, §471.
 
 14. **X publishing is billed per post** (~$0.015 without a link, ~$0.20 with). X v2 write endpoints return **402 credits-depleted** when the developer account has no credits.
 
