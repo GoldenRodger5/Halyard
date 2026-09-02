@@ -2030,3 +2030,41 @@ video`.
   zero everywhere, by design.
 
 **Suite:** 3,060 passing, 467 skipped. Lint clean.
+
+
+## The first piece that looks like content
+
+**2026-09-02.** A TikTok `history` about weighing flour, 30.2 seconds, rendered
+end to end. It is the first output of this system that a person would not
+immediately identify as generated, and every mechanism built this session is
+visible in five frames:
+
+- **A real photograph on every beat**, seven of seven, each shot differently —
+  a dark warm cup, a cool grey measuring cup, flour on wood in low sun, flour in
+  a bowl in daylight. Not one flat card.
+- **A drawn circle around the word "seven"**, hand-wobbled, on the beat the
+  piece turns on. §468: that path was dead by omission for the system's entire
+  existence, because nothing passed `locatable` and the screenwriter was told in
+  so many words that gestures were impossible.
+- **Kickers that mean something** — `EVERYONE ASSUMES`, then `ACTUALLY` — rather
+  than "And then" on every turn (§467).
+- **A legible, checkable source on the piece**: King Arthur Baking's ingredient
+  chart. Not in the caption (§469), and from the preferred-domain list that
+  replaced `doi.org` after journal portals proved unreadable (§470).
+- **A caption that asks something**: *"Cups feel fixed. Sifting aerates flour:
+  the same volume can weigh 113g, not 120g. Which cup did your recipe mean?"*
+  Three-word hook, concrete numbers, a real invitation (§466, §467).
+- **The text critic read it before it was rendered** and reported "read 5 lines
+  and found nothing worth saying" — which is the honest form of silence (§475).
+
+### What is still wrong with it
+
+- **Two adjacent frames are near-identical.** Beats three and four are both a
+  mound of flour on wood in the same light. The subjects differ on paper and the
+  pictures do not, which is exactly `critic.interchangeable_frames`.
+- **One line trails off.** *"Then the chart does something rude: same
+  all-purpose flour, same cup"* — an odd construction that stops rather than
+  finishing, held for four seconds.
+
+Neither needed a person to spot: the frame critic asks about the first and the
+text critic asks about the second. Both now run.
