@@ -149,7 +149,17 @@ Landmines learned the hard way. Each one cost real time.
     container arrives as `127.0.0.1`. Found three strays this way after `ps` had
     reported none, and they were silently taking half the jobs. §465, §471.
 
-14. **X publishing is billed per post** (~$0.015 without a link, ~$0.20 with). X v2 write endpoints return **402 credits-depleted** when the developer account has no credits.
+14. **A provider that has said the account cannot pay is not a per-call
+    failure.** OpenAI says it as a 429 ("no credits remaining"), Anthropic as
+    a **400** ("credit balance is too low"). Treated as a transient error, the
+    hero image returned null and the loop asked three more times; six beats
+    fell back to one photograph and the unreviewed slideshow reached the
+    queue; `generate` retried the same refusal three times per job. Every
+    client now raises `ProviderUnavailable` with `exhausted` set
+    (`refusalIsExhausted`), and the poller treats that as permanent for any
+    job kind. When adding a client, type its refusal. §491, §493.
+
+15. **X publishing is billed per post** (~$0.015 without a link, ~$0.20 with). X v2 write endpoints return **402 credits-depleted** when the developer account has no credits.
 
 ---
 
