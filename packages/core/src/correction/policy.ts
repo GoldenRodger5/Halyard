@@ -421,7 +421,12 @@ const BY_RULE: Record<string, PolicyEntry> = {
   },
   'critic.not_worth_knowing': {
     rootCause: 'The piece tells a competent reader something they already do.',
-    component: 'idea',
+    /*
+     * §472. The plan, not the copy. There is no `idea` component and inventing
+     * one would be wrong: what went astray is the decision that this subject
+     * was worth thirty seconds, which is what `creative_plan` names.
+     */
+    component: 'creative_plan',
     action: 'escalate',
     correctable: false,
   },

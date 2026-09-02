@@ -298,7 +298,7 @@ describe('who is doing the looking', () => {
           { rule: 'critic.uniform_treatment', message: 'Every line is set the same.', atSeconds: [0] },
         ],
       },
-      [{ atSeconds: 0, bytes: new Uint8Array(), mimeType: 'image/png' }],
+      [{ atSeconds: 0, describes: 'a card of type', visibleText: ['Yeast is not the sour part'] }],
     );
     expect(verdict.findings.map((f) => f.persona)).toEqual(['scroller', 'art_director']);
   });

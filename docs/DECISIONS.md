@@ -11970,3 +11970,35 @@ better words, and no retry loop can decide the subject was thin. Of the cook's
 two, overstatement is a **rewrite** (a sentence written too strongly), while
 "a competent cook already does this" escalates, because rewriting produces the
 same obvious advice in new words.
+
+## §473 · A corpus of real pieces, and what it caught first
+
+Every rule here was written against a piece that went wrong and tested against a
+sentence invented to trip it. That proves a rule *can* fire and nothing about
+the two things that decide whether it is worth having: does it catch the real,
+messier sentence, and **is it quiet on good work**.
+
+The second is the one that matters. `retentionQC`'s own header says it — *"a
+gate that fails everything is as useless as one that passes everything, and it
+is worse, because the first gets switched off"* — and a rule can only be shown
+to be quiet by running it over work that should pass. Unit tests never contain
+any.
+
+So `__fixtures__/realPieces.ts` holds **actual output**, verbatim, each entry
+saying what is wrong with it or that nothing is, including rows written to the
+standard the rules are meant to produce. A new rule must catch its own entry and
+stay silent on every clean one. That is the bar that would have caught §466's
+collision, where two rules between them left a short caption with no legal form:
+each passed its own tests and nothing ran them together over a caption that was
+fine.
+
+**It corrected the hand critique on its first run.** The onion piece was
+annotated `structure.caption_echoes_screen` — *"the caption restates tips one
+and two"* — and the rule did not fire. Measured: 44% overlap against a 66% bar.
+Reading it again, the rule is right and the annotation was wrong. The screen
+says *chill the onion* and *use a sharp knife*; the caption says **why those
+work**, which is a caption doing its own job and exactly what §450 asks for.
+
+That is the argument for the whole file. Four pieces read by hand produced a
+confident wrong call, and running every rule over the real text found it in one
+pass.
