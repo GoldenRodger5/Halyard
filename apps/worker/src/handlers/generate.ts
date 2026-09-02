@@ -1177,18 +1177,6 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
          * research pass run for a piece that should not have been drafted is
          * the money this exists to stop.
          */
-        /* §452. Per format, because a full video queue says nothing about text. */
-        const room = operatorAsked
-          ? ({ draft: true, headroom: Number.POSITIVE_INFINITY } as const)
-          : shouldDraftMore(format, backlog.get(format) ?? 0);
-        if (!room.draft) {
-          ctx.log('queue is already full of this format', {
-            platform: account.platform,
-            format,
-            because: room.because,
-          });
-          continue;
-        }
 
         // One call per platform. Never one call producing all platforms.
         /**
@@ -1238,6 +1226,8 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
           requested: (job.payload.postType as PostTypeId | undefined) ?? null,
         });
 
+
+
         if (!resolvedType) {
           /*
            * The format's own channel cannot be carried on this platform.
@@ -1254,6 +1244,62 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
             platform: account.platform,
             format: chosenFormat.format.id,
             channel: chosenFormat.format.channels[0],
+          });
+          continue;
+        }
+
+        /**
+         * §453. The media the resolved post type actually needs.
+         *
+         * `chooseFormat` picks from a static preference list — Instagram's is
+         * `['image', 'carousel', 'video']` — **before the post type is
+         * resolved**, and nothing reconciled the two afterwards. So every
+         * Instagram piece was recorded as an image: an operator asking for a
+         * Short video got a `short_video` post type, a screenplay staged for
+         * one, a 20.8-second Reels length band, a voiceover and a video render
+         * — on a row that said `format: 'image'`.
+         *
+         * Measured: **all seven Instagram pieces in the database, every one of
+         * them an image.** Instagram is the largest reach in this set and it
+         * has never produced a video through the normal path.
+         *
+         * `PostType.requires.format` is the authority and says so in its own
+         * doc comment: *"A value from the adapter's supportedFormats."* It is
+         * derived from what the piece is, rather than guessed from what the
+         * platform prefers, so it cannot disagree with the stages that ran.
+         *
+         * `chooseFormat` keeps its job — it is what the backlog check above
+         * needs before a post type exists, and it is still the right answer for
+         * a platform whose preference is its only signal.
+         */
+        const mediaFormat = resolvedType.postType.requires.format;
+        if (mediaFormat !== format) {
+          ctx.log('media format resolved', {
+            platform: account.platform,
+            from: format,
+            to: mediaFormat,
+            because: `${resolvedType.postType.name} needs ${mediaFormat}; the platform preference list guessed ${format} before the post type was known.`,
+          });
+        }
+
+        /**
+         * §452. Per format, because a full video queue says nothing about text.
+         *
+         * Checked here rather than beside `chooseFormat`, which is where it
+         * started: §453 established that the preference list's guess and the
+         * resolved media can differ, and a backlog rule counting an Instagram
+         * Reel against the image ceiling would be measuring the wrong queue.
+         * Everything between here and there is pure, so nothing is bought in
+         * the meantime.
+         */
+        const room = operatorAsked
+          ? ({ draft: true, headroom: Number.POSITIVE_INFINITY } as const)
+          : shouldDraftMore(mediaFormat, backlog.get(mediaFormat) ?? 0);
+        if (!room.draft) {
+          ctx.log('queue is already full of this format', {
+            platform: account.platform,
+            format: mediaFormat,
+            because: room.because,
           });
           continue;
         }
@@ -1647,7 +1693,8 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
             account.id,
             account.platform,
             account.persona,
-            format,
+            /* §453. The media the resolved post type needs. */
+            mediaFormat,
             idea.category,
             draft.body,
             draft.title ?? null,

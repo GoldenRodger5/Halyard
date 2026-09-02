@@ -11515,3 +11515,36 @@ spending money unasked.
 
 The scheduler's sentence is now true. That is the order those two things should
 have happened in.
+
+## §453 · Instagram had never made a video
+
+`chooseFormat` picks the media kind from a static preference list — Instagram's
+is `['image', 'carousel', 'video']` — **before the post type is resolved**, and
+nothing reconciled the two afterwards.
+
+So an operator asking for a Short video on Instagram got: a `short_video` post
+type, a screenplay staged for one, a 20.8-second Reels length band, a voiceover,
+a video render — and a row that said `format: 'image'`.
+
+Measured: **all seven Instagram pieces in the database, every one an image.**
+Instagram is the largest reach in this set and had never produced a video
+through the normal path.
+
+It survived because it is invisible everywhere else. TikTok and YouTube declare
+`['video']` and nothing else, so the guess was right every time; Instagram is
+the only platform whose preference list has a choice to get wrong.
+
+`PostType.requires.format` is the authority and says so in its own doc comment:
+*"A value from the adapter's `supportedFormats`."* It is derived from what the
+piece **is** rather than guessed from what the platform prefers, so it cannot
+disagree with the stages that ran.
+
+`chooseFormat` keeps a job: the run-level backlog guard needs a format before
+any post type exists, and for a platform whose preference is its only signal it
+is still the right answer. What changed is that the *piece* is no longer
+recorded from it.
+
+**This moved §452's check.** A backlog rule counting an Instagram Reel against
+the image ceiling measures the wrong queue, so the check now runs after
+resolution — everything between the two is pure, so nothing is bought waiting
+for it.
