@@ -946,6 +946,62 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
     : null;
 
 
+  /**
+   * §452. What is already waiting, per format.
+   *
+   * The scheduler's justification for the daily run says it is *"bounded by the
+   * per-run idea limit, the cadence ceilings, and settings.generation_enabled"*.
+   * This file did not contain the word cadence. Measured when that was noticed:
+   * 31 pieces pending approval, **0 ever published**, 15 of them video against a
+   * ceiling of five a week.
+   *
+   * Read once for the whole run, above the idea loop, because it has to be
+   * known **before `generateSample`** — that call is one real RecipeFix credit
+   * and 26 seconds, and buying an adaptation for a run that will draft nothing
+   * is precisely the spend this rule exists to stop. The first version of this
+   * check sat inside the account loop, below the purchase, with a comment
+   * claiming otherwise.
+   */
+  const { rows: backlogRows } = await ctx.pool.query<{ format: string; pending: string }>(
+    `select format, count(*)::text as pending
+       from content_items
+      where product_id = $1 and status = 'pending_approval'
+      group by format`,
+    [productId],
+  );
+  /* node-postgres returns count() as a string. */
+  const backlog = new Map(backlogRows.map((r) => [r.format, Number(r.pending)]));
+
+  /**
+   * Whether any connected account has room for what it would make.
+   *
+   * An operator who asked for this piece is never refused — they have already
+   * decided it is worth having, and a system that declined a direct request
+   * because its own queue was full would be unusable. This governs the daily
+   * run spending money unasked.
+   */
+  const operatorAsked = Boolean(job.payload.onlyPlatform || job.payload.postFormat);
+  const roomAnywhere =
+    operatorAsked ||
+    accounts.rows.some(
+      (account) =>
+        account.persona === 'brand' &&
+        shouldDraftMore(
+          chooseFormat(account.platform, account.supported_formats ?? []),
+          backlog.get(chooseFormat(account.platform, account.supported_formats ?? [])) ?? 0,
+        ).draft,
+    );
+
+  if (!roomAnywhere) {
+    ctx.log('every connected account is already backed up, nothing drafted', {
+      productId,
+      pending: Object.fromEntries(backlog),
+      because:
+        'Two weeks of publishing is already waiting for approval on every format this product can make. Drafting more would spend money on a slot that does not exist. Approving or rejecting anything resumes it.',
+    });
+    return;
+  }
+
   for (const idea of selected) {
     /**
      * Claim the idea *before* spending anything on it.
@@ -1076,28 +1132,6 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
       }
     }
 
-    /**
-     * §452. What is already waiting, per format.
-     *
-     * The scheduler's justification for the daily run says it is *"bounded by
-     * the per-run idea limit, the cadence ceilings, and
-     * settings.generation_enabled"*. This file did not contain the word
-     * cadence. Measured when that was noticed: 31 pieces pending approval, **0
-     * ever published**, 15 of them video against a ceiling of five a week.
-     *
-     * Counted once per idea rather than per account, because the ceiling is a
-     * property of the product's queue and not of one platform's share of it.
-     */
-    const { rows: backlogRows } = await ctx.pool.query<{ format: string; pending: string }>(
-      `select format, count(*)::text as pending
-         from content_items
-        where product_id = $1 and status = 'pending_approval'
-        group by format`,
-      [productId],
-    );
-    /* node-postgres returns count() as a string. */
-    const backlog = new Map(backlogRows.map((r) => [r.format, Number(r.pending)]));
-
     for (const account of accounts.rows) {
       if (account.persona !== 'brand') continue; // founder posts are composed, not generated
 
@@ -1143,14 +1177,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
          * research pass run for a piece that should not have been drafted is
          * the money this exists to stop.
          */
-        /*
-         * An operator who asked for this piece gets it. The backlog rule is
-         * about the *daily* run spending money unasked; a person clicking Make
-         * has already decided the piece is worth having, and a system that
-         * refused a direct request because its own queue was full would be
-         * unusable.
-         */
-        const operatorAsked = Boolean(job.payload.onlyPlatform || job.payload.postFormat);
+        /* §452. Per format, because a full video queue says nothing about text. */
         const room = operatorAsked
           ? ({ draft: true, headroom: Number.POSITIVE_INFINITY } as const)
           : shouldDraftMore(format, backlog.get(format) ?? 0);
