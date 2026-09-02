@@ -191,7 +191,11 @@ describe('text utilities', () => {
 
 describe('slopSummary', () => {
   it('reads the way the queue card renders it', () => {
-    const clean = slopFilter({ body: 'Vinegar firms the crumb. One teaspoon.', platform: 'x' });
+    /* §466. Clean now means it also gives a reader something to do. */
+    const clean = slopFilter({
+      body: 'Vinegar firms the crumb. One teaspoon. Which loaf do you bake most?',
+      platform: 'x',
+    });
     expect(slopSummary(clean)).toBe('passed (0 flags)');
 
     const bad = slopFilter({ body: 'A game changer — truly.', platform: 'x' });
@@ -344,5 +348,104 @@ describe('a caption is not a transcript', () => {
     ).warnings.find((v) => v.rule === 'structure.caption_echoes_screen')!;
     expect(violation.fix).toMatch(/did not fit|question/);
     expect(violation.message).toMatch(/%/);
+  });
+});
+
+/**
+ * §466. A post that asks nothing gets nothing back.
+ *
+ * Measured across twelve real captions: not one contained a question, an
+ * invitation, or any ask. Every piece ended on a statement and stopped, while
+ * every platform here ranks on the *return* — a reply, a save, a comment after
+ * the watch, a rewatch.
+ */
+describe('a caption gives a reader something to do', () => {
+  const asks = (body: string) =>
+    slopFilter({ body, platform: 'tiktok', hashtags: [] }).warnings.some(
+      (v) => v.rule === 'structure.invites_nothing',
+    );
+
+  it('flags the captions that were actually generated', () => {
+    /* Real output, verbatim. */
+    expect(asks('Side splits look random. Scoring gives oven spring a weaker seam to open.')).toBe(
+      true,
+    );
+    expect(asks('Cold onions cry less. Cut cells release fumes. Cold slows the release.')).toBe(
+      true,
+    );
+  });
+
+  it('accepts a question', () => {
+    expect(asks('Scoring gives oven spring a seam to open. Which way do you slash yours?')).toBe(
+      false,
+    );
+  });
+
+  /*
+   * The point of being broad. This earns a reply without asking for one, and is
+   * better writing than "which do you do?" — a rule that demanded a question
+   * mark would push the writer toward the worse line.
+   */
+  it('accepts an invitation that is not a question', () => {
+    expect(asks('Three ways to stop the sting. The second one is the one people get wrong.')).toBe(
+      false,
+    );
+    expect(asks('Worth a save before your next loaf.')).toBe(false);
+  });
+
+  it('says nothing about a voiceover, which is a different craft', () => {
+    const spokenResult = slopFilter({
+      body: 'Scoring gives oven spring a weaker seam to open.',
+      platform: 'tiktok',
+      hashtags: [],
+      spoken: true,
+    });
+    expect(spokenResult.warnings.some((v) => v.rule === 'structure.invites_nothing')).toBe(false);
+  });
+
+  it('is a warning, and names what to do instead of what not to', () => {
+    const v = slopFilter({
+      body: 'Scoring gives oven spring a weaker seam to open.',
+      platform: 'tiktok',
+      hashtags: [],
+    }).warnings.find((x) => x.rule === 'structure.invites_nothing')!;
+    expect(v.fix).toMatch(/earns a reply/);
+    /* And explicitly refuses the lazy version. */
+    expect(v.fix).toMatch(/not "comment below"/i);
+  });
+});
+
+/**
+ * §466. One question is not a density.
+ *
+ * The rule refuses a post *made* of questions. Expressed purely as a ratio it
+ * also refused any question in a short caption — one mark in twelve words is
+ * over a 1-per-40 ceiling — which collided head-on with the rule that refuses a
+ * caption asking for nothing. Between them a short caption had no legal form.
+ */
+describe('question density is about a pattern, not a single question', () => {
+  const density = (body: string) =>
+    slopFilter({ body, platform: 'x' }).errors.some(
+      (v) => v.rule === 'structure.question_density',
+    );
+
+  it('allows the one question a short caption needs', () => {
+    expect(density('Vinegar firms the crumb. One teaspoon. Which loaf do you bake most?')).toBe(
+      false,
+    );
+  });
+
+  it('still refuses a post made of questions', () => {
+    expect(density('Struggling with bread? Want better crust? Ready to level up?')).toBe(true);
+  });
+
+  it('leaves a short caption with a single legal form', () => {
+    /* The collision itself: this must pass both rules at once. */
+    const result = slopFilter({
+      body: 'Vinegar firms the crumb. One teaspoon. Which loaf do you bake most?',
+      platform: 'x',
+    });
+    expect(result.errors).toEqual([]);
+    expect(result.warnings.some((v) => v.rule === 'structure.invites_nothing')).toBe(false);
   });
 });

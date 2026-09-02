@@ -83,6 +83,23 @@ import { budgetFor, checkCopyBudget } from '../copy/budget.js';
 export const CAPTION_ECHO_LIMIT = 0.66;
 
 /**
+ * §466. Whether a caption gives a reader anything to do.
+ *
+ * Broad on purpose. A question mark is the obvious form and not the only one —
+ * a caption ending "the second one is the one people get wrong" earns a reply
+ * without asking for one, and is better writing than "which do you do?". What
+ * is refused is a caption that closes every loop it opened.
+ */
+export function invitesAnything(body: string): boolean {
+  const text = body.trim().toLowerCase();
+  if (text.length === 0) return false;
+  if (text.includes('?')) return true;
+  return /\b(which|what|how many|tell me|let me know|try it|your turn|guess|do you|have you|ever|most people get|people get (this|it) wrong|the (one|second|third) .{0,24}(wrong|missed)|save this|worth (a )?(save|trying)|argue|disagree|change my mind)\b/.test(
+    text,
+  );
+}
+
+/**
  * Words long enough to look like content and too common to be any.
  *
  * Without this, "because", "through" and "different" count as shared meaning
@@ -719,7 +736,25 @@ export function slopFilter(input: SlopFilterInput): SlopFilterResult {
   }
 
   const questionMarks = (body.match(/\?/g) ?? []).length;
-  if (words >= 8 && questionMarks / words > 1 / 40) {
+  /**
+   * §466. One question is not a density.
+   *
+   * This rule exists to refuse a post *made* of questions — "Struggling with
+   * bread? Want better crust? Ready to level up?" — which is engagement bait
+   * and reads as one. Expressed purely as a ratio it also refused **any**
+   * question in a short caption: one question mark in twelve words is 1 per 12,
+   * over a ceiling of 1 per 40, so a caption could not ask anything at all
+   * without failing.
+   *
+   * That collided head-on with the rule one section above it, which refuses a
+   * caption that asks for nothing. Between them a short caption had no legal
+   * form. Found by writing a clean fixture for the new rule and watching the
+   * old one reject it.
+   *
+   * A pattern needs at least two instances. One question is a caption doing its
+   * job.
+   */
+  if (words >= 8 && questionMarks >= 2 && questionMarks / words > 1 / 40) {
     push({
       rule: 'structure.question_density',
       severity: 'error',
@@ -977,6 +1012,33 @@ export function slopFilter(input: SlopFilterInput): SlopFilterResult {
         });
       }
     }
+  }
+
+  /**
+   * §466. A post that asks nothing gets nothing back.
+   *
+   * Measured across twelve real captions: **not one** contained a question, an
+   * invitation, or any ask. Every piece ended on a statement and stopped. On
+   * every platform here the *return* is what ranks — a reply, a save, a
+   * comment after the watch, a rewatch — and none of them was ever invited.
+   *
+   * Deliberately broad about what counts. A question mark is the obvious form
+   * and far from the only one: "the second one is the one people get wrong"
+   * earns a reply without asking for one, and is better writing than "which do
+   * you do?". So this refuses *silence*, not a particular phrasing.
+   *
+   * A warning, and never on a voiceover: a narrator asking a rhetorical
+   * question is a different craft and `spoken` already marks that case.
+   */
+  if (!spoken && !invitesAnything(body)) {
+    push({
+      rule: 'structure.invites_nothing',
+      severity: 'warning',
+      message: 'This caption asks for nothing, so there is nothing for a reader to do.',
+      excerpt: body.slice(-70),
+      index: Math.max(0, body.length - 70),
+      fix: 'End on something that earns a reply, a save or a rewatch — a real question about what the piece showed, or the one detail worth arguing with. Not "comment below".',
+    });
   }
 
   const warnings = violations.filter((v) => v.severity === 'warning');

@@ -11757,3 +11757,43 @@ piece has **no photographs at all** — the images were generated and recorded
 with their bytes nowhere, because that run predated §459. A text-only slide deck
 is what §407 exists to prevent and what `coherence.entirely_static` exists to
 refuse. The next render with assets landing will show whether it is fixed.
+
+## §466 · Not one caption asked for anything
+
+Twelve real captions, read end to end. **Not one contained a question, an
+invitation, or any ask at all.** Every piece stated a fact and stopped:
+
+> *"Side splits look random. Scoring gives oven spring a weaker seam to open."*
+> *"Cold onions cry less. Cut cells release fumes. Cold slows the release."*
+
+Both are decent writing and neither gives a reader anything to do. On every
+platform here the **return** is what ranks — a reply on X and Threads, a save on
+Reels, a comment after the watch on Shorts, a rewatch on TikTok — and none of it
+was ever invited.
+
+§445 gave each platform a `primarySignal` and a brief written as instructions.
+Both reached the *format writer*, which writes what appears on screen. Neither
+reached the **copywriter**, which writes the line a person actually replies to.
+That is the agent whose output the signal is about.
+
+Phrased as *earn*, not *ask*: "comment below" is the tell of an account nobody
+engages with. `structure.invites_nothing` is deliberately broad about what
+counts — *"the second one is the one people get wrong"* earns a reply without
+asking for one and is better writing than *"which do you do?"*, so a rule
+demanding a question mark would push the writer toward the worse line.
+
+**And the two rules collided.** `structure.question_density` refuses a post
+*made* of questions, which is right — but expressed purely as a ratio it refused
+**any** question in a short caption: one mark in twelve words is 1 per 12
+against a ceiling of 1 per 40. So between the new rule and the old one, a short
+caption had **no legal form**: it had to ask something, and asking anything
+failed it.
+
+Found by writing a clean fixture for the new rule and watching the old one
+reject it. A pattern needs two instances; one question is a caption doing its
+job.
+
+**Also.** Hashtags were single generic words — `bread`, `salt`, `meat` — where a
+new account is invisible among tens of millions of posts. The brief now asks for
+the specific thing a searcher would type: `breadscoring` finds people, `bread`
+does not.

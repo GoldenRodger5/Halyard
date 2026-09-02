@@ -11,6 +11,7 @@
  * A draft that fails a gate is regenerated with the violations fed back, up to a
  * ceiling — blind retry is a wasted call.
  */
+import { PLATFORM_STRATEGIES } from '../platform/strategy.js';
 import { repairCopy, type CopyRepair } from './repairCopy.js';
 import { runAllGates, type QCResults } from '../qc/index.js';
 import { slopFilter, type SlopPlatform } from '../qc/slopFilter.js';
@@ -217,6 +218,17 @@ export async function writeDraft(request: DraftRequest, llm: LlmClient): Promise
   const context: CopywriterContext = {
     ...request,
     hooks: request.hooks ?? [],
+    /*
+     * §466. What this platform counts, so the caption ends on something that
+     * earns it. Resolved here rather than passed in by every caller, because
+     * the platform is already on the request and the mapping is a constant.
+     */
+    ...(PLATFORM_STRATEGIES[request.platform as keyof typeof PLATFORM_STRATEGIES]
+      ? {
+          signalBrief:
+            PLATFORM_STRATEGIES[request.platform as keyof typeof PLATFORM_STRATEGIES]!.signalBrief,
+        }
+      : {}),
   };
 
   let lastQc: QCResults | null = null;

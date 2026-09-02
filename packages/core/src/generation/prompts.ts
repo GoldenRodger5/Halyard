@@ -60,6 +60,14 @@ export interface CopywriterContext {
    */
   piece?: Array<{ key: string; text: string }> | null;
   /**
+   * §466. What this platform counts, in words a writer can act on.
+   *
+   * The same lines §445 gives the format writer. They reached the agent writing
+   * the on-screen copy and never reached the one writing the caption — which is
+   * the line a person replies to.
+   */
+  signalBrief?: readonly string[];
+  /**
    * Whether this format's claims are *about* the artifact. §405.
    *
    * `false` for a quiz, a history, a myth-buster — anything grounded in its own
@@ -159,7 +167,42 @@ export function buildCopywriterPrompt(context: CopywriterContext): {
       : '',
     '',
     `PLATFORM\n${PLATFORM_BRIEFS[context.platform]}`,
+    /**
+     * §466. Ask for the thing the platform counts.
+     *
+     * Measured across twelve real captions: **not one contained a question, an
+     * invitation, or any ask at all.** No "which one", no "save this", no
+     * "tell me". Every piece ended on a statement and stopped.
+     *
+     * That is the largest single miss for growth in this system. A post that
+     * asks nothing gets nothing back, and on every platform here the *return*
+     * is what ranks — a reply on X and Threads, a save on Reels, a comment
+     * after the watch on Shorts, a rewatch on TikTok. §445 gave each platform
+     * its `primarySignal` and its brief; both reached the format writer and
+     * neither reached the copywriter, which is the agent that writes the line
+     * a person actually replies to.
+     *
+     * Phrased as "earn" rather than "ask for", deliberately. "Comment below!"
+     * is the tell of a brand nobody engages with; a real question about
+     * something the piece just showed is how a comment section starts.
+     */
+    context.signalBrief?.length
+      ? `\nWHAT THIS PLATFORM COUNTS\n${context.signalBrief.map((l) => `- ${l}`).join('\n')}\n` +
+        'End on something that earns it. A caption that only states a fact gets no reply,\n' +
+        'no save and no rewatch — but never "comment below" or "save this for later",\n' +
+        'which are the tells of an account nobody engages with. Ask a real question about\n' +
+        'what the piece just showed, or leave the one detail worth arguing with.'
+      : '',
     `Hashtags: ${limits.min} to ${limits.max}.`,
+    /*
+     * §466. Generic single words are not discovery, they are noise.
+     *
+     * Real output carried `bread`, `salt`, `meat` — tags with tens of millions
+     * of posts, where a new account is invisible. The tags that find an
+     * audience are the specific ones a searcher would actually type.
+     */
+    'Hashtags name the specific thing, not the category: "breadscoring" finds people,',
+    '"bread" does not. No single generic words.',
     /*
      * §215. The budget first, the ceiling second and clearly labelled as a
      * rejection threshold. Stated the other way round, a model reads the larger
