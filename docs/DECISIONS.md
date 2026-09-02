@@ -12649,3 +12649,22 @@ punctuation, which is §444's argument one layer up.
 The grounds record earned its place here: the gallery said *asked 8, got 0,
 four refused by the constraint and four past the cap*, which is the entire
 diagnosis without opening a log.
+
+## §504 · A video ground needs longer than a still does
+
+The first piece to actually carry footage rendered its beats and then died at
+frame 240: *"Timeout (30000ms) exceeded rendering the component… Fetching
+http://localhost"*. Remotion's default `delayRender` timeout is thirty
+seconds, which is generous for a base64 image and short for four 1080×1920
+clips being fetched from the bundle's own server and decoded at once. Raised
+to three minutes for every render, because a hung fetch and a slow one are
+indistinguishable inside a minute, and the job's own timeout is the real bound
+on a stuck render.
+
+**Rejected, and worth recording:** taking a smaller Pexels rendition to make
+the decode cheaper. The frame is 1080 wide, the next size down is 540, and a
+2× upscale is visibly soft behind type — the render was slow because the
+timeout was wrong, not because the file was big, and picture quality is not
+the thing to trade for it. The test that caught this was the one asserting the
+client never takes the 4K master; it started failing the other way, which is
+what a bound written from both sides is for.

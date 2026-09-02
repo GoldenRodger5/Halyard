@@ -189,6 +189,21 @@ export async function renderVideo(input: RenderVideoInput): Promise<RenderVideoR
     crf: 23,
     onProgress: ({ progress }) => input.onProgress?.(progress),
     chromiumOptions: { gl: 'swangle' },
+    /*
+     * §504. Video grounds need longer than a still does.
+     *
+     * Remotion's default is 30 seconds for any `delayRender` handle, which is
+     * generous for fetching a base64 image and short for a 1080×1920 clip that
+     * has to be fetched from the bundle's own server and decoded before the
+     * first frame it appears on can be drawn. The first piece to carry real
+     * footage (§478) died at frame 240 with *"Timeout (30000ms) exceeded …
+     * Fetching http://localhost"* — four clips, all decoding at once.
+     *
+     * Three minutes, because the failure this guards against is a hung fetch,
+     * and a hung fetch is not distinguishable from a slow one in under a
+     * minute. The job's own timeout is the real bound on a stuck render.
+     */
+    timeoutInMilliseconds: 180_000,
     logLevel: 'error',
   });
 

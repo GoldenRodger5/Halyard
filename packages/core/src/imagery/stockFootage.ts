@@ -155,6 +155,19 @@ export class PexelsFootageClient implements StockFootageClient {
        * sensible size. Pexels lists several renditions per clip and the biggest
        * is often 4K, which is a hundred megabytes for a six-second beat.
        */
+      /*
+       * The file to download: an mp4, portrait, the largest that is still a
+       * sensible size. Pexels lists several renditions per clip and the
+       * biggest is often 4K, which is a hundred megabytes for a six-second
+       * beat.
+       *
+       * §504 considered taking a *smaller* rendition to speed the render up,
+       * and rejected it: the frame is 1080 wide, Pexels' next size down is
+       * 540, and a 2× upscale is visibly soft behind type. The render was
+       * timing out because its asset timeout was too short for decoding video
+       * at all, which is where that was fixed. Picture quality is not the
+       * thing to trade for it.
+       */
       const file = (video.video_files ?? [])
         .filter((f) => f.file_type === 'video/mp4' && f.width && f.height && f.height >= f.width)
         .filter((f) => (f.height ?? 0) <= 1920)
