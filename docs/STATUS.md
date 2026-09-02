@@ -1964,17 +1964,47 @@ minutes of driving the UI:
   went to the operator while the job log read "briefed idea written" then "job
   done".
 
+### A second pass, as a social team reading its own output
+
+Everything above was structural. This pass looked at what the system actually
+*produced* and found four things a person would catch on sight.
+
+- **§448 — the thumbnail nobody had looked at.** `first_frame_words` reported
+  `unmeasured` on every video ever made here, the reason recorded as "no OCR".
+  No OCR is needed: the words on frame one are the first beat's text, sitting in
+  `renders.input_props` the whole time. Our openings measured 5 to 9 words
+  against a bar of 4-7. Now briefed, checked at draft time, and audited after —
+  the constraint reaches the writer first, which is where it is worth most.
+- **§449 — a good piece binned over its wrapper.** A `history` filled all five
+  slots with zero warnings, researched and sourced, and was discarded because
+  its caption failed the copy gate three times. `repairDraft` has fixed
+  punctuation deterministically for format slots since §290; the caption path,
+  the one that loses whole pieces, never got it.
+- **§450 — the caption was a transcript.** 88.9% of one caption's distinctive
+  words were also on screen. The screenwriter has enforced this rule between
+  spoken and on-screen since §335; nothing applied it one level up. The
+  instruction that did exist said *"do not restate the first line"* — and the
+  writer obeyed it exactly, restating all the others.
+- **§451 — the director was staging blind.** The screenwriter was told its
+  channel and not its platform, so it staged for an average of TikTok, Reels and
+  Shorts on a generic 15-45s clock while the writer wrote to a 40s budget.
+
+Two things were **checked and deliberately not built**, which is the more useful
+half of a review: a `not_loop_ready` gate (it would warn on every piece, and a
+gate that fires on everything is not information — the composition is the fix),
+and hook-craft scoring on the opening slot (it flags exactly what §448 already
+flags).
+
 ### What is left
 
 - **W11** — fold `creative-director`, `story-architect` and `concept-generator`
   into the screenwriter. Registry hygiene; changes nothing a viewer sees.
-- **The caption copywriter refuses pieces the format writer filled cleanly.** A
-  `history` run filled all five slots with zero warnings and was then discarded
-  after three caption attempts failed the copy gate on one violation. The
-  piece's *content* was fine and the whole thing was thrown away. Worth a look.
 - The RecipeFix connector's `adapt_recipe` edge function is returning non-2xx,
   so `transformation` and `recipe` cannot be made until that is fixed. External.
+  Every other format is unaffected since §447.
 - Two agents blocked outside the code: the Sound Designer on procurement, the
   Thumbnail Director on a YouTube OAuth scope. Both statuses are honest.
+- Nothing loops yet. §451 asks the screenwriter for it; whether it obeys is
+  worth watching on the next few pieces.
 
-**Suite:** 3,022 passing, 467 skipped. Lint clean.
+**Suite:** 3,049 passing, 467 skipped. Lint clean.
