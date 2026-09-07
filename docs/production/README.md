@@ -9,10 +9,11 @@ This folder is the canonical programme for taking Halyard from the current Septe
 3. `PLATFORM_CREATIVE_PLAYBOOK.md` — platform-specific content, discovery, engagement, and adaptation rules.
 4. `UI_PRODUCT_REDESIGN_SPEC.md` — overall product UX, navigation, onboarding, Product Brain, Studio, review, scheduling, and responsive direction.
 5. `UI_PAGE_BY_PAGE_REDESIGN.md` — detailed current-to-target redesign for every major operator page and state.
-6. `UI_VISUAL_QA_SPEC.md` — exact typography, spacing, target sizes, shell dimensions, responsive breakpoints, page-level visual acceptance, and screenshot/device QA.
-7. `LIVE_AGENT_FLOOR_SPEC.md` — signature real-time robot studio room, stage lifecycle, handoffs, clickable artifacts, timing, mobile behavior, and experience acceptance requirements.
-8. `LIVE_FLOOR_TECHNICAL_DESIGN.md` — concrete PixiJS/Motion/Rive hybrid architecture, production snapshot model, navigation/collision rules, interaction/accessibility, animation cues, performance budgets, and implementation sequence.
-9. Existing repository truth: `CLAUDE.md`, `docs/STATUS.md`, `docs/PLAN.md`, `docs/DECISIONS.md`, `docs/DIRECTION_SPEC.md`, and feature docs.
+6. `UI_CURRENT_VISUAL_FINDINGS.md` — measured current sizing, contrast and layout problems that must not survive the redesign.
+7. `UI_VISUAL_QA_SPEC.md` — exact typography, spacing, target sizes, shell dimensions, responsive breakpoints, page-level visual acceptance, and screenshot/device QA.
+8. `LIVE_AGENT_FLOOR_SPEC.md` — signature real-time robot studio room, stage lifecycle, handoffs, clickable artifacts, timing, mobile behavior, and experience acceptance requirements.
+9. `LIVE_FLOOR_TECHNICAL_DESIGN.md` — concrete PixiJS/Motion/Rive hybrid architecture, production snapshot model, navigation/collision rules, interaction/accessibility, animation cues, performance budgets, and implementation sequence.
+10. Existing repository truth: `CLAUDE.md`, `docs/STATUS.md`, `docs/PLAN.md`, `docs/DECISIONS.md`, `docs/DIRECTION_SPEC.md`, and feature docs.
 
 ## Baseline
 
