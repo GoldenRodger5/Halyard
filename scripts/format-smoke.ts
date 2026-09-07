@@ -40,7 +40,18 @@ async function main() {
     const r = await llm.complete({
       system: briefFor(format, { platform: 'tiktok', subject: SUBJECT[id], audience: 'home cooks' } as never),
       messages: [{ role: 'user', content: `Write it now, about: ${SUBJECT[id]}` }],
-      maxTokens: 1400, promptVersion: 'diag',
+      maxTokens: 1400,
+      /*
+       * §561. Named for the agent whose prompt this is.
+       *
+       * It was `'diag'`, which the Auditor reported as `agent.unregistered` —
+       * correctly, since a prompt version no contract claims is a model call
+       * nobody owns. This script calls `briefFor` and sends the format
+       * writer's own brief, so the version says so, and `format-writer`
+       * declares it. The `.diag` suffix keeps a hand-run diagnostic
+       * distinguishable from production traffic in the same table.
+       */
+      promptVersion: 'post_format.diag',
     });
     const s = r.text.indexOf('{'), e = r.text.lastIndexOf('}');
     const draft = repairDraft(format, parseDraft(JSON.parse(r.text.slice(s, e + 1)), format)).draft;

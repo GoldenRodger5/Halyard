@@ -38,7 +38,8 @@ import {
   useVideoConfig,
 } from 'remotion';
 import type { BrandTokens } from '../brand.js';
-import type { RenderTypography } from '../image/templates.js';
+import { brandTypography, type RenderTypography } from '../typography.js';
+import { Fonts } from './fonts.js';
 import {
   QUIZ_TEMPLATE_COMPONENTS,
   chooseQuizTemplate,
@@ -590,6 +591,19 @@ export const QuizVideo: React.FC<QuizVideoProps> = ({
   const { fps } = useVideoConfig();
 
   /*
+   * §522. Two things every video in this format was missing.
+   *
+   * `<Fonts />` registers the bundled faces; `fonts.tsx` opens by saying that
+   * without it every composition renders in the browser's default serif, and
+   * only `compositions.tsx` had ever mounted it — so this format never loaded a
+   * face. And `typography` is threaded through every text element here but was
+   * supplied by nothing in the repo, so `face()` returned `{}` and no
+   * `font-family` was set either. Defaulting it to the brand's own faces means
+   * a product's type is used unless a piece deliberately overrides it.
+   */
+  const type = typography ?? brandTypography(brand);
+
+  /*
    * §302. A treatment per question, chosen once for the whole piece so it is
    * stable across a re-render, and chosen with the running history so five
    * questions cycle through the treatments that fit rather than repeating one.
@@ -631,7 +645,14 @@ export const QuizVideo: React.FC<QuizVideoProps> = ({
   const titleFrames = Math.round(titleSecondsFor(title) * fps);
 
   return (
-    <AbsoluteFill style={{ backgroundColor: brand.background, color: backgroundDataUri ? '#FFFFFF' : brand.ink }}>
+    <AbsoluteFill
+      style={{
+        backgroundColor: brand.background,
+        color: backgroundDataUri ? '#FFFFFF' : brand.ink,
+        fontFamily: brand.bodyFont,
+      }}
+    >
+      <Fonts />
       {audioSrc ? <Audio src={audioSrc} /> : null}
 
       {/* §294. Same full-bleed treatment the shared Stage uses. */}
@@ -690,12 +711,12 @@ export const QuizVideo: React.FC<QuizVideoProps> = ({
               letterSpacing: '0.12em',
               color: brand.primary,
               marginBottom: 24,
-              ...face(typography, 'label'),
+              ...face(type, 'label'),
             }}
           >
             {questions.length} questions
           </span>
-          <span style={{ fontSize: 124, lineHeight: 0.98, ...face(typography, 'display') }}>
+          <span style={{ fontSize: 124, lineHeight: 0.98, ...face(type, 'display') }}>
             {title}
           </span>
         </AbsoluteFill>
@@ -732,7 +753,7 @@ export const QuizVideo: React.FC<QuizVideoProps> = ({
             index={i}
             total={questions.length}
             brand={brand}
-            type={typography}
+            type={type}
             countdownSeconds={countdownSeconds}
             template={templates[i]!}
             palette={palette}

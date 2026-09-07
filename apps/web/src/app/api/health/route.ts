@@ -14,7 +14,7 @@
  * which routinely contains all three.
  */
 import { NextResponse } from 'next/server';
-import { allAdapters, describePooler, resolvePlatformClient } from '@halyard/core';
+import { allAdapters, describePooler, releaseIdentity, resolvePlatformClient } from '@halyard/core';
 import { databaseReachable } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
@@ -41,9 +41,25 @@ export async function GET() {
     allAdapters().map((a) => [a.platform, resolvePlatformClient(a.platform).source]),
   );
 
+  /*
+   * §567. Which code answered.
+   *
+   * §174 built this endpoint because "production contains the commit" was
+   * unanswerable from outside, and then answered only the second half of it —
+   * whether the database was reachable. The commit is not a secret and it is
+   * the first thing anyone wants when a deploy is in doubt, so it belongs in
+   * the same response rather than behind the operator gate.
+   */
+  const release = releaseIdentity();
+
   return NextResponse.json(
     {
       ok: db.ok && pooler.ok,
+      release: {
+        commit: release.commit,
+        builtAt: release.builtAt,
+        environment: release.environment,
+      },
       database: db.ok ? 'reachable' : 'unreachable',
       /*
        * Mode only. The host and port would name the project and the pooler, and

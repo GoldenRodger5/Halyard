@@ -303,3 +303,34 @@ describe('who is doing the looking', () => {
     expect(verdict.findings.map((f) => f.persona)).toEqual(['scroller', 'art_director']);
   });
 });
+
+/**
+ * §553. A critic shared by every product cannot assume one subject.
+ *
+ * The `cook` persona's name was already right — "someone who actually knows
+ * this subject" — and its stance opened *"You cook."*, so Kinolog's piece about
+ * choosing a film was read by somebody who cooks. It produced a good finding
+ * anyway, which is exactly how §546 stayed hidden: a model correcting for a
+ * wrong prompt leaves no trace.
+ *
+ * §525's lesson about the narrator, one critic along.
+ */
+describe('§553 the personas belong to no product', () => {
+  it('no persona claims a subject of its own', () => {
+    for (const [key, persona] of Object.entries(CRITIC_PERSONAS)) {
+      expect(persona.stance, `${key} names a vertical`).not.toMatch(
+        /\byou cook\b|\brecipe\b|\bkitchen\b|\bfilm\b|\bmovie\b/i,
+      );
+    }
+  });
+
+  it('the practitioner still reads as somebody who does the thing', () => {
+    expect(CRITIC_PERSONAS.cook.stance).toMatch(/you do this yourself/i);
+    expect(CRITIC_PERSONAS.cook.stance).toMatch(/overstatement/i);
+  });
+
+  it('keeps the key, because findings are stored under it', () => {
+    /* Rows already say `cook/text.overstated`; renaming rewrites their meaning. */
+    expect(Object.keys(CRITIC_PERSONAS)).toContain('cook');
+  });
+});

@@ -10,7 +10,25 @@
  * handler's problem.
  */
 import { writeFile } from 'node:fs/promises';
-import { budgetDecision, isProviderExhausted, PAID_JOB_KINDS } from '@halyard/core';
+import {
+  budgetDecision,
+  isProviderExhausted,
+  PAID_JOB_KINDS,
+  releaseIdentity,
+  type createLlmClient,
+} from '@halyard/core';
+
+/**
+ * §526. How long to wait before asking an unfunded provider again, and how long
+ * to keep asking.
+ *
+ * Twenty minutes because a refused call costs nothing — the provider rejects it
+ * on account grounds before any billing — so the only cost of asking is a log
+ * line, and the operator who has just added credits should not have to wait an
+ * hour. A day because a job still refused after one is not waiting on a top-up.
+ */
+const PROVIDER_PARK_SECONDS = 20 * 60;
+const PROVIDER_PARK_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 import { spentTodayUsd } from './paidCalls.js';
 import type pg from 'pg';
 import { JOB_POLICY, type JobKind } from '@halyard/db';
@@ -24,6 +42,16 @@ export interface Job {
   attempts: number;
   max_attempts: number;
   dedupe_key: string | null;
+  /**
+   * When the job was first queued. §526.
+   *
+   * `claim_next_job` returns `setof jobs`, so this has always been on the row —
+   * the interface simply did not declare it. Declaring it is not a widening:
+   * it is catching the type up with what the function already returns. Used to
+   * bound how long an unfunded job keeps waiting for the account to be topped
+   * up, since attempts are deliberately not spent while it waits.
+   */
+  created_at: string;
 }
 
 /**
@@ -91,6 +119,21 @@ export interface HandlerContext {
    * enqueue, and only the logger differs.
    */
   as: (stage: string) => HandlerContext;
+  /**
+   * §565. Where a handler's model client comes from.
+   *
+   * `createLlmClient(process.env, …)` reads a live, billable credential. Three
+   * tests in `generate.test.ts` called a handler that did exactly that, and
+   * CLAUDE.md's gotcha 12 tells you to source the env file before running the
+   * suite — so the documented way to run the tests was also the way to buy a
+   * generation from OpenAI, once per run, silently.
+   *
+   * The seam is the fix: production leaves it undefined and gets the real
+   * factory, and a test hands over a client that cannot spend. Optional rather
+   * than required because a handler that has never needed a model should not
+   * have to name one.
+   */
+  createLlm?: typeof createLlmClient;
 }
 
 export interface EnqueueOptions {
@@ -313,11 +356,44 @@ export class Poller {
         `update jobs set status='done', finished_at=now(), last_error=null where id=$1`,
         [job.id],
       );
+      /*
+       * §556. Close the stage runs this job opened.
+       *
+       * `openStage` records each stage as `running` so the Auditor can see that
+       * a deterministic director ran at all. Only the poller knows how the job
+       * ended, so it is the poller that turns `running` into an outcome — a
+       * stage must never claim to have succeeded before its work has.
+       */
+      await this.closeStageRuns(job.id, 'succeeded', Date.now() - startedAt);
+
       this.log('job done', { kind: job.kind, id: job.id, ms: Date.now() - startedAt });
     } catch (err) {
       await this.fail(job, err as Error, policy.backoffSeconds);
     }
     return true;
+  }
+
+  /**
+   * §556. Turn a job's open stage runs into an outcome.
+   *
+   * Scoped to `trigger_ref = job id`, to rows this stage machinery opened
+   * (`input_ref.via`), and to rows still `running` — so a retry cannot rewrite
+   * an earlier attempt, a model-call run in the same job is left to its own
+   * recorder, and a row somebody has already closed stays closed.
+   */
+  private async closeStageRuns(
+    jobId: string,
+    status: 'succeeded' | 'failed',
+    ms: number | null,
+  ): Promise<void> {
+    await this.pool
+      .query(
+        `update agent_runs
+            set status = $2, completed_at = now(), duration_ms = $3
+          where trigger_ref = $1 and input_ref->>'via' = 'stage' and status = 'running'`,
+        [jobId, status, ms],
+      )
+      .catch(() => undefined);
   }
 
   private async fail(job: Job, error: Error, backoffSeconds: number): Promise<void> {
@@ -336,7 +412,56 @@ export class Poller {
      * before this branch existed, and would have burned three more on every
      * scheduled job after them.
      */
-    const permanent = error instanceof PermanentJobFailure || isProviderExhausted(error);
+    /*
+     * §526. An unfunded account is a pause, not a death.
+     *
+     * §493 made provider exhaustion permanent so that "your credit balance is
+     * too low" stopped burning three attempts on every job behind it. That part
+     * was right and stays. What it also did was mark the job `dead` — while the
+     * message it wrote said *"Fund one and the queue resumes on its own."* It
+     * does not. A dead job never runs again, and every piece in flight when the
+     * balance ran out was lost with no way for the operator to know which.
+     *
+     * Both halves of the money problem now behave the same way, because they
+     * are the same problem: the budget guard twenty lines up parks the job,
+     * gives the attempt back, and lets tomorrow pick it up. This parks on the
+     * same terms at twenty minutes, so funding the account genuinely does
+     * resume the queue.
+     *
+     * The bound is age, not attempts, because attempts are deliberately not
+     * being spent. A job still refused a day after it was created is not
+     * waiting on a card that is about to be topped up, and dies as before.
+     */
+    /* §556. Whatever else happens, the stages this job opened are not running.
+       No elapsed time here: the failure path does not know when the attempt
+       began, and a fabricated duration is worse than an absent one. */
+    await this.closeStageRuns(job.id, 'failed', null);
+
+    const providerUnfunded = isProviderExhausted(error);
+    const ageMs = Date.now() - new Date(job.created_at).getTime();
+    const parkable = providerUnfunded && ageMs < PROVIDER_PARK_MAX_AGE_MS;
+
+    if (parkable) {
+      await this.pool.query(
+        `update jobs
+            set status = 'queued', locked_at = null, locked_by = null,
+                attempts = greatest(attempts - 1, 0),
+                run_after = now() + make_interval(secs => $2),
+                last_error = $3
+          where id = $1`,
+        [job.id, PROVIDER_PARK_SECONDS, scrubString(error.message).slice(0, 2000)],
+      );
+      this.log('provider unfunded, job parked', {
+        kind: job.kind,
+        jobId: job.id,
+        retryInSeconds: PROVIDER_PARK_SECONDS,
+        ageHours: Number((ageMs / 3_600_000).toFixed(1)),
+        because: 'the provider refuses on account grounds; funding it resumes this job (§526)',
+      });
+      return;
+    }
+
+    const permanent = error instanceof PermanentJobFailure || providerUnfunded;
     const exhausted = job.attempts >= job.max_attempts || permanent;
 
     // Sentry gets the stack and the release tag; the row below gets the message.
@@ -396,7 +521,28 @@ export class Poller {
     });
   }
 
+  /**
+   * §567. Which migration the database this worker is talking to was built to.
+   *
+   * Read rather than assumed: a worker and a web tier can be on the same commit
+   * and pointed at different databases, and that is exactly the case a release
+   * check has to be able to see. `null` on a database too old to carry the
+   * marker, which is honest — it is not the same as agreeing.
+   */
+  private async schemaVersion(): Promise<string | null> {
+    try {
+      const { rows } = await this.pool.query<{ version: string }>(
+        'select version from schema_version limit 1',
+      );
+      return rows[0]?.version ?? null;
+    } catch {
+      /* The table does not exist yet — a database from before migration 0082. */
+      return null;
+    }
+  }
+
   async heartbeat(): Promise<void> {
+    const identity = releaseIdentity();
     // build pack §8: missing heartbeat is the only way to detect a dead worker.
     await this.pool.query(
       `insert into worker_heartbeats (worker_id, last_seen_at, version, detail)
@@ -418,11 +564,24 @@ export class Poller {
          * `VERCEL_GIT_COMMIT_SHA`. Neither is present locally, and `unknown`
          * is the honest answer there rather than a version that means nothing.
          */
-        process.env.RAILWAY_GIT_COMMIT_SHA?.slice(0, 12) ??
-          process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 12) ??
-          process.env.GIT_COMMIT_SHA?.slice(0, 12) ??
-          'unknown',
-        { kinds: this.handledKinds },
+        identity.commit ?? 'unknown',
+        /*
+         * §567. Everything needed to answer "is this worker the right worker?"
+         * in one row, because the answer was previously three dashboards.
+         *
+         * `kinds` is the one that has already caught a real failure (§243): a
+         * worker deployed before three handlers existed left those jobs
+         * pending forever with no error. The rest — build time, environment,
+         * the schema the worker believes it is running against — are what the
+         * System surface compares the web tier against.
+         */
+        {
+          kinds: this.handledKinds,
+          builtAt: identity.builtAt,
+          environment: identity.environment,
+          commitSource: identity.source,
+          schemaVersion: await this.schemaVersion(),
+        },
       ],
     );
 

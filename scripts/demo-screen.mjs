@@ -18,7 +18,7 @@
  * your terminal and run again.
  */
 import { spawn } from 'node:child_process';
-import { existsSync, mkdirSync, statSync, renameSync } from 'node:fs';
+import { existsSync, mkdirSync, statSync } from 'node:fs';
 
 const RAW = 'docs/tiktok-review/raw/screen.mov';
 const OUT = 'docs/tiktok-review/halyard-tiktok-demo.mp4';

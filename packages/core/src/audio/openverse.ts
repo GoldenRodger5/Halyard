@@ -58,6 +58,8 @@ export interface OpenverseSearch {
    * loop is survivable.
    */
   minSeconds?: number;
+  /** §551. An upper bound, for callers searching for cues rather than beds. */
+  maxSeconds?: number;
 }
 
 const ENDPOINT = 'https://api.openverse.org/v1/audio/';
@@ -82,7 +84,20 @@ export async function searchCc0Music(
      */
     license: 'cc0',
     license_type: 'commercial',
-    page_size: String(Math.min(50, search.limit ?? 20)),
+    /*
+     * §551. Twenty, because an anonymous client may not ask for more.
+     *
+     * This capped at 50, and Openverse answers `page_size=21` with **401**, not
+     * 400 — an authentication status for what is really a quota. So a caller
+     * asking for 25 results got "Openverse returned 401", which reads as a
+     * missing API key and is not: the ceiling for an unauthenticated request is
+     * exactly 20, measured against the live index (20 → 200, 21 → 401).
+     *
+     * Capped here rather than at each call site: no caller should have to know
+     * a remote service's anonymous quota, and the one that did not know it
+     * spent a debugging session looking for a token that was never required.
+     */
+    page_size: String(Math.min(20, search.limit ?? 20)),
   });
 
   const response = await fetchImpl(`${ENDPOINT}?${params.toString()}`, {
@@ -105,7 +120,18 @@ export async function searchCc0Music(
     }>;
   };
 
+  /*
+   * §551. Thirty seconds is a *music* assumption, and it lived in the default.
+   *
+   * A bed shorter than half a minute loops audibly, so this floor is right for
+   * the thing this function was written for. It is exactly wrong for a sound
+   * effect: every cue ever made is under thirty seconds, so searching for a
+   * whoosh returned 2 results out of 240 and three roles came back empty. The
+   * caller now says which it wants, and `maxSeconds` lives here too rather than
+   * being re-implemented by each caller against a rounded field.
+   */
   const minSeconds = search.minSeconds ?? 30;
+  const maxSeconds = search.maxSeconds ?? Number.POSITIVE_INFINITY;
 
   return (body.results ?? [])
     .filter((r) => {
@@ -117,6 +143,7 @@ export async function searchCc0Music(
       if ((r.license ?? '').toLowerCase() !== 'cc0') return false;
       /* `duration` is milliseconds. Unknown is allowed through and flagged. */
       if (r.duration != null && r.duration / 1000 < minSeconds) return false;
+      if (r.duration != null && r.duration / 1000 > maxSeconds) return false;
       return true;
     })
     .map((r) => ({
@@ -126,7 +153,13 @@ export async function searchCc0Music(
       foreignLandingUrl: r.foreign_landing_url ?? '',
       license: 'cc0',
       creator: r.creator ?? null,
-      durationSeconds: r.duration == null ? null : Math.round(r.duration / 1000),
+      /*
+       * §551. Two decimals, not whole seconds. `Math.round` sent every cue to
+       * zero — a 490ms swipe and a 100ms tick became the same number — which is
+       * harmless for a three-minute bed and destroys the field this is now also
+       * used to search.
+       */
+      durationSeconds: r.duration == null ? null : Math.round(r.duration / 10) / 100,
       provider: r.provider ?? null,
     }));
 }

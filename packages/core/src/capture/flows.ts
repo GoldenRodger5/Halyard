@@ -663,6 +663,20 @@ export const FLOWS: Record<FlowId, CaptureFlow> = {
         ],
         timeoutMs: 30_000,
       },
+      /*
+       * §541. Get the product's own sign-in prompt out of the demo.
+       *
+       * The capture runs signed out, so RecipeFix offers "Sign in to save your
+       * recipes" over the ingredient list — and the first walkthrough Halyard
+       * ever published had an auth wall sitting in the middle of the product
+       * for half its runtime. Honest, and the wrong first thing to show
+       * somebody who has not decided whether they want this yet.
+       *
+       * `optional`, because a prompt that is not offered is not a failure, and
+       * `setup`, because dismissing a banner is not the product doing the thing
+       * this flow exists to film. Verified live: the control is a real
+       * `aria-label="Dismiss"` button, not a guess.
+       */
       {
         name: 'scroll the ingredient into view',
         action: 'scrollTo',
@@ -693,6 +707,35 @@ export const FLOWS: Record<FlowId, CaptureFlow> = {
         action: 'wait',
         value: '2500',
         narration: 'Ingredient, method, title and macros, all at once.',
+      },
+      /*
+       * §541. Get the product's own sign-in prompt out of the demo.
+       *
+       * The capture runs signed out, and RecipeFix offers "Sign in to save your
+       * recipes" over the ingredient list *after* an adaptation — so the first
+       * walkthrough Halyard rendered had an auth wall in the middle of the
+       * product for half its runtime. Honest, and the wrong first thing to show
+       * somebody who has not decided they want this yet.
+       *
+       * Placed here rather than before the swap, because before the swap there
+       * is nothing to dismiss: the prompt is triggered *by* adapting. Scoped to
+       * the card's own text, so it can only ever close that one thing — a bare
+       * `[aria-label="Dismiss"]` also matches a banner elsewhere on the page.
+       * `optional`, because a prompt that is not offered is not a failure, and
+       * `setup`, because closing a card is not the product doing the thing this
+       * flow exists to film.
+       */
+      {
+        name: 'dismiss the sign-in prompt',
+        action: 'click',
+        selector: ':has-text("Sign in to save your recipes") >> button[aria-label="Dismiss"]',
+        fallbackSelectors: [
+          ':has-text("Sign in to save your recipes") >> button[aria-label="Close"]',
+          '[role="dialog"]:has-text("Sign in") button[aria-label="Dismiss"]',
+        ],
+        optional: true,
+        setup: true,
+        timeoutMs: 2_500,
       },
       { name: 'still after the swap', action: 'still', value: 'after' },
     ],

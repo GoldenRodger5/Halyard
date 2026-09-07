@@ -1,5 +1,283 @@
 # Where Halyard is right now
 
+**2026-09-07 — H0: the release path is trustworthy, and it was not.** The
+production programme in `docs/production/` starts by asking for one green,
+reproducible release state. Establishing it found that every layer of
+verification had quietly stopped verifying.
+
+| | what was actually true |
+|---|---|
+| CI | **red since 2 September** on stale generated types — and because a failed step ends the job, **typecheck, lint and tests had not run at all for four days**. Lint then turned out to have 7 errors of its own. |
+| `types.gen.ts` | 13 tables and 39 migrations behind the schema |
+| the test suite | forty-three database-backed suites **report green when they skip**; nothing made that visible |
+| the test suite | **four tests were buying a real OpenAI generation on every full run**, one of them under a comment promising it never touched a provider (§565) |
+| the schema | **no migration marker existed** on the CI/laptop path at all, and production's lives in a schema the app cannot read — nothing to compare |
+| `staleWorkers` | written and tested since §243, **never called from any runtime path**. The failure it catches — a worker that cannot claim a job kind, leaving those jobs pending with no error — could still happen in silence. |
+
+What exists now: `pnpm verify` runs the whole path and fails loudly when a
+prerequisite is missing; `HALYARD_REQUIRE_DB=1` turns a skip into a failure;
+`vitest.setup.ts` refuses non-local network and neuters paid keys; migration
+0082 stamps `schema_version`; and `/master/system` shows web revision, every
+worker's revision and heartbeat, schema compatibility, and any worker that
+cannot run what this release expects. §564–§567.
+
+**Verified adversarially, not just by compiling.** A tampered type is caught; a
+required-but-unreachable database fails with the reason where it previously
+reported `1 passed, 2 skipped`; a test holding a real key cannot reach
+api.openai.com; a worker missing a job kind, a worker that stopped
+heartbeating, and a database behind the code each produce the right verdict
+against a real Postgres.
+
+**Open, and not papered over:**
+
+- **The E2E suite tests a UI that was renamed out from under it.** 49 of 64
+  desktop tests fail; **35 distinct routes across 12 spec files now 404**
+  because the studio reorganisation moved every screen (`/agents` →
+  `/master/crew`, `/brain` → `/master/product`, `/system` → `/master/system`,
+  and so on). Each waits 10s on a 404 then times out at 60s, which is why the
+  CI job has been reported only as a 20-minute timeout — the timeout was the
+  symptom. `e2e/routes.spec.ts` now names all 35 in **456ms**. They cannot
+  simply be repointed: the specs also assert copy that exists nowhere in the
+  app, so they need rewriting against the current screens — which the UI
+  redesign is about to change again. **This is the first thing the next
+  package should decide about.** §568.
+- **Production's `publishing_enabled` could not be read** — no production
+  database URL exists on this machine. Production's web tier answers
+  `/api/health` 200 with a reachable database. The local dev database has
+  publishing **off**, set during this pass with a recorded reason.
+- Production is still running pre-H0 code, so it does not yet report a
+  revision. That lands with the next deploy.
+
+
+**2026-09-03 — the agent layer tells the truth about itself.** The Auditor went
+from **7 errors and 4 false tool findings to 0 errors and 1 true one**, and the
+copywriter became the first agent to reach `implemented_exercised` on evidence
+rather than assertion.
+
+| | what was wrong |
+|---|---|
+| §556 | eight director agents ran and recorded nothing — the recorder is attached to the *model* client, and *code decides* means most agents never call one |
+| §557 | two contracts declared `blocked` for reasons made untrue the same day; the audit could not see `fetch`, `vision` or `pexels:videos/search` |
+| §558 | the text critic's findings went to `generation_meta` and nowhere else; they now rewrite the slots they name, and a revision that fails the format gate is dropped |
+| §559 | the registry named five routes the studio reorganisation deleted |
+| §560 | the text critic had never been registered at all |
+| §561 | a stale prompt-version claim, and a diagnostic script emitting a version no contract owned |
+| §562 | `markOutputConsumed` was written, tested and never called — and `implemented_exercised` requires it, so no agent could reach the top state whatever it did |
+
+Everything above is in shared machinery: the render layer, the format layer,
+the QC gates, the capture layer, the accounts layer, the audio libraries and the
+agent OS. §546 reads each product's own verified facts; §553 removed "You cook"
+from a critic every product shares. Nothing is RecipeFix-shaped.
+
+Full suite: **288 files, 3,877 tests, nothing skipped.**
+
+
+## What has actually been produced, counted (2026-09-03)
+
+Read this before believing anything below it. These are counts from the
+database, not intentions.
+
+**Content formats — 9 of 11 ever generated.**
+
+**All eleven formats have now been generated with a finished render.**
+`poll` unblocked the whole story channel (§536); `walkthrough` was unblocked by
+routing around the capture blocker rather than waiting on it (§540) — the flow
+it needed requires a sign-in nobody has credentials for, and `swap_toggle`
+requires none and demonstrates the product better anyway.
+
+**Video compositions — 4 of 7 ever rendered.**
+
+| rendered | never rendered |
+|---|---|
+| Narrative (17), TransformationDiff (10), ChefNoteCard (2), Quiz (1) | **Walkthrough**, **ScalingMath**, **SubstitutionExplainer** |
+
+**Image templates — 11 now, and the three unrun ones have been rendered and
+looked at (§537).** `transformation_diff_1x1` and `scaling_math` ship as they
+are; `youtube_thumbnail` drew correctly and exposed §534. `story_card` is new
+(§536) and has produced a real story. Three Pinterest templates remain out of
+scope by decision.
+
+**Publishing — zero posts, ever, in either environment.** Deliberate: the
+system is autonomous up to publication and the operator has not turned that on.
+So every adapter's publish path is proven only by dry-run and unit tests.
+
+**The walkthrough took three fixes to become a demo rather than a still.**
+§538: the capture recorded into a canvas twice the viewport, and Playwright
+scales a page *down* to fit, never up — so two thirds of every frame was grey
+padding. §539: the cut dropped the 2.5-second wait in which the recipe actually
+rewrites, keeping the setup and discarding the payoff, so 1.3 seconds of
+footage stretched over 11 and the video froze. §538b: `tts` was dying on a
+whisper model path that exists only inside the Docker image. Now: full-bleed
+sharp product screen, 3.8 seconds of real footage, and the screen visibly
+changes across the piece.
+
+Still standing on it: the recording is a signed-out session, so the product's
+"Sign in to save your recipes" card is on screen for part of the video. Honest,
+and not what a demo should lead with.
+
+**Story is a working channel now.** It was selectable and unpublishable: a
+declared post type with two formats, a correct resolver, and no template on
+earth that was 9:16. Halyard's first story is a photograph of the cake with
+"Dairy-free cake: butter versus oil" over it and two tappable halves.
+
+**What has been looked at or listened to.** Narrative video frames for both
+products, and carousel slides. Audio verified on three voiceovers by
+transcription: word-for-word against the script, WER 0.0%, 172 wpm spoken,
+−14.4 LUFS. **Not visually reviewed this pass:** TransformationDiff video,
+ChefNoteCard video, Quiz video, `chef_note_quote` and `substitution_ratio`
+cards.
+
+So: the pipeline is proven on the paths it has actually run — short video and
+carousel, two products, both fully — and unproven everywhere else. The claim
+"every format works" would be false.
+
+
+**2026-09-03 — deployed, and X should never ask again.** OpenAI funded, Railway
+authorised, migrations 0078 and 0079 pushed, worker deployed, web deployed.
+Production refreshed a token on the new build within seconds of starting.
+
+**Why X kept asking to be reconnected.** It never should have. The access token
+lives two hours *by design*; the refresh token behind it lives six months.
+Four defects stood between that and reality:
+
+| | |
+|---|---|
+| §531 | X's refresh token is single-use. Three things refreshed with no coordination — worker schedule, web cron backstop, and routinely a second worker — and two at once destroys the chain. There is a lease now. |
+| §531 | one failure set `capability_state = 'error'`, and the refresher's select excluded `error`. The account left the loop permanently, holding a token good until February. |
+| §531 | a failure was a verdict. It is now a doubling backoff, and a person is asked only after six failures — with retries continuing. |
+| §531 | the screen said "The credential has expired… must be reconnected" for a token that renews itself. It now reads "Between refreshes." |
+| §532 | the same X account was authorised from the laptop *and* production through one developer app. X keeps one chain per user-and-app, so each environment was killing the other's token. No lock can fix that; `HALYARD_TOKEN_REFRESH=off` says which machine does not own them. |
+
+Cadence 60 → 30 minutes: `needsRefresh` acts with 60 minutes left on a 2-hour
+token, so hourly gave each token exactly one chance.
+
+| Platform | Access token | Renews itself? |
+|---|---|---|
+| X | 2 hours | yes — 6-month refresh token, single-use, rotated |
+| TikTok | 24 hours | yes — 365-day refresh token |
+| Instagram, Threads | 60 days | yes — long-lived token exchanged for a new one |
+| YouTube / Google | 1 hour | yes — refresh token does not expire |
+| Bluesky | app password | nothing to refresh |
+
+So no platform needs a human on a schedule. Pinterest is out of scope by
+decision.
+
+**Proved, not assumed.** At 02:01 UTC production renewed X's token by itself —
+expiry moved from 03:00:18 to 04:00:45, `refresh_failures` 0, lease taken and
+released, nobody touched anything. The half-hourly pass logged `refreshed=2
+failed=0`.
+
+**Quality, measured on the same run.** Captions written after §523: **0 of 5**
+use the topic-label opening, against 10 of 12 before. The one remaining in the
+database is the original 18:39 caption that started the investigation. The new
+Kinolog voiceover runs 5/15/14/14/11 words a sentence — variation 0.310, above
+the 0.25 floor and above the corpus median — where §524's example was seven
+sentences of exactly six words. And §525 shows: the third-act script is about
+film, written by a narrator no longer told it writes about cooking.
+
+§533 closes the loop that made §523 uncomfortable: warnings now reach the
+writer, riding on a retry an error already forced, so they cost nothing.
+
+
+**2026-09-02, later — blocked on money, not on code.** Both model providers
+refused: OpenAI "no credits remaining", Anthropic "credit balance is too low".
+Nothing can be generated until one is funded. The Railway CLI is also logged
+out, so nothing can be deployed. Everything below is written, tested and
+running locally.
+
+| Blocked on the operator | Why |
+|---|---|
+| Fund OpenAI or Anthropic | every generate, concept and review job refuses |
+| `railway login` | §508–§526 cannot reach production |
+| Connect Pinterest, make one board | §513, unchanged |
+
+**Quality pass — five defects, all found by reading finished work as its
+audience would.**
+
+| | what it was |
+|---|---|
+| §521 | every video ever made was signed RECIPEFIX; the video render passed no wordmark and Remotion's sample default won |
+| §522 | Narrative, Quiz and Walkthrough never mounted `<Fonts />`, so every video in those formats was set in Times New Roman |
+| §523 | ten consecutive captions opened `Label: mechanism`, across two products and three platforms, and every one passed every gate |
+| §524 | a voiceover of seven six-word sentences, variation 0.000, passed the rule written to catch uniform rhythm |
+| §525 | the narrator's system prompt said "short cooking videos" for every product, Kinolog included |
+| §526 | fourteen jobs died today to an unfunded provider, behind a message promising the queue would resume |
+
+Measured on one regeneration: the caption went from 64 characters with a label
+opening to 203 characters with a claim opening and zero violations. Kinolog
+renders KINOLOG in Bricolage Grotesque, RecipeFix renders RECIPEFIX in
+Instrument Serif, both confirmed from real frames.
+
+**The screens, on both widths.** Connections is one page listing all nine
+accounts with plain state and a Connect / Reconnect / Disconnect on each, and it
+holds up at 390px. Two defects found by looking:
+
+| | |
+|---|---|
+| §527 | on a phone the *selected* room tab sat 161px past the right edge and nothing ever scrolled to it, so Master ▸ System showed no current tab at all |
+| §528 | the browser suite had been testing a deleted product — 31 of the 37 routes it navigates to are not served, and the phone approval test looked for a landmark removed in `aef621a` |
+
+Repairing §528 for the accounts spec then found three more, all mine from
+§497: a staged connection with no route back to it (§529), a disconnect button
+whose copy claimed the platform grant is revoked when it is not, and an action
+whose honest "here is what was *not* erased" message went to a query parameter
+the page never read (§530). `accounts.spec.ts` is 6 of 6 again and now covers
+the disconnect guard against the screen that exists.
+
+§528 is the worse of the two, because those tests *passed*. Asserting that
+eleven screens do not scroll sideways is worth nothing when nine of them 404,
+and a 404 page does not scroll sideways either.
+
+Full unit suite: **281 files, 3,801 tests, nothing skipped.**
+
+**Browser suite, honestly.** `accounts.spec.ts` is 6 of 6 and `mobile.spec.ts`
+is 3 of 3, both now against screens that exist. The rest is not repaired: the
+`agents`, `brain`, `system`, `campaigns`, `compose` and `accessibility` specs
+still navigate to routes the studio reorganisation replaced, and they fail
+rather than passing vacuously, which is the better of the two states. Route
+mapping for whoever picks it up:
+
+| the spec says | the app serves |
+|---|---|
+| `/queue` | `/gallery` |
+| `/agents`, `/agents/runs`, `/agents/versions` | `/master/crew`, `/master/crew/runs`, `/master/crew/versions` |
+| `/brain/*` | `/master/product/*` |
+| `/system/*` | `/master/system/*` |
+| `/settings/pronunciation` | `/master/system/pronunciation` |
+| `/setup-kit` | `/master/setup-kit` |
+| `/campaigns`, `/launch` | `/rundown/campaigns`, `/rundown/launch` |
+| `/take`, `/finds` | `/wires/take`, `/wires/finds` |
+| `/analytics` | `/numbers` |
+
+Renaming the routes is the easy half. The assertions inside also describe
+screens that were rewritten, so each spec needs reading against the page it now
+points at — which is how §529 and §530 were found, and is the reason to do it
+rather than delete them.
+
+
+**2026-09-02 — every video was signed RECIPEFIX and set in Times New Roman.**
+Found by looking at Kinolog's first frame, which is the only way either could
+have been found. Two independent defects, both fixed and both product-wide:
+
+| | |
+|---|---|
+| §521 | the video render never passed a wordmark, so Remotion's `defaultProps` sample value won — *every* video ever made carries RecipeFix's mark |
+| §521 | it also passed the raw `brand_tokens` column; RecipeFix stores `heading_font`, Kinolog stores `headingFont`, and `resolveBrand` was written in §337 to reconcile exactly that |
+| §522 | Narrative, Quiz and Walkthrough never mounted `<Fonts />` — `fonts.tsx` opens by predicting the default serif, and was right about three of seven roots |
+| §522 | those roots thread a `typography` prop through every text element that nothing in the repo ever supplied; it now defaults to the brand's faces |
+| verified | Kinolog renders KINOLOG in Bricolage Grotesque, RecipeFix renders RECIPEFIX in Instrument Serif, both from real frames |
+| guarded | `fontCoverage.test.ts` fails any composition root that mounts no fonts, sets no family, or leaves typography undefined |
+
+Cost of the fix: `brandTypography` in `image/templates.ts` dragged
+`@halyard/core` and `node:crypto` into Remotion's browser bundle — gotcha 10,
+paid a second time. It typechecked and passed 355 tests before failing at
+render. It lives in `packages/render/src/typography.ts` now, and a test refuses
+any value import of the image templates from `src/video`.
+
+**Not yet deployed.** §508–§522 are local only; production runs this morning's
+upload.
+
+
 **2026-09-02 — the carousel channel works, and production runs today's code.**
 Instagram carousels had never rendered once: the branch was unreachable
 (§508). Now a tips deck is seven slides for **$0.11**, a sixth of a video —
@@ -12,6 +290,7 @@ heartbeat is seconds old.
 | Short video | proven, with real licensed footage (§478) | ~$0.43 |
 | Carousel | proven today (§508–§512) | ~$0.11–0.18 |
 | Text, pin | built, unproven | — |
+| Poll, walkthrough | **never generated once** | — |
 
 What running it once found, that 3,000 tests did not: an unreachable branch,
 tip numbers off by one, a photograph inlined and dropped by a layout that

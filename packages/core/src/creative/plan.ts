@@ -510,7 +510,44 @@ export function footageSpansFor(
    */
   const isPayoff = (index: number): boolean => {
     const previous = ordered[index - 1];
-    return Boolean(previous?.elide) && (ordered[index]?.action ?? '') === 'wait';
+    const step = ordered[index];
+    const action = step?.action ?? '';
+
+    /* §163's original case: a wait straight after an elided step. */
+    if (Boolean(previous?.elide) && action === 'wait') return true;
+
+    /*
+     * §539. The same moment, reached the other way.
+     *
+     * §163 held a wait only when the step before it was elided, and the first
+     * `swap_toggle` walkthrough showed why that is too narrow. Its steps run
+     * click → **wait for the rewrite (2500ms)** → still after the swap. Nothing
+     * is elided, so the wait was dropped — and the wait *is* the product
+     * rewriting the recipe. The cut kept the setup and threw away the payoff:
+     * 1.3 seconds of usable footage under an 11-second piece, so the video
+     * froze on a still frame for nine of them.
+     *
+     * The signal is the `still` that follows: a flow author records a frame
+     * because they want that state looked at, so the wait immediately before
+     * one is the work that produced it. The wait is held; the still itself
+     * stays out, because a motionless frame is still dead air in footage and
+     * `filters by action rather than by step name` is right about that.
+     *
+     * Structural and product-agnostic — it reads the shape of the flow, never
+     * the pixels. A wait followed by anything else is unchanged: dead air.
+     */
+    /*
+     * The lookahead skips steps that never reach footage. §541 added an
+     * optional `setup` click between the wait and the still — dismissing a
+     * sign-in prompt — and the cut immediately fell from 3.8s back to 1.3s,
+     * because the wait's neighbour was no longer a `still`. A step excluded
+     * from every span must not change what its neighbours mean.
+     */
+    let ahead = index + 1;
+    while (ordered[ahead]?.setup || ordered[ahead]?.elide) ahead += 1;
+    if (action === 'wait' && (ordered[ahead]?.action ?? '') === 'still') return true;
+
+    return false;
   };
 
   const shows = (s: CapturedStep, index: number): boolean =>

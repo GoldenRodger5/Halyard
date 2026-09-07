@@ -24,6 +24,11 @@ env:
   # Not a secret. CI runs against a throwaway Postgres in a container.
   TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
   TOKEN_ENCRYPTION_KEY: dGVzdC1rZXktdGVzdC1rZXktdGVzdC1rZXktdGVzdA==
+  # §564. A database-backed suite may not skip here. Forty-three suites guard on
+  # `databaseAvailable()` and report GREEN when it returns false — so a CI run
+  # whose Postgres service failed to come up looked exactly like a clean one.
+  # With this set they fail with the reason instead.
+  HALYARD_REQUIRE_DB: '1'
 
 jobs:
   verify:
@@ -86,7 +91,16 @@ jobs:
         env:
           DATABASE_URL: ${{ env.TEST_DATABASE_URL }}
 
+      # §564. `if: !cancelled()` on every check from here down.
+      #
+      # The generated-types step above has been failing since 2 September, and
+      # because a failed step ends the job, typecheck, lint and tests DID NOT
+      # RUN AT ALL for four days. One known-red step was hiding the state of
+      # three others — and when the types were finally fixed, lint turned out to
+      # have seven errors of its own. Every check now reports its own verdict,
+      # and the job still fails if any of them did.
       - name: Typecheck
+        if: '!cancelled()'
         run: |
           for dir in packages/core packages/db packages/render packages/ui packages/audit apps/worker apps/web; do
             echo "── $dir"
@@ -94,10 +108,15 @@ jobs:
           done
 
       - name: Lint
+        if: '!cancelled()'
         run: pnpm exec eslint .
 
       - name: Test
-        run: pnpm exec vitest run
+        if: '!cancelled()'
+        # gotcha 12: forty-three suites each create and migrate a database, and
+        # the default worker count exhausts Postgres. minWorkers is not
+        # decoration — maxWorkers alone reports "no tests" with a zero exit.
+        run: pnpm exec vitest run --minWorkers=1 --maxWorkers=4
 
   # ── End to end ───────────────────────────────────────────────────────────
   #

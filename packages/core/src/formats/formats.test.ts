@@ -362,3 +362,42 @@ describe('the myth format asks for a myth', () => {
     expect(slot('correction').minWords).toBeGreaterThanOrEqual(12);
   });
 });
+
+/**
+ * §550. A brief the writer copies is a brief that writes the line.
+ *
+ * `tips.close` read "The one that matters most, named." — and five of the last
+ * twenty voiceovers ended with the literal words *"the one that matters most"*,
+ * 25% of everything Halyard has given a voice. The writer was not being lazy,
+ * it was being obedient: a brief phrased as a sentence hands the writer a
+ * sentence.
+ *
+ * This guards the class, not the instance. A slot brief that reads like the
+ * output rather than like an instruction will be copied, and the next one
+ * written that way should fail here.
+ */
+describe('§550 a slot brief instructs, it does not dictate', () => {
+  it('no longer hands the writer the sentence it kept copying', () => {
+    const close = POST_FORMAT_CATALOG.tips.slots.find((s) => s.key === 'close');
+    expect(close).toBeDefined();
+    expect(close!.brief.toLowerCase()).not.toMatch(/^the one that matters most/);
+  });
+
+  it('tells the writer not to announce the conclusion', () => {
+    const close = POST_FORMAT_CATALOG.tips.slots.find((s) => s.key === 'close');
+    expect(close!.brief).toMatch(/do not announce/i);
+  });
+
+  it('every brief reads as an instruction rather than a finished line', () => {
+    /*
+     * A brief that is a bare noun phrase with no verb is a caption someone can
+     * paste. Every brief should tell the writer to *do* something, or describe
+     * a property, rather than being the thing itself.
+     */
+    for (const format of Object.values(POST_FORMAT_CATALOG)) {
+      for (const slot of format.slots) {
+        expect(slot.brief.length, `${format.id}.${slot.key} has no brief`).toBeGreaterThan(12);
+      }
+    }
+  });
+});

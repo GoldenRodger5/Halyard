@@ -218,6 +218,17 @@ export async function selectBed(
     };
   }
 
+  /*
+   * §548. Product-neutral beds count here too, as they do in the query above.
+   *
+   * The `music_beds` read already accepts `product_id is null`; this fallback
+   * required an exact match, so a CC0 bed owned by nobody was selectable there
+   * and invisible here. Music is not a product's property — §518's lesson about
+   * templates, one library along.
+   *
+   * The comment lives outside the SQL because a backtick inside a template
+   * literal ends it, which is how the first version of this failed to compile.
+   */
   const { rows } = await ctx.pool.query<{
     id: string;
     storage_path: string | null;
@@ -226,7 +237,7 @@ export async function selectBed(
   }>(
     `select a.id, a.storage_path, a.public_url, a.caption as licence
        from assets a
-      where a.product_id = $1
+      where (a.product_id = $1 or a.product_id is null)
         and a.kind = 'audio'
         and $2 = any(a.tags)
       order by a.last_used_at nulls first, a.created_at

@@ -12,31 +12,25 @@
  * rehearsal is worth having, but it needs the adapters to accept an injected
  * clock — a separate change, not one to make while pointing at live accounts.
  *
- * Two instruments the codebase already has, pointed at production credentials
- * for the first time:
+ * So one instrument, pointed at production credentials:
  *
  *   · `selfTest`  — is the token alive, does it carry the scopes, can it read?
- *   · `dryRunPublish` — build the exact request the platform would receive,
- *     record it, and stop before the network.
  *
  * This is the honest way to test five live brand accounts. X and Threads have no
  * draft concept: any real post is immediately public and, on X, billed per post.
- * A rehearsal proves the request is correct without spending either.
+ * `selfTest` reads and never writes, so it spends neither.
  *
- * Nothing here writes to a platform. `createDryRunFetch` intercepts every call.
+ * Nothing here writes to a platform: no publish path is reached at all.
  */
 import pg from 'pg';
 import { readFileSync } from 'node:fs';
 import {
-  dryRunPublish,
   getAdapter,
   openToken,
   selfTest,
   PLATFORM_SCOPES,
   type PlatformId,
   type PublishAccount,
-  type PublishAsset,
-  type PublishItem,
 } from '@halyard/core';
 
 async function main(): Promise<void> {
@@ -44,43 +38,6 @@ async function main(): Promise<void> {
 process.env.TOKEN_ENCRYPTION_KEY = env.TOKEN_ENCRYPTION_KEY;
 
 const pool = new pg.Pool({ connectionString: env.DATABASE_URL, max: 2, connectionTimeoutMillis: 20_000 });
-
-/** A real rendered asset already in production, served from the verified origin. */
-const asset: PublishAsset = {
-  id: '14b6e940-ecdf-4fe1-b70d-6f4c1564cf75',
-  publicUrl: 'https://halyard-ten.vercel.app/media/14b6e940-ecdf-4fe1-b70d-6f4c1564cf75',
-  mimeType: 'video/mp4',
-  kind: 'video',
-  width: 1080,
-  height: 1920,
-  durationSeconds: 23.37,
-  altText: 'A gluten-free apple pie, before and after the swap.',
-};
-
-const baseItem = (platform: PlatformId): PublishItem => ({
-  id: 'rehearsal',
-  platform,
-  format: 'video',
-  body: 'Store-bought apple pie has a gluten problem. This one does not — same crumb, same caramelised top, no wheat.',
-  title: 'Gluten-free apple pie, same crumb',
-  altText: asset.altText,
-  hashtags: ['glutenfree', 'applepie', 'baking'],
-  /* TikTok refuses without a completed panel; these are the creator's choices. */
-  tiktokOptions:
-    platform === 'tiktok'
-      ? {
-          privacyLevel: 'SELF_ONLY',
-          allowComment: true,
-          allowDuet: false,
-          allowStitch: false,
-          commercialContent: false,
-          brandOrganic: false,
-          brandedContent: false,
-          musicConfirmedAt: new Date().toISOString(),
-          creatorInfoFetchedAt: new Date().toISOString(),
-        }
-      : null,
-});
 
 const rows = (
   await pool.query<{

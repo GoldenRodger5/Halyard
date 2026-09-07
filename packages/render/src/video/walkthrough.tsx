@@ -41,7 +41,8 @@ import {
   useVideoConfig,
 } from 'remotion';
 import type { BrandTokens } from '../brand.js';
-import type { RenderTypography } from '../image/templates.js';
+import { brandTypography, type RenderTypography } from '../typography.js';
+import { Fonts } from './fonts.js';
 
 /**
  * §319. How long a ring may claim a position.
@@ -392,6 +393,19 @@ export const Walkthrough: React.FC<WalkthroughProps> = ({
   const seconds = frame / fps;
 
   /*
+   * §522. Two things every video in this format was missing.
+   *
+   * `<Fonts />` registers the bundled faces; `fonts.tsx` opens by saying that
+   * without it every composition renders in the browser's default serif, and
+   * only `compositions.tsx` had ever mounted it — so this format never loaded a
+   * face. And `typography` is threaded through every text element here but was
+   * supplied by nothing in the repo, so `face()` returned `{}` and no
+   * `font-family` was set either. Defaulting it to the brand's own faces means
+   * a product's type is used unless a piece deliberately overrides it.
+   */
+  const type = typography ?? brandTypography(brand);
+
+  /*
    * The ground drifts and scales very slightly across the whole piece. Slow
    * enough that nobody notices it moving and fast enough that the frame is
    * never still — which is the difference between a video and a screenshot of
@@ -449,7 +463,8 @@ export const Walkthrough: React.FC<WalkthroughProps> = ({
   const phoneWidth = Math.round(width * 0.62);
 
   return (
-    <AbsoluteFill style={{ backgroundColor: brand.ink, overflow: 'hidden' }}>
+    <AbsoluteFill style={{ backgroundColor: brand.ink, overflow: 'hidden', fontFamily: brand.bodyFont }}>
+      <Fonts />
       {audioSrc ? <Audio src={audioSrc} /> : null}
 
       {backgroundDataUri ? (
@@ -493,7 +508,7 @@ export const Walkthrough: React.FC<WalkthroughProps> = ({
             fontSize: 74,
             lineHeight: 1.04,
             opacity: rise,
-            ...face(typography, 'display'),
+            ...face(type, 'display'),
           }}
         >
           {headline}
@@ -553,7 +568,7 @@ export const Walkthrough: React.FC<WalkthroughProps> = ({
             {callouts
               .filter((c) => c.at)
               .map((c, i) => (
-                <Callout key={`in-${i}`} callout={c} brand={brand} type={typography} />
+                <Callout key={`in-${i}`} callout={c} brand={brand} type={type} />
               ))}
             {/*
               §326. The press, drawn a beat *before* the ring.
@@ -578,7 +593,7 @@ export const Walkthrough: React.FC<WalkthroughProps> = ({
       {callouts
         .filter((c) => !c.at)
         .map((c, i) => (
-          <Callout key={`out-${i}`} callout={c} brand={brand} type={typography} />
+          <Callout key={`out-${i}`} callout={c} brand={brand} type={type} />
         ))}
 
       {wordmark ? (

@@ -25,6 +25,16 @@ import {
   type PublishItem,
 } from '@halyard/core';
 
+/*
+ * Only the fields this check reads back. `any` here would let a renamed field
+ * read as `undefined` and quietly turn the §199 assertion below into a false
+ * negative that looks like a platform change.
+ */
+interface StoredVideo {
+  snippet?: { title?: string; categoryId?: string; tags?: string[]; description?: string };
+  status?: { privacyStatus?: string; publishAt?: string };
+}
+
 async function main(): Promise<void> {
   const env = JSON.parse(readFileSync(process.env.RV!, 'utf8')) as Record<string, string>;
   process.env.TOKEN_ENCRYPTION_KEY = env.TOKEN_ENCRYPTION_KEY;
@@ -120,7 +130,7 @@ async function main(): Promise<void> {
       `https://www.googleapis.com/youtube/v3/videos?part=snippet,status&id=${id}`,
       { headers: { authorization: `Bearer ${tokens.accessToken}` } },
     );
-    const body = (await res.json()) as any;
+    const body = (await res.json()) as { items?: StoredVideo[] };
     const v = body.items?.[0];
     console.log('\n── what YouTube actually stored ──');
     console.log('  title       :', v?.snippet?.title);

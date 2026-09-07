@@ -36,7 +36,8 @@ import {
   useVideoConfig,
 } from 'remotion';
 import type { BrandTokens } from '../brand.js';
-import type { RenderTypography } from '../image/templates.js';
+import { brandTypography, type RenderTypography } from '../typography.js';
+import { Fonts } from './fonts.js';
 import { quizPalette, type QuizPalette } from './quizTemplates.js';
 
 /** What a beat is doing, which is what decides how hard it lands. */
@@ -805,6 +806,19 @@ export const Narrative: React.FC<NarrativeProps> = ({
 }) => {
   const { fps } = useVideoConfig();
   /*
+   * §522. Two things every video in this format was missing.
+   *
+   * `<Fonts />` registers the bundled faces; `fonts.tsx` opens by saying that
+   * without it every composition renders in the browser's default serif, and
+   * only `compositions.tsx` had ever mounted it — so this format never loaded a
+   * face. And `typography` is threaded through every text element here but was
+   * supplied by nothing in the repo, so `face()` returned `{}` and no
+   * `font-family` was set either. Defaulting it to the brand's own faces means
+   * a product's type is used unless a piece deliberately overrides it.
+   */
+  const type = typography ?? brandTypography(brand);
+
+  /*
    * §407. Two palettes, chosen per beat by what is behind *that* beat.
    *
    * `quizPalette(brand, overPhoto)` returns white type over a photograph and
@@ -824,7 +838,8 @@ export const Narrative: React.FC<NarrativeProps> = ({
   let from = 0;
 
   return (
-    <AbsoluteFill style={{ backgroundColor: brand.background }}>
+    <AbsoluteFill style={{ backgroundColor: brand.background, fontFamily: brand.bodyFont }}>
+      <Fonts />
       {audioSrc ? <Audio src={audioSrc} /> : null}
 
 
@@ -856,7 +871,7 @@ export const Narrative: React.FC<NarrativeProps> = ({
                   : overCard
               }
               brand={brand}
-              type={typography}
+              type={type}
             />
           </Sequence>
         );

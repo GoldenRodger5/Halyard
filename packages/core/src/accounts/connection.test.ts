@@ -82,3 +82,61 @@ describe('§497 what one connection row says and offers', () => {
     expect(view.actionLabel).toMatch(/app password/i);
   });
 });
+
+/**
+ * §531. An expired access token is not, by itself, anybody's problem.
+ *
+ * X issues a two-hour access token by design and a refresh token behind it that
+ * lives six months. So an expired access token is the *normal* state between
+ * refreshes — and this screen said "The credential has expired. Nothing can be
+ * read or published until it is reconnected", which is how a working system
+ * teaches an operator to do pointless work every few hours.
+ */
+describe('§531 an expired token that renews itself', () => {
+  const base = {
+    platform: 'X',
+    handle: '@Recipe_Fix',
+    capabilityState: 'live',
+    hasToken: true,
+    identityConfirmedAt: new Date().toISOString(),
+    tokenExpiresAt: new Date(Date.now() - 60 * 60_000).toISOString(),
+    lastError: null,
+    credentialsConfigured: true,
+    credentialEnvNames: ['X_CLIENT_ID', 'X_CLIENT_SECRET'],
+    requiresPlatformReview: false,
+    publishingEnabled: true,
+  };
+
+  it('reads as a state, not a request, while a refresh token is held', () => {
+    const view = connectionView({ ...base, hasRefreshToken: true, refreshFailures: 0 });
+    expect(view.state).not.toBe('broken');
+    expect(view.headline).toBe('Between refreshes.');
+    expect(view.detail).toContain('Nothing for you to do');
+  });
+
+  it('still lets an impatient operator reconnect by hand', () => {
+    const view = connectionView({ ...base, hasRefreshToken: true, refreshFailures: 0 });
+    expect(view.action).toBe('reconnect');
+    expect(view.canDisconnect).toBe(true);
+  });
+
+  it('becomes the operator’s problem once the retries are spent', () => {
+    const view = connectionView({ ...base, hasRefreshToken: true, refreshFailures: 6 });
+    expect(view.state).toBe('broken');
+    expect(view.headline).toContain('failed too many times');
+    expect(view.detail).toContain('needs a round trip');
+  });
+
+  it('is broken immediately when nothing can renew it', () => {
+    /* No refresh token: expiry really is the end of the line. */
+    const view = connectionView({ ...base, hasRefreshToken: false });
+    expect(view.state).toBe('broken');
+    expect(view.headline).toBe('The credential has expired.');
+  });
+
+  it('defaults to the old behaviour when the caller says nothing', () => {
+    /* An absent `hasRefreshToken` must not quietly claim an account renews. */
+    const view = connectionView(base);
+    expect(view.state).toBe('broken');
+  });
+});

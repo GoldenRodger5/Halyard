@@ -74,6 +74,8 @@ const job = (contentItemId: string): Job =>
     attempts: 1,
     max_attempts: 2,
     dedupe_key: null,
+    /* §526. The poller bounds an unfunded park by the job's age. */
+    created_at: new Date().toISOString(),
   }) as Job;
 
 /** A describer that reports whatever the test tells it to have seen. */

@@ -715,3 +715,112 @@ export async function recentFormats(
   );
   return rows.map((r) => r.post_format);
 }
+
+/** §558. Bumped whenever the revision prompt changes, so runs stay comparable. */
+export const SLOT_REVISION_PROMPT_VERSION = 'slot-revision@1';
+
+/**
+ * §558. Act on what the critic said.
+ *
+ * `readPiece` asks three readers — someone scrolling at speed, someone who
+ * knows the subject, a demanding art director — what is wrong with a written
+ * piece. It is good at it. A Kinolog piece came back with *"'play the highest
+ * overlap' sounds assembled rather than spoken"*, which is exactly right.
+ *
+ * And the verdict was written to `generation_meta` and nothing else. A piece
+ * flagged `text.reads_as_written_by_a_machine` went to the approval queue
+ * unchanged, so the critic was an opinion nobody acted on — §533's objection,
+ * one layer up, and the finding type has carried the answer in a comment since
+ * it was written: *"which slot it is about, so a rewrite knows what to
+ * replace."* Nothing replaced anything.
+ *
+ * ## Why only the named slots
+ *
+ * Re-running the whole writer would re-research the piece, cost a second
+ * research pass, and put good lines at risk to fix one bad one. The findings
+ * name their slots, so this asks for replacements for exactly those and leaves
+ * the rest alone.
+ *
+ * ## Why it can never make things worse
+ *
+ * The revision goes through `checkDraft` — the same gate the original passed —
+ * and is discarded whole if it fails. §275's rule stands: the critic may not
+ * fail a piece. This is not a veto; a piece whose revision does not survive
+ * ships with its original lines and the finding recorded against it.
+ */
+export async function reviseFlaggedSlots(
+  ctx: HandlerContext,
+  format: PostFormat,
+  draft: FormatDraft,
+  findings: Array<{ rule: string; message: string; slot: string | null; persona: string }>,
+  llm: LlmClient,
+): Promise<{ draft: FormatDraft; revised: string[]; costUsd: number } | null> {
+  const named = [...new Set(findings.map((f) => f.slot).filter((s): s is string => Boolean(s)))];
+  if (named.length === 0) return null;
+
+  const targets = draft.slots.filter((s) => named.includes(s.key));
+  if (targets.length === 0) return null;
+
+  const objections = findings
+    .filter((f) => f.slot && named.includes(f.slot))
+    .map((f) => `- ${f.slot} — ${f.message} (${f.persona}, ${f.rule})`)
+    .join('\n');
+
+  const current = targets.map((s) => `${s.key}: ${s.text}`).join('\n');
+
+  const reply = await llm.complete({
+    system:
+      'You are rewriting individual lines of a social post that readers objected to. ' +
+      'Keep the meaning and the facts; change how it is said. Reply with JSON only: ' +
+      'an object mapping each slot key to its replacement line. No other keys, no prose.',
+    messages: [
+      {
+        role: 'user',
+        content:
+          `The piece is a ${format.name}.\n\nThe lines as written:\n${current}\n\n` +
+          `What readers said:\n${objections}\n\n` +
+          'Rewrite only these lines. Same length or shorter. Do not answer the objection in the ' +
+          'line itself — fix what caused it.',
+      },
+    ],
+    maxTokens: 500,
+    temperature: 0.6,
+    /* Versioned like every other prompt, so a change to it is attributable. */
+    promptVersion: SLOT_REVISION_PROMPT_VERSION,
+  });
+
+  try {
+    const start = reply.text.indexOf('{');
+    const end = reply.text.lastIndexOf('}');
+    if (start === -1 || end === -1) return null;
+    const replacements = JSON.parse(reply.text.slice(start, end + 1)) as Record<string, unknown>;
+
+    const revised: string[] = [];
+    const slots = draft.slots.map((slot) => {
+      const next = replacements[slot.key];
+      if (typeof next !== 'string' || next.trim().length === 0) return slot;
+      if (!named.includes(slot.key)) return slot;
+      revised.push(slot.key);
+      return { ...slot, text: next.trim() };
+    });
+
+    if (revised.length === 0) return null;
+
+    const candidate: FormatDraft = { ...draft, slots };
+    const check = checkDraft(format, candidate);
+    if (!check.ok) {
+      /* §275. The critic may not fail a piece, so a bad revision is dropped. */
+      ctx.log('the revision did not hold up, keeping the original lines', {
+        because: check.problems
+          .filter((p) => p.severity === 'error')
+          .map((p) => p.rule)
+          .join(', '),
+      });
+      return null;
+    }
+
+    return { draft: candidate, revised, costUsd: reply.costUsd ?? 0 };
+  } catch {
+    return null;
+  }
+}

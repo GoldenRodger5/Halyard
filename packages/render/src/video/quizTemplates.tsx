@@ -34,7 +34,7 @@
 import React from 'react';
 import { interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
 import type { BrandTokens } from '../brand.js';
-import type { RenderTypography } from '../image/templates.js';
+import type { RenderTypography } from '../typography.js';
 import { contrastRatio } from './captionStyle.js';
 
 export const QUIZ_TEMPLATES = ['stack', 'rail', 'grid', 'spotlight', 'versus'] as const;

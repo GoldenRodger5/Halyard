@@ -461,3 +461,69 @@ describe('footageSpansFor', () => {
     ).toEqual([]);
   });
 });
+
+/**
+ * §539. The wait in which the product does the thing.
+ *
+ * §163 held a wait only when the step before it was elided. The first
+ * `swap_toggle` walkthrough showed why that is too narrow: its steps run
+ * click → **wait for the rewrite (2500ms)** → still after the swap, nothing is
+ * elided, and the wait *is* the recipe rewriting. It was dropped, so the cut
+ * kept the setup and threw away the payoff — 1.3 seconds of footage under an
+ * 11-second piece, which rendered as a frozen frame for nine of them.
+ */
+describe('§539 a wait that produces a result', () => {
+  const swapToggle = [
+    { step: 'open the homepage', action: 'goto', ok: true, setup: true, startMs: 0, endMs: 1439 },
+    { step: 'find the swap control', action: 'waitFor', ok: true, startMs: 1439, endMs: 1450 },
+    { step: 'scroll the ingredient into view', action: 'scrollTo', ok: true, startMs: 1450, endMs: 1469 },
+    { step: 'still before the swap', action: 'still', ok: true, startMs: 1469, endMs: 1504 },
+    { step: 'pick the other option', action: 'click', ok: true, startMs: 1504, endMs: 2376 },
+    { step: 'wait for the rewrite', action: 'wait', ok: true, startMs: 2376, endMs: 4876 },
+    { step: 'still after the swap', action: 'still', ok: true, startMs: 4876, endMs: 4954 },
+  ];
+
+  it('keeps the rewrite, which is the only thing worth watching', () => {
+    const kept = footageSpansFor(swapToggle as never).flatMap((s) => s.steps);
+    expect(kept, 'the payoff was cut and the video froze').toContain('wait for the rewrite');
+  });
+
+  it('still leaves the motionless frame out, because footage is movement', () => {
+    const kept = footageSpansFor(swapToggle as never).flatMap((s) => s.steps);
+    expect(kept).not.toContain('still after the swap');
+  });
+
+  it('gives the composition something to play rather than a single frame', () => {
+    /* 1.3s was what the old rule kept; the rewrite alone is twice that. */
+    expect(footageDurationMs(footageSpansFor(swapToggle as never))).toBeGreaterThan(2_500);
+  });
+});
+
+/**
+ * §541. A step that never reaches footage must not change its neighbours.
+ *
+ * §541 added an optional `setup` click between `wait for the rewrite` and
+ * `still after the swap`, to close the product's own sign-in prompt. The cut
+ * fell from 3.8 seconds back to 1.3 immediately: §539 asks whether the *next*
+ * step is a still, and the next step was now a dismiss. A step excluded from
+ * every span was silently deciding whether the payoff survived.
+ */
+describe('§541 setup steps are invisible to the payoff rule', () => {
+  const withDismiss = [
+    { step: 'open the homepage', action: 'goto', ok: true, setup: true, startMs: 0, endMs: 1439 },
+    { step: 'pick the other option', action: 'click', ok: true, startMs: 1504, endMs: 2376 },
+    { step: 'wait for the rewrite', action: 'wait', ok: true, startMs: 2376, endMs: 4876 },
+    { step: 'dismiss the sign-in prompt', action: 'click', ok: true, setup: true, startMs: 4876, endMs: 5100 },
+    { step: 'still after the swap', action: 'still', ok: true, startMs: 5100, endMs: 5178 },
+  ];
+
+  it('still keeps the rewrite with a setup step in the way', () => {
+    const kept = footageSpansFor(withDismiss as never).flatMap((s) => s.steps);
+    expect(kept, 'an invisible step cut the payoff').toContain('wait for the rewrite');
+  });
+
+  it('never puts the setup step itself on screen', () => {
+    const kept = footageSpansFor(withDismiss as never).flatMap((s) => s.steps);
+    expect(kept).not.toContain('dismiss the sign-in prompt');
+  });
+});

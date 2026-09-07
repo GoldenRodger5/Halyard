@@ -4,7 +4,9 @@
  * unique indexes, RLS, generated columns) only exist in the database.
  *
  * Skips the suite rather than failing when no database is reachable, so a
- * checkout without Postgres still runs the pure unit tests.
+ * checkout without Postgres still runs the pure unit tests — unless
+ * `HALYARD_REQUIRE_DB=1`, which is how CI and `pnpm verify` say that a skip
+ * here is a false green rather than a convenience. See `databaseRequired`.
  */
 import { readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
@@ -19,15 +21,51 @@ export const TEST_DATABASE_URL =
   process.env.DATABASE_URL ??
   'postgres://postgres@localhost:54322/postgres';
 
+/**
+ * §564. `HALYARD_REQUIRE_DB=1` turns a silent skip into a loud failure.
+ *
+ * The skip below is right on a laptop without Postgres and wrong everywhere a
+ * green result is *believed*. Forty-three suites guard on this function, and
+ * every one of them reports green when it returns false — so the difference
+ * between "the database-backed half of the suite passed" and "the
+ * database-backed half of the suite did not run" was a line of scrollback
+ * nobody reads. §379 already cost a day to exactly this, and §395 found the
+ * nastier version: connection exhaustion *also* lands here, so a suite that
+ * failed to get a connection went dark rather than red.
+ *
+ * Required mode is how a run declares it expects the whole suite. CI sets it;
+ * so does the `verify` script. A checkout with no Postgres still skips, because
+ * the flag is absent and nobody is claiming otherwise.
+ */
+export function databaseRequired(): boolean {
+  const flag = process.env.HALYARD_REQUIRE_DB?.trim().toLowerCase();
+  return flag === '1' || flag === 'true' || flag === 'yes';
+}
+
 export async function databaseAvailable(): Promise<boolean> {
   const client = new pg.Client({ connectionString: TEST_DATABASE_URL, connectionTimeoutMillis: 1500 });
   try {
     await client.connect();
     await client.end();
     return true;
-  } catch {
+  } catch (err) {
+    if (databaseRequired()) {
+      throw new Error(
+        'HALYARD_REQUIRE_DB is set, so a database-backed suite may not skip, but ' +
+          `Postgres at ${redactUrl(TEST_DATABASE_URL)} could not be reached: ` +
+          `${(err as Error).message}\n` +
+          'Either start Postgres and set TEST_DATABASE_URL, or unset HALYARD_REQUIRE_DB ' +
+          'and accept that these suites are being skipped rather than passing.',
+        { cause: err },
+      );
+    }
     return false;
   }
+}
+
+/** Never let a password reach a test log. */
+function redactUrl(url: string): string {
+  return url.replace(/:[^:@/]+@/, ':***@');
 }
 
 export async function migrateFresh(pool: pg.Pool): Promise<void> {

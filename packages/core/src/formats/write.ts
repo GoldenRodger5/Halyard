@@ -26,6 +26,7 @@ import type { FormatBudget } from '../creative/length.js';
 import { THUMBNAIL_WORDS } from '../qc/retentionQC.js';
 import { checkQuestion, planQuestion } from './quiz.js';
 import { isPostShaped, slopFilter } from '../qc/slopFilter.js';
+import { openingFormula } from '../creative/captionOpening.js';
 
 /** One filled slot. */
 export interface FilledSlot {
@@ -397,6 +398,64 @@ export function checkDraft(
      * happens to be short is not a defect and the warning should mean
      * something when it fires.
      */
+    /**
+     * §545. The topic label, on the frame that decides whether anyone watches.
+     *
+     * §523 caught this shape in captions and made it a warning there, because
+     * ten of twelve captions used it and erroring would have blocked the queue.
+     * On frame one it is both rarer and worse: measured across 35 real opening
+     * lines, four carry it — *"Most important: freeze slices before staling."*,
+     * *"Separation matters most: store them apart."* — and the words before the
+     * colon are a judgement about the content rather than the content. The
+     * first half-second is the whole hook, and it is spent on a filing
+     * category.
+     *
+     * An error, unlike §523's warning, for the same reason §542 is one: it
+     * fails *this slot* and the rewrite replaces one line. At 11% that costs
+     * almost nothing, and the rewrite is better every time — "Dairy-free cake:
+     * vegan butter or oil?" wants to be "Butter or oil in a dairy-free cake?".
+     */
+    if (slot.opensThePiece && openingFormula(got.text) === 'label_colon') {
+      const label = (got.text.split(':')[0] ?? '').trim();
+      problems.push({
+        rule: 'format.opening_is_a_label',
+        severity: 'error',
+        message:
+          `${slot.key} is frame one and opens "${label}:" — a topic label, not a hook. ` +
+          'The first half-second is all the attention there is; spend it on the thing that is true.',
+        slot: slot.key,
+      });
+    }
+
+    /**
+     * §541. A question slot that does not ask anything.
+     *
+     * `poll` describes its question as *"a real either/or people disagree
+     * about"*, and the first poll Halyard ever rendered put **"Dairy-free cake:
+     * butter versus oil"** on the card — a topic label that names both options
+     * the two tappable halves already show, and asks nothing. A poll whose
+     * question is not a question cannot get the tap the whole format exists for,
+     * and a quiz whose question is a heading is not a quiz.
+     *
+     * An error rather than a warning, because errors here fail *the slot by
+     * name* and the rewrite replaces that one line — §449's objection to
+     * failing a caption does not apply to a rule that costs a sentence.
+     *
+     * The mark, not the wording: a question can open any way it likes, and
+     * "Butter or oil?" and "Which fat holds the crumb?" both pass. Only the
+     * absence of the thing that makes it a question fails.
+     */
+    if (slot.key === 'question' && !got.text.trim().endsWith('?')) {
+      problems.push({
+        rule: 'format.question_does_not_ask',
+        severity: 'error',
+        message:
+          `${slot.key} is what the reader is being asked, and it does not ask: "${got.text}". ` +
+          'End it with a question mark, or write the question you actually want answered.',
+        slot: slot.key,
+      });
+    }
+
     /*
      * §484. Title Case is a headline, and the opening slot is *spoken*.
      *

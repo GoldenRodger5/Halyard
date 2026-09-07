@@ -21,18 +21,24 @@ import {
 } from '@halyard/core';
 
 /**
- * §321. Record at twice the viewport, then let the composition scale it down.
+ * §538. Record at the viewport. Playwright does not scale a page up.
  *
- * A capture is taken at the phone viewport — 430×932 — and the walkthrough
- * draws it inside a device 670px wide on a 1080-wide frame. Upscaling 430 to
- * 670 is a 1.56× enlargement of every glyph in the product's UI, which is
- * exactly why the first real walkthrough read as blurry: the type on screen was
- * never sharp, it was interpolated.
+ * §321 doubled this, reasoning that `recordVideo.size` is independent of the
+ * viewport and that recording a 430-wide phone into an 860-wide canvas was free
+ * resolution — a sharper source for a composition that draws the device 670px
+ * wide.
  *
- * Playwright's `recordVideo.size` is independent of the viewport — the page
- * still lays out at 430 and thinks it is a phone — so this is free resolution
- * rather than a different layout. Downscaling 860 to 670 is a reduction, which
- * is always sharp.
+ * It is not what Playwright does. Its own contract is that the picture of the
+ * page is *"scaled down if necessary to fit the specified size"* — down, never
+ * up. So a 430×932 page in an 860×1864 canvas was placed at native size in the
+ * corner and the rest padded, and the first walkthrough Halyard ever rendered
+ * was a recipe card in the top third of a phone frame with two thirds flat
+ * grey. Measured on the cut: page content ~780×1150 inside 1080×2340.
+ *
+ * Sharpness comes from `deviceScaleFactor: 2` on the context, which really does
+ * render the page at twice the device pixels and is already set. Playwright
+ * downscales *that* into the video, which is the reduction §321 wanted and the
+ * only one available.
  */
 export function recordingSize(viewport: { width: number; height: number }): {
   width: number;
@@ -40,8 +46,8 @@ export function recordingSize(viewport: { width: number; height: number }): {
 } {
   /* Even numbers: H.264 requires them and an odd dimension fails the encode. */
   return {
-    width: Math.round((viewport.width * 2) / 2) * 2,
-    height: Math.round((viewport.height * 2) / 2) * 2,
+    width: Math.round(viewport.width / 2) * 2,
+    height: Math.round(viewport.height / 2) * 2,
   };
 }
 

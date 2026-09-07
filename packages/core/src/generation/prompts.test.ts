@@ -69,3 +69,73 @@ describe('the caption knows what it is captioning', () => {
     }
   });
 });
+
+/**
+ * §533. A warning nobody acts on changes nothing.
+ *
+ * `buildFeedback` walked only `detail.errors`, on gates whose status was
+ * `failed`. Every warning the copy gate raises — "this caption asks for
+ * nothing", §523's topic-label opening, an adjective stack — was computed,
+ * stored, shown to the operator, and never said to the writer. Now they ride
+ * along on a retry that an error has already forced, so they cost no extra
+ * call, and they are kept separate so they are not argued with as failures.
+ */
+describe('§533 warnings ride along on a retry', () => {
+  const copyGate = (errors: unknown[], warnings: unknown[]) => ({
+    passed: false,
+    gates: [
+      {
+        gate: 'copy' as const,
+        status: 'failed' as const,
+        detail: { errors, warnings, violations: [...errors, ...warnings] },
+      },
+    ],
+  });
+
+  it('names the error as a failure and the warning as optional', async () => {
+    const { buildFeedback } = await import('./copywriter.js');
+    const text = buildFeedback(
+      copyGate(
+        [{ rule: 'punctuation.em_dash', message: 'An em dash.', fix: 'Use a full stop.' }],
+        [{ rule: 'structure.invites_nothing', message: 'This caption asks for nothing.' }],
+      ) as never,
+    );
+
+    expect(text).toContain('Fix every item below');
+    expect(text).toContain('punctuation.em_dash');
+    expect(text).toContain('Not failures, but worth fixing in the same pass');
+    expect(text).toContain('structure.invites_nothing');
+    /* The warning must sit after the failures, not among them. */
+    expect(text.indexOf('punctuation.em_dash')).toBeLessThan(
+      text.indexOf('structure.invites_nothing'),
+    );
+  });
+
+  it('says nothing about warnings when there are none', async () => {
+    const { buildFeedback } = await import('./copywriter.js');
+    const text = buildFeedback(
+      copyGate([{ rule: 'punctuation.em_dash', message: 'An em dash.' }], []) as never,
+    );
+    expect(text).not.toContain('Not failures');
+  });
+
+  it('does not turn a warning into a reason to retry', async () => {
+    /*
+     * The cost rule. A draft that only warns is still accepted; warnings are
+     * carried by a rewrite that was happening anyway, never one they caused.
+     */
+    const { buildFeedback } = await import('./copywriter.js');
+    const passing = {
+      passed: true,
+      gates: [
+        {
+          gate: 'copy' as const,
+          status: 'passed' as const,
+          detail: { errors: [], warnings: [{ rule: 'structure.invites_nothing', message: 'x' }], violations: [] },
+        },
+      ],
+    };
+    const text = buildFeedback(passing as never);
+    expect(text).not.toContain('structure.invites_nothing');
+  });
+});

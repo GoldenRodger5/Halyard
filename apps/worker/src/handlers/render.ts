@@ -184,6 +184,19 @@ async function renderVideoAsset(
   render: RenderRow,
   ctx: HandlerContext,
   brandTokens: Record<string, unknown> | null,
+  /**
+   * §521. Whose mark goes at the foot of the frame.
+   *
+   * The image path has passed this since it was written; the video path never
+   * has. Every Remotion composition declares `wordmark: 'recipefix'` in its
+   * `defaultProps` — sample data for the Studio preview — and a prop that is
+   * never supplied falls back to the default. So **every video this system has
+   * ever rendered carries the RecipeFix wordmark**, which was invisibly
+   * correct while one product existed and is a brand failure the moment a
+   * second one appears: Kinolog's first video, about choosing a film, signed
+   * RECIPEFIX.
+   */
+  wordmark: string | undefined,
 ): Promise<UploadedAsset> {
   const audio = render.content_item_id ? await loadVoiceover(ctx, render.content_item_id) : null;
 
@@ -452,7 +465,15 @@ async function renderVideoAsset(
           ? { backgroundLuminance: videoBackgroundLuminance }
           : {}),
         ...(walkthroughCallouts ? { callouts: walkthroughCallouts } : {}),
-        ...(brandTokens ? { brand: brandTokens } : {}),
+        /*
+         * §521. Resolved, not raw. `products.brand_tokens` is untyped JSON and
+         * holds both spellings and partial sets — §337 wrote `resolveBrand`
+         * for exactly that and the video path was passing the column straight
+         * through, so a missing `accent` or a snake_case `heading_font`
+         * silently became whatever the composition defaulted to.
+         */
+        brand: resolveBrand(brandTokens),
+        ...(wordmark ? { wordmark } : {}),
         // Captions are burned in from data. The audio is muxed afterwards
         // rather than played by the renderer, so the composition gets none.
         ...(audio?.captions ? { captions: audio.captions } : {}),
@@ -637,7 +658,12 @@ export async function renderHandler(job: Job, ctx: HandlerContext): Promise<void
 
     const asset =
       render.renderer === 'remotion'
-        ? await renderVideoAsset(render, ctx, product.rows[0]?.brand_tokens ?? null)
+        ? await renderVideoAsset(
+            render,
+            ctx,
+            product.rows[0]?.brand_tokens ?? null,
+            product.rows[0]?.name?.toLowerCase(),
+          )
         : await renderImageAsset(render, ctx, {
             aspectRatio: templateRow.aspect_ratio,
             brandTokens: product.rows[0]?.brand_tokens ?? null,

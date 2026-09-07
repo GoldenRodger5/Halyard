@@ -1,0 +1,103 @@
+#!/usr/bin/env bash
+#
+# §564. The whole release-verification path, in one command, with no silent skips.
+#
+# Before this, "is the repository green?" had no answer you could run. The steps
+# were spread across CI's YAML and two paragraphs of CLAUDE.md, and the way most
+# people ran the tests — `pnpm vitest run`, no environment — skipped forty-three
+# database-backed suites and printed a confident green. The one that mattered
+# most, generated types, was checked *only* in CI, which is why the file drifted
+# thirty-nine migrations behind without anyone noticing.
+#
+# Every step here fails loudly when its prerequisite is missing, rather than
+# passing over it. That is the whole point: a verification you cannot trust is
+# worse than none, because it is believed.
+#
+#   ./scripts/verify              # everything except E2E
+#   ./scripts/verify --with-e2e   # everything
+#
+# It needs a Postgres it may create databases in. Point it somewhere with
+# TEST_DATABASE_URL, or let it read DATABASE_URL out of apps/web/.env.local.
+
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+WITH_E2E=0
+[[ "${1:-}" == "--with-e2e" ]] && WITH_E2E=1
+
+step() { printf '\n\033[1m── %s\033[0m\n' "$1"; }
+die() { printf '\n\033[31m✗ %s\033[0m\n' "$1" >&2; exit 1; }
+
+# ── The database, which half of the suite needs ──────────────────────────────
+#
+# Gotcha 2: Next reads apps/web/.env.local and the worker gets --env-file, so
+# nothing puts DATABASE_URL in this shell unless we do it here.
+if [[ -z "${TEST_DATABASE_URL:-}" ]]; then
+  if [[ -f apps/web/.env.local ]]; then
+    set -a; . ./apps/web/.env.local; set +a
+  fi
+  TEST_DATABASE_URL="${TEST_DATABASE_URL:-${DATABASE_URL:-}}"
+fi
+
+[[ -n "$TEST_DATABASE_URL" ]] || die \
+  "No database. Set TEST_DATABASE_URL, or create apps/web/.env.local with ./scripts/env-sync.
+   Running without one skips 43 suites and reports green, which is the thing this script exists to prevent."
+
+export TEST_DATABASE_URL
+export DATABASE_URL="$TEST_DATABASE_URL"
+
+# The two flags that make skips impossible and spending impossible. §564, §565.
+export HALYARD_REQUIRE_DB=1
+unset HALYARD_TEST_ALLOW_NETWORK || true
+
+step "Migrations, against a real Postgres"
+pnpm db:reset -- --fresh --seed >/dev/null || die "migrations did not apply to a fresh database"
+echo "✓ every migration applied to a fresh schema"
+
+step "Generated types are current"
+# Compared by content, not by `git diff`.
+#
+# CI asks git whether the file changed, which is right only because a CI
+# checkout is clean. On a working tree with any uncommitted change to
+# types.gen.ts — including the legitimate one you just made — that check reports
+# "stale" for a file that matches the schema perfectly. What is actually being
+# asserted is that the committed file equals what the schema generates, so
+# compare those two things directly.
+TYPES=packages/db/src/types.gen.ts
+BEFORE="$(mktemp)"; cp "$TYPES" "$BEFORE"
+pnpm db:types >/dev/null
+if ! cmp -s "$BEFORE" "$TYPES"; then
+  rm -f "$BEFORE"
+  die "$TYPES did not match the migrated schema. It has been regenerated — review and commit it."
+fi
+rm -f "$BEFORE"
+echo "✓ $TYPES matches the migrated schema"
+
+step "Typecheck"
+for dir in packages/core packages/db packages/render packages/ui packages/audit apps/worker apps/web; do
+  (cd "$dir" && pnpm exec tsc --noEmit) || die "typecheck failed in $dir"
+  echo "  ✓ $dir"
+done
+
+step "Lint"
+pnpm exec eslint . || die "lint failed"
+echo "✓ no lint errors"
+
+step "Tests — database-backed suites may not skip"
+# --maxWorkers=4: gotcha 12. Forty-three suites each create and migrate a
+# database against a max_connections of 100, and the default worker count has
+# taken local Postgres down outright.
+pnpm exec vitest run --minWorkers=1 --maxWorkers=4 || die "tests failed"
+
+step "Production web build"
+pnpm --filter @halyard/web build >/dev/null || die "the web build failed"
+echo "✓ the web app builds"
+
+if [[ "$WITH_E2E" == "1" ]]; then
+  step "End to end"
+  HALYARD_DEV_UNAUTHENTICATED=1 pnpm exec playwright test || die "E2E failed"
+fi
+
+printf '\n\033[32m✓ verified — types current, migrations clean, typecheck, lint, tests, build%s\033[0m\n' \
+  "$([[ "$WITH_E2E" == "1" ]] && echo ', E2E')"

@@ -7,7 +7,32 @@
  */
 import pg from 'pg';
 import { readFileSync } from 'node:fs';
-import { getAdapter, openToken, type PublishAccount } from '@halyard/core';
+import { getAdapter, openToken } from '@halyard/core';
+
+/*
+ * The shape of the YouTube v3 fields this diagnostic actually reads. Every
+ * field is optional because the API omits parts that were not requested, and
+ * an `any` here would hide a renamed field behind a silent `undefined`.
+ */
+interface YouTubeItem {
+  id?: string;
+  snippet?: {
+    title?: string;
+    customUrl?: string;
+    channelTitle?: string;
+    channelId?: string;
+    publishedAt?: string;
+    resourceId?: { videoId?: string };
+  };
+  contentDetails?: { relatedPlaylists?: { uploads?: string } };
+  statistics?: { videoCount?: string };
+  status?: { privacyStatus?: string; uploadStatus?: string };
+  processingDetails?: { processingStatus?: string };
+}
+
+interface YouTubeListResponse {
+  items?: YouTubeItem[];
+}
 
 const VIDEO_ID = process.env.VIDEO_ID ?? 'v5Ty6K5BuqE';
 
@@ -46,13 +71,13 @@ async function main(): Promise<void> {
       console.log('token refreshed for this read');
     }
 
-    const call = async (path: string): Promise<any> => {
+    const call = async (path: string): Promise<YouTubeListResponse> => {
       const res = await fetch(`https://www.googleapis.com/youtube/v3/${path}`, {
         headers: { authorization: `Bearer ${tokens.accessToken}` },
       });
       const body = await res.json();
       if (!res.ok) throw new Error(`${res.status} ${JSON.stringify(body).slice(0, 400)}`);
-      return body;
+      return body as YouTubeListResponse;
     };
 
     console.log('\n=== the channel this token controls ===');

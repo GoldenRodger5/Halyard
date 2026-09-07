@@ -84,9 +84,44 @@ async function main(): Promise<void> {
    * Read from the environment rather than assumed, so an agent declaring a tool
    * whose credential is absent is reported as blocked rather than as working.
    */
-  const availableTools = new Set<string>(['llm', 'browser', 'github-api']);
-  if (process.env.OPENAI_API_KEY || process.env.ANTHROPIC_API_KEY) availableTools.add('vision-api');
+  const availableTools = new Set<string>([
+    'llm',
+    'browser',
+    'github-api',
+    /*
+     * §557. `fetch` is plain HTTP and has been in the runtime since Node 18.
+     *
+     * Its absence here reported `researcher` and `format-writer` as blocked on
+     * a tool they use constantly — both fetch and verify sources on every
+     * researched piece. An audit that says a working agent cannot run teaches
+     * an operator to scroll past the finding, and the next one will be real.
+     */
+    'fetch',
+  ]);
+
+  /*
+   * §557. `vision` and `vision-api` are one capability under two names.
+   *
+   * `creative-critic-model` declares `vision`; `vision-describer` declares
+   * `vision-api`; the script offered only the second. So the critic was
+   * reported unavailable while describing frames on every video. Both names are
+   * added rather than one renamed, because the registry is a contract and
+   * editing it to match a script would be moving the evidence to fit the test.
+   */
+  if (process.env.OPENAI_API_KEY || process.env.ANTHROPIC_API_KEY) {
+    availableTools.add('vision-api');
+    availableTools.add('vision');
+  }
+
   if (process.env.ELEVENLABS_API_KEY) availableTools.add('tts');
+
+  /*
+   * §557. Stock footage, which §478 wired and this never learned about.
+   * `stock-footage-finder` was reported unavailable while clips were being
+   * licensed and staged into render bundles.
+   */
+  if (process.env.PEXELS_API_KEY) availableTools.add('pexels:videos/search');
+
   // No web-search tool is configured on this deployment; the fact-checker
   // degrades to model knowledge, which the contract already states.
 

@@ -1,8 +1,44 @@
-# Plan of record — 2 September 2026
+# Plan of record — 7 September 2026
 
-The one document to read first. `docs/ROADMAP.md` holds the format-by-format
-plan and `docs/DIRECTION_SPEC.md` the length/composition model; this is what
-is being done *now*, in order, and why. Update it when a step lands.
+The one document to read first. **`docs/production/` is now the canonical
+programme** — `HALYARD_PRODUCTION_PROGRAM.md` holds the phased plan (H0–H12)
+and this file says which phase is being worked and what is blocking it.
+`docs/ROADMAP.md` holds the format-by-format plan and `docs/DIRECTION_SPEC.md`
+the length/composition model. Update this when a step lands.
+
+## 0. Current work package
+
+**H0 — release truth — is done.** See `docs/STATUS.md` for what it found and
+§564–§567 in `docs/DECISIONS.md` for why each call was made. In short: CI had
+been red for four days on stale generated types, which meant typecheck, lint
+and tests had not run at all; a third of the suite skips silently; four tests
+were spending real money; and nothing anywhere could say which code was
+running. `pnpm verify` is the command that now answers "is this green?" —
+honestly, including when a prerequisite is missing.
+
+**Next: H1 — correctness, isolation, evidence and safety.** Exact-subject
+handling, claim/source correspondence, product/account isolation, review truth
+(a malformed critic result must never read as a pass), and approval binding to
+a revision hash. `docs/production/HALYARD_PRODUCTION_PROGRAM.md` has the full
+statement.
+
+Two things H0 left open and H1 should not inherit silently:
+
+1. **The E2E suite is obsolete.** 49 of 64 desktop tests fail because the studio
+   reorganisation renamed every screen and the specs were not moved with it —
+   35 routes now 404, and the specs assert copy that no longer exists. The CI
+   timeout everyone has been seeing was the symptom. `e2e/routes.spec.ts` names
+   all 35 in under half a second. Rewriting them against the current screens
+   overlaps the UI redesign, so **decide whether to repair them now or fold it
+   into the redesign before starting either.** §568.
+2. **Production's settings cannot be read** from this machine for want of a
+   production database URL.
+
+---
+
+## Historical plan, before the production programme
+
+Kept for the reasoning; superseded as an ordering by `docs/production/`.
 
 ## 1. Where we are
 

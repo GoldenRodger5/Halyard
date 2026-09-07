@@ -33,7 +33,7 @@ import {
 import { PLATFORM_LABELS } from '@halyard/ui';
 import { Action, Label, Pill, Sheet, Tally, cx } from '@halyard/ui/studio';
 import { Deeper } from '@/components/studio/Deeper';
-import { getAllAccounts, getProducts, getSettings } from '@/lib/queries';
+import { getAllAccounts, getPendingConnections, getProducts, getSettings } from '@/lib/queries';
 import { formatRelative } from '@/lib/format';
 import { connectBluesky, disconnectAccount, runSelfTest } from '@/app/(studio)/master/actions';
 import { registrationFor } from '@/lib/oauthRegistration';
@@ -69,7 +69,9 @@ const PILL_TONE = {
 export default async function ConnectionsPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ error?: string; ok?: string }>;
+  /* §530. `disconnected` is what `disconnectAccount` redirects with, and this
+     type not naming it is why nothing rendered it. */
+  searchParams?: Promise<{ error?: string; ok?: string; disconnected?: string }>;
 }) {
   const params = (await searchParams) ?? {};
   /*
@@ -81,10 +83,12 @@ export default async function ConnectionsPage({
   const origin =
     process.env.HALYARD_PUBLIC_URL?.trim() ||
     `${requestHeaders.get('x-forwarded-proto') ?? 'http'}://${requestHeaders.get('host') ?? 'localhost:3200'}`;
-  const [accounts, settings, products] = await Promise.all([
+  const [accounts, settings, products, pending] = await Promise.all([
     getAllAccounts(),
     getSettings(),
     getProducts(),
+    /* §529. Staged connections nobody has confirmed yet. */
+    getPendingConnections(),
   ]);
   const timeZone = products[0]?.operator_timezone ?? 'UTC';
 
@@ -113,6 +117,10 @@ export default async function ConnectionsPage({
         identityConfirmedAt: account.identity_confirmed_at,
         tokenExpiresAt: account.token_expires_at,
         lastError: account.last_error,
+        /* §531. An expired access token with a refresh token behind it is a
+           state, not a request — this is what tells the two apart. */
+        hasRefreshToken: account.has_refresh_token,
+        refreshFailures: account.refresh_failures,
         credentialsConfigured: Boolean(client.clientId && client.clientSecret),
         /*
          * Both names, always. `tried` stops at the first miss, so a platform
@@ -148,12 +156,53 @@ export default async function ConnectionsPage({
         connected and <em>able to post publicly</em> are two different things.
       </p>
 
+      {/*
+        §529. A connection that is staged and waiting on a person.
+        The OAuth callback lands the operator on the confirm page, so this only
+        matters for the one who closed that tab — and for them nothing else on
+        this screen says the staging row exists. Above the rows, because it is
+        the only thing here that expires.
+      */}
+      {pending.length > 0 ? (
+        <Sheet tone="onair">
+          <Label>Waiting for you to confirm the right account</Label>
+          <ul className="m-0 mt-1.5 flex list-none flex-col gap-1.5 p-0">
+            {pending.map((p) => (
+              <li key={p.id} className="text-[12.5px] leading-relaxed">
+                <Link href={`/master/confirm/${p.id}`} className="underline">
+                  {PLATFORM_LABELS[p.platform] ?? p.platform}
+                  {p.handle ? ` · @${p.handle}` : ''}
+                </Link>{' '}
+                <span className="text-quiet">
+                  — nothing is saved until you confirm it, and this expires{' '}
+                  {formatRelative(p.expires_at, timeZone)}.
+                </span>
+              </li>
+            ))}
+          </ul>
+        </Sheet>
+      ) : null}
+
       {params.error ? (
         <Sheet tone="onair">
           <Label>Nothing changed</Label>
           <p className="m-0 text-[12.5px] leading-relaxed">{params.error}</p>
         </Sheet>
       ) : null}
+      {/*
+        §530. What the disconnect actually did, and what it did not.
+        `disconnectAccount` redirects with `?disconnected=`, carrying a message
+        that deliberately names what was *not* erased. Nothing rendered it, so
+        the one irreversible button on this screen gave no confirmation at all
+        and the honesty note went nowhere.
+      */}
+      {params.disconnected ? (
+        <Sheet>
+          <Label>Credential erased</Label>
+          <p className="m-0 text-[12.5px] leading-relaxed">{params.disconnected}</p>
+        </Sheet>
+      ) : null}
+
       {params.ok ? (
         <Sheet tone="lit">
           <Label>Done</Label>
@@ -292,10 +341,22 @@ export default async function ConnectionsPage({
                     <Action tone="ghost" small>
                       Erase this credential
                     </Action>
+                    {/*
+                      §530. This said the platform-side grant "is revoked
+                      there". It is not, and `disconnectAccount` says so in as
+                      many words when it finishes — the two halves of the same
+                      control made opposite claims, and the one an operator
+                      reads *before* pressing the button was the false one.
+                      The comment on that action already called this out: an
+                      operator believing the grant went with it "would be the
+                      same overclaim in the UI that the legal pages were
+                      corrected for."
+                    */}
                     <span className="text-[11.5px] leading-snug text-quiet">
-                      Type the handle to confirm. This erases Halyard&apos;s copy of the credential;
-                      the grant on {PLATFORM_LABELS[account.platform] ?? account.platform} is
-                      revoked there.
+                      Type the handle to confirm. This erases Halyard&apos;s copy of the credential
+                      and nothing else. The permission you granted on{' '}
+                      {PLATFORM_LABELS[account.platform] ?? account.platform} stays until you remove
+                      it there.
                     </span>
                   </form>
                 </details>

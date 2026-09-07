@@ -185,6 +185,9 @@ export interface AccountRow {
   last_self_test_detail: string | null;
   last_published_at: string | null;
   has_token: boolean;
+  /** §531. A held refresh token means an expired access token fixes itself. */
+  has_refresh_token: boolean;
+  refresh_failures: number;
   transport: 'direct' | 'unified';
   provider_account_id: string | null;
 }
@@ -196,6 +199,10 @@ const ACCOUNT_COLUMNS = `sa.id, sa.product_id, p.name as product_name, p.kind as
         sa.identity_confirmed_at, sa.identity_warning, sa.last_self_test_at,
         sa.last_self_test_ok, sa.last_self_test_detail, sa.last_published_at,
         (sa.access_token_enc is not null) as has_token,
+        /* §531. Whether the account can renew itself, and how that is going.
+           Ciphertext stays out of this projection; its existence does not. */
+        (sa.refresh_token_enc is not null) as has_refresh_token,
+        sa.refresh_failures,
         sa.transport, sa.provider_account_id`;
 
 /**
@@ -221,6 +228,36 @@ export async function getAllAccounts(): Promise<AccountRow[]> {
        from social_accounts sa
        join products p on p.id = sa.product_id
       order by (p.kind = 'product') desc, p.created_at, sa.persona desc, sa.platform`,
+  );
+}
+
+/**
+ * §529. A connection that is staged and not yet confirmed.
+ *
+ * The OAuth callback redirects straight to `/master/confirm/<id>`, so an
+ * operator who finishes the round trip sees it. One who closes that tab does
+ * not: the staging row holds a token that is deliberately not saved, and
+ * nothing on the connections screen said it existed. §497 replaced the screen
+ * that used to surface it and did not carry this across.
+ *
+ * Expired rows are excluded rather than shown as expired. A staging row lives
+ * thirty minutes; past that the only honest instruction is "connect again",
+ * which is what the platform's own row already says.
+ */
+export interface PendingConnection {
+  id: string;
+  platform: string;
+  handle: string | null;
+  product_id: string;
+  expires_at: string;
+}
+
+export async function getPendingConnections(): Promise<PendingConnection[]> {
+  return query<PendingConnection>(
+    `select id, platform, handle, product_id, expires_at
+       from pending_connections
+      where expires_at > now()
+      order by created_at desc`,
   );
 }
 

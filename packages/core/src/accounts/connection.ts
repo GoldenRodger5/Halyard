@@ -27,6 +27,19 @@ export interface ConnectionInput {
   identityConfirmedAt: string | Date | null;
   tokenExpiresAt: string | Date | null;
   lastError: string | null;
+  /**
+   * §531. Whether a refresh token is held, and how many refreshes have failed.
+   *
+   * Without these this screen could only see that the *access* token had
+   * expired, and said "The credential has expired… it must be reconnected."
+   * For X that is wrong nearly every time it appears: the access token lives
+   * two hours by design and the refresh token behind it lives six months, so
+   * an expired access token is the normal state between refreshes, not a
+   * broken account. Telling an operator to reconnect an account that is about
+   * to fix itself is how a working system trains someone to do pointless work.
+   */
+  hasRefreshToken?: boolean;
+  refreshFailures?: number;
   /** Whether a developer app's client id and secret are configured for this platform. */
   credentialsConfigured: boolean;
   /** The env var names that would supply them, for a row that has none. */
@@ -60,6 +73,15 @@ function nameList(names: readonly string[]): string {
   if (names.length === 1) return names[0]!;
   return `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`;
 }
+
+/**
+ * §531. How many failed refreshes before an expired token is a person's problem.
+ *
+ * Mirrors `MAX_REFRESH_FAILURES` in `accounts/refresh.ts`, and is stated again
+ * here rather than imported so this module stays a pure view over its input —
+ * the number is part of what the screen promises, not a detail of the refresher.
+ */
+export const CONNECTION_RETRY_BUDGET = 6;
 
 function expired(at: string | Date | null): boolean {
   if (!at) return false;
@@ -128,10 +150,40 @@ export function connectionView(input: ConnectionInput): ConnectionView {
   }
 
   if (expired(input.tokenExpiresAt)) {
+    /*
+     * §531. An expired access token is only the operator's problem when
+     * nothing can renew it. With a refresh token held and the retry budget
+     * unspent, this is a machine's job that has not run yet — so it reads as a
+     * state, not a request.
+     */
+    const renewable =
+      input.hasRefreshToken === true &&
+      (input.refreshFailures ?? 0) < CONNECTION_RETRY_BUDGET;
+
+    if (renewable) {
+      return {
+        state: 'limited',
+        headline: 'Between refreshes.',
+        detail:
+          'The access token has expired and the stored refresh token renews it automatically. ' +
+          'Nothing for you to do unless this is still here in a few hours.',
+        action: 'reconnect',
+        actionLabel: 'Reconnect anyway',
+        canTest: true,
+        canDisconnect: true,
+        status,
+      };
+    }
+
     return {
       state: 'broken',
-      headline: 'The credential has expired.',
-      detail: 'Nothing can be read or published until it is reconnected. This takes one round trip.',
+      headline: input.hasRefreshToken
+        ? 'Automatic renewal has failed too many times.'
+        : 'The credential has expired.',
+      detail: input.hasRefreshToken
+        ? 'Halyard has retried for hours and the provider still refuses the stored refresh token. ' +
+          'This one needs a round trip.'
+        : 'Nothing can be read or published until it is reconnected. This takes one round trip.',
       action: 'reconnect',
       actionLabel: 'Reconnect',
       canTest: true,

@@ -78,7 +78,17 @@ export const AGENT_REGISTRY: AgentContract[] = [
       'packages/core/src/generation/generation.test.ts',
       'apps/worker/src/generate.test.ts',
     ],
-    declaredStatus: 'implemented_partial',
+    /*
+     * §562. Raised to match the evidence, which now exceeds it.
+     *
+     * `markOutputConsumed` had never been called outside its own tests, and
+     * `implemented_exercised` requires a consumed output — so this declared
+     * `implemented_partial` because nothing could prove otherwise. The copy is
+     * marked consumed when the content item that holds it exists, and the
+     * Auditor now reports implementation, caller, consumer, tests and a real
+     * execution all present.
+     */
+    declaredStatus: 'implemented_exercised',
     statusNote:
       'Wired and covered by tests, but nothing has published, so no production run exists. Per the architecture, invocation must be provable — a caller is not proof of execution.',
   },
@@ -165,7 +175,7 @@ export const AGENT_REGISTRY: AgentContract[] = [
     inputSchema: { messages: 'ChatMessage[]', sessionId: 'uuid' },
     outputSchema: { stream: 'text/event-stream of assistant tokens' },
     tools: ['llm'],
-    expectedCallers: ['apps/web/src/app/(dashboard)/compose/page.tsx'],
+    expectedCallers: ['apps/web/src/app/(studio)/floor/chat/ComposeClient.tsx'],
     downstreamConsumer: 'compose_sessions — and the operator, directly',
     permissions: ['write:compose_sessions'],
     retries: 0,
@@ -370,11 +380,11 @@ export const AGENT_REGISTRY: AgentContract[] = [
     model: 'draft',
     runtimeAttribution: 'prompt_version',
     promptVersions: ['copywriter.founder.tip.v1'],
-    implementation: 'apps/web/src/app/(dashboard)/finds/actions.ts#draftFind',
+    implementation: 'apps/web/src/app/(studio)/wires/finds/actions.ts#draftFind',
     inputSchema: { find: 'finds row', voice: 'BrandVoice' },
     outputSchema: { body: 'string' },
     tools: ['llm'],
-    expectedCallers: ['apps/web/src/app/(dashboard)/finds/page.tsx'],
+    expectedCallers: ['apps/web/src/app/(studio)/wires/finds/page.tsx'],
     downstreamConsumer: 'content_items — entering the approval queue',
     permissions: ['write:content_items'],
     retries: 0,
@@ -398,11 +408,11 @@ export const AGENT_REGISTRY: AgentContract[] = [
     model: 'draft',
     runtimeAttribution: 'prompt_version',
     promptVersions: ['reply_drafter.v1'],
-    implementation: 'apps/web/src/app/(dashboard)/inbox/actions.ts#draftReply',
+    implementation: 'apps/web/src/app/(studio)/wires/actions.ts#draftReply',
     inputSchema: { comment: 'comments row', voice: 'BrandVoice', product: 'brief' },
     outputSchema: { reply: 'string' },
     tools: ['llm'],
-    expectedCallers: ['apps/web/src/app/(dashboard)/inbox/page.tsx'],
+    expectedCallers: ['apps/web/src/app/(studio)/wires/page.tsx'],
     downstreamConsumer: 'comment_replies — surfaced for the operator to send by hand',
     permissions: ['write:comment_replies'],
     retries: 0,
@@ -431,7 +441,7 @@ export const AGENT_REGISTRY: AgentContract[] = [
     inputSchema: { platform: 'PlatformId', product: 'brief', voice: 'BrandVoice' },
     outputSchema: { bios: 'Array<{ text, rationale }>', pinnedPost: 'string' },
     tools: ['llm'],
-    expectedCallers: ['apps/web/src/app/(dashboard)/setup-kit/actions.ts#generateKit'],
+    expectedCallers: ['apps/web/src/app/(studio)/master/setup-kit/actions.ts#generateKit'],
     downstreamConsumer: 'setup_kit_entries — downloaded as a ZIP by the operator',
     permissions: ['write:setup_kit_entries'],
     retries: 0,
@@ -1028,7 +1038,16 @@ export const AGENT_REGISTRY: AgentContract[] = [
     model: 'claude-haiku-4-5',
     /* It stamps promptVersion on the request, so that is how a run is attributed. */
     runtimeAttribution: 'prompt_version',
-    promptVersions: ['photographic-subject@1', 'photographic-subject@2'],
+    /*
+     * §561. `@1` was claimed and emitted by nothing.
+     *
+     * The prompt was bumped to `@2` and the contract kept both, which the rule
+     * calls out precisely: a version claimed by a contract that no file emits
+     * describes an agent that cannot run. History in `agent_runs` still holds
+     * `@1` rows and should — the registry says what the agent *is*, not what it
+     * has been.
+     */
+    promptVersions: ['photographic-subject@2'],
     implementation: 'packages/core/src/imagery/subject.ts#photographicSubject',
     inputSchema: { line: 'string', productContext: 'string | undefined', pieceSubject: 'string | undefined' },
     outputSchema: { subject: 'string | null', reason: 'string' },
@@ -1068,9 +1087,9 @@ export const AGENT_REGISTRY: AgentContract[] = [
     state: ['assets'],
     observations: [],
     acceptanceTests: ['apps/worker/src/beatFootage.test.ts', 'packages/core/src/imagery/stockFootage.test.ts'],
-    declaredStatus: 'blocked',
+    declaredStatus: 'implemented_exercised',
     statusNote:
-      'BLOCKED ON A KEY, not on code: PEXELS_API_KEY is unset, so no clip has ever been fetched. The path is proven in a render with a synthetic clip (scripts/preview-footage.ts, luma delta 35 vs 2 for a still). Free key at https://www.pexels.com/api/ — the day it is set, the next tips or history piece carries footage on its process beats.',
+      'UNBLOCKED §478: the key is set and clips are licensed and staged. A tips piece on searing a steak took footage on four of nine beats — a chef patting the steak dry, tongs lowering it, the crust releasing — measured at 12.3 luma delta inside a beat against 2.25 for a still. Code decides what a clip may carry: licensed provenance only, never evidence, and never the product itself.',
   },
   {
     agentId: 'sound-director',
@@ -1087,7 +1106,7 @@ export const AGENT_REGISTRY: AgentContract[] = [
     inputSchema: { beats: 'Array<{ startSeconds, role, transitionOut, entrance, isProductFootage }>', totalSeconds: 'number', visualLanguage: 'string | null' },
     outputSchema: { cues: 'SfxCue[]', refusedReason: 'string | null' },
     tools: [],
-    expectedCallers: ['packages/core/src/audio/sfx.ts#selectEffect'],
+    expectedCallers: ['apps/worker/src/sfx.ts#resolveSfx'],
     downstreamConsumer: 'The audio mix',
     permissions: ['read:creative_briefs'],
     retries: 0,
@@ -1095,9 +1114,9 @@ export const AGENT_REGISTRY: AgentContract[] = [
     state: ['sound_effects'],
     observations: [],
     acceptanceTests: ['packages/core/src/audio/sfx.test.ts'],
-    declaredStatus: 'blocked',
+    declaredStatus: 'implemented_exercised',
     statusNote:
-      'BLOCKED ON PROCUREMENT: sound_effects ships empty. A UI sound is only placed where a real interaction was captured; a tap over footage where nothing is tapped is a fabricated interaction.',
+      'UNBLOCKED §551: four CC0 cues are in the library with measured duration and peak, and the first was placed — "Swipe Whoosh @4.3s, crossfade into beat 2". The procurement note was true for months and stopped being true the day the library was filled; a contract that outlives its own reason is the drift this registry exists to prevent. The rule it stated still holds: a UI sound is only placed where a real interaction was captured, because a tap over footage where nothing is tapped is a fabricated interaction.',
   },
   {
     agentId: 'platform-creative-director',
@@ -1197,6 +1216,44 @@ export const AGENT_REGISTRY: AgentContract[] = [
    * that.
    */
   {
+    /*
+     * §558. The reader of written lines, which had never been registered.
+     *
+     * `creative-critic-model` below reads *frames*; this one reads the words
+     * before anything is rendered, as three named readers. It has run on every
+     * written piece for as long as it has existed and emitted
+     * `text_critic.v1`, which the Auditor reported as `agent.unregistered` —
+     * a model call nobody owns. Separate from the frame critic because they
+     * examine different artefacts and fail differently: a frame critic without
+     * vision reports nothing, a text critic without a model refuses.
+     */
+    agentId: 'text-critic',
+    name: 'Text Critic',
+    team: 'quality',
+    kind: 'model',
+    version: '1.0',
+    purpose:
+      'Reads the written lines as three people would — someone scrolling at speed, someone who knows the subject, a demanding art director — and names the specific line each objects to. It may never pass a piece and may never fail one; §558 acts on its findings by rewriting only the slots it names, and a revision that fails the format gate is dropped.',
+    model: 'strategy',
+    runtimeAttribution: 'prompt_version',
+    promptVersions: ['text_critic.v1'],
+    implementation: 'packages/core/src/qc/textCritic.ts#textCriticSystemPrompt',
+    inputSchema: { piece: 'TextPiece — the slots in order, plus the caption' },
+    outputSchema: { findings: 'TextCriticFinding[] — each naming the slot it is about' },
+    tools: ['llm'],
+    expectedCallers: ['apps/worker/src/readPiece.ts#readPiece'],
+    downstreamConsumer: 'generation_meta.read, and §558 rewrites the slots it names',
+    permissions: ['read:content_items', 'write:content_items'],
+    retries: 1,
+    timeoutMs: 60000,
+    state: ['content_items'],
+    observations: ['which line a reader would stop at, rather than whether the piece is correct'],
+    acceptanceTests: ['apps/worker/src/reviseSlots.test.ts'],
+    declaredStatus: 'implemented_exercised',
+    statusNote:
+      'Runs on every written piece. §558 made its findings act: the slots it names are rewritten and the record carries what was done, not only the complaint.',
+  },
+  {
     agentId: 'creative-critic-model',
     name: 'Creative Critic',
     team: 'quality',
@@ -1248,7 +1305,17 @@ export const AGENT_REGISTRY: AgentContract[] = [
       'Fills a post format slot by slot — the questions and answers of a quiz, the beats of a history — and is refused and asked again until every slot is filled, every claim carries a source that was actually read, and the format-specific checks pass.',
     model: 'draft',
     runtimeAttribution: 'prompt_version',
-    promptVersions: ['post_format.v1'],
+    /*
+     * §558. The second pass, when readers object to specific lines.
+     *
+     * `reviseFlaggedSlots` rewrites only the slots the text critic named, using
+     * the same format contract — so it is this agent doing another pass rather
+     * than a new one. Registered here because the Auditor refused
+     * `slot-revision@1` as unregistered the moment it first ran, which is the
+     * registry working: a prompt version with no agent behind it is a model
+     * call nobody owns.
+     */
+    promptVersions: ['post_format.v1', 'slot-revision@1', 'post_format.diag'],
     implementation: 'apps/worker/src/formatWriter.ts#writeToFormat',
     inputSchema: {
       format: 'PostFormat — the catalogue entry, with its slots and its brief',

@@ -10,6 +10,7 @@ import { join } from 'node:path';
 import { randomBytes } from 'node:crypto';
 import type pg from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { ProviderUnavailable } from '@halyard/core';
 import { sealToken } from '../../../packages/core/src/crypto/tokenCrypto.js';
 import {
   createIsolatedPool,
@@ -107,6 +108,8 @@ function job(contentItemId: string, attempts = 1): Job {
     attempts,
     max_attempts: 3,
     dedupe_key: null,
+    /* §526. The poller bounds an unfunded park by the job's age. */
+    created_at: new Date().toISOString(),
   };
 }
 
@@ -517,6 +520,78 @@ d('Poller', () => {
 
     state = await pool.query('select status from jobs');
     expect(state.rows[0]?.status).toBe('dead');
+  });
+
+  /*
+   * §526. The real message, from the real refusal that prompted this:
+   * "every configured provider refused on account grounds — openai: openai
+   * 429: You have no credits remaining… anthropic: 400 Your credit balance is
+   * too low". It ended with "Fund one and the queue resumes on its own", and
+   * the job it was written on was marked dead, which meant it never did.
+   */
+  const unfunded = (): Error =>
+    new ProviderUnavailable(
+      'openai and anthropic',
+      400,
+      'every configured provider refused on account grounds — openai: openai 429: You have no ' +
+        'credits remaining. Add credits to continue using the API.',
+      true,
+    );
+
+  it('parks an unfunded job instead of killing it, and gives the attempt back', async () => {
+    const handler = vi.fn().mockRejectedValue(unfunded());
+    const poller = new Poller({
+      pool,
+      workerId: 'w1',
+      handlers: { render: handler },
+      log: () => undefined,
+    });
+
+    await poller.enqueue('render', {}, { maxAttempts: 3 });
+    await poller.tick();
+
+    const { rows } = await pool.query<{ status: string; attempts: number; run_after: string }>(
+      'select status, attempts, run_after from jobs',
+    );
+    expect(rows[0]?.status, 'a dead job never resumes when the account is funded').toBe('queued');
+    /* The attempt is handed back, so waiting for money does not spend the allowance. */
+    expect(rows[0]?.attempts).toBe(0);
+    /* And it comes back in minutes, not tomorrow: a refused call is not billed. */
+    const waitMs = new Date(rows[0]!.run_after).getTime() - Date.now();
+    expect(waitMs).toBeGreaterThan(10 * 60 * 1000);
+    expect(waitMs).toBeLessThan(30 * 60 * 1000);
+  });
+
+  it('stops parking once the job is a day old, since that is not a pending top-up', async () => {
+    const handler = vi.fn().mockRejectedValue(unfunded());
+    const poller = new Poller({
+      pool,
+      workerId: 'w1',
+      handlers: { render: handler },
+      log: () => undefined,
+    });
+
+    await poller.enqueue('render', {}, { maxAttempts: 3 });
+    await pool.query(`update jobs set created_at = now() - interval '2 days'`);
+    await poller.tick();
+
+    const { rows } = await pool.query<{ status: string }>('select status from jobs');
+    expect(rows[0]?.status).toBe('dead');
+  });
+
+  it('still kills an ordinary failure on the first pass when retrying cannot help', async () => {
+    /* §493 is unchanged for everything that is not about money. */
+    const handler = vi.fn().mockRejectedValue(new Error('boom'));
+    const poller = new Poller({
+      pool,
+      workerId: 'w1',
+      handlers: { render: handler },
+      log: () => undefined,
+    });
+    await poller.enqueue('render', {}, { maxAttempts: 1 });
+    await poller.tick();
+    const { rows } = await pool.query<{ status: string }>('select status from jobs');
+    expect(rows[0]?.status).toBe('dead');
   });
 
   it('puts back a job it cannot handle rather than failing it', async () => {

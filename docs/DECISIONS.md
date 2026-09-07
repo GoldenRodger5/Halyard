@@ -12997,3 +12997,1104 @@ only, never another product's.
 The pattern: **one product cannot show you what you have hard-coded.** Every
 one of these was a global constant standing in for a product-level fact, and
 each was invisible until something else asked for it.
+
+**§521. Every video Halyard has ever made was signed RECIPEFIX.** The image
+path has passed the product's name as a wordmark since it was written; the
+video path never did. Each Remotion composition declares `wordmark:
+'recipefix'` in its `defaultProps` — sample data so the Studio preview shows
+something — and a prop that nothing supplies falls back to the default. With
+one product that was invisibly correct. With two it is a brand failure:
+Kinolog's first video, about choosing a film, went out signed RecipeFix. The
+same call now also passes `resolveBrand(brandTokens)` rather than the raw
+`products.brand_tokens` column, which §337 wrote `resolveBrand` for and the
+video path had been bypassing.
+
+**§522. And every video in three formats was set in Times New Roman.** Found
+one frame later, and larger. `fonts.tsx` opens by saying that without `<Fonts
+/>` a composition renders in the browser's default serif; only
+`compositions.tsx` ever mounted it, so Narrative, Quiz and Walkthrough — the
+three roots that carry the long-form pieces — never registered a face.
+Independently, each of those roots accepts a `typography` prop and threads it
+through every text element, and `typeFor`, the only thing that builds one, is
+called in exactly one place in the repo: the *image* renderer. So `face()`
+returned `{}` and no `font-family` was set even where a face had loaded. Both
+halves are fixed, and `typography` now defaults to the brand's own faces.
+
+Rejected: leaving the compositions' `defaultProps` alone as "just preview
+data". They are why the failure was silent, so the test asserts they still
+exist *and* that the handler overrides them — the default is fine, relying on
+it is not.
+
+Cost of the fix, twice over: `brandTypography` first went into
+`image/templates.ts`, which imports the `@halyard/core` barrel and through it
+`node:crypto`. The type-only import was erased at compile; the value import
+pulled the whole graph into Remotion's webpack bundle. It typechecked, passed
+355 tests, and failed at render with `UnhandledSchemeError`. Gotcha 10, paid
+for a second time. It lives in `packages/render/src/typography.ts` now, a leaf
+whose only import is a type, and a test refuses any value import of the image
+templates from `src/video`.
+
+The pattern, a fourth time: **declared, typed, threaded, never supplied.**
+§478's footage ground, §499's registration guidance, §508's carousel branch,
+§516's `search_recipes`, and now a font. Nothing in a type system asks whether
+an optional prop ever arrives, and no test that does not look at a frame can
+see the answer.
+
+**§523. Ten captions in a row opened the same way.** Not one bad caption — a
+house style. `Wet steak stalls: …`, `Mushy ramen starts early: …`, `Gluten
+hides in pie: …`: a short symptom clause, a colon, the mechanism, ten times
+out of twelve across two products and three platforms. Every one passed every
+rule in `slopFilter` — accurate, specific, no banned phrase, no em dash — which
+is exactly the failure `captionShape.ts` opens by naming: *"no gate catches it
+because every individual caption is fine."* It was right, and it was watching
+`caption_shape` while every `single` opened identically.
+
+`openingFormula` names the move a caption makes, from the body rather than a
+stored column, so it works on every row already written and cannot drift out of
+step with something that forgot to write it. `openingGuidance` hands the
+copywriter the account's recent moves under its own prompt heading, because
+§419 already learned that a constraint folded into a paragraph about form gets
+read as a preference. Measured on a real regeneration: the caption went from 64
+characters and a label opening to 203 characters, a claim opening, and zero
+violations.
+
+Rejected: making the label an error today. Ten of the last twelve pieces would
+be blocked, and the fix belongs in the brief, not the gate. It becomes an error
+once generated runs stop taking the shape on their own.
+
+**§524. The rhythm gate had a floor that excluded its own worst case.** A
+voiceover shipped as seven sentences of exactly six words — a coefficient of
+variation of 0.000, the most uniform copy that can exist — and
+`structure.uniform_rhythm` passed it, because the rule required an average of
+eight words before it would look. The floor protects deliberate staccato, which
+is real. Measured against 33 scripts of four or more sentences: 9 sit under the
+0.25 threshold, the old floor caught 5, and all 4 it missed ran 7 to 12
+sentences at 5 to 8 words. That is a drum machine, not staccato. Floor dropped
+to 5, which catches all 9 and nothing below. Median script sits at 0.303.
+
+**§525. The narrator was told it writes cooking videos.** `You write voiceover
+scripts for short cooking videos` — the system prompt, for every product
+Halyard has. Kinolog's first video, about choosing a film, was narrated by a
+writer told it wrote about cooking. It produced a good script anyway, because
+the body it was narrating was obviously about films, and that is precisely why
+nothing caught it: the model corrected for a wrong prompt and left no trace.
+The fourth global constant standing in for a product-level fact, after §518's
+templates, §520's research domains and §521's wordmark. The same prompt also
+bounded sentence length from above and never asked for variation, which is what
+produced §524's seven identical sentences.
+
+**§526. An unfunded account is a pause, not a death.** Both providers refused
+today — OpenAI "no credits remaining", Anthropic "credit balance is too low" —
+and §493 correctly stopped that from burning three attempts on every job behind
+it. What it also did was mark each job `dead`, while the message it wrote said
+*"Fund one and the queue resumes on its own."* It does not. Fourteen jobs were
+lost that way in one afternoon, three of them generates, and nothing told the
+operator which.
+
+Both halves of the money problem now behave the same way, because they are the
+same problem: the budget guard twenty lines up already parks the job, hands the
+attempt back, and lets tomorrow pick it up. Provider exhaustion parks on the
+same terms at twenty minutes — a refused call is rejected on account grounds
+before any billing, so asking again costs a log line. Bounded by the job's age
+rather than its attempts, because attempts are deliberately not being spent: a
+job still refused a day later is not waiting on a top-up.
+
+The pattern, again: **the machine knew and the person did not.** §507's refused
+format, §513's boardless pin, §515's unmatched subject, and now fourteen dead
+jobs behind a message promising they would resume.
+
+**§527. The tab you are on, 161 pixels off the right edge.** Master has seven
+tabs in one horizontally scrolling row. On a laptop they all fit. At 390px the
+row is far narrower than its contents and nothing ever scrolled it to the
+selected tab, so opening Master ▸ System showed a row starting at *Connections*
+with no current tab visible anywhere. The page was right and the navigation
+said the operator was somewhere else. Measured: System began 161px past the
+edge, Templates 94px.
+
+It had scrolled the whole time — `overflow-x-auto` and `whitespace-nowrap` were
+there from the start. What was missing is that nothing moved the scroll
+position, so the affordance existed and the state it was meant to show did not.
+`RoomTabs` is a client component for exactly this, since only a layout
+measurement can fix it and the shell should stay a server component. It sets
+`scrollLeft` directly rather than calling `scrollIntoView`, which scrolls every
+ancestor including the page. A right-edge fade, shown only while there is
+something to scroll to, says the row continues.
+
+**§528. The browser suite had been testing a deleted product.** The one test
+covering the human approval gate on a phone — the gate this whole system exists
+to stop short of — navigated to `/queue` and looked for a navigation landmark
+named "Sections". `aef621a` deleted both. The string does not appear anywhere
+in the repo.
+
+The companion test was worse, because it passed. It asserted that eleven
+screens do not scroll sideways, and nine of those routes no longer exist: a 404
+page does not scroll sideways either. Checking a deleted screen is not weaker
+coverage than checking a real one, it is none.
+
+Counted across the whole suite: **31 of the 37 routes the browser tests
+navigate to are not served by the app.** The studio reorganisation moved
+`/queue` to `/gallery`, `/agents` to `/master/crew`, `/brain` to
+`/master/product`, `/system` to `/master/system`, `/analytics` to `/numbers`,
+and the suite was never followed along.
+
+The pattern, a fifth time: **declared, typed, never executed** — except here
+the tests *ran*, went green, and asserted nothing, which is the version that
+buys false confidence rather than merely no confidence.
+
+**§529. A staged connection nobody could get back to.** §497 replaced the
+accounts screen with one connections page and did not carry across the banner
+that surfaced a pending connection. The OAuth callback redirects straight to
+`/master/confirm/<id>`, so an operator who finishes the round trip is fine; one
+who closes that tab had no route back to a staging row holding a token that is
+deliberately not saved. It is above the account rows now, because it is the
+only thing on that screen that expires. Expired rows are excluded rather than
+shown as expired: past thirty minutes the only honest instruction is "connect
+again", which the platform's own row already gives.
+
+**§530. The button said the opposite of what the button does.** Three defects
+in one control, all introduced by §497 and all found by repairing the test that
+had stopped running (§528).
+
+The inline copy read *"this erases Halyard's copy of the credential; the grant
+on Threads is revoked there."* It is not revoked there. `disconnectAccount`
+says so itself, in a message whose own comment warns that letting an operator
+believe the platform-side grant went with it *"would be the same overclaim in
+the UI that the legal pages were corrected for."* The two halves of one control
+made opposite claims, and the half read *before* pressing the irreversible
+button was the false one.
+
+Then: that action redirects with `?disconnected=`, and the page's `searchParams`
+type named only `error` and `ok`. So nothing rendered it. The single
+irreversible button on the screen gave no confirmation at all, and the honesty
+note went to a parameter the page did not read. The type was not lying — it was
+simply never asked to include the case, and TypeScript cannot flag a query
+parameter that nobody destructures.
+
+The pattern that keeps recurring, stated plainly: **a rewrite carries the
+layout across and leaves the edge cases behind**, and the tests that would have
+caught it were pointed at the screen that no longer existed.
+
+**§531. Why X kept asking to be reconnected, and why that was never necessary.**
+The operator's question — *"why do I have to connect and press a button, we
+should be able to reauthenticate automatically"* — is correct. X's design
+already allows it: the access token lives **two hours**, and the refresh token
+behind it lives **six months**. Nobody should ever press anything. Four defects
+between us and that.
+
+**One: no lease.** X's refresh token is *single use*. Every refresh returns a
+new one and invalidates the old immediately. Three things called
+`refreshDueTokens` with no coordination — the worker's schedule, the web tier's
+daily cron backstop, and, routinely, a second worker (gotcha 13). Two of them
+refreshing one account is how a rotating chain dies: one rotates, the other
+presents a token that no longer exists. X answers *"Value passed for the token
+was invalid"*, which is verbatim what was recorded against @Recipe_Fix on 23
+August. Other developers report the same, including one who found that
+connecting the same app from two environments cut the other off. The refresher
+now claims each account with a conditional update — the same shape `jobs` uses
+— and a second caller skips rather than racing.
+
+**Two: `error` was a grave.** The failure path set `capability_state = 'error'`,
+and the select read `capability_state in ('live','draft_only')`. So the first
+failure removed the account from every future refresh. @Recipe_Fix sat there for
+ten days holding a refresh token good until February, and nothing would ever use
+it again. The only exit was a person pressing Reconnect — the exact complaint.
+The module's own doc block promised that *"a transient provider outage must not
+become a permanent disconnection"*, and the query three lines below made it one.
+
+**Three: the failure was a verdict, not a countdown.** Now a failure sets a
+doubling backoff from five minutes and leaves the account in the scan. Only
+after six consecutive failures — a little over five hours — is a person told,
+and even then retries continue, so a provider that recovers fixes itself. The
+research is the reason: developers report this exact error clearing on a later
+attempt, so treating the first one as terminal is wrong on the facts.
+
+**Four: the screen cried wolf.** `connectionView` read the *access* token's
+expiry and said "The credential has expired. Nothing can be read or published
+until it is reconnected." For X that is wrong nearly every time it appears — a
+two-hour token is expired for part of every cycle by design. With a refresh
+token held and retries unspent it now reads "Between refreshes. Nothing for you
+to do", and only becomes a request once renewal has genuinely failed.
+
+Cadence went 60 → 30 minutes. `needsRefresh` acts with sixty minutes left on a
+two-hour token, so hourly gave each token exactly one chance; miss it to a
+restart or a deploy and it is expired. Half-hourly puts two attempts in the
+window and costs one query when nothing is due.
+
+Rejected: treating "Value passed for the token was invalid" as fatal. It is the
+signature of a lost rotation race, which is a bug on our side, and answering it
+by demanding a reconnection hides the cause behind an operator's inconvenience.
+
+Not fixed by this: @Recipe_Fix's stored refresh token is genuinely dead after
+ten days, so it needs one reconnection. That is the last one it should ever
+need.
+
+**§532. One environment owns the tokens, and it is not the laptop.** X keeps a
+single token chain per (user, developer app). `@Recipe_Fix` is authorised in the
+local development database *and* in production through the same `X_CLIENT_ID`,
+so a refresh in either one rotates the chain and silently kills the other's
+stored refresh token. Whichever ran last wins; the loser reports "Value passed
+for the token was invalid" and asks a person to reconnect. Which is, on the
+evidence, the actual reason X appeared to need reconnecting every few hours —
+and §531's lease cannot touch it, because the two refreshers are in different
+databases and cannot see each other.
+
+The only correct answer is that one environment owns the tokens.
+`HALYARD_TOKEN_REFRESH=off` is how a machine says it is not that one. It
+defaults to *on*, so production and a fresh clone keep the behaviour they have,
+and `env-sync` carries it to the worker.
+
+Found while verifying §531: the local worker had just attempted an X refresh,
+and had it succeeded it would have taken production's token with it. It failed
+only because the local token was already dead.
+
+Cost, immediately: gotcha 12 says to run the suite with `apps/web/.env.local`
+sourced, which now sets the flag, so `tokenRefresh.test.ts` correctly refused to
+refresh and three tests failed on a developer machine while passing in CI. §479
+said this already about `ANTHROPIC_API_KEY` — a test whose subject is an
+environment flag must own that flag for its own duration rather than inherit
+the shell's.
+
+**§533. Every warning went to the operator and none went to the writer.**
+`buildFeedback` walked `detail.errors` on gates whose status was `failed`. So
+each warning the copy gate raises — "this caption asks for nothing", §523's
+topic-label opening, an adjective stack, a rule of three — was computed,
+stored, rendered on the card, and never once said to the model that wrote it.
+That is the objection §523 raised against its own severity choice, and it turned
+out to be true of every warning in the system, not just the new one.
+
+Warnings now ride along on a retry an error has already forced, under a heading
+that says they are optional. They do not *cause* a retry: pass and fail mean
+exactly what they meant, a draft carrying only warnings is still accepted, and
+the fix therefore costs no additional model calls. Kept separate from the
+failures on purpose — presented as errors they get argued with, or "fixed" by a
+rewrite that breaks something that was fine.
+
+Verified against the piece that prompted it: Kinolog's third-act video passed
+with `structure.invites_nothing`, a caption with no question and nothing for a
+reader to do, and nothing in the system would ever have told the writer.
+
+**§534. Every YouTube thumbnail was text on a cream card.** `youtubeThumbnail`
+has always accepted a picture, and read it from `screenshotDataUri` — which the
+render handler sets for nobody. The handler turns `imageAssetId` into
+`imageDataUri`, the name every other template uses, and `generate.ts` queued the
+thumbnail with `overlayText`, `fontSizePx` and `alt_text` and nothing else.
+
+So the composition worked, `checkThumbnail` passed it, and the artefact was the
+weakest thing YouTube will show: dark type on cream with half the frame empty,
+at 210px wide in a feed, against thumbnails built to be clicked. Nothing was
+broken; nothing supplied the input. The fifth instance this session after §478,
+§499, §508 and §522.
+
+The piece already generates a hero image, and the carousel builder two hundred
+lines away inlines it exactly this way. The thumbnail now does too, and reads
+either prop name so nothing that worked stops working.
+
+**§535. Two video compositions no code can reach.** `ScalingMath` and
+`SubstitutionExplainer` are registered in `root.tsx`, maintained, and were both
+repaired by §522's font fix — and nothing in the repo can queue them. The format
+builders in `formatVideo.ts` emit exactly three composition ids (`Narrative`,
+`Quiz`, `Walkthrough`); `TransformationDiff` and `ChefNoteCard` arrive by the
+artifact path; these two arrive by nothing.
+
+Recorded rather than fixed, deliberately. Wiring them is a feature — an
+artifact-driven branch of the video path, not a patch — and the same content is
+already reachable as `scaling_math` and `substitution_ratio` cards. The cost of
+leaving them is maintenance on code that cannot run, which is exactly what §522
+paid without knowing it. Decide before the next render change: wire, or retire
+from `root.tsx`.
+
+**§536. A whole channel that could be chosen and never published.** `story` is a
+declared post type with a 5–15 second target, an opening rule of its own, two
+formats mapped to it (`poll` and `behind`), and a resolver that routes them
+correctly. It writes a caption and declares `media: 'image'`. And the only image
+path in `generate.ts` is gated on `stillIsAboutThisPiece` — `factuality ===
+'product'` — which neither story format is. So a poll produced a caption, queued
+**no render at all**, and left an Instagram story with nothing to show.
+
+That is §478 and §508's shape one level up: not a branch nothing reached, a
+*surface* nothing reached. Found by generating the first `poll` in the system's
+history and noticing the piece had zero renders.
+
+`story_card` is the template, and it is one template rather than two on purpose:
+a poll and a "behind it" story are the same object with a different centre — a
+full-bleed vertical frame with one idea in it — and the poll adds two tappable
+halves beneath. Splitting them would duplicate the safe-area handling and the
+photo ground for nothing, and §511 already established that a template may
+change shape on the presence of a prop.
+
+Three rules in it are not taste. Nothing in the top or bottom 12%, because the
+platform draws its own UI there and `paddingFor` already knows. One idea, from
+`story`'s own opening rule: *"legible in a glance, tappable. Nobody watches a
+story twice."* And the halves have to look pressable — Instagram draws its own
+sticker on top, and a card that does not already read as a poll reads as a
+caption somebody stuck a sticker on.
+
+Rejected: cream halves on the cream ground, which is what the first render did.
+Only a hairline said they were controls. White, so they read as raised.
+
+**Not fixed, recorded:** the card's own question came back as *"Dairy-free cake:
+butter versus oil"* — the §523 label-colon construction, on screen. §523 checks
+the caption body and nothing checks the written slots, so the shape the caption
+is forbidden is still available to every word drawn on a frame.
+
+**§537. Phase A: what a picture found that a test could not.** Three image
+templates had never been produced by the pipeline. Rendered from fixtures and
+looked at: `transformation_diff_1x1` and `scaling_math` are both good and ship
+as they are — the strikethrough against the corrected value is the strongest
+idea in the still family. `youtube_thumbnail` drew correctly and was
+§534's defect.
+
+Also established, and worth more than the renders: `ScalingMath` and
+`SubstitutionExplainer` **video** compositions are reachable by no code path at
+all (§535), and `walkthrough` cannot be generated because it needs a cut product
+capture and the capture refuses — sign-in to recipefix.app fails, which is the
+correct refusal, since recording a signed-out page produces footage of an error
+state.
+
+**§538. Two thirds of every walkthrough was grey, and the comment explained
+why it wouldn't be.** §321 recorded at twice the flow viewport, reasoning that
+Playwright's `recordVideo.size` is independent of layout — *"the page still lays
+out at 430 and thinks it is a phone, so this is free resolution"*. Playwright's
+actual contract is that the picture of the page is **scaled down if necessary**
+to fit the requested size. Down, never up. So a 430×932 page in an 860×1864
+canvas sat at native size in the corner and the rest was padded.
+
+The first walkthrough Halyard ever rendered was the consequence: a recipe card
+in the top third of a phone frame, two thirds flat grey. Measured on the cut,
+page content ~780×1150 inside 1080×2340. Sharpness was never coming from the
+canvas — it comes from `deviceScaleFactor: 2` on the context, which genuinely
+renders at twice the device pixels and was already set. Recording at the
+viewport lets Playwright downscale *that*, which is the reduction §321 wanted
+and the only one on offer.
+
+Nothing caught it because no test asserted what the number was for. One does now.
+
+**§539. The cut kept the setup and threw away the payoff.** `swap_toggle` runs
+click → **wait for the rewrite (2500ms)** → still after the swap. §163 held a
+`wait` only when the step before it was elided; nothing here is elided, so the
+2.5 seconds in which the recipe actually rewrites were dropped. The cut was 1.3
+seconds under an 11-second piece, and the video froze on one frame for nine of
+them — a walkthrough that walks through nothing.
+
+The signal was already in the flow: an author records a `still` because they
+want that state looked at, so a `wait` immediately before one is the work that
+produced it. That wait is held; the still itself stays out, because a motionless
+frame is dead air in footage and the existing test is right about that. The cut
+went 1.3s → 3.8s and the product visibly changes across the piece.
+
+Structural and product-agnostic — it reads the shape of the flow, never pixels.
+
+**§540. The blocker was routed around, not waited on.** `walkthrough` needed a
+cut capture of `adapt_and_reveal`, which `requires: 'sign_in'`, and the
+credentials are absent — `EXPLORE_ACCOUNT_EMAIL` and `_PASSWORD` are unset, so
+the capture refused. The refusal is correct: recording a signed-out page
+produces footage of an error state.
+
+`swap_toggle` declares no `requires`. It captures against the live product with
+no credentials at all, and it demonstrates the thing the product is actually
+for. Halyard's first walkthrough is that flow, and finding it took reading the
+flow catalogue rather than waiting for a secret.
+
+Left standing: the recorded session is signed out, so the product's own
+"Sign in to save your recipes" card is on screen for part of the piece. Honest,
+and not what a demo should lead with. Fixing it means either credentials or a
+flow step that dismisses the card.
+
+**§538b. The native worker had no whisper model.** `tts` died on
+`whisper-cli -m /opt/models/ggml-base.en.bin` — a path that exists in the Docker
+image and on no developer machine, so every voiceover on a native worker failed
+after three attempts and the render behind it never queued. `WHISPER_MODEL_PATH`
+already existed as an override and nothing set it. Set in `.env`, carried by
+`env-sync`, model installed under `~/models`.
+
+**§541. Three fixes to get an auth wall out of a product demo, and one of them
+was mine.** The `swap_toggle` capture runs signed out, so RecipeFix offers
+"Sign in to save your recipes" over the ingredient list *after* an adaptation —
+and the first walkthrough had that card on screen for half its runtime. Honest,
+and the wrong first thing to show somebody who has not decided they want the
+product.
+
+Three attempts, and the first two were wrong in instructive ways:
+
+1. **Dismiss before the swap.** Useless: the prompt is triggered *by* adapting,
+   so before the swap there is nothing to dismiss. Verified against the live
+   page rather than assumed.
+2. **A bare `[aria-label="Dismiss"]`.** Found live, and it belongs to a
+   different banner — white text on a dark ground, not this light card. Scoped
+   to the card's own text instead, so it can only close that one thing.
+3. **Placed between the wait and the still — and the cut fell from 3.8 seconds
+   back to 1.3.** §539 holds a `wait` when the *next* step is a `still`, and
+   the next step was now a dismiss. A step marked `setup`, excluded from every
+   span, was silently deciding whether the payoff survived. The lookahead skips
+   `setup` and `elide` steps now: a step that never reaches footage must not
+   change what its neighbours mean.
+
+Validated by re-capturing and looking: 3.8 seconds, payoff intact, card gone,
+full ingredient list with both SWAPPED badges legible.
+
+**§542. A question slot that asked nothing.** `poll` describes its question as
+*"a real either/or people disagree about"*, and the first poll Halyard rendered
+put **"Dairy-free cake: butter versus oil"** on the card — a topic label naming
+both options the two tappable halves already showed, asking nothing. A poll
+whose question is not a question cannot earn the tap the format exists for.
+
+Nothing checked, and the reason is §348: `slopFilter` judges captions, a slot is
+not a caption, and `write.ts` walks only its *errors* — so §523's label rule,
+being a warning, never reached a written slot at all.
+
+The check belongs where slot rules live, and it is an error rather than a
+warning because errors there fail *the slot by name* and the rewrite replaces
+one line. §449's objection to failing a caption does not apply to a rule that
+costs a sentence. It tests for the question mark and nothing else: "Butter or
+oil?" and "Which fat holds the crumb?" both pass, and only the absence of the
+thing that makes it a question fails. Regenerated: **"Dairy-free cake: vegan
+butter or oil?"**
+
+**§543. A sentence that ended without saying so.** *"Six inches saves potatoes
+The fix is not a prettier bin."* — queued for approval, and it is a dropped full
+stop rather than a matter of taste. Every rule in `slopFilter` passed it,
+because the sentence splitter saw one long sentence: the rhythm, the length and
+the opening line were all measured against something the writer never wrote.
+
+Narrow by construction. Only a lowercase word followed directly by a word that
+*starts* clauses, with nothing between but a space — a capitalised noun
+mid-sentence is ordinary ("a spoon of Dijon"), and a line break is a list. Both
+verified against real captions: the potatoes one flags, and *"Two zones, not
+one\nThe stem is still drinking"* stays clean, which is right.
+
+**§544. The tic moved inward.** §523 fixed how a caption opens, and the next
+twenty-four captions found a new place to be identical: **ten of them contained
+a sentence starting "So"**, twice the next commonest connective, across two
+products and three platforms. [observation]. So [prescription]. Every one
+defensible alone; together, one voice with one move.
+
+A gate cannot refuse "so" — it is a good word. So this is a recency reading in
+§444's sense, like §523's: name what the account has been doing and hand it to
+the writer.
+
+**The threshold was wrong first, and the corpus said so.** Set at half the
+window, it never fired: "so" runs 3 of 8, 5 of 12 and 10 of 24 — a flat 42% at
+every size. A rule that cannot fire on the thing it was written for is exactly
+the defect this session keeps finding (§478, §499, §508, §522, §534), and I had
+just written another one. A third of the window catches it at every size and
+still leaves "which" alone at 2 of 8 and 4 of 24, which is variety rather than a
+tic. The measured rates are pinned in the tests so the threshold cannot drift
+back to dead.
+
+**§545. The topic label, on the frame that decides whether anyone watches.**
+Phase C's read of the rendered pieces — not the captions — found the §523 shape
+had survived where it costs most. Across 35 real on-screen opening lines, four
+carry it: *"Most important: freeze slices before staling."*, *"Separation
+matters most: store them apart."* The words before the colon are a judgement
+*about* the content rather than the content, and they occupy the entire first
+half-second, which is the only attention a scroll gives.
+
+§523 made this a warning in captions because ten of twelve used it and erroring
+would have emptied the queue. On frame one it runs 11%, so an error is
+affordable — and like §542 it fails *the slot*, so a rewrite costs one line. The
+rewrite is better every time: "Dairy-free cake: vegan butter or oil?" wants to
+be "Butter or oil in a dairy-free cake?".
+
+Checked against the hooks that work, which must keep passing: "Your third act
+loses viewers", "Steak crust going soft?", "Six inches saves potatoes."
+
+**Phase C, on the artefacts.** Kinolog's TikTok opens on "Your third act loses
+viewers" over cinema seats — direct address, a real problem, on-subject imagery,
+set in Bricolage Grotesque per §522. That one earns its next two seconds.
+RecipeFix's Instagram poll opened on a topic label over a bottle of oil, which
+is §545 and a duller picture than a slice of cake would have been. Both products
+carry their own subject correctly; the defect was the shape of the sentence, not
+a crossed wire.
+
+**§546. Halyard wrote Kinolog a piece for somebody else's audience.** The
+operator spotted it: *"your third act loses viewers"* over cinema seats. Good
+screenwriting advice — cut the scenes that explain the plan, make the villain
+force a choice — aimed squarely at people **making** films. Kinolog is for
+people **choosing one to watch tonight**: its verified competitors are
+Letterboxd, Trakt and SIMKL, all film logs, and every one of its six verified
+`content_pillars` is about choosing what to watch, distrusting recommenders, or
+keeping a diary.
+
+Nothing in the piece was false. Nothing objected, because `content_pillars`
+appears in `brain/model.ts` and `brain/agents.ts` — which *build* it — and
+nowhere in the generate handler. The Brain verified what the product is for and
+the writer never read it.
+
+The sixth instance of the shape (§478, §499, §508, §516, §522, §534) and the
+most expensive: the others produced a worse post, this one produces a post for
+the wrong people.
+
+`pillarFit` scores a subject's content words against the pillars, in §515's
+pattern — score against what exists, and when nothing scores, *say so*. Not a
+model call: whether a subject is on-pillar is a question the Brain has already
+answered by writing the pillars down, and asking a model to re-judge it would
+put perception where a lookup belongs.
+
+Refused *before the idea is claimed*, so an off-pillar subject costs nothing and
+the idea stays available — §453's rule that a piece which should never have been
+started is not a failed piece.
+
+Validated against the live database rather than fixtures: of the two Kinolog
+subjects that ever produced a piece, "How to pick a film in under two minutes"
+scores on-pillar and "Why the third act of a thriller is where most viewers
+quit" scores zero.
+
+**A product with no pillars has not disagreed.** `pillarFit` reports that as its
+own case with its own sentence, never as "off-pillar" — a Brain that has not run
+yet is not an objection, and treating it as one would refuse every piece for
+every new product.
+
+**§547. An import that could not store the bytes reported success.** Every music
+bed in the library was a `[TEST]` fixture — the sourcing script's own comment
+said so and predicted it "would have shipped a test tone under a real video".
+Running it found seven CC0 beds, one per mood, and the import printed `✓ …
+licensed_production` for all seven while storing nothing: `upload()` returned
+`file://local/${storagePath}` when `SUPABASE_SERVICE_ROLE_KEY` was absent, a URL
+that resolves to nothing, on rows the script then called licensed.
+
+The rest of the system already solved this — `storage.ts` writes to
+`HALYARD_LOCAL_ASSET_DIR` and says so. Music takes the same path now, and
+throws when neither is available, because a library that lies about what it
+holds is worse than an import that failed.
+
+**§548. Seven beds imported for every product, visible to one.** The import
+defaulted `product_id` to `'recipefix'`, so Kinolog's next video still logged
+*"The music library is empty."* A CC0 orchestral bed is nobody's property.
+`music_beds` was already read as `(product_id = $1 or product_id is null)`; the
+asset fallback beside it required an exact match, so a neutral bed was
+selectable in one query and invisible in the other. Both accept null now, and
+the import defaults to it — §518's lesson about templates, one library along.
+
+Verified end to end: a Kinolog piece now logs `music bed selected …
+provenance: licensed_production` and `music: true` in the finished mix, at
+−14.3 LUFS with the copy gate clean. Every bed was checked for vocals by
+transcription first — all seven are instrumental, which matters because a
+lyric under a voiceover fights it.
+
+**§549. The same post, written twice.** Two captions in the queue:
+*"Dairy-free ziti browns fast: meltable mozzarella gives a gooey top. But check
+at 16 minutes…"* and *"Dairy-free ziti can brown fast. So check at 16 minutes:
+meltable cheeses keep the top gooey…"* Same subject, same fact, same number.
+
+`alreadySaid` is not this. It hands the writer sixty days of claims and opening
+lines as a *brief*, and the writer honoured it by paraphrasing — "browns fast:"
+became "can brown fast." — because nothing compared the finished bodies.
+
+**The threshold is measured.** Across 1,770 pairs from 60 consecutive captions
+the distribution has a hole in it: the ziti pair scores 0.45, the next highest
+legitimate pair 0.26, nothing between. 0.35 sits in that empty space, catching
+the real duplicate and touching nothing merely on a related subject — which
+matters, because two pieces about pastry *should* share words.
+
+Not an embedding: `ideaEngine` already scores idea novelty with vectors and did
+not catch this, because the two ideas were genuinely different and the writing
+converged anyway. A duplicate now costs one rewrite with the repeated post
+quoted, not a refusal — the piece is researched and rendered by then, and the
+caption is the cheapest part to redo.
+
+**§550. A brief the writer copies is a brief that writes the line.** `tips.close`
+read *"The one that matters most, named."* Measured across the last twenty
+voiceovers, **five ended with the literal words "the one that matters most"** —
+25% of everything Halyard has given a voice. The writer was not being lazy. It
+was being obedient: a brief phrased as a finished sentence hands the writer a
+finished sentence, and §544's connective tic arrived the same way one layer up.
+
+Rewritten to describe the job — which single tip decides whether this works —
+with no words to lift, and to forbid the announcement, because "the one that
+matters most is X" is a writer telling you it is about to conclude rather than
+concluding.
+
+Validated on a fresh Kinolog piece, which now closes: *"The rewatch works when
+it feels selected, not surrendered to after scrolling."*
+
+**Phase C, on the artefacts, read three ways.** The best piece the system has
+made is Kinolog's *"Your watchlist is a waiting room"* — over a photograph of
+waiting-room chairs, so the image completes the metaphor rather than decorating
+it. As a scroller it stops the thumb before the sentence ends; as somebody with
+a 200-item watchlist the advice is specific ("attach one plain reason to every
+save, so future you knows what mood picked it"); as a peer it does not read as
+automated. That is the bar, and §550 was the last thing between the writing and
+it.
+
+**§551. The sound-effect library said, in its own licence column, that it was
+not licensed.** Four fixtures, `provenance: test`, `licence: "Synthesised test
+fixture — NOT a licence"` — and every piece logged *"no sound design: the sound
+effect library is empty"*. The same state music was in before §547, without
+even the sourcing script music had.
+
+Writing one found three things worth keeping:
+
+- **Openverse answers `page_size=21` with 401.** An authentication status for
+  what is a quota, so a caller asking for 25 results gets "Openverse returned
+  401" and goes looking for an API key that was never required. Measured: 20 →
+  200, 21 → 401. Capped in the client, where no caller has to know it.
+- **`minSeconds` defaulted to 30** — correct for a bed that would otherwise
+  loop, and it discards every cue ever recorded. Searching for a whoosh
+  returned 2 of 240 results and three roles came back empty. The caller says
+  which it wants now, and `maxSeconds` lives beside it.
+- **`Math.round(duration / 1000)` sent every cue to zero.** A 490ms swipe and a
+  100ms tick became the same number. Harmless for a three-minute bed; it
+  destroys the field this is now also used to search.
+
+And a fourth, mine: the first queries were phrases — "whoosh transition
+swoosh", "soft impact thump" — which returned nothing while the single word
+returned 240. `BED_SEARCHES` carries that exact warning and I wrote guesses
+anyway.
+
+`MIN_CUE_SECONDS` exists because the first tuned search picked a **0.01-second**
+tick: ten milliseconds is an encode artefact, not punctuation.
+
+**§552. The cue level ignored the cue.** `SFX_GAIN_DB` is a constant per role —
+transition −20, impact −16 — applied to whatever file was chosen. The library's
+measured peaks run from **0 dB to −13.5 dB**, so two cues meant to sit level
+arrived 13.5 dB apart: the tick prominent, the impact almost inaudible.
+`peak_db` was measured on import, stored, mapped onto the row, and read by
+nothing — the seventh instance of that shape this session.
+
+The role's number is the *target*, which is what it always meant: gain is
+`target − peak`, so every cue lands where its role asked. Written first as
+`min(target − peak, target + 6)`, which attenuated instead of capping boost and
+put the impact 7.5 dB under its own role; the arithmetic showed it before the
+audio did.
+
+Verified end to end: a Kinolog piece now logs *"sound design: Swipe Whoosh
+@4.3s — crossfade into beat 2"*, the first cue Halyard has ever placed.
+
+**§553. "You cook." — in a critic shared by every product.** The `cook`
+persona's *name* was already right, "someone who actually knows this subject",
+and its stance immediately narrowed it to one subject. So Kinolog's piece about
+choosing a film was read by somebody who cooks. It produced a good finding
+anyway — *"'play the highest overlap' sounds assembled rather than spoken"* —
+which is exactly how §546 stayed hidden: a model correcting for a wrong prompt
+leaves no trace.
+
+The key stays `cook`, because findings are stored as `cook/text.overstated` and
+renaming it would change the meaning of rows already written. What it asserts
+about the reader is what had to change.
+
+**§554. "Instrumental" was a default, not a measurement.** `music_beds.has_vocals`
+was `not null default false` and the import wrote `entry.hasVocals ?? false`
+from a manifest that never set it. So every bed asserted it had no vocals
+because nobody had listened — and the director reported that to the operator in
+as many words: *"instrumental, so it does not fight the voice."*
+
+The director was never at fault. It is written for three states and reads them
+correctly: `true` costs 2.5, an explicit `false` earns the line above, and
+`undefined` does neither, because it will not credit something nobody checked.
+The **column** could not hold the third state, so a default became a finding.
+Gotcha 9 one table along: null means unmeasured, false means measured false.
+
+`detectVocals` transcribes twelve seconds from the middle — an intro is often
+instrumental on a track that is not — and calls it vocals at three real words,
+because a transcriber given cello will occasionally emit a stray token and one
+hallucinated word is not a vocalist. All seven beds now read `false` on
+evidence rather than on a default, and a bed imported without a model reads
+NULL.
+
+**§555. Energy was the search term, not the music.** `energy` is `not null`, and
+every bed carried the constant its search bucket declared — so both beds found
+under one mood had identical energy whatever they sounded like, and the
+director's pace matching was reasoning about the query I typed.
+
+Measured from the file as the mean of loudness (integrated LUFS, −30 sparse to
+−8 squashed) and brightness (spectral centroid, 500 Hz pad to 4 kHz busy).
+Neither alone is enough: a loud drone is loud and not energetic, a bright
+triangle is bright and not.
+
+Three of seven disagreed materially with their bucket:
+
+| bed | mood | declared | measured |
+|---|---|---|---|
+| Un Poco de Chile | driving | 0.80 | **0.51** |
+| Commuting in Hong Kong | calm | 0.20 | **0.42** |
+| Light Playful | playful | 0.60 | **0.38** |
+
+**Still asserted, and named here rather than guessed at: `mood`.** It comes from
+which search bucket found the file and nothing has verified it. Measuring mood
+is a perceptual judgement rather than a signal-processing one, so the honest
+next step is to *flag disagreement* — a bed labelled `driving` measuring 0.51
+energy is worth a person's attention — rather than to invent a classifier.
+
+**What the review actually found.** Asked how the system decides what to play
+and when, the answer is now: **when** is well-reasoned and reads the
+screenplay's own staging — a transition cue only where a transition exists and
+never on a hard cut, because "a whoosh over one turns it into a wipe"; an
+impact only on a `pop` entrance. **What** was, until §552–§555, chosen by
+labels nobody had checked against the audio. `selectEffect` still picks by role,
+licence and least-recently-used with no audio properties at all, which is thin
+but not yet wrong — there is exactly one cue per role, so nothing is being
+chosen between.
+
+**§556. The Auditor was right about its evidence and wrong about the world.**
+Asked whether the agent layer is being kept honest, the Auditor answered: eight
+agents `capability.overclaimed`, *"a caller exists but there is no record of it
+ever having run"* — `music-director`, `sound-director`, `voice-director`,
+`visual-director`, `story-architect`, `motion-director`, `annotation-director`,
+`platform-creative-director`. Zero recorded runs between them, and the music
+director had selected a bed minutes before the audit that said it never had.
+
+The cause is the governing rule turned on itself. `recordingLlmClient` wraps the
+**model** client, so an agent is recorded exactly when it calls a model — and
+*agents perceive, code decides* means the entire director layer is code. The
+only recorder was attached to the one thing those agents never touch.
+
+An audit nobody can trust is worse than no audit: it teaches an operator to
+scroll past `capability.overclaimed`, and the next one will be real.
+
+`openStage` now writes the stage owner's run as `running`, and the poller closes
+it with the job's own outcome — a stage never claims success before its work
+has, and a retry cannot rewrite an earlier attempt's record because the update
+is scoped to rows still running. Verified on a real job: `motion-director` 3
+runs, `music-director` 1, all `succeeded`.
+
+**`sound-director` needed a different answer.** It is never a stage *owner* — it
+rides `alongside` the music stage — so owner-recording left it invisible.
+Recording it on stage-open would be a lie of a different shape, because the
+sound director frequently and correctly does nothing: the edit wants no
+punctuation, or the library is empty. Its record is written where the outcome is
+known, and `skipped` is a first-class result rather than a silent absence.
+
+Still outstanding and named rather than papered over: `tool.unavailable` for
+`pexels:videos/search`, `vision` and `fetch`, on a deployment that demonstrably
+uses all three — footage is being staged and frames described. The Auditor's
+view of which tools exist is its own separate drift.
+
+**§557. The contracts outlived their own reasons.** Running the Auditor
+properly — `--runtime`, which it warns about omitting because "running
+static-only would silently change the verdict" — showed the drift was not only
+in the audit script. Two agents were declared `blocked` for reasons made untrue
+the same day:
+
+- `stock-footage-finder`: *"BLOCKED ON A KEY: PEXELS_API_KEY is unset, so no
+  clip has ever been fetched."* The key is set and §478's clips are licensed and
+  staged.
+- `sound-director`: *"BLOCKED ON PROCUREMENT: sound_effects ships empty."* §551
+  filled it, and §552 placed the first cue.
+
+A contract that outlives its own reason is the exact drift this registry exists
+to prevent, and both notes had been true for months. Updated to
+`implemented_exercised` — a declaration of *intent*, which the Auditor
+immediately judged: `sound-director` is now `implemented_partial`, *"it runs,
+but nothing is known to consume its output"*, which is true and actionable
+rather than stale.
+
+**Three fixes to the audit script's view of the world**, each a real capability
+it could not see:
+
+- **`fetch`** is plain HTTP and has been in the runtime since Node 18. Its
+  absence reported `researcher` and `format-writer` as blocked on a tool they
+  use on every researched piece.
+- **`vision` and `vision-api`** are one capability under two names. The script
+  offered only the second, so `creative-critic-model` was reported unavailable
+  while describing frames on every video. Both are added rather than the
+  registry edited, because editing a contract to match a script is moving the
+  evidence to fit the test.
+- **`pexels:videos/search`** is available when the key is, which §478 made true
+  and this never learned.
+
+Four `tool.unavailable` findings became one, and the survivor is correct:
+`web-search` genuinely is not configured, which the script's own comment says.
+
+**And one wrong caller.** `sound-director` named
+`sfx.ts#selectEffect` as calling `planSfx`; they are siblings, and the real
+caller is `apps/worker/src/sfx.ts#resolveSfx`. Corrected.
+
+**A correction to §556.** I recorded stage runs with `agent_version: 'stage'`,
+and the Auditor groups evidence by `(agent_id, agent_version)` — so
+`music-director` had a recorded run and still reported never having run. A row
+filed under a version no contract declares is not evidence of the thing that
+ran. Stage rows now carry the registry's declared version and are marked
+`input_ref.via = 'stage'`, which is what the poller closes on.
+
+Remaining overclaims are now *true*: agents that are neither stage owners nor
+model callers still have no run record, and `downstream_consumed_at` is set by
+almost nothing. Both are real work rather than noise, which is the point.
+
+**§558. The critic was an opinion nobody acted on.** `readPiece` asks three
+readers — someone scrolling at speed, someone who knows the subject, a demanding
+art director — what is wrong with a written piece, and it is good at it. A
+Kinolog piece came back with *"'play the highest overlap' sounds assembled
+rather than spoken"*, which is exactly right.
+
+The verdict went into `generation_meta` and nowhere else. A piece flagged
+`text.reads_as_written_by_a_machine` reached the approval queue unchanged. §533's
+objection one layer up — and `TextCriticFinding.slot` has carried the answer in
+a comment since it was written: *"which slot it is about, so a rewrite knows
+what to replace."* Nothing replaced anything.
+
+`reviseFlaggedSlots` rewrites **only the named slots**. Re-running the whole
+writer would re-research the piece, pay for a second research pass, and put good
+lines at risk to fix one bad one; the findings name their slots, so the rest are
+left alone.
+
+**It cannot make a piece worse.** The revision goes through `checkDraft` — the
+same gate the original passed — and is discarded whole if it fails. §275's rule
+stands: the critic may not fail a piece. This is not a veto; a piece whose
+revision does not survive ships with its original lines and the finding recorded
+against it. A test asserts exactly that, by feeding back a Title Case
+replacement and requiring it to be dropped.
+
+The record now carries what was *done* about a complaint, not only the complaint:
+`generation_meta.read.revised` lists the slots that changed.
+
+Not yet seen end to end: the piece generated to exercise it came back clean —
+"Read 5 lines and found nothing worth saying" — so the path is unit-tested and
+wired and waiting for a naturally flagged piece.
+
+**§559. The registry named routes the studio reorganisation deleted.** §528
+found the browser suite testing a product that no longer existed; the same
+commit had left five paths stale in the agent registry, and the Auditor reported
+four agents as `declared_caller_missing`. All four were live — `draftFind` on
+`(studio)/wires/finds/page.tsx`, `draftReply` on `(studio)/wires/page.tsx`,
+`generateKit` under `(studio)/master/setup-kit`, the compose stream in
+`(studio)/floor/chat` — and every one was declared at a `(dashboard)/` path
+deleted months ago. Corrected; `declared_caller_missing` went from four to zero.
+
+**And the Auditor caught me the moment I added a prompt.** `slot-revision@1`
+was reported `agent.unregistered` on its first run — a model call nobody owns.
+It is the format writer doing a second pass on the same contract, so it is
+registered there rather than as a new agent.
+
+**§560. The text critic had never been registered at all.** It has read every
+written piece for as long as it has existed, emitting `text_critic.v1`, and no
+contract claimed it. Registered as its own agent rather than folded into
+`creative-critic-model`: that one reads *frames*, this one reads the words
+before anything is rendered, and they fail differently — a frame critic without
+vision reports nothing, a text critic without a model refuses.
+
+Across §557–§560 the audit went from **7 errors and 4 false tool findings** to
+**2 errors and 1 true one**. The two survivors are real: `photographic-subject`
+declares prompt-version attribution and emits none, and something emits `diag`
+that no contract claims.
+
+**§561. Two stale claims, and the Auditor caught one of them against me.**
+`photographic-subject` declared prompt versions `@1` and `@2` while the source
+emits only `@2` — a claim left behind when the prompt was bumped, and precisely
+what the rule describes: a version claimed by a contract that no file emits
+describes an agent that cannot run. History in `agent_runs` still holds `@1`
+rows and should; the registry says what an agent *is*, not what it has been.
+
+`scripts/format-smoke.ts` emitted `promptVersion: 'diag'` — a model call nobody
+owned. It sends the format writer's own brief through `briefFor`, so the version
+now says so (`post_format.diag`) and `format-writer` declares it, with the
+suffix keeping a hand-run diagnostic distinguishable from production traffic in
+the same table.
+
+**The audit went from 7 errors to 0.**
+
+**§562. The column that capped the whole registry.** `markOutputConsumed` has
+been written, tested and called by nothing outside its own tests since it was
+added — the tenth instance this session of *declared, typed, tested, unreached*.
+It is also the most consequential: `implemented_exercised` requires a consumed
+output, so **19 agents were reported `output.unconsumed`** and most of the
+sixteen overclaims followed from it. No agent could reach the top state, whatever
+it did.
+
+Marked where it is *true*, not in a sweep:
+
+- **copywriter** when the `content_items` row that holds its body exists;
+- **format-writer** after the render is queued from its slots, so a failed queue
+  claims nothing;
+- **text-critic** only when §558 actually rewrote a line — a critic whose
+  objection changed nothing has not had its output consumed, and saying
+  otherwise is the exact overclaim this column exists to catch.
+
+A blanket stamp over every run in a job would have cleared all nineteen
+warnings and meant nothing. Three honest marks cleared one, and the copywriter
+became the first agent to reach `implemented_exercised` on evidence:
+*"Implementation, caller, consumer, tests and a real execution are all
+present."* Its contract is raised to match. The remaining eighteen are real work
+of the same shape, one agent at a time.
+
+**§563. Three more agents, and a lesson about *when* to mark.** §562 established
+that consumption must be marked where it is true. Extending it to the main
+generate path found that *where* also means *when*:
+
+- **screenwriter** — its screenplay is on the row the renderer reads, so it is
+  consumed at insert. Guarded on a screenplay actually having been staged: a
+  carousel or a text post must not credit an agent that never ran.
+- **vo-scriptwriter** — consumed by the row that stores `vo_script`, which the
+  tts job speaks verbatim. It correctly did not fire on a `tips` piece, because
+  a format that builds narration from its own slots never calls it.
+- **photographic-subject** — marked beside the hero attach first, which caught
+  **1 of 7 runs**. The hero lands early and the beat photographs later, so six
+  runs that genuinely became pictures looked unconsumed. Moved to the end of
+  the media work: `markOutputConsumed` stamps every still-unconsumed run for
+  that agent in the job, so one call covers all of them, and it stays truthful
+  because by that line every image the piece will carry exists.
+
+The general lesson: an agent that runs once can be marked where its output
+lands; an agent that runs many times per piece has to be marked after the last
+of them, or the record understates it exactly as badly as a blanket stamp
+overstates it.
+
+## §564–§567 · Release truth: what is running, and what a green run means
+
+**H0 of `docs/production/HALYARD_PRODUCTION_PROGRAM.md`.** The programme asks
+for one trustworthy release state before anything is built on top. Four things
+were in the way, and each was a *verification* that had stopped verifying.
+
+### §564 · A suite that skips reports green, and forty-three of them were skipping
+
+CI had been red since 2 September on one step: `packages/db/src/types.gen.ts`
+was stale — **thirteen tables and thirty-nine migrations behind**. A failing
+step ends a GitHub Actions job, so **typecheck, lint and test never ran at
+all** for four days. One known-red step was hiding the state of three others,
+and when the types were regenerated, lint turned out to hold **seven errors**
+of its own that nobody had seen.
+
+Two fixes, and the second matters more than the first:
+
+- `if: '!cancelled()'` on every check from the types step down. A job that
+  cannot report the other three checks is not reporting a result, it is
+  reporting the first thing that broke.
+- `HALYARD_REQUIRE_DB=1`, set in CI and by `pnpm verify`. Forty-three suites
+  guard on `databaseAvailable()` and **report green when it returns false**, so
+  a run whose Postgres never came up looked exactly like a clean one. §395
+  found the worse version — connection exhaustion also lands there, so a suite
+  that could not get a connection went dark rather than red. Required mode
+  turns the skip into a failure that names the URL and the reason.
+
+  The contrast, measured: the same command against an unreachable database
+  reports `1 passed, 2 skipped` without the flag and fails with the reason
+  with it.
+
+**Rejected:** wiring the database into `vitest.config.ts` by default. §456
+already settled that — a default that can take down the database you are
+developing against, and that fails on a fresh clone, is worse than the skip.
+The flag says *this run is being believed*, which is the honest place to draw
+it.
+
+`./scripts/verify` (`pnpm verify`) is the whole path in one command, because
+"is the repository green?" previously had no answer you could run: the steps
+lived in CI's YAML and two paragraphs of `CLAUDE.md`, and the way most people
+ran the tests skipped a third of them.
+
+### §565 · The documented way to run the tests was also the way to spend money
+
+Gotcha 12 tells you to source `apps/web/.env.local` so the database suites stop
+skipping. That file carries every *other* real credential too, and the provider
+clients all fall back to `process.env`. **Four tests in `generate.test.ts` were
+buying a real OpenAI generation on every full run** — one of them under a
+comment promising the block "never touches a provider", because
+`generateHandler` builds its model client *before* it reaches the connector
+that was supposed to fail first.
+
+§479 found one such test and fixed that test. This fixes the class:
+
+- `vitest.setup.ts` refuses every non-local `fetch` and replaces paid keys with
+  a sentinel. Two guards rather than one, because the network guard also covers
+  publishing and any provider whose key is set somewhere the file cannot see,
+  while the sentinel covers a transport the wrapper missed.
+- `HandlerContext.createLlm` is the seam. Production leaves it undefined and
+  gets the real factory; a test hands over a client that cannot spend.
+
+Keys are replaced rather than deleted deliberately: many code paths branch on
+"is a key configured at all", and deleting would make the suite test the
+unconfigured branch instead of production.
+
+Evidence it was real: `generate.test.ts` went from **16s to 2.9s** once it
+stopped making network calls.
+
+### §566 · The database now says which migration it was built to
+
+There was no migration bookkeeping at all on the path CI and the laptop use —
+`db-reset.ts` applies every file and records nothing. Production is *worse*
+rather than better: the Supabase CLI keeps its ledger in
+`supabase_migrations.schema_migrations`, a schema the application cannot see
+and CI does not have. The two environments had **no marker in common**, so no
+check could compare them.
+
+Migration 0082 creates `schema_version`: one row, in Halyard's own schema,
+written by the migrations themselves — therefore true wherever the migrations
+ran, by whichever runner. `EXPECTED_SCHEMA_VERSION` in `@halyard/db` is the
+other half, a constant rather than a directory read because the comparison runs
+in a server component on Vercel where `supabase/migrations` is not deployed.
+
+The contract this creates — every new migration stamps its own number — is kept
+by `schemaVersion.test.ts`, which reads the migrations directory and fails when
+the newest file does not stamp, when the numbering has a gap, or when the
+constant disagrees. Gotcha 1's shape, and the same answer `assetKinds.test.ts`
+gives it.
+
+### §567 · Two tiers, one database, and nothing could say what any of them were
+
+Halyard deploys as Vercel plus Railway against one Postgres, released
+independently. The worker wrote a commit SHA into its heartbeat (§243) and
+**nothing ever read it**; `staleWorkers` had been written and tested since §243
+and had **no caller on any runtime path** — the §562 shape exactly, where the
+capability exists in full and the failure it catches still happens in silence.
+
+`packages/core/src/release/` is now the one definition of release identity and
+worker freshness, and `/master/system` is the caller. The worker's heartbeat
+carries build time, environment and the schema version it sees alongside its
+kinds; `/api/health` carries the web tier's commit unauthenticated, which is
+what §174 built that endpoint to answer and then only half-answered.
+
+Three judgements worth recording:
+
+- **A revision mismatch warns; it does not fail.** A deploy in flight looks
+  exactly like this, and a status page that screams through every release
+  teaches the operator to ignore it. What makes it actionable is the job-kinds
+  check beside it.
+- **A database behind the code fails; ahead of it warns.** Behind means the
+  code will reference columns that do not exist. Ahead is a migration landing
+  before a deploy, which is the safe order.
+- **The web tier is compared against the *freshest* worker.** Gotcha 13: two
+  workers race, and one is usually a leftover. Comparing against a stray
+  reports a mismatch that is real but not the one the operator is looking at —
+  the stray belongs in the stale list, and that is where it goes.
+
+Everything reports `unknown` rather than `ok` when it could not be measured,
+including the literal string `unknown` that `next.config.ts` bakes into
+`HALYARD_RELEASE` when Vercel supplied no SHA — an absent value wearing a
+value's clothes, and rendering it as a commit would be confidently wrong.
+
+**Not done here, and deliberately:** the E2E job has been timing out at its
+20-minute ceiling since before this work, and production's own
+`publishing_enabled` could not be read because no production database URL
+exists on this machine. Both are named in `docs/STATUS.md` rather than assumed.
+
+## §568 · The E2E suite tests a UI that was renamed out from under it
+
+Running E2E as part of H0's exit gate found **49 of 64 desktop tests failing**,
+and the shape of the failure is the point. The studio reorganisation renamed
+nearly every screen — `/agents` → `/master/crew`, `/brain` → `/master/product`,
+`/system` → `/master/system`, `/campaigns` → `/rundown/campaigns`, `/take` →
+`/wires/take` — and the specs were not moved with it. **Thirty-five distinct
+routes across twelve spec files now 404.**
+
+From outside that does not look like a wrong URL. Each test waits ten seconds
+for a heading that is sitting on a 404 page, then the test times out at sixty
+seconds; the job's ceiling is twenty minutes, so **the suite never finishes and
+the reason never appears anywhere**. That is what the CI `e2e` job has been
+doing — it has been reported as a timeout, and the timeout was a symptom.
+
+`e2e/routes.spec.ts` reads the app router's own directory tree and every
+`page.goto` in the suite and compares them. It is gotcha 1's shape — a list
+written twice, drifting silently — and it gets gotcha 1's answer, the one
+`assetKinds.test.ts` gives. **456 milliseconds, and it names all thirty-five.**
+
+**Why the routes were not simply repointed.** The reorganisation rewrote the
+screens as well as moving them: `Pause all publishing`, `queue-item-…`,
+`Conversations are not saved yet` and `There is no auto-reply in this system`
+are all asserted by specs and **exist nowhere in the app**. Repointing the URLs
+would move each failure from "404" to "text not found" without making a single
+test true. These specs need rewriting against the screens that exist, and those
+screens are themselves about to be redesigned
+(`docs/production/UI_PRODUCT_REDESIGN_SPEC.md`) — so rewriting them now is work
+done twice, and H0 explicitly defers the UI.
+
+**Where the check lives, and why that is not a dodge.** It is an E2E spec, not
+a unit test. The unit and integration suite is genuinely green — 292 files,
+3,915 tests, nothing skipped — and E2E is genuinely broken. Putting the
+detector in `vitest` would have made the honest report red in the wrong place;
+putting it in `e2e` makes the broken suite fail in half a second with the list
+instead of in twenty-five minutes with nothing. Neither is a skip: §562's rule
+holds, and a suite that reports green because it never ran is what this whole
+work package exists to abolish.
+
+**Handed on, not hidden.** Repairing the E2E suite against the current screens
+is the next package's work, and it is named in `docs/STATUS.md` and in the H0
+evidence section of the production programme rather than left as a mysterious
+CI timeout.

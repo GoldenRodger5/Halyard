@@ -1,6 +1,22 @@
 export * from './types.gen.js';
 export * from './client.js';
 
+/**
+ * §566. The migration this build expects the database to be at.
+ *
+ * A constant rather than a directory read, because the check that matters runs
+ * in a Next.js server component on Vercel, where `supabase/migrations` is not
+ * part of the deployed bundle — a check that cannot run in production is not a
+ * check. `schemaVersion.test.ts` asserts this equals the newest migration on
+ * disk, so it cannot drift without CI going red.
+ *
+ * Compared against the `schema_version` row the migrations stamp. Behind means
+ * unapplied migrations and code that will reference columns that do not exist;
+ * ahead means a migration landed before the deploy, which is the safe order.
+ */
+export const EXPECTED_SCHEMA_VERSION = '0082';
+
+
 /*
  * `PLATFORMS` and `Platform` used to live here, listing six platforms.
  *

@@ -46,6 +46,37 @@ export interface SfxResult {
  * `forPublication` decides whether test fixtures are eligible, exactly as it
  * does for music: a preview may use them and a post may not.
  */
+/** §552. How far a quiet cue may be lifted before its noise floor comes too. */
+const MAX_CUE_BOOST_DB = 6;
+
+/**
+ * §556. Record the sound director, which no stage owns.
+ *
+ * `openStage` records a stage's **owner**, and `sound-director` is never one —
+ * it rides `alongside` the music stage. So it stayed invisible to the Auditor
+ * even after every owner became visible.
+ *
+ * Recording it on stage-open would have been a lie of a different shape: the
+ * sound director frequently and correctly does nothing, because the edit wants
+ * no punctuation or the library is empty. So the record is written here, where
+ * the outcome is known, and `skipped` is a first-class result rather than a
+ * silent absence.
+ */
+async function recordSoundDirector(
+  ctx: HandlerContext,
+  outcome: 'succeeded' | 'skipped',
+  detail: Record<string, unknown>,
+): Promise<void> {
+  await ctx.pool
+    ?.query(
+      `insert into agent_runs
+         (agent_id, agent_version, team, trigger, trigger_ref, status, completed_at, output_ref)
+       values ('sound-director', '1.0', 'content', $1, $2, $3, now(), $4)`,
+      [ctx.jobId ? 'job' : 'unknown', ctx.jobId ?? null, outcome, JSON.stringify(detail)],
+    )
+    .catch(() => undefined);
+}
+
 export async function resolveSfx(
   ctx: HandlerContext,
   input: {
@@ -74,7 +105,9 @@ export async function resolveSfx(
   });
 
   if (plan.cues.length === 0) {
-    return { cues: [], skippedReason: plan.refusedReason ?? 'No cue in this edit wanted one.', unfilled: [] };
+    const skippedReason = plan.refusedReason ?? 'No cue in this edit wanted one.';
+    await recordSoundDirector(ctx, 'skipped', { because: skippedReason });
+    return { cues: [], skippedReason, unfilled: [] };
   }
 
   const { rows } = await ctx.pool.query<{
@@ -161,10 +194,33 @@ export async function resolveSfx(
     const file = path.join(input.workDir, `sfx-${cues.length}-${row.id.slice(0, 8)}.mp3`);
     await writeFile(file, bytes);
     usedInThisPiece.add(row.id);
+    /*
+     * §552. Level the cue against its own peak, not just its role.
+     *
+     * `SFX_GAIN_DB` is a constant per role — transition −20, impact −16 — and
+     * it was applied to whatever file was chosen. The library's own measured
+     * peaks range from **0 dB to −13.5 dB**, so two cues meant to sit at the
+     * same level arrived 13.5 dB apart: the tick prominent, the impact almost
+     * inaudible. `peak_db` was measured on import, stored, loaded into
+     * `peakDb` by the mapper beside it, and read by nothing.
+     *
+     * The role's number is the *target*, which is what it always meant. A cue
+     * peaking at 0 needs the full −22; one already at −13.5 needs −8.5. Both
+     * land where the role asked.
+     *
+     * The cap limits *boost*, not gain. Written first as
+     * `min(target - peak, target + 6)` it attenuated instead: an impact needing
+     * −2.5 dB got −10 and landed 7.5 dB under its own role. A file so quiet it
+     * needs more than +6 is a bad cue rather than a quiet one, and lifting it
+     * further lifts its noise floor with it.
+     */
+    const measuredPeak = Number.isFinite(Number(row.peak_db)) ? Number(row.peak_db) : 0;
+    const levelled = Math.min(cue.gainDb - measuredPeak, MAX_CUE_BOOST_DB);
+
     cues.push({
       path: file,
       atSeconds: cue.atSeconds,
-      gainDb: cue.gainDb,
+      gainDb: Number(levelled.toFixed(2)),
       because: cue.because,
       effectId: row.id,
       title: row.title,
@@ -177,6 +233,12 @@ export async function resolveSfx(
       [cue.effectId],
     );
   }
+
+  await recordSoundDirector(ctx, cues.length > 0 ? 'succeeded' : 'skipped', {
+    placed: cues.length,
+    unfilled: unfilled.length,
+    cues: cues.map((c) => `${c.title} @${c.atSeconds.toFixed(1)}s`),
+  });
 
   return {
     cues,

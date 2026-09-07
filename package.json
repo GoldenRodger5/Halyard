@@ -34,7 +34,8 @@
     "audit-halyard": "tsx scripts/audit.ts",
     "demo:tiktok": "playwright test --config playwright.demo.config.ts; node scripts/encode-demo.mjs",
     "demo:login": "node scripts/demo-login.mjs",
-    "demo:screen": "node scripts/demo-screen.mjs"
+    "demo:screen": "node scripts/demo-screen.mjs",
+    "verify": "./scripts/verify"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",

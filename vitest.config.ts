@@ -17,6 +17,14 @@ export default defineConfig({
       'scripts/**/*.test.ts',
     ],
     exclude: ['**/node_modules/**', '**/.next/**', '**/dist/**'],
+    /*
+     * §565. No test reaches a provider or spends money by accident.
+     *
+     * Gotcha 12 tells you to source the env file to stop database suites
+     * skipping; that same file hands every test a live billable credential.
+     * This setup blocks non-local `fetch` and neuters the paid keys.
+     */
+    setupFiles: ['./vitest.setup.ts'],
     testTimeout: 30_000,
     /*
      * §386. Long enough to build a database.
@@ -49,6 +57,16 @@ export default defineConfig({
         root,
         'packages/render/src/video/artifactProps.ts',
       ),
+      /*
+       * §567. `@/` is the web app's own alias, from its tsconfig.
+       *
+       * Without it, nothing under `apps/web/src` that imports `@/lib/...` could
+       * be unit-tested at all — the release check lives there and is exactly the
+       * kind of code that has to be tested rather than reasoned about.
+       */
+      '@/': `${path.resolve(root, 'apps/web/src')}/`,
+      // Next's build-time guard; it has nothing to enforce under vitest. See the stub.
+      'server-only': path.resolve(root, 'test/serverOnlyStub.ts'),
       '@halyard/core': path.resolve(root, 'packages/core/src'),
       '@halyard/db': path.resolve(root, 'packages/db/src'),
       '@halyard/render': path.resolve(root, 'packages/render/src'),

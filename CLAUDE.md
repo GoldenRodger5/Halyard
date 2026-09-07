@@ -133,10 +133,21 @@ Landmines learned the hard way. Each one cost real time.
 
     ```
     set -a; . ./apps/web/.env.local; set +a
-    TEST_DATABASE_URL="$DATABASE_URL" pnpm vitest run --maxWorkers=6
+    TEST_DATABASE_URL="$DATABASE_URL" pnpm vitest run --minWorkers=1 --maxWorkers=6
     ```
 
-    `--maxWorkers=6` is not optional. Forty-three suites each **create and
+    `--minWorkers=1` is not decoration: `--maxWorkers=6` on its own now dies
+    with `options.minThreads and options.maxThreads must not conflict` and
+    reports **"no tests"** with a zero exit path that looks like a clean run
+    until you read the line above it. A full green run is 281 files and 3,798
+    tests with *nothing* skipped.
+
+    `--maxWorkers=6` is not optional, and on a machine also running the worker
+    it is still too many: a run with the worker up died with exit 144 and no
+    output, and the next reported ten failed files and two failed tests that
+    every one of them passes in isolation. That is exhaustion, not breakage —
+    stop the worker and use `--maxWorkers=4` when a run fails in a shape that
+    makes no sense. Forty-three suites each **create and
     migrate a database** and open up to four connections against a
     `max_connections` of 100; at the default worker count this killed local
     Postgres outright, and it died without releasing `postmaster.pid` — after
@@ -144,14 +155,26 @@ Landmines learned the hard way. Each one cost real time.
     the recorded PID. Clear it with
     `rm /opt/homebrew/var/postgresql@17/postmaster.pid`.
 
-    Three tests in `generate.test.ts` additionally need `ANTHROPIC_API_KEY`,
-    which sourcing the env file supplies. Sourcing it also supplies every
-    *other* real credential, and clients fall back to the environment — so a
-    "refuses without a key" test must strip the variable for its own duration
-    or it makes a real request and fails on a 401. §479. This is *not* wired into
-    `vitest.config.ts` on purpose: a default that can take down the database
-    you are developing against, and that fails on a fresh clone with no API
-    key, is worse than the skip it fixes. §456.
+    **Use `pnpm verify`.** §564 wrapped the whole path — migrations, generated
+    types, typecheck, lint, tests, build — in one command that *fails* when a
+    prerequisite is missing instead of skipping past it, and sets
+    `HALYARD_REQUIRE_DB=1` so a database-backed suite may not go quiet. Run the
+    raw `vitest` line above only when you want one file.
+
+    Sourcing the env file supplies every *other* real credential too, and the
+    clients fall back to the environment — which is how **four tests in
+    `generate.test.ts` came to buy a real OpenAI generation on every full run**,
+    one of them under a comment promising it never touched a provider. §565
+    fixed the class rather than the tests: `vitest.setup.ts` refuses every
+    non-local `fetch` and replaces paid keys with a sentinel, and
+    `HandlerContext.createLlm` is the seam a handler's model client comes
+    through. A test that genuinely needs the network sets
+    `HALYARD_TEST_ALLOW_NETWORK=1`.
+
+    Requiring a database is *not* wired into `vitest.config.ts` by default on
+    purpose: a default that can take down the database you are developing
+    against, and that fails on a fresh clone, is worse than the skip it fixes.
+    §456. The flag is how a run says it is being believed.
 
 13. **Two workers will happily race each other, and only one has your fixes.**
     A container from `./scripts/halyard` and a worker started by hand both poll
@@ -195,7 +218,34 @@ Landmines learned the hard way. Each one cost real time.
     `settings.daily_budget_usd` pauses paid job kinds. When adding anything
     that costs money, record it there or it does not exist. §494.
 
-16. **X publishing is billed per post** (~$0.015 without a link, ~$0.20 with). X v2 write endpoints return **402 credits-depleted** when the developer account has no credits.
+16. **One X account cannot be connected from two environments.** X keeps a
+    single OAuth token chain per (user, developer app), and its refresh token
+    is **single use** — every refresh returns a new one and invalidates the old
+    instantly. `@Recipe_Fix` was authorised in the local dev database *and* in
+    production through the same `X_CLIENT_ID`, so a refresh in either silently
+    killed the other's stored token; whichever ran last won, and the loser
+    reported `"Value passed for the token was invalid"` and asked for a
+    reconnect. No lock fixes this — the two refreshers are in different
+    databases. `HALYARD_TOKEN_REFRESH=off` is how a machine says it does not
+    own the tokens; it is set in the local `.env` and **must stay unset on
+    Railway**. Two consequences: never wonder why X "expires every few hours"
+    without checking both databases first, and a test whose subject is that
+    flag must own it for its own duration, because gotcha 12 tells you to
+    source the env file that sets it (§479's lesson, one variable along). §531,
+    §532.
+
+17. **A migration must stamp its own version, and CI's steps must not hide
+    each other.** Two H0 lessons that will bite again. First: every new
+    migration ends by writing its number into `schema_version` (§566) and bumps
+    `EXPECTED_SCHEMA_VERSION` in `packages/db/src/index.ts` — the web tier
+    compares those to say whether the database matches the code, and
+    `schemaVersion.test.ts` fails if you forget either. Second: a failed step
+    ends a GitHub Actions job, so for four days a stale `types.gen.ts` meant
+    **typecheck, lint and tests never ran at all**, and lint had seven errors
+    nobody could see. Every check from the types step down carries
+    `if: '!cancelled()'`. Do not remove it to "fail fast".
+
+18. **X publishing is billed per post** (~$0.015 without a link, ~$0.20 with). X v2 write endpoints return **402 credits-depleted** when the developer account has no credits.
 
 ---
 

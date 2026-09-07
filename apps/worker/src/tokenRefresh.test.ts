@@ -17,6 +17,26 @@ import { testContext } from './testContext.js';
 // The same fixed test key the other suites use; sealing needs one present.
 process.env.TOKEN_ENCRYPTION_KEY ??= Buffer.alloc(32, 7).toString('base64');
 
+/*
+ * §532. This suite must decide for itself whether refreshing is on.
+ *
+ * The guard that stops a laptop rotating production's X tokens is an
+ * environment variable, and gotcha 12 says to run this suite with
+ * `apps/web/.env.local` sourced — which now carries `HALYARD_TOKEN_REFRESH=off`.
+ * So the handler correctly refused, and three tests that assert it refreshes
+ * failed on a developer machine while passing in CI. §479 is the same lesson
+ * one variable along: a test whose subject is an environment flag has to own
+ * that flag for its own duration rather than inherit whatever the shell had.
+ */
+const inheritedRefreshFlag = process.env.HALYARD_TOKEN_REFRESH;
+beforeAll(() => {
+  delete process.env.HALYARD_TOKEN_REFRESH;
+});
+afterAll(() => {
+  if (inheritedRefreshFlag === undefined) delete process.env.HALYARD_TOKEN_REFRESH;
+  else process.env.HALYARD_TOKEN_REFRESH = inheritedRefreshFlag;
+});
+
 const available = await databaseAvailable();
 const d = available ? describe : describe.skip;
 
@@ -109,27 +129,87 @@ d('the worker refresh handler', () => {
     spy.mockRestore();
   });
 
-  it('marks the account for reconnection when the refresh is rejected', async () => {
+  /*
+   * §531. This asserted the defect, against a real database.
+   *
+   * It required the first rejection to set `capability_state = 'error'` — and
+   * the refresher's own select filtered on `capability_state in
+   * ('live','draft_only')`, so that one write removed the account from every
+   * future refresh. @Recipe_Fix sat in `error` for ten days holding a refresh
+   * token valid until February, and the only exit was a person pressing
+   * Reconnect. Both this test and its unit twin passed throughout, because they
+   * were checking that the door closed.
+   */
+  it('backs off and keeps the account refreshable after one rejection', async () => {
     const id = await seedAccount(10);
     process.env.X_CLIENT_ID = 'test-id';
     process.env.X_CLIENT_SECRET = 'test-secret';
     const spy = vi
       .spyOn(getAdapter('x'), 'refresh')
-      .mockRejectedValue(new Error('invalid_grant'));
+      .mockRejectedValue(new Error('Value passed for the token was invalid.'));
 
     await HANDLERS.refresh_tokens!(job, ctx());
 
-    const { rows } = await pool.query<{ state: string; err: string }>(
-      'select capability_state as state, last_error as err from social_accounts where id = $1',
+    const { rows } = await pool.query<{
+      state: string;
+      err: string;
+      failures: number;
+      next_at: string | null;
+      locked: string | null;
+    }>(
+      `select capability_state as state, last_error as err, refresh_failures as failures,
+              refresh_next_attempt_at as next_at, refresh_locked_at as locked
+         from social_accounts where id = $1`,
+      [id],
+    );
+
+    expect(rows[0]!.state, 'one blip must not close the door').not.toBe('error');
+    expect(rows[0]!.err).toContain('Value passed for the token was invalid');
+    expect(Number(rows[0]!.failures)).toBe(1);
+    /* Due again soon, and the lease released so the next pass can claim it. */
+    expect(rows[0]!.next_at).not.toBeNull();
+    expect(new Date(rows[0]!.next_at!).getTime()).toBeGreaterThan(Date.now());
+    expect(rows[0]!.locked, 'a held lease would block every later attempt').toBeNull();
+
+    /* Nobody is woken for something the machine is about to retry. */
+    const notes = await pool.query<{ n: string }>(
+      `select count(*) as n from notifications where kind = 'auth_failure'`,
+    );
+    expect(Number(notes.rows[0]!.n)).toBe(0);
+    spy.mockRestore();
+  });
+
+  it('asks for a person once the retry budget is spent', async () => {
+    const id = await seedAccount(10);
+    await pool.query('update social_accounts set refresh_failures = 5 where id = $1', [id]);
+    process.env.X_CLIENT_ID = 'test-id';
+    process.env.X_CLIENT_SECRET = 'test-secret';
+    const spy = vi.spyOn(getAdapter('x'), 'refresh').mockRejectedValue(new Error('invalid_grant'));
+
+    await HANDLERS.refresh_tokens!(job, ctx());
+
+    const { rows } = await pool.query<{ state: string; failures: number }>(
+      'select capability_state as state, refresh_failures as failures from social_accounts where id = $1',
       [id],
     );
     expect(rows[0]!.state).toBe('error');
-    expect(rows[0]!.err).toContain('invalid_grant');
+    expect(Number(rows[0]!.failures)).toBe(6);
 
     const notes = await pool.query<{ n: string }>(
       `select count(*) as n from notifications where kind = 'auth_failure'`,
     );
     expect(Number(notes.rows[0]!.n)).toBe(1);
+
+    /*
+     * And even now it stays in the scan, so a provider that recovers needs
+     * nobody. This is the assertion the original design could not make.
+     */
+    const due = await pool.query<{ n: string }>(
+      `select count(*) as n from social_accounts
+        where id = $1 and token_expires_at is not null and capability_state <> 'disabled'`,
+      [id],
+    );
+    expect(Number(due.rows[0]!.n)).toBe(1);
     spy.mockRestore();
   });
 

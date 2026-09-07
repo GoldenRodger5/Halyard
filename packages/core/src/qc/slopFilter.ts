@@ -70,6 +70,7 @@ export type SlopPlatform =
   | 'bluesky';
 
 import { budgetFor, checkCopyBudget } from '../copy/budget.js';
+import { openingFormula } from '../creative/captionOpening.js';
 
 /**
  * §450. Above this share, a caption is a transcript rather than a companion.
@@ -766,8 +767,28 @@ export function slopFilter(input: SlopFilterInput): SlopFilterResult {
     });
   }
 
-  // Humans vary wildly. Uniform sentence length is a generation artifact.
-  if (sentences.length >= 4 && averageSentenceWords >= 8 && cv < 0.25) {
+  /*
+   * Humans vary wildly. Uniform sentence length is a generation artifact.
+   *
+   * §524. The floor was 8 average words, and it let the worst case in the
+   * corpus through. A voiceover shipped as seven sentences of *exactly* six
+   * words each — "Mix until crumbs only just clump. Add water by teaspoons,
+   * not splashes. Stop kneading once the dough holds." — a coefficient of
+   * variation of 0.000, which is the most uniform copy that can exist, and it
+   * passed because the sentences were short.
+   *
+   * The floor was there to protect deliberate staccato, which is a real move
+   * and genuinely uniform. But measured against 33 real scripts of four or
+   * more sentences: 9 sit under 0.25, the old floor caught 5 of them, and
+   * every one of the 4 it missed averaged between 5 and 8 words with 7 to 12
+   * sentences. That is not staccato, it is a drum machine. Dropping the floor
+   * to 5 catches all 9 and, in this corpus, catches nothing below it — so the
+   * two-word-sentence case the floor was written for is still protected.
+   *
+   * The median script sits at cv 0.303, so 0.25 remains a threshold most
+   * writing clears without trying.
+   */
+  if (sentences.length >= 4 && averageSentenceWords >= 5 && cv < 0.25) {
     push({
       rule: 'structure.uniform_rhythm',
       severity: 'error',
@@ -1109,6 +1130,75 @@ export function slopFilter(input: SlopFilterInput): SlopFilterResult {
           'That is notes on a post, not a post — write it as one person saying one thing.',
       });
     }
+  }
+
+  /**
+   * §543. A sentence that ends without saying so.
+   *
+   * "Six inches saves potatoes The fix is not a prettier bin." — shipped to the
+   * approval queue, read by nobody, and it is a dropped full stop rather than a
+   * style opinion. Every other rule in this file passed it: the sentence
+   * splitter sees one long sentence, so the rhythm, the length and the opening
+   * are all measured against something the writer did not write.
+   *
+   * Narrow on purpose. Only a lowercase word followed directly by a word that
+   * *starts* clauses — "The", "So", "Which" — with nothing between them but a
+   * space. A capitalised noun mid-sentence is ordinary ("a jar of Dijon"), and
+   * a line break is a list, not a missing stop: `body` keeps its newlines and
+   * this only looks inside a line.
+   */
+  {
+    const CLAUSE_OPENERS = new Set([
+      'The', 'It', 'This', 'That', 'So', 'And', 'But', 'Which', 'You', 'Your', 'Here', 'There',
+    ]);
+    for (const line of body.split('\n')) {
+      const match = /\b[a-z]{3,}\s+([A-Z][a-z]{2,})\b/.exec(line);
+      if (match && CLAUSE_OPENERS.has(match[1]!)) {
+        push({
+          rule: 'structure.missing_stop',
+          severity: 'error',
+          message:
+            `A sentence ends without a full stop before "${match[1]}". ` +
+            'Everything measured after it — rhythm, length, the opening line — is measuring the wrong sentence.',
+          excerpt: line.slice(Math.max(0, match.index - 20), match.index + match[0].length + 20),
+          index: match.index,
+          fix: 'Put the stop in.',
+        });
+        break;
+      }
+    }
+  }
+
+  /*
+   * §523. The topic label opening.
+   *
+   * "Wet steak stalls: surface water spends pan heat on evaporation." A short
+   * clause, a colon, the mechanism. Ten of twelve consecutive captions took
+   * this shape, across two products and three platforms, and every one of them
+   * passed every other rule in this file — accurate, specific, no banned
+   * phrase, no em dash. The clause before the colon is a filing category
+   * rather than something a person says aloud, which is why the whole run reads
+   * as machine-written even though no single caption does.
+   *
+   * A warning rather than an error, deliberately and for now. Ten of the last
+   * twelve pieces would be blocked from the queue by an error, and the fix
+   * belongs upstream in the brief `openingGuidance` now hands the copywriter.
+   * When a generated run stops taking this shape on its own, this becomes an
+   * error and the rule stops mattering. Raising it before then would block the
+   * pipeline on a habit the writer has not yet been taught out of.
+   */
+  if (!spoken && openingFormula(body) === 'label_colon') {
+    const label = (body.trim().split(':')[0] ?? '').trim();
+    push({
+      rule: 'structure.label_colon_opening',
+      severity: 'warning',
+      message:
+        `Opens with "${label}:" — a topic label, not a sentence. ` +
+        'Nobody says a filing category out loud. Open on the claim itself.',
+      excerpt: label,
+      index: 0,
+      fix: 'Cut the label and start at the thing that is true.',
+    });
   }
 
   if (!spoken && !invitesAnything(body)) {

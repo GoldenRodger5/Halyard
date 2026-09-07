@@ -38,6 +38,8 @@ export interface DraftRequest {
   verifyClaimsAgainstArtifact?: boolean;
   /** §419. The shape this caption should take. Passed through to the prompt. */
   captionShape?: { shape: string; brief: string } | null;
+  /** §523. What this account has been opening with, and what to avoid. */
+  captionOpening?: string | null;
   voice: {
     displayName: string;
     description: string;
@@ -386,8 +388,26 @@ export async function writeDraft(request: DraftRequest, llm: LlmClient): Promise
  * Turn gate failures into instructions the model can act on. Naming the rule
  * and the fix converges far faster than "try again".
  */
+/**
+ * §533. What the writer is told to fix, and what it never heard about.
+ *
+ * This walked only `detail.errors`, on gates whose status was `failed`. So
+ * every **warning** the copy gate raises — "this caption asks for nothing",
+ * §523's topic-label opening, an adjective stack, a rule of three — was
+ * computed, stored, shown to the operator, and never once said to the writer.
+ * A warning nobody acts on is a warning that changes nothing, which is the
+ * same objection §523 raised against making its own rule a warning.
+ *
+ * The fix costs no calls. Warnings do not *cause* a retry: pass and fail still
+ * mean exactly what they meant, and a draft carrying only warnings is still
+ * accepted. But when an error has already forced a rewrite, the warnings ride
+ * along on the request that was going to happen anyway, under a heading that
+ * says they are optional. The writer fixes both, or it fixes the error and
+ * ignores the rest, and either way it is better than the warning going nowhere.
+ */
 export function buildFeedback(qc: QCResults): string {
   const lines: string[] = ['Your last draft failed automated checks. Fix every item below.'];
+  const alsoWorthFixing: string[] = [];
 
   for (const gate of qc.gates) {
     if (gate.status !== 'failed') continue;
@@ -400,6 +420,11 @@ export function buildFeedback(qc: QCResults): string {
           }`,
         );
       }
+      for (const violation of detail.warnings) {
+        alsoWorthFixing.push(
+          `- [${violation.rule}] ${violation.message}${violation.fix ? ` ${violation.fix}` : ''}`,
+        );
+      }
     }
     if (gate.gate === 'claims') {
       const detail = gate.detail as { results: Array<{ claim: Claim; verdict: string; message: string }> };
@@ -408,6 +433,14 @@ export function buildFeedback(qc: QCResults): string {
         lines.push(`- [claim] "${result.claim.text}" → ${result.message}`);
       }
     }
+  }
+
+  /*
+   * Separated and softened on purpose. Presented as errors they would be
+   * argued with, or "fixed" by a rewrite that breaks something that was fine.
+   */
+  if (alsoWorthFixing.length > 0) {
+    lines.push('', 'Not failures, but worth fixing in the same pass:', ...alsoWorthFixing);
   }
 
   lines.push('Reply with the corrected JSON object only.');
@@ -456,6 +489,21 @@ export async function writeVoScript(
      */
     deliveryNotes?: string[];
     /**
+     * What this account is about, in a phrase. §525.
+     *
+     * The system prompt read "You write voiceover scripts for short cooking
+     * videos" for every product Halyard has. Kinolog's first video — about
+     * choosing a film — was written by a narrator told it wrote about cooking.
+     * It produced a good script anyway, because the body it was narrating was
+     * plainly about films, which is exactly why nothing caught it: the model
+     * quietly corrected for a prompt that was wrong, and would not always.
+     *
+     * The third time a global constant stood in for a product-level fact,
+     * after §518's templates and §520's research domains. Absent, the prompt
+     * says "short videos" and asserts nothing it does not know.
+     */
+    subject?: string | null;
+    /**
      * Write this section only, not the whole piece. §251.
      *
      * A seven-minute script is about eleven hundred words, and asking for
@@ -479,10 +527,15 @@ export async function writeVoScript(
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     const response = await llm.complete({
-      system: `You write voiceover scripts for short cooking videos. Write for the ear.
+      system: `You write voiceover scripts for ${
+        input.subject?.trim() ? `short videos about ${input.subject.trim()}` : 'short videos'
+      }. Write for the ear.
 
 RULES
 - Short sentences. Under twelve words each.
+- Vary those lengths hard. Three words, then eleven, then five. A script whose
+  sentences are all the same length is the loudest tell that a machine wrote
+  it, and it is refused before it reaches a voice.
 - No parentheticals, no lists, no headings, no stage directions.
 - Spell every number as words: "four hundred fifty degrees", not "450F".
 - No hashtags, no emoji, no call to action.

@@ -37,8 +37,33 @@ beforeEach(async () => {
   await pool.query('delete from notifications');
 });
 
+/*
+ * §565. A model client nothing in this file may spend with.
+ *
+ * `generateHandler` builds its model client from `createLlmClient(process.env,
+ * …)` before it reaches most of the guards these tests are about. Gotcha 12
+ * tells you to source `apps/web/.env.local` so the database suites stop
+ * skipping, which also supplies a live `OPENAI_API_KEY` — so four tests in this
+ * file bought a real generation on every full run, one of them under a comment
+ * promising it "never touches a provider".
+ *
+ * The handler takes its factory from the context now. This one throws if
+ * anything calls it, which is the honest default here: every test in this file
+ * is about a gate, a claim or a refusal that happens *around* the model, not
+ * about what the model says. A test that genuinely needs a completion passes
+ * its own stub.
+ */
+const cannotSpend = (() => ({
+  complete: async () => {
+    throw new Error(
+      'a test reached a model provider — the §565 seam exists so it cannot. ' +
+        'If this test needs a model, give it a stub that returns one.',
+    );
+  },
+})) as unknown as NonNullable<TestContext['createLlm']>;
+
 function context(): TestContext {
-  return testContext({ pool });
+  return testContext({ pool, createLlm: cannotSpend });
 }
 
 const job = (payload: Record<string, unknown>): Job =>
@@ -705,6 +730,16 @@ d('an idea is claimed before anything is spent on it', () => {
   const PRODUCT = 'claimtest';
   let previousToken: string | undefined;
 
+  /*
+   * §565. The claim above was not true, and cost real money to keep saying.
+   *
+   * `generateHandler` builds its model client *before* it reaches the connector
+   * that throws, so three tests in this block bought a real generation on every
+   * full run. The file-level `context()` now refuses to spend; this is that,
+   * named for what the block is about.
+   */
+  const claimContext = context;
+
   beforeAll(() => {
     // `createConnector` returns null without one, and a null connector spends
     // nothing. The value is never used: `generateSample` throws before the
@@ -770,7 +805,7 @@ d('an idea is claimed before anything is spent on it', () => {
 
   it('does not leave the idea claimable after the adaptation failed', async () => {
     const id = await seedIdea();
-    await generateHandler(job({ productId: PRODUCT }), context());
+    await generateHandler(job({ productId: PRODUCT }), claimContext());
 
     // Before the reordering this read 'proposed', which is what let the second
     // attempt buy the same adaptation again.
@@ -779,10 +814,10 @@ d('an idea is claimed before anything is spent on it', () => {
 
   it('a second attempt does not reach the connector for that idea again', async () => {
     const id = await seedIdea();
-    await generateHandler(job({ productId: PRODUCT }), context());
+    await generateHandler(job({ productId: PRODUCT }), claimContext());
     const afterFirst = await statusOf(id);
 
-    const second = context();
+    const second = claimContext();
     await generateHandler(job({ productId: PRODUCT }), second);
 
     expect(await statusOf(id)).toBe(afterFirst);
@@ -794,7 +829,7 @@ d('an idea is claimed before anything is spent on it', () => {
     const id = await seedIdea();
     await pool.query(`update ideas set status = 'selected' where id = $1`, [id]);
 
-    const ctx = context();
+    const ctx = claimContext();
     await generateHandler(job({ productId: PRODUCT }), ctx);
 
     // Not re-selected at all: the pool query filters on 'proposed'.

@@ -13,6 +13,7 @@
 import { Action, Label, Sheet, cx } from '@halyard/ui/studio';
 import { Deeper } from '@/components/studio/Deeper';
 import { getSystemHealth } from '@/lib/agentQueries';
+import { getReleaseStatus } from '@/lib/releaseStatus';
 import { getNavCounts, getSettings, getSpendToday } from '@/lib/queries';
 import { query } from '@/lib/db';
 import { setDailyBudget, setGeneration, setKillSwitch } from '@/app/(studio)/master/system/actions';
@@ -27,7 +28,7 @@ const STATE: Record<string, { label: string; tone: string }> = {
 };
 
 export default async function System() {
-  const [checks, settings, counts, jobs, deaths, spend] = await Promise.all([
+  const [checks, settings, counts, jobs, deaths, spend, release] = await Promise.all([
     getSystemHealth(),
     getSettings(),
     getNavCounts(),
@@ -59,6 +60,7 @@ export default async function System() {
       limit 8`,
     ),
     getSpendToday(),
+    getReleaseStatus(),
   ]);
 
   const unknown = checks.filter((c) => c.state === 'unknown').length;
@@ -133,6 +135,126 @@ export default async function System() {
             Set daily budget
           </Action>
         </form>
+      </Sheet>
+
+      {/* ── Release ────────────────────────────────────────── */}
+      {/*
+        §567. Which code is running, on both tiers, against which schema.
+        Placed above Health deliberately: when a capability misbehaves, "is the
+        deployed worker even running this code?" is the first question, and it
+        was previously answerable only by reading a Railway dashboard next to a
+        Vercel dashboard next to psql.
+      */}
+      <Sheet tone={release.stale.length > 0 || release.schema.state === 'fail' ? 'onair' : 'plain'}>
+        <Label>Release · what is actually running</Label>
+
+        <ul className="flex flex-col">
+          <li className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 py-2 pt-0">
+            <span className="w-[62px] shrink-0 font-data text-[10px] uppercase tracking-[0.07em] text-quiet">
+              web
+            </span>
+            <span className="min-w-0 flex-1 text-[13px]">
+              {release.web.commit ?? 'no commit reported'}
+            </span>
+            <span className="shrink-0 font-data text-[11px] text-quiet">
+              {release.web.environment}
+              {release.web.builtAt ? ` · built ${release.web.builtAt.slice(0, 16).replace('T', ' ')}` : ''}
+            </span>
+          </li>
+
+          {release.workers.length === 0 ? (
+            <li className="flex items-baseline gap-x-3 border-t border-rule2 py-2">
+              <span className="w-[62px] shrink-0 font-data text-[10px] uppercase tracking-[0.07em] text-onair">
+                worker
+              </span>
+              <span className="min-w-0 flex-1 text-[13px]">
+                No worker has ever sent a heartbeat. Nothing asynchronous can run.
+              </span>
+            </li>
+          ) : (
+            release.workers.map((w) => (
+              <li
+                key={w.workerId}
+                className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 border-t border-rule2 py-2"
+              >
+                <span
+                  className={cx(
+                    'w-[62px] shrink-0 font-data text-[10px] uppercase tracking-[0.07em]',
+                    w.secondsAgo < 120 ? 'text-passed' : w.secondsAgo < 600 ? 'text-lit' : 'text-onair',
+                  )}
+                >
+                  worker
+                </span>
+                <span className="min-w-0 flex-1 text-[13px]">
+                  {w.version ?? 'no commit reported'}{' '}
+                  <span className="text-quiet">· {w.workerId}</span>
+                </span>
+                <span className="shrink-0 font-data text-[11px] text-quiet">
+                  seen {w.secondsAgo}s ago · {w.kindCount}/{release.expectedKindCount} kinds
+                  {w.environment ? ` · ${w.environment}` : ''}
+                </span>
+              </li>
+            ))
+          )}
+
+          <li className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 border-t border-rule2 py-2">
+            <span
+              className={cx(
+                'w-[62px] shrink-0 font-data text-[10px] uppercase tracking-[0.07em]',
+                STATE[release.revisions.state]?.tone ?? 'text-quiet',
+              )}
+            >
+              {STATE[release.revisions.state]?.label ?? 'unknown'}
+            </span>
+            <span className="min-w-0 flex-1 text-[13px]">Web and worker revisions</span>
+            <span className="shrink-0 font-data text-[11px] text-quiet">
+              {release.revisions.detail}
+            </span>
+          </li>
+
+          <li className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 border-t border-rule2 py-2">
+            <span
+              className={cx(
+                'w-[62px] shrink-0 font-data text-[10px] uppercase tracking-[0.07em]',
+                STATE[release.schema.state]?.tone ?? 'text-quiet',
+              )}
+            >
+              {STATE[release.schema.state]?.label ?? 'unknown'}
+            </span>
+            <span className="min-w-0 flex-1 text-[13px]">Database schema</span>
+            <span className="shrink-0 font-data text-[11px] text-quiet">
+              {release.schema.detail}
+            </span>
+          </li>
+        </ul>
+
+        {release.retiredWorkers > 0 ? (
+          <p className="mt-2 text-[11px] text-quiet">
+            {release.retiredWorkers} older heartbeat row
+            {release.retiredWorkers === 1 ? '' : 's'} from more than a day ago, not counted as
+            running workers.
+          </p>
+        ) : null}
+
+        {/*
+          §243's failure, said out loud. A worker that cannot claim a kind does
+          not fail those jobs — they sit pending with no error — so this is the
+          only place it is ever visible.
+        */}
+        {release.stale.length > 0 ? (
+          <div className="mt-2.5 border-t border-rule2 pt-2.5">
+            {release.stale.map((w) => (
+              <p key={w.workerId} className="max-w-[80ch] text-[12px] leading-relaxed text-onair">
+                <span className="font-data">{w.workerId}</span>{' '}
+                <span className="text-quiet">({w.version ?? 'no commit'})</span> {w.reason}
+              </p>
+            ))}
+            <p className="mt-1 max-w-[80ch] text-[12px] leading-relaxed text-quiet">
+              Until it is redeployed, any capability that depends on those kinds is not
+              running, however green it looks elsewhere.
+            </p>
+          </div>
+        ) : null}
       </Sheet>
 
       {/* ── Health ─────────────────────────────────────────── */}

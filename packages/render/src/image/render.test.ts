@@ -358,6 +358,8 @@ describe('required props are declared correctly', () => {
     /* §224. A thumbnail is read at ~360px wide, so its sample is a real
        six-words-or-fewer line at a size that survives the shrink. */
     overlayText: 'Why gluten-free bread fails',
+    /* §536. The story card's one required prop. */
+    question: 'Butter or oil in a dairy-free cake?',
     fontSizePx: 150,
   };
 

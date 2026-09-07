@@ -24,6 +24,7 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { Slate, Tally, cx } from '@halyard/ui/studio';
 import { ROOMS, POCKET_ROOMS, roomFor, tabFor } from './rooms';
+import { RoomTabs } from './RoomTabs';
 import { RoomIcon } from './RoomIcon';
 
 export interface FloorState {
@@ -168,32 +169,18 @@ export function StudioShell({
         />
 
         {room.tabs.length > 1 ? (
-          <nav
-            aria-label={`${room.label} tabs`}
-            className="flex flex-none gap-0.5 overflow-x-auto border-b border-rule2 bg-sheet2 px-5 md:px-6"
-          >
-            {room.tabs.map((t) => {
-              const on = t.href === tab?.href;
-              const n = counts[t.href] ?? 0;
-              return (
-                <Link
-                  key={t.href}
-                  href={t.href}
-                  title={t.hint}
-                  aria-current={on ? 'page' : undefined}
-                  className={cx(
-                    'whitespace-nowrap border-b-2 px-3 py-2.5 text-[12.5px] transition-colors',
-                    on
-                      ? 'border-lit font-semibold text-sink'
-                      : 'border-transparent text-quiet hover:text-sink',
-                  )}
-                >
-                  {t.label}
-                  {n > 0 ? <span className="ml-1.5 font-data text-[9px] text-quiet">{n}</span> : null}
-                </Link>
-              );
-            })}
-          </nav>
+          /*
+           * §527. A client component, because the current tab can start
+           * 161px past the right edge of a phone and only a layout
+           * measurement can bring it back. The shell stays a server
+           * component; only the row that needs the DOM pays for hydration.
+           */
+          <RoomTabs
+            tabs={room.tabs}
+            activeHref={tab?.href}
+            counts={counts}
+            label={room.label}
+          />
         ) : null}
 
         <main className="flex-1 px-5 py-5 md:px-6">{children}</main>

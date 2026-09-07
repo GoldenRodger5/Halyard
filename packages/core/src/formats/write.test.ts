@@ -345,3 +345,101 @@ describe('§486 a written number on a slot the render numbers', () => {
     expect(repairs.filter((r) => /render numbers/.test(r.because))).toHaveLength(3);
   });
 });
+
+/**
+ * §541. The first poll Halyard rendered asked nothing.
+ *
+ * `poll` describes its question as "a real either/or people disagree about",
+ * and the card came back reading **"Dairy-free cake: butter versus oil"** — a
+ * topic label naming both options the two tappable halves already showed. A
+ * poll whose question is not a question cannot earn the tap the format exists
+ * for, and nothing checked, because `slopFilter` judges captions and a slot is
+ * not a caption (§348).
+ */
+describe('§541 a question slot has to ask', () => {
+  /* A complete poll, so `format.incomplete` does not mask the rule under test. */
+  const problemsFor = (text: string) =>
+    checkDraft(POST_FORMAT_CATALOG.poll, {
+      /* Keyed `key:index` by `checkDraft`, so the index is not optional here. */
+      slots: [
+        { key: 'question', index: 0, text },
+        { key: 'option_a', index: 0, text: 'Plant butter' },
+        { key: 'option_b', index: 0, text: 'Neutral oil' },
+      ],
+      body: 'Fat has jobs in a cake, and they are not the same job.',
+      altText: 'A slice of dairy-free cake on marble.',
+    } as never).problems;
+
+  const check = (text: string): string[] => problemsFor(text).map((p) => p.rule);
+
+  it('refuses the label that shipped', () => {
+    expect(check('Dairy-free cake: butter versus oil')).toContain('format.question_does_not_ask');
+  });
+
+  it('accepts a question, however it is phrased', () => {
+    for (const asked of [
+      'Butter or oil in a dairy-free cake?',
+      'Which fat holds the crumb?',
+      'Would you trade structure for softness?',
+    ]) {
+      expect(check(asked), asked).not.toContain('format.question_does_not_ask');
+    }
+  });
+
+  it('fails the slot by name, so a rewrite costs one line and not the piece', () => {
+    const found = problemsFor('Butter versus oil').find(
+      (p) => p.rule === 'format.question_does_not_ask',
+    );
+    expect(found?.slot).toBe('question');
+    expect(found?.severity).toBe('error');
+  });
+});
+
+/**
+ * §545. The topic label, on the frame that decides whether anyone watches.
+ *
+ * Measured across 35 real on-screen opening lines, four carried this shape:
+ * "Most important: freeze slices before staling.", "Separation matters most:
+ * store them apart." The words before the colon are a judgement *about* the
+ * content rather than the content, and they occupy the whole first half-second.
+ *
+ * §523 made the same shape a warning in captions, because ten of twelve used it
+ * and erroring would have emptied the queue. At 11% on frame one it is
+ * affordable, and it fails one slot rather than the piece.
+ */
+describe('§545 frame one is not a filing category', () => {
+  const openerProblems = (text: string) =>
+    checkDraft(POST_FORMAT_CATALOG.tips, {
+      /* `tips` opens on `title`, repeats `tip` (min 3) and closes on `close`. */
+      slots: [
+        { key: 'title', index: 0, text },
+        { key: 'tip', index: 0, text: 'Dry the surface with a towel before the pan is hot.' },
+        { key: 'tip', index: 1, text: 'Leave space so steam can leave the pan.' },
+        { key: 'tip', index: 2, text: 'Turn once the crust releases on its own.' },
+        { key: 'tip', index: 3, text: 'Rest it on a rack so the base stays crisp.' },
+        { key: 'tip', index: 4, text: 'Salt it the night before, uncovered.' },
+        { key: 'close', index: 0, text: 'The towel matters more than the flame.' },
+      ],
+      body: 'A caption that says something.',
+      altText: 'Alt text.',
+    } as never).problems.map((p) => p.rule);
+
+  it.each([
+    'Most important: freeze slices before staling.',
+    'Separation matters most: store them apart.',
+    'Dairy-free cake: butter versus oil',
+  ])('refuses the label that shipped: %s', (line) => {
+    expect(openerProblems(line)).toContain('format.opening_is_a_label');
+  });
+
+  it('leaves a real hook alone', () => {
+    for (const good of [
+      'Your third act loses viewers',
+      'Steak crust going soft?',
+      'Butter or oil in a dairy-free cake?',
+      'Six inches saves potatoes.',
+    ]) {
+      expect(openerProblems(good), good).not.toContain('format.opening_is_a_label');
+    }
+  });
+});

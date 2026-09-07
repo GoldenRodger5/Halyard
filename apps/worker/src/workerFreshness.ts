@@ -9,65 +9,21 @@
  * The `kinds` list every worker already writes to `worker_heartbeats` is the
  * signal: derived from the code actually running, written every heartbeat, and
  * changing exactly when the handler map does.
+ *
+ * §567 moved the rule itself into `@halyard/core` so the web tier can report it
+ * — for four hundred commits this function had no caller at all, which is the
+ * §562 shape: the detection existed and the failure it catches could still
+ * happen in silence. This file is now the worker's binding of that rule to
+ * `JOB_KINDS`, so the two tiers cannot come to disagree about what "stale"
+ * means.
  */
 import { JOB_KINDS } from '@halyard/db';
+import { staleWorkers as staleAgainst, type StaleWorker, type WorkerHeartbeat } from '@halyard/core';
 
-/** How long without a heartbeat before a worker is presumed gone. */
-export const HEARTBEAT_GRACE_MS = 10 * 60_000;
+export { HEARTBEAT_GRACE_MS } from '@halyard/core';
+export type { StaleWorker, WorkerHeartbeat };
 
-export interface WorkerHeartbeat {
-  workerId: string;
-  lastSeenAt: Date;
-  kinds: string[];
-  version: string | null;
-}
-
-export interface StaleWorker {
-  workerId: string;
-  version: string | null;
-  /** Kinds this checkout knows about that the worker cannot claim. */
-  missingKinds: string[];
-  reason: string;
-}
-
-/**
- * Workers that cannot do what this checkout expects of them.
- *
- * A worker *ahead* of the checkout is not stale — that is a deploy landing —
- * so only kinds it is missing count.
- */
-export function staleWorkers(
-  heartbeats: WorkerHeartbeat[],
-  now: Date = new Date(),
-): StaleWorker[] {
-  const out: StaleWorker[] = [];
-
-  for (const worker of heartbeats) {
-    const age = now.getTime() - worker.lastSeenAt.getTime();
-    if (age > HEARTBEAT_GRACE_MS) {
-      out.push({
-        workerId: worker.workerId,
-        version: worker.version,
-        missingKinds: [],
-        reason: `has not been seen for ${Math.round(age / 60_000)} minutes.`,
-      });
-      continue;
-    }
-
-    const known = new Set(worker.kinds);
-    const missingKinds = JOB_KINDS.filter((k) => !known.has(k));
-    if (missingKinds.length > 0) {
-      out.push({
-        workerId: worker.workerId,
-        version: worker.version,
-        missingKinds,
-        reason:
-          `is older than the handler map: it cannot claim ${missingKinds.length} job ` +
-          `kind${missingKinds.length === 1 ? '' : 's'} (${missingKinds.join(', ')}), which will ` +
-          'sit pending with no error until it is redeployed.',
-      });
-    }
-  }
-
-  return out;
+/** Workers that cannot claim every kind this checkout knows how to handle. */
+export function staleWorkers(heartbeats: WorkerHeartbeat[], now: Date = new Date()): StaleWorker[] {
+  return staleAgainst(heartbeats, JOB_KINDS, now);
 }

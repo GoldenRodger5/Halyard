@@ -85,6 +85,11 @@ export interface CopywriterContext {
    * within a fortnight and no gate catches it.
    */
   captionShape?: { shape: string; brief: string } | null;
+  /**
+   * §523. How this account has been opening its captions, and what not to
+   * repeat. Built by `openingGuidance` from the recent bodies themselves.
+   */
+  captionOpening?: string | null;
   artifact?: ProductArtifact | null;
   voice: {
     displayName: string;
@@ -378,11 +383,28 @@ Whole sentences. If it reads as a list, it is not a caption.`
     ? `\n## The shape this one takes\n${context.captionShape.brief}`
     : '';
 
+  /*
+   * §523. How not to open it.
+   *
+   * Separate from the shape because it constrains a different thing: the shape
+   * says how many lines and what they do, and every one of ten consecutive
+   * `single` captions obeyed it while opening identically. This is the first
+   * six words, which is the part a reader actually judges.
+   *
+   * Its own heading rather than an appended sentence, because a prohibition
+   * folded into a paragraph about form gets read as a preference — the same
+   * reason §419 gave the shape its own block.
+   */
+  const openingBlock = context.captionOpening
+    ? `\n## How not to open it\n${context.captionOpening}`
+    : '';
+
   const user = [
     `## Product\n${context.productBrief.slice(0, 2000)}`,
     `\n## The idea\n${context.idea.title}\n${context.idea.angle}`,
     `\n## This post\nPlatform: ${context.platform}. Format: ${context.format}. Category: ${context.category}.`,
     shapeBlock,
+    openingBlock,
     pieceBlock,
     seriesBlock,
     hookBlock,

@@ -33,14 +33,19 @@ test.describe('identity confirmation', () => {
     ]);
     expect(before.rows).toHaveLength(0);
 
-    // The accounts screen surfaces it rather than leaving it stranded.
-    await page.goto('/accounts');
+    /*
+     * §529. The connections screen surfaces it rather than leaving it
+     * stranded. It did not, between §497 and §529: the screen was replaced and
+     * the staged-connection banner was not carried across, so an operator who
+     * closed the confirm tab had no way back to it.
+     */
+    await page.goto('/master');
     // Wording changed in the Accounts clarity pass; the behaviour it guards —
     // a staged connection is not an account until a person confirms it — is
     // unchanged, and the assertion below still proves it.
     await expect(page.getByText('Waiting for you to confirm the right account')).toBeVisible();
 
-    await page.goto(`/accounts/confirm/${pendingId}`);
+    await page.goto(`/master/confirm/${pendingId}`);
     // Heading reworded in the connection-flow clarity pass. What it guards —
     // the token is held, not saved, until a person confirms — is unchanged, and
     // the assertions below still prove it.
@@ -84,7 +89,7 @@ test.describe('identity confirmation', () => {
                now() - interval '1 minute')
        returning id`,
     );
-    const response = await page.goto(`/accounts/confirm/${rows[0]!.id}`);
+    const response = await page.goto(`/master/confirm/${rows[0]!.id}`);
     expect(response?.status()).toBe(404);
   });
 });
@@ -106,23 +111,39 @@ test.describe('routing safety', () => {
   });
 });
 
-test.describe('the accounts screen', () => {
-  test('groups by product and then persona, and says what to do before connecting', async ({
-    page,
-  }) => {
-    await page.goto('/accounts');
+/**
+ * §529. The screen these tests describe was replaced, and they were not.
+ *
+ * §497 rewrote connections as one page at `/master` and left `/accounts` as a
+ * redirect to it. These three tests kept navigating to `/accounts` and looking
+ * for headings and summaries that the old screen had — so the only browser
+ * coverage of the **disconnect confirmation**, the guard in front of the single
+ * irreversible button in the product, stopped running the day that page
+ * changed. It did not fail loudly; it failed as three red tests among many
+ * others already red for the same class of reason (§528).
+ *
+ * Rewritten against the screen that exists. The assertions are deliberately
+ * about the guard's behaviour rather than its wording: what must hold is that a
+ * wrong handle erases nothing and says so, and a right one erases and records
+ * it. That is true of any screen this control ever lives on.
+ */
+test.describe('the connections screen', () => {
+  test('lists every account with a state and what to do about it', async ({ page }) => {
+    await page.goto('/master');
 
-    await expect(page.getByRole('heading', { name: 'RecipeFix' })).toBeVisible();
-    await expect(
-      page.getByText('One founder account, shared across every product'),
-    ).toBeVisible();
+    /* Both products, on one page — the thing §497 was asked for. */
+    await expect(page.getByText('@recipe.fix')).toBeVisible();
+    await expect(page.getByText('@kinolog.app')).toBeVisible();
 
-    // Every platform states its pre-flight requirements before the round trip.
-    const checklists = page.locator('summary', { hasText: 'What this account needs before connecting' });
-    expect(await checklists.count()).toBeGreaterThanOrEqual(14);
+    /*
+     * Connected and *able to post publicly* are different things, and the page
+     * has to say so rather than showing a green dot and leaving it there.
+     */
+    await expect(page.getByText(/able to post publicly/)).toBeVisible();
 
-    await checklists.first().click();
-    await expect(page.getByText(/Otherwise:/).first()).toBeVisible();
+    /* Every row that cannot be connected yet says what it needs first. */
+    const needs = page.locator('summary', { hasText: 'What this platform needs' });
+    expect(await needs.count()).toBeGreaterThanOrEqual(5);
   });
 });
 
@@ -168,15 +189,15 @@ test.describe('disconnecting an account', () => {
 
   test('a mistyped handle erases nothing and says so', async ({ page }) => {
     const id = await seed();
-    await page.goto('/accounts');
+    await page.goto('/master');
 
     const panel = page
       .locator('details')
-      .filter({ has: page.locator(`input[placeholder="type ${HANDLE} to confirm"]`) });
+      .filter({ has: page.locator(`input[placeholder="${HANDLE}"]`) });
     await panel.locator('summary').click();
 
     await panel.locator('input[name="confirmHandle"]').fill('@some-other-account');
-    await panel.getByRole('button', { name: 'Disconnect and erase credential' }).click();
+    await panel.getByRole('button', { name: 'Erase this credential' }).click();
 
     await expect(page.getByText('Nothing was erased.')).toBeVisible();
     expect(await tokenOf(id)).not.toBeNull();
@@ -184,21 +205,27 @@ test.describe('disconnecting an account', () => {
 
   test('the typed handle erases the stored credential and records it', async ({ page }) => {
     const id = await seed();
-    await page.goto('/accounts');
+    await page.goto('/master');
 
     const panel = page
       .locator('details')
-      .filter({ has: page.locator(`input[placeholder="type ${HANDLE} to confirm"]`) });
+      .filter({ has: page.locator(`input[placeholder="${HANDLE}"]`) });
     await panel.locator('summary').click();
 
     // Without the leading @, which is what an operator reading the card types.
     await panel.locator('input[name="confirmHandle"]').fill('e2e-disconnect');
-    await panel.getByRole('button', { name: 'Disconnect and erase credential' }).click();
+    await panel.getByRole('button', { name: 'Erase this credential' }).click();
 
     // Polled: a server action's redirect is not the transaction committing.
     await expect.poll(async () => tokenOf(id)).toBeNull();
 
-    // And the operator is told what did *not* happen, not only what did.
+    /*
+     * §530. And the operator is told what did *not* happen, not only what did.
+     * This assertion is the reason the defect was found: the screen said the
+     * platform grant "is revoked there" before the click, rendered nothing
+     * after it, and the action's honest message went to a query parameter the
+     * page did not read.
+     */
     await expect(page.getByText('does not revoke the permission at the platform')).toBeVisible();
 
     const { rows } = await db().query<{ action: string }>(

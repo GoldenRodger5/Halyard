@@ -334,7 +334,28 @@ export const POST_FORMAT_CATALOG: Record<PostFormatId, PostFormat> = {
         /* The intent line above already promised "three to five". */
         repeatsMin: 3,
       },
-      { key: 'close', brief: 'The one that matters most, named.', maxWords: 14 },
+      {
+        key: 'close',
+        /*
+         * §550. A brief the writer copies is a brief that writes the line.
+         *
+         * This read "The one that matters most, named." — and **five of the
+         * last twenty voiceovers ended with the literal words "the one that
+         * matters most"**, 25% of everything with a voice. The writer was not
+         * being lazy; it was being obedient. A brief that phrases the job as a
+         * sentence hands the writer a sentence, and §544's tic arrived the same
+         * way one layer up.
+         *
+         * Rewritten to describe the *job* — which of the tips actually decides
+         * the outcome — without supplying any words to lift, and to forbid the
+         * announcement, because "the one that matters most is X" is the writer
+         * telling you it is about to conclude rather than concluding.
+         */
+        brief:
+          'Which single tip decides whether this works, said as the point itself. ' +
+          'Do not announce that you are naming it, and do not use the words "matters most".',
+        maxWords: 14,
+      },
     ],
   },
 

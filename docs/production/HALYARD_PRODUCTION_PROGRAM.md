@@ -884,3 +884,71 @@ For every phase/work package:
 - stop only when a real external operator action is unavoidable.
 
 The final product is judged by the operator journey and the quality/truth of the output—not by the number of agents, templates, migrations, or passing unit tests alone.
+
+---
+
+# Implementation evidence
+
+## H0 — release truth, repository health, production observability — **complete, 7 September 2026**
+
+Decisions: §564–§567 in `docs/DECISIONS.md`. Current state: `docs/STATUS.md`.
+
+### What the phase actually found
+
+H0 was specified as "repair stale generated types and add version reporting".
+What it uncovered was that **every layer of verification had stopped
+verifying**, and each failure was masking the next:
+
+| Layer | State before |
+|---|---|
+| CI `verify` job | **Red since 2 September** on stale generated types. A failed step ends a GitHub Actions job, so **typecheck, lint and tests had not run at all for four days.** |
+| `packages/db/src/types.gen.ts` | 13 tables and 39 migrations behind the schema |
+| Lint | **7 errors**, invisible behind the types failure |
+| Test suite | 43 database-backed suites **report green when they skip**; nothing surfaced it |
+| Test suite | **4 tests bought a real OpenAI generation on every full run**, one under a comment claiming it "never touches a provider" |
+| Schema version | **No marker existed** on the CI/laptop path; production's lives in `supabase_migrations`, which the app cannot read. Nothing to compare. |
+| `staleWorkers` (§243) | Written, tested, **never called from any runtime path** |
+
+### Backend / data
+
+- `types.gen.ts` regenerated and reproducible; the check now compares **content**, not `git diff`, so it is correct in a dirty tree as well as CI.
+- All **82 migrations apply cleanly to a fresh Postgres** (0082 is new).
+- Migration **0082 `schema_version`** — one row, in Halyard's own schema, stamped by the migrations themselves, so it is true under any runner. Paired with `EXPECTED_SCHEMA_VERSION` in `@halyard/db` and enforced by `schemaVersion.test.ts` (newest migration must stamp; numbering must have no gaps; constant must agree).
+- Worker heartbeat now carries commit, **build time, environment, schema version** and registered kinds.
+- `packages/core/src/release/` is the single definition of release identity and worker freshness; `apps/worker/src/workerFreshness.ts` binds it to `JOB_KINDS`. Kinds are injected rather than imported — `@halyard/core` must not depend on `@halyard/db` (gotcha 10).
+- **`HandlerContext.createLlm`** is the seam that keeps paid clients out of test paths.
+- Jobs table, locking, retry, adapters, approval boundary and kill switch **unchanged**.
+
+### Frontend
+
+- `/master/system` gained a **Release** panel: web revision, every worker's revision/heartbeat/kind count/environment, revision agreement, schema compatibility, and any worker that cannot run what this release expects — with the consequence stated ("those jobs sit pending with no error").
+- `/api/health` now reports the web tier's commit, build time and environment, unauthenticated. No new health system was built; both surfaces reuse the existing ones.
+
+### Verification
+
+`./scripts/verify` (`pnpm verify`) runs the whole path and **fails loudly when a
+prerequisite is missing**: migrations → generated types → typecheck (7 packages)
+→ lint → tests with `HALYARD_REQUIRE_DB=1` → production web build, and E2E with
+`--with-e2e`.
+
+CI: `if: '!cancelled()'` on every check so one red step stops masking three, and
+`HALYARD_REQUIRE_DB=1` so a run whose Postgres never came up cannot look clean.
+
+### Tamper verification (H0 §6)
+
+| Scenario | Result |
+|---|---|
+| Generated type edited by hand | detected as stale |
+| DB required but unreachable | fails naming the URL and reason — **the same command without the flag reports `1 passed, 2 skipped`** |
+| Test holding a real `OPENAI_API_KEY` | key replaced by a sentinel; request to api.openai.com refused |
+| Worker missing a job kind | reported `behind`, kind named, consequence stated |
+| Worker stopped heartbeating | reported `gone`, not `behind` |
+| Database behind the code | `fail`; ahead of it → `warn` |
+| No worker has heartbeated | `unknown`, never `ok` |
+
+### Not done, and named rather than assumed
+
+- **The E2E suite is obsolete against the current UI, and this is the one place H0's exit gate is not met.** 49 of 64 desktop tests fail; 35 distinct routes across 12 spec files 404 because the studio reorganisation renamed every screen. The CI job's 20-minute timeout was the symptom, not the cause — each test waits 10s on a 404 and then times out at 60s. `e2e/routes.spec.ts` reduces that to a 456ms failure naming all 35. Repointing the URLs would not fix them: the specs assert copy (`Pause all publishing`, `queue-item-…`, `Conversations are not saved yet`) that exists nowhere in the app. Rewriting them belongs with `UI_PRODUCT_REDESIGN_SPEC.md`, which will move these screens again — so it is handed on deliberately rather than done twice. §568.
+- **Production's `publishing_enabled` and account states could not be read** — no production database URL exists on the implementation machine. Production's web tier answers `/api/health` 200 with a reachable database.
+- Production still runs pre-H0 code and therefore does not yet report a revision; that lands with the next deploy.
+- **Nothing was published. No publication rows were created. Publishing is off** in the local database, set during this pass with a recorded reason.

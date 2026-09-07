@@ -12,6 +12,7 @@ import { LAYOUT_RENDERERS, type CarouselLayout } from './layouts.js';
  * respect the 12% safe area on vertical formats (v2 F.3).
  */
 import { CANVAS, paddingFor, type BrandTokens } from '../brand.js';
+import { brandTypography, type RenderTypography } from '../typography.js';
 import { arrowRight, box, h, text, type SatoriElement } from './elements.js';
 
 export interface TemplateBase {
@@ -48,23 +49,14 @@ export interface TemplateBase {
   typography?: RenderTypography;
 }
 
-/** One role's type spec. Mirrors `TypeRole` in `@halyard/core`, as plain data. */
-export interface TypeRoleSpec {
-  family: string;
-  weight: number;
-  tracking: number;
-  scale: number;
-  case: 'none' | 'upper';
-}
-
-/** The shape `renderTypography()` produces. */
-export interface RenderTypography {
-  id: string;
-  display: TypeRoleSpec;
-  heading: TypeRoleSpec;
-  body: TypeRoleSpec;
-  label: TypeRoleSpec;
-}
+/*
+ * §522. These moved to `../typography.js`, a leaf with no imports but a type.
+ * Re-exported here so every existing `from '../image/templates.js'` still
+ * works — but the *video* side must import from the leaf directly, because
+ * pulling a value out of this file drags the `@halyard/core` barrel and its
+ * `node:crypto` into Remotion's browser bundle. Gotcha 10.
+ */
+export { brandTypography, type RenderTypography, type TypeRoleSpec } from '../typography.js';
 
 /**
  * §265. The type spec a card draws with.
@@ -74,13 +66,7 @@ export interface RenderTypography {
  */
 export function typeFor(props: TemplateBase): RenderTypography {
   if (props.typography) return props.typography;
-  return {
-    id: 'brand_default',
-    display: { family: props.brand.headingFont, weight: 400, tracking: -0.005, scale: 1, case: 'none' },
-    heading: { family: props.brand.headingFont, weight: 400, tracking: -0.005, scale: 0.72, case: 'none' },
-    body: { family: props.brand.bodyFont, weight: 400, tracking: 0, scale: 0.34, case: 'none' },
-    label: { family: props.brand.bodyFont, weight: 600, tracking: 0.12, scale: 0.2, case: 'upper' },
-  };
+  return brandTypography(props.brand);
 }
 
 export interface TransformationDiffProps extends TemplateBase {
@@ -427,6 +413,124 @@ export interface PinQuoteProps extends TemplateBase {
   attribution?: string | null;
 }
 
+/**
+ * §536. The story card — the channel that could be chosen and never rendered.
+ *
+ * `story` is a declared post type with a target of 5–15 seconds, two formats
+ * mapped to it (`poll` and `behind`), and a resolver that correctly routes them
+ * here. It wrote a caption and queued **no render at all**, because no image
+ * template is 9:16 — so an Instagram story with nothing to show, which is not a
+ * story. A whole channel selectable and unpublishable, which is §478 and §508's
+ * shape one level up.
+ *
+ * ## Why one template and not two
+ *
+ * A poll and a "behind it" story are the same object with a different centre: a
+ * full-bleed vertical frame with one idea in the middle. The poll adds two
+ * tappable halves under it. Splitting them would duplicate the safe-area
+ * handling and the photo ground for no gain, and §511 already established that
+ * a template can change shape on the presence of a prop.
+ *
+ * ## The rules that are not taste
+ *
+ * - **Nothing in the top or bottom 12%.** `paddingFor` enforces it for 9:16
+ *   because the platform draws its own UI there — the profile row above, the
+ *   reply bar below. A question under the reply bar is a question nobody reads.
+ * - **One idea.** `story`'s own opening rule: "legible in a glance, tappable.
+ *   Nobody watches a story twice." So the question is set large and nothing
+ *   competes with it.
+ * - **The options look tappable.** Instagram draws its own poll sticker over
+ *   this, but a card that does not already read as a poll reads as a caption
+ *   somebody stuck a sticker on.
+ */
+export interface StoryCardProps extends TemplateBase {
+  /** The question, or the single idea. Short — this is read in a glance. */
+  question: string;
+  /** A poll's two sides. Both or neither: one option is not a poll. */
+  optionA?: string;
+  optionB?: string;
+  /** A quiet line under the idea, for a story that is not asking anything. */
+  note?: string;
+}
+
+export function storyCard(props: StoryCardProps): SatoriElement {
+  const photo = props.imageDataUri;
+  const isPoll = Boolean(props.optionA && props.optionB);
+
+  /*
+   * Sized down as the question grows. A story is read at arm's length on a
+   * phone, so the ceiling matters more than filling the frame — and a long
+   * question set at the short question's size wraps into a paragraph, which is
+   * the one thing this format cannot be.
+   */
+  const size = props.question.length > 64 ? 72 : props.question.length > 40 ? 88 : 104;
+
+  /** One half of the poll. Reads as pressable without pretending to be a button. */
+  const half = (label: string, first: boolean): SatoriElement =>
+    box(
+      {
+        flexGrow: 1,
+        flexBasis: 0,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingTop: 34,
+        paddingBottom: 34,
+        paddingLeft: 20,
+        paddingRight: 20,
+        /*
+         * White on the card, not `brand.background`: the ground *is*
+         * `brand.background`, so the halves were cream on cream and only the
+         * hairline said they were controls. Raised, rather than outlined.
+         */
+        backgroundColor: photo ? 'rgba(255,255,255,0.14)' : '#FFFFFF',
+        /* A hairline between the halves, never around them: one control, split. */
+        ...(first
+          ? { borderRightWidth: 2, borderRightColor: photo ? 'rgba(255,255,255,0.30)' : props.brand.muted }
+          : {}),
+      },
+      text(label, {
+        fontSize: 40,
+        lineHeight: 1.15,
+        textAlign: 'center',
+        fontFamily: props.brand.headingFont,
+        color: photo ? '#FFFFFF' : props.brand.ink,
+      }),
+    );
+
+  return frame(
+    { ...props, aspectRatio: '9:16' },
+    text(props.question, {
+      fontFamily: props.brand.headingFont,
+      fontSize: size,
+      lineHeight: 1.06,
+      marginBottom: isPoll ? 56 : 28,
+    }),
+    ...(isPoll
+      ? [
+          box(
+            {
+              flexDirection: 'row',
+              borderRadius: 28,
+              borderWidth: 2,
+              borderColor: photo ? 'rgba(255,255,255,0.45)' : props.brand.primary,
+              overflow: 'hidden',
+            },
+            half(props.optionA!, true),
+            half(props.optionB!, false),
+          ),
+        ]
+      : props.note
+        ? [
+            text(props.note, {
+              fontSize: 38,
+              lineHeight: 1.35,
+              color: photo ? 'rgba(255,255,255,0.82)' : props.brand.muted,
+            }),
+          ]
+        : []),
+  );
+}
+
 export function pinterestTall(props: PinterestTallProps): SatoriElement {
   return frame(
     { ...props, aspectRatio: '2:3' },
@@ -649,6 +753,17 @@ export interface ThumbnailProps extends TemplateBase {
   fontSizePx: number;
   /** A real screenshot, inlined by the render handler. Never generated. */
   screenshotDataUri?: string;
+  /**
+   * §534. The piece's own picture, inlined from `imageAssetId`.
+   *
+   * The render handler turns `imageAssetId` into `imageDataUri` for every
+   * template, and this one only ever read `screenshotDataUri` — which nothing
+   * sets for a thumbnail. So every thumbnail Halyard queues is text alone: dark
+   * type on a cream card with half the frame empty, at 210px wide in a feed,
+   * against thumbnails built to be clicked. The template could always take a
+   * picture; nothing gave it one.
+   */
+  imageDataUri?: string;
 }
 
 export function youtubeThumbnail(props: ThumbnailProps): SatoriElement {
@@ -658,6 +773,8 @@ export function youtubeThumbnail(props: ThumbnailProps): SatoriElement {
    * arithmetic in `@halyard/core` is calibrated against 1280x720.
    */
   const canvas = { width: THUMBNAIL_WIDTH, height: THUMBNAIL_HEIGHT };
+  /* §534. Either source; `imageDataUri` is what the render handler produces. */
+  const picture = props.imageDataUri ?? props.screenshotDataUri;
   /*
    * The badge sits bottom-right on every impression. Reserving the space is
    * cheaper than discovering later that the last word of every thumbnail is
@@ -676,11 +793,11 @@ export function youtubeThumbnail(props: ThumbnailProps): SatoriElement {
       fontFamily: props.brand.bodyFont,
       position: 'relative',
     },
-    props.screenshotDataUri
+    picture
       ? {
           type: 'img',
           props: {
-            src: props.screenshotDataUri,
+            src: picture,
             style: {
               position: 'absolute',
               top: 0,
@@ -694,7 +811,7 @@ export function youtubeThumbnail(props: ThumbnailProps): SatoriElement {
       : box({ height: 0 }),
     /* A scrim, not a panel. Over a screenshot the words need contrast; behind
        them the product must still be visible or the picture is decoration. */
-    props.screenshotDataUri
+    picture
       ? box({
           position: 'absolute',
           top: 0,
@@ -724,7 +841,7 @@ export function youtubeThumbnail(props: ThumbnailProps): SatoriElement {
         fontWeight: 600,
         lineHeight: 1.02,
         letterSpacing: -2,
-        color: props.screenshotDataUri ? '#FFFFFF' : props.brand.ink,
+        color: picture ? '#FFFFFF' : props.brand.ink,
       }),
     ),
   );
@@ -741,6 +858,7 @@ export const TEMPLATE_REGISTRY = {
   pin_quote: pinQuote,
   carousel_6: carouselSlide,
   youtube_thumbnail: youtubeThumbnail,
+  story_card: storyCard,
 } as const;
 
 export type TemplateId = keyof typeof TEMPLATE_REGISTRY;
@@ -770,6 +888,8 @@ export const TEMPLATE_REQUIRED_PROPS: Record<TemplateId, readonly string[]> = {
   pin_quote: ['quote'],
   carousel_6: ['index', 'total', 'kicker', 'headline', 'bodyLines'],
   youtube_thumbnail: ['overlayText', 'fontSizePx'],
+  /* §536. A poll needs both sides or it is not a poll; the question is the piece. */
+  story_card: ['question'],
 };
 
 export { h, box, text };

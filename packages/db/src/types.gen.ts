@@ -7,6 +7,48 @@
 export type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
 
 
+export interface AccountIntelligenceRow {
+  id: string;
+  account_id: string;
+  product_id: string | null;
+  observed_at: string;
+  window_size: number;
+  slices: Json;
+  findings: Json;
+  gaps: Json;
+  exploration_share: number | null;
+  summary: string;
+  created_at: string;
+}
+
+export interface AccountIntelligenceInsert {
+  id?: string;
+  account_id: string;
+  product_id?: string | null;
+  observed_at?: string;
+  window_size: number;
+  slices?: Json;
+  findings?: Json;
+  gaps?: Json;
+  exploration_share?: number | null;
+  summary: string;
+  created_at?: string;
+}
+
+export interface AccountIntelligenceUpdate {
+  id?: string;
+  account_id?: string;
+  product_id?: string | null;
+  observed_at?: string;
+  window_size?: number;
+  slices?: Json;
+  findings?: Json;
+  gaps?: Json;
+  exploration_share?: number | null;
+  summary?: string;
+  created_at?: string;
+}
+
 export interface AdminUsersRow {
   user_id: string;
   email: string | null;
@@ -159,6 +201,8 @@ export interface AssetsRow {
   archived_at: string | null;
   archived_reason: string | null;
   last_used_at: string | null;
+  shot: string | null;
+  subject: string | null;
 }
 
 export interface AssetsInsert {
@@ -187,6 +231,8 @@ export interface AssetsInsert {
   archived_at?: string | null;
   archived_reason?: string | null;
   last_used_at?: string | null;
+  shot?: string | null;
+  subject?: string | null;
 }
 
 export interface AssetsUpdate {
@@ -215,6 +261,8 @@ export interface AssetsUpdate {
   archived_at?: string | null;
   archived_reason?: string | null;
   last_used_at?: string | null;
+  shot?: string | null;
+  subject?: string | null;
 }
 
 export interface AttributionRow {
@@ -574,6 +622,48 @@ export interface CapabilityProbesUpdate {
   account_id?: string | null;
 }
 
+export interface CaptureAuditRow {
+  id: string;
+  product_id: string;
+  flow_id: string;
+  capture_run_id: string | null;
+  kind: string;
+  finding: string;
+  recovery: string;
+  acted: boolean;
+  action_taken: Json | null;
+  resolved_at: string | null;
+  created_at: string;
+}
+
+export interface CaptureAuditInsert {
+  id?: string;
+  product_id: string;
+  flow_id: string;
+  capture_run_id?: string | null;
+  kind: string;
+  finding: string;
+  recovery: string;
+  acted?: boolean;
+  action_taken?: Json | null;
+  resolved_at?: string | null;
+  created_at?: string;
+}
+
+export interface CaptureAuditUpdate {
+  id?: string;
+  product_id?: string;
+  flow_id?: string;
+  capture_run_id?: string | null;
+  kind?: string;
+  finding?: string;
+  recovery?: string;
+  acted?: boolean;
+  action_taken?: Json | null;
+  resolved_at?: string | null;
+  created_at?: string;
+}
+
 export interface CaptureRunsRow {
   id: string;
   product_id: string;
@@ -742,6 +832,96 @@ export interface ComposeSessionsUpdate {
   updated_at?: string;
 }
 
+export interface ConceptsRow {
+  id: string;
+  product_id: string;
+  idea_id: string | null;
+  signal_id: string | null;
+  strategy_decision_id: string | null;
+  title: string;
+  premise: string;
+  hook: string | null;
+  audience: string | null;
+  objective: 'awareness' | 'engagement' | 'education' | 'traffic' | 'conversion' | 'retention' | 'follower_growth' | 'product_promotion';
+  emotional_angle: string | null;
+  story_structure: Json;
+  visual_treatment: Json;
+  audio_direction: Json;
+  platform_intent: string[];
+  differentiation: string | null;
+  evidence_requirements: Json;
+  imagery_requirements: Json;
+  retention_strategy: string | null;
+  score: number | null;
+  score_breakdown: Json;
+  status: 'proposed' | 'selected' | 'rejected' | 'used' | 'expired';
+  rejected_reason: string | null;
+  selected_at: string | null;
+  batch_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ConceptsInsert {
+  id?: string;
+  product_id: string;
+  idea_id?: string | null;
+  signal_id?: string | null;
+  strategy_decision_id?: string | null;
+  title: string;
+  premise: string;
+  hook?: string | null;
+  audience?: string | null;
+  objective: 'awareness' | 'engagement' | 'education' | 'traffic' | 'conversion' | 'retention' | 'follower_growth' | 'product_promotion';
+  emotional_angle?: string | null;
+  story_structure?: Json;
+  visual_treatment?: Json;
+  audio_direction?: Json;
+  platform_intent?: string[];
+  differentiation?: string | null;
+  evidence_requirements?: Json;
+  imagery_requirements?: Json;
+  retention_strategy?: string | null;
+  score?: number | null;
+  score_breakdown?: Json;
+  status?: 'proposed' | 'selected' | 'rejected' | 'used' | 'expired';
+  rejected_reason?: string | null;
+  selected_at?: string | null;
+  batch_id?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface ConceptsUpdate {
+  id?: string;
+  product_id?: string;
+  idea_id?: string | null;
+  signal_id?: string | null;
+  strategy_decision_id?: string | null;
+  title?: string;
+  premise?: string;
+  hook?: string | null;
+  audience?: string | null;
+  objective?: 'awareness' | 'engagement' | 'education' | 'traffic' | 'conversion' | 'retention' | 'follower_growth' | 'product_promotion';
+  emotional_angle?: string | null;
+  story_structure?: Json;
+  visual_treatment?: Json;
+  audio_direction?: Json;
+  platform_intent?: string[];
+  differentiation?: string | null;
+  evidence_requirements?: Json;
+  imagery_requirements?: Json;
+  retention_strategy?: string | null;
+  score?: number | null;
+  score_breakdown?: Json;
+  status?: 'proposed' | 'selected' | 'rejected' | 'used' | 'expired';
+  rejected_reason?: string | null;
+  selected_at?: string | null;
+  batch_id?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface ConnectorCallsRow {
   id: string;
   product_id: string;
@@ -831,6 +1011,19 @@ export interface ContentItemsRow {
   board_id: string | null;
   board_reason: string | null;
   media_observations: Json | null;
+  tiktok_options: Json | null;
+  tiktok_creator_info: Json | null;
+  tiktok_creator_info_at: string | null;
+  tiktok_last_error: string | null;
+  overflow_body: string | null;
+  overflow_home: 'first_comment' | 'reply' | 'description' | 'none' | null;
+  overflow_posted_at: string | null;
+  concept_id: string | null;
+  brief_id: string | null;
+  post_format: string | null;
+  vo_lines: Json | null;
+  screenplay: Json | null;
+  caption_shape: string | null;
 }
 
 export interface ContentItemsInsert {
@@ -887,6 +1080,19 @@ export interface ContentItemsInsert {
   board_id?: string | null;
   board_reason?: string | null;
   media_observations?: Json | null;
+  tiktok_options?: Json | null;
+  tiktok_creator_info?: Json | null;
+  tiktok_creator_info_at?: string | null;
+  tiktok_last_error?: string | null;
+  overflow_body?: string | null;
+  overflow_home?: 'first_comment' | 'reply' | 'description' | 'none' | null;
+  overflow_posted_at?: string | null;
+  concept_id?: string | null;
+  brief_id?: string | null;
+  post_format?: string | null;
+  vo_lines?: Json | null;
+  screenplay?: Json | null;
+  caption_shape?: string | null;
 }
 
 export interface ContentItemsUpdate {
@@ -943,6 +1149,142 @@ export interface ContentItemsUpdate {
   board_id?: string | null;
   board_reason?: string | null;
   media_observations?: Json | null;
+  tiktok_options?: Json | null;
+  tiktok_creator_info?: Json | null;
+  tiktok_creator_info_at?: string | null;
+  tiktok_last_error?: string | null;
+  overflow_body?: string | null;
+  overflow_home?: 'first_comment' | 'reply' | 'description' | 'none' | null;
+  overflow_posted_at?: string | null;
+  concept_id?: string | null;
+  brief_id?: string | null;
+  post_format?: string | null;
+  vo_lines?: Json | null;
+  screenplay?: Json | null;
+  caption_shape?: string | null;
+}
+
+export interface ContentIterationsRow {
+  id: string;
+  content_item_id: string;
+  iteration: number;
+  parent_iteration: number | null;
+  gates: Json;
+  defects: Json;
+  snapshot: Json;
+  action: string | null;
+  reason: string | null;
+  changed: string[];
+  invalidated: string[];
+  regressions: Json;
+  body: string | null;
+  vo_asset_id: string | null;
+  render_id: string | null;
+  cost_usd: number;
+  duration_ms: number | null;
+  outcome: 'generated' | 'corrected' | 'accepted' | 'rejected_regression' | 'escalated' | 'exhausted';
+  created_at: string;
+}
+
+export interface ContentIterationsInsert {
+  id?: string;
+  content_item_id: string;
+  iteration: number;
+  parent_iteration?: number | null;
+  gates?: Json;
+  defects?: Json;
+  snapshot?: Json;
+  action?: string | null;
+  reason?: string | null;
+  changed?: string[];
+  invalidated?: string[];
+  regressions?: Json;
+  body?: string | null;
+  vo_asset_id?: string | null;
+  render_id?: string | null;
+  cost_usd?: number;
+  duration_ms?: number | null;
+  outcome: 'generated' | 'corrected' | 'accepted' | 'rejected_regression' | 'escalated' | 'exhausted';
+  created_at?: string;
+}
+
+export interface ContentIterationsUpdate {
+  id?: string;
+  content_item_id?: string;
+  iteration?: number;
+  parent_iteration?: number | null;
+  gates?: Json;
+  defects?: Json;
+  snapshot?: Json;
+  action?: string | null;
+  reason?: string | null;
+  changed?: string[];
+  invalidated?: string[];
+  regressions?: Json;
+  body?: string | null;
+  vo_asset_id?: string | null;
+  render_id?: string | null;
+  cost_usd?: number;
+  duration_ms?: number | null;
+  outcome?: 'generated' | 'corrected' | 'accepted' | 'rejected_regression' | 'escalated' | 'exhausted';
+  created_at?: string;
+}
+
+export interface CreativeBriefsRow {
+  id: string;
+  concept_id: string | null;
+  product_id: string;
+  account_id: string | null;
+  platform: string;
+  treatment: string;
+  presentation_mode: 'editorial' | 'punch';
+  target_seconds: number | null;
+  aspect_ratio: string | null;
+  beats: Json;
+  visual_direction: Json;
+  audio_direction: Json;
+  caption_direction: Json;
+  evidence: string[];
+  rationale: string | null;
+  created_at: string;
+}
+
+export interface CreativeBriefsInsert {
+  id?: string;
+  concept_id?: string | null;
+  product_id: string;
+  account_id?: string | null;
+  platform: string;
+  treatment: string;
+  presentation_mode?: 'editorial' | 'punch';
+  target_seconds?: number | null;
+  aspect_ratio?: string | null;
+  beats?: Json;
+  visual_direction?: Json;
+  audio_direction?: Json;
+  caption_direction?: Json;
+  evidence?: string[];
+  rationale?: string | null;
+  created_at?: string;
+}
+
+export interface CreativeBriefsUpdate {
+  id?: string;
+  concept_id?: string | null;
+  product_id?: string;
+  account_id?: string | null;
+  platform?: string;
+  treatment?: string;
+  presentation_mode?: 'editorial' | 'punch';
+  target_seconds?: number | null;
+  aspect_ratio?: string | null;
+  beats?: Json;
+  visual_direction?: Json;
+  audio_direction?: Json;
+  caption_direction?: Json;
+  evidence?: string[];
+  rationale?: string | null;
+  created_at?: string;
 }
 
 export interface DesiredHandlesRow {
@@ -1302,9 +1644,36 @@ export interface IdeasUpdate {
   about_product_id?: string | null;
 }
 
+export interface JobEventsRow {
+  id: number;
+  job_id: string;
+  message: string;
+  detail: Json | null;
+  at: string;
+  stage: string | null;
+}
+
+export interface JobEventsInsert {
+  id?: number;
+  job_id: string;
+  message: string;
+  detail?: Json | null;
+  at?: string;
+  stage?: string | null;
+}
+
+export interface JobEventsUpdate {
+  id?: number;
+  job_id?: string;
+  message?: string;
+  detail?: Json | null;
+  at?: string;
+  stage?: string | null;
+}
+
 export interface JobsRow {
   id: string;
-  kind: 'generate' | 'render' | 'tts' | 'capture' | 'publish' | 'collect_metrics' | 'collect_signals' | 'collect_comments' | 'collect_attribution' | 'refresh_tokens' | 'score_performance' | 'digest_email' | 'reconcile_schedule' | 'mark_stale_assets' | 'collect_app_store' | 'detect_release' | 'collect_watch_terms' | 'draft_newsletter' | 'send_newsletter' | 'collect_reviews' | 'review_media' | 'verify_feature' | 'explore_product' | 'collect_product_evidence' | 'build_product_brain' | 'verify_provider_capability' | 'cluster_rejections';
+  kind: 'generate' | 'render' | 'tts' | 'capture' | 'publish' | 'collect_metrics' | 'collect_signals' | 'collect_comments' | 'collect_attribution' | 'refresh_tokens' | 'score_performance' | 'digest_email' | 'reconcile_schedule' | 'mark_stale_assets' | 'collect_app_store' | 'detect_release' | 'collect_watch_terms' | 'draft_newsletter' | 'send_newsletter' | 'collect_reviews' | 'review_media' | 'verify_feature' | 'explore_product' | 'cluster_rejections' | 'purge_logs' | 'collect_product_evidence' | 'build_product_brain' | 'verify_provider_capability' | 'correct_content' | 'learn_from_performance' | 'build_account_intelligence' | 'generate_concepts';
   payload: Json;
   status: 'queued' | 'running' | 'done' | 'failed' | 'dead';
   priority: number;
@@ -1321,7 +1690,7 @@ export interface JobsRow {
 
 export interface JobsInsert {
   id?: string;
-  kind: 'generate' | 'render' | 'tts' | 'capture' | 'publish' | 'collect_metrics' | 'collect_signals' | 'collect_comments' | 'collect_attribution' | 'refresh_tokens' | 'score_performance' | 'digest_email' | 'reconcile_schedule' | 'mark_stale_assets' | 'collect_app_store' | 'detect_release' | 'collect_watch_terms' | 'draft_newsletter' | 'send_newsletter' | 'collect_reviews' | 'review_media' | 'verify_feature' | 'explore_product' | 'collect_product_evidence' | 'build_product_brain' | 'verify_provider_capability' | 'cluster_rejections';
+  kind: 'generate' | 'render' | 'tts' | 'capture' | 'publish' | 'collect_metrics' | 'collect_signals' | 'collect_comments' | 'collect_attribution' | 'refresh_tokens' | 'score_performance' | 'digest_email' | 'reconcile_schedule' | 'mark_stale_assets' | 'collect_app_store' | 'detect_release' | 'collect_watch_terms' | 'draft_newsletter' | 'send_newsletter' | 'collect_reviews' | 'review_media' | 'verify_feature' | 'explore_product' | 'cluster_rejections' | 'purge_logs' | 'collect_product_evidence' | 'build_product_brain' | 'verify_provider_capability' | 'correct_content' | 'learn_from_performance' | 'build_account_intelligence' | 'generate_concepts';
   payload?: Json;
   status?: 'queued' | 'running' | 'done' | 'failed' | 'dead';
   priority?: number;
@@ -1338,7 +1707,7 @@ export interface JobsInsert {
 
 export interface JobsUpdate {
   id?: string;
-  kind?: 'generate' | 'render' | 'tts' | 'capture' | 'publish' | 'collect_metrics' | 'collect_signals' | 'collect_comments' | 'collect_attribution' | 'refresh_tokens' | 'score_performance' | 'digest_email' | 'reconcile_schedule' | 'mark_stale_assets' | 'collect_app_store' | 'detect_release' | 'collect_watch_terms' | 'draft_newsletter' | 'send_newsletter' | 'collect_reviews' | 'review_media' | 'verify_feature' | 'explore_product' | 'collect_product_evidence' | 'build_product_brain' | 'verify_provider_capability' | 'cluster_rejections';
+  kind?: 'generate' | 'render' | 'tts' | 'capture' | 'publish' | 'collect_metrics' | 'collect_signals' | 'collect_comments' | 'collect_attribution' | 'refresh_tokens' | 'score_performance' | 'digest_email' | 'reconcile_schedule' | 'mark_stale_assets' | 'collect_app_store' | 'detect_release' | 'collect_watch_terms' | 'draft_newsletter' | 'send_newsletter' | 'collect_reviews' | 'review_media' | 'verify_feature' | 'explore_product' | 'cluster_rejections' | 'purge_logs' | 'collect_product_evidence' | 'build_product_brain' | 'verify_provider_capability' | 'correct_content' | 'learn_from_performance' | 'build_account_intelligence' | 'generate_concepts';
   payload?: Json;
   status?: 'queued' | 'running' | 'done' | 'failed' | 'dead';
   priority?: number;
@@ -1351,6 +1720,87 @@ export interface JobsUpdate {
   dedupe_key?: string | null;
   finished_at?: string | null;
   created_at?: string;
+}
+
+export interface LearnedInsightsRow {
+  id: string;
+  scope: 'global' | 'platform' | 'account';
+  platform: string | null;
+  account_id: string | null;
+  product_id: string | null;
+  feature: string;
+  feature_value: string;
+  cohort_mean: number;
+  baseline_mean: number;
+  lift: number;
+  sample_size: number;
+  baseline_size: number;
+  status: 'observed' | 'inferred' | 'validated';
+  confidence: number;
+  corroborations: number;
+  supporting_content_ids: string[];
+  contradicting_content_ids: string[];
+  evidence_window_start: string | null;
+  evidence_window_end: string | null;
+  observation: string;
+  recommendation: string;
+  review_after: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LearnedInsightsInsert {
+  id?: string;
+  scope: 'global' | 'platform' | 'account';
+  platform?: string | null;
+  account_id?: string | null;
+  product_id?: string | null;
+  feature: string;
+  feature_value: string;
+  cohort_mean: number;
+  baseline_mean: number;
+  lift: number;
+  sample_size: number;
+  baseline_size: number;
+  status: 'observed' | 'inferred' | 'validated';
+  confidence: number;
+  corroborations?: number;
+  supporting_content_ids?: string[];
+  contradicting_content_ids?: string[];
+  evidence_window_start?: string | null;
+  evidence_window_end?: string | null;
+  observation: string;
+  recommendation: string;
+  review_after: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface LearnedInsightsUpdate {
+  id?: string;
+  scope?: 'global' | 'platform' | 'account';
+  platform?: string | null;
+  account_id?: string | null;
+  product_id?: string | null;
+  feature?: string;
+  feature_value?: string;
+  cohort_mean?: number;
+  baseline_mean?: number;
+  lift?: number;
+  sample_size?: number;
+  baseline_size?: number;
+  status?: 'observed' | 'inferred' | 'validated';
+  confidence?: number;
+  corroborations?: number;
+  supporting_content_ids?: string[];
+  contradicting_content_ids?: string[];
+  evidence_window_start?: string | null;
+  evidence_window_end?: string | null;
+  observation?: string;
+  recommendation?: string;
+  review_after?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface LinkClicksRow {
@@ -1393,6 +1843,153 @@ export interface LinkClicksUpdate {
   destination_url?: string | null;
   country?: string | null;
   clicked_at?: string;
+}
+
+export interface MusicBedsRow {
+  id: string;
+  asset_id: string;
+  product_id: string | null;
+  title: string;
+  artist: string | null;
+  mood: 'warm' | 'bright' | 'calm' | 'driving' | 'playful' | 'tense' | 'melancholy' | 'confident';
+  energy: number;
+  bpm: number | null;
+  genre: string | null;
+  instrumentation: string[];
+  duration_seconds: number;
+  loopable: boolean;
+  intro_seconds: number | null;
+  licence: string;
+  licensor: string | null;
+  licence_url: string | null;
+  attribution_required: boolean;
+  attribution_text: string | null;
+  platform_restrictions: string[];
+  expires_at: string | null;
+  created_at: string;
+  last_used_at: string | null;
+  provenance: unknown;
+  source: string | null;
+  licence_proof: string | null;
+  prohibited_platforms: string[];
+  has_vocals: boolean | null;
+  stems: Json;
+  active: boolean;
+  usage_count: number;
+  account_restrictions: string[];
+}
+
+export interface MusicBedsInsert {
+  id?: string;
+  asset_id: string;
+  product_id?: string | null;
+  title: string;
+  artist?: string | null;
+  mood: 'warm' | 'bright' | 'calm' | 'driving' | 'playful' | 'tense' | 'melancholy' | 'confident';
+  energy: number;
+  bpm?: number | null;
+  genre?: string | null;
+  instrumentation?: string[];
+  duration_seconds: number;
+  loopable?: boolean;
+  intro_seconds?: number | null;
+  licence: string;
+  licensor?: string | null;
+  licence_url?: string | null;
+  attribution_required?: boolean;
+  attribution_text?: string | null;
+  platform_restrictions?: string[];
+  expires_at?: string | null;
+  created_at?: string;
+  last_used_at?: string | null;
+  provenance?: unknown;
+  source?: string | null;
+  licence_proof?: string | null;
+  prohibited_platforms?: string[];
+  has_vocals?: boolean | null;
+  stems?: Json;
+  active?: boolean;
+  usage_count?: number;
+  account_restrictions?: string[];
+}
+
+export interface MusicBedsUpdate {
+  id?: string;
+  asset_id?: string;
+  product_id?: string | null;
+  title?: string;
+  artist?: string | null;
+  mood?: 'warm' | 'bright' | 'calm' | 'driving' | 'playful' | 'tense' | 'melancholy' | 'confident';
+  energy?: number;
+  bpm?: number | null;
+  genre?: string | null;
+  instrumentation?: string[];
+  duration_seconds?: number;
+  loopable?: boolean;
+  intro_seconds?: number | null;
+  licence?: string;
+  licensor?: string | null;
+  licence_url?: string | null;
+  attribution_required?: boolean;
+  attribution_text?: string | null;
+  platform_restrictions?: string[];
+  expires_at?: string | null;
+  created_at?: string;
+  last_used_at?: string | null;
+  provenance?: unknown;
+  source?: string | null;
+  licence_proof?: string | null;
+  prohibited_platforms?: string[];
+  has_vocals?: boolean | null;
+  stems?: Json;
+  active?: boolean;
+  usage_count?: number;
+  account_restrictions?: string[];
+}
+
+export interface MusicUsageRow {
+  id: string;
+  music_bed_id: string;
+  content_item_id: string | null;
+  brief_id: string | null;
+  account_id: string | null;
+  platform: string;
+  treatment: string | null;
+  visual_language: string | null;
+  reasons: string[];
+  used_at: string;
+  score: number | null;
+  scored_at: string | null;
+}
+
+export interface MusicUsageInsert {
+  id?: string;
+  music_bed_id: string;
+  content_item_id?: string | null;
+  brief_id?: string | null;
+  account_id?: string | null;
+  platform: string;
+  treatment?: string | null;
+  visual_language?: string | null;
+  reasons?: string[];
+  used_at?: string;
+  score?: number | null;
+  scored_at?: string | null;
+}
+
+export interface MusicUsageUpdate {
+  id?: string;
+  music_bed_id?: string;
+  content_item_id?: string | null;
+  brief_id?: string | null;
+  account_id?: string | null;
+  platform?: string;
+  treatment?: string | null;
+  visual_language?: string | null;
+  reasons?: string[];
+  used_at?: string;
+  score?: number | null;
+  scored_at?: string | null;
 }
 
 export interface NewslettersRow {
@@ -1460,7 +2057,7 @@ export interface NewslettersUpdate {
 
 export interface NotificationsRow {
   id: string;
-  kind: 'auth_failure' | 'duplicate_publish_abort' | 'queue_depth' | 'worker_missing' | 'render_failure' | 'digest' | 'connector_down';
+  kind: 'auth_failure' | 'duplicate_publish_abort' | 'queue_depth' | 'worker_missing' | 'render_failure' | 'digest' | 'connector_down' | 'correction_stopped' | 'generation_refused';
   severity: 'info' | 'warning' | 'critical';
   title: string;
   body: string | null;
@@ -1474,7 +2071,7 @@ export interface NotificationsRow {
 
 export interface NotificationsInsert {
   id?: string;
-  kind: 'auth_failure' | 'duplicate_publish_abort' | 'queue_depth' | 'worker_missing' | 'render_failure' | 'digest' | 'connector_down';
+  kind: 'auth_failure' | 'duplicate_publish_abort' | 'queue_depth' | 'worker_missing' | 'render_failure' | 'digest' | 'connector_down' | 'correction_stopped' | 'generation_refused';
   severity?: 'info' | 'warning' | 'critical';
   title: string;
   body?: string | null;
@@ -1488,7 +2085,7 @@ export interface NotificationsInsert {
 
 export interface NotificationsUpdate {
   id?: string;
-  kind?: 'auth_failure' | 'duplicate_publish_abort' | 'queue_depth' | 'worker_missing' | 'render_failure' | 'digest' | 'connector_down';
+  kind?: 'auth_failure' | 'duplicate_publish_abort' | 'queue_depth' | 'worker_missing' | 'render_failure' | 'digest' | 'connector_down' | 'correction_stopped' | 'generation_refused';
   severity?: 'info' | 'warning' | 'critical';
   title?: string;
   body?: string | null;
@@ -1722,6 +2319,66 @@ export interface PlatformRequestsUpdate {
   purge_after?: string;
 }
 
+export interface PlatformVariantsRow {
+  id: string;
+  concept_id: string | null;
+  brief_id: string | null;
+  content_item_id: string | null;
+  platform: string;
+  aspect_ratio: string | null;
+  target_seconds: number | null;
+  pacing: string | null;
+  text_density: string | null;
+  hook_treatment: string | null;
+  cta: string | null;
+  audio_treatment: string | null;
+  render_id: string | null;
+  decision: 'original' | 'remix' | 'reuse' | 'skip' | 'produce' | 'defer';
+  decision_reason: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PlatformVariantsInsert {
+  id?: string;
+  concept_id?: string | null;
+  brief_id?: string | null;
+  content_item_id?: string | null;
+  platform: string;
+  aspect_ratio?: string | null;
+  target_seconds?: number | null;
+  pacing?: string | null;
+  text_density?: string | null;
+  hook_treatment?: string | null;
+  cta?: string | null;
+  audio_treatment?: string | null;
+  render_id?: string | null;
+  decision?: 'original' | 'remix' | 'reuse' | 'skip' | 'produce' | 'defer';
+  decision_reason?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface PlatformVariantsUpdate {
+  id?: string;
+  concept_id?: string | null;
+  brief_id?: string | null;
+  content_item_id?: string | null;
+  platform?: string;
+  aspect_ratio?: string | null;
+  target_seconds?: number | null;
+  pacing?: string | null;
+  text_density?: string | null;
+  hook_treatment?: string | null;
+  cta?: string | null;
+  audio_treatment?: string | null;
+  render_id?: string | null;
+  decision?: 'original' | 'remix' | 'reuse' | 'skip' | 'produce' | 'defer';
+  decision_reason?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface PostMetricsRow {
   id: string;
   publication_id: string;
@@ -1876,7 +2533,7 @@ export interface ProductFactsRow {
   key: string;
   value: string;
   detail: string | null;
-  status: 'unverified' | 'verified' | 'refuted' | 'unverifiable';
+  status: 'unverified' | 'verified' | 'refuted' | 'unverifiable' | 'inferred';
   confidence: number;
   evidence_ids: string[];
   contradicts: string | null;
@@ -1897,7 +2554,7 @@ export interface ProductFactsInsert {
   key: string;
   value: string;
   detail?: string | null;
-  status?: 'unverified' | 'verified' | 'refuted' | 'unverifiable';
+  status?: 'unverified' | 'verified' | 'refuted' | 'unverifiable' | 'inferred';
   confidence?: number;
   evidence_ids?: string[];
   contradicts?: string | null;
@@ -1918,7 +2575,7 @@ export interface ProductFactsUpdate {
   key?: string;
   value?: string;
   detail?: string | null;
-  status?: 'unverified' | 'verified' | 'refuted' | 'unverifiable';
+  status?: 'unverified' | 'verified' | 'refuted' | 'unverifiable' | 'inferred';
   confidence?: number;
   evidence_ids?: string[];
   contradicts?: string | null;
@@ -1957,6 +2614,7 @@ export interface ProductsRow {
   destinations: Json;
   observed_app_version: string | null;
   observed_app_version_at: string | null;
+  capture_credentials: Json | null;
 }
 
 export interface ProductsInsert {
@@ -1984,6 +2642,7 @@ export interface ProductsInsert {
   destinations?: Json;
   observed_app_version?: string | null;
   observed_app_version_at?: string | null;
+  capture_credentials?: Json | null;
 }
 
 export interface ProductsUpdate {
@@ -2011,6 +2670,7 @@ export interface ProductsUpdate {
   destinations?: Json;
   observed_app_version?: string | null;
   observed_app_version_at?: string | null;
+  capture_credentials?: Json | null;
 }
 
 export interface ProviderCapabilitiesRow {
@@ -2044,7 +2704,7 @@ export interface PublicationsRow {
   platform: string;
   platform_post_id: string | null;
   permalink: string | null;
-  publish_mode: 'direct' | 'draft';
+  publish_mode: 'direct' | 'draft' | 'private';
   manual_publish_url: string | null;
   published_at: string | null;
   error: string | null;
@@ -2061,7 +2721,7 @@ export interface PublicationsInsert {
   platform: string;
   platform_post_id?: string | null;
   permalink?: string | null;
-  publish_mode: 'direct' | 'draft';
+  publish_mode: 'direct' | 'draft' | 'private';
   manual_publish_url?: string | null;
   published_at?: string | null;
   error?: string | null;
@@ -2078,7 +2738,7 @@ export interface PublicationsUpdate {
   platform?: string;
   platform_post_id?: string | null;
   permalink?: string | null;
-  publish_mode?: 'direct' | 'draft';
+  publish_mode?: 'direct' | 'draft' | 'private';
   manual_publish_url?: string | null;
   published_at?: string | null;
   error?: string | null;
@@ -2203,6 +2863,7 @@ export interface RendersRow {
   error: string | null;
   duration_ms: number | null;
   created_at: string;
+  treatment: string | null;
 }
 
 export interface RendersInsert {
@@ -2218,6 +2879,7 @@ export interface RendersInsert {
   error?: string | null;
   duration_ms?: number | null;
   created_at?: string;
+  treatment?: string | null;
 }
 
 export interface RendersUpdate {
@@ -2233,6 +2895,7 @@ export interface RendersUpdate {
   error?: string | null;
   duration_ms?: number | null;
   created_at?: string;
+  treatment?: string | null;
 }
 
 export interface ReviewSubmissionsRow {
@@ -2385,6 +3048,24 @@ export interface RssSourcesUpdate {
   created_at?: string;
 }
 
+export interface SchemaVersionRow {
+  id: boolean;
+  version: string;
+  applied_at: string;
+}
+
+export interface SchemaVersionInsert {
+  id?: boolean;
+  version: string;
+  applied_at?: string;
+}
+
+export interface SchemaVersionUpdate {
+  id?: boolean;
+  version?: string;
+  applied_at?: string;
+}
+
 export interface SeriesRow {
   id: string;
   product_id: string;
@@ -2430,6 +3111,8 @@ export interface SettingsRow {
   daily_digest_enabled: boolean;
   learning_min_posts_per_category: number;
   updated_at: string;
+  log_retention_days: number | null;
+  daily_budget_usd: number;
 }
 
 export interface SettingsInsert {
@@ -2441,6 +3124,8 @@ export interface SettingsInsert {
   daily_digest_enabled?: boolean;
   learning_min_posts_per_category?: number;
   updated_at?: string;
+  log_retention_days?: number | null;
+  daily_budget_usd?: number;
 }
 
 export interface SettingsUpdate {
@@ -2452,6 +3137,8 @@ export interface SettingsUpdate {
   daily_digest_enabled?: boolean;
   learning_min_posts_per_category?: number;
   updated_at?: string;
+  log_retention_days?: number | null;
+  daily_budget_usd?: number;
 }
 
 export interface SetupKitEntriesRow {
@@ -2547,6 +3234,11 @@ export interface SignalsRow {
   relevance: number | null;
   consumed_at: string | null;
   created_at: string;
+  platform: string | null;
+  observed_at: string | null;
+  expires_at: string | null;
+  confidence: number | null;
+  velocity: number | null;
 }
 
 export interface SignalsInsert {
@@ -2558,6 +3250,11 @@ export interface SignalsInsert {
   relevance?: number | null;
   consumed_at?: string | null;
   created_at?: string;
+  platform?: string | null;
+  observed_at?: string | null;
+  expires_at?: string | null;
+  confidence?: number | null;
+  velocity?: number | null;
 }
 
 export interface SignalsUpdate {
@@ -2569,6 +3266,11 @@ export interface SignalsUpdate {
   relevance?: number | null;
   consumed_at?: string | null;
   created_at?: string;
+  platform?: string | null;
+  observed_at?: string | null;
+  expires_at?: string | null;
+  confidence?: number | null;
+  velocity?: number | null;
 }
 
 export interface SlotsRow {
@@ -2645,6 +3347,9 @@ export interface SocialAccountsRow {
   required_product_kind: string | null;
   transport: 'direct' | 'unified';
   provider_account_id: string | null;
+  refresh_locked_at: string | null;
+  refresh_failures: number;
+  refresh_next_attempt_at: string | null;
 }
 
 export interface SocialAccountsInsert {
@@ -2680,6 +3385,9 @@ export interface SocialAccountsInsert {
   duplicate_identity_ack?: boolean;
   transport?: 'direct' | 'unified';
   provider_account_id?: string | null;
+  refresh_locked_at?: string | null;
+  refresh_failures?: number;
+  refresh_next_attempt_at?: string | null;
 }
 
 export interface SocialAccountsUpdate {
@@ -2715,6 +3423,9 @@ export interface SocialAccountsUpdate {
   duplicate_identity_ack?: boolean;
   transport?: 'direct' | 'unified';
   provider_account_id?: string | null;
+  refresh_locked_at?: string | null;
+  refresh_failures?: number;
+  refresh_next_attempt_at?: string | null;
 }
 
 export interface SocialProofRow {
@@ -2766,6 +3477,222 @@ export interface SocialProofUpdate {
   status?: 'new' | 'used' | 'declined';
   content_item_id?: string | null;
   fetched_at?: string;
+}
+
+export interface SocialRecommendationsRow {
+  id: string;
+  account_id: string;
+  product_id: string | null;
+  platform: string;
+  subject: string;
+  subject_type: 'creator' | 'brand' | 'community' | 'publication' | 'topic' | 'conversation' | 'question';
+  kind: 'study' | 'follow' | 'investigate' | 'collaborate' | 'reference' | 'respond' | 'monitor' | 'ignore';
+  relevance: number;
+  confidence: number;
+  rationale: string;
+  evidence: Json;
+  observed_at: string;
+  expires_at: string | null;
+  status: 'proposed' | 'accepted' | 'dismissed' | 'done';
+  decided_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SocialRecommendationsInsert {
+  id?: string;
+  account_id: string;
+  product_id?: string | null;
+  platform: string;
+  subject: string;
+  subject_type: 'creator' | 'brand' | 'community' | 'publication' | 'topic' | 'conversation' | 'question';
+  kind: 'study' | 'follow' | 'investigate' | 'collaborate' | 'reference' | 'respond' | 'monitor' | 'ignore';
+  relevance: number;
+  confidence: number;
+  rationale: string;
+  evidence: Json;
+  observed_at?: string;
+  expires_at?: string | null;
+  status?: 'proposed' | 'accepted' | 'dismissed' | 'done';
+  decided_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface SocialRecommendationsUpdate {
+  id?: string;
+  account_id?: string;
+  product_id?: string | null;
+  platform?: string;
+  subject?: string;
+  subject_type?: 'creator' | 'brand' | 'community' | 'publication' | 'topic' | 'conversation' | 'question';
+  kind?: 'study' | 'follow' | 'investigate' | 'collaborate' | 'reference' | 'respond' | 'monitor' | 'ignore';
+  relevance?: number;
+  confidence?: number;
+  rationale?: string;
+  evidence?: Json;
+  observed_at?: string;
+  expires_at?: string | null;
+  status?: 'proposed' | 'accepted' | 'dismissed' | 'done';
+  decided_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface SoundEffectsRow {
+  id: string;
+  product_id: string | null;
+  asset_id: string;
+  title: string;
+  role: 'transition' | 'impact' | 'accent' | 'ui' | 'ambience' | 'texture';
+  duration_seconds: number;
+  peak_db: number;
+  licence: string;
+  licensor: string | null;
+  licence_url: string | null;
+  attribution_required: boolean;
+  attribution_text: string | null;
+  platform_restrictions: string[];
+  expires_at: string | null;
+  last_used_at: string | null;
+  created_at: string;
+  provenance: unknown;
+  source: string | null;
+  licence_proof: string | null;
+  prohibited_platforms: string[];
+  active: boolean;
+  usage_count: number;
+}
+
+export interface SoundEffectsInsert {
+  id?: string;
+  product_id?: string | null;
+  asset_id: string;
+  title: string;
+  role: 'transition' | 'impact' | 'accent' | 'ui' | 'ambience' | 'texture';
+  duration_seconds: number;
+  peak_db?: number;
+  licence: string;
+  licensor?: string | null;
+  licence_url?: string | null;
+  attribution_required?: boolean;
+  attribution_text?: string | null;
+  platform_restrictions?: string[];
+  expires_at?: string | null;
+  last_used_at?: string | null;
+  created_at?: string;
+  provenance?: unknown;
+  source?: string | null;
+  licence_proof?: string | null;
+  prohibited_platforms?: string[];
+  active?: boolean;
+  usage_count?: number;
+}
+
+export interface SoundEffectsUpdate {
+  id?: string;
+  product_id?: string | null;
+  asset_id?: string;
+  title?: string;
+  role?: 'transition' | 'impact' | 'accent' | 'ui' | 'ambience' | 'texture';
+  duration_seconds?: number;
+  peak_db?: number;
+  licence?: string;
+  licensor?: string | null;
+  licence_url?: string | null;
+  attribution_required?: boolean;
+  attribution_text?: string | null;
+  platform_restrictions?: string[];
+  expires_at?: string | null;
+  last_used_at?: string | null;
+  created_at?: string;
+  provenance?: unknown;
+  source?: string | null;
+  licence_proof?: string | null;
+  prohibited_platforms?: string[];
+  active?: boolean;
+  usage_count?: number;
+}
+
+export interface StrategyDecisionsRow {
+  id: string;
+  product_id: string | null;
+  account_id: string;
+  platform: string;
+  signal_id: string | null;
+  idea_id: string | null;
+  content_item_id: string | null;
+  objective: 'awareness' | 'engagement' | 'education' | 'traffic' | 'conversion' | 'retention' | 'follower_growth' | 'product_promotion';
+  creation_mode: 'create' | 'reuse' | 'remix' | 'adapt';
+  why_now: string;
+  audience: string;
+  rationale: string;
+  preferred_treatments: string[];
+  avoid_treatments: string[];
+  publish_earliest: string;
+  publish_latest: string;
+  timing_reason: string;
+  primary_metric: string;
+  success_threshold: number | null;
+  measurement_basis: string;
+  review_after: string;
+  confidence: number;
+  evidence: string[];
+  created_at: string;
+}
+
+export interface StrategyDecisionsInsert {
+  id?: string;
+  product_id?: string | null;
+  account_id: string;
+  platform: string;
+  signal_id?: string | null;
+  idea_id?: string | null;
+  content_item_id?: string | null;
+  objective: 'awareness' | 'engagement' | 'education' | 'traffic' | 'conversion' | 'retention' | 'follower_growth' | 'product_promotion';
+  creation_mode?: 'create' | 'reuse' | 'remix' | 'adapt';
+  why_now: string;
+  audience: string;
+  rationale: string;
+  preferred_treatments?: string[];
+  avoid_treatments?: string[];
+  publish_earliest: string;
+  publish_latest: string;
+  timing_reason: string;
+  primary_metric: string;
+  success_threshold?: number | null;
+  measurement_basis: string;
+  review_after: string;
+  confidence: number;
+  evidence?: string[];
+  created_at?: string;
+}
+
+export interface StrategyDecisionsUpdate {
+  id?: string;
+  product_id?: string | null;
+  account_id?: string;
+  platform?: string;
+  signal_id?: string | null;
+  idea_id?: string | null;
+  content_item_id?: string | null;
+  objective?: 'awareness' | 'engagement' | 'education' | 'traffic' | 'conversion' | 'retention' | 'follower_growth' | 'product_promotion';
+  creation_mode?: 'create' | 'reuse' | 'remix' | 'adapt';
+  why_now?: string;
+  audience?: string;
+  rationale?: string;
+  preferred_treatments?: string[];
+  avoid_treatments?: string[];
+  publish_earliest?: string;
+  publish_latest?: string;
+  timing_reason?: string;
+  primary_metric?: string;
+  success_threshold?: number | null;
+  measurement_basis?: string;
+  review_after?: string;
+  confidence?: number;
+  evidence?: string[];
+  created_at?: string;
 }
 
 export interface SubmissionsRow {
@@ -2859,6 +3786,8 @@ export interface TakesRow {
   content_item_id: string | null;
   created_at: string;
   updated_at: string;
+  opinion_overlap: number | null;
+  opinion_note: string | null;
 }
 
 export interface TakesInsert {
@@ -2880,6 +3809,8 @@ export interface TakesInsert {
   content_item_id?: string | null;
   created_at?: string;
   updated_at?: string;
+  opinion_overlap?: number | null;
+  opinion_note?: string | null;
 }
 
 export interface TakesUpdate {
@@ -2901,6 +3832,8 @@ export interface TakesUpdate {
   content_item_id?: string | null;
   created_at?: string;
   updated_at?: string;
+  opinion_overlap?: number | null;
+  opinion_note?: string | null;
 }
 
 export interface TemplatesRow {
@@ -3098,6 +4031,7 @@ export interface WorkerHeartbeatsUpdate {
 export interface Database {
   public: {
     Tables: {
+    account_intelligence: { Row: AccountIntelligenceRow; Insert: AccountIntelligenceInsert; Update: AccountIntelligenceUpdate; Relationships: [] };
     admin_users: { Row: AdminUsersRow; Insert: AdminUsersInsert; Update: AdminUsersUpdate; Relationships: [] };
     agent_runs: { Row: AgentRunsRow; Insert: AgentRunsInsert; Update: AgentRunsUpdate; Relationships: [] };
     app_store_attribution: { Row: AppStoreAttributionRow; Insert: AppStoreAttributionInsert; Update: AppStoreAttributionUpdate; Relationships: [] };
@@ -3111,12 +4045,16 @@ export interface Database {
     campaigns: { Row: CampaignsRow; Insert: CampaignsInsert; Update: CampaignsUpdate; Relationships: [] };
     capability_audit_state: { Row: CapabilityAuditStateRow; Insert: CapabilityAuditStateInsert; Update: CapabilityAuditStateUpdate; Relationships: [] };
     capability_probes: { Row: CapabilityProbesRow; Insert: CapabilityProbesInsert; Update: CapabilityProbesUpdate; Relationships: [] };
+    capture_audit: { Row: CaptureAuditRow; Insert: CaptureAuditInsert; Update: CaptureAuditUpdate; Relationships: [] };
     capture_runs: { Row: CaptureRunsRow; Insert: CaptureRunsInsert; Update: CaptureRunsUpdate; Relationships: [] };
     comment_replies: { Row: CommentRepliesRow; Insert: CommentRepliesInsert; Update: CommentRepliesUpdate; Relationships: [] };
     comments: { Row: CommentsRow; Insert: CommentsInsert; Update: CommentsUpdate; Relationships: [] };
     compose_sessions: { Row: ComposeSessionsRow; Insert: ComposeSessionsInsert; Update: ComposeSessionsUpdate; Relationships: [] };
+    concepts: { Row: ConceptsRow; Insert: ConceptsInsert; Update: ConceptsUpdate; Relationships: [] };
     connector_calls: { Row: ConnectorCallsRow; Insert: ConnectorCallsInsert; Update: ConnectorCallsUpdate; Relationships: [] };
     content_items: { Row: ContentItemsRow; Insert: ContentItemsInsert; Update: ContentItemsUpdate; Relationships: [] };
+    content_iterations: { Row: ContentIterationsRow; Insert: ContentIterationsInsert; Update: ContentIterationsUpdate; Relationships: [] };
+    creative_briefs: { Row: CreativeBriefsRow; Insert: CreativeBriefsInsert; Update: CreativeBriefsUpdate; Relationships: [] };
     desired_handles: { Row: DesiredHandlesRow; Insert: DesiredHandlesInsert; Update: DesiredHandlesUpdate; Relationships: [] };
     feature_claims: { Row: FeatureClaimsRow; Insert: FeatureClaimsInsert; Update: FeatureClaimsUpdate; Relationships: [] };
     finds: { Row: FindsRow; Insert: FindsInsert; Update: FindsUpdate; Relationships: [] };
@@ -3125,8 +4063,12 @@ export interface Database {
     hook_variants: { Row: HookVariantsRow; Insert: HookVariantsInsert; Update: HookVariantsUpdate; Relationships: [] };
     hooks: { Row: HooksRow; Insert: HooksInsert; Update: HooksUpdate; Relationships: [] };
     ideas: { Row: IdeasRow; Insert: IdeasInsert; Update: IdeasUpdate; Relationships: [] };
+    job_events: { Row: JobEventsRow; Insert: JobEventsInsert; Update: JobEventsUpdate; Relationships: [] };
     jobs: { Row: JobsRow; Insert: JobsInsert; Update: JobsUpdate; Relationships: [] };
+    learned_insights: { Row: LearnedInsightsRow; Insert: LearnedInsightsInsert; Update: LearnedInsightsUpdate; Relationships: [] };
     link_clicks: { Row: LinkClicksRow; Insert: LinkClicksInsert; Update: LinkClicksUpdate; Relationships: [] };
+    music_beds: { Row: MusicBedsRow; Insert: MusicBedsInsert; Update: MusicBedsUpdate; Relationships: [] };
+    music_usage: { Row: MusicUsageRow; Insert: MusicUsageInsert; Update: MusicUsageUpdate; Relationships: [] };
     newsletters: { Row: NewslettersRow; Insert: NewslettersInsert; Update: NewslettersUpdate; Relationships: [] };
     notifications: { Row: NotificationsRow; Insert: NotificationsInsert; Update: NotificationsUpdate; Relationships: [] };
     onboarding_state: { Row: OnboardingStateRow; Insert: OnboardingStateInsert; Update: OnboardingStateUpdate; Relationships: [] };
@@ -3134,6 +4076,7 @@ export interface Database {
     performance_scores: { Row: PerformanceScoresRow; Insert: PerformanceScoresInsert; Update: PerformanceScoresUpdate; Relationships: [] };
     pinterest_boards: { Row: PinterestBoardsRow; Insert: PinterestBoardsInsert; Update: PinterestBoardsUpdate; Relationships: [] };
     platform_requests: { Row: PlatformRequestsRow; Insert: PlatformRequestsInsert; Update: PlatformRequestsUpdate; Relationships: [] };
+    platform_variants: { Row: PlatformVariantsRow; Insert: PlatformVariantsInsert; Update: PlatformVariantsUpdate; Relationships: [] };
     post_metrics: { Row: PostMetricsRow; Insert: PostMetricsInsert; Update: PostMetricsUpdate; Relationships: [] };
     product_artifacts: { Row: ProductArtifactsRow; Insert: ProductArtifactsInsert; Update: ProductArtifactsUpdate; Relationships: [] };
     product_evidence: { Row: ProductEvidenceRow; Insert: ProductEvidenceInsert; Update: ProductEvidenceUpdate; Relationships: [] };
@@ -3147,6 +4090,7 @@ export interface Database {
     review_submissions: { Row: ReviewSubmissionsRow; Insert: ReviewSubmissionsInsert; Update: ReviewSubmissionsUpdate; Relationships: [] };
     rss_items: { Row: RssItemsRow; Insert: RssItemsInsert; Update: RssItemsUpdate; Relationships: [] };
     rss_sources: { Row: RssSourcesRow; Insert: RssSourcesInsert; Update: RssSourcesUpdate; Relationships: [] };
+    schema_version: { Row: SchemaVersionRow; Insert: SchemaVersionInsert; Update: SchemaVersionUpdate; Relationships: [] };
     series: { Row: SeriesRow; Insert: SeriesInsert; Update: SeriesUpdate; Relationships: [] };
     settings: { Row: SettingsRow; Insert: SettingsInsert; Update: SettingsUpdate; Relationships: [] };
     setup_kit_entries: { Row: SetupKitEntriesRow; Insert: SetupKitEntriesInsert; Update: SetupKitEntriesUpdate; Relationships: [] };
@@ -3155,6 +4099,9 @@ export interface Database {
     slots: { Row: SlotsRow; Insert: SlotsInsert; Update: SlotsUpdate; Relationships: [] };
     social_accounts: { Row: SocialAccountsRow; Insert: SocialAccountsInsert; Update: SocialAccountsUpdate; Relationships: [] };
     social_proof: { Row: SocialProofRow; Insert: SocialProofInsert; Update: SocialProofUpdate; Relationships: [] };
+    social_recommendations: { Row: SocialRecommendationsRow; Insert: SocialRecommendationsInsert; Update: SocialRecommendationsUpdate; Relationships: [] };
+    sound_effects: { Row: SoundEffectsRow; Insert: SoundEffectsInsert; Update: SoundEffectsUpdate; Relationships: [] };
+    strategy_decisions: { Row: StrategyDecisionsRow; Insert: StrategyDecisionsInsert; Update: StrategyDecisionsUpdate; Relationships: [] };
     submissions: { Row: SubmissionsRow; Insert: SubmissionsInsert; Update: SubmissionsUpdate; Relationships: [] };
     subscribers: { Row: SubscribersRow; Insert: SubscribersInsert; Update: SubscribersUpdate; Relationships: [] };
     takes: { Row: TakesRow; Insert: TakesInsert; Update: TakesUpdate; Relationships: [] };

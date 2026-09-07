@@ -47,9 +47,19 @@ export const SCHEDULES: Schedule[] = [
      * cover for itself.
      */
     kind: 'refresh_tokens',
-    everyMinutes: 60,
+    /*
+     * §531. Thirty, not sixty.
+     *
+     * X's access token lives exactly two hours and `needsRefresh` acts with
+     * sixty minutes left, so an hourly schedule gave each token precisely one
+     * chance: miss it — a restart, a deploy, a rate limit — and the token is
+     * expired before the next run. Thirty minutes puts two attempts inside the
+     * window and costs nothing, because an account that is not near expiry is
+     * skipped without a provider call.
+     */
+    everyMinutes: 30,
     priority: 10,
-    why: 'Access tokens expire in hours on most platforms, and a dead token is only discovered by a publish job failing at its slot. Hourly costs nothing and bounds the exposure to an hour.',
+    why: 'X access tokens live two hours; everything else lives a day to sixty days. Half-hourly is the only cadence that fits the shortest one with a retry to spare, and costs one query when nothing is due.',
   },
   {
     // The release check is cheap — one GET of the product's homepage — and it is

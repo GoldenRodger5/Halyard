@@ -61,6 +61,8 @@ const job = (): Job =>
     attempts: 1,
     max_attempts: 2,
     dedupe_key: null,
+    /* §526. The poller bounds an unfunded park by the job's age. */
+    created_at: new Date().toISOString(),
   }) as Job;
 
 async function addSource(name: string, url: string, weight = 1): Promise<void> {

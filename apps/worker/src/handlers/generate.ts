@@ -39,6 +39,11 @@ import {
   shouldDraftMore,
   motionFor,
   chooseCaptionShape,
+  findRepeatedPost,
+  repeatsAPost,
+  isOnPillar,
+  openingGuidance,
+  pillarFit,
   OpenAIEmbeddingClient,
   ideaText,
   canStart,
@@ -133,7 +138,9 @@ import { continuityFor } from '../continuity.js';
 import { photographBeats } from '../beatPhotographs.js';
 import { footageForBeats } from '../beatFootage.js';
 import { markForBeat } from '../beatMark.js';
+import { markOutputConsumed } from '../agentRuns.js';
 import { readPiece } from '../readPiece.js';
+import { reviseFlaggedSlots } from '../formatWriter.js';
 
 /**
  * §468. Words long enough to look markable and too common to be worth marking.
@@ -472,7 +479,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
        * quality moves, so a silent switch to the other provider would be worse
        * than none. The run records it like any other decision.
        */
-      createLlmClient(process.env, (from, to, because) =>
+      (ctx.createLlm ?? createLlmClient)(process.env, (from, to, because) =>
         ctx.log('model provider fell back', {
           from,
           to,
@@ -1054,7 +1061,46 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
     return;
   }
 
+  /*
+   * §546. What this product talks about, read once for the whole run.
+   *
+   * The Brain verifies `content_pillars` and, until now, nothing ever read
+   * them at generation. Halyard wrote Kinolog a piece of screenwriting advice
+   * — good advice, for people making films, from a product whose competitors
+   * are Letterboxd, Trakt and SIMKL and whose every pillar is about choosing
+   * what to watch tonight. Nothing in the piece was false and nothing objected.
+   */
+  const pillarRows = await ctx.pool.query<{ key: string; value: string }>(
+    `select key, value from product_facts
+      where product_id = $1 and category = 'content_pillars' and status = 'verified'`,
+    [productId],
+  );
+  const pillars = pillarRows.rows;
+
   for (const idea of selected) {
+    /*
+     * §546. Refused before the idea is claimed, so an off-pillar subject costs
+     * nothing and the idea stays available. §453's rule: a piece that should
+     * never have been started is not a failed piece.
+     *
+     * A product with no verified pillars has not disagreed with anything, and
+     * `pillarFit` reports that as its own case rather than as "off-pillar".
+     */
+    const fit = pillarFit(`${idea.title}. ${idea.angle}`, pillars);
+    if (pillars.length > 0 && !isOnPillar(fit)) {
+      ctx.log('subject is outside what this product talks about', {
+        productId,
+        ideaId: idea.id,
+        subject: idea.title,
+        pillars: pillars.map((p) => p.key),
+        because: fit.because,
+      });
+      continue;
+    }
+    if (pillars.length > 0) {
+      ctx.log('subject sits on a pillar', { ideaId: idea.id, pillar: fit.pillar?.key, because: fit.because });
+    }
+
     /**
      * Claim the idea *before* spending anything on it.
      *
@@ -1670,6 +1716,29 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
             order by created_at desc limit 10`,
           [productId],
         );
+        /*
+         * §523. How this account has been opening its captions.
+         *
+         * Read from the bodies rather than a stored classification: it works
+         * on every row already in the table, and it cannot drift out of step
+         * with a column something forgot to write — which is the shape of half
+         * the gotchas in this repo. Scoped to the account, not the product,
+         * because the run a reader sees is one feed.
+         */
+        const recentBodies = await ctx.pool.query<{ body: string }>(
+          `select body from content_items
+            where account_id = $1 and body <> ''
+            order by created_at desc limit 8`,
+          [account.id],
+        );
+        const opening = openingGuidance(recentBodies.rows.map((r) => r.body));
+        if (opening.brief) {
+          captionCtx.log('caption opening guidance', {
+            avoid: ['label_colon', ...opening.overused],
+            read: recentBodies.rows.length,
+          });
+        }
+
         const slotKeys = new Set((written?.draft.slots ?? []).map((s) => s.key));
         const captionShape = chooseCaptionShape({
           fit: {
@@ -1704,9 +1773,10 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
             : {}),
         });
 
-        const draft = await writeDraft(
-          {
+        const draftRequest = {
             captionShape: { shape: captionShape.shape, brief: captionShape.brief },
+            /* §523. The first six words are what a reader judges. */
+            captionOpening: opening.brief,
             platform: account.platform,
             format,
             category: idea.category,
@@ -1739,9 +1809,59 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
               forbiddenClaims: product.content_rules?.forbidden_claims,
               bannedPhrases: product.content_rules?.banned_phrases,
             },
-          },
-          llmFor(),
+        } as const;
+
+        const draft = await writeDraft(draftRequest, llmFor());
+
+        /*
+         * §549. The same post, written twice.
+         *
+         * `alreadySaid` hands the writer sixty days of claims and openings as a
+         * brief, and the writer honoured it by paraphrasing: "Dairy-free ziti
+         * browns fast:" became "Dairy-free ziti can brown fast." — same
+         * subject, same fact, same 16 minutes — because nothing compared the
+         * finished bodies. One rewrite, with the duplicate named, rather than a
+         * refusal: the piece is researched and rendered by now, and the caption
+         * is the cheapest part of it to redo.
+         */
+        const duplicate = findRepeatedPost(
+          draft.body,
+          recentBodies.rows.map((r) => r.body),
         );
+        if (repeatsAPost(duplicate)) {
+          captionCtx.log('caption repeats one already in the queue', {
+            ideaId: idea.id,
+            score: Number(duplicate.score.toFixed(2)),
+            shared: duplicate.shared.slice(0, 8),
+            because: duplicate.because,
+          });
+          const rewritten = await writeDraft(
+            {
+              ...draftRequest,
+              regenNote:
+                `${duplicate.because} The one it repeats reads: "${(duplicate.match ?? '').slice(0, 180)}" ` +
+                'Write about a different part of this subject, or say the same thing from the other side.',
+            },
+            llmFor(),
+          ).catch((err: Error) => {
+            /* A failed rewrite keeps the original: a duplicate caption is worse
+               than a fresh one and better than none. */
+            captionCtx.log('rewrite of the duplicate failed, keeping the original', {
+              ideaId: idea.id,
+              because: err.message.slice(0, 160),
+            });
+            return null;
+          });
+          if (rewritten) {
+            const after = findRepeatedPost(rewritten.body, recentBodies.rows.map((r) => r.body));
+            captionCtx.log('caption rewritten to avoid the repeat', {
+              ideaId: idea.id,
+              was: Number(duplicate.score.toFixed(2)),
+              now: Number(after.score.toFixed(2)),
+            });
+            Object.assign(draft, rewritten);
+          }
+        }
 
         captionCtx.log('caption written', {
           because: `${draft.body.length} characters for ${account.platform}`,
@@ -1897,6 +2017,42 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
         );
 
         const contentItemId = inserted.rows[0]!.id;
+
+        /*
+         * §562. The copy was consumed the moment this row existed.
+         *
+         * `markOutputConsumed` has been written, tested and called by nothing
+         * outside its own tests since it was added — the tenth instance this
+         * session of declared, typed, tested, unreached. It is also the one
+         * that caps the whole registry: `implemented_exercised` requires a
+         * consumed output, so **19 agents were reported `output.unconsumed`**
+         * and most of the overclaims followed from it.
+         *
+         * Marked here rather than in a sweep at the end of the job, because
+         * here is where it is *true*: this row holds the copywriter's body, and
+         * a piece that exists is a piece whose copy was used. A blanket stamp
+         * over every run in the job would say the same about a critic finding
+         * that changed nothing, which is the overclaim this column exists to
+         * prevent.
+         */
+        await markOutputConsumed(ctx.pool, {
+          agentId: 'copywriter',
+          triggerRef: job.id,
+          consumer: 'content_items.body',
+        }).catch(() => undefined);
+
+        /*
+         * §563. The screenplay is on the row the renderer reads, so it has been
+         * consumed — but only if one was staged. A piece with no screenplay
+         * (a carousel, a text post) must not credit an agent that did not run.
+         */
+        if (staged) {
+          await markOutputConsumed(ctx.pool, {
+            agentId: 'screenwriter',
+            triggerRef: job.id,
+            consumer: 'content_items.screenplay, read by the video render',
+          }).catch(() => undefined);
+        }
         /*
          * §481. What this piece was asked to be about, in the operator's (or
          * the idea's) words. The coherence gate reads it as the expectation
@@ -1974,6 +2130,57 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
             llmFor(),
           );
           if (read) {
+            /*
+             * §558. Act on it, rather than filing it.
+             *
+             * The verdict used to go into `generation_meta` and nowhere else,
+             * so a piece flagged `text.reads_as_written_by_a_machine` reached
+             * the approval queue unchanged and the critic was an opinion
+             * nobody acted on. The findings name their slots — the type has
+             * said so in a comment since it was written — so the lines they
+             * name are rewritten and the rest left alone.
+             *
+             * Never a veto (§275): a revision that fails `checkDraft` is
+             * dropped and the piece ships with its original lines and the
+             * finding recorded against it.
+             */
+            let revisedSlots: string[] = [];
+            if (read.findings.length > 0 && written) {
+              const revision = await reviseFlaggedSlots(
+                openStage(ctx, 'write'),
+                chosenFormat.format,
+                written.draft,
+                read.findings,
+                llmFor(),
+              ).catch((err: Error) => {
+                captionCtx.log('the revision could not be written', {
+                  because: err.message.slice(0, 160),
+                });
+                return null;
+              });
+
+              if (revision) {
+                written.draft = revision.draft;
+                revisedSlots = revision.revised;
+                /*
+                 * §562. Consumed *because a line changed*, not because a
+                 * finding was filed. A critic whose objection changed nothing
+                 * has not had its output consumed, and saying otherwise is the
+                 * overclaim this column exists to catch.
+                 */
+                await markOutputConsumed(ctx.pool, {
+                  agentId: 'text-critic',
+                  triggerRef: job.id,
+                  consumer: `format slots rewritten: ${revision.revised.join(', ')}`,
+                }).catch(() => undefined);
+                captionCtx.log('lines the readers objected to were rewritten', {
+                  contentItemId,
+                  slots: revisedSlots,
+                  because: read.findings.map((f) => `${f.persona}/${f.rule}`).join(', '),
+                });
+              }
+            }
+
             await ctx.pool.query(
               `update content_items
                   set generation_meta = coalesce(generation_meta, '{}'::jsonb) || $2::jsonb
@@ -1985,6 +2192,8 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                     examined: read.examined,
                     summary: read.summary,
                     findings: read.findings,
+                    /* What was done about it, so the record is not just the complaint. */
+                    revised: revisedSlots,
                   },
                 }),
               ],
@@ -2239,6 +2448,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
               where id = $1`,
             [contentItemId, hero.assetId],
           );
+
         }
 
         // Enqueue renders from the artifact, if it supports the template.
@@ -2391,6 +2601,82 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
          * branch whenever the template was enabled. §349 made the question
          * answerable; this is where it gets asked.
          */
+        /**
+         * §536. A story, which had no way to become a picture.
+         *
+         * `story` is a real post type: it resolves, it writes, and it declares
+         * `media: 'image'`. The only image path above is gated on
+         * `stillIsAboutThisPiece` — `factuality === 'product'` — and neither
+         * format on the story channel is about the artifact. So a poll wrote a
+         * caption, queued no render, and produced an Instagram story with
+         * nothing to show, which is not a story. The channel was selectable and
+         * unpublishable.
+         *
+         * Built from the format's own slots rather than the artifact, exactly
+         * as §281 established for the carousel: `question`, `option_a` and
+         * `option_b` are what `poll` writes, and a `behind` story has a
+         * statement and a note instead. The hero photograph is passed when the
+         * piece has one, because §297 is explicit that a story wants immediacy
+         * over production — a photograph is closer to that than a type card.
+         */
+        if (resolvedType.postType.channel === 'story' && enabledTemplates.includes('story_card')) {
+          const slotText = (key: string): string | null =>
+            written?.draft.slots.find((sl) => sl.key === key)?.text?.trim() || null;
+
+          const question = slotText('question') ?? slotText('statement') ?? draft.title ?? null;
+          const optionA = slotText('option_a');
+          const optionB = slotText('option_b');
+
+          if (!question) {
+            /* No question is not a thin story, it is no story. Said, not drawn. */
+            ctx.log('story has no question to put on the card', {
+              contentItemId,
+              format: chosenFormat.format.id,
+            });
+          } else {
+            const storyRender = await ctx.pool.query<{ id: string }>(
+              `insert into renders (content_item_id, template_id, renderer, input_props, quality, treatment)
+               values ($1, 'story_card', 'satori', $2, 'final', 'story') returning id`,
+              [
+                contentItemId,
+                {
+                  question,
+                  /* Both sides or neither: one option is not a poll. */
+                  ...(optionA && optionB ? { optionA, optionB } : {}),
+                  ...(!optionA || !optionB ? { note: slotText('note') ?? slotText('detail') ?? undefined } : {}),
+                  ...(hero ? { imageAssetId: hero.assetId } : {}),
+                  alt_text: draft.altText,
+                },
+              ],
+            );
+            await ctx.enqueue('render', { renderId: storyRender.rows[0]!.id }, { priority: 50 });
+            ctx.log('story card queued', {
+              contentItemId,
+              poll: Boolean(optionA && optionB),
+              photographed: Boolean(hero),
+            });
+          }
+        }
+
+        /*
+         * §563. The subjects that became pictures, marked once the pictures
+         * exist.
+         *
+         * Placed at the end of the media work rather than beside the hero
+         * attach, which is where it was first written: the hero lands early
+         * and the beat photographs later, so marking there caught **1 of 7**
+         * runs and left the rest looking unconsumed. `markOutputConsumed`
+         * stamps every still-unconsumed run for the agent in this job, so one
+         * call here covers all of them — and it stays truthful, because by
+         * this line every image this piece will carry has been made and
+         * attached.
+         */
+        await markOutputConsumed(ctx.pool, {
+          agentId: 'photographic-subject',
+          triggerRef: job.id,
+          consumer: 'images attached to the piece and staged into renders',
+        }).catch(() => undefined);
+
         if (
           resolvedType.postType.media === 'carousel' &&
           enabledTemplates.includes('carousel_6')
@@ -3465,6 +3751,9 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                         bannedPhrases: product.content_rules?.banned_phrases,
                         forbiddenClaims: product.content_rules?.forbidden_claims,
                       },
+                      /* §525. What this account is about, so the narrator is
+                         not told it writes cooking videos for a film product. */
+                      subject: product.brief_summary ?? product.name,
                       deliveryNotes: voice.deliveryNotes,
                       section: {
                         title: section.title,
@@ -3500,10 +3789,17 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                   /* §232. Pace and stress live in the sentences, because the
                      synthesis endpoint has neither. */
                   deliveryNotes: voice.deliveryNotes,
+                  /* §525. What this account is about. */
+                  subject: product.brief_summary ?? product.name,
                 },
                 llmFor(),
               );
 
+          /*
+           * §563. The script is consumed by the row that stores it: the tts
+           * job reads `vo_script` from here and speaks exactly that. Marked
+           * after the write below, so a failed update claims nothing.
+           */
           await ctx.pool.query(
             `update content_items
                 set vo_script = $2, vo_lines = $3, audio_mode = 'founder_cloned',
@@ -3539,6 +3835,12 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
               formatNarration ? JSON.stringify(formatNarration) : null,
             ],
           );
+
+          await markOutputConsumed(ctx.pool, {
+            agentId: 'vo-scriptwriter',
+            triggerRef: job.id,
+            consumer: 'content_items.vo_script, spoken by the tts job',
+          }).catch(() => undefined);
 
           /**
            * §160. The creative plan, decided before anything renders.
@@ -3968,6 +4270,11 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
              * The first treatment, not all of them: recency is about the look a
              * piece opens with, which is what a viewer scrolling a feed sees.
              */
+            /*
+             * §562. The written slots became a render, which is what consuming
+             * them means. Marked after the insert, so a failed queue does not
+             * claim the output was used.
+             */
             `insert into renders (content_item_id, template_id, renderer, input_props, quality, treatment)
              values ($1, $2, 'remotion', $3, 'final', $4)`,
             [
@@ -4050,6 +4357,12 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
               treatments?.[0] ?? null,
             ],
           );
+
+          await markOutputConsumed(ctx.pool, {
+            agentId: 'format-writer',
+            triggerRef: job.id,
+            consumer: 'renders.input_props',
+          }).catch(() => undefined);
 
           if (plan) {
             // Recorded on the item, not only in the render row: the plan is a
@@ -4250,6 +4563,18 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                       overlayText: line.text,
                       fontSizePx: thumbnailFontSize(line.text),
                       alt_text: `Thumbnail: ${line.text}`,
+                      /*
+                       * §534. The picture the piece already has.
+                       *
+                       * The template has always accepted one and nothing ever
+                       * passed it, so every thumbnail queued here was dark type
+                       * on a cream card with half the frame empty — at 210px
+                       * wide in a feed, against thumbnails built to be clicked.
+                       * The hero image is generated for this piece anyway and
+                       * the slide builder two hundred lines up already inlines
+                       * it exactly this way.
+                       */
+                      ...(hero ? { imageAssetId: hero.assetId } : {}),
                     },
                   ],
                 );
