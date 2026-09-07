@@ -5,9 +5,10 @@ This folder is the canonical programme for taking Halyard from the current Septe
 ## Read order
 
 1. `HALYARD_PRODUCTION_PROGRAM.md` — phased backend/frontend/product implementation plan.
-2. `PLATFORM_CREATIVE_PLAYBOOK.md` — platform-specific content, discovery, engagement, and adaptation rules.
-3. `UI_PRODUCT_REDESIGN_SPEC.md` — product UX, navigation, onboarding, Product Brain, Creative Studio, live agent floor, review, scheduling, and responsive requirements.
-4. Existing repository truth: `CLAUDE.md`, `docs/STATUS.md`, `docs/PLAN.md`, `docs/DECISIONS.md`, `docs/DIRECTION_SPEC.md`, and feature docs.
+2. `BACKEND_SYSTEM_MAP.md` — current backend pathways, jobs, product boundaries, publishing, engagement, and learning flow.
+3. `PLATFORM_CREATIVE_PLAYBOOK.md` — platform-specific content, discovery, engagement, and adaptation rules.
+4. `UI_PRODUCT_REDESIGN_SPEC.md` — product UX, navigation, onboarding, Product Brain, Creative Studio, live agent floor, review, scheduling, and responsive requirements.
+5. Existing repository truth: `CLAUDE.md`, `docs/STATUS.md`, `docs/PLAN.md`, `docs/DECISIONS.md`, `docs/DIRECTION_SPEC.md`, and feature docs.
 
 ## Baseline
 
