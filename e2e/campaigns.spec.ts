@@ -6,6 +6,25 @@
  */
 import { db, expect, test } from './fixtures';
 
+/**
+ * §572. A campaign row, because the UI cannot make one.
+ *
+ * `createCampaign` has no caller. Everything downstream of a campaign existing
+ * — planning, moving, generating, pausing — is wired on the detail page, so the
+ * fixture starts where the product actually begins.
+ */
+async function seedCampaign(name: string): Promise<string> {
+  const { rows } = await db().query<{ id: string }>(
+    `insert into campaigns (product_id, name, kind, brief, starts_at, ends_at,
+                            product_mix_ceiling, status)
+     values ('recipefix', $1, 'launch', 'E2E brief for a bounded window.',
+             '2026-09-18', '2026-09-23', 0.5, 'planning')
+     returning id`,
+    [name],
+  );
+  return rows[0]!.id;
+}
+
 test.describe('planning a campaign', () => {
   test.afterEach(async () => {
     await db().query(`delete from content_items where campaign_id is not null`);
@@ -29,17 +48,20 @@ test.describe('planning a campaign', () => {
   test('a sentence becomes a staged, rearrangeable timeline before anything generates', async ({
     page,
   }) => {
-    await page.goto('/campaigns');
+    /*
+     * §572. Seeded, because there is no way to create a campaign from the UI.
+     *
+     * `createCampaign` is a server action with no caller — the Campaigns room
+     * explains what a campaign is and lists the ones that exist, and offers no
+     * form to make one. That is a product gap, recorded in
+     * `docs/E2E_CONTRACT.md`; what it must not do is take the *planner* down
+     * with it, because the planner is wired, is reachable, and is where the
+     * bug this test was written for lived.
+     */
+    const id = await seedCampaign('E2E Product Hunt launch');
+    await page.goto(`/rundown/campaigns/${id}`);
 
-    await page
-      .locator('input[name="brief"]')
-      .fill('E2E launching RecipeFix on Product Hunt, aiming for top 5 that week.');
-    await page.locator('input[name="name"]').fill('E2E Product Hunt launch');
-    await page.locator('input[name="startsAt"]').fill('2026-09-18');
-    await page.getByRole('button', { name: 'Create and plan' }).click();
-    await page.waitForLoadState('networkidle');
-
-    await expect(page.getByRole('heading', { name: 'E2E Product Hunt launch' })).toBeVisible();
+    await expect(page.getByText('E2E Product Hunt launch').first()).toBeVisible();
 
     await page.getByRole('button', { name: 'Plan the sequence' }).click();
 
@@ -92,12 +114,8 @@ test.describe('planning a campaign', () => {
   test('the timeline offers a move control whose value matches the label beside it', async ({
     page,
   }) => {
-    await page.goto('/campaigns');
-    await page.locator('input[name="brief"]').fill('E2E timezone check');
-    await page.locator('input[name="name"]').fill('E2E timezone campaign');
-    await page.locator('input[name="startsAt"]').fill('2026-09-18');
-    await page.getByRole('button', { name: 'Create and plan' }).click();
-    await page.waitForLoadState('networkidle');
+    const id = await seedCampaign('E2E timezone campaign');
+    await page.goto(`/rundown/campaigns/${id}`);
     await page.getByRole('button', { name: 'Plan the sequence' }).click();
     await expect.poll(() => planned('E2E timezone campaign')).toBeGreaterThan(0);
     await page.reload();

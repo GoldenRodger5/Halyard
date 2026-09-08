@@ -142,7 +142,17 @@ export async function buildLaunchPlan(
  */
 export async function generateLaunchBatch(formData: FormData): Promise<void> {
   await requireOperator();
-  const productId = String(formData.get('product') ?? '');
+  /*
+   * §574. `productId`, which is what the form has always sent.
+   *
+   * This read `product`, so it always got an empty string: `buildLaunchPlan('')`
+   * finds no accounts, nothing can be placed, and the action redirects with an
+   * error the page does not render. The button therefore did nothing at all,
+   * silently, for as long as the two names have disagreed — and the E2E test
+   * that would have caught it was waiting for a sentence on a screen that had
+   * been rebuilt, so it failed for the wrong reason first.
+   */
+  const productId = String(formData.get('productId') ?? formData.get('product') ?? '');
   const days = Math.min(28, Math.max(1, Number(formData.get('days') ?? 14)));
 
   const { plan, accounts } = await buildLaunchPlan(productId, days);
@@ -219,10 +229,19 @@ export async function generateLaunchBatch(formData: FormData): Promise<void> {
     );
   }
 
+  /*
+   * §574. The product id goes in `detail`, because `entity_id` is a uuid.
+   *
+   * This wrote `productId` — `recipefix` — into a `uuid` column, so the whole
+   * action raised `invalid input syntax for type uuid` after staging every row.
+   * It had never run: the name mismatch above meant nothing ever reached this
+   * line. Two defects in one dead path, and the second only became visible once
+   * the first was fixed.
+   */
   await query(
     `insert into audit_log (actor, action, entity_type, entity_id, detail)
-     values ('human', 'launch_batch_generated', 'product', $1, $2)`,
-    [productId, { days, staged: staged.length, warnings: plan.warnings }],
+     values ('human', 'launch_batch_generated', 'product', null, $1)`,
+    [{ productId, days, staged: staged.length, warnings: plan.warnings }],
   );
 
   revalidatePath('/rundown/launch');
@@ -233,7 +252,14 @@ export async function generateLaunchBatch(formData: FormData): Promise<void> {
 /** Throw away a staged batch nobody has started reviewing. */
 export async function discardLaunchBatch(formData: FormData): Promise<void> {
   await requireOperator();
-  const productId = String(formData.get('product') ?? '');
+  /*
+   * §574. `productId`, which is what the form has always sent.
+   *
+   * This read `product` too, so it always got an empty string — and the delete
+   * below then matched no row, which is a quieter failure than its sibling's:
+   * Discard reported success and threw nothing away.
+   */
+  const productId = String(formData.get('productId') ?? formData.get('product') ?? '');
 
   await query(
     `delete from content_items

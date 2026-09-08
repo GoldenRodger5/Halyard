@@ -8,7 +8,12 @@ the length/composition model. Update this when a step lands.
 
 ## 0. Current work package
 
-**H0 — release truth — is done.** See `docs/STATUS.md` for what it found and
+**H0 — release truth — is complete only when CI is green on all three jobs.**
+`verify` and `build` have been green since §569; `e2e` was red, and H0.5 is the
+package that finishes it. See `docs/E2E_CONTRACT.md` for what the E2E suite now
+covers and why each historical test was kept, rewritten or retired.
+
+**What H0 established.** See `docs/STATUS.md` for what it found and
 §564–§567 in `docs/DECISIONS.md` for why each call was made. In short: CI had
 been red for four days on stale generated types, which meant typecheck, lint
 and tests had not run at all; a third of the suite skips silently; four tests
@@ -22,17 +27,17 @@ handling, claim/source correspondence, product/account isolation, review truth
 a revision hash. `docs/production/HALYARD_PRODUCTION_PROGRAM.md` has the full
 statement.
 
-Two things H0 left open and H1 should not inherit silently:
+**H0.5 rebuilt the E2E contract** (§571–§577). The suite runs against the
+current app, the route preflight passes, and repairing it turned up four live
+defects nothing else was going to find — every "Ask for a change" button was
+dead, the launch batch silently did nothing, nine screens had no `<h1>`, and a
+colour was below AA. It also found **nine orphaned server actions**: features
+that exist in full and that no control in the app reaches. Those are listed in
+`docs/E2E_CONTRACT.md` and are the best available list of what the UI redesign
+has to reconnect.
 
-1. **The E2E suite is obsolete.** 49 of 64 desktop tests fail because the studio
-   reorganisation renamed every screen and the specs were not moved with it —
-   35 routes now 404, and the specs assert copy that no longer exists. The CI
-   timeout everyone has been seeing was the symptom. `e2e/routes.spec.ts` names
-   all 35 in under half a second. Rewriting them against the current screens
-   overlaps the UI redesign, so **decide whether to repair them now or fold it
-   into the redesign before starting either.** §568.
-2. **Production's settings cannot be read** from this machine for want of a
-   production database URL.
+Still open, and H1 should not inherit it silently: **production's settings
+cannot be read** from this machine for want of a production database URL.
 
 ---
 

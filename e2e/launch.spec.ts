@@ -20,24 +20,29 @@ const generateButton = (page: Page) => page.locator('form:has(input[name="days"]
 
 /** Click it and wait for the staged count the page reports back. */
 async function stage(page: Page): Promise<void> {
-  await page.goto('/launch');
+  await page.goto('/rundown/launch');
   await generateButton(page).click();
   await page.waitForLoadState('networkidle');
 
   /**
-   * Reload until the batch appears, rather than reloading once and hoping.
+   * §572. Polled on the rows, not on a sentence the page used to print.
    *
-   * Staging a fortnight is a server action that keeps working after the network
-   * goes quiet, and this page is server-rendered — so `toBeVisible` retries the
-   * locator against a snapshot that can never change. One reload was enough on
-   * a fast machine and lost the race on a CI runner.
+   * This waited for the text "posts staged", which the rebuilt Rundown does not
+   * say anywhere — so it reloaded for thirty seconds and gave up, on a batch
+   * that had staged correctly. What the test needs is that the rows exist, and
+   * the rows are readable directly. Staging is a server action that keeps
+   * working after the network goes quiet, so it is still polled rather than
+   * read once.
    */
   await expect
     .poll(async () => {
-      await page.reload();
-      return page.getByText(/posts staged/).isVisible();
+      const { rows } = await db().query<{ n: string }>(
+        `select count(*) as n from content_items
+          where generation_meta->>'source' = 'launch_batch'`,
+      );
+      return Number(rows[0]!.n);
     }, { timeout: 30_000 })
-    .toBe(true);
+    .toBeGreaterThan(0);
 }
 
 const CLEANUP = `delete from jobs where dedupe_key like 'launch_generate:%';
@@ -135,23 +140,13 @@ test.describe('launch batch', () => {
     expect(survived.rows[0]?.body).toBe('written by hand');
   });
 
-  test('discarding removes the batch', async ({ page }) => {
-    await stage(page);
-
-    await page.getByRole('button', { name: 'Discard the batch' }).click();
-    await page.waitForLoadState('networkidle');
-
-    // Polled, for the same reason as the counts above: discarding is a server
-    // action, and a quiet network is not a committed transaction. Read once,
-    // this saw the full batch still present on a CI runner. Same assertion.
-    await expect
-      .poll(async () => {
-        const { rows } = await db().query<{ n: string }>(
-          `select count(*) as n from content_items
-            where generation_meta->>'source' = 'launch_batch' and status = 'draft'`,
-        );
-        return Number(rows[0]!.n);
-      })
-      .toBe(0);
-  });
+  /*
+   * §572. Retired: there is no way to discard a batch from the screen.
+   *
+   * `discardLaunchBatch` is a server action with no caller — the rebuilt
+   * Rundown never renders a control that reaches it, so there is no user path
+   * for an end-to-end test to walk. The action is orphaned (§562's shape) and
+   * is recorded in `docs/E2E_CONTRACT.md`; restoring a discard control should
+   * restore this test with it.
+   */
 });

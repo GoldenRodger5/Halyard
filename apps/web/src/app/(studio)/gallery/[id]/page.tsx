@@ -207,6 +207,23 @@ export default async function GalleryPiece({ params }: { params: Promise<{ id: s
           {item.final_link_url ? (
             <p className="mt-2 break-all font-data text-[11px] text-quiet">{item.final_link_url}</p>
           ) : null}
+          {/*
+            §575. Where this post sends people, before it is approved.
+            
+            `destination_type`, `destination_url` and `destination_reason` have
+            been fetched by `getQueueItem` and rendered nowhere, so the router's
+            decision — which is what an operator is approving when they approve
+            a post with a link in it — was visible only in the database. The
+            reason is included because a destination without one is a URL, not a
+            decision.
+          */}
+          {item.destination_url && item.destination_url !== item.final_link_url ? (
+            <p className="mt-2 break-all text-[11.5px] leading-relaxed text-quiet">
+              <span className="font-data text-[9px] uppercase tracking-[0.1em]">Destination</span>{' '}
+              <span className="font-data text-[11px]">{item.destination_url}</span>
+              {item.destination_reason ? ` — ${item.destination_reason}` : ''}
+            </p>
+          ) : null}
           {item.alt_text ? (
             <p className="mt-2.5 border-t border-rule2 pt-2.5 text-[11.5px] leading-relaxed text-quiet">
               <span className="font-data text-[9px] uppercase tracking-[0.1em]">Alt text</span>{' '}
@@ -546,7 +563,13 @@ export default async function GalleryPiece({ params }: { params: Promise<{ id: s
 
         <Sheet>
           <Label>Ask for a change</Label>
-          <form action={adjustItem} className="flex flex-col gap-2.5">
+          {/*
+            §573. No form-level action: every submit here binds its own
+            adjustment. The form had one, the buttons carried `name`/`value`,
+            and the value never reached the server — so all eight buttons
+            answered 500.
+          */}
+          <form action={adjustItem.bind(null, '')} className="flex flex-col gap-2.5">
             <input type="hidden" name="id" value={item.id} />
             <input
               name="note"
@@ -557,8 +580,7 @@ export default async function GalleryPiece({ params }: { params: Promise<{ id: s
               {available.map((a) => (
                 <button
                   key={a.id}
-                  name="adjustment"
-                  value={a.id}
+                  formAction={adjustItem.bind(null, a.id)}
                   className="rounded-[7px] border border-rule2 bg-sheet px-2.5 py-1 text-xs text-quiet transition-colors hover:border-sink hover:text-sink"
                 >
                   {a.label}

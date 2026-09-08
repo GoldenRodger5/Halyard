@@ -483,10 +483,32 @@ export async function markManuallyPublished(formData: FormData): Promise<void> {
  * why, and the reason is what makes the second attempt different from the
  * first rather than another roll of the same dice.
  */
-export async function adjustItem(formData: FormData): Promise<void> {
+/**
+ * §573. The adjustment comes from the button, bound — not from the FormData.
+ *
+ * Every one of these buttons was dead. They are `<button name="adjustment"
+ * value="rewrite">` inside a `<form action={adjustItem}>`, which is correct
+ * HTML and correct React, and the value did not arrive: the action received
+ * `adjustment` as an empty string and threw `There is no "" adjustment.`, so
+ * asking for any change at all answered 500. Nothing caught it because no test
+ * had ever pressed one — the E2E suite was still clicking a Regenerate button
+ * on a screen that had been replaced.
+ *
+ * Rather than depend on the submitter being serialised into the action's
+ * FormData, each button binds its own id. That is unambiguous, it is the
+ * documented way to pass a fixed argument to a server action, and it cannot
+ * silently become empty again.
+ *
+ * The `formData` read is kept as a belt-and-braces default, but nothing can
+ * currently reach it: no control sends an `adjustment` field any more, and
+ * `rewrite` and `reground` carry no `needs*` condition, so `available` is never
+ * empty and implicit submission (Enter in the note field) activates the first
+ * button — which binds its own id like every other one.
+ */
+export async function adjustItem(boundAdjustmentId: string, formData: FormData): Promise<void> {
   await requireOperator();
   const id = String(formData.get('id'));
-  const adjustmentId = String(formData.get('adjustment') ?? '').trim();
+  const adjustmentId = (boundAdjustmentId || String(formData.get('adjustment') ?? '')).trim();
   const note = String(formData.get('note') ?? '').trim();
 
   const adjustment = adjustmentById(adjustmentId);

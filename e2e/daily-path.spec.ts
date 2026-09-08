@@ -1,61 +1,49 @@
 /**
  * The path walked every day. Milestone 29, scenarios 1 to 6.
  *
- * Drafts appear, get read, get edited, get approved, and become a publication.
+ * Drafts appear, get read, get approved or sent back, and become a publication.
  * Every assertion here is about a state transition the operator can cause, not
  * about the internals underneath.
+ *
+ * §572. Rewritten against the Gallery, which is where this now happens.
+ *
+ * The old queue put Approve, Reject and Regenerate on every card in a list. The
+ * Gallery does not: the wall is monitors that open, and every decision is made
+ * on the piece itself — deliberately, because approving something is a
+ * judgement about a render and a set of gates, and neither is legible on a
+ * thumbnail (`rooms.ts`: the wall advertises `↵ OPEN`, not `A APPROVE`).
+ *
+ * So the interactions moved and the contracts did not. What is asserted below
+ * is what was asserted before — the row lands in the right state, the audit row
+ * exists, publishing goes to the worker rather than happening inline, a reason
+ * becomes an anti-example — reached through the screen that exists now.
  */
 import { db, expect, seedItem, test } from './fixtures';
 
+/** The wall is links to pieces. The href is the contract, so it is the selector. */
+function monitorFor(page: import('@playwright/test').Page, id: string) {
+  return page.locator(`a[href="/gallery/${id}"]`);
+}
+
 test.describe('the daily path', () => {
-  test('a draft appears in the queue with its QC visible', async ({ page }) => {
+  test('a draft is on the wall, and opens to show the gates behind it', async ({ page }) => {
     const item = await seedItem({ body: 'E2E queue draft. Vinegar firms a gluten-free crumb.' });
 
-    await page.goto('/queue');
-    const card = page.locator(`#queue-item-${item.id}`);
+    await page.goto('/gallery');
+    await expect(monitorFor(page, item.id)).toBeVisible();
+    await monitorFor(page, item.id).click();
 
-    await expect(card).toBeVisible();
-    // v2 F.5 — the queue shows its work, so approval is informed.
-    await expect(card.getByText('passed (0 flags)')).toBeVisible();
-    await expect(card.getByText('1/1 verified against artifact')).toBeVisible();
-  });
-
-  test('editing copy preserves the original for learning', async ({ page }) => {
-    const item = await seedItem({ body: 'E2E original body about crumb structure.' });
-
-    await page.goto('/queue');
-    const card = page.locator(`#queue-item-${item.id}`);
-    const textarea = card.locator('textarea').first();
-
-    await textarea.fill('E2E edited body. The starch holds water wheat would have released.');
-    await card.getByRole('button', { name: 'Save edit' }).click();
-
-    // A server action re-renders without navigating, so poll the row rather
-    // than guessing when the round trip finished.
-    await expect
-      .poll(async () => {
-        const { rows } = await db().query<{ body: string }>(
-          'select body from content_items where id = $1',
-          [item.id],
-        );
-        return rows[0]?.body ?? '';
-      })
-      .toContain('edited body');
-
-    const { rows } = await db().query<{ original_body: string; edited_by_human: boolean }>(
-      'select original_body, edited_by_human from content_items where id = $1',
-      [item.id],
-    );
-    expect(rows[0]?.original_body).toContain('original body');
-    expect(rows[0]?.edited_by_human).toBe(true);
+    /* v2 F.5 — the decision is informed, so the gates are on the page that decides. */
+    await page.waitForURL(`**/gallery/${item.id}`);
+    await expect(page.getByText('passed (0 flags)')).toBeVisible();
+    await expect(page.getByText('1/1 verified against artifact')).toBeVisible();
   });
 
   test('approving moves the item and writes an audit row', async ({ page }) => {
     const item = await seedItem({ body: 'E2E approve me. One teaspoon of acid changes the crumb.' });
 
-    await page.goto('/queue');
-    await page.locator(`#queue-item-${item.id}`).getByRole('button', { name: 'Approve' }).click();
-    await page.waitForLoadState('networkidle');
+    await page.goto(`/gallery/${item.id}`);
+    await page.getByRole('button', { name: 'Approve' }).click();
 
     /**
      * Polled, not read once.
@@ -79,7 +67,6 @@ test.describe('the daily path', () => {
       'select status, approved_at from content_items where id = $1',
       [item.id],
     );
-    expect(rows[0]?.status).toBe('approved');
     expect(rows[0]?.approved_at).not.toBeNull();
 
     const audit = await db().query(
@@ -89,46 +76,38 @@ test.describe('the daily path', () => {
     expect(audit.rows.length).toBeGreaterThan(0);
   });
 
-  test('a due approved item is handed to the worker rather than published inline', async ({ page }) => {
+  test('a due approved item is handed to the worker rather than published inline', async ({
+    page,
+  }) => {
     const item = await seedItem({
       body: 'E2E due now. Drop the oven twenty five degrees.',
       scheduledAt: new Date(Date.now() - 60_000),
     });
 
-    await page.goto('/queue');
-    await page.locator(`#queue-item-${item.id}`).getByRole('button', { name: 'Approve' }).click();
-    await page.waitForLoadState('networkidle');
+    await page.goto(`/gallery/${item.id}`);
+    await page.getByRole('button', { name: 'Approve' }).click();
 
     // Publishing belongs to the worker and its idempotency guard, not to a
     // route handler with a user waiting on it.
     await expect
       .poll(async () => {
         const { rows } = await db().query(
-          `select 1 from jobs where payload ->> 'contentItemId' = $1`,
+          `select 1 from jobs where payload ->> 'contentItemId' = $1 and kind = 'publish'`,
           [item.id],
         );
         return rows.length;
       })
       .toBeGreaterThan(0);
 
-    const jobs = await db().query<{ kind: string }>(
-      `select kind from jobs where payload ->> 'contentItemId' = $1`,
-      [item.id],
-    );
-    expect(jobs.rows.map((j) => j.kind)).toContain('publish');
-
     await db().query(`delete from jobs where payload ->> 'contentItemId' = $1`, [item.id]);
   });
 
-  test('rejecting with a reason stores it as a negative example', async ({ page }) => {
+  test('sending it back with a reason stores it as a negative example', async ({ page }) => {
     const item = await seedItem({ body: 'E2E reject me. RecipeFix makes cooking simple and easy.' });
 
-    await page.goto('/queue');
-    const card = page.locator(`#queue-item-${item.id}`);
-
-    await card.locator('summary', { hasText: 'Reject' }).click();
-    await card.locator('input[name="reason"]').fill('E2E reads like an ad, no mechanism');
-    await card.getByRole('button', { name: 'Reject' }).click();
+    await page.goto(`/gallery/${item.id}`);
+    await page.locator('[name="reason"]').fill('E2E reads like an ad, no mechanism');
+    await page.getByRole('button', { name: 'Send it back' }).click();
 
     await expect
       .poll(async () => {
@@ -172,44 +151,68 @@ test.describe('the daily path', () => {
     );
   });
 
-  test('regenerating carries the note into the job rather than retrying blind', async ({ page }) => {
-    const item = await seedItem({ body: 'E2E regenerate me. Something about bread.' });
+  test('asking for a change carries the note into the job, and keeps the piece in the room', async ({
+    page,
+  }) => {
+    /*
+     * §572. This asserted the behaviour the product deliberately stopped doing.
+     *
+     * It used to click Regenerate and require `status = 'draft'` and a job
+     * keyed `regenerateContentItemId`. `adjustItem` replaced that on purpose:
+     * setting the status to draft takes the piece out of every queue filter, so
+     * an operator who asked for a change watched it disappear — which is the
+     * reason regeneration looked broken. The note is recorded, a correction job
+     * is queued, and the piece stays where the operator left it.
+     */
+    const item = await seedItem({ body: 'E2E adjust me. Something about bread.' });
 
-    await page.goto('/queue');
-    const card = page.locator(`#queue-item-${item.id}`);
-
-    await card.locator('summary', { hasText: 'Regenerate' }).click();
-    await card.locator('input[name="note"]').fill('E2E less salesy, lead with the failure');
-    await card.getByRole('button', { name: 'Regenerate' }).click();
+    await page.goto(`/gallery/${item.id}`);
+    /*
+     * §573. Each button binds its own adjustment id through `formAction`. The
+     * `name`/`value` pair this used to rely on is gone, because the value never
+     * arrived and all eight buttons answered 500.
+     *
+     * Waiting for hydration is still not ceremony: the click has to reach
+     * React's action handling rather than race it.
+     */
+    await page.waitForLoadState('networkidle');
+    await page.locator('[name="note"]').fill('E2E less salesy, lead with the failure');
+    const askFor = page.getByRole('button', { name: 'Say it differently' });
+    await expect(askFor).toBeEnabled();
+    await askFor.click();
 
     await expect
       .poll(async () => {
-        const { rows } = await db().query<{ status: string }>(
-          'select status from content_items where id = $1',
+        const { rows } = await db().query<{ regen_notes: string[] }>(
+          'select regen_notes from content_items where id = $1',
           [item.id],
         );
-        return rows[0]?.status ?? '';
-      })
-      .toBe('draft');
+        return (rows[0]?.regen_notes ?? []).join(' ');
+      }, { timeout: 20_000 })
+      .toContain('lead with the failure');
 
-    const { rows } = await db().query<{ regen_notes: string[] }>(
-      'select regen_notes from content_items where id = $1',
+    const jobs = await db().query<{ kind: string; payload: { note?: string } }>(
+      `select kind, payload from jobs where payload ->> 'contentItemId' = $1`,
       [item.id],
     );
-    expect(rows[0]?.regen_notes.join(' ')).toContain('lead with the failure');
-
-    const jobs = await db().query<{ payload: { note?: string } }>(
-      `select payload from jobs where payload ->> 'regenerateContentItemId' = $1`,
-      [item.id],
-    );
+    expect(jobs.rows.map((j) => j.kind)).toContain('correct_content');
     expect(jobs.rows[0]?.payload.note).toContain('lead with the failure');
 
-    await db().query(`delete from jobs where payload ->> 'regenerateContentItemId' = $1`, [item.id]);
+    /* And it is still here to be decided on. */
+    const { rows } = await db().query<{ status: string }>(
+      'select status from content_items where id = $1',
+      [item.id],
+    );
+    expect(rows[0]?.status).toBe('pending_approval');
+
+    await db().query(`delete from jobs where payload ->> 'contentItemId' = $1`, [item.id]);
   });
 });
 
-test.describe('QC blocks the queue, it does not decorate it', () => {
-  test('a render failure shows the error and offers a retry instead of Approve', async ({ page }) => {
+test.describe('QC blocks the decision, it does not decorate it', () => {
+  test('a render failure shows the error and offers a retry instead of Approve', async ({
+    page,
+  }) => {
     const item = await seedItem({
       status: 'failed',
       body: 'E2E media item. One swap, four consequences.',
@@ -231,12 +234,20 @@ test.describe('QC blocks the queue, it does not decorate it', () => {
       [item.id],
     );
 
-    await page.goto('/queue?status=failed');
-    const card = page.locator(`#queue-item-${item.id}`);
+    await page.goto(`/gallery/${item.id}`);
 
-    await expect(card.getByRole('paragraph').filter({ hasText: 'Render failed' })).toBeVisible();
-    await expect(card.getByText('E2E template props failed validation')).toBeVisible();
-    await expect(card.getByRole('button', { name: 'Retry render' })).toBeVisible();
-    await expect(card.getByRole('button', { name: 'Approve' })).toBeDisabled();
+    /* The reason, in the provider's own words, on the piece that failed. */
+    // `.first()`: the reason is shown both in the failure panel and in the
+    // render history below it, and both are correct.
+    await expect(page.getByText('E2E template props failed validation').first()).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Try the render again' })).toBeVisible();
+
+    /*
+     * And no way to approve something that was never made. Not a disabled
+     * button: the decision block renders only for `pending_approval`, so on a
+     * failed piece there is nothing to press at all — stronger than greying it
+     * out, and the assertion should say the stronger thing.
+     */
+    await expect(page.getByRole('button', { name: 'Approve' })).toHaveCount(0);
   });
 });

@@ -43,7 +43,18 @@ export function Slate({
   return (
     <div className="flex flex-none flex-wrap items-center gap-x-3.5 gap-y-1 bg-sink px-5 py-2.5 text-white md:px-6">
       <span className="font-data text-[9px] uppercase tracking-[0.2em] text-dmut">{room}</span>
-      <span className="font-display text-sm font-semibold tracking-[-0.02em]">{question}</span>
+      {/*
+        §576. The room's question is the page's heading, so it is an `<h1>`.
+        
+        Every studio screen had none: nine pages reported "0 <h1> elements" to
+        the accessibility suite, which means a screen reader's document outline
+        started at nothing and the first landmark a keyboard user met was a nav.
+        The Slate has always been the top-level thing on the page — it names the
+        room and the question it answers — so it was already the heading in
+        every sense but the markup. Styling is unchanged; `m-0` only removes the
+        default margin an `h1` brings.
+      */}
+      <h1 className="m-0 font-display text-sm font-semibold tracking-[-0.02em]">{question}</h1>
       {detail ? (
         <span className="ml-auto font-data text-[9px] tracking-[0.08em] text-dmut">{detail}</span>
       ) : null}
@@ -65,10 +76,21 @@ export type SheetTone = 'plain' | 'lit' | 'onair' | 'cool' | 'dark';
 export function Sheet({
   tone = 'plain',
   className,
+  id,
   children,
 }: {
   tone?: SheetTone;
   className?: string;
+  /**
+   * §571. A card the operator — or a link — can address.
+   *
+   * Connections renders one Sheet per account and six identical `Connect`
+   * links. Without an id there is no way to say *which* account a link belongs
+   * to, from a fragment URL or from a test, and the accessible name alone
+   * cannot tell them apart. Optional, because most Sheets are the only one of
+   * their kind on a screen and do not need one.
+   */
+  id?: string;
   children: ReactNode;
 }) {
   /*
@@ -93,7 +115,9 @@ export function Sheet({
   };
   const lift = 'shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_6px_16px_-10px_rgba(15,23,22,0.28)]';
   return (
-    <div className={cx('rounded-[11px] border p-4', tones[tone], lift, className)}>{children}</div>
+    <div id={id} className={cx('rounded-[11px] border p-4', tones[tone], lift, className)}>
+      {children}
+    </div>
   );
 }
 

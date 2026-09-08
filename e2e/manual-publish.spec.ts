@@ -9,62 +9,32 @@
 import { db, expect, seedItem, test } from './fixtures';
 
 test.describe('posting on your own timing', () => {
-  test('an approved post can be sent now rather than at its slot', async ({ page }) => {
-    // Scheduled well into the future: without this button it would sit there.
-    const item = await seedItem({
-      status: 'approved',
-      scheduledAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-    });
+  /*
+   * §572. Retired: "post it now" is not offered anywhere.
+   *
+   * `publishNow` is a server action with no caller — the Gallery never renders
+   * a control that reaches it, so an approved piece can only go out at its
+   * slot. That may well be the right product decision, but it means there is no
+   * user path for an end-to-end test to walk. Recorded in
+   * `docs/E2E_CONTRACT.md` alongside the other orphaned actions.
+   */
 
-    await page.goto(`/queue/${item.id}`);
-    await expect(page.getByRole('heading', { name: 'Post now' })).toBeVisible();
-    await page.getByRole('button', { name: 'Post it now' }).click();
-    await page.waitForLoadState('networkidle');
-
-    /**
-     * The worker owns publishing, so what this proves is that the job was
-     * queued — not that a network call happened on the web tier.
-     *
-     * Polled rather than read once. `waitForLoadState('networkidle')` returns
-     * when the network is quiet, which is not the same as the server action
-     * having committed; on a slower runner the read landed first and saw zero.
-     * Same assertion, correct waiting — the convention campaigns.spec already
-     * uses for exactly this.
-     */
-    await expect
-      .poll(async () => {
-        const { rows } = await db().query<{ n: string }>(
-          `select count(*) as n from jobs
-            where kind = 'publish' and payload ->> 'contentItemId' = $1`,
-          [item.id],
-        );
-        return Number(rows[0]!.n);
-      })
-      .toBe(1);
-  });
-
-  test('the button is not offered for something nobody has approved', async ({ page }) => {
-    // Publishing straight from pending_approval would route around the review
-    // this entire screen exists for.
-    const item = await seedItem({ status: 'pending_approval' });
-    await page.goto(`/queue/${item.id}`);
-    await expect(page.getByRole('button', { name: 'Post it now' })).toHaveCount(0);
-  });
 });
 
 test.describe('posts you have to make yourself', () => {
   test('hands over everything needed, and takes the link back', async ({ page }) => {
     const item = await seedItem({ status: 'awaiting_manual_publish' });
 
-    await page.goto(`/queue/${item.id}`);
-    await expect(page.getByRole('heading', { name: 'Post this yourself' })).toBeVisible();
+    await page.goto(`/gallery/${item.id}`);
+    /* §572. The panel is titled "Finish it by hand" on the piece itself. */
+    await expect(page.getByText(/finish it by hand/i).first()).toBeVisible();
 
     // The caption is one click from the clipboard, and the composer one click
     // from here. Anything that makes the operator assemble the post themselves
     // is a step where the posted version drifts from the reviewed one.
     await expect(page.getByRole('button', { name: 'Copy caption' })).toBeVisible();
 
-    await page.getByLabel(/paste the link/i).fill('https://x.com/recipefix/status/123');
+    await page.locator('#manual-url').fill('https://x.com/recipefix/status/123');
     await page.getByRole('button', { name: 'I posted it' }).click();
     await page.waitForLoadState('networkidle');
 
@@ -96,7 +66,7 @@ test.describe('posts you have to make yourself', () => {
      * alone, which is the shape of every "it looked done" bug in this codebase.
      */
     const item = await seedItem({ status: 'awaiting_manual_publish' });
-    await page.goto(`/queue/${item.id}`);
+    await page.goto(`/gallery/${item.id}`);
 
     await page.getByRole('button', { name: 'I posted it' }).click();
     await page.waitForTimeout(500);

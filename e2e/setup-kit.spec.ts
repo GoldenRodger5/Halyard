@@ -17,7 +17,7 @@ test.describe('setup kit', () => {
   test('renders every platform in creation order, with Instagram before Threads', async ({
     page,
   }) => {
-    await page.goto('/setup-kit');
+    await page.goto('/master/setup-kit');
 
     const headings = await page.locator('main').textContent();
     expect(headings).toContain('Setup kit');
@@ -110,7 +110,7 @@ test.describe('setup kit', () => {
   });
 
   test('a handle that cannot be checked is reported unknown, never free', async ({ page }) => {
-    await page.goto('/setup-kit');
+    await page.goto('/master/setup-kit');
     // Legal everywhere: no hyphens, since X and Pinterest both reject them.
     // A handle that is illegal on a platform is reported invalid, which is a
     // different (and also correct) answer from the one under test here.

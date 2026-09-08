@@ -6,7 +6,7 @@
  * presentation was broken:
  *
  *  - wide tables scrolled with a mouse and were unreachable by keyboard
- *  - `/submissions` had five `<select>`s with no accessible name
+ *  - `/gallery/stock/submissions` had five `<select>`s with no accessible name
  *  - `/signin` had no `main` landmark
  *  - `text-bad`, `bg-accent` and `bg-paper` named tokens that do not exist, so
  *    error text rendered as body copy and a publish button lost its background
@@ -20,17 +20,17 @@ import AxeBuilder from '@axe-core/playwright';
 
 /** Representative of each layout: list, table, form, empty state, public page. */
 const ROUTES = [
-  '/', '/queue', '/take', '/compose', '/inbox', '/accounts',
-  '/submissions', '/analytics', '/templates', '/calendar',
-  '/settings', '/signin', '/privacy',
+  '/', '/gallery', '/wires/take', '/floor/chat', '/wires', '/accounts',
+  '/gallery/stock/submissions', '/numbers', '/master/templates', '/rundown',
+  '/master/system', '/signin', '/privacy',
   /*
    * These two were not in the original list and a full 45-route sweep found
-   * defects on both that nothing here would have caught: `/brain/evidence` used
-   * `text-warn` — a badge colour at 2.49:1 — as body text, and `/products/new`
+   * defects on both that nothing here would have caught: `/master/product/evidence` used
+   * `text-warn` — a badge colour at 2.49:1 — as body text, and `/master/product/new`
    * dimmed unreached wizard steps to 2.35:1. A representative sample is only
    * representative until it misses something.
    */
-  '/brain/evidence', '/products/new',
+  '/master/product/evidence', '/master/product/new',
 ];
 
 const WIDTHS = [

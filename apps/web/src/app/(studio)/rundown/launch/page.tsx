@@ -55,7 +55,19 @@ function groupByDay(slots: PlannedSlot[]): Map<string, PlannedSlot[]> {
   return new Map([...days.entries()].sort((a, b) => at(a[1]) - at(b[1])));
 }
 
-export default async function Launch() {
+export default async function Launch({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  /*
+   * §574. The refusal, rendered.
+   *
+   * `generateLaunchBatch` redirects here with `?error=` when nothing can be
+   * placed, and nothing read it — so the one path that tells an operator why
+   * the button did nothing ended in a page that looked exactly like success.
+   */
+  const { error } = await searchParams;
   const product = await getCurrentProduct();
 
   if (!product) {
@@ -73,6 +85,13 @@ export default async function Launch() {
 
   return (
     <div className="flex flex-col gap-3.5">
+      {error ? (
+        <Sheet tone="onair">
+          <Label>The batch was not generated</Label>
+          <p className="max-w-[70ch] text-[12.5px] leading-relaxed">{error}</p>
+        </Sheet>
+      ) : null}
+
       <Sheet tone="lit">
         <Label>The opening run</Label>
         <p className="mb-3 max-w-[70ch] text-[12.5px] leading-relaxed text-quiet">

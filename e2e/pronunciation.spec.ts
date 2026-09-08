@@ -16,7 +16,7 @@ test.beforeEach(async () => {
 });
 
 test('an operator can add a pronunciation and see it listed', async ({ page }) => {
-  await page.goto('/settings/pronunciation');
+  await page.goto('/master/system/pronunciation');
   await expect(page.getByRole('heading', { name: 'Pronunciation' })).toBeVisible();
 
   await page.getByLabel('Term').fill('e2e-tamari');
@@ -45,7 +45,7 @@ test('adding the same term again corrects it rather than duplicating', async ({ 
     `insert into voice_lexicon (product_id, term, phonetic) values (null, 'e2e-dupe', 'wrong')`,
   );
 
-  await page.goto('/settings/pronunciation');
+  await page.goto('/master/system/pronunciation');
   await page.getByLabel('Term').fill('e2e-dupe');
   await page.getByLabel('Say it as').fill('right');
   await page.getByRole('button', { name: 'Add' }).click();
@@ -64,7 +64,7 @@ test('adding the same term again corrects it rather than duplicating', async ({ 
 });
 
 test('a blank term is refused rather than substituting into every script', async ({ page }) => {
-  await page.goto('/settings/pronunciation');
+  await page.goto('/master/system/pronunciation');
   const before = await pool.query('select count(*) as n from voice_lexicon');
 
   // Longest-first substitution means an empty term would match everywhere.
@@ -81,7 +81,7 @@ test('an operator can remove a term', async ({ page }) => {
     `insert into voice_lexicon (product_id, term, phonetic) values (null, 'e2e-gone', 'gawn')`,
   );
 
-  await page.goto('/settings/pronunciation');
+  await page.goto('/master/system/pronunciation');
   await page.getByRole('button', { name: 'Remove the pronunciation for e2e-gone' }).click();
 
   await expect(page.getByText('gawn')).toHaveCount(0);

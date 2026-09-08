@@ -236,7 +236,17 @@ export default async function ConnectionsPage({
       {rows.map(({ account, view, gate, registration, envNames }) => {
         const oauthStart = `/api/oauth/${account.platform}/start?persona=${account.persona}&product=${account.product_id}`;
         return (
-          <Sheet key={account.id} tone={view.state === 'broken' ? 'onair' : 'plain'}>
+          <Sheet
+            key={account.id}
+            /*
+              §571. Which account this card is. Six cards carry a link named
+              only "Connect", so persona and platform are the only thing that
+              tells them apart — for a fragment link, and for a test asserting
+              that *this* account's button goes to the right authorize URL.
+            */
+            id={`${account.persona}-${account.platform}`}
+            tone={view.state === 'broken' ? 'onair' : 'plain'}
+          >
             {/* Row one: who, and the one word. */}
             <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
               <Tally state={LAMP[view.state]} on="light" size={8} />

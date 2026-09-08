@@ -36,6 +36,15 @@ if (!process.env.CRON_SECRET) {
  */
 export default defineConfig({
   testDir: './e2e',
+  /*
+   * §572. The demo recordings are not tests.
+   *
+   * `e2e/recordings/` drives a scripted walkthrough for a screen capture and
+   * has its own config (`playwright.demo.config.ts`). `testDir: './e2e'` swept
+   * it into every ordinary run, where it failed on a route it was never
+   * pointed at — one more red line with nothing behind it.
+   */
+  testIgnore: /recordings\//,
   fullyParallel: false,
   workers: 1,
   retries: process.env.CI ? 1 : 0,
@@ -69,7 +78,15 @@ export default defineConfig({
       name: 'desktop',
       dependencies: ['preflight'],
       use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } },
-      testIgnore: /mobile\.spec\.ts/,
+      /*
+       * §572. Both exclusions, here.
+       *
+       * A project's `testIgnore` replaces the top-level one rather than adding
+       * to it, so the config-level `recordings/` exclusion was silently
+       * overridden the moment this line existed — and the demo script kept
+       * running as a test.
+       */
+      testIgnore: [/mobile\.spec\.ts/, /recordings\//],
     },
     {
       name: 'mobile',

@@ -139,7 +139,7 @@ Landmines learned the hard way. Each one cost real time.
     `--minWorkers=1` is not decoration: `--maxWorkers=6` on its own now dies
     with `options.minThreads and options.maxThreads must not conflict` and
     reports **"no tests"** with a zero exit path that looks like a clean run
-    until you read the line above it. A full green run is 281 files and 3,798
+    until you read the line above it. A full green run is 294 files and 3,922
     tests with *nothing* skipped.
 
     `--maxWorkers=6` is not optional, and on a machine also running the worker

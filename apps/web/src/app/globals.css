@@ -92,7 +92,24 @@
   --color-hair2: #325450;
   --color-dink: #edf5f2;
   --color-dmut: #92aaa5;
-  --color-faint: #5f7975;
+  /*
+   * §576. Raised from #5f7975, which axe found below AA on the sign-in page.
+   *
+   * Solved against the grounds faint text actually renders on, per §174's rule
+   * rather than against one nominal token: the input fill is
+   * `rgba(8,17,15,0.5)`, so the real background is a composite — #0d1917 over
+   * `berth`, #0a1513 over `hull` — and `BriefRoom` puts it on `deep`. The old
+   * value measured 3.55 on bare `berth` and 4.08 on `deep`; both fail.
+   *
+   * #708b86 is the lightest step that clears 4.5:1 on every one of them,
+   * *including* bare `berth` (4.53), which is the tightest. #6f8a85 was tried
+   * first and clears only the composites — 4.47 on bare `berth` — so it left a
+   * surface that would fail the moment faint text landed on it undimmed.
+   *
+   * The hierarchy is untouched: `dmut` is 6.74 on `berth`, so this is still
+   * the quietest thing on a dark ground, and now a legible one.
+   */
+  --color-faint: #708b86;
 
   /* Brass. Wayfinding only. */
   --color-brass: #d9a441;

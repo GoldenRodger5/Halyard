@@ -8,7 +8,7 @@ import { db, expect, seedItem, test } from './fixtures';
 /**
  * §528. This test had been asserting a deleted product.
  *
- * It navigated to `/queue`, which `aef621a` removed along with the old console,
+ * It navigated to `/gallery`, which `aef621a` removed along with the old console,
  * and looked for a navigation landmark named "Sections", which the same commit
  * deleted — the string does not appear anywhere in the repo. So the one test
  * covering the human approval gate on a phone, the gate this entire system
@@ -59,8 +59,8 @@ test('no screen scrolls horizontally on a phone', async ({ page }) => {
   /*
    * §528. The routes that exist.
    *
-   * This list held `/queue`, `/calendar`, `/analytics`, `/take`, `/swipe`,
-   * `/inbox`, `/setup-kit`, `/launch` and `/first-30-days` — nine routes the
+   * This list held `/gallery`, `/rundown`, `/numbers`, `/wires/take`, `/floor/sources`,
+   * `/wires`, `/master/setup-kit`, `/rundown/launch` and `/numbers/learned` — nine routes the
    * app no longer serves. The test passed on every one of them, because a 404
    * page does not scroll sideways either. Checking a deleted screen is not
    * weaker coverage than checking a real one; it is none.

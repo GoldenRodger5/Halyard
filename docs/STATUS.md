@@ -1,5 +1,44 @@
 # Where Halyard is right now
 
+**2026-09-08 — H0.5: the release gate is green, and repairing it found four
+live defects.** H0 shipped with `verify` and `build` green and `e2e` red, and
+said so. That is not the exit gate the programme asks for, so this package
+finished it. `pnpm verify --with-e2e` is now green end to end: 294 test files,
+3,922 tests, nothing skipped; 121 E2E tests passing in 3.9 minutes where 49 of
+64 used to fail behind a 20-minute timeout.
+
+The premise was that a broken E2E suite is not a tidiness problem. It held:
+
+| | what was actually broken |
+|---|---|
+| §573 | **every "Ask for a change" button answered 500.** The whole creative-correction loop was unreachable from the UI, because `name`/`value` on a submit button never reached the server action. Found by writing the test that presses one. |
+| §574 | **the launch batch did nothing, silently** — `generateLaunchBatch` read `product`, the form sends `productId`. Fixing it exposed a second bug stacked behind it: the audit row wrote a slug into a `uuid` column. `discardLaunchBatch` failed more quietly still — its delete matched no row, so Discard reported success and threw nothing away. |
+| §575 | the router's destination decision was fetched and rendered nowhere — visible only in the database, on a post an operator is asked to approve. |
+| §576 | **every studio screen had zero `<h1>`s**, and `--color-faint` was below AA. |
+| §577 | the test-suite credential scrub guarded six variable names that do not exist and left the six real ones in place. |
+
+Nine actions are written, exported and reachable from no control (`editItem`,
+`publishNow`, `discardLaunchBatch`, `createCampaign`, `approveTake`,
+`discardTake`, `addWatchTerm`, `setWatchTermEnabled`, `collectWatchTermsNow`).
+They are inventoried in `docs/E2E_CONTRACT.md` and are the most concrete list
+anyone has of what the UI redesign must reconnect.
+
+**The lesson worth keeping:** every one of these was invisible for the same
+reason — the test that would have pressed the button was failing on a route that
+had moved, so it failed for the wrong reason and the right one stayed
+underneath. A suite that has been red long enough stops being a signal and
+becomes scenery.
+
+**Also fixed on the way:** two tests could only ever have passed on one laptop
+(they asserted handles present in one developer's database, and derived
+"platforms with no developer app" from whichever `.env` was sourced). Both now
+read their own fixtures or ask the page. §572.
+
+**Open:** three E2E tests skip because `CRON_SECRET` is unset locally, and the
+visual-baseline suite is opt-in behind `HALYARD_VISUAL=1`. Both are honest
+conditional skips with stated reasons, not the silent kind — but the cron path
+is unexercised on this machine.
+
 **2026-09-07 — H0: the release path is trustworthy, and it was not.** The
 production programme in `docs/production/` starts by asking for one green,
 reproducible release state. Establishing it found that every layer of
@@ -36,17 +75,9 @@ against a real Postgres.
 
 **Open, and not papered over:**
 
-- **The E2E suite tests a UI that was renamed out from under it.** 49 of 64
-  desktop tests fail; **35 distinct routes across 12 spec files now 404**
-  because the studio reorganisation moved every screen (`/agents` →
-  `/master/crew`, `/brain` → `/master/product`, `/system` → `/master/system`,
-  and so on). Each waits 10s on a 404 then times out at 60s, which is why the
-  CI job has been reported only as a 20-minute timeout — the timeout was the
-  symptom. `e2e/routes.spec.ts` now names all 35 in **456ms**. They cannot
-  simply be repointed: the specs also assert copy that exists nowhere in the
-  app, so they need rewriting against the current screens — which the UI
-  redesign is about to change again. **This is the first thing the next
-  package should decide about.** §568.
+- ~~The E2E suite tests a UI that was renamed out from under it.~~ **Done in
+  H0.5 below** — and it was not a tidiness problem: repairing it found four
+  live defects and nine orphaned actions. §571–§577.
 - **Production's `publishing_enabled` could not be read** — no production
   database URL exists on this machine. Production's web tier answers
   `/api/health` 200 with a reachable database. The local dev database has

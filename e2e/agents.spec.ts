@@ -9,27 +9,41 @@ import { db, expect, test } from './fixtures';
 
 test.describe('Agents', () => {
   test('lists every registered agent with a state and a reason', async ({ page }) => {
-    await page.goto('/agents');
+    await page.goto('/master/crew');
 
-    await expect(page.getByRole('heading', { name: 'Agents', exact: true })).toBeVisible();
+    /*
+     * §572. The room says how many agents it has, rather than carrying a
+     * heading called "Agents" — the room header is Master Control and the crew
+     * is one of its tabs. The count comes from the registry, so it is real
+     * content rather than a placeholder in a way a heading never was.
+     */
+    await expect(page.getByText(/\d+ agents\./).first()).toBeVisible();
 
     // Real registry content, not a placeholder.
-    await expect(page.getByText('Copywriter', { exact: true })).toBeVisible();
-    await expect(page.getByText('Hook Generator', { exact: true })).toBeVisible();
+    /*
+     * §572. By the link that opens the agent, not by an exact text node.
+     *
+     * Each row is now name + state + one line of description in one block, so
+     * `{ exact: true }` matches nothing. The link is the durable thing: it is
+     * how an operator reaches the contract, and its name is the agent's.
+     */
+    await expect(page.getByRole('link', { name: /^Copywriter/ }).first()).toBeVisible();
+    await expect(page.getByRole('link', { name: /^Hook Generator/ }).first()).toBeVisible();
 
     /**
      * The orphans must be visible rather than hidden. An orphan absent from the
      * UI is invisible; an orphan shown is a tracked defect.
      */
-    await expect(page.getByText('Rejection Clusterer', { exact: true })).toBeVisible();
-    await expect(page.getByText('no caller').first()).toBeVisible();
+    await expect(page.getByRole('link', { name: /^Rejection Clusterer/ }).first()).toBeVisible();
+    /* An orphan shown is a tracked defect; the filter that finds them is named. */
+    await expect(page.getByText('Nothing calls it').first()).toBeVisible();
   });
 
   test('a run history that is empty says so plainly', async ({ page }) => {
     const { rows } = await db().query<{ n: string }>('select count(*)::int as n from agent_runs');
     test.skip(Number(rows[0]!.n) > 0, 'runs exist, so the empty state is not the case under test');
 
-    await page.goto('/agents/runs');
+    await page.goto('/master/crew/runs');
     // "No agent has ever run" is the single most important fact this system
     // currently reports, and it must not be dressed up as a missing feature.
     await expect(page.getByText('No agent has ever run')).toBeVisible();
@@ -43,7 +57,7 @@ test.describe('Agents', () => {
     );
 
     try {
-      await page.goto('/agents/runs');
+      await page.goto('/master/crew/runs');
       await expect(page.getByText('e2e-run')).toBeVisible();
       await expect(page.getByText('succeeded').first()).toBeVisible();
     } finally {
@@ -52,40 +66,53 @@ test.describe('Agents', () => {
   });
 
   test('the detail screen shows the full execution contract', async ({ page }) => {
-    await page.goto('/agents/copywriter');
+    await page.goto('/master/crew/copywriter');
 
     await expect(page.getByRole('heading', { name: 'Copywriter' })).toBeVisible();
     // The contract's real fields, which only the registry can supply.
     await expect(
       page.getByText('packages/core/src/generation/copywriter.ts#writeDraft'),
     ).toBeVisible();
-    await expect(page.getByText('copywriter.v1')).toBeVisible();
+    /*
+     * §572. That a prompt version is declared, not which one.
+     *
+     * This pinned `copywriter.v1`; the prompt is on v2 and will move again, and
+     * a test that fails on a deliberate version bump is a test that gets
+     * deleted rather than read.
+     */
+    await expect(page.getByText(/copywriter\.v\d+/)).toBeVisible();
   });
 
   test('an orphan detail screen states it has no caller', async ({ page }) => {
     // `auto-clip`, not `rejection-clusterer`: the latter stopped being an
     // orphan when the `cluster_rejections` job gave it a producer. Auto Clip
     // still has no caller because nothing ingests long-form footage.
-    await page.goto('/agents/auto-clip');
+    await page.goto('/master/crew/auto-clip');
     await expect(page.getByText('none declared — this agent is a tracked orphan')).toBeVisible();
   });
 
   test('an agent that gained a caller shows it instead of the orphan notice', async ({ page }) => {
-    await page.goto('/agents/rejection-clusterer');
+    await page.goto('/master/crew/rejection-clusterer');
     await expect(page.getByText('clusterRejections.ts').first()).toBeVisible();
     await expect(
       page.getByText('none declared — this agent is a tracked orphan'),
     ).toHaveCount(0);
   });
 
-  test('teams roll up to their worst member', async ({ page }) => {
-    await page.goto('/agents/teams');
-    await expect(page.getByRole('heading', { name: 'Teams' })).toBeVisible();
-    await expect(page.getByText('learning')).toBeVisible();
+  test('the crew is grouped by the team each agent belongs to', async ({ page }) => {
+    /*
+     * §572. There is no separate Teams screen any more.
+     *
+     * The rollup is on the crew list itself: each team heads its own group with
+     * the number in it, which is the same fact one click closer. What must hold
+     * is that the grouping is real registry data rather than a flat list.
+     */
+    await page.goto('/master/crew');
+    await expect(page.getByText(/content · \d+/).first()).toBeVisible();
   });
 
   test('versions compares declared against actually seen', async ({ page }) => {
-    await page.goto('/agents/versions');
+    await page.goto('/master/crew/versions');
     await expect(page.getByText('declared v1.0').first()).toBeVisible();
     await expect(page.getByText('never run').first()).toBeVisible();
   });
@@ -93,9 +120,10 @@ test.describe('Agents', () => {
 
 test.describe('System', () => {
   test('health shows a measured value for every check', async ({ page }) => {
-    await page.goto('/system');
+    await page.goto('/master/system');
 
-    await expect(page.getByRole('heading', { name: 'System health' })).toBeVisible();
+    /* §572. The panel names its own discipline rather than the noun "health". */
+    await expect(page.getByText(/Health · measured, not asserted/)).toBeVisible();
 
     /**
      * Scoped to `main`: the sidebar has its own "Queue" link, and an unscoped
@@ -103,7 +131,8 @@ test.describe('System', () => {
      * a page that rendered no health data at all.
      */
     const main = page.locator('main');
-    await expect(main.getByText('Database')).toBeVisible();
+    /* `.first()`: the Release panel names the database schema too, and should. */
+    await expect(main.getByText('Database').first()).toBeVisible();
     // A measured number, not a colour on its own.
     await expect(main.getByText(/responded in \d+ ms/)).toBeVisible();
     await expect(main.getByText('Worker', { exact: true })).toBeVisible();
@@ -135,20 +164,31 @@ test.describe('System', () => {
     await db().query('delete from worker_heartbeats');
 
     try {
-      await page.goto('/system');
+      await page.goto('/master/system');
       /**
        * Anchored on the Worker check's own detail line rather than on a DOM
        * shape. `agentQueries.ts` emits this exact sentence only in the branch
        * that sets the state to `unknown`, so it names *which* check is
        * unmeasured — which a bare "some pill says unknown" never did.
        */
-      await expect(page.getByText('no worker has ever sent a heartbeat')).toBeVisible();
+      /*
+       * §572. `.first()`: two panels now say this, and both are right.
+       *
+       * The Health check reports it as the Worker check's measured detail, and
+       * the Release panel (§567) says it again with the consequence attached —
+       * "Nothing asynchronous can run." An unscoped match hits both and fails
+       * strict mode, which would be a test failing because the product got more
+       * honest.
+       */
+      await expect(page.getByText(/no worker has ever sent a heartbeat/i).first()).toBeVisible();
       await expect(page.getByText('unknown', { exact: true }).first()).toBeVisible();
-      // And it says why an unknown is not a failure, which is the point.
-      await expect(page.getByText('Why some checks say unknown')).toBeVisible();
-      await expect(
-        page.getByText(/never call an unmeasured (dimension|check) (passed|ok)/i),
-      ).toBeVisible();
+      /*
+       * §572. And the page counts what it could not check, rather than
+       * explaining the principle in a paragraph. "3 could not be checked" beside
+       * the panel title is the same promise as the old prose and is derived from
+       * the checks themselves, so it cannot drift away from being true.
+       */
+      await expect(page.getByText(/\d+ could not be checked/)).toBeVisible();
     } finally {
       for (const row of saved.rows) {
         await db().query(
@@ -161,7 +201,7 @@ test.describe('System', () => {
   });
 
   test('jobs lists every declared kind, including ones never enqueued', async ({ page }) => {
-    await page.goto('/system/jobs');
+    await page.goto('/master/system/jobs');
 
     await expect(page.getByText('collect_signals')).toBeVisible();
     // Listed from JOB_KINDS rather than from the jobs table, so a kind that has
@@ -170,7 +210,7 @@ test.describe('System', () => {
   });
 
   test('integrations shows each account and what it can do', async ({ page }) => {
-    await page.goto('/system/integrations');
+    await page.goto('/master/system/integrations');
     await expect(page.getByRole('heading', { name: 'Integrations' })).toBeVisible();
   });
 
@@ -178,7 +218,7 @@ test.describe('System', () => {
     const { rows } = await db().query<{ n: string }>('select count(*)::int as n from auditor_runs');
     test.skip(Number(rows[0]!.n) > 0, 'an audit exists, so the empty state is not under test');
 
-    await page.goto('/system/audit');
+    await page.goto('/master/system/audit');
     await expect(page.getByText('The Auditor has never run')).toBeVisible();
   });
 
@@ -197,7 +237,7 @@ test.describe('System', () => {
     );
 
     try {
-      await page.goto('/system/audit');
+      await page.goto('/master/system/audit');
       await expect(page.getByText('e2e.synthetic')).toBeVisible();
       await expect(page.getByText('ghost-agent')).toBeVisible();
     } finally {
