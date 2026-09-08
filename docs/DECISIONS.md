@@ -14094,6 +14094,14 @@ instead of in twenty-five minutes with nothing. Neither is a skip: §562's rule
 holds, and a suite that reports green because it never ran is what this whole
 work package exists to abolish.
 
+**Run first, or it never speaks.** As an ordinary spec the check sorted after
+most of the suite, so the twenty-minute ceiling arrived before it did and the
+job still reported nothing. It is a Playwright *project dependency* now
+(`e2e/preflight.setup.ts`): both browser projects depend on it, it opens no
+browser and touches no database, and when it fails the rest are skipped.
+Measured: **584ms, 145 tests correctly did not run** — against twenty minutes
+of timeouts saying nothing.
+
 **Handed on, not hidden.** Repairing the E2E suite against the current screens
 is the next package's work, and it is named in `docs/STATUS.md` and in the H0
 evidence section of the production programme rather than left as a mysterious

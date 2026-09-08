@@ -50,12 +50,33 @@ export default defineConfig({
   },
 
   projects: [
+    /*
+     * §568. The cheap check that explains the expensive failure, run first.
+     *
+     * The studio reorganisation renamed every screen and the specs were not
+     * moved with it, so 35 routes 404. Each test then waits 10s for a heading
+     * on a 404 page and times out at 60s, and the job's ceiling is 20 minutes
+     * — so the suite never reaches the end and the reason never appears. The
+     * job has only ever been reported as a timeout.
+     *
+     * As a dependency it runs before either browser project and, when it
+     * fails, the rest are skipped: the whole job then finishes in seconds
+     * naming all 35 routes, instead of burning twenty minutes saying nothing.
+     * It opens no browser and touches no database.
+     */
+    { name: 'preflight', testMatch: /preflight\.setup\.ts/ },
     {
       name: 'desktop',
+      dependencies: ['preflight'],
       use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } },
       testIgnore: /mobile\.spec\.ts/,
     },
-    { name: 'mobile', use: { ...devices['iPhone 14'] }, testMatch: /mobile\.spec\.ts/ },
+    {
+      name: 'mobile',
+      use: { ...devices['iPhone 14'] },
+      testMatch: /mobile\.spec\.ts/,
+      dependencies: ['preflight'],
+    },
   ],
 
   webServer: process.env.HALYARD_URL

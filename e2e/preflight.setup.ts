@@ -1,5 +1,5 @@
 /**
- * §568. Every route these specs navigate to must exist. Checked first, in
+ * §568. Every route the specs navigate to must exist. Checked first, in
  * milliseconds, before anything opens a browser.
  *
  * The studio reorganisation renamed nearly every screen — `/agents` became
@@ -76,7 +76,7 @@ function navigatedPaths(): Array<{ target: string; spec: string }> {
   return out;
 }
 
-test.describe('the routes these specs navigate to', () => {
+test.describe('the routes the specs navigate to', () => {
   test('all exist in the app router', () => {
     const routes = servedRoutes();
     const dead = [
