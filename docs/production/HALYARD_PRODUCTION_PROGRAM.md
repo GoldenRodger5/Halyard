@@ -908,6 +908,7 @@ verifying**, and each failure was masking the next:
 | Test suite | **4 tests bought a real OpenAI generation on every full run**, one under a comment claiming it "never touches a provider" |
 | Schema version | **No marker existed** on the CI/laptop path; production's lives in `supabase_migrations`, which the app cannot read. Nothing to compare. |
 | `staleWorkers` (§243) | Written, tested, **never called from any runtime path** |
+| CI's `TOKEN_ENCRYPTION_KEY` | Decoded to **31 bytes, not 32**, so every suite that seals a token failed — found only once the masking was lifted (§569) |
 
 ### Backend / data
 

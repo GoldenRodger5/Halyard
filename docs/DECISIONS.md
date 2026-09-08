@@ -14098,3 +14098,33 @@ work package exists to abolish.
 is the next package's work, and it is named in `docs/STATUS.md` and in the H0
 evidence section of the production programme rather than left as a mysterious
 CI timeout.
+
+## §569 · CI's encryption key was one byte short, and nothing could see it
+
+The first CI run after §564 lifted the masking passed generated types,
+typecheck and lint — the three steps that had not executed in four days — and
+failed on Test with a precise reason:
+
+```
+TOKEN_ENCRYPTION_KEY must decode to 32 bytes, got 31.
+```
+
+`dGVzdC1rZXktdGVzdC1rZXktdGVzdC1rZXktdGVzdA==` decodes to
+`test-key-test-key-test-key-test`, which is thirty-one characters. `loadKey`
+refuses anything but a 256-bit key, so **every suite that seals a token has
+been failing in CI for as long as that value has existed** — and nobody could
+know, because the generated-types step ran first, was red, and a failed step
+ends the job. This is §564's thesis demonstrated the same hour it landed: what
+one red step hides is not nothing.
+
+It passed locally because `apps/web/.env.local` carries a real 32-byte key, so
+the two environments disagreed and only one of them was ever looked at.
+
+`ciKey.test.ts` reads the value out of `.github/workflows/ci.yml` and decodes
+it. Reading the workflow rather than restating the constant is deliberate — a
+copy here would be gotcha 1 one layer along, two places holding one value. The
+value lives in YAML that no compiler and no linter reads, so a test is the only
+thing that can hold it.
+
+Not a secret, and worth saying so in the file: CI seals throwaway tokens in a
+throwaway database.

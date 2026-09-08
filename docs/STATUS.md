@@ -14,6 +14,12 @@ verification had quietly stopped verifying.
 | the schema | **no migration marker existed** on the CI/laptop path at all, and production's lives in a schema the app cannot read — nothing to compare |
 | `staleWorkers` | written and tested since §243, **never called from any runtime path**. The failure it catches — a worker that cannot claim a job kind, leaving those jobs pending with no error — could still happen in silence. |
 
+The masking proved itself the hour it was lifted: the first CI run to reach the
+Test step failed on `TOKEN_ENCRYPTION_KEY must decode to 32 bytes, got 31` — a
+key that has been one byte short for the life of the file, hidden behind the
+types failure the whole time. Fixed, and guarded by a test that reads the
+workflow. §569.
+
 What exists now: `pnpm verify` runs the whole path and fails loudly when a
 prerequisite is missing; `HALYARD_REQUIRE_DB=1` turns a skip into a failure;
 `vitest.setup.ts` refuses non-local network and neuters paid keys; migration

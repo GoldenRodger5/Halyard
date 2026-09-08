@@ -23,7 +23,13 @@ concurrency:
 env:
   # Not a secret. CI runs against a throwaway Postgres in a container.
   TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
-  TOKEN_ENCRYPTION_KEY: dGVzdC1rZXktdGVzdC1rZXktdGVzdC1rZXktdGVzdA==
+  # §569. Thirty-two bytes, and it was thirty-one for as long as this file has
+  # existed. `dGVzdC1rZXkt…` decodes to "test-key-test-key-test-key-test" — 31
+  # characters — so `loadKey` refused it and every suite that seals a token
+  # failed. Nobody saw it: the generated-types step above failed first, and a
+  # failed step ends the job, so the Test step had not run in four days. Not a
+  # secret; CI seals throwaway tokens in a throwaway database.
+  TOKEN_ENCRYPTION_KEY: aGFseWFyZC1jaS10ZXN0LWtleS1ub3QtYS1zZWNyZXQ=
   # §564. A database-backed suite may not skip here. Forty-three suites guard on
   # `databaseAvailable()` and report GREEN when it returns false — so a CI run
   # whose Postgres service failed to come up looked exactly like a clean one.
