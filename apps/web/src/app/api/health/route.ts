@@ -14,7 +14,8 @@
  * which routinely contains all three.
  */
 import { NextResponse } from 'next/server';
-import { allAdapters, describePooler, releaseIdentity, resolvePlatformClient } from '@halyard/core';
+import { allAdapters, describePooler, resolvePlatformClient } from '@halyard/core';
+import { webReleaseIdentity } from '@/lib/webRelease';
 import { databaseReachable } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
@@ -50,7 +51,7 @@ export async function GET() {
    * the first thing anyone wants when a deploy is in doubt, so it belongs in
    * the same response rather than behind the operator gate.
    */
-  const release = releaseIdentity();
+  const release = webReleaseIdentity();
 
   return NextResponse.json(
     {

@@ -14136,3 +14136,28 @@ thing that can hold it.
 
 Not a secret, and worth saying so in the file: CI seals throwaway tokens in a
 throwaway database.
+
+## §570 · Next's `env` block is a text substitution, not an environment
+
+Production came up on the H0 build and answered `/api/health` with the right
+commit and **`builtAt: null`**. The commit was right because it comes from
+`VERCEL_GIT_COMMIT_SHA`, which Vercel really does set at runtime. The build
+time was null because `HALYARD_BUILT_AT` is not set anywhere at runtime at all.
+
+`next.config.ts` declares it in the `env` block, which reads like it sets an
+environment variable and does not. Next implements `env` as a **static
+replacement of the literal source text** `process.env.HALYARD_BUILT_AT` with
+the value, at build time. Any dynamic reach for it — `env[name]`, a spread of
+`process.env`, a loop over candidate key names — finds nothing, because at
+runtime there is nothing to find.
+
+`releaseIdentity` searches its keys dynamically, which is exactly right for the
+worker, where Railway sets real variables, and silently wrong for the web tier.
+Worth noting how it presented: not as an error, but as one field of a status
+panel reading blank — the failure mode this whole work package is about.
+
+`apps/web/src/lib/webRelease.ts` writes both names out in full, once, and every
+web caller goes through it. The comment there says the thing a future refactor
+needs to know: **do not fold those two lines into a loop**, because the
+substitution is textual and the value vanishes the moment the expression stops
+naming the variable outright.

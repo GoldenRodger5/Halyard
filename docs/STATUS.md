@@ -51,8 +51,11 @@ against a real Postgres.
   database URL exists on this machine. Production's web tier answers
   `/api/health` 200 with a reachable database. The local dev database has
   publishing **off**, set during this pass with a recorded reason.
-- Production is still running pre-H0 code, so it does not yet report a
-  revision. That lands with the next deploy.
+- Production **is** reporting its release identity now — `/api/health` returns
+  the live commit and environment. Its build time read blank at first, which
+  turned out to be §570: Next's `env` block is a static text substitution, not
+  a runtime environment, so nothing that reaches those two names dynamically
+  can see them. Fixed.
 
 
 **2026-09-03 — the agent layer tells the truth about itself.** The Auditor went

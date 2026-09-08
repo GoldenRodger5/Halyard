@@ -17,7 +17,6 @@ import { EXPECTED_SCHEMA_VERSION, JOB_KINDS } from '@halyard/db';
 import {
   compareRevisions,
   compareSchema,
-  releaseIdentity,
   staleWorkers,
   type CompatibilityFinding,
   type ReleaseIdentity,
@@ -25,6 +24,7 @@ import {
   type WorkerHeartbeat,
 } from '@halyard/core';
 import { query } from '@/lib/db';
+import { webReleaseIdentity } from '@/lib/webRelease';
 
 export interface WorkerReport extends WorkerHeartbeat {
   secondsAgo: number;
@@ -109,7 +109,7 @@ const liveSources: ReleaseSources = {
         order by last_seen_at desc`,
     ),
   schemaVersion,
-  identity: () => releaseIdentity(),
+  identity: webReleaseIdentity,
 };
 
 export async function getReleaseStatus(
