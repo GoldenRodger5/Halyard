@@ -1,3 +1,4 @@
+export * from './creativePackages.js';
 export * from './types.gen.js';
 export * from './client.js';
 
@@ -14,7 +15,7 @@ export * from './client.js';
  * unapplied migrations and code that will reference columns that do not exist;
  * ahead means a migration landed before the deploy, which is the safe order.
  */
-export const EXPECTED_SCHEMA_VERSION = '0084';
+export const EXPECTED_SCHEMA_VERSION = '0086';
 
 
 /*

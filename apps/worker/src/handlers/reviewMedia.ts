@@ -74,6 +74,7 @@ interface ItemRow {
     audio?: { transcript?: string; openingSentence?: string };
   } | null;
   product_artifact: Record<string, unknown> | null;
+  production_recipe_id: string | null;
   status: string;
 }
 
@@ -208,7 +209,7 @@ export async function reviewMediaHandler(
   const { rows } = await ctx.pool.query<ItemRow>(
     `select id, product_id, platform, format, body, title, hashtags, category,
             generation_meta ->> 'subject' as subject,
-            vo_script, qc_results, product_artifact, status,
+            vo_script, qc_results, product_artifact, production_recipe_id, status,
             account_id, alt_text,
             /* §413. Which catalogue format this is, so the gates that only
                apply to product-grounded pieces can tell. */
@@ -1014,6 +1015,15 @@ export async function reviewMediaHandler(
         passed,
       ],
     );
+
+    if (item.production_recipe_id) {
+      await ctx.pool.query(
+        `update production_recipes
+            set status = $2, updated_at = now()
+          where id = $1 and status not in ('accepted','rejected','obsolete')`,
+        [item.production_recipe_id, passed ? 'review_required' : 'failed'],
+      );
+    }
 
     ctx.log('media reviewed', {
       contentItemId,

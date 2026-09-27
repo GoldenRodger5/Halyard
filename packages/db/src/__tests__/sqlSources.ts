@@ -10,14 +10,19 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../..');
-const ROOTS = ['apps/worker/src', 'apps/web/src', 'packages/core/src', 'scripts'];
+const ROOTS = ['apps/worker/src', 'apps/web/src', 'packages/core/src', 'packages/db/src', 'scripts'];
 
 export interface SqlStatement { file: string; line: number; sql: string }
 
 function walk(dir: string, out: string[]): void {
   for (const entry of readdirSync(dir)) {
     const full = path.join(dir, entry);
-    if (statSync(full).isDirectory()) { walk(full, out); continue; }
+    if (statSync(full).isDirectory()) {
+      // Scan production SQL, never fixture/setup SQL under test directories.
+      if (entry === '__tests__' || entry === 'test-results') continue;
+      walk(full, out);
+      continue;
+    }
     if (full.endsWith('.ts') && !full.includes('.test.')) out.push(full);
   }
 }

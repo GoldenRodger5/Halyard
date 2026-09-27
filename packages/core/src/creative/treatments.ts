@@ -439,6 +439,8 @@ export interface TreatmentCandidate {
   learned: number;
   /** Which beliefs moved it, for the record. */
   learnedFrom: string[];
+  /** A human/operator-selected concept can prefer a buildable treatment. */
+  operatorPreference: number;
   /**
    * What the account's own mix costs or credits this treatment. §208.
    *
@@ -473,6 +475,14 @@ export interface SelectionInput extends PlanInput {
   insights?: Insight[];
   /** For freshness filtering. Defaults to now. */
   now?: Date;
+  /**
+   * Treatment(s) explicitly selected by a person upstream.
+   *
+   * This is a preference, not a fabrication escape hatch: it is applied only
+   * to planners that already produced a valid plan from the artifact. A human
+   * may choose among supported tellings; they cannot make evidence exist.
+   */
+  preferredTypes?: CreativeType[];
   /**
    * The account's current content mix, from `account_intelligence`. §208.
    *
@@ -587,6 +597,14 @@ export function selectCreativePlan(
       (prefs.avoid.includes(plan.creativeType) ? -1.5 : 0) +
       (prefs.prefer.includes(plan.creativeType) ? 0.75 : 0);
 
+    /*
+     * A selected concept is the strongest legitimate preference in the system.
+     * Three points is enough to beat normal recency/portfolio pressure without
+     * allowing the operator to select a treatment the artifact cannot support
+     * — unsupported planners never reach this branch at all.
+     */
+    const operatorPreference = input.preferredTypes?.includes(plan.creativeType) ? 3 : 0;
+
     considered.push({
       plan,
       support,
@@ -594,7 +612,8 @@ export function selectCreativePlan(
       learned: Math.round(learned * 100) / 100,
       learnedFrom: applicable.map((i) => i.observation),
       portfolio,
-      score: support - penalty * 2 + learned + portfolio,
+      operatorPreference,
+      score: support - penalty * 2 + learned + portfolio + operatorPreference,
     });
   }
 
@@ -619,6 +638,9 @@ export function selectCreativePlan(
       (winner.learnedFrom.length > 0
         ? `. Measured performance argued for it: ${winner.learnedFrom.join(' ')}`
         : '.') +
+      (winner.operatorPreference > 0
+        ? ' The operator-selected concept explicitly preferred this treatment.'
+        : '') +
       /* The portfolio is named separately from performance, so an operator can
        * see which of the two moved the choice rather than only their sum. */
       (winner.portfolio > 0

@@ -34,7 +34,7 @@ import {
   type ScheduleCandidate,
   type StaggerRules,
 } from './stagger.js';
-import { localDateString, resolveSlot, type SlotWindow } from './timezone.js';
+import { addLocalCalendarDays, resolveSlot, type SlotWindow } from './timezone.js';
 
 export interface LaunchAccount {
   id: string;
@@ -229,13 +229,6 @@ export function allocateCategories(
   return allocation;
 }
 
-/** Local 'YYYY-MM-DD' for `offset` days after `startDate`. */
-function addDays(startDate: string, offset: number, timeZone: string): string {
-  const [y, m, d] = startDate.split('-').map(Number);
-  const base = Date.UTC(y!, (m ?? 1) - 1, d ?? 1, 12);
-  return localDateString(new Date(base + offset * 86_400_000), timeZone);
-}
-
 /**
  * Plan a launch batch.
  *
@@ -365,7 +358,7 @@ export function planLaunchBatch(brief: LaunchBatchBrief): LaunchBatchPlan {
   }
 
   for (let dayIndex = 1; dayIndex < brief.days; dayIndex += 1) {
-    const localDate = addDays(brief.startDate, dayIndex, brief.audienceTimeZone);
+    const localDate = addLocalCalendarDays(brief.startDate, dayIndex, brief.audienceTimeZone);
 
     for (const account of usable) {
       const group = sharingPlatform.get(account.platform)!;
@@ -410,13 +403,41 @@ export function planLaunchBatch(brief: LaunchBatchBrief): LaunchBatchPlan {
   // Interleave rather than run in blocks, so a week is not all one category.
   const interleaved = interleave(queue);
 
-  const seenByCategory = new Map<string, number>();
+  /*
+   * A package may travel across platforms, but it must not come back to the
+   * same social identity as a second post. Reusing one premise twice in the
+   * same feed is coordinated in the database and repetitive to a person.
+   *
+   * Package bins are therefore capped both by size and by account identity.
+   * With six platforms one useful idea can still get native variants; with one
+   * account Halyard creates a new package for every placement instead of
+   * manufacturing repetition to hit a reuse target.
+   */
+  const packageBins = new Map<
+    string,
+    Array<{ packageIndex: number; accounts: Set<string>; count: number }>
+  >();
+
   plannedRegular.forEach((slot, index) => {
     const account = slot.account;
     const category = interleaved[index] ?? 'education';
-    const ordinal = seenByCategory.get(category) ?? 0;
-    const concept = conceptFor(category, ordinal);
-    seenByCategory.set(category, ordinal + 1);
+    const bins = packageBins.get(category) ?? [];
+    let bin = bins.find(
+      (candidate) =>
+        candidate.count < CONCEPT_PACKAGE_SIZE && !candidate.accounts.has(account.id),
+    );
+    if (!bin) {
+      bin = { packageIndex: bins.length, accounts: new Set<string>(), count: 0 };
+      bins.push(bin);
+      packageBins.set(category, bins);
+    }
+    bin.accounts.add(account.id);
+    bin.count += 1;
+
+    // `conceptFor` remains the canonical key/intent generator. Starting at the
+    // package boundary selects the corresponding package without pretending
+    // four sequential occurrences are always safe to group.
+    const concept = conceptFor(category, bin.packageIndex * CONCEPT_PACKAGE_SIZE);
     meta.set(slot.key, {
       key: slot.key,
       accountId: account.id,

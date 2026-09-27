@@ -1,6 +1,32 @@
 # Where Halyard is right now
 
 
+**2026-09-27 — Halyard Social Growth v2 foundation is implemented, release-verified, visually reviewed, and installed in the live local schema.** Governing architecture: `docs/HALYARD_SOCIAL_GROWTH_V2_ARCHITECTURE_2026-09-27.md`; contract: `docs/CREATIVE_PACKAGE_V1_SPEC_2026-09-27.md`; implementation plan: `docs/HALYARD_V2_IMPLEMENTATION_PLAN_2026-09-27.md`.
+
+The architecture reset is no longer only a design:
+
+- **CreativePackage v1** is the one product-neutral creative contract: audience/problem, premise/payoff, proof requirements, beats/media needs, platform variants, production requirements and quality bar.
+- Existing `concepts → creative_briefs → platform_variants → content_items` is the persisted package spine; **no duplicate creative-package tables were added**. `production_recipes` records reproducible provider routing.
+- **ProductionRouter** chooses capabilities/providers deterministically. Truth-critical product proof cannot route to synthetic media. Production mode refuses uncalibrated generative capabilities.
+- Calibration is persisted **per product + provider + capability** in schema `0086`. Accepting RecipeFix `higgsfield/generated_broll` does not unlock a Higgsfield presenter and does not unlock anything for KinoLog.
+- **Launch, Campaigns, Daily generation and Floor-selected manual creation converge on the same package/brief/variant/recipe lineage.** Launch/Campaign staging uses a shared atomic DB transaction so partial lineage cannot survive a failed write.
+- A creative package can travel across platforms, but it cannot hit the same social identity twice. More volume requires another angle/package rather than repeating the same premise in one feed.
+- Launch cadence is per account; a Reel no longer consumes TikTok/Shorts video headroom. Cold-start default is a **3-day rolling wave**, with 7/14-day capacity views available.
+- Launch orchestration rolls the whole opening run to the next local day when today's day-one slots are already past or leave under one hour for generation/review. Campaign planning similarly omits already-past slots with an explicit warning instead of scheduling yesterday.
+- Floor-selected concepts now control the generation they requested. A preferred treatment is honored only when the real artifact can support it.
+- Review shows the actual media first, then CreativePackage premise/why-care-first, provider route/refusals and calibration state. Media-required posts cannot be approved from copy alone in either UI or server action.
+- `review_media` moves a linked recipe to `review_required` **only after actual finished-media QC passes**; failures move the recipe to `failed`.
+- Review separates **Approve this post** from **Accept recipe for automation**. The latter is the stronger permission and can only persist reviewed generative provider/capability pairs.
+- A real server-side Higgsfield client implements submit/status/cancel against the current Open Higgsfield API contract. Halyard does not treat the ChatGPT Higgsfield connection as a worker credential; `HF_API_KEY` must exist on Halyard itself.
+- Current local provider readiness: **ElevenLabs + Blotato configured; Higgsfield + Canva + Descript worker credentials absent.** ProductionRouter therefore refuses to pretend those providers are executable today.
+
+**Verification on this exact checkpoint:** fresh schema through `0086`; generated DB types current; every package/app typechecks; 0 lint errors (existing warnings only); **301 test files / 3,991 tests pass** including real Remotion/video/media-QC suites; production Next build passes; the focused Launch + Campaign + calibration browser suite is **9/9**. Visual browser QA found and fixed two scheduling defects and two Review presentation defects; final Launch starts in the future, Campaign contains no past teaser, and Review cleanly separates post approval from production-recipe calibration.
+
+**Live local safety:** schema is now **0086**; global publishing remains **disabled**; RecipeFix has **0 publication rows and 0 published content items**; `production_provider_calibrations` contains **0 accepted RecipeFix calibrations**. The **18 pre-v2 RecipeFix launch drafts were retained as rejected/superseded history** so they cannot accidentally be approved under the new quality bar. No social post was sent during this work.
+
+**Next operational milestone:** configure a Halyard worker credential for the chosen source-production provider(s), make a small RecipeFix calibration set (short video, carousel/static, Pinterest utility asset, text-native post), visually critique the actual exports, reject/edit/regenerate weak work, and accept only production recipes that a strong human social team would publish. KinoLog then repeats the exact same architecture without product-specific pipeline code.
+
+
 **2026-09-27 — distribution readiness: RecipeFix is staged, Halyard/Blotato is now a real hybrid rather than a diagram, and publishing is deliberately still off.** Canonical operating model: `docs/DISTRIBUTION_OPERATING_MODEL_2026-09-27.md`; launch checkpoint: `docs/RECIPEFIX_LAUNCH_CHECKPOINT_2026-09-27.md`.
 
 What was verified against the live system rather than assumed:

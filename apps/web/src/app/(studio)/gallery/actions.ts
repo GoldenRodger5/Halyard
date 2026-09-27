@@ -2,7 +2,8 @@
 
 import { revalidatePath } from 'next/cache';
 import { adjustmentById } from '@halyard/core';
-import { query, one } from '@/lib/db';
+import { acceptProductionCalibration, rejectProductionCalibration } from '@halyard/db';
+import { query, one, pool } from '@/lib/db';
 import { fromDatetimeLocalValue } from '@/lib/format';
 import { requireOperator } from '@/lib/auth';
 import {
@@ -144,14 +145,24 @@ export async function approveItem(formData: FormData): Promise<void> {
     status: string;
     scheduled_at: string | null;
     platform: string;
+    format: string;
     tiktok_options: unknown;
     tiktok_creator_info: unknown;
     generation_meta: Record<string, unknown> | null;
     attached_asset_ids: string[];
+    has_finished_render: boolean;
   }>(
-    `select status, scheduled_at, platform, tiktok_options, tiktok_creator_info,
-            generation_meta, attached_asset_ids
-       from content_items where id = $1`,
+    `select ci.status, ci.scheduled_at, ci.platform, ci.format,
+            ci.tiktok_options, ci.tiktok_creator_info,
+            ci.generation_meta, ci.attached_asset_ids,
+            exists (
+              select 1 from renders r
+              join assets a on a.id = r.output_asset_id
+              where r.content_item_id = ci.id
+                and r.status = 'done' and r.quality = 'final'
+                and a.archived_at is null
+            ) as has_finished_render
+       from content_items ci where ci.id = $1`,
     [id],
   );
   if (!item) return;
@@ -162,6 +173,20 @@ export async function approveItem(formData: FormData): Promise<void> {
    * but this server action is a public POST boundary and must enforce the same
    * invariant itself.
    */
+  const productionMediaRequired = item.generation_meta?.production_media_required === true;
+  if (
+    productionMediaRequired &&
+    !item.has_finished_render &&
+    (item.attached_asset_ids ?? []).length === 0
+  ) {
+    await audit('approve_refused_missing_production_media', id, {
+      format: item.format,
+      productionV2: item.generation_meta?.production_v2 === true,
+    });
+    revalidatePath(`/gallery/${id}`);
+    return;
+  }
+
   if (
     item.generation_meta?.visual_provider === 'blotato' &&
     (item.generation_meta?.visual_status !== 'done' || (item.attached_asset_ids ?? []).length === 0)
@@ -477,6 +502,143 @@ export async function rescheduleItem(formData: FormData): Promise<void> {
   await audit('reschedule', id, { to: target.toISOString() });
   revalidatePath('/gallery');
   revalidatePath('/rundown');
+}
+
+interface ProductionCalibrationCandidate {
+  product_id: string;
+  production_recipe_id: string | null;
+  recipe_mode: string | null;
+  recipe_status: string | null;
+  steps: Array<{ provider?: string; capability?: string }>;
+  qc_results: { passed?: boolean; gates?: Array<{ status?: string }> } | null;
+  attached_asset_ids: string[];
+  has_finished_render: boolean;
+}
+
+async function productionCalibrationCandidate(id: string): Promise<ProductionCalibrationCandidate | null> {
+  return one<ProductionCalibrationCandidate>(
+    `select ci.product_id, ci.production_recipe_id,
+            pr.mode as recipe_mode, pr.status as recipe_status,
+            coalesce(pr.steps, '[]'::jsonb) as steps,
+            ci.qc_results, ci.attached_asset_ids,
+            exists (
+              select 1 from renders r
+              join assets a on a.id=r.output_asset_id
+              where r.content_item_id=ci.id and r.status='done' and r.quality='final'
+                and a.archived_at is null
+            ) as has_finished_render
+       from content_items ci
+       left join production_recipes pr on pr.id=ci.production_recipe_id
+      where ci.id=$1`,
+    [id],
+  );
+}
+
+function generativeCalibrationSteps(
+  steps: ProductionCalibrationCandidate['steps'],
+): Array<{ provider: string; capability: string }> {
+  const generative = new Set(['higgsfield', 'blotato_visual']);
+  const seen = new Set<string>();
+  const result: Array<{ provider: string; capability: string }> = [];
+  for (const step of steps ?? []) {
+    const provider = String(step.provider ?? '');
+    const capability = String(step.capability ?? '');
+    const key = `${provider}:${capability}`;
+    if (!provider || !capability || !generative.has(provider) || seen.has(key)) continue;
+    seen.add(key);
+    result.push({ provider, capability });
+  }
+  return result;
+}
+
+/**
+ * Accept a visually reviewed calibration recipe for future automation.
+ *
+ * This is deliberately separate from approving the current social post. One
+ * decision says "this asset may publish"; this says "Halyard may use this
+ * production capability unattended again for this product." The latter is the
+ * stronger permission and therefore requires finished media + passing media QC.
+ */
+export async function acceptProductionRecipe(formData: FormData): Promise<void> {
+  await requireOperator();
+  const id = String(formData.get('id') ?? '');
+  if (!id) return;
+  const candidate = await productionCalibrationCandidate(id);
+  if (!candidate?.production_recipe_id) return;
+
+  const hasMedia = candidate.has_finished_render || (candidate.attached_asset_ids ?? []).length > 0;
+  const failedGate = (candidate.qc_results?.gates ?? []).some((gate) => gate.status === 'failed');
+  const mediaPassed = candidate.qc_results?.passed === true && !failedGate;
+  if (
+    candidate.recipe_mode !== 'calibration' ||
+    candidate.recipe_status !== 'review_required' ||
+    !hasMedia ||
+    !mediaPassed
+  ) {
+    await audit('production_recipe_accept_refused', id, {
+      recipeId: candidate.production_recipe_id,
+      mode: candidate.recipe_mode,
+      recipeStatus: candidate.recipe_status,
+      hasMedia,
+      mediaPassed,
+    });
+    revalidatePath(`/gallery/${id}`);
+    return;
+  }
+
+  const steps = generativeCalibrationSteps(candidate.steps);
+  for (const step of steps) {
+    await acceptProductionCalibration(pool(), {
+      productId: candidate.product_id,
+      provider: step.provider,
+      capability: step.capability,
+      sourceRecipeId: candidate.production_recipe_id,
+      notes: `Accepted from Gallery item ${id} after finished-media QC.`,
+    });
+  }
+  await query(
+    `update production_recipes
+        set status='accepted', human_review_required=false, updated_at=now()
+      where id=$1 and mode='calibration' and status='review_required'`,
+    [candidate.production_recipe_id],
+  );
+  await audit('production_recipe_accepted', id, {
+    recipeId: candidate.production_recipe_id,
+    calibrated: steps,
+  });
+  revalidatePath(`/gallery/${id}`);
+}
+
+export async function rejectProductionRecipe(formData: FormData): Promise<void> {
+  await requireOperator();
+  const id = String(formData.get('id') ?? '');
+  const note = String(formData.get('note') ?? '').trim();
+  if (!id || !note) return;
+  const candidate = await productionCalibrationCandidate(id);
+  if (!candidate?.production_recipe_id || candidate.recipe_mode !== 'calibration') return;
+
+  const steps = generativeCalibrationSteps(candidate.steps);
+  for (const step of steps) {
+    await rejectProductionCalibration(pool(), {
+      productId: candidate.product_id,
+      provider: step.provider,
+      capability: step.capability,
+      sourceRecipeId: candidate.production_recipe_id,
+      notes: note,
+    });
+  }
+  await query(
+    `update production_recipes
+        set status='rejected', human_review_required=true, updated_at=now()
+      where id=$1 and mode='calibration' and status not in ('accepted','obsolete')`,
+    [candidate.production_recipe_id],
+  );
+  await audit('production_recipe_rejected', id, {
+    recipeId: candidate.production_recipe_id,
+    rejectedCapabilities: steps,
+    note,
+  });
+  revalidatePath(`/gallery/${id}`);
 }
 
 /**

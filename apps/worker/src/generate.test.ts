@@ -688,8 +688,8 @@ d('an account that can take no format does not stop the rest', () => {
     // The account with unknown capabilities comes first in creation order.
     await pool.query(
       `insert into social_accounts
-         (product_id, platform, persona, handle, capability_state, supported_formats)
-       values ($1,'instagram','brand','@broken','draft_only','{}')`,
+         (product_id, platform, persona, handle, capability_state, supported_formats, provider_account_id)
+       values ($1,'instagram','brand','@broken','draft_only','{}','test-skip-instagram')`,
       [PRODUCT],
     );
     await pool.query(
@@ -773,8 +773,11 @@ d('an idea is claimed before anything is spent on it', () => {
     );
     await pool.query(
       `insert into social_accounts
-         (product_id, platform, persona, handle, capability_state, supported_formats)
-       values ($1,'x','brand','@ct','draft_only','{image,text}') on conflict do nothing`,
+         (product_id, platform, persona, handle, capability_state, supported_formats, provider_account_id)
+       values ($1,'x','brand','@ct','draft_only','{image,text}','test-claim-x')
+       on conflict (product_id, platform, persona)
+         do update set provider_account_id=excluded.provider_account_id,
+                       supported_formats=excluded.supported_formats`,
       [PRODUCT],
     );
     await pool.query(

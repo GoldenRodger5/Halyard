@@ -34,8 +34,15 @@ export interface CampaignBrief {
   startsAt: Date;
   endsAt: Date;
   goal?: string;
+  /** Optional explicit clock. Callers pass this; tests can freeze it. */
+  now?: Date;
   /** Accounts that can actually carry a post, in preference order. */
-  platforms: Array<{ platform: PlatformId; persona: 'brand' | 'founder' }>;
+  platforms: Array<{
+    platform: PlatformId;
+    persona: 'brand' | 'founder';
+    /** Omitted by old callers/tests; when present, planning refuses unsupported media. */
+    supportedFormats?: string[];
+  }>;
 }
 
 export interface PlannedSlot {
@@ -50,6 +57,8 @@ export interface PlannedSlot {
   purpose: SlotPurpose;
   format: 'text' | 'image' | 'carousel' | 'video' | 'pin';
   category: string;
+  /** Shared CreativePackage identity. Several platform-native slots may carry one idea. */
+  conceptKey: string;
   /** What this post is for, in the operator's language. */
   intent: string;
   scheduledAt: Date;
@@ -86,14 +95,39 @@ export const SLOT_INTENT: Record<SlotPurpose, string> = {
     'The real numbers, including the ones that did not go well. This is the post that earns the next launch.',
 };
 
-/** Platform-native default format for a slot. */
-function formatFor(platform: PlatformId, purpose: SlotPurpose): PlannedSlot['format'] {
-  if (platform === 'youtube' || platform === 'tiktok') return 'video';
-  if (platform === 'pinterest') return 'pin';
-  if (purpose === 'demo') return platform === 'instagram' ? 'video' : 'image';
-  if (purpose === 'results') return platform === 'instagram' ? 'carousel' : 'text';
-  if (platform === 'instagram') return 'image';
-  return 'text';
+/** Platform-native format preferences for a campaign slot. */
+function formatPreference(platform: PlatformId, purpose: SlotPurpose): PlannedSlot['format'][] {
+  if (platform === 'youtube' || platform === 'tiktok') return ['video'];
+  if (platform === 'pinterest') return ['pin', 'image'];
+  if (purpose === 'demo') {
+    return platform === 'instagram' ? ['video', 'carousel', 'image'] : ['image', 'text'];
+  }
+  if (purpose === 'results') {
+    return platform === 'instagram' ? ['carousel', 'image'] : ['text', 'image'];
+  }
+  if (platform === 'instagram') return ['image', 'carousel', 'video'];
+  return ['text', 'image'];
+}
+
+function formatFor(
+  account: CampaignBrief['platforms'][number],
+  purpose: SlotPurpose,
+): PlannedSlot['format'] | null {
+  const preferred = formatPreference(account.platform, purpose);
+  if (account.supportedFormats === undefined) return preferred[0] ?? null;
+  return preferred.find((format) => account.supportedFormats!.includes(format)) ?? null;
+}
+
+/**
+ * Which slots are one coordinated CreativePackage rather than independent ideas.
+ * Launch morning shares the same news package; follow-ups/proof/results remain
+ * separate because their evidence and audience question change over time.
+ */
+export function campaignConceptKey(purpose: SlotPurpose, dayOffset: number): string {
+  if (purpose === 'launch_announcement' || purpose === 'launch_support') {
+    return `launch_news:${dayOffset}`;
+  }
+  return `${purpose}:${dayOffset}`;
 }
 
 function categoryFor(purpose: SlotPurpose): string {
@@ -152,10 +186,24 @@ export function planCampaign(brief: CampaignBrief): CampaignPlan {
   const push = (
     dayOffset: number,
     hour: number,
-    platform: { platform: PlatformId; persona: 'brand' | 'founder' },
+    platform: CampaignBrief['platforms'][number],
     purpose: SlotPurpose,
     minuteOffset = 0,
   ): void => {
+    const format = formatFor(platform, purpose);
+    if (!format) {
+      warnings.push(
+        `${platform.platform} (${platform.persona}) cannot carry a supported format for ${purpose}, so that campaign slot was omitted.`,
+      );
+      return;
+    }
+    const scheduledAt = at(dayOffset, hour, minuteOffset);
+    if (brief.now && scheduledAt.getTime() <= brief.now.getTime()) {
+      warnings.push(
+        `${purpose} on ${platform.platform} (${platform.persona}) was omitted because ${scheduledAt.toISOString()} is already in the past.`,
+      );
+      return;
+    }
     slots.push({
       key: `${purpose}-${platform.platform}-${dayOffset}-${slots.length}`,
       dayOffset,
@@ -163,10 +211,11 @@ export function planCampaign(brief: CampaignBrief): CampaignPlan {
       platform: platform.platform,
       persona: platform.persona,
       purpose,
-      format: formatFor(platform.platform, purpose),
+      conceptKey: campaignConceptKey(purpose, dayOffset),
+      format,
       category: categoryFor(purpose),
       intent: SLOT_INTENT[purpose],
-      scheduledAt: at(dayOffset, hour, minuteOffset),
+      scheduledAt,
     });
   };
 

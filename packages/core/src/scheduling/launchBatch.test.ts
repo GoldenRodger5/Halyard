@@ -347,6 +347,13 @@ describe('planLaunchBatch', () => {
     const placed = plan.slots.filter((slot) => !slot.deferred);
     const packages = new Set(placed.map((slot) => slot.conceptKey));
     expect(packages.size).toBeLessThan(placed.length);
+
+    const conceptAccountPairs = new Set<string>();
+    for (const slot of placed) {
+      const pair = `${slot.conceptKey}|${slot.accountId}`;
+      expect(conceptAccountPairs.has(pair), `duplicate package on one account: ${pair}`).toBe(false);
+      conceptAccountPairs.add(pair);
+    }
     expect(plan.rationale.join(' ')).toContain('creative packages');
   });
 });

@@ -2,6 +2,8 @@
 
 **Status:** implementation-backed operating model for RecipeFix first, KinoLog next.
 
+> **v2 production note (2026-09-27):** the transport model below still governs delivery, but media production is now superseded by `HALYARD_SOCIAL_GROWTH_V2_ARCHITECTURE_2026-09-27.md`. Blotato remains primarily transport/fallback visual production. New creative work flows through CreativePackage → ProductionRouter → actual-asset review; Higgsfield/Canva/Descript/Halyard/ElevenLabs are capability providers behind that router.
+
 This document is the canonical answer to one question: **how does Halyard get a real product in front of more people without rebuilding solved social infrastructure or surrendering product intelligence to a generic scheduler?**
 
 The answer is a hybrid:

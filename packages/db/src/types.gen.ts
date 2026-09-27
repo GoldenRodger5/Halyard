@@ -842,7 +842,7 @@ export interface ConceptsRow {
   premise: string;
   hook: string | null;
   audience: string | null;
-  objective: 'awareness' | 'engagement' | 'education' | 'traffic' | 'conversion' | 'retention' | 'follower_growth' | 'product_promotion';
+  objective: 'awareness' | 'engagement' | 'education' | 'traffic' | 'conversion' | 'retention' | 'follower_growth' | 'product_promotion' | 'reach' | 'follow' | 'profile_visit' | 'site_visit' | 'signup' | 'activation' | 'learning';
   emotional_angle: string | null;
   story_structure: Json;
   visual_treatment: Json;
@@ -860,6 +860,18 @@ export interface ConceptsRow {
   batch_id: string | null;
   created_at: string;
   updated_at: string;
+  package_version: number;
+  origin_kind: 'launch' | 'campaign' | 'daily' | 'manual' | 'opportunity' | 'experiment' | null;
+  origin_ref: string | null;
+  family: 'proof_demo' | 'transformation' | 'teach' | 'story_pov' | 'entertainment_social' | 'creator_style' | null;
+  audience_problem: string | null;
+  audience_awareness: 'unaware' | 'problem_aware' | 'solution_aware' | 'product_aware' | 'mixed' | null;
+  why_care_before_product: string | null;
+  payoff: string | null;
+  cta_direction: Json;
+  experiment: Json;
+  quality_bar: Json;
+  production_requirements: Json;
 }
 
 export interface ConceptsInsert {
@@ -872,7 +884,7 @@ export interface ConceptsInsert {
   premise: string;
   hook?: string | null;
   audience?: string | null;
-  objective: 'awareness' | 'engagement' | 'education' | 'traffic' | 'conversion' | 'retention' | 'follower_growth' | 'product_promotion';
+  objective: 'awareness' | 'engagement' | 'education' | 'traffic' | 'conversion' | 'retention' | 'follower_growth' | 'product_promotion' | 'reach' | 'follow' | 'profile_visit' | 'site_visit' | 'signup' | 'activation' | 'learning';
   emotional_angle?: string | null;
   story_structure?: Json;
   visual_treatment?: Json;
@@ -890,6 +902,18 @@ export interface ConceptsInsert {
   batch_id?: string | null;
   created_at?: string;
   updated_at?: string;
+  package_version?: number;
+  origin_kind?: 'launch' | 'campaign' | 'daily' | 'manual' | 'opportunity' | 'experiment' | null;
+  origin_ref?: string | null;
+  family?: 'proof_demo' | 'transformation' | 'teach' | 'story_pov' | 'entertainment_social' | 'creator_style' | null;
+  audience_problem?: string | null;
+  audience_awareness?: 'unaware' | 'problem_aware' | 'solution_aware' | 'product_aware' | 'mixed' | null;
+  why_care_before_product?: string | null;
+  payoff?: string | null;
+  cta_direction?: Json;
+  experiment?: Json;
+  quality_bar?: Json;
+  production_requirements?: Json;
 }
 
 export interface ConceptsUpdate {
@@ -902,7 +926,7 @@ export interface ConceptsUpdate {
   premise?: string;
   hook?: string | null;
   audience?: string | null;
-  objective?: 'awareness' | 'engagement' | 'education' | 'traffic' | 'conversion' | 'retention' | 'follower_growth' | 'product_promotion';
+  objective?: 'awareness' | 'engagement' | 'education' | 'traffic' | 'conversion' | 'retention' | 'follower_growth' | 'product_promotion' | 'reach' | 'follow' | 'profile_visit' | 'site_visit' | 'signup' | 'activation' | 'learning';
   emotional_angle?: string | null;
   story_structure?: Json;
   visual_treatment?: Json;
@@ -920,6 +944,18 @@ export interface ConceptsUpdate {
   batch_id?: string | null;
   created_at?: string;
   updated_at?: string;
+  package_version?: number;
+  origin_kind?: 'launch' | 'campaign' | 'daily' | 'manual' | 'opportunity' | 'experiment' | null;
+  origin_ref?: string | null;
+  family?: 'proof_demo' | 'transformation' | 'teach' | 'story_pov' | 'entertainment_social' | 'creator_style' | null;
+  audience_problem?: string | null;
+  audience_awareness?: 'unaware' | 'problem_aware' | 'solution_aware' | 'product_aware' | 'mixed' | null;
+  why_care_before_product?: string | null;
+  payoff?: string | null;
+  cta_direction?: Json;
+  experiment?: Json;
+  quality_bar?: Json;
+  production_requirements?: Json;
 }
 
 export interface ConnectorCallsRow {
@@ -1024,6 +1060,7 @@ export interface ContentItemsRow {
   vo_lines: Json | null;
   screenplay: Json | null;
   caption_shape: string | null;
+  production_recipe_id: string | null;
 }
 
 export interface ContentItemsInsert {
@@ -1093,6 +1130,7 @@ export interface ContentItemsInsert {
   vo_lines?: Json | null;
   screenplay?: Json | null;
   caption_shape?: string | null;
+  production_recipe_id?: string | null;
 }
 
 export interface ContentItemsUpdate {
@@ -1162,6 +1200,7 @@ export interface ContentItemsUpdate {
   vo_lines?: Json | null;
   screenplay?: Json | null;
   caption_shape?: string | null;
+  production_recipe_id?: string | null;
 }
 
 export interface ContentIterationsRow {
@@ -1247,6 +1286,13 @@ export interface CreativeBriefsRow {
   evidence: string[];
   rationale: string | null;
   created_at: string;
+  format: string | null;
+  subtype: string | null;
+  hook: string | null;
+  caption_brief: string | null;
+  title_brief: string | null;
+  production_requirements: Json;
+  quality_bar: Json;
 }
 
 export interface CreativeBriefsInsert {
@@ -1266,6 +1312,13 @@ export interface CreativeBriefsInsert {
   evidence?: string[];
   rationale?: string | null;
   created_at?: string;
+  format?: string | null;
+  subtype?: string | null;
+  hook?: string | null;
+  caption_brief?: string | null;
+  title_brief?: string | null;
+  production_requirements?: Json;
+  quality_bar?: Json;
 }
 
 export interface CreativeBriefsUpdate {
@@ -1285,6 +1338,13 @@ export interface CreativeBriefsUpdate {
   evidence?: string[];
   rationale?: string | null;
   created_at?: string;
+  format?: string | null;
+  subtype?: string | null;
+  hook?: string | null;
+  caption_brief?: string | null;
+  title_brief?: string | null;
+  production_requirements?: Json;
+  quality_bar?: Json;
 }
 
 export interface DesiredHandlesRow {
@@ -2587,6 +2647,111 @@ export interface ProductFactsUpdate {
   last_verified_at?: string | null;
   updated_at?: string;
   superseded_by?: string | null;
+}
+
+export interface ProductionProviderCalibrationsRow {
+  id: string;
+  product_id: string;
+  provider: string;
+  capability: string;
+  recipe_key: string;
+  status: 'candidate' | 'accepted' | 'rejected';
+  source_recipe_id: string | null;
+  notes: string | null;
+  accepted_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProductionProviderCalibrationsInsert {
+  id?: string;
+  product_id: string;
+  provider: string;
+  capability: string;
+  recipe_key?: string;
+  status?: 'candidate' | 'accepted' | 'rejected';
+  source_recipe_id?: string | null;
+  notes?: string | null;
+  accepted_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface ProductionProviderCalibrationsUpdate {
+  id?: string;
+  product_id?: string;
+  provider?: string;
+  capability?: string;
+  recipe_key?: string;
+  status?: 'candidate' | 'accepted' | 'rejected';
+  source_recipe_id?: string | null;
+  notes?: string | null;
+  accepted_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface ProductionRecipesRow {
+  id: string;
+  concept_id: string;
+  brief_id: string;
+  platform_variant_id: string | null;
+  content_item_id: string | null;
+  mode: 'calibration' | 'production';
+  revision: number;
+  status: 'planned' | 'producing' | 'review_required' | 'accepted' | 'rejected' | 'failed' | 'obsolete';
+  requirements: Json;
+  steps: Json;
+  refusals: Json;
+  reasons: Json;
+  human_review_required: boolean;
+  estimated_cost_usd: number | null;
+  cost_cap_usd: number | null;
+  provider_versions: Json;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProductionRecipesInsert {
+  id?: string;
+  concept_id: string;
+  brief_id: string;
+  platform_variant_id?: string | null;
+  content_item_id?: string | null;
+  mode: 'calibration' | 'production';
+  revision?: number;
+  status?: 'planned' | 'producing' | 'review_required' | 'accepted' | 'rejected' | 'failed' | 'obsolete';
+  requirements?: Json;
+  steps?: Json;
+  refusals?: Json;
+  reasons?: Json;
+  human_review_required?: boolean;
+  estimated_cost_usd?: number | null;
+  cost_cap_usd?: number | null;
+  provider_versions?: Json;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface ProductionRecipesUpdate {
+  id?: string;
+  concept_id?: string;
+  brief_id?: string;
+  platform_variant_id?: string | null;
+  content_item_id?: string | null;
+  mode?: 'calibration' | 'production';
+  revision?: number;
+  status?: 'planned' | 'producing' | 'review_required' | 'accepted' | 'rejected' | 'failed' | 'obsolete';
+  requirements?: Json;
+  steps?: Json;
+  refusals?: Json;
+  reasons?: Json;
+  human_review_required?: boolean;
+  estimated_cost_usd?: number | null;
+  cost_cap_usd?: number | null;
+  provider_versions?: Json;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface ProductsRow {
@@ -4081,6 +4246,8 @@ export interface Database {
     product_artifacts: { Row: ProductArtifactsRow; Insert: ProductArtifactsInsert; Update: ProductArtifactsUpdate; Relationships: [] };
     product_evidence: { Row: ProductEvidenceRow; Insert: ProductEvidenceInsert; Update: ProductEvidenceUpdate; Relationships: [] };
     product_facts: { Row: ProductFactsRow; Insert: ProductFactsInsert; Update: ProductFactsUpdate; Relationships: [] };
+    production_provider_calibrations: { Row: ProductionProviderCalibrationsRow; Insert: ProductionProviderCalibrationsInsert; Update: ProductionProviderCalibrationsUpdate; Relationships: [] };
+    production_recipes: { Row: ProductionRecipesRow; Insert: ProductionRecipesInsert; Update: ProductionRecipesUpdate; Relationships: [] };
     products: { Row: ProductsRow; Insert: ProductsInsert; Update: ProductsUpdate; Relationships: [] };
     provider_capabilities: { Row: ProviderCapabilitiesRow; Insert: ProviderCapabilitiesInsert; Update: ProviderCapabilitiesUpdate; Relationships: [] };
     publications: { Row: PublicationsRow; Insert: PublicationsInsert; Update: PublicationsUpdate; Relationships: [] };

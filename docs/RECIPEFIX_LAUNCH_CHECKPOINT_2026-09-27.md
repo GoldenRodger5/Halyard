@@ -1,113 +1,90 @@
 # RecipeFix distribution launch checkpoint — 2026-09-27
 
-**Goal:** wake up with a small, high-quality opening wave ready to review; no public post sent during preparation.
+**Current state:** Halyard v2 is technically ready for creative calibration; it is **not** authorized to publish and no old launch draft is eligible for publication.
 
-## Product truth refreshed
+## Product truth
 
-A live Product Brain collection was run against the current product:
+The current RecipeFix Product Brain was refreshed from the live product rather than the August brief. The latest verified pass contains:
 
-- 8 website pages;
-- 1 App Store listing;
-- 13 MCP tools;
-- GitHub: 1,691 paths indexed, 12 high-value files read, 6 recent user-facing PRs;
-- 24 total evidence records considered in the rebuild.
+- live website + App Store evidence;
+- 13 RecipeFix MCP tools;
+- private GitHub repository evidence (about 1,692 paths, 12 high-value files, 7 recent user-facing PRs at the latest scan);
+- 24 evidence records in the rebuild;
+- 52 factual writes, 36 verified facts and 18 separate strategic inferences;
+- browser feature verification, including authenticated exploration support through RecipeFix's current modal login flow.
 
-Brain rebuild result:
+GitHub evidence is additive to MCP/live-product evidence. A Rescan does not force the product to choose one source.
 
-- 49 factual proposals/writes;
-- 37 verified;
-- 18 strategic inferences recorded separately from public facts;
-- 9 contradictions surfaced instead of silently resolved;
-- visual-brand evidence remains incomplete until described product screenshots are stored.
+## Social account / transport state
 
-The Product Brain is therefore based on the current RecipeFix, not the August social brief.
+Read-only Blotato account discovery mapped RecipeFix to:
 
-## Blotato state
+| Platform | Blotato account id | Public publish proven? |
+| --- | ---: | --- |
+| Instagram | 64295 | no |
+| Pinterest | 9034 | no |
+| Threads | 8692 | no |
+| TikTok | 54896 | no |
+| X | 23940 | no |
+| YouTube | 46296 | no |
 
-Read-only provider contact succeeded and mapped RecipeFix:
+The founder X identity remains deliberately unmatched because the two systems name different handles. Halyard does not guess identities.
 
-| Platform | Blotato account id | Publish proof |
-| --- | --- | --- |
-| Instagram | 64295 | not yet |
-| Pinterest | 9034 | not yet |
-| Threads | 8692 | not yet |
-| TikTok | 54896 | not yet |
-| X | 23940 | not yet |
-| YouTube | 46296 | not yet |
+Blotato is the normal unified delivery candidate. It is **not** the default creative director. A provider submission id is only a receipt; Halyard waits for final provider settlement before calling anything published.
 
-The founder X identity was not auto-mapped because Halyard and Blotato name different handles. No guess was made.
+## Halyard v2 creative state
 
-## Opening wave
+The old opening wave is no longer the launch candidate. On the live local DB, all **18 pre-v2 launch drafts are rejected with a superseded-by-v2 reason**. None was published and none was human-edited before quarantine.
 
-The existing small launch wave is intentionally retained instead of freezing the whole 14-day calendar before learning:
+The new opening-run planner currently produces a **3-day, 18-placement / 6-package capacity plan across six brand identities**. It is a planning surface, not permission to bulk-generate expensive media.
 
-- Day 1: platform introductions.
-- Day 2: first transformation / education / product / community variants.
-- Day 3: next coordinated variants.
+Key rules now enforced:
 
-The long-run planner is now capable of 72 native placements / 20 packages over 14 days with per-account cadence, but later waves should be generated using real early performance signals.
+- one CreativePackage may travel across platforms, but never twice into the same social identity;
+- cadence is per account;
+- if today's opening slots are already too late, the entire launch rolls to the next local day;
+- media-required work cannot be approved until the actual finished media exists;
+- product proof must be real capture/output, never generated UI;
+- generative visual providers are blocked in unattended production until the exact product/provider/capability has passed calibration;
+- post approval and production-recipe automation approval are separate decisions.
 
-## Morning operator sequence
+## Current provider readiness
 
-1. Open **Gallery → Holding**.
-2. Read every copy draft as if it were already public.
-3. Edit or reject anything generic, overconfident, repetitive or too promotional.
-4. For IG/TikTok/YouTube pieces that say **Visual not generated yet**, press **Generate Blotato visual** only after the copy concept deserves the credits.
-5. Review returned media. Do not approve a caption in place of the actual video/carousel.
-6. Pick one strongest post for the first provider proof.
-7. Run the unified first-contact dry run with that item UUID.
-8. Inspect exact account, caption, link strategy, media URLs and target fields.
-9. Only when ready, turn the global publishing switch on and use the interactive first-contact publish command.
-10. Wait for Halyard to reconcile Blotato to a real `published` state and permalink.
-11. Verify tracking, then unlock ordinary Blotato routing for that platform.
+Halyard worker credentials currently exist for:
 
-**Do not** bulk-switch every account to unified merely because one platform succeeds.
+- ElevenLabs;
+- Blotato.
 
-## Known setup gap
+They do **not** currently exist for:
 
-RecipeFix does not yet have a dedicated Explorer/capture login configured. Public/signed-out discovery works. Signed-in-only feature claims should remain unverified rather than be refuted from a login wall until a harmless dedicated test account is configured.
+- Higgsfield (`HF_API_KEY`);
+- Canva Connect (`CANVA_ACCESS_TOKEN`);
+- Descript (`DESCRIPT_API_TOKEN`).
 
-## Stop condition
+A ChatGPT connector is not treated as a Halyard server credential. The worker remains fail-closed until its own credential exists.
 
-Preparation is complete when:
+## What happens next — calibration, not publishing
 
-- opening-wave copy is generated;
-- paid media remains operator-gated;
-- Gallery displays the real review boundary;
-- the global publish kill switch remains off;
-- there are zero publication rows and zero published RecipeFix items;
-- tests/typechecks/browser QA pass;
-- this branch is pushed with the implementation and docs.
+1. Configure the first worker-side visual-production credential, preferably Higgsfield for source footage/B-roll experiments.
+2. Create one evidence-backed RecipeFix short-form CreativePackage with real RecipeFix capture plus bounded generated source footage.
+3. Produce **at least two opening treatments** when cost permits; compare actual first frames/first 2 seconds rather than prompt text.
+4. Inspect the exported video visually: hook, motion, pacing, food realism, captions/safe zones, audio, real product proof, payoff and AI-slop signals.
+5. Reject/edit/regenerate anything a strong human social team would not publish.
+6. Calibrate one human-designed/autofilled carousel/static family and one Pinterest/search-save family separately.
+7. Accept only the provider/capability recipes that genuinely pass. Accepting Higgsfield B-roll does not accept Higgsfield presenters.
+8. Stage the first **future-dated 3-day wave** from accepted recipes.
+9. Keep individual publication approval on.
+10. For the first real Blotato delivery on each platform, use the existing interactive first-contact dry run and settlement verification before switching ordinary delivery to unified transport.
 
-## Spend ceiling added after owner instruction
+## Verified engineering state
 
-Owner instruction: **cap automated spend at $5.**
+- live local schema: **0086**;
+- publishing kill switch: **OFF / disabled**;
+- RecipeFix publication rows: **0**;
+- RecipeFix published items: **0**;
+- accepted RecipeFix provider calibrations: **0**;
+- full release verification: **301 test files / 3,991 tests**, migrations/types/typecheck/lint/build green;
+- focused Launch + Campaign + production-calibration browser suite: **9/9**;
+- final browser QA: no console/page/framework errors; Launch begins in the future; Campaign omits already-past teaser slots; Review shows actual media + CreativePackage + production route + separate calibration permission.
 
-Live setting:
-
-- `settings.daily_budget_usd = 5.00`.
-- At the moment the cap was imposed, Halyard's paid-call ledger showed **$0.6577** today across 20 paid calls.
-- The direct manual generation helper that bypassed the worker/poller budget guard was stopped and is not part of the launch workflow.
-- `PAID_JOB_KINDS` now includes Product Brain rebuild, Explorer and external Blotato visual generation in addition to the existing writing/correction/media/voice work.
-- Blotato visual generation is also human-gated, so no visual credit is spent merely because a copy draft exists.
-
-Blotato's live MCP credit query on 2026-09-27 reported **3,000 credits remaining** and **$6 / 1,000 credits** for additional credits. Those credits are not treated as permission to consume them automatically. The operator chooses which reviewed concepts deserve visual generation.
-
-## Content quality decision
-
-Halyard remains the primary content intelligence/writing layer; Blotato is not being promoted to generic strategist.
-
-The decision is based on both capability and measured output:
-
-- Blotato's live hosted MCP exposes account/publishing/scheduling, source extraction, visual production, comments/DM and analytics tools. It does **not** expose a general social-strategy/copywriting tool in the automation surface Halyard is integrating with.
-- Halyard can ground copy in the current Product Brain, real product artifacts, verified claims, platform-native formats, recent openings, voice calibration and later conversion/engagement outcomes.
-- The current RecipeFix transformation drafts demonstrate that this can produce specific hooks such as `Swaps break instructions.` and artifact-grounded transformations rather than generic feature copy.
-- The current account-introduction drafts are **not yet consistently strong enough**: several converged on `Recipe needs changing/adapting`. That is competent but too safe for cold-start discovery.
-
-The launch planner's introduction intent was therefore tightened: introductions must open on a sharp domain belief or concrete failure mode, may not open with a welcome/product name/generic “X needs changing” line, and must prefer one mechanism/example to a feature list.
-
-This is the intended split:
-
-- **Halyard:** truth, concepts, hooks, platform-native writing, coordination, QC, approval, attribution and learning.
-- **Blotato:** selected visual/video execution, connected-account delivery/scheduling, provider analytics and other provider-native operations.
-- **Human:** approve/reject/edit the opening wave and authorize paid visual generation / first public contact until the system has real evidence.
+**Stop condition before a public post:** at least one real RecipeFix production recipe for the intended format has been visually accepted, its post itself is separately approved, the exact destination/platform payload has passed first-contact dry run, and the operator deliberately turns publishing on.

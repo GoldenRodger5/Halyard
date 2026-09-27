@@ -13,6 +13,7 @@ interface PickerAsset {
   captured_at: string | null;
   app_version: string | null;
   archived_reason: string | null;
+  original_filename: string | null;
 }
 
 /**
@@ -41,7 +42,7 @@ export async function AssetPicker({
   const [assets, product] = await Promise.all([
     query<PickerAsset>(
       `select id, kind, mime_type, public_url, caption, tags, captured_at, app_version,
-              archived_reason
+              archived_reason, original_filename
          from assets
         where product_id = $1
           and archived_at is null
@@ -110,9 +111,16 @@ export async function AssetPicker({
                 {asset.public_url && asset.mime_type.startsWith('image/') ? (
                   // Local uploads and Storage URLs both; neither is worth
                   // allow-listing in next/image config.
-                  <img
+                  <img src={asset.public_url} alt="" className="h-full w-full object-cover" />
+                ) : asset.public_url && asset.mime_type.startsWith('video/') ? (
+                  // This is only a picker thumbnail; the actual review player is
+                  // above. Showing the first frame is still far more truthful
+                  // than a generic box labelled "generated".
+                  <video
                     src={asset.public_url}
-                    alt=""
+                    muted
+                    playsInline
+                    preload="metadata"
                     className="h-full w-full object-cover"
                   />
                 ) : (
@@ -120,7 +128,7 @@ export async function AssetPicker({
                 )}
               </span>
               <span className="block truncate px-2 py-1 text-[11px] text-muted">
-                {asset.caption ?? asset.tags[1] ?? asset.kind}
+                {asset.caption ?? asset.original_filename ?? asset.tags[1] ?? asset.kind}
               </span>
               {staleness?.stale ? (
                 <span className="block px-2 pb-1.5">

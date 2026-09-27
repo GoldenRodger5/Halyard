@@ -118,6 +118,51 @@ async function attachVideo(contentItemId: string, filePath: string): Promise<voi
   );
 }
 
+
+async function attachCalibrationRecipe(contentItemId: string): Promise<string> {
+  const { rows: concept } = await pool.query<{ id: string }>(
+    `insert into concepts (product_id,title,premise,objective,status,origin_kind,origin_ref,family)
+     values ('recipefix','Calibration','Test finished media','education','selected','manual',$1,'teach')
+     returning id`,
+    [`review-media:${contentItemId}`],
+  );
+  const { rows: brief } = await pool.query<{ id: string }>(
+    `insert into creative_briefs
+       (concept_id,product_id,account_id,platform,treatment,presentation_mode,format)
+     values ($1,'recipefix',$2,'tiktok','how_to','punch','video') returning id`,
+    [concept[0]!.id, accountId],
+  );
+  const { rows: variant } = await pool.query<{ id: string }>(
+    `insert into platform_variants
+       (concept_id,brief_id,content_item_id,platform,decision)
+     values ($1,$2,$3,'tiktok','produce') returning id`,
+    [concept[0]!.id, brief[0]!.id, contentItemId],
+  );
+  const { rows: recipe } = await pool.query<{ id: string }>(
+    `insert into production_recipes
+       (concept_id,brief_id,platform_variant_id,content_item_id,mode,status,steps,human_review_required)
+     values ($1,$2,$3,$4,'calibration','planned',$5::jsonb,true) returning id`,
+    [
+      concept[0]!.id,
+      brief[0]!.id,
+      variant[0]!.id,
+      contentItemId,
+      JSON.stringify([
+        { requirementId: 'broll', capability: 'generated_broll', provider: 'higgsfield' },
+        { requirementId: 'edit', capability: 'final_video_assembly', provider: 'halyard_render' },
+      ]),
+    ],
+  );
+  await pool.query(
+    `update content_items
+        set concept_id=$2,brief_id=$3,production_recipe_id=$4,
+            generation_meta=coalesce(generation_meta,'{}'::jsonb)||'{"production_v2":true,"production_media_required":true}'::jsonb
+      where id=$1`,
+    [contentItemId, concept[0]!.id, brief[0]!.id, recipe[0]!.id],
+  );
+  return recipe[0]!.id;
+}
+
 describe('keyTermsFor', () => {
   it('prefers structured data over prose, and over hashtags', () => {
     const terms = keyTermsFor({
@@ -236,6 +281,27 @@ d('reviewMediaHandler', () => {
     expect(gates.find((g) => g.gate === 'coherence')).toBeTruthy();
     expect(gates.find((g) => g.gate === 'visual')).toBeTruthy();
     expect(rows[0]!.media_observations?.frames.length).toBe(2);
+  }, 60_000);
+
+  it.skipIf(!hasVideo)('moves a linked production recipe to review_required only after finished-media QC passes', async () => {
+    const id = await seedItem();
+    const recipeId = await attachCalibrationRecipe(id);
+    await attachVideo(id, VIDEO);
+
+    await reviewMediaHandler(
+      job(id),
+      context(),
+      scriptedVision([
+        { atSeconds: 0, describes: 'A recipe substitution explainer.', visibleText: ['swap'] },
+        { atSeconds: 2, describes: 'A recipe substitution explainer.', visibleText: ['method'] },
+      ]),
+    );
+
+    const { rows } = await pool.query<{ status: string }>(
+      'select status from production_recipes where id=$1',
+      [recipeId],
+    );
+    expect(rows[0]!.status).toBe('review_required');
   }, 60_000);
 
   it.skipIf(!hasVideo)('fails an item whose footage is of something else', async () => {

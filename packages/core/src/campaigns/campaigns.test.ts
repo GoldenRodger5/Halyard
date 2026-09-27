@@ -3,7 +3,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { PRODUCT_CONTENT_CEILING } from '../generation/ideaEngine.js';
-import { effectiveProductCeiling, planCampaign, type CampaignBrief } from './planner.js';
+import { campaignConceptKey, effectiveProductCeiling, planCampaign, type CampaignBrief } from './planner.js';
 
 const SIX_PLATFORMS: CampaignBrief['platforms'] = [
   { platform: 'x', persona: 'brand' },
@@ -58,6 +58,45 @@ describe('planCampaign', () => {
       // Simultaneous posting to six platforms reads as automation on all six.
       expect(morning[i]! - morning[i - 1]!).toBeGreaterThanOrEqual(20 * 60_000);
     }
+  });
+
+  it('coordinates launch-morning variants under one CreativePackage key', () => {
+    const plan = planCampaign(PRODUCT_HUNT);
+    const morning = plan.slots.filter(
+      (slot) => slot.dayOffset === 0 && slot.purpose.startsWith('launch'),
+    );
+    expect(new Set(morning.map((slot) => slot.conceptKey))).toEqual(new Set(['launch_news:0']));
+    expect(campaignConceptKey('follow_up', 2)).toBe('follow_up:2');
+
+    const pairs = new Set<string>();
+    for (const slot of plan.slots) {
+      const account = `${slot.platform}:${slot.persona}`;
+      const pair = `${slot.conceptKey}|${account}`;
+      expect(pairs.has(pair), `duplicate campaign package on one identity: ${pair}`).toBe(false);
+      pairs.add(pair);
+    }
+  });
+
+  it('omits campaign slots that are already in the past when the caller supplies now', () => {
+    const plan = planCampaign({
+      ...PRODUCT_HUNT,
+      startsAt: new Date('2026-09-28T09:00:00-04:00'),
+      endsAt: new Date('2026-10-03T18:00:00-04:00'),
+      now: new Date('2026-09-27T18:37:00-04:00'),
+    });
+    expect(plan.slots.some((slot) => slot.scheduledAt <= new Date('2026-09-27T18:37:00-04:00'))).toBe(false);
+    expect(plan.slots.some((slot) => slot.purpose === 'teaser')).toBe(false);
+    expect(plan.slots.some((slot) => slot.purpose === 'launch_announcement')).toBe(true);
+    expect(plan.warnings.join(' ')).toContain('already in the past');
+  });
+
+  it('omits a slot rather than scheduling a format the account cannot carry', () => {
+    const plan = planCampaign({
+      ...PRODUCT_HUNT,
+      platforms: [{ platform: 'tiktok', persona: 'brand', supportedFormats: ['text'] }],
+    });
+    expect(plan.slots).toEqual([]);
+    expect(plan.warnings.join(' ')).toMatch(/cannot carry a supported format/);
   });
 
   it('makes exactly one post the announcement and the rest platform-native support', () => {
