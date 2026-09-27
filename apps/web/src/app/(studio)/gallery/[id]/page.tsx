@@ -667,12 +667,12 @@ export default async function GalleryPiece({ params }: { params: Promise<{ id: s
 
         {item.production_v2 && !needsProductionMedia && item.production_mode === 'calibration' && item.production_status === 'review_required' ? (
           <Sheet tone="lit">
-            <Label>Calibration decision</Label>
+            <Label>Reuse this production recipe?</Label>
             <p className="m-0 text-xs leading-relaxed text-quiet">
-              The finished asset passed media QC. Approving the post below only approves this one post.
-              Accepting this production recipe is a stronger decision: it lets Halyard reuse the
-              generative provider/capability pairs from this recipe in future unattended production for
-              this product.
+              The finished asset passed media QC. The gold Approve button below is only for this post.
+              Accepting the recipe here is a stronger permission: it lets Halyard reuse only the
+              generative provider/capability pairs that were actually reviewed in this recipe for future
+              production on this product.
             </p>
             <div className="mt-3 grid gap-2">
               <form action={acceptProductionRecipe}>

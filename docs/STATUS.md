@@ -1,6 +1,16 @@
 # Where Halyard is right now
 
 
+**2026-09-27 — Halyard Social Growth v2 implementation is release-green; visual calibration has started.** Governing docs: `docs/HALYARD_SOCIAL_GROWTH_V2_ARCHITECTURE_2026-09-27.md`, `docs/CREATIVE_PACKAGE_V1_SPEC_2026-09-27.md`, `docs/HALYARD_V2_IMPLEMENTATION_PLAN_2026-09-27.md`; visual checkpoint: `docs/HALYARD_V2_VISUAL_CALIBRATION_2026-09-27.md`.
+
+- Launch, Campaigns and ordinary Floor/daily generation now converge on CreativePackage → creative brief → platform variant → ProductionRecipe lineage instead of maintaining independent creative paths.
+- ProductionRouter is provider-neutral and fail-closed. Truth-critical product proof routes to real capture; generative visual capabilities cannot participate in unattended production until that exact product/provider/capability has passed finished-media QC and explicit human recipe acceptance.
+- Higgsfield has a real server-side async client behind `HF_API_KEY`, but the local Halyard runtime currently has no Higgsfield backend key configured. ChatGPT/Higgsfield connection is not treated as a Halyard server credential.
+- Review visually separates post approval from production-recipe reuse. The actual media is the approval object; copy alone cannot approve video/carousel/image/pin work.
+- Full verifier: schema 0086, generated types current, 301 test files / 3,991 tests green, production web build green.
+- Visual QA rejected the current generic pan footage as weak/repetitive/unrelated B-roll. It does **not** unlock automation. A purpose-built Higgsfield Wild Card candidate was cost-preflighted at 60 credits but not submitted.
+
+
 **2026-09-27 — Halyard Social Growth v2 foundation is implemented, release-verified, visually reviewed, and installed in the live local schema.** Governing architecture: `docs/HALYARD_SOCIAL_GROWTH_V2_ARCHITECTURE_2026-09-27.md`; contract: `docs/CREATIVE_PACKAGE_V1_SPEC_2026-09-27.md`; implementation plan: `docs/HALYARD_V2_IMPLEMENTATION_PLAN_2026-09-27.md`.
 
 The architecture reset is no longer only a design:
