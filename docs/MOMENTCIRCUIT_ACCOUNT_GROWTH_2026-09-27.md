@@ -26,14 +26,15 @@ Therefore campaign CPM is not enough. The campaign must fit the account.
 
 A viewer should know why to follow after seeing any three posts.
 
-Allowed core topics:
-- streamer moments;
-- gaming moments;
-- gaming launches / culture;
-- creator/influencer moments;
-- music/celebrity moments when the edit is about the moment/story rather than generic advertising;
-- internet culture / viral creator stories;
-- short "what happened here?" entertainment explainers.
+Allowed core topics, in priority order:
+1. gaming moments and gaming culture;
+2. streamer/creator moments;
+3. creator/internet-culture lore and explainers;
+4. celebrity/music/pop-culture moments;
+5. officially licensed entertainment/show moments;
+6. only selective high-energy podcast/talk-show moments.
+
+See `MOMENTCIRCUIT_NICHE_PORTFOLIO_2026-09-27.md` for the full market-backed niche policy.
 
 Tone:
 - entertaining;
