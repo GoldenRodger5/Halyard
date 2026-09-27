@@ -55,6 +55,8 @@ describe('the rooms', () => {
     expect(roomFor('/gallery/abc-123')?.label).toBe('Gallery');
     expect(roomFor('/floor/live')?.label).toBe('The Floor');
     expect(roomFor('/master/crew')?.label).toBe('Master Control');
+    expect(roomFor('/first-run/momentcircuit')?.label).toBe('Call Sheet');
+    expect(tabFor(ROOMS[0]!, '/first-run/momentcircuit')?.label).toBe('MomentCircuit');
     expect(roomFor('/nowhere')).toBeNull();
   });
 

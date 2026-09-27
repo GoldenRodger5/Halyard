@@ -1,0 +1,51 @@
+{
+  "id": "coco-jones-001",
+  "name": "CoCo Jones Clipping",
+  "observed_at": "2026-09-27",
+  "status": "launch_ready_after_owner_terms",
+  "platforms": ["tiktok", "instagram", "youtube"],
+  "economics": {
+    "cpm_usd_per_1000_approved_views": 2.0,
+    "minimum_payout_usd": 2,
+    "maximum_payout_per_clip_usd": 350,
+    "remaining_budget_usd_observed": 2700
+  },
+  "source": {
+    "provider": "wetransfer",
+    "url": "https://we.tl/t-hUhMTinoPcU4oGTS",
+    "rights_basis": "campaign_supplied_only",
+    "owner_checkpoint": "Accept WeTransfer Terms/Privacy acknowledgement in the official interface before operator download."
+  },
+  "source_groups": [
+    "US Open Tennis Interview",
+    "Purple Suit Photoshoot",
+    "How They Met",
+    "Runway Walk / Street Crossing"
+  ],
+  "hard_rules": {
+    "supplied_current_footage_only": true,
+    "old_footage_allowed": false,
+    "negative_framing_allowed": false,
+    "fake_or_botted_engagement_allowed": false,
+    "story_boosting_allowed": false,
+    "duplicate_slop_reposts_allowed": false,
+    "must_remove_dead_space": true,
+    "must_create_distinct_edit": true,
+    "must_match_caption_to_footage": true
+  },
+  "creative_direction": {
+    "tone": ["raw", "authentic", "entertaining", "story_led"],
+    "preferred_topics": [
+      "how Coco and Donovan met",
+      "US Open tennis confidence",
+      "purple suit photoshoot",
+      "street runway walk"
+    ]
+  },
+  "launch_order": [
+    "How They Met",
+    "US Open Tennis Interview",
+    "Runway Walk / Street Crossing",
+    "Purple Suit Photoshoot"
+  ]
+}
