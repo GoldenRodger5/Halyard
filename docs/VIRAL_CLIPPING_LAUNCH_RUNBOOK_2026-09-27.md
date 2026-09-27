@@ -23,7 +23,9 @@ Paid clipping campaigns fund experimentation before TikTok/YouTube native moneti
 
 ### Brand A — MomentCircuit (working name)
 
-Anonymous gaming/streamer/creator-clipping media brand.
+Anonymous gaming/streamer/creator/pop-culture moment media brand.
+
+**One-account rule:** MomentCircuit may carry multiple paid campaigns only when they fit this same audience promise. It is not a universal campaign dumping ground. See `MOMENTCIRCUIT_ACCOUNT_GROWTH_2026-09-27.md`.
 
 Preferred handle order:
 1. `@momentcircuit`
