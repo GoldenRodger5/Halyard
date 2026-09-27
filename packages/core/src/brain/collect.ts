@@ -310,6 +310,48 @@ export async function collectConnectorSurface(options: {
 }
 
 /**
+ * Pick the small set of repository files worth reading in full.
+ *
+ * The recursive tree is kept separately as evidence, so this function does not
+ * need to read every source file to know that a route or component exists. Full
+ * text is reserved for the documents most likely to state shipped product truth.
+ */
+export function selectRepositoryEvidencePaths(
+  entries: Array<{ path: string; type: string; size?: number }>,
+  maxFiles = 12,
+): string[] {
+  const textLike = entries.filter((entry) => {
+    if (entry.type !== 'blob') return false;
+    if ((entry.size ?? 0) > 250_000) return false;
+    return /(?:^|\/)(?:README(?:\.md)?|[^/]+\.(?:md|mdx|txt|json))$/i.test(entry.path);
+  });
+
+  const score = (path: string): number => {
+    if (/^README(?:\.md)?$/i.test(path)) return 120;
+    if (/^docs\/(?:STATUS|OVERVIEW|FEATURES?|FEATURE_INVENTORY|PRODUCT|STRATEGY|ARCHITECTURE|OPPORTUNITY|DISTRIBUTION|GROWTH|VISION|APP_STORE|.*LISTING)/i.test(path)) return 110;
+    if (/^docs\/.*(?:STATUS|OVERVIEW|FEATURE|PRODUCT|STRATEGY|ARCHITECTURE|GROWTH|VISION|LISTING).*\.mdx?$/i.test(path)) return 105;
+    if (/(?:^|\/)(?:package\.json|app\.json|manifest\.json)$/i.test(path)) return 70;
+    if (/^docs\/.*\.mdx?$/i.test(path)) return 60;
+    return 10;
+  };
+
+  return [...textLike]
+    .sort((a, b) => score(b.path) - score(a.path) || a.path.localeCompare(b.path))
+    .slice(0, maxFiles)
+    .map((entry) => entry.path);
+}
+
+/** A bounded repository tree: enough to see routes/components without mirroring source. */
+export function repositoryTreeBody(entries: Array<{ path: string; type: string }>): string {
+  return entries
+    .filter((entry) => entry.type === 'blob')
+    .map((entry) => entry.path)
+    .sort()
+    .join('\n')
+    .slice(0, MAX_BODY_CHARS);
+}
+
+/**
  * The operator's brief, when there is one.
  *
  * Included as evidence rather than treated as ground truth. The operator is a

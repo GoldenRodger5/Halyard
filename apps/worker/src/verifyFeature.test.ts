@@ -97,6 +97,20 @@ describe('replay, in a real browser', () => {
     expect(outcome.expectations).toHaveLength(0);
   }, 120_000);
 
+  it('does not refute a private feature just because the signed-out browser hits an auth wall', async () => {
+    const outcome = await replay(
+      [
+        { name: 'open a private area', action: 'goto', value: pageWith('<main><input type="password"><p>Sign in first</p></main>') },
+        { name: 'private feature', action: 'expectText', target: 'Private feature', timeoutMs: 1000 },
+      ],
+      { rootUrl: 'https://example.test', credentials: null },
+    );
+
+    expect(outcome.completed).toBe(false);
+    expect(outcome.error).toMatch(/authentication required/i);
+    expect(outcome.expectations).toHaveLength(0);
+  }, 120_000);
+
   it('walks past an optional step that is not there', async () => {
     const outcome = await replay([
       { name: 'open', action: 'goto', value: pageWith('<h1>Swapped</h1>') },

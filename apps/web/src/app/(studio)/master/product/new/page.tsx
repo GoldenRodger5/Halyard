@@ -28,6 +28,7 @@ interface DraftProduct {
   brand_tokens: Record<string, string>;
   connector_type: string;
   connector_config: Record<string, string>;
+  repo_config: Record<string, string>;
 }
 
 /**
@@ -49,7 +50,7 @@ export default async function NewProductPage({
   const product = sp.product
     ? await one<DraftProduct>(
         `select id, name, brief_markdown, brief_summary, brand_tokens, connector_type,
-                connector_config
+                connector_config, repo_config
            from products where id = $1`,
         [sp.product],
       )
@@ -290,7 +291,7 @@ export default async function NewProductPage({
                 {[
                   ['mcp', 'MCP server', 'Optional, and the richest option. The tool list is read as evidence of what the product actually does; an artifact adapter is needed on top of that before posts can be built around real product output.'],
                   ['rest', 'REST API', 'Any HTTP endpoint that returns product data.'],
-                  ['github', 'GitHub repository', 'No product API. Shipped features come from merged pull requests and releases.'],
+                  ['github', 'GitHub repository', 'Use the repository as the primary product-activity connector when there is no API. A repository can also be added below alongside MCP or REST.'],
                   ['none', 'None', 'Fully supported. The website, a store listing and your brief are still read as evidence; nothing tries to pull product output.'],
                 ].map(([value, label, why]) => (
                   <label
@@ -340,24 +341,43 @@ export default async function NewProductPage({
                       className="w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink"
                     />
                   </Field>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <Field label="GitHub owner">
-                      <input
-                        name="owner"
-                        defaultValue={product.connector_config?.owner ?? ''}
-                        className="w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink"
-                      />
-                    </Field>
-                    <Field label="GitHub repo">
-                      <input
-                        name="repo"
-                        defaultValue={product.connector_config?.repo ?? ''}
-                        className="w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink"
-                      />
-                    </Field>
-                  </div>
                 </div>
               </details>
+
+              <div className="rounded-lg border border-line p-3">
+                <p className="m-0 text-sm font-medium text-ink">Repository evidence</p>
+                <p className="m-0 mt-1 text-xs leading-relaxed text-muted">
+                  Recommended when the product has a GitHub repo. This is additive: MCP or REST can
+                  remain the live product-output connector while Halyard also reads shipped docs,
+                  routes/components and recent user-facing changes from the repository. Public repos
+                  need no token.
+                </p>
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  <Field label="GitHub owner">
+                    <input
+                      name="repo_owner"
+                      defaultValue={product.repo_config?.owner ?? product.connector_config?.owner ?? ''}
+                      className="w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink"
+                    />
+                  </Field>
+                  <Field label="GitHub repo">
+                    <input
+                      name="repo_name"
+                      defaultValue={product.repo_config?.repo ?? product.connector_config?.repo ?? ''}
+                      className="w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink"
+                    />
+                  </Field>
+                </div>
+                <div className="mt-3">
+                  <Field label="Private-repo token env var" hint="Optional for public repositories.">
+                    <input
+                      name="repo_token_env"
+                      defaultValue={product.repo_config?.token_env ?? 'GITHUB_TOKEN'}
+                      className="w-full rounded-lg border border-line bg-paper px-3 py-2 font-mono text-sm text-ink"
+                    />
+                  </Field>
+                </div>
+              </div>
 
               <Submit>Save and continue</Submit>
             </form>

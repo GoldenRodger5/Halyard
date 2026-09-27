@@ -198,6 +198,10 @@ export interface PublishResult {
    * Neither is `published`, and neither moves Halyard's own approval state.
    */
   mode: 'direct' | 'draft' | 'private';
+  /** The transport accepted the submission, but the platform has not confirmed a terminal outcome yet. */
+  pending?: boolean;
+  /** Provider/platform status observed at submission time, when asynchronous. */
+  providerStatus?: string | null;
   platformPostId?: string;
   permalink?: string;
   /** Deep link shown in the queue for draft mode: "finish in TikTok". */
@@ -207,6 +211,14 @@ export interface PublishResult {
   raw?: unknown;
   /** Set when the response could not be parsed — never retried (build pack §3). */
   malformedResponse?: boolean;
+}
+
+export interface DeliveryStatus {
+  state: 'pending' | 'scheduled' | 'published' | 'failed';
+  publicUrl?: string | null;
+  platformPostId?: string | null;
+  errorMessage?: string | null;
+  raw?: unknown;
 }
 
 export interface MetricSnapshot {
@@ -302,6 +314,13 @@ export interface PlatformAdapter {
    * that never appeared.
    */
   fetchStatus?(publishId: string, account: PublishAccount): Promise<string>;
+
+  /**
+   * Structured delivery status for asynchronous transports such as Blotato.
+   * A submission receipt is not a publication; callers use this to settle the
+   * transport before marking content live.
+   */
+  fetchDeliveryStatus?(submissionId: string, account: PublishAccount): Promise<DeliveryStatus>;
 
   /**
    * Read-only. Comments are surfaced in the inbox for a human to answer; there

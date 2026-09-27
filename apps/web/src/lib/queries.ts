@@ -305,6 +305,12 @@ export interface QueueItem {
   product_id: string;
   attached_asset_ids: string[];
   attached_urls: string[];
+  /** External visual producer state, when a launch draft opted into one. */
+  visual_provider: string | null;
+  visual_status: string | null;
+  visual_error: string | null;
+  blotato_visual_id: string | null;
+  blotato_template_id: string | null;
   /** §362. Why generation gave up, from `generation_meta`. Null when it did not. */
   failed_because: string | null;
   /**
@@ -428,6 +434,11 @@ const QUEUE_SELECT = `
          ci.generation_meta -> 'grounds' as grounds,
          -- §515. Whether the subject the operator typed reached the artifact.
          ci.generation_meta -> 'subject_unmatched' as subject_unmatched,
+         ci.generation_meta ->> 'visual_provider' as visual_provider,
+         ci.generation_meta ->> 'visual_status' as visual_status,
+         ci.generation_meta ->> 'visual_error' as visual_error,
+         ci.generation_meta ->> 'blotato_visual_id' as blotato_visual_id,
+         ci.generation_meta ->> 'blotato_template_id' as blotato_template_id,
          ci.reject_reason,
          -- §372. What this piece was staged from, so the review screen can show
          -- what it was meant to be beside what it became.

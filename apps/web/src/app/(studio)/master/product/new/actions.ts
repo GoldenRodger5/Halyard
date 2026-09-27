@@ -141,15 +141,32 @@ export async function saveConnector(formData: FormData): Promise<void> {
     config.base_url = String(formData.get('base_url') ?? '').trim();
     config.token_env =
       String(formData.get('token_env') ?? '').trim() || `${id.toUpperCase()}_API_TOKEN`;
-  } else if (type === 'github') {
-    config.owner = String(formData.get('owner') ?? '').trim();
-    config.repo = String(formData.get('repo') ?? '').trim();
-    config.token_env = String(formData.get('token_env') ?? '').trim() || 'GITHUB_TOKEN';
+  }
+
+  /*
+   * Repository evidence is independent from the product-output connector.
+   * RecipeFix, for example, legitimately has both an MCP surface and a GitHub
+   * repository; forcing one radio button to replace the other made the Brain
+   * blind to whichever source lost. Public repositories need no token.
+   */
+  const repoOwner = String(formData.get('repo_owner') ?? '').trim();
+  const repoName = String(formData.get('repo_name') ?? '').trim();
+  const repoConfig: Record<string, unknown> =
+    repoOwner && repoName
+      ? {
+          owner: repoOwner,
+          repo: repoName,
+          token_env: String(formData.get('repo_token_env') ?? '').trim() || 'GITHUB_TOKEN',
+        }
+      : {};
+
+  if (type === 'github') {
+    Object.assign(config, repoConfig);
   }
 
   await query(
     `update products set connector_type = $2, connector_config = $3, repo_config = $4 where id = $1`,
-    [id, type, config, type === 'github' ? config : {}],
+    [id, type, config, repoConfig],
   );
 
   redirect(`/master/product/new?product=${id}&step=5`);
@@ -168,7 +185,8 @@ export async function testConnector(formData: FormData): Promise<void> {
   const product = await one<{
     connector_type: string;
     connector_config: Record<string, string>;
-  }>('select connector_type, connector_config from products where id = $1', [id]);
+    repo_config: Record<string, string>;
+  }>('select connector_type, connector_config, repo_config from products where id = $1', [id]);
   if (!product) return;
 
   const config = product.connector_config ?? {};
@@ -205,24 +223,41 @@ export async function testConnector(formData: FormData): Promise<void> {
           : `failed: ${base} responded ${response.status}.`;
       }
     } else if (product.connector_type === 'github') {
-      const token = process.env[config.token_env ?? 'GITHUB_TOKEN'];
-      if (!token) {
-        result = `blocked: ${config.token_env ?? 'GITHUB_TOKEN'} is not set. A fine-grained token with read access to the repo is enough.`;
-      } else if (!config.owner || !config.repo) {
+      const repo = product.repo_config ?? config;
+      if (!repo.owner || !repo.repo) {
         result = 'blocked: owner and repo are both required.';
       } else {
         const connector = new GitHubConnector({
-          token,
-          config: { owner: config.owner, repo: config.repo },
+          token: process.env[repo.token_env ?? 'GITHUB_TOKEN'],
+          config: { owner: repo.owner, repo: repo.repo },
         });
-        const releases = await connector.listReleases(new Date(Date.now() - 365 * 86_400_000));
-        result = `ok: reached ${config.owner}/${config.repo} and found ${releases.length} releases in the last year.`;
+        const health = await connector.healthCheck();
+        result = health.ok
+          ? `ok: ${health.detail}`
+          : `failed: ${health.detail ?? 'repository could not be reached'}`;
       }
     } else {
       result = `unknown connector type "${product.connector_type}".`;
     }
   } catch (err) {
     result = `failed: ${(err as Error).message}`;
+  }
+
+  /* Test the additive repository even when MCP/REST is the primary connector. */
+  const repo = product.repo_config ?? {};
+  if (repo.owner && repo.repo && product.connector_type !== 'github') {
+    try {
+      const github = new GitHubConnector({
+        token: process.env[repo.token_env ?? 'GITHUB_TOKEN'],
+        config: { owner: repo.owner, repo: repo.repo },
+      });
+      const health = await github.healthCheck();
+      result += health.ok
+        ? ` Repository: ${health.detail}`
+        : ` Repository failed: ${health.detail ?? 'could not be reached'}.`;
+    } catch (err) {
+      result += ` Repository failed: ${(err as Error).message}.`;
+    }
   }
 
   await query(

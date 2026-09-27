@@ -24,6 +24,105 @@ async function audit(action: string, entityId: string, detail: Record<string, un
 }
 
 /**
+ * Opening-run review doubles as real voice calibration.
+ *
+ * The old onboarding flow generated twenty disposable drafts solely so the
+ * operator could rate them, while the actual launch batch was reviewed again
+ * later. A real approve/reject on a launch draft is stronger evidence: it is the
+ * exact content the operator is deciding whether to represent the product with.
+ * Only launch-batch items count here, and one content item can contribute at
+ * most one review because `calibration_reviews.content_item_id` is unique.
+ */
+async function recordLaunchCalibrationDecision(
+  id: string,
+  decision: 'approved' | 'rejected',
+  reason: string | null = null,
+): Promise<void> {
+  const item = await one<{
+    product_id: string;
+    platform: string;
+    persona: string;
+    category: string;
+    body: string;
+    original_body: string | null;
+    generation_meta: Record<string, unknown> | null;
+  }>(
+    `select product_id, platform, persona, category, body, original_body, generation_meta
+       from content_items where id = $1`,
+    [id],
+  );
+  if (!item || item.generation_meta?.source !== 'launch_batch') return;
+
+  const verdict =
+    decision === 'approved' && item.original_body && item.original_body !== item.body
+      ? 'edited'
+      : decision;
+  const inserted = await one<{ fresh: boolean }>(
+    `insert into calibration_reviews
+       (product_id, content_item_id, verdict, reason, edited_body)
+     values ($1,$2,$3,$4,$5)
+     on conflict (content_item_id) do update
+       set verdict = excluded.verdict, reason = excluded.reason,
+           edited_body = excluded.edited_body, reviewed_at = now()
+     returning (xmax = 0) as fresh`,
+    [
+      item.product_id,
+      id,
+      verdict,
+      reason,
+      verdict === 'edited' ? item.body : null,
+    ],
+  );
+
+  /* One positive example per item; repeated decisions update the verdict only. */
+  if (inserted?.fresh && (verdict === 'approved' || verdict === 'edited')) {
+    const opening = item.body.split(/[.!?]/)[0]?.trim();
+    if (opening) {
+      await query(
+        `insert into hooks (product_id, pattern, platform, category, source)
+         values ($1,$2,$3,$4,'calibration') on conflict do nothing`,
+        [item.product_id, opening, item.platform, item.category],
+      );
+    }
+    await query(
+      `update brand_voices
+          set examples = examples || $3::jsonb
+        where product_id = $1 and persona = $2`,
+      [
+        item.product_id,
+        item.persona,
+        JSON.stringify([{
+          platform: item.platform,
+          text: item.body,
+          why_good: verdict === 'edited' ? 'approved after operator edit in opening run' : 'approved in opening run',
+        }]),
+      ],
+    );
+  }
+
+  await query(
+    `update onboarding_state os
+        set calibration_reviewed = x.reviewed,
+            step_calibration_done = (x.reviewed >= os.calibration_target)
+       from (
+         select count(*)::int as reviewed
+           from calibration_reviews where product_id = $1
+       ) x
+      where os.product_id = $1`,
+    [item.product_id],
+  );
+  await query(
+    `update onboarding_state
+        set completed_at = case
+          when step_ingest_done and step_voice_done and step_calibration_done
+               and step_templates_done and step_accounts_done
+          then coalesce(completed_at, now()) else null end
+      where product_id = $1`,
+    [item.product_id],
+  );
+}
+
+/**
  * Approve. v1 §8 — every human approve/edit/reject is written to audit_log.
  * Approval schedules a publish job; it does not publish inline, because publish
  * belongs to the worker and its idempotency guard.
@@ -47,12 +146,32 @@ export async function approveItem(formData: FormData): Promise<void> {
     platform: string;
     tiktok_options: unknown;
     tiktok_creator_info: unknown;
+    generation_meta: Record<string, unknown> | null;
+    attached_asset_ids: string[];
   }>(
-    `select status, scheduled_at, platform, tiktok_options, tiktok_creator_info
+    `select status, scheduled_at, platform, tiktok_options, tiktok_creator_info,
+            generation_meta, attached_asset_ids
        from content_items where id = $1`,
     [id],
   );
   if (!item) return;
+
+  /*
+   * Paid external visual work is reviewed as the actual media, never as a
+   * promise that media will exist later. The Gallery also disables its button,
+   * but this server action is a public POST boundary and must enforce the same
+   * invariant itself.
+   */
+  if (
+    item.generation_meta?.visual_provider === 'blotato' &&
+    (item.generation_meta?.visual_status !== 'done' || (item.attached_asset_ids ?? []).length === 0)
+  ) {
+    await audit('approve_refused_missing_visual', id, {
+      visualStatus: item.generation_meta?.visual_status ?? null,
+    });
+    revalidatePath(`/gallery/${id}`);
+    return;
+  }
 
   /*
    * §179. TikTok cannot be approved on someone's behalf.
@@ -89,6 +208,7 @@ export async function approveItem(formData: FormData): Promise<void> {
     [id],
   );
   await audit('approve', id, { previousStatus: item.status });
+  await recordLaunchCalibrationDecision(id, 'approved');
 
   // If it is already due, hand it straight to the worker.
   if (item.scheduled_at && new Date(item.scheduled_at) <= new Date()) {
@@ -114,6 +234,7 @@ export async function rejectItem(formData: FormData): Promise<void> {
     reason || null,
   ]);
   await audit('reject', id, { reason });
+  await recordLaunchCalibrationDecision(id, 'rejected', reason || null);
 
   if (reason) {
     // Feed the rejection back into the voice as a negative example, so the same
@@ -356,6 +477,48 @@ export async function rescheduleItem(formData: FormData): Promise<void> {
   await audit('reschedule', id, { to: target.toISOString() });
   revalidatePath('/gallery');
   revalidatePath('/rundown');
+}
+
+/**
+ * Spend Blotato visual credits only after the operator has seen the copy brief.
+ *
+ * Launch generation deliberately stops at this boundary: the expensive visual
+ * is downstream of editorial acceptance, not a side effect of drafting. This
+ * action only queues the ordinary worker handler; it never generates media
+ * inline and it never publishes.
+ */
+export async function generateBlotatoVisual(formData: FormData): Promise<void> {
+  await requireOperator();
+  const id = String(formData.get('id'));
+  const item = await one<{
+    status: string;
+    generation_meta: Record<string, unknown> | null;
+    attached_asset_ids: string[];
+  }>(
+    `select status, generation_meta, attached_asset_ids from content_items where id = $1`,
+    [id],
+  );
+  if (!item || item.generation_meta?.visual_provider !== 'blotato') return;
+  if (item.generation_meta?.visual_status === 'done' && (item.attached_asset_ids ?? []).length > 0) {
+    return;
+  }
+  if (['published', 'publishing', 'approved', 'scheduled'].includes(item.status)) return;
+
+  await query(
+    `update content_items
+        set generation_meta = generation_meta || $2::jsonb,
+            status = case when status = 'failed' then 'pending_approval' else status end
+      where id = $1`,
+    [id, { visual_status: 'queued', visual_error: null, visual_approved_at: new Date().toISOString() }],
+  );
+  await query(
+    `insert into jobs (kind, payload, priority, dedupe_key)
+     values ('generate_external_visual', $1, 45, $2) on conflict do nothing`,
+    [{ contentItemId: id }, `generate_external_visual:${id}`],
+  );
+  await audit('blotato_visual_generation_approved', id, {});
+  revalidatePath(`/gallery/${id}`);
+  revalidatePath('/gallery');
 }
 
 /** Retry a failed render (build pack §3). */

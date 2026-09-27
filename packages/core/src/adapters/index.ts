@@ -145,6 +145,7 @@ export function adapterForAccount(
     provider_account_id?: string | null;
   },
   capabilities?: ProviderCapabilities | null,
+  options: { allowUnverifiedFirstContact?: boolean } = {},
 ): PlatformAdapter {
   const direct = getAdapter(account.platform);
   if (account.transport !== 'unified') return direct;
@@ -165,6 +166,7 @@ export function adapterForAccount(
     // ratios and link strategy are facts about the platform, not the transport.
     constraints: direct.constraints,
     capabilities,
+    allowUnverifiedFirstContact: options.allowUnverifiedFirstContact === true,
   });
 }
 

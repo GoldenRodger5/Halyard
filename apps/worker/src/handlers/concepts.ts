@@ -32,6 +32,7 @@ import {
 } from '@halyard/core';
 import type { JobHandler } from '../poller.js';
 import { recordingClient } from '../agentRuns.js';
+import { buildProductMarketingContext } from '../productContext.js';
 
 /** How many directions to ask for. The scorer discards most. */
 const BATCH_SIZE = 4;
@@ -49,6 +50,11 @@ export const generateConceptsHandler: JobHandler = async (job, ctx) => {
     )
   ).rows[0];
   if (!product) return;
+  const productContext = await buildProductMarketingContext(
+    ctx.pool,
+    productId,
+    product.brief_summary,
+  );
 
   /* The subject. An idea if there is one, otherwise what the operator asked. */
   const idea = ideaId
@@ -116,7 +122,7 @@ export const generateConceptsHandler: JobHandler = async (job, ctx) => {
     {
       intent,
       productName: product.name,
-      productBrief: product.brief_summary ?? product.name,
+      productBrief: productContext || product.name,
       verifiedFacts: facts.rows.map((f) => (f.detail ? `${f.value} — ${f.detail}` : f.value)),
       platforms: accounts.rows.map((a) => a.platform),
       recentTreatments,

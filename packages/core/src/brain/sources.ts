@@ -55,6 +55,8 @@ export interface SourceDiscoveryInput {
   brief_markdown?: string | null;
   connector_type?: 'mcp' | 'rest' | 'github' | 'none' | null;
   connector_config?: Record<string, unknown> | null;
+  /** Repository evidence is additive to the product connector (for example MCP + GitHub). */
+  repo_config?: Record<string, unknown> | null;
   destinations?: { web?: string; app_store?: string } | null;
   website_url?: string | null;
   app_store_url?: string | null;
@@ -130,22 +132,30 @@ export function discoverEvidenceSources(
   }
 
   // ── Repository ───────────────────────────────────────────────────────────
-  const repoConfigured =
-    product.connector_type === 'github' &&
-    typeof config.owner === 'string' &&
-    config.owner.length > 0 &&
-    typeof config.repo === 'string' &&
-    config.repo.length > 0 &&
-    Boolean(env[String(config.token_env ?? 'GITHUB_TOKEN')]);
+  //
+  // A repository is evidence, not the product connector. Keeping it separate
+  // is what lets a product expose an MCP server *and* let Halyard inspect the
+  // code that shipped it. Older rows stored GitHub in connector_config, so use
+  // that as a compatibility fallback.
+  const repoConfig =
+    product.repo_config && Object.keys(product.repo_config).length > 0
+      ? product.repo_config
+      : product.connector_type === 'github'
+        ? config
+        : {};
+  const repoOwner = typeof repoConfig.owner === 'string' ? repoConfig.owner : '';
+  const repoName = typeof repoConfig.repo === 'string' ? repoConfig.repo : '';
+  const repoTokenEnv = String(repoConfig.token_env ?? 'GITHUB_TOKEN');
+  const repoConfigured = repoOwner.length > 0 && repoName.length > 0;
+  const hasRepoToken = Boolean(env[repoTokenEnv]);
+
   sources.push({
     id: 'github',
     label: LABELS.github,
     configured: repoConfigured,
     detail: repoConfigured
-      ? `Reading ${String(config.owner)}/${String(config.repo)}`
-      : product.connector_type === 'github'
-        ? 'Owner, repo and a token are all needed before a repository can be read.'
-        : 'Optional. Shipped features come from merged pull requests when there is no product API.',
+      ? `Reading ${repoOwner}/${repoName}${hasRepoToken ? ` with ${repoTokenEnv}` : ' anonymously if it is public'}`
+      : 'Optional. Add a GitHub owner and repository. Public repositories need no token; private repositories do.',
     evidenceKind: 'repository',
     agent: 'code-intelligence',
   });

@@ -36,6 +36,7 @@ import { formatInOperatorTz } from '@/lib/format';
 import {
   adjustItem,
   approveItem,
+  generateBlotatoVisual,
   markManuallyPublished,
   markOverflowPosted,
   rejectItem,
@@ -99,7 +100,16 @@ export default async function GalleryPiece({ params }: { params: Promise<{ id: s
 
   const rendering = item.render_total > 0 && item.render_done < item.render_total;
   const renderFailed = item.render_failed > 0;
-  const canApprove = item.status === 'pending_approval' && !rendering && !renderFailed;
+  const needsExternalVisual =
+    item.visual_provider === 'blotato' &&
+    (item.visual_status !== 'done' || item.attached_asset_ids.length === 0);
+  const visualInFlight =
+    item.visual_provider === 'blotato' &&
+    ['queued', 'submitted', 'queueing', 'generating-script', 'script-ready', 'generating-media', 'media-ready', 'exporting'].includes(
+      item.visual_status ?? '',
+    );
+  const canApprove =
+    item.status === 'pending_approval' && !rendering && !renderFailed && !needsExternalVisual;
 
   /*
    * The shape decides which adjustments are on offer. Read from the piece
@@ -600,6 +610,34 @@ export default async function GalleryPiece({ params }: { params: Promise<{ id: s
           ) : null}
         </Sheet>
 
+        {item.visual_provider === 'blotato' && needsExternalVisual ? (
+          <Sheet tone={item.visual_error ? 'onair' : 'cool'}>
+            <Label>{item.visual_error ? 'Blotato visual needs another try' : 'Visual not generated yet'}</Label>
+            <p className="m-0 text-xs leading-relaxed text-quiet">
+              The copy is ready for review first. Generating the media uses Blotato AI credits, so
+              Halyard waits for you here instead of spending credits on a concept you might reject.
+              Final approval stays locked until the returned media exists and has been reviewed.
+            </p>
+            <p className="m-0 mt-1 font-data text-[10px] uppercase tracking-[0.07em] text-quiet">
+              {item.visual_status ? `Blotato: ${item.visual_status}` : 'Blotato: waiting for approval'}
+              {item.blotato_template_id ? ` · template ${item.blotato_template_id}` : ''}
+            </p>
+            {item.visual_error ? (
+              <p className="m-0 mt-2 text-xs leading-relaxed text-onair">{item.visual_error}</p>
+            ) : null}
+            <form action={generateBlotatoVisual} className="mt-2.5">
+              <input type="hidden" name="id" value={item.id} />
+              <Action tone="brass" small disabled={visualInFlight}>
+                {visualInFlight
+                  ? 'Blotato is generating…'
+                  : item.visual_error
+                    ? 'Try Blotato visual again'
+                    : 'Generate Blotato visual'}
+              </Action>
+            </form>
+          </Sheet>
+        ) : null}
+
         {renderFailed ? (
           <Sheet tone="onair">
             <Label>A render failed</Label>
@@ -625,7 +663,9 @@ export default async function GalleryPiece({ params }: { params: Promise<{ id: s
                   title={
                     canApprove
                       ? 'Approve and schedule'
-                      : 'Approving a description of an asset is not approval — this is waiting on its render.'
+                      : needsExternalVisual
+                        ? 'Generate and review the Blotato visual before approving this piece.'
+                        : 'Approving a description of an asset is not approval — this is waiting on its render.'
                   }
                 >
                   Approve

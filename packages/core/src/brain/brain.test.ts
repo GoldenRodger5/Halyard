@@ -31,6 +31,8 @@ import {
   collectAppStoreEvidence,
   collectConnectorSurface,
   collectBriefEvidence,
+  repositoryTreeBody,
+  selectRepositoryEvidencePaths,
 } from './collect.js';
 import {
   MAX_VALUE_CHARS,
@@ -584,6 +586,29 @@ describe('collection observes and does not interpret', () => {
       },
     });
     expect(collected).toEqual([]);
+  });
+
+  it('selects product-truth repository docs ahead of arbitrary files', () => {
+    const paths = selectRepositoryEvidencePaths([
+      { path: 'src/components/Button.tsx', type: 'blob', size: 1000 },
+      { path: 'docs/STATUS.md', type: 'blob', size: 1000 },
+      { path: 'docs/FEATURE_INVENTORY.md', type: 'blob', size: 1000 },
+      { path: 'README.md', type: 'blob', size: 1000 },
+      { path: 'package.json', type: 'blob', size: 1000 },
+    ]);
+    expect(paths.slice(0, 3)).toEqual(['README.md', 'docs/FEATURE_INVENTORY.md', 'docs/STATUS.md']);
+    expect(paths).not.toContain('src/components/Button.tsx');
+  });
+
+  it('keeps the repository tree as bounded structural evidence', () => {
+    const body = repositoryTreeBody([
+      { path: 'src/app/page.tsx', type: 'blob' },
+      { path: 'src/app/pricing/page.tsx', type: 'blob' },
+      { path: 'src/app', type: 'tree' },
+    ]);
+    expect(body).toContain('src/app/page.tsx');
+    expect(body).toContain('src/app/pricing/page.tsx');
+    expect(body).not.toMatch(/^src\/app$/m);
   });
 
   it('treats the operator brief as evidence rather than ground truth', () => {

@@ -216,12 +216,10 @@ describe('buildTarget', () => {
     expect(buildTarget('x', item(), account()).targetType).toBe('twitter');
   });
 
-  it('sends TikTok to drafts even when public posting is verified', () => {
-    // Not a limitation being worked around. No API can attach trending audio,
-    // so a hand-finished post outperforms an automated one.
+  it('publishes TikTok publicly when the unified transport is verified', () => {
     const target = buildTarget('tiktok', item({ platform: 'tiktok', format: 'video' }), account());
-    expect(target.isDraft).toBe(true);
-    expect(target.privacyLevel).toBe('SELF_ONLY');
+    expect(target.isDraft).toBeUndefined();
+    expect(target.privacyLevel).toBe('PUBLIC_TO_EVERYONE');
   });
 
   it('carries the AI label through to TikTok', () => {
@@ -239,16 +237,20 @@ describe('buildTarget', () => {
     );
   });
 
-  it('keeps YouTube private until the compliance audit is recorded as passed', () => {
-    const unaudited = buildTarget('youtube', item({ platform: 'youtube', format: 'video' }), account());
-    expect(unaudited.privacyStatus).toBe('private');
+  it('does not inherit the direct YouTube app audit state into Blotato', () => {
+    const unauditedDirectApp = buildTarget(
+      'youtube',
+      item({ platform: 'youtube', format: 'video' }),
+      account(),
+    );
+    expect(unauditedDirectApp.privacyStatus).toBe('public');
 
-    const audited = buildTarget(
+    const auditedDirectApp = buildTarget(
       'youtube',
       item({ platform: 'youtube', format: 'video' }),
       account({ meta: { providerAccountId: 'x', complianceAuditPassed: true } }),
     );
-    expect(audited.privacyStatus).toBe('public');
+    expect(auditedDirectApp.privacyStatus).toBe('public');
   });
 
   it('marks a video as a reel, singular, which is the only value the API takes', () => {
@@ -294,7 +296,7 @@ describe('buildTarget', () => {
     ]) {
       expect(target[key], `TikTok target is missing ${key}`).toBeTypeOf('boolean');
     }
-    expect(target.privacyLevel).toBe('SELF_ONLY');
+    expect(target.privacyLevel).toBe('PUBLIC_TO_EVERYONE');
   });
 
   it('always gives Pinterest a title, which the API requires and search needs', () => {
@@ -307,9 +309,9 @@ describe('buildTarget', () => {
     expect(String(target.title).length).toBeLessThanOrEqual(100);
   });
 
-  it('tells YouTube not to notify subscribers about a private upload', () => {
+  it('publishes through Blotato publicly without inheriting the direct adapter audit state', () => {
     const target = buildTarget('youtube', item({ platform: 'youtube', format: 'video' }), account());
-    expect(target.privacyStatus).toBe('private');
+    expect(target.privacyStatus).toBe('public');
     expect(target.shouldNotifySubscribers).toBe(false);
   });
 });
@@ -321,6 +323,7 @@ describe('UnifiedAdapter.publish', () => {
     platform: 'x' | 'tiktok' | 'instagram',
     capabilities: ProviderCapabilities,
     respond: (url: string, calls: Recorded[]) => Response,
+    options: { allowUnverifiedFirstContact?: boolean } = {},
   ) => {
     const { fetchImpl, calls } = scriptedFetch(respond);
     const constraints = {
@@ -335,6 +338,7 @@ describe('UnifiedAdapter.publish', () => {
         capabilities,
         apiKey: 'key-123',
         fetchImpl,
+        allowUnverifiedFirstContact: options.allowUnverifiedFirstContact,
       }),
       calls,
     };
@@ -348,6 +352,38 @@ describe('UnifiedAdapter.publish', () => {
       /never been verified/,
     );
     // The important half: it did not try first and ask questions later.
+    expect(calls).toHaveLength(0);
+  });
+
+  it('allows one explicitly armed first contact to settle an unknown transport', async () => {
+    const { adapter, calls } = adapterFor(
+      'instagram',
+      unverified('blotato', ['instagram']),
+      () => json({ postSubmissionId: 'first-real-post' }),
+      { allowUnverifiedFirstContact: true },
+    );
+    const result = await adapter.publish(
+      item({ platform: 'instagram', format: 'image' }),
+      [],
+      account({ platform: 'instagram' }),
+    );
+    expect(result.pending).toBe(true);
+    expect(result.platformPostId).toBe('first-real-post');
+    expect(calls).toHaveLength(1);
+  });
+
+  it('first contact never overrides a capability already observed as no', async () => {
+    const caps = unverified('blotato', ['instagram']);
+    caps.platforms.instagram!.publish = 'no';
+    const { adapter, calls } = adapterFor(
+      'instagram',
+      caps,
+      () => json({ postSubmissionId: 'should-never-happen' }),
+      { allowUnverifiedFirstContact: true },
+    );
+    await expect(
+      adapter.publish(item({ platform: 'instagram' }), [], account({ platform: 'instagram' })),
+    ).rejects.toThrow(/cannot publish/);
     expect(calls).toHaveLength(0);
   });
 
@@ -404,6 +440,7 @@ describe('UnifiedAdapter.publish', () => {
     );
     const result = await adapter.publish(item(), [], account());
     expect(result.platformPostId).toBe('post-1');
+    expect(result.pending).toBe(true);
     expect(calls).toHaveLength(1);
   });
 
@@ -441,7 +478,7 @@ describe('UnifiedAdapter.publish', () => {
     expect(result.manualPublishUrl).toBeTruthy();
   });
 
-  it('reports TikTok as a draft even when the provider posts publicly elsewhere', async () => {
+  it('keeps a public TikTok submission pending until Blotato settles it', async () => {
     const { adapter } = adapterFor('tiktok', verifiedFor('tiktok'), () =>
       json({ postSubmissionId: 'post-9' }),
     );
@@ -450,7 +487,9 @@ describe('UnifiedAdapter.publish', () => {
       [],
       account({ platform: 'tiktok' }),
     );
-    expect(result.mode).toBe('draft');
+    expect(result.mode).toBe('direct');
+    expect(result.pending).toBe(true);
+    expect(result.providerStatus).toBe('submitted');
   });
 });
 
@@ -483,6 +522,45 @@ describe('UnifiedAdapter.verifyCapabilities', () => {
   it('reports live only on a verified public post', async () => {
     const report = await build(verifiedFor('instagram')).verifyCapabilities(account());
     expect(report.state).toBe('live');
+  });
+});
+
+// ── asynchronous delivery settlement ───────────────────────────────────────
+
+describe('UnifiedAdapter.fetchDeliveryStatus', () => {
+  const build = (body: unknown) =>
+    new UnifiedAdapter({
+      platform: 'instagram',
+      constraints: INSTAGRAM_CONSTRAINTS,
+      capabilities: verifiedFor('instagram'),
+      apiKey: 'key-123',
+      fetchImpl: scriptedFetch(() => json(body)).fetchImpl,
+    });
+
+  it('does not confuse a processing submission with a published post', async () => {
+    const status = await build({ status: 'processing' }).fetchDeliveryStatus('sub-1', account());
+    expect(status.state).toBe('pending');
+  });
+
+  it('returns the provider public URL only after published', async () => {
+    const status = await build({
+      status: 'published',
+      publicUrl: 'https://www.instagram.com/p/abc/',
+    }).fetchDeliveryStatus('sub-1', account());
+    expect(status.state).toBe('published');
+    expect(status.publicUrl).toBe('https://www.instagram.com/p/abc/');
+  });
+
+  it('preserves a provider failure instead of retrying the create call', async () => {
+    const status = await build({ status: 'failed', errorMessage: 'Video rejected.' })
+      .fetchDeliveryStatus('sub-1', account());
+    expect(status.state).toBe('failed');
+    expect(status.errorMessage).toContain('Video rejected');
+  });
+
+  it('keeps a scheduled submission distinct from published', async () => {
+    const status = await build({ status: 'scheduled' }).fetchDeliveryStatus('sub-1', account());
+    expect(status.state).toBe('scheduled');
   });
 });
 

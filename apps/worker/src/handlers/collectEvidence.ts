@@ -15,6 +15,7 @@
  * within a week — the exact "green means nothing" failure the Auditor exists to
  * catch, arriving through the front door.
  */
+import { execFileSync } from 'node:child_process';
 import {
   collectAppStoreEvidence,
   discoverEvidenceSources,
@@ -23,7 +24,11 @@ import {
   collectConnectorSurface,
   collectWebEvidence,
   createConnector,
+  GitHubConnector,
+  looksLikeFeature,
   hashContent,
+  repositoryTreeBody,
+  selectRepositoryEvidencePaths,
   type CollectedEvidence,
 } from '@halyard/core';
 import type { HandlerContext, Job } from '../poller.js';
@@ -34,6 +39,7 @@ interface ProductRow {
   brief_markdown: string | null;
   connector_type: 'mcp' | 'rest' | 'github' | 'none';
   connector_config: Record<string, unknown>;
+  repo_config: Record<string, unknown>;
   destinations: { web?: string; app_store?: string } | null;
   website_url: string | null;
   app_store_url: string | null;
@@ -97,6 +103,35 @@ async function supersedeOlder(
   );
 }
 
+/**
+ * Resolve a GitHub credential without ever logging it.
+ *
+ * Cloud workers use the configured environment variable. On a founder's local
+ * machine, `gh auth login` is already the durable credential store, so a rescan
+ * can reuse that login rather than requiring the same secret to be copied into
+ * another plaintext file. A machine with neither simply attempts public access
+ * and reports the private-repo 404 honestly.
+ */
+export function localGitHubToken(
+  tokenEnv: string,
+  env: NodeJS.ProcessEnv = process.env,
+): string | undefined {
+  const configured = env[tokenEnv]?.trim();
+  if (configured) return configured;
+  if (env.CI || env.VERCEL || env.RAILWAY_ENVIRONMENT || env.RENDER) return undefined;
+
+  try {
+    const token = execFileSync('gh', ['auth', 'token'], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+      timeout: 3_000,
+    }).trim();
+    return token || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 interface ScreenshotRow {
   id: string;
   alt_text: string | null;
@@ -110,7 +145,7 @@ export async function collectEvidenceHandler(job: Job, ctx: HandlerContext): Pro
   if (!productId) throw new Error('collect_product_evidence job has no productId');
 
   const { rows } = await ctx.pool.query<ProductRow>(
-    `select id, name, brief_markdown, connector_type, connector_config,
+    `select id, name, brief_markdown, connector_type, connector_config, repo_config,
             destinations, website_url, app_store_url
        from products where id = $1`,
     [productId],
@@ -223,6 +258,102 @@ export async function collectEvidenceHandler(job: Job, ctx: HandlerContext): Pro
     }
   } else {
     outcomes.mcp = 'not configured';
+  }
+
+  // ── Repository: implementation truth + the shipped surface ───────────────
+  //
+  // Repository evidence is additive. A product may expose MCP for real product
+  // output and still have a repository that says what shipped. The recursive
+  // tree gives Code Intelligence the complete component/route surface; a small
+  // set of high-value docs is then read in full, plus recent user-facing PRs.
+  if (configured.has('github')) {
+    const repoConfig =
+      product.repo_config && Object.keys(product.repo_config).length > 0
+        ? product.repo_config
+        : product.connector_type === 'github'
+          ? product.connector_config
+          : {};
+    const owner = String(repoConfig.owner ?? '');
+    const repo = String(repoConfig.repo ?? '');
+    const tokenEnv = String(repoConfig.token_env ?? 'GITHUB_TOKEN');
+
+    try {
+      const github = new GitHubConnector({
+        token: localGitHubToken(tokenEnv),
+        config: { owner, repo },
+      });
+      const info = await github.getRepositoryInfo();
+      const tree = await github.listTree(info.defaultBranch);
+      const treeBody = repositoryTreeBody(tree);
+      if (treeBody) {
+        collected.push({
+          kind: 'repository',
+          sourceUrl: `https://github.com/${owner}/${repo}/tree/${info.defaultBranch}`,
+          contentHash: hashContent(owner, repo, info.defaultBranch, treeBody),
+          title: `${info.fullName} repository tree`,
+          body: treeBody,
+          meta: { defaultBranch: info.defaultBranch, private: info.private, files: tree.length },
+          collector: 'github',
+        });
+      }
+
+      const selected = selectRepositoryEvidencePaths(tree);
+      let filesRead = 0;
+      for (const path of selected) {
+        const body = await github.readTextFile(path, info.defaultBranch);
+        if (!body?.trim()) continue;
+        filesRead += 1;
+        collected.push({
+          kind: 'repository',
+          sourceUrl: `https://github.com/${owner}/${repo}/blob/${info.defaultBranch}/${path}`,
+          contentHash: hashContent(owner, repo, info.defaultBranch, path, body.slice(0, 20_000)),
+          title: path,
+          body: body.slice(0, 20_000),
+          meta: { defaultBranch: info.defaultBranch, path },
+          collector: 'github',
+        });
+      }
+
+      // Anonymous GitHub reads are limited to 60 requests/hour, and each PR
+      // needs one extra call for its changed files. Public repositories do not
+      // need a token, but an unauthenticated rescan must stay comfortably under
+      // that ceiling instead of consuming the whole hour in one click.
+      const pullLimit = process.env[tokenEnv] ? 50 : 12;
+      const pulls = await github.listMergedPullRequests(
+        new Date(Date.now() - 120 * 86_400_000),
+        pullLimit,
+      );
+      const featurePulls = pulls.filter((pull) => looksLikeFeature(pull)).slice(0, 30);
+      if (featurePulls.length > 0) {
+        const body = featurePulls
+          .map((pull) =>
+            [
+              pull.title,
+              (pull.body ?? '').slice(0, 1_500),
+              `changed: ${pull.files.slice(0, 20).join(', ')}`,
+              `merged: ${pull.mergedAt.toISOString()}`,
+            ].filter(Boolean).join('\n'),
+          )
+          .join('\n\n---\n\n')
+          .slice(0, 20_000);
+        collected.push({
+          kind: 'repository',
+          sourceUrl: `https://github.com/${owner}/${repo}/pulls?q=is%3Apr+is%3Amerged`,
+          contentHash: hashContent(owner, repo, body),
+          title: `${info.fullName} recent shipped work`,
+          body,
+          meta: { mergedPulls: featurePulls.length },
+          collector: 'github',
+        });
+      }
+
+      outcomes.github = `${tree.length} paths indexed · ${filesRead} files read · ${featurePulls.length} recent feature PRs`;
+    } catch (err) {
+      outcomes.github = `unavailable — ${(err as Error).message}`;
+      ctx.log('repository evidence unavailable', { productId, why: (err as Error).message });
+    }
+  } else {
+    outcomes.github = 'not configured';
   }
 
   // ── The operator's brief ─────────────────────────────────────────────────

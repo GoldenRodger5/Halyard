@@ -28,6 +28,7 @@ import {
   type SlopPlatform,
 } from '@halyard/core';
 import type { Job, HandlerContext } from '../poller.js';
+import { buildProductMarketingContext, verifyClaimsAgainstProductBrain } from '../productContext.js';
 import { notify } from './publish.js';
 import { routeToBoard } from './boards.js';
 
@@ -41,7 +42,7 @@ interface SlotRow {
   format: string;
   category: string;
   body: string;
-  generation_meta: { purpose?: string; intent?: string };
+  generation_meta: { purpose?: string; intent?: string; visual_provider?: string };
 }
 
 export async function fillCampaignSlot(
@@ -120,6 +121,11 @@ export async function fillCampaignSlot(
   }>('select * from products where id = $1', [slot.product_id]);
   const product = productRows[0];
   if (!product) return;
+  const productContext = await buildProductMarketingContext(
+    ctx.pool,
+    slot.product_id,
+    product.brief_summary ?? product.brief_markdown,
+  );
 
   const { rows: voiceRows } = await ctx.pool.query<{
     display_name: string;
@@ -194,7 +200,7 @@ export async function fillCampaignSlot(
         examples: voice.examples ?? [],
         antiExamples: voice.anti_examples ?? [],
       },
-      productBrief: product.brief_summary ?? product.brief_markdown ?? product.name,
+      productBrief: productContext || product.name,
       contentRules: {
         forbiddenClaims: product.content_rules?.forbidden_claims,
         bannedPhrases: product.content_rules?.banned_phrases,
@@ -241,6 +247,30 @@ export async function fillCampaignSlot(
     },
   });
 
+  /*
+   * Non-artifact product claims are grounded in the Product Brain rather than
+   * silently skipped. The writer cites stable FACT:<category>:<key> tokens;
+   * code resolves those tokens to fresh verified rows. Editorial promises are
+   * warnings, unresolved/invented fact sources are failures.
+   */
+  if (!artifact && draft.claims.length > 0) {
+    const brainClaims = await verifyClaimsAgainstProductBrain(
+      ctx.pool,
+      product.id,
+      draft.claims,
+    );
+    const needsReview = brainClaims.checks.some((check) => check.verdict === 'needs_review');
+    const claimGate = {
+      gate: 'claims' as const,
+      status: !brainClaims.passed ? ('failed' as const) : needsReview ? ('warning' as const) : ('passed' as const),
+      summary: brainClaims.summary,
+      detail: brainClaims,
+      examined: brainClaims.checks.length,
+    };
+    qc.gates = qc.gates.map((gate) => (gate.gate === 'claims' ? claimGate : gate));
+    if (!brainClaims.passed) qc.passed = false;
+  }
+
   await ctx.pool.query(
     `update content_items
         set body = $2, title = $3, alt_text = $4, hashtags = $5,
@@ -264,12 +294,26 @@ export async function fillCampaignSlot(
       destination.blockedBy
         ? `${destination.reason} ${destination.blockedBy}`
         : destination.reason,
-      // QC failures never reach the approval queue, here as anywhere else.
+      /*
+       * Blotato visual generation spends credits. Put the *copy* in Holding so
+       * the operator can reject/edit the idea before any paid media call. The
+       * Gallery disables final approval until the visual exists and offers the
+       * explicit Generate visual action instead.
+       */
       qc.passed ? 'pending_approval' : 'failed',
       board?.boardId ?? null,
       board?.reason ?? null,
     ],
   );
+
+  if (qc.passed && slot.generation_meta?.visual_provider === 'blotato') {
+    await ctx.pool.query(
+      `update content_items
+          set generation_meta = generation_meta || $2::jsonb
+        where id = $1`,
+      [slot.id, JSON.stringify({ visual_status: 'awaiting_operator_approval' })],
+    );
+  }
 
   // The idea is consumed only once something was actually written from it.
   if (idea) {

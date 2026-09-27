@@ -31,7 +31,8 @@ interface AccountRow {
 export async function buildLaunchPlan(
   productId: string,
   days: number,
-): Promise<{ plan: LaunchBatchPlan; accounts: AccountRow[] }> {
+  requestedStartDate?: string,
+): Promise<{ plan: LaunchBatchPlan; accounts: AccountRow[]; startDate: string; timeZone: string }> {
   // A server action is a public POST endpoint, whatever its signature. The
   // `(dashboard)` layout guards rendering and never runs for an invocation.
   await requireOperator();
@@ -41,13 +42,25 @@ export async function buildLaunchPlan(
     [productId],
   );
   const timeZone = product?.audience_timezone ?? 'UTC';
+  const startDate = /^\d{4}-\d{2}-\d{2}$/.test(requestedStartDate ?? '')
+    ? requestedStartDate!
+    : localDateString(new Date(), timeZone);
 
   const accounts = await query<AccountRow>(
-    // The outer parentheses are load-bearing: AND binds tighter than OR, so
-    // without them the capability filter applies only to the founder branch.
+    /*
+     * Plan against an identity Halyard can actually reach, not the state of one
+     * transport. A Blotato-mapped Threads account can carry a draft even while
+     * the bespoke Threads OAuth row is `pending_auth`; conversely, a row marked
+     * `live` with neither a direct credential nor a provider mapping is not a
+     * usable identity and must not consume launch slots.
+     *
+     * Publication remains separately fail-closed. This query only decides what
+     * content is worth preparing for review.
+     */
     `select id, platform, persona, supported_formats from social_accounts
       where ((persona = 'brand' and product_id = $1) or persona = 'founder')
-        and capability_state in ('live', 'draft_only')
+        and capability_state <> 'disabled'
+        and (access_token_enc is not null or provider_account_id is not null)
       order by (persona = 'brand') desc, platform`,
     [productId],
   );
@@ -106,7 +119,7 @@ export async function buildLaunchPlan(
   );
 
   const plan = planLaunchBatch({
-    startDate: localDateString(new Date(), timeZone),
+    startDate,
     days,
     audienceTimeZone: timeZone,
     accounts: accounts.map((account) => ({
@@ -126,7 +139,7 @@ export async function buildLaunchPlan(
     })),
   });
 
-  return { plan, accounts };
+  return { plan, accounts, startDate, timeZone };
 }
 
 /**
@@ -154,8 +167,9 @@ export async function generateLaunchBatch(formData: FormData): Promise<void> {
    */
   const productId = String(formData.get('productId') ?? formData.get('product') ?? '');
   const days = Math.min(28, Math.max(1, Number(formData.get('days') ?? 14)));
+  const startDate = String(formData.get('startDate') ?? '').trim() || undefined;
 
-  const { plan, accounts } = await buildLaunchPlan(productId, days);
+  const { plan, accounts } = await buildLaunchPlan(productId, days, startDate);
   const placed = plan.slots.filter((slot) => !slot.deferred && slot.scheduledAt);
 
   if (placed.length === 0) {
@@ -197,16 +211,18 @@ export async function generateLaunchBatch(formData: FormData): Promise<void> {
           source: LAUNCH_SOURCE,
           purpose: slot.purpose,
           key: slot.key,
+          concept_key: slot.conceptKey,
           slot_name: slot.slotName,
           reason: slot.reason,
-          // The introduction is the one post whose job is fixed, so it carries
-          // its own instruction rather than taking an idea from the queue.
-          intent:
-            slot.purpose === 'introduction'
-              ? 'Introduce this account. What it is, who it is for, and what to expect from it. ' +
-                'Not a launch announcement. An explanation of a standing thing, written so somebody ' +
-                'who finds it in three months still understands what they are looking at.'
-              : undefined,
+          ...((['instagram', 'tiktok', 'youtube'].includes(slot.platform) &&
+          ['carousel', 'video'].includes(slot.format)) ||
+          (slot.platform === 'pinterest' && slot.format === 'pin')
+            ? { visual_provider: 'blotato' }
+            : {}),
+          // Several placements can share this intent. The copywriter still gets
+          // the destination platform and format, so reuse means one coordinated
+          // idea with native variants — never one caption pasted everywhere.
+          intent: slot.conceptIntent,
         },
       ],
     );

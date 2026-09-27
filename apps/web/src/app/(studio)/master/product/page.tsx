@@ -17,7 +17,7 @@ import { Action, Label, Sheet, Tally, cx } from '@halyard/ui/studio';
 import { Deeper } from '@/components/studio/Deeper';
 import { getCategorySummary, getFacts } from '@/lib/brainQueries';
 import { getCurrentProduct } from '@/lib/queries';
-import { collectEvidence, rebuildBrain } from '@/app/(studio)/master/product/actions';
+import { collectEvidence, rebuildBrain, rescanProduct } from '@/app/(studio)/master/product/actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -70,17 +70,26 @@ export default async function TheProduct() {
           )}
         </p>
         <div className="mt-2.5 flex flex-wrap gap-2">
+          <form action={rescanProduct}>
+            <input type="hidden" name="productId" value={product.id} />
+            <Action tone="brass" small>
+              Rescan product
+            </Action>
+          </form>
           <form action={collectEvidence}>
             <input type="hidden" name="productId" value={product.id} />
-            <Action tone={facts.length === 0 ? 'brass' : 'ghost'} small>
-              Collect evidence
-            </Action>
+            <Action tone="ghost" small>Collect evidence only</Action>
           </form>
           <form action={rebuildBrain}>
             <input type="hidden" name="productId" value={product.id} />
-            <Action tone="ghost" small>Rebuild from evidence</Action>
+            <Action tone="ghost" small>Rebuild from stored evidence</Action>
           </form>
         </div>
+        <p className="m-0 mt-2 max-w-[74ch] text-[11.5px] leading-relaxed text-quiet">
+          Rescan re-reads the configured website, App Store, MCP/API and repository, walks the
+          live product for replayable features, checks release drift, then rebuilds the Brain from
+          current evidence. It does not create or publish social content.
+        </p>
       </Sheet>
 
       {summary.length > 0 ? (

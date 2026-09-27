@@ -62,7 +62,7 @@ describe('discoverEvidenceSources', () => {
     expect(byId(sources, 'mcp').configured).toBe(false);
   });
 
-  it('requires owner, repo and a token before a repository counts', () => {
+  it('requires an owner and repo, while treating the token as optional for public repositories', () => {
     const partial = discoverEvidenceSources(
       { id: 'p', connector_type: 'github', connector_config: { owner: 'me' } },
       { GITHUB_TOKEN: 't' },
@@ -71,9 +71,37 @@ describe('discoverEvidenceSources', () => {
 
     const complete = discoverEvidenceSources(
       { id: 'p', connector_type: 'github', connector_config: { owner: 'me', repo: 'r' } },
-      { GITHUB_TOKEN: 't' },
+      {},
     );
     expect(byId(complete, 'github').configured).toBe(true);
+  });
+
+  it('lets repository evidence coexist with an MCP connector', () => {
+    const sources = discoverEvidenceSources(
+      {
+        id: 'recipefix',
+        connector_type: 'mcp',
+        connector_config: { url_env: 'RECIPEFIX_MCP_URL' },
+        repo_config: { owner: 'GoldenRodger5', repo: 'recipe-fix' },
+      },
+      { RECIPEFIX_MCP_URL: 'https://example.test/mcp' },
+    );
+
+    expect(byId(sources, 'mcp').configured).toBe(true);
+    expect(byId(sources, 'github').configured).toBe(true);
+    expect(byId(sources, 'github').detail).toContain('GoldenRodger5/recipe-fix');
+  });
+
+  it('can read a public repository without requiring a token', () => {
+    const source = byId(
+      discoverEvidenceSources(
+        { id: 'p', repo_config: { owner: 'public-owner', repo: 'public-repo' } },
+        {},
+      ),
+      'github',
+    );
+    expect(source.configured).toBe(true);
+    expect(source.detail).toMatch(/anonymously if it is public/i);
   });
 
   it('prefers destinations over the legacy url columns', () => {

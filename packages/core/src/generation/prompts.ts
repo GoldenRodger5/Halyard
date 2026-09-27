@@ -258,12 +258,17 @@ export function buildCopywriterPrompt(context: CopywriterContext): {
   "hashtags": ["without", "the", "hash"],
   "hook_pattern": "the shape of your opening, e.g. 'Why your {thing} is {problem}.'",
   "claims": [
-    {"text": "each factual claim you made", "source": "path.into[0].the.artifact"}
+    {"text": "each factual claim you made", "source": "FACT:category:key or path.into[0].the.artifact"}
   ]
 }
 
-Every factual claim needs a source path that resolves against the artifact JSON
-below. A claim you cannot source is a claim you must not make.
+SOURCE RULES FOR CLAIMS:
+- A product fact taken from the Product section must cite the exact FACT:category:key token printed immediately before that verified fact.
+- Never cite an INFERENCE token as evidence for a public factual claim. Inferences are strategy only.
+- A claim about the real product artifact must cite the exact path into the artifact JSON below.
+- A future/editorial promise such as "we will explain..." may use source "user.idea" and will be surfaced for human review rather than treated as product evidence.
+- Never invent a source namespace or an index such as CURRENT_PRODUCT_INTELLIGENCE[1].
+A claim you cannot source by one of these rules is a claim you must not make.
 
 Do not pad the body to reach the budget, and do not cut a thought to fit it —
 move it to \`overflow\`. A short caption with a strong first line beats a

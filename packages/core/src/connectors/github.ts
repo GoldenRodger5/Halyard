@@ -25,7 +25,8 @@ export interface RepoConfig {
 }
 
 export interface GitHubConnectorOptions {
-  token: string;
+  /** Optional for public repositories; required by GitHub for private repositories. */
+  token?: string;
   config: RepoConfig;
   fetchImpl?: typeof fetch;
   apiBase?: string;
@@ -137,22 +138,69 @@ export class GitHubConnector {
   async healthCheck(): Promise<{ ok: boolean; detail: string }> {
     const { owner, repo } = this.options.config;
     try {
-      const info = (await this.get(`/repos/${owner}/${repo}`)) as { full_name: string; private: boolean };
-      return { ok: true, detail: `Connected to ${info.full_name}${info.private ? ' (private)' : ''}.` };
+      const info = await this.getRepositoryInfo();
+      return { ok: true, detail: `Connected to ${info.fullName}${info.private ? ' (private)' : ''}.` };
     } catch (err) {
       return { ok: false, detail: (err as Error).message };
     }
   }
 
+  /** Repository metadata needed by the Product Brain's repository collector. */
+  async getRepositoryInfo(): Promise<{ fullName: string; private: boolean; defaultBranch: string }> {
+    const { owner, repo } = this.options.config;
+    const info = (await this.get(`/repos/${owner}/${repo}`)) as {
+      full_name: string;
+      private: boolean;
+      default_branch: string;
+    };
+    return { fullName: info.full_name, private: info.private, defaultBranch: info.default_branch };
+  }
+
+  /**
+   * Every path on the default branch, without downloading every file.
+   *
+   * This gives Code Intelligence the product's real route/component/document
+   * surface while keeping the expensive part bounded to selected text files.
+   */
+  async listTree(ref?: string): Promise<Array<{ path: string; type: string; size?: number }>> {
+    const { owner, repo } = this.options.config;
+    const branch = ref ?? (await this.getRepositoryInfo()).defaultBranch;
+    const tree = (await this.get(
+      `/repos/${owner}/${repo}/git/trees/${encodeURIComponent(branch)}?recursive=1`,
+    )) as { tree?: Array<{ path?: string; type?: string; size?: number }> };
+    return (tree.tree ?? [])
+      .filter((entry): entry is { path: string; type: string; size?: number } =>
+        typeof entry.path === 'string' && typeof entry.type === 'string',
+      );
+  }
+
+  /** Read one UTF-8 repository file. Binary or oversized files are ignored. */
+  async readTextFile(path: string, ref?: string): Promise<string | null> {
+    const { owner, repo } = this.options.config;
+    const branch = ref ?? (await this.getRepositoryInfo()).defaultBranch;
+    const encodedPath = path.split('/').map(encodeURIComponent).join('/');
+    const file = (await this.get(
+      `/repos/${owner}/${repo}/contents/${encodedPath}?ref=${encodeURIComponent(branch)}`,
+    )) as { type?: string; encoding?: string; content?: string; size?: number };
+
+    if (file.type !== 'file' || file.encoding !== 'base64' || !file.content) return null;
+    if ((file.size ?? 0) > 250_000) return null;
+    try {
+      return Buffer.from(file.content.replace(/\n/g, ''), 'base64').toString('utf8');
+    } catch {
+      return null;
+    }
+  }
+
   private async get(path: string): Promise<unknown> {
-    const response = await this.fetchImpl(`${this.apiBase}${path}`, {
-      headers: {
-        authorization: `Bearer ${this.options.token}`,
-        accept: 'application/vnd.github+json',
-        'x-github-api-version': '2022-11-28',
-        'user-agent': 'halyard',
-      },
-    });
+    const headers: Record<string, string> = {
+      accept: 'application/vnd.github+json',
+      'x-github-api-version': '2022-11-28',
+      'user-agent': 'halyard',
+    };
+    if (this.options.token) headers.authorization = `Bearer ${this.options.token}`;
+
+    const response = await this.fetchImpl(`${this.apiBase}${path}`, { headers });
 
     if (response.status === 404) {
       throw new GitHubError(

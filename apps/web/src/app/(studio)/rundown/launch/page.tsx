@@ -58,7 +58,7 @@ function groupByDay(slots: PlannedSlot[]): Map<string, PlannedSlot[]> {
 export default async function Launch({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; startDate?: string; days?: string }>;
 }) {
   /*
    * §574. The refusal, rendered.
@@ -67,7 +67,9 @@ export default async function Launch({
    * placed, and nothing read it — so the one path that tells an operator why
    * the button did nothing ended in a page that looked exactly like success.
    */
-  const { error } = await searchParams;
+  const { error, startDate: requestedStartDate, days: requestedDays } = await searchParams;
+  const parsedDays = Number(requestedDays ?? 7);
+  const days = [3, 7, 14].includes(parsedDays) ? parsedDays : 7;
   const product = await getCurrentProduct();
 
   if (!product) {
@@ -81,7 +83,10 @@ export default async function Launch({
     );
   }
 
-  const { plan, accounts } = await buildLaunchPlan(product.id, 14);
+  const { plan, accounts, startDate } = await buildLaunchPlan(product.id, days, requestedStartDate);
+  const scheduled = plan.slots.filter((slot) => !slot.deferred && slot.scheduledAt);
+  const deferredCount = plan.slots.length - scheduled.length;
+  const conceptCount = new Set(scheduled.map((slot) => slot.conceptKey)).size;
 
   return (
     <div className="flex flex-col gap-3.5">
@@ -95,12 +100,33 @@ export default async function Launch({
       <Sheet tone="lit">
         <Label>The opening run</Label>
         <p className="mb-3 max-w-[70ch] text-[12.5px] leading-relaxed text-quiet">
-          {plan.slots.length} pieces that establish what this account is, in an order that earns
-          the follow before it asks for anything. Generated as a batch, reviewed as a batch.
+          {scheduled.length} scheduled placements from {conceptCount} coordinated creative packages.
+          {deferredCount > 0 ? ` ${deferredCount} more could not be placed without breaking the spacing rules.` : ''}
+          {' '}Reviewed as a batch before anything can publish.
         </p>
         <form action={generateLaunchBatch}>
           <input type="hidden" name="productId" value={product.id} />
-          <input type="hidden" name="days" value="14" />
+          <label className="mr-3 inline-flex items-center gap-2 font-data text-[10px] uppercase tracking-[0.07em] text-quiet">
+            Run
+            <select
+              name="days"
+              defaultValue={String(days)}
+              className="rounded-md border border-rule2 bg-transparent px-2 py-1 font-body text-[12px] normal-case tracking-normal text-ink"
+            >
+              <option value="3">3 days · pilot</option>
+              <option value="7">7 days</option>
+              <option value="14">14 days</option>
+            </select>
+          </label>
+          <label className="mr-3 inline-flex items-center gap-2 font-data text-[10px] uppercase tracking-[0.07em] text-quiet">
+            Starts
+            <input
+              type="date"
+              name="startDate"
+              defaultValue={startDate}
+              className="rounded-md border border-rule2 bg-transparent px-2 py-1 font-body text-[12px] normal-case tracking-normal text-ink"
+            />
+          </label>
           <Action tone="brass" disabled={plan.slots.length === 0}>
             Generate the batch
           </Action>
@@ -131,8 +157,8 @@ export default async function Launch({
 
       <Sheet>
         <Label>
-          The run · {plan.slots.length} pieces over{' '}
-          {Object.keys(plan.perPlatform).length} platforms
+          The run · {scheduled.length} scheduled placements over{' '}
+          {Object.keys(plan.perPlatform).length} platforms · {conceptCount} creative packages
         </Label>
         {plan.slots.length === 0 ? (
           <p className="max-w-prose text-[12.5px] leading-relaxed text-quiet">

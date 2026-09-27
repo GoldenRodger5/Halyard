@@ -31,6 +31,12 @@ export const PAID_JOB_KINDS: readonly JobKind[] = [
   'correct_content',
   'review_media',
   'tts',
+  // Product intelligence spends model calls even though it produces no post.
+  'build_product_brain',
+  'explore_product',
+  // Blotato visual generation consumes provider credits. It is separately
+  // human-gated, and when queued it must still respect the same daily ceiling.
+  'generate_external_visual',
 ];
 
 export interface BudgetDecision {

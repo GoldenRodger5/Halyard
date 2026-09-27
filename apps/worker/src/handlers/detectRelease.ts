@@ -39,8 +39,16 @@ export async function detectReleaseHandler(job: Job, ctx: HandlerContext): Promi
   const product = rows[0];
   if (!product) return;
 
+  /*
+   * The RecipeFix override predates multi-product Halyard. Applying it to every
+   * product makes a Kinolog rescan inspect RecipeFix's deployed bundle, then
+   * mark Kinolog assets stale when RecipeFix ships. Product-specific overrides
+   * stay product-specific; every other product uses its own configured web URL.
+   */
   const baseUrl =
-    process.env.RECIPEFIX_WEB_URL ?? product.destinations?.web ?? product.website_url;
+    (productId === 'recipefix' ? process.env.RECIPEFIX_WEB_URL : undefined) ??
+    product.destinations?.web ??
+    product.website_url;
   if (!baseUrl) {
     ctx.log('release detection skipped, no web URL', { productId });
     return;

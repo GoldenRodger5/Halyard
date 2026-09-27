@@ -35,6 +35,7 @@ import { copywriterDontRules } from '../handlers/generate.js';
 import type { HandlerContext } from '../poller.js';
 import type { CorrectionOutcome } from './apply.js';
 import { correctionNote, requeueFinalRenders } from './apply.js';
+import { buildProductMarketingContext } from '../productContext.js';
 
 interface Context {
   contentItemId: string;
@@ -107,6 +108,7 @@ export async function reviseCopy(
 ): Promise<CorrectionOutcome> {
   const row = await draftContext(ctx, input.contentItemId);
   if (!row) return { changed: [], note: 'no context', escalate: 'The item could not be loaded.' };
+  const productContext = await buildProductMarketingContext(ctx.pool, row.product_id, row.brief);
   if (!row.voice) {
     return {
       changed: [],
@@ -137,7 +139,7 @@ export async function reviseCopy(
         examples: (row.voice.examples as never) ?? [],
         antiExamples: (row.voice.anti_examples as never) ?? [],
       },
-      productBrief: row.brief ?? row.product_name,
+      productBrief: productContext || row.product_name,
       contentRules: {
         forbiddenClaims: row.content_rules?.forbidden_claims,
         bannedPhrases: row.content_rules?.banned_phrases,

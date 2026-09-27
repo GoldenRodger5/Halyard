@@ -9,6 +9,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   allocateCategories,
+  conceptFor,
   interleave,
   planLaunchBatch,
   type LaunchAccount,
@@ -314,5 +315,38 @@ describe('planLaunchBatch', () => {
     const week = planLaunchBatch(brief({ days: 7 }));
     const fortnight = planLaunchBatch(brief({ days: 14 }));
     expect(week.slots.length).toBeLessThan(fortnight.slots.length);
+  });
+
+  it('alternates Instagram Reels and carousels when both are supported', () => {
+    const plan = planLaunchBatch(
+      brief({
+        accounts: [
+          account({ id: 'acct-ig', platform: 'instagram', supportedFormats: ['video', 'carousel', 'image'] }),
+        ],
+        slots: { instagram: WINDOWS },
+      }),
+    );
+    const regular = plan.slots.filter((slot) => slot.purpose === 'regular' && !slot.deferred);
+    expect(new Set(regular.map((slot) => slot.format))).toEqual(new Set(['video', 'carousel']));
+  });
+
+  it('reuses a creative package across placements instead of inventing every idea independently', () => {
+    expect(conceptFor('transformation', 0).key).toBe(conceptFor('transformation', 3).key);
+    expect(conceptFor('transformation', 4).key).not.toBe(conceptFor('transformation', 0).key);
+
+    const plan = planLaunchBatch(
+      brief({
+        accounts: [
+          account(),
+          account({ id: 'acct-ig', platform: 'instagram', supportedFormats: ['video', 'carousel'] }),
+          account({ id: 'acct-tt', platform: 'tiktok', supportedFormats: ['video'] }),
+        ],
+        slots: { x: WINDOWS, instagram: WINDOWS, tiktok: WINDOWS },
+      }),
+    );
+    const placed = plan.slots.filter((slot) => !slot.deferred);
+    const packages = new Set(placed.map((slot) => slot.conceptKey));
+    expect(packages.size).toBeLessThan(placed.length);
+    expect(plan.rationale.join(' ')).toContain('creative packages');
   });
 });

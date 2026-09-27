@@ -132,6 +132,7 @@ import { chooseQuizTreatments, motifFor, treatmentsForBeats } from '@halyard/ren
 const VO_TARGET_SECONDS = 22;
 import { PermanentJobFailure } from '../poller.js';
 import type { Job, HandlerContext } from '../poller.js';
+import { buildProductMarketingContext } from '../productContext.js';
 import { generateHeroImage } from '../heroImage.js';
 import { recentShots } from '../shotRecency.js';
 import { continuityFor } from '../continuity.js';
@@ -578,6 +579,9 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
 
   const product = productRows.rows[0];
   if (!product) throw new Error(`product ${productId} not found`);
+  const manualBrief = product.brief_summary ?? product.brief_markdown;
+  const brainContext = await buildProductMarketingContext(ctx.pool, productId, manualBrief);
+  if (brainContext) product.brief_summary = brainContext;
 
   const proposed = await ctx.pool.query<{
     id: string;
