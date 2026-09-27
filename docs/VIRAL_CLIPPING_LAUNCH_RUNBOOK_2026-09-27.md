@@ -34,7 +34,7 @@ Use whichever is available consistently enough across TikTok, Instagram, and You
 
 Do not attach the user's real name, personal photo, voice, employer, city, other projects, or personal social accounts.
 
-### First paid campaign — Call of Duty MW4 / Warzone Operator Skin Toggle
+### Primary watchlist — Call of Duty MW4 / Warzone Operator Skin Toggle
 
 Current campaign facts verified 27 Sep 2026:
 - accepting clips;
@@ -51,7 +51,7 @@ Current campaign facts verified 27 Sep 2026:
 Campaign URL:
 https://contentrewards.com/discover/91c4990a-b37e-4c59-8232-8bb1ae8d9a94
 
-Why this is first:
+Why it remains the economic watchlist leader:
 - stronger current economics than most open streamer campaigns;
 - very large remaining budget;
 - official supplied material reduces rights ambiguity;
@@ -59,9 +59,35 @@ Why this is first:
 - low payout minimum;
 - gaming audience is compatible with the broader streamer account we want to build.
 
-This is a launch choice, not a prediction of earnings.
+**Current blocker (verified 27 Sep 2026):** the official MediaSilo source link in the campaign brief currently returns "This link could not be found." Do not produce for this campaign until the source host is repaired or the campaign supplies a replacement.
 
-### Second paid campaign — DiegoLoveless Twitch Clips
+### First executable paid campaign — CoCo Jones Clipping
+
+Current facts verified 27 Sep 2026:
+- accepting clips;
+- $2 / 1K on TikTok, Instagram and YouTube Shorts;
+- $2 minimum payout;
+- $350 max payout per clip;
+- roughly $2.7K remaining at latest read;
+- only 2 listed clippers at latest read;
+- official brief supplies four current footage groups.
+
+Brief direction:
+- remove empty space;
+- mix/match supplied footage;
+- tell a story;
+- keep the tone raw/authentic;
+- original captions;
+- no negative framing;
+- no slop reposting;
+- no bots/fake engagement.
+
+Official source package is live on WeTransfer. WeTransfer currently requires the visitor to agree to its Terms/Privacy acknowledgement before download; the human account owner performs that legal checkpoint once. After that, the operator handles asset processing.
+
+Campaign URL:
+https://contentrewards.com/discover/ad5d0029-9c07-47ee-86e5-9de4b53ff9f0
+
+### Second streamer-specific campaign — DiegoLoveless Twitch Clips
 
 Current observed facts:
 - $2 / 1K on TikTok and Instagram;
@@ -218,7 +244,7 @@ This cadence is an operating hypothesis, not a claim about platform algorithms.
 
 ## First 72-hour experiment
 
-Target: 6–9 published clips.
+Target: 6–9 published clips from the first executable campaign, subject to its campaign rules.
 
 Record for every post:
 - campaign;
