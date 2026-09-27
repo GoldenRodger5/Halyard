@@ -52,7 +52,7 @@ If quality slips, return to 2/day.
 - immediate frame-one action;
 - top safe-zone hook;
 - large source-video region;
-- lower-third captions;
+- subtitles only when dialogue/audio needs them;
 - one payoff;
 - no intro animation;
 - campaign brief overrides every style choice.
@@ -69,7 +69,7 @@ Use for:
 - original narration/context;
 - top safe-zone hook;
 - main source/B-roll region;
-- lower-third transcript captions;
+- subtitles only when dialogue/audio needs them;
 - small context label;
 - clear payoff/end beat.
 
@@ -153,3 +153,18 @@ Track by post:
 After enough data, replace the 1 PM exploratory slot and even the 8 PM anchor with account-specific best-performing windows.
 
 The schedule is adaptive, not sacred.
+
+
+## Visual-system correction — 27 Sep 2026
+
+The canonical clipping visual system is now `ops/momentcircuit/SIMPLE_FORMAT_SYSTEM.md`.
+
+The earlier idea of a branded lower-third/progress/footer treatment is superseded.
+
+Default clipped-video composition is intentionally simple:
+- black canvas;
+- headline above footage;
+- source footage;
+- optional Part label;
+- subtitles only when comprehension requires them.
+
