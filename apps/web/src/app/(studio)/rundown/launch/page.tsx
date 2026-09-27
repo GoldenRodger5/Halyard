@@ -68,8 +68,9 @@ export default async function Launch({
    * the button did nothing ended in a page that looked exactly like success.
    */
   const { error, startDate: requestedStartDate, days: requestedDays } = await searchParams;
-  const parsedDays = Number(requestedDays ?? 7);
-  const days = [3, 7, 14].includes(parsedDays) ? parsedDays : 7;
+  // Cold-start default: learn from a small real wave before freezing a fortnight.
+  const parsedDays = Number(requestedDays ?? 3);
+  const days = [3, 7, 14].includes(parsedDays) ? parsedDays : 3;
   const product = await getCurrentProduct();
 
   if (!product) {
@@ -102,7 +103,7 @@ export default async function Launch({
         <p className="mb-3 max-w-[70ch] text-[12.5px] leading-relaxed text-quiet">
           {scheduled.length} scheduled placements from {conceptCount} coordinated creative packages.
           {deferredCount > 0 ? ` ${deferredCount} more could not be placed without breaking the spacing rules.` : ''}
-          {' '}Reviewed as a batch before anything can publish.
+          {' '}Start with 3 days while the account is cold; expand once real performance can inform the next wave. Reviewed as a batch before anything can publish.
         </p>
         <form action={generateLaunchBatch}>
           <input type="hidden" name="productId" value={product.id} />

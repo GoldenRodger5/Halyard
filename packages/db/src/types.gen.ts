@@ -1673,7 +1673,7 @@ export interface JobEventsUpdate {
 
 export interface JobsRow {
   id: string;
-  kind: 'generate' | 'render' | 'tts' | 'capture' | 'publish' | 'collect_metrics' | 'collect_signals' | 'collect_comments' | 'collect_attribution' | 'refresh_tokens' | 'score_performance' | 'digest_email' | 'reconcile_schedule' | 'mark_stale_assets' | 'collect_app_store' | 'detect_release' | 'collect_watch_terms' | 'draft_newsletter' | 'send_newsletter' | 'collect_reviews' | 'review_media' | 'verify_feature' | 'explore_product' | 'cluster_rejections' | 'purge_logs' | 'collect_product_evidence' | 'build_product_brain' | 'verify_provider_capability' | 'correct_content' | 'learn_from_performance' | 'build_account_intelligence' | 'generate_concepts';
+  kind: 'generate' | 'render' | 'tts' | 'capture' | 'publish' | 'collect_metrics' | 'collect_signals' | 'collect_comments' | 'collect_attribution' | 'refresh_tokens' | 'score_performance' | 'digest_email' | 'reconcile_schedule' | 'reconcile_delivery' | 'generate_external_visual' | 'mark_stale_assets' | 'collect_app_store' | 'detect_release' | 'collect_watch_terms' | 'draft_newsletter' | 'send_newsletter' | 'collect_reviews' | 'review_media' | 'verify_feature' | 'explore_product' | 'cluster_rejections' | 'purge_logs' | 'collect_product_evidence' | 'build_product_brain' | 'verify_provider_capability' | 'correct_content' | 'learn_from_performance' | 'build_account_intelligence' | 'generate_concepts';
   payload: Json;
   status: 'queued' | 'running' | 'done' | 'failed' | 'dead';
   priority: number;
@@ -1690,7 +1690,7 @@ export interface JobsRow {
 
 export interface JobsInsert {
   id?: string;
-  kind: 'generate' | 'render' | 'tts' | 'capture' | 'publish' | 'collect_metrics' | 'collect_signals' | 'collect_comments' | 'collect_attribution' | 'refresh_tokens' | 'score_performance' | 'digest_email' | 'reconcile_schedule' | 'mark_stale_assets' | 'collect_app_store' | 'detect_release' | 'collect_watch_terms' | 'draft_newsletter' | 'send_newsletter' | 'collect_reviews' | 'review_media' | 'verify_feature' | 'explore_product' | 'cluster_rejections' | 'purge_logs' | 'collect_product_evidence' | 'build_product_brain' | 'verify_provider_capability' | 'correct_content' | 'learn_from_performance' | 'build_account_intelligence' | 'generate_concepts';
+  kind: 'generate' | 'render' | 'tts' | 'capture' | 'publish' | 'collect_metrics' | 'collect_signals' | 'collect_comments' | 'collect_attribution' | 'refresh_tokens' | 'score_performance' | 'digest_email' | 'reconcile_schedule' | 'reconcile_delivery' | 'generate_external_visual' | 'mark_stale_assets' | 'collect_app_store' | 'detect_release' | 'collect_watch_terms' | 'draft_newsletter' | 'send_newsletter' | 'collect_reviews' | 'review_media' | 'verify_feature' | 'explore_product' | 'cluster_rejections' | 'purge_logs' | 'collect_product_evidence' | 'build_product_brain' | 'verify_provider_capability' | 'correct_content' | 'learn_from_performance' | 'build_account_intelligence' | 'generate_concepts';
   payload?: Json;
   status?: 'queued' | 'running' | 'done' | 'failed' | 'dead';
   priority?: number;
@@ -1707,7 +1707,7 @@ export interface JobsInsert {
 
 export interface JobsUpdate {
   id?: string;
-  kind?: 'generate' | 'render' | 'tts' | 'capture' | 'publish' | 'collect_metrics' | 'collect_signals' | 'collect_comments' | 'collect_attribution' | 'refresh_tokens' | 'score_performance' | 'digest_email' | 'reconcile_schedule' | 'mark_stale_assets' | 'collect_app_store' | 'detect_release' | 'collect_watch_terms' | 'draft_newsletter' | 'send_newsletter' | 'collect_reviews' | 'review_media' | 'verify_feature' | 'explore_product' | 'cluster_rejections' | 'purge_logs' | 'collect_product_evidence' | 'build_product_brain' | 'verify_provider_capability' | 'correct_content' | 'learn_from_performance' | 'build_account_intelligence' | 'generate_concepts';
+  kind?: 'generate' | 'render' | 'tts' | 'capture' | 'publish' | 'collect_metrics' | 'collect_signals' | 'collect_comments' | 'collect_attribution' | 'refresh_tokens' | 'score_performance' | 'digest_email' | 'reconcile_schedule' | 'reconcile_delivery' | 'generate_external_visual' | 'mark_stale_assets' | 'collect_app_store' | 'detect_release' | 'collect_watch_terms' | 'draft_newsletter' | 'send_newsletter' | 'collect_reviews' | 'review_media' | 'verify_feature' | 'explore_product' | 'cluster_rejections' | 'purge_logs' | 'collect_product_evidence' | 'build_product_brain' | 'verify_provider_capability' | 'correct_content' | 'learn_from_performance' | 'build_account_intelligence' | 'generate_concepts';
   payload?: Json;
   status?: 'queued' | 'running' | 'done' | 'failed' | 'dead';
   priority?: number;

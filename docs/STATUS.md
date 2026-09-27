@@ -1,5 +1,23 @@
 # Where Halyard is right now
 
+
+**2026-09-27 — distribution readiness: RecipeFix is staged, Halyard/Blotato is now a real hybrid rather than a diagram, and publishing is deliberately still off.** Canonical operating model: `docs/DISTRIBUTION_OPERATING_MODEL_2026-09-27.md`; launch checkpoint: `docs/RECIPEFIX_LAUNCH_CHECKPOINT_2026-09-27.md`.
+
+What was verified against the live system rather than assumed:
+
+- RecipeFix Product Brain rescan read **8 live-site pages, the App Store listing, 13 MCP tools, and the private GitHub repo (1,692 paths, 12 high-value files, 7 recent user-facing PRs)**. GitHub evidence is now additive to MCP/REST rather than a mutually exclusive connector. The current rebuild produced 52 factual writes, 36 verified facts and 18 separate strategic inferences; contradictions remain a surfaced review state rather than being silently resolved.
+- The Rescan action now means evidence refresh + release drift + browser exploration/feature replay + Brain rebuild. Re-discovery updates existing feature demonstrations; private flows use the same dedicated capture credentials as exploration and an auth wall without credentials stays unverified instead of becoming a false refutation.
+- Live Blotato account contact succeeded. RecipeFix is mapped for Instagram, Pinterest, Threads, TikTok, X and YouTube; the mismatched founder-X identity was deliberately not guessed. Master Control now shows **direct state, Blotato mapping, current route and provider publish proof separately**.
+- Blotato publish receipts are asynchronous. `postSubmissionId` now remains `publishing` until `reconcile_delivery` observes a real `published`/`failed` state. A successful real publication is the evidence that upgrades that one provider/platform path; a later read-only probe cannot erase stronger evidence.
+- First contact supports `--unified` while ordinary automation remains fail-closed. It still requires an explicit item UUID, the target handle typed back, and `PUBLISH` before any real post.
+- Blotato's live MCP was audited directly (35 tools). The three configured visual templates still exist. Visual polling now follows the live >=15s guidance, terminal error states stop immediately, and template existence is checked before a paid call.
+- **Paid Blotato visual generation is no longer automatic.** Copy enters Holding first. The operator must press `Generate Blotato visual`; final approval is server-side blocked until the actual returned media exists and has been reviewed. Three already-queued paid visual jobs from the earlier behavior were disarmed before execution; no credits were spent by them.
+- Pinterest boards are synced through Blotato: Dairy-Free, Gluten-Free, High-Protein, Ingredient Substitutions and Vegan Substitutions. Generic words such as `swap` no longer misroute a pin to a diet-specific board without a diet signal.
+- Launch cadence is per account, not one global video budget shared by Instagram/TikTok/YouTube. The measured two-week capacity is **72 native placements from 20 coordinated creative packages**; the operating plan deliberately works in rolling waves instead of freezing all 14 days before learning.
+- The current rolling first wave is **18 RecipeFix placements across six platforms**. Seventeen copy drafts are generated and in Holding; one YouTube brand-introduction slot is still draft after copy QC refused three attempts and must be repaired rather than silently published. Product-artifact claims verify against real outputs; non-artifact product claims cite stable `FACT:<category>:<key>` Product Brain provenance and resolve against fresh verified Brain facts.
+
+**Safety state at this checkpoint:** global publishing kill switch remains disabled; RecipeFix has **0 publication rows and 0 published content items**. No social post was sent during this readiness work.
+
 **2026-09-08 — H0.5: the release gate is green, and repairing it found four
 live defects.** H0 shipped with `verify` and `build` green and `e2e` red, and
 said so. That is not the exit gate the programme asks for, so this package

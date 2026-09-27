@@ -91,7 +91,7 @@ export interface UnifiedAdapterOptions {
 export function buildTarget(
   platform: PlatformId,
   item: PublishItem,
-  account: PublishAccount,
+  _account: PublishAccount,
 ): Record<string, unknown> {
   const target: Record<string, unknown> = { targetType: TARGET_TYPE[platform] };
 

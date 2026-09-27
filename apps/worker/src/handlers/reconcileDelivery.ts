@@ -268,8 +268,8 @@ async function recordSuccessfulCapability(
 
   await ctx.pool.query(
     `update provider_capabilities
-        set capabilities = $2, verified_at = now(), method = 'real_publication'
-      where provider = 'blotato'`,
+        set capabilities = $2::jsonb, verified_at = now(), method = 'real_publication'
+      where provider = $1`,
     ['blotato', JSON.stringify(capabilities)],
   );
 }

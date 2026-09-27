@@ -136,7 +136,6 @@ export class GitHubConnector {
   }
 
   async healthCheck(): Promise<{ ok: boolean; detail: string }> {
-    const { owner, repo } = this.options.config;
     try {
       const info = await this.getRepositoryInfo();
       return { ok: true, detail: `Connected to ${info.fullName}${info.private ? ' (private)' : ''}.` };

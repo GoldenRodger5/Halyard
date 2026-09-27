@@ -21,6 +21,7 @@
 import { GitHubConnector } from '@halyard/core';
 import type { Job, HandlerContext } from '../poller.js';
 import { detectAppVersion } from './capture.js';
+import { localGitHubToken } from './collectEvidence.js';
 
 export async function detectReleaseHandler(job: Job, ctx: HandlerContext): Promise<void> {
   const productId = String(job.payload.productId ?? 'recipefix');
@@ -135,13 +136,8 @@ async function latestGitHubRelease(
 ): Promise<{ version: string } | null> {
   if (!repoConfig?.owner || !repoConfig.repo) return null;
 
-  const token = process.env[repoConfig.token_env ?? 'GITHUB_TOKEN'];
-  if (!token) {
-    ctx.log('repo configured but no token, skipping GitHub release check', {
-      owner: repoConfig.owner,
-    });
-    return null;
-  }
+  const tokenEnv = repoConfig.token_env ?? 'GITHUB_TOKEN';
+  const token = localGitHubToken(tokenEnv);
 
   try {
     const connector = new GitHubConnector({
@@ -152,7 +148,10 @@ async function latestGitHubRelease(
     const latest = releases[0];
     return latest ? { version: latest.tag } : null;
   } catch (err) {
-    ctx.log('GitHub release check failed', { error: (err as Error).message });
+    ctx.log('GitHub release check failed', {
+      error: (err as Error).message,
+      credential: token ? tokenEnv : 'anonymous/public only',
+    });
     return null;
   }
 }

@@ -419,7 +419,7 @@ async function dryRun(ctx: Ctx, itemId?: string): Promise<void> {
   // Blotato is rendered as a pure payload because the unified adapter owns its
   // fetch implementation and must never accidentally reach the network here.
   let failed = false;
-  let wouldHave = '';
+  let wouldHave: string;
   if (ctx.transport === 'unified') {
     if (linkForReply && constraints.linkStrategy === 'first_reply') {
       failed = true;

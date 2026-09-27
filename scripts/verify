@@ -33,16 +33,50 @@ die() { printf '\n\033[31m✗ %s\033[0m\n' "$1" >&2; exit 1; }
 #
 # Gotcha 2: Next reads apps/web/.env.local and the worker gets --env-file, so
 # nothing puts DATABASE_URL in this shell unless we do it here.
+SOURCE_DATABASE_URL="${DATABASE_URL:-}"
 if [[ -z "${TEST_DATABASE_URL:-}" ]]; then
   if [[ -f apps/web/.env.local ]]; then
+    # Load the app database only as a source for deriving a *separate* local
+    # integration database. Never reuse it for --fresh.
     set -a; . ./apps/web/.env.local; set +a
+    SOURCE_DATABASE_URL="${DATABASE_URL:-$SOURCE_DATABASE_URL}"
   fi
-  TEST_DATABASE_URL="${TEST_DATABASE_URL:-${DATABASE_URL:-}}"
+
+  if [[ -n "$SOURCE_DATABASE_URL" ]] && [[ "$SOURCE_DATABASE_URL" =~ localhost|127\.0\.0\.1|host\.docker\.internal ]]; then
+    DERIVED_OUTPUT="$(node - "$SOURCE_DATABASE_URL" <<'NODE'
+const source = process.argv[2];
+const u = new URL(source);
+const db = u.pathname.replace(/^\//, '');
+if (!/^[A-Za-z0-9_]+$/.test(db)) process.exit(2);
+const testDb = db.endsWith('_test') ? db : `${db}_test`;
+u.pathname = `/${testDb}`;
+console.log(u.toString());
+console.log(testDb);
+NODE
+    )"
+    TEST_DATABASE_URL="$(printf '%s\n' "$DERIVED_OUTPUT" | sed -n '1p')"
+    TEST_DATABASE_NAME="$(printf '%s\n' "$DERIVED_OUTPUT" | sed -n '2p')"
+
+    [[ -n "$TEST_DATABASE_URL" && -n "$TEST_DATABASE_NAME" ]] || die \
+      "Could not derive a safe test database from DATABASE_URL. Set TEST_DATABASE_URL explicitly."
+
+    # Creating the database is safe and idempotent; the destructive operation
+    # below runs only inside this derived *_test database.
+    if ! psql "$SOURCE_DATABASE_URL" -Atqc "select 1 from pg_database where datname = '$TEST_DATABASE_NAME'" | grep -qx 1; then
+      createdb --maintenance-db="$SOURCE_DATABASE_URL" "$TEST_DATABASE_NAME" || die \
+        "Could not create $TEST_DATABASE_NAME. Set TEST_DATABASE_URL to a dedicated test database."
+    fi
+    echo "✓ using isolated local test database $TEST_DATABASE_NAME"
+  fi
 fi
 
-[[ -n "$TEST_DATABASE_URL" ]] || die \
-  "No database. Set TEST_DATABASE_URL, or create apps/web/.env.local with ./scripts/env-sync.
-   Running without one skips 43 suites and reports green, which is the thing this script exists to prevent."
+[[ -n "${TEST_DATABASE_URL:-}" ]] || die \
+  "No dedicated test database. Set TEST_DATABASE_URL, or configure a local DATABASE_URL so verify can derive <database>_test."
+
+# Catastrophic guard: `db:reset --fresh` must never point at the app database.
+if [[ -n "$SOURCE_DATABASE_URL" && "$TEST_DATABASE_URL" == "$SOURCE_DATABASE_URL" ]]; then
+  die "TEST_DATABASE_URL resolves to the application database. Refusing to run --fresh against live local state."
+fi
 
 export TEST_DATABASE_URL
 export DATABASE_URL="$TEST_DATABASE_URL"

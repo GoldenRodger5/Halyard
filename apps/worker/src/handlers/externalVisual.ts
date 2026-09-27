@@ -315,7 +315,6 @@ export async function generateExternalVisualHandler(job: Job, ctx: HandlerContex
                 select coalesce(array_agg(distinct x), '{}'::text[])
                   from unnest(ai_components || array['imagery']::text[]) x
               ),
-              requires_ai_label = true,
               disclosure_text = $3,
               body = case when body ~* '#AIgenerated\\b'
                           then body else rtrim(body) || E'\\n\\n' || $3 end,

@@ -66,7 +66,7 @@ export function credentialsForProduct(
   return {
     email,
     password,
-    loginPath: productCredentials?.loginPath,
+    loginPath: productCredentials?.loginPath ?? env.EXPLORE_ACCOUNT_LOGIN_PATH,
   };
 }
 
@@ -316,6 +316,83 @@ async function linksOn(page: Page, root: string): Promise<string[]> {
  * claims it goes on to make are verified by replay regardless.
  */
 export async function signIn(page: Page, root: string, credentials: ExploreCredentials): Promise<boolean> {
+  const tryVisibleForm = async (): Promise<boolean> => {
+    let email = page.locator('input[type=email], input[name=email]').first();
+
+    /*
+     * Many current consumer apps keep auth in an in-page modal rather than a
+     * dedicated /login route. Open that surface before concluding the product
+     * has no password flow. Exact-ish labels keep this from clicking arbitrary
+     * "start" CTAs on a real account.
+     */
+    if (!(await email.isVisible({ timeout: 800 }).catch(() => false))) {
+      const buttonTrigger = page.getByRole('button', { name: /^(sign in|log in)$/i }).first();
+      const linkTrigger = page.getByRole('link', { name: /^(sign in|log in)$/i }).first();
+      const trigger = (await buttonTrigger.isVisible({ timeout: 800 }).catch(() => false))
+        ? buttonTrigger
+        : linkTrigger;
+      if (await trigger.isVisible({ timeout: 800 }).catch(() => false)) {
+        await trigger.click().catch(() => undefined);
+        await page.waitForTimeout(250);
+      }
+    }
+
+    email = page.locator('input[type=email], input[name=email]').first();
+    if (!(await email.isVisible({ timeout: 800 }).catch(() => false))) {
+      const emailChoice = page
+        .getByRole('button', { name: /continue with email|use email|email and password/i })
+        .first();
+      if (await emailChoice.isVisible({ timeout: 800 }).catch(() => false)) {
+        await emailChoice.click().catch(() => undefined);
+        await page.waitForTimeout(250);
+      }
+    }
+
+    email = page.locator('input[type=email], input[name=email]').first();
+    const password = page.locator('input[type=password]').first();
+    if (!(await email.isVisible({ timeout: 1_000 }).catch(() => false))) return false;
+    if (!(await password.isVisible({ timeout: 1_000 }).catch(() => false))) return false;
+
+    await email.fill(credentials.email);
+    await password.fill(credentials.password);
+
+    const submit = page.getByRole('button', { name: /^(sign in|log in|continue)$/i }).last();
+    if (await submit.isVisible({ timeout: 800 }).catch(() => false)) {
+      await submit.click();
+    } else {
+      await password.press('Enter');
+    }
+
+    // Give SPA auth enough time to persist the session and rerender the shell.
+    // Some apps update identity several seconds after the credential request,
+    // so do not fall through to the next conventional route while a successful
+    // login is still settling.
+    await page.waitForLoadState('networkidle', { timeout: 15_000 }).catch(() => undefined);
+
+    const succeeded = async (): Promise<boolean> => {
+      const passwordStillVisible = await page
+        .locator('input[type=password]')
+        .first()
+        .isVisible({ timeout: 250 })
+        .catch(() => false);
+      const signInStillVisible = await page
+        .getByRole('button', { name: /^(sign in|log in)$/i })
+        .first()
+        .isVisible({ timeout: 250 })
+        .catch(() => false);
+      const hasSessionKey = await page
+        .evaluate(() => Object.keys(localStorage).some((key) => /auth[-_]?token|session/i.test(key)))
+        .catch(() => false);
+      return !passwordStillVisible && (!signInStillVisible || hasSessionKey);
+    };
+
+    for (let attempt = 0; attempt < 12; attempt += 1) {
+      if (await succeeded()) return true;
+      await page.waitForTimeout(500);
+    }
+    return false;
+  };
+
   const paths = [
     credentials.loginPath,
     '/login',
@@ -330,23 +407,18 @@ export async function signIn(page: Page, root: string, credentials: ExploreCrede
         waitUntil: 'domcontentloaded',
         timeout: 15_000,
       });
+      if (await tryVisibleForm()) return true;
     } catch {
-      continue;
+      // Try the next conventional route. A broken auth route should not abort
+      // the public portion of the product inventory.
     }
-
-    const email = page.locator('input[type=email], input[name=email]').first();
-    const password = page.locator('input[type=password]').first();
-    if (!(await email.isVisible({ timeout: 3000 }).catch(() => false))) continue;
-
-    await email.fill(credentials.email);
-    if (await password.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await password.fill(credentials.password);
-    }
-    await page.keyboard.press('Enter');
-    await page.waitForLoadState('networkidle', { timeout: 15_000 }).catch(() => undefined);
-
-    // A password field still on screen is the clearest signal it did not take.
-    return !(await password.isVisible({ timeout: 2000 }).catch(() => false));
   }
-  return false;
+
+  // Final generic fallback: many products expose Sign In only in the app shell.
+  try {
+    await page.goto(root, { waitUntil: 'domcontentloaded', timeout: 15_000 });
+    return await tryVisibleForm();
+  } catch {
+    return false;
+  }
 }
