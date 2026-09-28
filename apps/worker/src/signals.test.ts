@@ -46,6 +46,9 @@ beforeEach(async () => {
   if (!available) return;
   await pool.query('delete from rss_items');
   await pool.query('delete from rss_sources');
+  await pool.query(`delete from signals where product_id = 'recipefix'`);
+  await pool.query(`delete from product_facts where product_id = 'recipefix'`);
+  await pool.query(`delete from product_evidence where product_id = 'recipefix'`);
   await pool.query(`delete from products where id = 'founder'`);
 });
 
@@ -156,10 +159,42 @@ d('collectSignalsHandler — reaching the feeds at all', () => {
 });
 
 d('collectSignalsHandler', () => {
-  it('says so when there are no sources rather than looking successful', async () => {
+  it('says so when there are no RSS or verified Brain sources rather than looking successful', async () => {
     const ctx = context();
     await collectSignalsHandler(job(), ctx);
-    expect(ctx.logs).toContain('no products have rss sources');
+    expect(ctx.logs).toContain('no products have RSS or verified Product Brain discovery sources');
+  });
+
+  it('promotes verified Product Brain facts even when the product has zero RSS sources', async () => {
+    const evidence = await pool.query<{ id: string }>(
+      `insert into product_evidence
+         (product_id, kind, source_url, content_hash, title, body, collector)
+       values ('recipefix','web_page','https://recipefix.example/about','no-rss-brain','About','Recipe adaptation','test')
+       returning id`,
+    );
+    await pool.query(
+      `insert into product_facts
+         (product_id, category, key, value, status, confidence, evidence_ids,
+          agent_id, agent_version, last_verified_at)
+       values ('recipefix','jobs_to_be_done','scale_recipe',
+               'Scale a recipe by servings or an ingredient amount',
+               'verified',0.90,$1::uuid[],'test','1',now())`,
+      [[evidence.rows[0]!.id]],
+    );
+
+    const ctx = context();
+    await collectSignalsHandler(job(), ctx);
+
+    const signal = await pool.query<{ source: string; summary: string; confidence: string }>(
+      `select source, summary, confidence
+         from signals
+        where product_id='recipefix'`,
+    );
+    expect(signal.rows).toHaveLength(1);
+    expect(signal.rows[0]).toMatchObject({ source: 'product_activity' });
+    expect(signal.rows[0]!.summary).toContain('Scale a recipe');
+    expect(Number(signal.rows[0]!.confidence)).toBeCloseTo(0.9, 5);
+    expect(ctx.logs).toContain('no rss sources configured; Product Brain discovery still ran');
   });
 
   it('stores what it fetched', async () => {

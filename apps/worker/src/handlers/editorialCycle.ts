@@ -317,6 +317,7 @@ export const planEditorialHandler: JobHandler = async (job, ctx) => {
         source: row.source,
         effectiveValue,
         platform: row.platform,
+        category: typeof row.raw.category === 'string' ? row.raw.category : null,
       },
     ];
   });
