@@ -214,9 +214,11 @@ That finding produced one more product-neutral source repair: the first cold-sta
 
 **Threads copy shape repaired; unattended recipe remains locked.** The first pass read like an internal QA note. The live calibration item has since been rewritten audience-first — opening with “The best recipe adaptation is sometimes no adaptation,” demonstrating the concrete salmon/side example, and ending with a specific conversation question. The exact current 310-character body passes the deterministic Threads copy/slop gate with **0 violations and 0 warnings**. The `text.internal_work_log` critic and its copy-only correction policy are release-green. This accepts the current text-native copy shape; a fresh end-to-end generation still has to prove the autonomous writer reaches that quality before the production recipe is accepted unattended.
 
+**X copy shape repaired; unattended recipe remains locked.** The first native rewrite passed but invited no action; appending a question pushed it too close to X's ceiling. The final copy was tightened to **241 characters** while keeping the salmon/risotto evidence and adding “What would you leave untouched?”. The exact final body passes the deterministic X copy/slop gate with **0 violations and 0 warnings**. As with Threads, this accepts the current native copy shape, not the autonomous recipe until a fresh end-to-end generation reaches it without manual repair.
+
 ### Spend discipline
 
-The complete Sept 27→28 calibration cycle has recorded **$4.319496** in paid agent calls against the operator's **$5 total ceiling**. Midnight does not reset that operator cap for this exercise. Remaining calibration work therefore defaults to already-paid assets, deterministic Halyard rendering, existing product capture, and text/render repair. No paid Higgsfield generation has been submitted.
+The complete Sept 27→28 calibration cycle has recorded **$4.682611** in paid agent calls against the operator's **$5 total ceiling**. Midnight does not reset that operator cap for this exercise. Only about **$0.32** remains, so paid experimentation is frozen. Remaining calibration work therefore defaults to already-paid assets, deterministic Halyard rendering, existing product capture, and text/render repair. No paid Higgsfield generation has been submitted.
 
 ## 2026-09-28 free Higgsfield source-footage calibration
 
@@ -241,7 +243,7 @@ The result was **not integrated into a post** and no second generation was purch
 
 This is the desired behavior: an external provider can be technically impressive and still fail a product/capability recipe. A free attempt does not lower the quality bar.
 
-The paid calibration ledger remains **$4.319496 / $5.00**. The free Higgsfield attempt did not change that cash total.
+The free Higgsfield attempt added **$0** to cash spend. Subsequent non-Higgsfield calibration work brought the final cycle ledger to **$4.682611 / $5.00**; the free attempt itself did not change the cash total.
 
 ## 2026-09-28 approval-boundary QC freshness
 
