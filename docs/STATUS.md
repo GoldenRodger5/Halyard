@@ -7,8 +7,9 @@
 - The full launch plan is staged, but only a representative **max-six calibration set** is queued for cold-start production; selection prioritizes distinct formats, platforms, categories and treatments before spending wider.
 - Generation no longer defaults a missing `productId` to RecipeFix. Shared creative machinery is fail-closed and product-neutral.
 - One CreativePackage can now lock one normalized real product artifact, so sibling platform variants cannot silently become different product examples while retaining one creative lineage.
-- Paid-job budget preflight can reserve a provider quote/cap before starting; this creative pass spent **$0 on paid visual generation** under the operator's $5 calibration ceiling.
-- Verification: schema **0087**, generated types current, **302 test files / 4,005 tests**, typecheck/lint/build green. No public post was sent.
+- Paid-job budget preflight can reserve a provider quote/cap before starting; no paid Higgsfield generation has been submitted under the operator's $5 calibration ceiling.
+- Live calibration caught a legacy execution leak: a Threads `caption_only` plan correctly skipped assets on paper but still bought an illustrative image downstream. The worker was stopped, the stray media detached, and `generate.ts` now treats a missing `assets` stage as a hard execution boundary for every product/platform.
+- Verification: schema **0087**, generated types current, **302 test files / 4,005 tests**, typecheck/lint/build green before the live finding; the asset-boundary repair separately passes the real DB-backed generate suite **29/29** plus worker typecheck. No public post was sent.
 
 
 **2026-09-27 — Halyard Social Growth v2 implementation is release-green; visual calibration has started.** Governing docs: `docs/HALYARD_SOCIAL_GROWTH_V2_ARCHITECTURE_2026-09-27.md`, `docs/CREATIVE_PACKAGE_V1_SPEC_2026-09-27.md`, `docs/HALYARD_V2_IMPLEMENTATION_PLAN_2026-09-27.md`; visual checkpoint: `docs/HALYARD_V2_VISUAL_CALIBRATION_2026-09-27.md`.

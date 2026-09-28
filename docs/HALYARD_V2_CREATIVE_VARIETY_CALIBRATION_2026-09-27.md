@@ -123,3 +123,13 @@ On this checkpoint:
 - focused creative-variety / launch / budget tests pass 45/45.
 
 No public social post was sent by this implementation pass.
+
+## Live calibration finding: workflow skips must be execution boundaries
+
+The first live Pinterest calibration completed its text/copy loop and correctly rejected an overstated claim plus a weak payoff before revising only the defective copy. The next selected Threads piece exposed a separate production bug: its resolved `caption_only` workflow explicitly skipped assets, but legacy downstream code still opened the asset lane and bought/generated an illustrative image.
+
+The worker was stopped immediately. The defective run is retained as failed calibration history and its stray media was detached from the social item.
+
+`generate.ts` now makes the resolved workflow authoritative: when `assets` is absent, Halyard does not call photographic-subject, image generation, still/story/carousel rendering, or record an image-agent consumption. This rule is product- and platform-neutral; a text-native post for any future connected product gets the same protection.
+
+At discovery, recorded Halyard spend for the day was **$0.3683**, still below the $5 calibration ceiling.

@@ -2980,16 +2980,27 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
          * whatever recipe was adapted that morning. The gate is the rule that
          * made that impossible rather than merely fixed.
          */
+        const assetsPlanned = production.stages.some((stage) => stage.stage === 'assets');
         const assetsGate = canStart('assets', completed);
-        if (production.stages.some((stage) => stage.stage === 'assets') && !assetsGate.ok) {
+        const shouldRunAssets = assetsPlanned && assetsGate.ok;
+        if (assetsPlanned && !assetsGate.ok) {
           ctx.log('assets stage refused', { contentItemId, because: assetsGate.because });
+        } else if (!assetsPlanned) {
+          ctx.log('assets stage skipped', {
+            contentItemId,
+            because: 'The resolved post type has no media asset stage.',
+          });
         }
 
-        /* §367. Everything the picture decisions log belongs to the assets lane. */
-        const assets = openStage(ctx, 'assets');
+        /*
+         * A workflow skip is an execution boundary, not documentation.
+         * Text-native posts must not call image generation just because the
+         * legacy media lane sits later in this handler.
+         */
+        const assets = shouldRunAssets ? openStage(ctx, 'assets') : ctx;
         const formatLine = written ? subjectFromFormat(written.draft.slots) : null;
         let heroSubject = subjectForImage(artifact, idea.title);
-        if (formatLine) {
+        if (shouldRunAssets && formatLine) {
           const verdict = await photographicSubject(
             { line: formatLine, productContext: product.brief_summary ?? undefined },
             llmFor(),
@@ -3046,7 +3057,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
         let hero: Awaited<ReturnType<typeof generateHeroImage>>;
         try {
           hero =
-          heroSubject && imageClient
+          shouldRunAssets && heroSubject && imageClient
             ? await generateHeroImage(assets, imageClient, {
                 subject: heroSubject,
                 shot,
@@ -3105,7 +3116,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
          * video, which is what the piece actually is.
          */
         const stillIsAboutThisPiece = chosenFormat.format.factuality === 'product';
-        if (artifact && !stillIsAboutThisPiece) {
+        if (shouldRunAssets && artifact && !stillIsAboutThisPiece) {
           ctx.log('no still for this piece', {
             contentItemId,
             format: chosenFormat.format.id,
@@ -3115,7 +3126,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
           });
         }
 
-        if (artifact && stillIsAboutThisPiece) {
+        if (shouldRunAssets && artifact && stillIsAboutThisPiece) {
           /*
            * §395. Four of these were built and unreachable.
            *
@@ -3248,7 +3259,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
          * piece has one, because §297 is explicit that a story wants immediacy
          * over production — a photograph is closer to that than a type card.
          */
-        if (resolvedType.postType.channel === 'story' && enabledTemplates.includes('story_card')) {
+        if (shouldRunAssets && resolvedType.postType.channel === 'story' && enabledTemplates.includes('story_card')) {
           const slotText = (key: string): string | null =>
             written?.draft.slots.find((sl) => sl.key === key)?.text?.trim() || null;
 
@@ -3300,13 +3311,16 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
          * this line every image this piece will carry has been made and
          * attached.
          */
-        await markOutputConsumed(ctx.pool, {
-          agentId: 'photographic-subject',
-          triggerRef: job.id,
-          consumer: 'images attached to the piece and staged into renders',
-        }).catch(() => undefined);
+        if (shouldRunAssets) {
+          await markOutputConsumed(ctx.pool, {
+            agentId: 'photographic-subject',
+            triggerRef: job.id,
+            consumer: 'images attached to the piece and staged into renders',
+          }).catch(() => undefined);
+        }
 
         if (
+          shouldRunAssets &&
           resolvedType.postType.media === 'carousel' &&
           enabledTemplates.includes('carousel_6')
         ) {
