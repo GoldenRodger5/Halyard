@@ -156,9 +156,6 @@ d('the calibration batch is not blocked by calibration', () => {
       job({
         productId: 'recipefix',
         autonomous: true,
-        preferredSignalId: crypto.randomUUID(),
-        strategyDecisionId: crypto.randomUUID(),
-        onlyPlatform: 'instagram',
         limit: 1,
       }),
       ctx,
