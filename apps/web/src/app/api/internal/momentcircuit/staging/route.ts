@@ -70,7 +70,16 @@ async function verifyGithubOidc(token: string): Promise<Claims> {
   );
   const signed = new TextEncoder().encode(`${parts[0]}.${parts[1]}`);
   const signature = decodePart(parts[2]!);
-  const valid = await crypto.subtle.verify('RSASSA-PKCS1-v1_5', key, signature, signed);
+  const signatureBuffer = new Uint8Array(signature.byteLength);
+  signatureBuffer.set(signature);
+  const signedBuffer = new Uint8Array(signed.byteLength);
+  signedBuffer.set(signed);
+  const valid = await crypto.subtle.verify(
+    'RSASSA-PKCS1-v1_5',
+    key,
+    signatureBuffer.buffer,
+    signedBuffer.buffer,
+  );
   if (!valid) throw new Error('invalid_signature');
 
   const now = Math.floor(Date.now() / 1000);
