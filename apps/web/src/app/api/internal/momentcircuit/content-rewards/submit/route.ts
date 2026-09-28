@@ -129,107 +129,77 @@ async function fetchWithCookies(
   const changed = parseSetCookies(response.headers, bundle);
   return { response, changed };
 }
-function scriptUrls(html: string) {
-  const out = new Set<string>();
-  const re = /<script[^>]+src="([^"]+)"/g;
-  for (let match; (match = re.exec(html)); ) {
-    const src = match[1]!;
-    try {
-      out.add(new URL(src, CR_ORIGIN).toString());
-    } catch {
-      // ignore malformed script URL
+function submissionApiUrl() {
+  return `${CR_ORIGIN}/api/submission/submissions`;
+}
+
+function extractApiError(text: string) {
+  try {
+    const parsed = JSON.parse(text) as {
+      error?: { code?: string; message?: string } | string;
+      success?: boolean;
+    };
+    if (typeof parsed.error === 'string') {
+      return { code: 'UNKNOWN', message: parsed.error };
     }
-  }
-  return [...out];
-}
-
-function submissionActionIdFromJs(js: string) {
-  const match = js.match(
-    /createServerReference\("([a-f0-9]{32,64})"[\s\S]{0,300}?"createSubmissionAction"/i,
-  );
-  return match?.[1] ?? null;
-}
-
-async function discoverSubmissionAction(campaignId: string, bundle: CookieBundle) {
-  const pageUrl = campaignPreviewUrl(campaignId);
-  const { response: page, changed } = await fetchWithCookies(pageUrl, bundle, {
-    headers: { accept: 'text/html' },
-  });
-  if (!page.ok) throw new Error(`CR_PREVIEW_HTTP_${page.status}`);
-
-  const html = await page.text();
-  const direct = submissionActionIdFromJs(html);
-  if (direct) {
-    if (changed) await saveCookieBundle(bundle);
-    return direct;
-  }
-
-  const scripts = scriptUrls(html);
-  const concurrency = 10;
-  for (let i = 0; i < scripts.length; i += concurrency) {
-    const batch = scripts.slice(i, i + concurrency);
-    const results = await Promise.all(
-      batch.map(async (src) => {
-        try {
-          const res = await fetch(src, { cache: 'no-store' });
-          if (!res.ok) return null;
-          const text = await res.text();
-          return submissionActionIdFromJs(text);
-        } catch {
-          return null;
-        }
-      }),
-    );
-    const found = results.find(Boolean);
-    if (found) {
-      if (changed) await saveCookieBundle(bundle);
-      return found;
+    if (parsed.error && typeof parsed.error === 'object') {
+      return {
+        code: parsed.error.code ?? 'UNKNOWN',
+        message: parsed.error.message ?? 'Submission rejected',
+      };
     }
+    if (parsed.success === false) {
+      return { code: 'UNKNOWN', message: 'Submission rejected' };
+    }
+  } catch {
+    // fall through
   }
-  throw new Error('CR_SUBMISSION_ACTION_NOT_FOUND');
-}
-function parseServerActionError(text: string) {
-  const successFalse = text.includes('"success":false');
-  if (!successFalse) return null;
-
-  const errorMatch = text.match(/"error":"([^"]+)"/);
-  const codeMatch = text.match(/"code":"([^"]+)"/);
-  const fieldMatch = text.match(/"fields":(\{[\s\S]*?\})[,}]/);
-  return {
-    code: codeMatch?.[1] ?? 'UNKNOWN',
-    error: errorMatch?.[1] ?? 'Submission rejected',
-    fields: fieldMatch?.[1] ?? null,
-  };
+  return null;
 }
 
 async function submitUrl(
   job: SubmissionJob,
   bundle: CookieBundle,
-  actionId: string,
 ) {
-  const url = campaignPreviewUrl(job.campaign_id);
-  const { response, changed } = await fetchWithCookies(url, bundle, {
+  const referer = campaignPreviewUrl(job.campaign_id);
+  const { response, changed } = await fetchWithCookies(submissionApiUrl(), bundle, {
     method: 'POST',
     headers: {
-      accept: 'text/x-component',
-      'content-type': 'text/plain;charset=UTF-8',
-      'next-action': actionId,
+      accept: 'application/json',
+      'content-type': 'application/json',
       origin: CR_ORIGIN,
-      referer: url,
+      referer,
     },
-    body: JSON.stringify([{ campaignId: job.campaign_id, url: job.public_url }]),
+    body: JSON.stringify({
+      campaignId: job.campaign_id,
+      url: job.public_url,
+    }),
   });
 
   const text = await response.text();
   if (changed) await saveCookieBundle(bundle);
-  if (!response.ok) throw new Error(`CR_SUBMIT_HTTP_${response.status}`);
 
-  const rejected = parseServerActionError(text);
-  if (rejected) {
-    throw new Error(`CR_SUBMIT_REJECTED:${rejected.code}:${rejected.error}`);
+  const apiError = extractApiError(text);
+  if (response.status === 409 && /already been submitted/i.test(text)) {
+    return {
+      duplicate: true,
+      status: response.status,
+      apiError,
+    };
+  }
+  if (!response.ok) {
+    throw new Error(
+      `CR_SUBMIT_HTTP_${response.status}:${apiError?.code ?? 'UNKNOWN'}:${apiError?.message ?? text.slice(0, 300)}`,
+    );
+  }
+  if (apiError) {
+    throw new Error(`CR_SUBMIT_REJECTED:${apiError.code}:${apiError.message}`);
   }
 
-  return { raw: text.slice(0, 2000) };
+  return {
+    duplicate: false,
+    status: response.status,
+  };
 }
 
 async function verifyReadback(publicUrl: string, bundle: CookieBundle) {
@@ -288,19 +258,39 @@ async function execute(id: string) {
     return { duplicate: true, job: data };
   }
 
-  if (Date.now() > deadline(job).getTime()) {
-    await markJob(job.id, {
-      status: 'expired',
-      error: 'SUBMISSION_WINDOW_EXPIRED',
-      completed_at: new Date().toISOString(),
-    });
-    return { duplicate: false, expired: true, job_id: job.id };
-  }
-
   try {
     const bundle = await loadCookieBundle();
-    const actionId = await discoverSubmissionAction(job.campaign_id, bundle);
-    await submitUrl(job, bundle, actionId);
+
+    const alreadySubmitted = await verifyReadback(job.public_url, bundle);
+    if (alreadySubmitted) {
+      const submittedAt = new Date().toISOString();
+      const result = {
+        submitted_at: submittedAt,
+        verified: true,
+        stable_api: true,
+        idempotent_existing: true,
+        platform: job.platform,
+        public_url: job.public_url,
+      };
+      await markJob(job.id, {
+        status: 'submitted',
+        result,
+        completed_at: submittedAt,
+        error: null,
+      });
+      return { duplicate: false, submitted: true, job_id: job.id, result };
+    }
+
+    if (Date.now() > deadline(job).getTime()) {
+      await markJob(job.id, {
+        status: 'expired',
+        error: 'SUBMISSION_WINDOW_EXPIRED',
+        completed_at: new Date().toISOString(),
+      });
+      return { duplicate: false, expired: true, job_id: job.id };
+    }
+
+    const submitResult = await submitUrl(job, bundle);
 
     let verified = false;
     for (let attempt = 0; attempt < 4; attempt++) {
@@ -314,7 +304,8 @@ async function execute(id: string) {
     const result = {
       submitted_at: submittedAt,
       verified: true,
-      action_discovered_live: true,
+      stable_api: true,
+      duplicate_response: submitResult.duplicate,
       platform: job.platform,
       public_url: job.public_url,
     };
