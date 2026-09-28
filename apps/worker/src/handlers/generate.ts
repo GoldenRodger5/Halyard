@@ -512,6 +512,20 @@ function postTypeForTargetMedia(format: string): PostTypeId | null {
  * turned a selected comparison into a quiz simply because both were
  * "community" pieces.
  */
+export function shouldNarrateVideo(input: {
+  operatorVoice?: string | null;
+  audioMode?: string | null;
+  productionHasVoice: boolean;
+}): boolean {
+  if (input.operatorVoice === 'off') return false;
+  if (input.operatorVoice === 'on') return true;
+  if (input.audioMode === 'narrated') return true;
+  if (['silent_captioned', 'natural_sound', 'text_only'].includes(input.audioMode ?? '')) {
+    return false;
+  }
+  return input.productionHasVoice;
+}
+
 export function postFormatForTarget(
   target: TargetContentItem,
   treatment?: CreativeType | null,
@@ -861,6 +875,8 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
       : null;
   const requestedMediaMode =
     typeof targetVariation?.mediaMode === 'string' ? targetVariation.mediaMode : null;
+  const requestedAudioMode =
+    typeof targetVariation?.audioMode === 'string' ? targetVariation.audioMode : null;
   let requestedConceptIdeaId: string | null = null;
 
   const proposed = await ctx.pool.query<{
@@ -4372,12 +4388,19 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
            * video. An absent override means auto, which is the plan.
            */
           const overrides = (job.payload.options ?? {}) as Record<string, string>;
-          const wantsVoice =
-            overrides.voice === 'off'
-              ? false
-              : overrides.voice === 'on'
-                ? true
-                : production.stages.some((stage) => stage.stage === 'voice');
+          const variationVoicePreference =
+            requestedAudioMode === 'narrated'
+              ? true
+              : ['silent_captioned', 'natural_sound', 'text_only'].includes(
+                    requestedAudioMode ?? '',
+                  )
+                ? false
+                : null;
+          const wantsVoice = shouldNarrateVideo({
+            operatorVoice: overrides.voice ?? null,
+            audioMode: requestedAudioMode,
+            productionHasVoice: production.stages.some((stage) => stage.stage === 'voice'),
+          });
           /*
            * §387. The sound booth. Opened whether or not a voice is wanted,
            * because "we decided this piece is silent" is the booth's work and
@@ -4393,8 +4416,10 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
               because:
                 overrides.voice === 'off'
                   ? 'the operator asked for a silent, caption-led cut'
-                  : (production.skipped.find((stage) => stage.stage === 'voice')?.because ??
-                    'this production has no voice stage'),
+                  : variationVoicePreference === false
+                    ? `the CreativePackage selected ${requestedAudioMode}, so narration would violate the platform variant`
+                    : (production.skipped.find((stage) => stage.stage === 'voice')?.because ??
+                      'this production has no voice stage'),
             });
           }
 
@@ -4454,8 +4479,9 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
            * from the caption is two removes from the words on screen, which is
            * exactly the fault §350 traced.
            */
-          const narrationAlreadyWritten = (formatNarration?.length ?? 0) > 0;
-          if (narrationAlreadyWritten) {
+          if (wantsVoice) {
+            const narrationAlreadyWritten = (formatNarration?.length ?? 0) > 0;
+            if (narrationAlreadyWritten) {
             ctx.log('vo script skipped', {
               contentItemId,
               because:
@@ -4573,11 +4599,31 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
             ],
           );
 
-          await markOutputConsumed(ctx.pool, {
-            agentId: 'vo-scriptwriter',
-            triggerRef: job.id,
-            consumer: 'content_items.vo_script, spoken by the tts job',
-          }).catch(() => undefined);
+            await markOutputConsumed(ctx.pool, {
+              agentId: 'vo-scriptwriter',
+              triggerRef: job.id,
+              consumer: 'content_items.vo_script, spoken by the tts job',
+            }).catch(() => undefined);
+          } else {
+            await ctx.pool.query(
+              `update content_items
+                  set vo_script = null,
+                      vo_lines = null,
+                      audio_mode = 'text_only',
+                      ai_components = array_remove(ai_components, 'voiceover'),
+                      generation_meta = coalesce(generation_meta, '{}'::jsonb) || $2::jsonb
+                where id = $1`,
+              [
+                contentItemId,
+                JSON.stringify({
+                  audio_intent: {
+                    mode: requestedAudioMode ?? 'silent_captioned',
+                    source: overrides.voice === 'off' ? 'operator_override' : 'creative_package',
+                  },
+                }),
+              ],
+            );
+          }
 
           /**
            * §160. The creative plan, decided before anything renders.
@@ -5182,11 +5228,21 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
               },
               audioDirection: {
                 captionBackdrop: plan.captionBackdrop,
-                voiceEnergy: voice.energy,
-                voiceStability: voice.stability,
-                voiceSimilarityBoost: voice.similarityBoost,
-                voiceReason: voice.reason,
-                deliveryNotes: voice.deliveryNotes,
+                mode: wantsVoice ? 'narrated' : (requestedAudioMode ?? 'silent_captioned'),
+                ...(wantsVoice
+                  ? {
+                      voiceEnergy: voice.energy,
+                      voiceStability: voice.stability,
+                      voiceSimilarityBoost: voice.similarityBoost,
+                      voiceReason: voice.reason,
+                      deliveryNotes: voice.deliveryNotes,
+                    }
+                  : {
+                      voiceReason:
+                        overrides.voice === 'off'
+                          ? 'operator requested no narration'
+                          : 'CreativePackage selected a non-narrated audio mode',
+                    }),
               },
               captionDirection: {
                 overflowHome: budgetFor(account.platform).overflowHome,
@@ -5376,7 +5432,9 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                 typography: typography?.system.id ?? null,
                 opening: briefBeats[0]?.opening ?? null,
               },
-              audioDirection: {},
+              audioDirection: {
+                mode: wantsVoice ? 'narrated' : (requestedAudioMode ?? 'silent_captioned'),
+              },
               captionDirection: { shape: captionShape.shape },
               evidence: (written?.draft.slots ?? [])
                 .map((slot) => slot.citation)
@@ -5403,11 +5461,35 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
             });
           }
 
-          await ctx.enqueue(
-            'tts',
-            { contentItemId },
-            { dedupeKey: `tts:${contentItemId}`, priority: 45 },
-          );
+          if (wantsVoice) {
+            await ctx.enqueue(
+              'tts',
+              { contentItemId },
+              { dedupeKey: `tts:${contentItemId}`, priority: 45 },
+            );
+          } else {
+            const { rows: silentRenders } = await ctx.pool.query<{ id: string }>(
+              `select id from renders
+                where content_item_id = $1
+                  and renderer = 'remotion'
+                  and quality = 'final'
+                  and status = 'queued'
+                order by created_at desc`,
+              [contentItemId],
+            );
+            for (const render of silentRenders) {
+              await ctx.enqueue(
+                'render',
+                { renderId: render.id },
+                { dedupeKey: `render:${render.id}`, priority: 50 },
+              );
+            }
+            ctx.log('silent video released directly to render', {
+              contentItemId,
+              audioMode: requestedAudioMode ?? 'silent_captioned',
+              renders: silentRenders.length,
+            });
+          }
         }
 
         /**

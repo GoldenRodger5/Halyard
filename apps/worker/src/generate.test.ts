@@ -10,7 +10,13 @@ import type pg from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createIsolatedPool, databaseAvailable } from '../../../packages/db/src/__tests__/testDb.js';
 import { classifyHookType, extractHookPattern } from '@halyard/core';
-import { copywriterDontRules, disownPartialContentItem, generateHandler, postFormatForTarget } from './handlers/generate.js';
+import {
+  copywriterDontRules,
+  disownPartialContentItem,
+  generateHandler,
+  postFormatForTarget,
+  shouldNarrateVideo,
+} from './handlers/generate.js';
 import type { Job } from './poller.js';
 import { testContext, type TestContext } from './testContext.js';
 
@@ -73,6 +79,45 @@ describe('CreativePackage treatment controls the targeted format', () => {
   it('keeps a community comparison as comparison instead of silently substituting quiz', () => {
     const target = { category: 'community', format: 'video' } as never;
     expect(postFormatForTarget(target, 'comparison')).toBe('comparison');
+  });
+});
+
+describe('CreativePackage audio mode controls narration', () => {
+  it('keeps silent-captioned and natural-sound video out of TTS', () => {
+    for (const audioMode of ['silent_captioned', 'natural_sound', 'text_only']) {
+      expect(
+        shouldNarrateVideo({ audioMode, productionHasVoice: true }),
+        audioMode,
+      ).toBe(false);
+    }
+  });
+
+  it('forces narration when the variant explicitly asks for it', () => {
+    expect(
+      shouldNarrateVideo({ audioMode: 'narrated', productionHasVoice: false }),
+    ).toBe(true);
+  });
+
+  it('lets the operator override the variant in either direction', () => {
+    expect(
+      shouldNarrateVideo({
+        operatorVoice: 'off',
+        audioMode: 'narrated',
+        productionHasVoice: true,
+      }),
+    ).toBe(false);
+    expect(
+      shouldNarrateVideo({
+        operatorVoice: 'on',
+        audioMode: 'silent_captioned',
+        productionHasVoice: false,
+      }),
+    ).toBe(true);
+  });
+
+  it('falls back to the production plan when no variant audio mode exists', () => {
+    expect(shouldNarrateVideo({ productionHasVoice: true })).toBe(true);
+    expect(shouldNarrateVideo({ productionHasVoice: false })).toBe(false);
   });
 });
 
