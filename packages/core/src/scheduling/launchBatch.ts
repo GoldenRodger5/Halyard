@@ -35,6 +35,8 @@ import {
   type StaggerRules,
 } from './stagger.js';
 import { addLocalCalendarDays, resolveSlot, type SlotWindow } from './timezone.js';
+import { contentFamilyForCategory } from '../creative/package.js';
+import { creativeVariationFor, variationKey, type CreativeVariation } from '../creative/variety.js';
 
 export interface LaunchAccount {
   id: string;
@@ -83,6 +85,8 @@ export interface LaunchSlot {
   conceptKey: string;
   /** The evidence-safe job of the package; each platform writes its own native variant. */
   conceptIntent: string;
+  /** Product-neutral creative shape. Subject/evidence still come from the Product Brain. */
+  creativeVariation: CreativeVariation;
   scheduledAt: Date | null;
   slotName: string;
   reason: string;
@@ -173,7 +177,7 @@ const CONCEPT_INTENTS: Record<string, string[]> = {
 
 const CONCEPT_PACKAGE_SIZE = 4;
 
-export function conceptFor(category: string, ordinal: number): { key: string; intent: string } {
+export function conceptFor(category: string, ordinal: number): { key: string; intent: string; variation: CreativeVariation } {
   const options = CONCEPT_INTENTS[category] ?? [
     'Make one specific, evidence-backed piece that earns attention before asking for anything. Show or teach; do not announce.',
   ];
@@ -181,6 +185,7 @@ export function conceptFor(category: string, ordinal: number): { key: string; in
   return {
     key: `${category}:${packageIndex + 1}`,
     intent: options[packageIndex % options.length]!,
+    variation: creativeVariationFor(contentFamilyForCategory(category), packageIndex),
   };
 }
 
@@ -297,6 +302,7 @@ export function planLaunchBatch(brief: LaunchBatchBrief): LaunchBatchPlan {
       purpose: 'introduction',
       conceptKey: `brand:introduction:${account.persona}`,
       conceptIntent: CONCEPT_INTENTS.brand![0]!,
+      creativeVariation: creativeVariationFor(contentFamilyForCategory('brand'), 0),
     });
   }
   rationale.push(
@@ -448,6 +454,7 @@ export function planLaunchBatch(brief: LaunchBatchBrief): LaunchBatchPlan {
       purpose: 'regular',
       conceptKey: concept.key,
       conceptIntent: concept.intent,
+      creativeVariation: concept.variation,
     });
   });
 
@@ -487,6 +494,10 @@ export function planLaunchBatch(brief: LaunchBatchBrief): LaunchBatchPlan {
   const conceptCount = new Set(placed.map((slot) => slot.conceptKey)).size;
   rationale.push(
     `${placed.length} placements reuse ${conceptCount} creative packages. The evidence-backed idea stays coordinated while each platform gets its own native hook, length and finish.`,
+  );
+  const variationCount = new Set(placed.map((slot) => variationKey(slot.creativeVariation))).size;
+  rationale.push(
+    `${variationCount} distinct creative shapes are present across those packages — treatment, opening, media mode, audio mode and caption job rotate deliberately instead of one category mapping to one template.`,
   );
 
   if (Object.keys(brief.mixTargets).length > 0) {
