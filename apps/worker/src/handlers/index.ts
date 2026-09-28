@@ -22,6 +22,8 @@ import { publishHandler } from './publish.js';
 import { renderHandler } from './render.js';
 import { generateHandler } from './generate.js';
 import { reconcileScheduleHandler } from './reconcile.js';
+import { reconcileDeliveryHandler } from './reconcileDelivery.js';
+import { generateExternalVisualHandler } from './externalVisual.js';
 import { captureHandler, markStaleAssetsHandler } from './capture.js';
 import { collectAppStoreAttribution } from './appStore.js';
 import { detectReleaseHandler } from './detectRelease.js';
@@ -524,6 +526,8 @@ export const HANDLERS: Partial<Record<JobKind, JobHandler>> = {
   render: renderHandler,
   generate: generateHandler,
   reconcile_schedule: reconcileScheduleHandler,
+  reconcile_delivery: reconcileDeliveryHandler,
+  generate_external_visual: generateExternalVisualHandler,
   collect_metrics: collectMetrics,
   collect_comments: collectComments,
   collect_attribution: collectAttribution,

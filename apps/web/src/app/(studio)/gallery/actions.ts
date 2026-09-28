@@ -2,12 +2,14 @@
 
 import { revalidatePath } from 'next/cache';
 import { adjustmentById } from '@halyard/core';
-import { query, one } from '@/lib/db';
+import { acceptProductionCalibration, rejectProductionCalibration } from '@halyard/db';
+import { query, one, pool } from '@/lib/db';
 import { fromDatetimeLocalValue } from '@/lib/format';
 import { requireOperator } from '@/lib/auth';
 import {
   emptyTikTokOptions,
   gatesAfterEdit,
+  refreshCopyGate,
   slopFilter,
   validateTikTokPost,
   type GateResult,
@@ -20,6 +22,105 @@ async function audit(action: string, entityId: string, detail: Record<string, un
     `insert into audit_log (actor, action, entity_type, entity_id, detail)
      values ('human', $1, 'content_item', $2, $3)`,
     [action, entityId, { ...detail, operator: operator.email }],
+  );
+}
+
+/**
+ * Opening-run review doubles as real voice calibration.
+ *
+ * The old onboarding flow generated twenty disposable drafts solely so the
+ * operator could rate them, while the actual launch batch was reviewed again
+ * later. A real approve/reject on a launch draft is stronger evidence: it is the
+ * exact content the operator is deciding whether to represent the product with.
+ * Only launch-batch items count here, and one content item can contribute at
+ * most one review because `calibration_reviews.content_item_id` is unique.
+ */
+async function recordLaunchCalibrationDecision(
+  id: string,
+  decision: 'approved' | 'rejected',
+  reason: string | null = null,
+): Promise<void> {
+  const item = await one<{
+    product_id: string;
+    platform: string;
+    persona: string;
+    category: string;
+    body: string;
+    original_body: string | null;
+    generation_meta: Record<string, unknown> | null;
+  }>(
+    `select product_id, platform, persona, category, body, original_body, generation_meta
+       from content_items where id = $1`,
+    [id],
+  );
+  if (!item || item.generation_meta?.source !== 'launch_batch') return;
+
+  const verdict =
+    decision === 'approved' && item.original_body && item.original_body !== item.body
+      ? 'edited'
+      : decision;
+  const inserted = await one<{ fresh: boolean }>(
+    `insert into calibration_reviews
+       (product_id, content_item_id, verdict, reason, edited_body)
+     values ($1,$2,$3,$4,$5)
+     on conflict (content_item_id) do update
+       set verdict = excluded.verdict, reason = excluded.reason,
+           edited_body = excluded.edited_body, reviewed_at = now()
+     returning (xmax = 0) as fresh`,
+    [
+      item.product_id,
+      id,
+      verdict,
+      reason,
+      verdict === 'edited' ? item.body : null,
+    ],
+  );
+
+  /* One positive example per item; repeated decisions update the verdict only. */
+  if (inserted?.fresh && (verdict === 'approved' || verdict === 'edited')) {
+    const opening = item.body.split(/[.!?]/)[0]?.trim();
+    if (opening) {
+      await query(
+        `insert into hooks (product_id, pattern, platform, category, source)
+         values ($1,$2,$3,$4,'calibration') on conflict do nothing`,
+        [item.product_id, opening, item.platform, item.category],
+      );
+    }
+    await query(
+      `update brand_voices
+          set examples = examples || $3::jsonb
+        where product_id = $1 and persona = $2`,
+      [
+        item.product_id,
+        item.persona,
+        JSON.stringify([{
+          platform: item.platform,
+          text: item.body,
+          why_good: verdict === 'edited' ? 'approved after operator edit in opening run' : 'approved in opening run',
+        }]),
+      ],
+    );
+  }
+
+  await query(
+    `update onboarding_state os
+        set calibration_reviewed = x.reviewed,
+            step_calibration_done = (x.reviewed >= os.calibration_target)
+       from (
+         select count(*)::int as reviewed
+           from calibration_reviews where product_id = $1
+       ) x
+      where os.product_id = $1`,
+    [item.product_id],
+  );
+  await query(
+    `update onboarding_state
+        set completed_at = case
+          when step_ingest_done and step_voice_done and step_calibration_done
+               and step_templates_done and step_accounts_done
+          then coalesce(completed_at, now()) else null end
+      where product_id = $1`,
+    [item.product_id],
   );
 }
 
@@ -45,14 +146,92 @@ export async function approveItem(formData: FormData): Promise<void> {
     status: string;
     scheduled_at: string | null;
     platform: string;
+    format: string;
+    body: string;
+    hashtags: string[];
+    gates: GateResult[];
     tiktok_options: unknown;
     tiktok_creator_info: unknown;
+    generation_meta: Record<string, unknown> | null;
+    attached_asset_ids: string[];
+    has_finished_render: boolean;
   }>(
-    `select status, scheduled_at, platform, tiktok_options, tiktok_creator_info
-       from content_items where id = $1`,
+    `select ci.status, ci.scheduled_at, ci.platform, ci.format,
+            ci.body, ci.hashtags,
+            coalesce(ci.qc_results->'gates', '[]'::jsonb) as gates,
+            ci.tiktok_options, ci.tiktok_creator_info,
+            ci.generation_meta, ci.attached_asset_ids,
+            exists (
+              select 1 from renders r
+              join assets a on a.id = r.output_asset_id
+              where r.content_item_id = ci.id
+                and r.status = 'done' and r.quality = 'final'
+                and a.archived_at is null
+            ) as has_finished_render
+       from content_items ci where ci.id = $1`,
     [id],
   );
   if (!item) return;
+
+  /*
+   * The body can change after its first generation-time QC (hook/correction
+   * stages). Approval is the last human boundary before scheduling, so refresh
+   * the deterministic copy gate against the exact prose that exists now.
+   * This is intentionally model-free and costs nothing.
+   */
+  const currentCopyLint = slopFilter({
+    body: item.body,
+    platform: item.platform as SlopPlatform,
+    hashtags: item.hashtags ?? [],
+  });
+  const refreshedCopy = refreshCopyGate(item.gates ?? [], currentCopyLint);
+  await query(
+    `update content_items
+        set qc_results = coalesce(qc_results, '{}'::jsonb)
+                         || jsonb_build_object('gates', $2::jsonb, 'passed', $3::boolean)
+      where id = $1`,
+    [id, JSON.stringify(refreshedCopy.gates), refreshedCopy.passed],
+  );
+  const currentCopyGate = refreshedCopy.gates.find((gate) => gate.gate === 'copy');
+  if (currentCopyGate?.status === 'failed') {
+    await audit('approve_refused_current_copy_qc', id, {
+      summary: currentCopyGate.summary,
+      violations: currentCopyLint.violations,
+    });
+    revalidatePath(`/gallery/${id}`);
+    return;
+  }
+
+  /*
+   * Paid external visual work is reviewed as the actual media, never as a
+   * promise that media will exist later. The Gallery also disables its button,
+   * but this server action is a public POST boundary and must enforce the same
+   * invariant itself.
+   */
+  const productionMediaRequired = item.generation_meta?.production_media_required === true;
+  if (
+    productionMediaRequired &&
+    !item.has_finished_render &&
+    (item.attached_asset_ids ?? []).length === 0
+  ) {
+    await audit('approve_refused_missing_production_media', id, {
+      format: item.format,
+      productionV2: item.generation_meta?.production_v2 === true,
+    });
+    revalidatePath(`/gallery/${id}`);
+    return;
+  }
+
+  if (
+    item.generation_meta?.visual_provider === 'blotato' &&
+    (item.generation_meta?.visual_status !== 'done' || (item.attached_asset_ids ?? []).length === 0)
+  ) {
+    await audit('approve_refused_missing_visual', id, {
+      visualStatus: item.generation_meta?.visual_status ?? null,
+    });
+    revalidatePath(`/gallery/${id}`);
+    return;
+  }
 
   /*
    * §179. TikTok cannot be approved on someone's behalf.
@@ -89,6 +268,7 @@ export async function approveItem(formData: FormData): Promise<void> {
     [id],
   );
   await audit('approve', id, { previousStatus: item.status });
+  await recordLaunchCalibrationDecision(id, 'approved');
 
   // If it is already due, hand it straight to the worker.
   if (item.scheduled_at && new Date(item.scheduled_at) <= new Date()) {
@@ -114,6 +294,7 @@ export async function rejectItem(formData: FormData): Promise<void> {
     reason || null,
   ]);
   await audit('reject', id, { reason });
+  await recordLaunchCalibrationDecision(id, 'rejected', reason || null);
 
   if (reason) {
     // Feed the rejection back into the voice as a negative example, so the same
@@ -358,6 +539,185 @@ export async function rescheduleItem(formData: FormData): Promise<void> {
   revalidatePath('/rundown');
 }
 
+interface ProductionCalibrationCandidate {
+  product_id: string;
+  production_recipe_id: string | null;
+  recipe_mode: string | null;
+  recipe_status: string | null;
+  steps: Array<{ provider?: string; capability?: string }>;
+  qc_results: { passed?: boolean; gates?: Array<{ status?: string }> } | null;
+  attached_asset_ids: string[];
+  has_finished_render: boolean;
+}
+
+async function productionCalibrationCandidate(id: string): Promise<ProductionCalibrationCandidate | null> {
+  return one<ProductionCalibrationCandidate>(
+    `select ci.product_id, ci.production_recipe_id,
+            pr.mode as recipe_mode, pr.status as recipe_status,
+            coalesce(pr.steps, '[]'::jsonb) as steps,
+            ci.qc_results, ci.attached_asset_ids,
+            exists (
+              select 1 from renders r
+              join assets a on a.id=r.output_asset_id
+              where r.content_item_id=ci.id and r.status='done' and r.quality='final'
+                and a.archived_at is null
+            ) as has_finished_render
+       from content_items ci
+       left join production_recipes pr on pr.id=ci.production_recipe_id
+      where ci.id=$1`,
+    [id],
+  );
+}
+
+function generativeCalibrationSteps(
+  steps: ProductionCalibrationCandidate['steps'],
+): Array<{ provider: string; capability: string }> {
+  const generative = new Set(['higgsfield', 'blotato_visual']);
+  const seen = new Set<string>();
+  const result: Array<{ provider: string; capability: string }> = [];
+  for (const step of steps ?? []) {
+    const provider = String(step.provider ?? '');
+    const capability = String(step.capability ?? '');
+    const key = `${provider}:${capability}`;
+    if (!provider || !capability || !generative.has(provider) || seen.has(key)) continue;
+    seen.add(key);
+    result.push({ provider, capability });
+  }
+  return result;
+}
+
+/**
+ * Accept a visually reviewed calibration recipe for future automation.
+ *
+ * This is deliberately separate from approving the current social post. One
+ * decision says "this asset may publish"; this says "Halyard may use this
+ * production capability unattended again for this product." The latter is the
+ * stronger permission and therefore requires finished media + passing media QC.
+ */
+export async function acceptProductionRecipe(formData: FormData): Promise<void> {
+  await requireOperator();
+  const id = String(formData.get('id') ?? '');
+  if (!id) return;
+  const candidate = await productionCalibrationCandidate(id);
+  if (!candidate?.production_recipe_id) return;
+
+  const hasMedia = candidate.has_finished_render || (candidate.attached_asset_ids ?? []).length > 0;
+  const failedGate = (candidate.qc_results?.gates ?? []).some((gate) => gate.status === 'failed');
+  const mediaPassed = candidate.qc_results?.passed === true && !failedGate;
+  if (
+    candidate.recipe_mode !== 'calibration' ||
+    candidate.recipe_status !== 'review_required' ||
+    !hasMedia ||
+    !mediaPassed
+  ) {
+    await audit('production_recipe_accept_refused', id, {
+      recipeId: candidate.production_recipe_id,
+      mode: candidate.recipe_mode,
+      recipeStatus: candidate.recipe_status,
+      hasMedia,
+      mediaPassed,
+    });
+    revalidatePath(`/gallery/${id}`);
+    return;
+  }
+
+  const steps = generativeCalibrationSteps(candidate.steps);
+  for (const step of steps) {
+    await acceptProductionCalibration(pool(), {
+      productId: candidate.product_id,
+      provider: step.provider,
+      capability: step.capability,
+      sourceRecipeId: candidate.production_recipe_id,
+      notes: `Accepted from Gallery item ${id} after finished-media QC.`,
+    });
+  }
+  await query(
+    `update production_recipes
+        set status='accepted', human_review_required=false, updated_at=now()
+      where id=$1 and mode='calibration' and status='review_required'`,
+    [candidate.production_recipe_id],
+  );
+  await audit('production_recipe_accepted', id, {
+    recipeId: candidate.production_recipe_id,
+    calibrated: steps,
+  });
+  revalidatePath(`/gallery/${id}`);
+}
+
+export async function rejectProductionRecipe(formData: FormData): Promise<void> {
+  await requireOperator();
+  const id = String(formData.get('id') ?? '');
+  const note = String(formData.get('note') ?? '').trim();
+  if (!id || !note) return;
+  const candidate = await productionCalibrationCandidate(id);
+  if (!candidate?.production_recipe_id || candidate.recipe_mode !== 'calibration') return;
+
+  const steps = generativeCalibrationSteps(candidate.steps);
+  for (const step of steps) {
+    await rejectProductionCalibration(pool(), {
+      productId: candidate.product_id,
+      provider: step.provider,
+      capability: step.capability,
+      sourceRecipeId: candidate.production_recipe_id,
+      notes: note,
+    });
+  }
+  await query(
+    `update production_recipes
+        set status='rejected', human_review_required=true, updated_at=now()
+      where id=$1 and mode='calibration' and status not in ('accepted','obsolete')`,
+    [candidate.production_recipe_id],
+  );
+  await audit('production_recipe_rejected', id, {
+    recipeId: candidate.production_recipe_id,
+    rejectedCapabilities: steps,
+    note,
+  });
+  revalidatePath(`/gallery/${id}`);
+}
+
+/**
+ * Spend Blotato visual credits only after the operator has seen the copy brief.
+ *
+ * Launch generation deliberately stops at this boundary: the expensive visual
+ * is downstream of editorial acceptance, not a side effect of drafting. This
+ * action only queues the ordinary worker handler; it never generates media
+ * inline and it never publishes.
+ */
+export async function generateBlotatoVisual(formData: FormData): Promise<void> {
+  await requireOperator();
+  const id = String(formData.get('id'));
+  const item = await one<{
+    status: string;
+    generation_meta: Record<string, unknown> | null;
+    attached_asset_ids: string[];
+  }>(
+    `select status, generation_meta, attached_asset_ids from content_items where id = $1`,
+    [id],
+  );
+  if (!item || item.generation_meta?.visual_provider !== 'blotato') return;
+  if (item.generation_meta?.visual_status === 'done' && (item.attached_asset_ids ?? []).length > 0) {
+    return;
+  }
+  if (['published', 'publishing', 'approved', 'scheduled'].includes(item.status)) return;
+
+  await query(
+    `update content_items
+        set generation_meta = generation_meta || $2::jsonb,
+            status = case when status = 'failed' then 'pending_approval' else status end
+      where id = $1`,
+    [id, { visual_status: 'queued', visual_error: null, visual_approved_at: new Date().toISOString() }],
+  );
+  await query(
+    `insert into jobs (kind, payload, priority, dedupe_key)
+     values ('generate_external_visual', $1, 45, $2) on conflict do nothing`,
+    [{ contentItemId: id }, `generate_external_visual:${id}`],
+  );
+  await audit('blotato_visual_generation_approved', id, {});
+  revalidatePath(`/gallery/${id}`);
+  revalidatePath('/gallery');
+}
+
 /** Retry a failed render (build pack §3). */
 export async function retryRender(formData: FormData): Promise<void> {
   await requireOperator();
@@ -483,10 +843,32 @@ export async function markManuallyPublished(formData: FormData): Promise<void> {
  * why, and the reason is what makes the second attempt different from the
  * first rather than another roll of the same dice.
  */
-export async function adjustItem(formData: FormData): Promise<void> {
+/**
+ * §573. The adjustment comes from the button, bound — not from the FormData.
+ *
+ * Every one of these buttons was dead. They are `<button name="adjustment"
+ * value="rewrite">` inside a `<form action={adjustItem}>`, which is correct
+ * HTML and correct React, and the value did not arrive: the action received
+ * `adjustment` as an empty string and threw `There is no "" adjustment.`, so
+ * asking for any change at all answered 500. Nothing caught it because no test
+ * had ever pressed one — the E2E suite was still clicking a Regenerate button
+ * on a screen that had been replaced.
+ *
+ * Rather than depend on the submitter being serialised into the action's
+ * FormData, each button binds its own id. That is unambiguous, it is the
+ * documented way to pass a fixed argument to a server action, and it cannot
+ * silently become empty again.
+ *
+ * The `formData` read is kept as a belt-and-braces default, but nothing can
+ * currently reach it: no control sends an `adjustment` field any more, and
+ * `rewrite` and `reground` carry no `needs*` condition, so `available` is never
+ * empty and implicit submission (Enter in the note field) activates the first
+ * button — which binds its own id like every other one.
+ */
+export async function adjustItem(boundAdjustmentId: string, formData: FormData): Promise<void> {
   await requireOperator();
   const id = String(formData.get('id'));
-  const adjustmentId = String(formData.get('adjustment') ?? '').trim();
+  const adjustmentId = (boundAdjustmentId || String(formData.get('adjustment') ?? '')).trim();
   const note = String(formData.get('note') ?? '').trim();
 
   const adjustment = adjustmentById(adjustmentId);

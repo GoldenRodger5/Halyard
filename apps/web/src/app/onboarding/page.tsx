@@ -154,7 +154,12 @@ export default async function OnboardingPage() {
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-12">
+      {/*
+        §576. `level={1}`: onboarding is outside the studio shell, so there is
+        no Slate above it to carry the document heading.
+      */}
       <PageHeader
+        level={1}
         title="First run"
         subtitle="The riskiest failure mode is not a bug. It is Halyard working perfectly and producing content nobody wants. This is the guard against that, and daily generation does not start until it is done."
       />

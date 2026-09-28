@@ -46,6 +46,10 @@ const MUST_HAVE_A_WRITER = [
      treatment since §218 and no writer — so "platform-specific" was a table
      and nothing else. */
   'platform_variants',
+  // v2: provider routing must be persisted or performance can never teach which production recipe worked.
+  'production_recipes',
+  // v2: accepted generative capabilities must come from an explicit reviewed calibration.
+  'production_provider_calibrations',
   /* §239. Usage memory. `last_used_at` on the bed answers "when" and nothing
      else; selection needs "has this account heard it" and learning needs "did
      it work", and neither is derivable from one timestamp. */

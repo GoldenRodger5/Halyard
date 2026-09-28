@@ -35,9 +35,10 @@ import { Action, Label, Pill, Sheet, Tally, cx } from '@halyard/ui/studio';
 import { Deeper } from '@/components/studio/Deeper';
 import { getAllAccounts, getPendingConnections, getProducts, getSettings } from '@/lib/queries';
 import { formatRelative } from '@/lib/format';
-import { connectBluesky, disconnectAccount, runSelfTest } from '@/app/(studio)/master/actions';
+import { connectBluesky, disconnectAccount, runSelfTest, setTransport } from '@/app/(studio)/master/actions';
 import { registrationFor } from '@/lib/oauthRegistration';
 import { headers } from 'next/headers';
+import { one } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
@@ -83,12 +84,15 @@ export default async function ConnectionsPage({
   const origin =
     process.env.HALYARD_PUBLIC_URL?.trim() ||
     `${requestHeaders.get('x-forwarded-proto') ?? 'http'}://${requestHeaders.get('host') ?? 'localhost:3200'}`;
-  const [accounts, settings, products, pending] = await Promise.all([
+  const [accounts, settings, products, pending, provider] = await Promise.all([
     getAllAccounts(),
     getSettings(),
     getProducts(),
     /* §529. Staged connections nobody has confirmed yet. */
     getPendingConnections(),
+    one<{ capabilities: { platforms?: Record<string, { publish?: string; publishesPublicly?: string }> } }>(
+      `select capabilities from provider_capabilities where provider = 'blotato'`,
+    ),
   ]);
   const timeZone = products[0]?.operator_timezone ?? 'UTC';
 
@@ -97,8 +101,10 @@ export default async function ConnectionsPage({
     const adapter = getAdapter(platform);
     const client = resolvePlatformClient(platform);
     const usesAppPassword = platform === 'bluesky';
+    const providerCapability = provider?.capabilities?.platforms?.[platform] ?? null;
     return {
       account,
+      providerCapability,
       gate: REVIEW_GATES[platform as keyof typeof REVIEW_GATES],
       /*
        * §499. What the platform's own dashboard needs, which existed in
@@ -136,6 +142,8 @@ export default async function ConnectionsPage({
   });
 
   const live = rows.filter((r) => r.view.state === 'connected' || r.view.state === 'limited').length;
+  const providerMapped = rows.filter((r) => Boolean(r.account.provider_account_id)).length;
+  const providerVerified = rows.filter((r) => r.providerCapability?.publish === 'yes').length;
   const attention = rows.filter((r) => r.view.state === 'broken').length;
 
   return (
@@ -145,7 +153,11 @@ export default async function ConnectionsPage({
         <span className="font-data tabular-nums text-ink">
           {live} of {rows.length}
         </span>{' '}
-        connected
+        direct-connected
+        {' · '}
+        <span className="font-data tabular-nums text-ink">{providerMapped}</span> mapped in Blotato
+        {' · '}
+        <span className="font-data tabular-nums text-ink">{providerVerified}</span> provider publish paths proven
         {attention > 0 ? (
           <>
             {' · '}
@@ -233,10 +245,20 @@ export default async function ConnectionsPage({
         </Sheet>
       ) : null}
 
-      {rows.map(({ account, view, gate, registration, envNames }) => {
+      {rows.map(({ account, view, providerCapability, gate, registration, envNames }) => {
         const oauthStart = `/api/oauth/${account.platform}/start?persona=${account.persona}&product=${account.product_id}`;
         return (
-          <Sheet key={account.id} tone={view.state === 'broken' ? 'onair' : 'plain'}>
+          <Sheet
+            key={account.id}
+            /*
+              §571. Which account this card is. Six cards carry a link named
+              only "Connect", so persona and platform are the only thing that
+              tells them apart — for a fragment link, and for a test asserting
+              that *this* account's button goes to the right authorize URL.
+            */
+            id={`${account.persona}-${account.platform}`}
+            tone={view.state === 'broken' ? 'onair' : 'plain'}
+          >
             {/* Row one: who, and the one word. */}
             <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
               <Tally state={LAMP[view.state]} on="light" size={8} />
@@ -247,6 +269,11 @@ export default async function ConnectionsPage({
               <span className="font-data text-[9.5px] uppercase tracking-[0.08em] text-quiet">
                 {account.persona}
               </span>
+              {account.provider_account_id ? (
+                <Pill tone={providerCapability?.publish === 'yes' ? 'ready' : 'working'}>
+                  {account.transport === 'unified' ? 'Via Blotato' : 'Blotato mapped'}
+                </Pill>
+              ) : null}
               <span className="ml-auto">
                 <Pill tone={PILL_TONE[view.state]}>{STATE_WORD[view.state]}</Pill>
               </span>
@@ -257,6 +284,15 @@ export default async function ConnectionsPage({
             {view.detail ? (
               <p className="m-0 mt-1 max-w-[74ch] text-[12.5px] leading-relaxed text-quiet">
                 {view.detail}
+              </p>
+            ) : null}
+            {account.provider_account_id ? (
+              <p className="m-0 mt-1 max-w-[74ch] text-[12px] leading-relaxed text-quiet">
+                Blotato account <span className="font-data text-ink">{account.provider_account_id}</span> is mapped.{' '}
+                {providerCapability?.publish === 'yes'
+                  ? 'A real public post has verified this provider path.'
+                  : 'Publishing is not proven yet; ordinary automation stays blocked until first contact settles successfully.'}{' '}
+                Current route: <span className="font-data text-ink">{account.transport}</span>.
               </p>
             ) : null}
 
@@ -315,6 +351,21 @@ export default async function ConnectionsPage({
                   <Action tone="ghost" small>
                     {account.last_self_test_at ? 'Test again' : 'Test it'}
                   </Action>
+                </form>
+              ) : null}
+
+              {account.transport === 'unified' ? (
+                <form action={setTransport}>
+                  <input type="hidden" name="id" value={account.id} />
+                  <input type="hidden" name="transport" value="direct" />
+                  <Action tone="ghost" small>Use direct</Action>
+                </form>
+              ) : account.provider_account_id && providerCapability?.publish === 'yes' ? (
+                <form action={setTransport}>
+                  <input type="hidden" name="id" value={account.id} />
+                  <input type="hidden" name="transport" value="unified" />
+                  <input type="hidden" name="providerAccountId" value={account.provider_account_id} />
+                  <Action tone="ghost" small>Use Blotato</Action>
                 </form>
               ) : null}
 

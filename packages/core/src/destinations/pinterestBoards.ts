@@ -55,6 +55,29 @@ const ALIASES: Record<string, string[]> = {
 /** Words that carry no signal and would match everything. */
 const STOPWORDS = new Set(['recipes', 'recipe', 'ideas', 'board', 'the', 'and', 'my', 'for']);
 
+/** Category words that make a board specific rather than generic. */
+const SPECIFIC_CLASSIFIERS = [
+  'gluten-free',
+  'dairy-free',
+  'vegan',
+  'vegetarian',
+  'high-protein',
+  'low-carb',
+  'nut-free',
+] as const;
+
+function classifierTerms(name: string): string[] {
+  const lower = name.toLowerCase();
+  const classifier = SPECIFIC_CLASSIFIERS.find((term) => lower.includes(term));
+  if (!classifier) return [];
+  const terms = new Set<string>([classifier, ...(ALIASES[classifier] ?? [])]);
+  if (classifier.includes('-')) {
+    terms.add(classifier.replace(/-/g, ''));
+    terms.add(classifier.replace(/-/g, ' '));
+  }
+  return [...terms];
+}
+
 /**
  * Match terms for a board, from its name.
  *
@@ -121,13 +144,27 @@ export function chooseBoard(boards: PinterestBoard[], signals: BoardSignals): Bo
   const scored = boards
     .map((board) => {
       const terms = board.matchTags?.length ? board.matchTags : deriveBoardKeywords(board.name);
-      const matched = terms.filter((term) => {
+      const matches = (term: string): boolean => {
         // Word-boundary match, so "gf" does not fire inside "gforce" and
-        // "protein" does not fire inside "proteins" being about something else.
+        // "protein" does not fire inside an unrelated longer token.
         const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         return new RegExp(`(^|[^a-z0-9])${escaped}([^a-z0-9]|$)`, 'i').test(text);
-      });
-      return { board, matched, specificity: terms.length };
+      };
+      const matched = terms.filter(matches);
+      const classifier = classifierTerms(board.name);
+      const classifierMatched = classifier.length === 0 || classifier.some(matches);
+
+      /*
+       * A category-specific board does not become a category match merely
+       * because it also contains the generic word "Substitutions". "swap"
+       * alone must not send a general pin to Vegan Substitutions; a vegan/
+       * plant-based signal has to be present too.
+       */
+      return {
+        board,
+        matched: classifierMatched ? matched : [],
+        specificity: classifierMatched ? terms.length : 0,
+      };
     })
     .filter((entry) => entry.matched.length > 0)
     .sort(

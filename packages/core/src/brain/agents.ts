@@ -450,17 +450,12 @@ export const CODE_INTELLIGENCE_CATEGORIES = [
 ] as const satisfies readonly FactCategory[];
 
 /**
- * What the product can actually do, from the interface it really exposes.
+ * What the product can actually do, from implementation evidence.
  *
- * The architecture asks this agent for "implementation truth — actual vs
- * claimed behaviour". For a product that ships through Lovable with no
- * repository, the honest source of that truth is the API surface: a tool the
- * server advertises is a capability that exists, whatever the landing page says.
- *
- * This is deliberately not a second GitHub agent. `shipped-feature-summariser`
- * already reads merged pull requests and is already blocked for want of them;
- * adding another agent blocked on the same absent input would add a name and no
- * capability.
+ * The strongest evidence differs by product: an MCP/API tool surface states
+ * callable capabilities directly; a repository exposes its shipped routes,
+ * components, product docs and recent user-facing changes. Both are allowed,
+ * and when both exist they corroborate rather than compete for one connector slot.
  */
 export async function discoverImplementationFacts(
   input: { productName: string; evidence: EvidenceForPrompt[] },
@@ -468,13 +463,13 @@ export async function discoverImplementationFacts(
 ): Promise<ProposalResult> {
   return propose(llm, {
     system:
-      'You read a product API surface and report what the product actually supports. Reply with JSON only.',
+      'You read product implementation evidence and report what the product actually supports. Reply with JSON only.',
     model: STRATEGY_MODEL,
     prompt: buildProposalPrompt({
       productName: input.productName,
-      role: "reading a product's own API surface to work out what it genuinely supports",
+      role: "reading a product's API surface and repository evidence to work out what it genuinely supports",
       guidance:
-        'Each entry is a capability the product really exposes. Group related operations into the workflow they serve rather than restating the list. Do not infer a feature from a name alone when the description contradicts it.',
+        'Treat API tools, shipped product documentation, routes/components and recent merged user-facing work as implementation evidence. Group related operations into the workflow they serve rather than restating filenames or tool names. A path name alone is not proof of behavior; prefer explicit docs, tool descriptions, and recent shipped changes. Never expose commit hashes, branch names, file paths or pull request numbers as product copy.',
       categories: CODE_INTELLIGENCE_CATEGORIES,
       evidence: input.evidence,
     }),

@@ -3,13 +3,28 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import {
+  adaptVariationForPlatform,
+  addLocalCalendarDays,
+  baselineProductionRequirements,
+  baselineQualityBar,
+  configuredProductionProviders,
+  contentFamilyForCategory,
+  defaultAspectRatioForVariant,
+  defaultPresentationModeForFormat,
+  defaultSubtypeFor,
+  defaultTargetSecondsForVariant,
+  growthObjectiveForCategory,
+  mediaRequiredForFormat,
   localDateString,
   planLaunchBatch,
+  routeProduction,
+  selectLaunchCalibrationSlots,
   type LaunchBatchPlan,
   type PlatformId,
   type SlotWindow,
 } from '@halyard/core';
-import { one, query } from '@/lib/db';
+import { stageCreativeVariantRecord } from '@halyard/db';
+import { one, pool, query } from '@/lib/db';
 import { requireOperator } from '@/lib/auth';
 
 const LAUNCH_SOURCE = 'launch_batch';
@@ -31,7 +46,8 @@ interface AccountRow {
 export async function buildLaunchPlan(
   productId: string,
   days: number,
-): Promise<{ plan: LaunchBatchPlan; accounts: AccountRow[] }> {
+  requestedStartDate?: string,
+): Promise<{ plan: LaunchBatchPlan; accounts: AccountRow[]; startDate: string; timeZone: string }> {
   // A server action is a public POST endpoint, whatever its signature. The
   // `(dashboard)` layout guards rendering and never runs for an invocation.
   await requireOperator();
@@ -41,13 +57,26 @@ export async function buildLaunchPlan(
     [productId],
   );
   const timeZone = product?.audience_timezone ?? 'UTC';
+  const now = new Date();
+  let startDate = /^\d{4}-\d{2}-\d{2}$/.test(requestedStartDate ?? '')
+    ? requestedStartDate!
+    : localDateString(now, timeZone);
 
   const accounts = await query<AccountRow>(
-    // The outer parentheses are load-bearing: AND binds tighter than OR, so
-    // without them the capability filter applies only to the founder branch.
+    /*
+     * Plan against an identity Halyard can actually reach, not the state of one
+     * transport. A Blotato-mapped Threads account can carry a draft even while
+     * the bespoke Threads OAuth row is `pending_auth`; conversely, a row marked
+     * `live` with neither a direct credential nor a provider mapping is not a
+     * usable identity and must not consume launch slots.
+     *
+     * Publication remains separately fail-closed. This query only decides what
+     * content is worth preparing for review.
+     */
     `select id, platform, persona, supported_formats from social_accounts
       where ((persona = 'brand' and product_id = $1) or persona = 'founder')
-        and capability_state in ('live', 'draft_only')
+        and capability_state <> 'disabled'
+        and (access_token_enc is not null or provider_account_id is not null)
       order by (persona = 'brand') desc, platform`,
     [productId],
   );
@@ -100,13 +129,16 @@ export async function buildLaunchPlan(
     `select id, platform, persona, scheduled_at from content_items
       where product_id = $1 and scheduled_at is not null
         and status not in ('rejected', 'failed')
-        and not (body = '' and status = 'draft' and generation_meta->>'source' = $3)
+        -- The opening run is one managed plan. None of its own rows are
+        -- external calendar pressure; preserved/written rows are handled by
+        -- stable key during staging below.
+        and coalesce(generation_meta->>'source','') <> $3
         and scheduled_at between now() and now() + ($2 || ' days')::interval`,
     [productId, String(days + 1), LAUNCH_SOURCE],
   );
 
-  const plan = planLaunchBatch({
-    startDate: localDateString(new Date(), timeZone),
+  const launchBrief = () => ({
+    startDate,
     days,
     audienceTimeZone: timeZone,
     accounts: accounts.map((account) => ({
@@ -126,7 +158,21 @@ export async function buildLaunchPlan(
     })),
   });
 
-  return { plan, accounts };
+  let plan = planLaunchBatch(launchBrief());
+  const notBefore = now.getTime() + 60 * 60 * 1000;
+  // An opening run is a coordinated first impression. If even one of today's
+  // day-one placements is already behind us (or leaves <1h to generate/review),
+  // move the whole run forward rather than launching half the accounts today
+  // and introducing the rest tomorrow. Bounded for malformed slot calendars.
+  for (let attempts = 0; attempts < 7; attempts += 1) {
+    const placed = plan.slots.filter((slot) => !slot.deferred && slot.scheduledAt);
+    const hasTooSoon = placed.some((slot) => slot.scheduledAt!.getTime() < notBefore);
+    if (!hasTooSoon) break;
+    startDate = addLocalCalendarDays(startDate, 1, timeZone);
+    plan = planLaunchBatch(launchBrief());
+  }
+
+  return { plan, accounts, startDate, timeZone };
 }
 
 /**
@@ -142,10 +188,21 @@ export async function buildLaunchPlan(
  */
 export async function generateLaunchBatch(formData: FormData): Promise<void> {
   await requireOperator();
-  const productId = String(formData.get('product') ?? '');
+  /*
+   * §574. `productId`, which is what the form has always sent.
+   *
+   * This read `product`, so it always got an empty string: `buildLaunchPlan('')`
+   * finds no accounts, nothing can be placed, and the action redirects with an
+   * error the page does not render. The button therefore did nothing at all,
+   * silently, for as long as the two names have disagreed — and the E2E test
+   * that would have caught it was waiting for a sentence on a screen that had
+   * been rebuilt, so it failed for the wrong reason first.
+   */
+  const productId = String(formData.get('productId') ?? formData.get('product') ?? '');
   const days = Math.min(28, Math.max(1, Number(formData.get('days') ?? 14)));
+  const startDate = String(formData.get('startDate') ?? '').trim() || undefined;
 
-  const { plan, accounts } = await buildLaunchPlan(productId, days);
+  const { plan, accounts, startDate: resolvedStartDate } = await buildLaunchPlan(productId, days, startDate);
   const placed = plan.slots.filter((slot) => !slot.deferred && slot.scheduledAt);
 
   if (placed.length === 0) {
@@ -158,6 +215,32 @@ export async function generateLaunchBatch(formData: FormData): Promise<void> {
     );
   }
 
+  const preservedLaunch = await query<{ key: string | null }>(
+    `select generation_meta->>'key' as key from content_items
+      where product_id=$1 and generation_meta->>'source'=$2
+        and not (body='' and status='draft')
+        and status not in ('rejected','failed')
+        and generation_meta->>'key' is not null`,
+    [productId, LAUNCH_SOURCE],
+  );
+  const preservedLaunchKeys = new Set(
+    preservedLaunch.map((row) => row.key).filter((key): key is string => Boolean(key)),
+  );
+
+  // Replanning replaces untouched scaffolding. Its queued generate job is part
+  // of that scaffolding too: leaving it behind creates a ghost job whose
+  // targetContentItemId no longer exists and, worse, leaves paid work in the
+  // queue that the operator can no longer see.
+  await query(
+    `delete from jobs j
+      using content_items ci
+      where j.dedupe_key = 'launch_generate:' || ci.id::text
+        and j.status = 'queued'
+        and ci.product_id = $1 and ci.body = '' and ci.status = 'draft'
+        and ci.generation_meta->>'source' = $2`,
+    [productId, LAUNCH_SOURCE],
+  );
+
   await query(
     `delete from content_items
       where product_id = $1 and body = '' and status = 'draft'
@@ -165,64 +248,236 @@ export async function generateLaunchBatch(formData: FormData): Promise<void> {
     [productId, LAUNCH_SOURCE],
   );
 
-  const staged: string[] = [];
-  for (const slot of placed) {
-    const account = accounts.find((a) => a.id === slot.accountId);
-    if (!account) continue;
+  /*
+   * CreativePackage v1 is persisted on the creative model Halyard already had:
+   * concept = package core, creative_brief = one account/platform execution,
+   * platform_variant = the delivery-shaped variant. The transaction below is
+   * shared with Campaigns/future entry points, so partial lineage cannot survive
+   * a failed insert.
+   */
+  const calibrationKeys = new Set(
+    selectLaunchCalibrationSlots(placed, 6).map((slot) => slot.key),
+  );
 
-    const row = await one<{ id: string }>(
-      `insert into content_items (product_id, account_id, platform, persona,
-                                  format, category, body, status, scheduled_at, generation_meta)
-       values ($1,$2,$3,$4,$5,$6,'','draft',$7,$8)
-       returning id`,
-      [
-        productId,
-        account.id,
-        slot.platform,
-        slot.persona,
-        slot.format,
-        slot.category,
-        slot.scheduledAt,
-        {
-          source: LAUNCH_SOURCE,
-          purpose: slot.purpose,
-          key: slot.key,
-          slot_name: slot.slotName,
-          reason: slot.reason,
-          // The introduction is the one post whose job is fixed, so it carries
-          // its own instruction rather than taking an idea from the queue.
-          intent:
-            slot.purpose === 'introduction'
-              ? 'Introduce this account. What it is, who it is for, and what to expect from it. ' +
-                'Not a launch announcement. An explanation of a standing thing, written so somebody ' +
-                'who finds it in three months still understands what they are looking at.'
-              : undefined,
-        },
-      ],
-    );
-    if (row) staged.push(row.id);
+  const slotsByConcept = new Map<string, typeof placed>();
+  for (const slot of placed) {
+    slotsByConcept.set(slot.conceptKey, [
+      ...(slotsByConcept.get(slot.conceptKey) ?? []),
+      slot,
+    ]);
   }
 
-  // One job per slot, deduped, exactly as campaigns do it. A dedupe key means
-  // clicking twice does not write the fortnight twice.
+  const staged: string[] = [];
+  const configuredProviders = configuredProductionProviders(process.env);
+  for (const slot of placed) {
+    if (preservedLaunchKeys.has(slot.key)) continue;
+    const account = accounts.find((a) => a.id === slot.accountId);
+    if (!account) continue;
+    const variation = adaptVariationForPlatform(slot.creativeVariation, slot.platform, slot.format);
+
+    const packageSlots = slotsByConcept.get(slot.conceptKey) ?? [slot];
+    const platformIntent = [...new Set(packageSlots.map((entry) => entry.platform))];
+    const packageRequirements = packageSlots.flatMap((entry) =>
+      baselineProductionRequirements(
+        entry.format as 'text' | 'image' | 'carousel' | 'video' | 'pin' | 'story',
+        entry.category,
+      ),
+    );
+    const uniquePackageRequirements = [...new Map(
+      packageRequirements.map((requirement) => [
+        `${requirement.id}:${requirement.capability}`,
+        requirement,
+      ]),
+    ).values()];
+    const packageQuality = [...new Map(
+      packageSlots
+        .flatMap((entry) => baselineQualityBar(entry.format))
+        .map((requirement) => [requirement.id, requirement]),
+    ).values()];
+
+    const variantRequirements = baselineProductionRequirements(
+      slot.format as 'text' | 'image' | 'carousel' | 'video' | 'pin' | 'story',
+      slot.category,
+    );
+    const qualityBar = baselineQualityBar(slot.format);
+    const targetSeconds = defaultTargetSecondsForVariant(slot.format);
+    const route = routeProduction(variantRequirements, {
+      mode: 'calibration',
+      configuredProviders,
+      costPreference: 'quality_first',
+    });
+
+    const stagedVariant = await stageCreativeVariantRecord(pool(), {
+      package: {
+        productId,
+        originKind: 'launch',
+        // Same launch date can be replanned idempotently; a future opening run
+        // gets new lineage instead of overwriting the old creative/performance.
+        originRef: `${resolvedStartDate}:${slot.conceptKey}`,
+        family: contentFamilyForCategory(slot.category),
+        objective: growthObjectiveForCategory(slot.category),
+        title:
+          slot.purpose === 'introduction'
+            ? `Account introduction · ${slot.persona}`
+            : `${slot.category.replace(/_/g, ' ')} · ${slot.conceptKey}`,
+        premise: slot.conceptIntent,
+        audience: null,
+        audienceProblem: slot.conceptIntent,
+        audienceAwareness: 'mixed',
+        whyCareBeforeProduct: slot.conceptIntent,
+        payoff: 'Deliver the useful/provable value promised by the concept before asking for action.',
+        storyStructure: {
+          source: LAUNCH_SOURCE,
+          purpose: slot.purpose,
+          conceptKey: slot.conceptKey,
+          treatment: slot.creativeVariation.treatment,
+          openingStyle: slot.creativeVariation.openingStyle,
+          mediaMode: slot.creativeVariation.mediaMode,
+          audioMode: slot.creativeVariation.audioMode,
+          captionJob: slot.creativeVariation.captionJob,
+        },
+        visualTreatment: {
+          openingStyle: slot.creativeVariation.openingStyle,
+          mediaMode: slot.creativeVariation.mediaMode,
+          source: 'creative_variety_v1',
+        },
+        audioDirection: {
+          mode: slot.creativeVariation.audioMode,
+          source: 'creative_variety_v1',
+        },
+        ctaDirection: { kind: slot.category === 'community' ? 'conversation' : 'none' },
+        qualityBar: packageQuality,
+        productionRequirements: uniquePackageRequirements,
+        platformIntent,
+        differentiation: slot.conceptIntent,
+        evidenceRequirements: [],
+        retentionStrategy: 'Earn the next beat with specificity, movement or useful information; no filler intro.',
+        status: 'selected',
+      },
+      brief: {
+        productId,
+        accountId: account.id,
+        platform: slot.platform,
+        treatment: variation.treatment,
+        presentationMode: defaultPresentationModeForFormat(slot.format),
+        targetSeconds,
+        aspectRatio: defaultAspectRatioForVariant(slot.platform, slot.format),
+        beats: [],
+        visualDirection: {
+          language: 'unplanned',
+          source: 'creative_variety_v1',
+          openingStyle: variation.openingStyle,
+          mediaMode: variation.mediaMode,
+        },
+        audioDirection: { mode: variation.audioMode, source: 'creative_variety_v1' },
+        captionDirection: { job: variation.captionJob, intent: slot.conceptIntent, platform: slot.platform },
+        evidence: [],
+        rationale: slot.reason,
+        format: slot.format,
+        subtype: defaultSubtypeFor(slot.platform, slot.format),
+        hook: null,
+        captionBrief: slot.conceptIntent,
+        productionRequirements: variantRequirements,
+        qualityBar,
+      },
+      content: {
+        productId,
+        accountId: account.id,
+        platform: slot.platform,
+        persona: slot.persona,
+        format: slot.format,
+        category: slot.category,
+        scheduledAt: slot.scheduledAt,
+        generationMeta: {
+          source: LAUNCH_SOURCE,
+          production_v2: true,
+          production_media_required: mediaRequiredForFormat(slot.format),
+          purpose: slot.purpose,
+          key: slot.key,
+          calibration_selected: calibrationKeys.has(slot.key),
+          concept_key: slot.conceptKey,
+          slot_name: slot.slotName,
+          reason: slot.reason,
+          intent: slot.conceptIntent,
+          creative_variation: variation,
+        },
+      },
+      variant: {
+        aspectRatio: defaultAspectRatioForVariant(slot.platform, slot.format),
+        targetSeconds,
+        pacing: slot.format === 'video' ? 'fast' : 'measured',
+        textDensity: slot.format === 'video' ? 'sparse' : slot.format === 'carousel' ? 'medium' : 'native',
+        hookTreatment: variation.openingStyle,
+        cta: slot.category === 'community' ? 'conversation' : 'none',
+        audioTreatment: variation.audioMode,
+        decision: 'produce',
+        decisionReason: `Launch package ${slot.conceptKey}; native ${slot.platform} finish.`,
+      },
+      recipe: {
+        mode: 'calibration',
+        status: route.ready ? 'planned' : 'failed',
+        requirements: variantRequirements,
+        steps: route.steps,
+        refusals: route.refusals,
+        reasons: route.reasons,
+        humanReviewRequired: true,
+        providerVersions: { creativeVariety: 'v1', variation },
+      },
+    });
+    staged.push(stagedVariant.contentItemId);
+  }
+
+  // The entire opening run is staged, but a cold product only spends on a
+  // representative calibration set. Once those recipes are visually accepted,
+  // later waves can widen without buying eighteen unproven creatives up front.
+  // Dedupe still makes repeated clicks idempotent.
   for (const contentItemId of staged) {
+    const target = await one<{
+      concept_id: string | null;
+      account_id: string | null;
+      platform: string;
+      calibration_selected: boolean;
+    }>(
+      `select concept_id,account_id,platform,
+              coalesce((generation_meta->>'calibration_selected')::boolean,false) as calibration_selected
+         from content_items where id=$1`,
+      [contentItemId],
+    );
+    if (!target?.concept_id || !target.account_id || !target.calibration_selected) continue;
     await query(
-      // Bare `on conflict do nothing` on purpose: the dedupe index is partial
-      // (`dedupe_key is not null and status in ('queued','running')`), so
-      // naming the column would need the predicate repeated exactly to infer
-      // it. Getting that subtly wrong raises at runtime, and there is only one
-      // unique constraint that this insert can hit.
+      // `targetContentItemId` deliberately bypasses the legacy lightweight
+      // campaign-slot writer. The mature generator fills this exact scheduled
+      // row, then runs the normal screenplay/assets/voice/render pipeline.
       `insert into jobs (kind, payload, priority, dedupe_key)
        values ('generate', $1, 30, $2)
        on conflict do nothing`,
-      [{ productId, contentItemId }, `launch_generate:${contentItemId}`],
+      [
+        {
+          productId,
+          targetContentItemId: contentItemId,
+          calibration: true,
+          conceptId: target.concept_id,
+          onlyPlatform: target.platform,
+          onlyAccountId: target.account_id,
+        },
+        `launch_generate:${contentItemId}`,
+      ],
     );
   }
 
+  /*
+   * §574. The product id goes in `detail`, because `entity_id` is a uuid.
+   *
+   * This wrote `productId` — `recipefix` — into a `uuid` column, so the whole
+   * action raised `invalid input syntax for type uuid` after staging every row.
+   * It had never run: the name mismatch above meant nothing ever reached this
+   * line. Two defects in one dead path, and the second only became visible once
+   * the first was fixed.
+   */
   await query(
     `insert into audit_log (actor, action, entity_type, entity_id, detail)
-     values ('human', 'launch_batch_generated', 'product', $1, $2)`,
-    [productId, { days, staged: staged.length, warnings: plan.warnings }],
+     values ('human', 'launch_batch_generated', 'product', null, $1)`,
+    [{ productId, days, staged: staged.length, warnings: plan.warnings }],
   );
 
   revalidatePath('/rundown/launch');
@@ -233,7 +488,14 @@ export async function generateLaunchBatch(formData: FormData): Promise<void> {
 /** Throw away a staged batch nobody has started reviewing. */
 export async function discardLaunchBatch(formData: FormData): Promise<void> {
   await requireOperator();
-  const productId = String(formData.get('product') ?? '');
+  /*
+   * §574. `productId`, which is what the form has always sent.
+   *
+   * This read `product` too, so it always got an empty string — and the delete
+   * below then matched no row, which is a quieter failure than its sibling's:
+   * Discard reported success and threw nothing away.
+   */
+  const productId = String(formData.get('productId') ?? formData.get('product') ?? '');
 
   await query(
     `delete from content_items

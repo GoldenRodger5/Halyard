@@ -47,6 +47,7 @@ import {
   directVoice,
   duckingFor,
   LANGUAGE_FOR_TREATMENT,
+  isProviderExhausted,
   type SpeechClient,
 } from '@halyard/core';
 // From the timing subpath rather than the package root: `timing.ts` is pure
@@ -316,6 +317,76 @@ export async function ttsHandler(job: Job, ctx: HandlerContext, deps: TtsDeps = 
     ...(voice.voiceId ? { voiceId: voice.voiceId } : {}),
   };
 
+  const fallbackToSilentCaptioned = async (error: unknown): Promise<void> => {
+    const previousGates = (item.qc_results?.gates ?? []) as GateResult[];
+    const message = error instanceof Error ? error.message : String(error);
+    const audioGate: GateResult = {
+      gate: 'audio',
+      status: 'warning',
+      summary: 'Narration provider unavailable; rendering as a silent caption-led cut.',
+      detail: {
+        findings: [
+          {
+            rule: 'audio.provider_fallback',
+            severity: 'warning',
+            message:
+              'The intended narration provider is unavailable. This asset is being rendered without narration and must be judged as a caption-led creative during media review.',
+          },
+        ],
+        providerError: message.slice(0, 500),
+      },
+    };
+    const mergedGates = [...previousGates.filter((gate) => gate.gate !== 'audio'), audioGate];
+
+    await ctx.pool.query(
+      `update content_items
+          set audio_mode = 'text_only',
+              vo_asset_id = null,
+              ai_components = array_remove(ai_components, 'voiceover'),
+              generation_meta = coalesce(generation_meta, '{}'::jsonb) || $2::jsonb,
+              qc_results = coalesce(qc_results, '{}'::jsonb) || $3::jsonb
+        where id = $1`,
+      [
+        contentItemId,
+        JSON.stringify({
+          audio_fallback: {
+            mode: 'silent_captioned',
+            reason: 'narration_provider_exhausted',
+            at: new Date().toISOString(),
+          },
+        }),
+        JSON.stringify({
+          audio: {
+            passed: true,
+            summary: 'Narration unavailable; silent caption-led fallback requires media review.',
+            findings: (audioGate.detail as { findings?: unknown[] }).findings ?? [],
+            fallback: 'silent_captioned',
+          },
+          gates: mergedGates,
+          passed: mergedGates.every((gate) => gate.status !== 'failed'),
+        }),
+      ],
+    );
+
+    const { rows: waiting } = await ctx.pool.query<{ id: string }>(
+      `select id from renders
+        where content_item_id = $1 and renderer = 'remotion' and status = 'queued'`,
+      [contentItemId],
+    );
+    for (const render of waiting) {
+      await ctx.enqueue(
+        'render',
+        { renderId: render.id },
+        { dedupeKey: `render:${render.id}`, priority: 50 },
+      );
+    }
+    ctx.log('voiceover provider unavailable; using silent caption-led fallback', {
+      contentItemId,
+      rendersReleased: waiting.length,
+      because: message.slice(0, 300),
+    });
+  };
+
   try {
     /**
      * §306. A read that lands on the beat, when the piece has beats.
@@ -332,7 +403,8 @@ export async function ttsHandler(job: Job, ctx: HandlerContext, deps: TtsDeps = 
      */
     /* §487. Seconds actually voiced, so pacing is measured over speech. */
     let spokenSeconds: number | undefined;
-    if (Array.isArray(item.vo_lines) && item.vo_lines.length > 0) {
+    try {
+      if (Array.isArray(item.vo_lines) && item.vo_lines.length > 0) {
       const lines = item.vo_lines as Array<{ atSeconds: number; text: string }>;
       const clips: Array<{ path: string; atSeconds: number }> = [];
       const measured: Array<{ atSeconds: number; durationSeconds: number; text: string }> = [];
@@ -367,9 +439,16 @@ export async function ttsHandler(job: Job, ctx: HandlerContext, deps: TtsDeps = 
         });
       }
 
-      await assembleTimedNarration(clips, narrationPath);
-    } else {
-      await writeFile(narrationPath, await speech.synthesize(script, voiceSettings));
+        await assembleTimedNarration(clips, narrationPath);
+      } else {
+        await writeFile(narrationPath, await speech.synthesize(script, voiceSettings));
+      }
+    } catch (error) {
+      if (isProviderExhausted(error)) {
+        await fallbackToSilentCaptioned(error);
+        return;
+      }
+      throw error;
     }
     const narrationSeconds = await audioDuration(narrationPath);
 

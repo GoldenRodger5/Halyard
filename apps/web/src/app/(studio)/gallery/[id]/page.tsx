@@ -34,11 +34,14 @@ import { routeFor } from '@/lib/studio/route';
 import { getPieceCosts, getProducts, getQueueItem, getTikTokPanel } from '@/lib/queries';
 import { formatInOperatorTz } from '@/lib/format';
 import {
+  acceptProductionRecipe,
   adjustItem,
   approveItem,
+  generateBlotatoVisual,
   markManuallyPublished,
   markOverflowPosted,
   rejectItem,
+  rejectProductionRecipe,
   retryRender,
 } from '@/app/(studio)/gallery/actions';
 
@@ -94,12 +97,33 @@ export default async function GalleryPiece({ params }: { params: Promise<{ id: s
    * is a companion asset. Both remain in `preview_urls` for the strip below.
    */
   const isVideoUrl = (url: string) => /\.(mp4|webm|mov)(\?|$)/i.test(url);
-  const film = item.preview_urls.find(isVideoUrl) ?? null;
-  const picture = film ?? item.preview_urls.find((url) => !isVideoUrl(url)) ?? item.preview_urls[0];
+  /*
+   * External production providers attach assets rather than necessarily writing
+   * a Halyard render row. Review must show the actual file either way — a media
+   * existence guard without a viewer is still approving a description.
+   */
+  const reviewMedia = [...new Set([...item.preview_urls, ...item.attached_urls])];
+  const film = reviewMedia.find(isVideoUrl) ?? null;
+  const picture = film ?? reviewMedia.find((url) => !isVideoUrl(url)) ?? reviewMedia[0];
 
   const rendering = item.render_total > 0 && item.render_done < item.render_total;
   const renderFailed = item.render_failed > 0;
-  const canApprove = item.status === 'pending_approval' && !rendering && !renderFailed;
+  const hasFinishedMedia = item.preview_urls.length > 0 || item.attached_asset_ids.length > 0;
+  const needsProductionMedia = item.production_media_required && !hasFinishedMedia;
+  const needsExternalVisual =
+    item.visual_provider === 'blotato' &&
+    (item.visual_status !== 'done' || item.attached_asset_ids.length === 0);
+  const visualInFlight =
+    item.visual_provider === 'blotato' &&
+    ['queued', 'submitted', 'queueing', 'generating-script', 'script-ready', 'generating-media', 'media-ready', 'exporting'].includes(
+      item.visual_status ?? '',
+    );
+  const canApprove =
+    item.status === 'pending_approval' &&
+    !rendering &&
+    !renderFailed &&
+    !needsExternalVisual &&
+    !needsProductionMedia;
 
   /*
    * The shape decides which adjustments are on offer. Read from the piece
@@ -206,6 +230,23 @@ export default async function GalleryPiece({ params }: { params: Promise<{ id: s
           ) : null}
           {item.final_link_url ? (
             <p className="mt-2 break-all font-data text-[11px] text-quiet">{item.final_link_url}</p>
+          ) : null}
+          {/*
+            §575. Where this post sends people, before it is approved.
+            
+            `destination_type`, `destination_url` and `destination_reason` have
+            been fetched by `getQueueItem` and rendered nowhere, so the router's
+            decision — which is what an operator is approving when they approve
+            a post with a link in it — was visible only in the database. The
+            reason is included because a destination without one is a URL, not a
+            decision.
+          */}
+          {item.destination_url && item.destination_url !== item.final_link_url ? (
+            <p className="mt-2 break-all text-[11.5px] leading-relaxed text-quiet">
+              <span className="font-data text-[9px] uppercase tracking-[0.1em]">Destination</span>{' '}
+              <span className="font-data text-[11px]">{item.destination_url}</span>
+              {item.destination_reason ? ` — ${item.destination_reason}` : ''}
+            </p>
           ) : null}
           {item.alt_text ? (
             <p className="mt-2.5 border-t border-rule2 pt-2.5 text-[11.5px] leading-relaxed text-quiet">
@@ -461,7 +502,7 @@ export default async function GalleryPiece({ params }: { params: Promise<{ id: s
           */}
           <Label>
             {item.attached_asset_ids.length > 0
-              ? 'Media attached to this piece'
+              ? 'Attached media / change source'
               : 'Attach media — nothing attached yet'}
           </Label>
           <AssetPicker
@@ -546,7 +587,13 @@ export default async function GalleryPiece({ params }: { params: Promise<{ id: s
 
         <Sheet>
           <Label>Ask for a change</Label>
-          <form action={adjustItem} className="flex flex-col gap-2.5">
+          {/*
+            §573. No form-level action: every submit here binds its own
+            adjustment. The form had one, the buttons carried `name`/`value`,
+            and the value never reached the server — so all eight buttons
+            answered 500.
+          */}
+          <form action={adjustItem.bind(null, '')} className="flex flex-col gap-2.5">
             <input type="hidden" name="id" value={item.id} />
             <input
               name="note"
@@ -557,8 +604,7 @@ export default async function GalleryPiece({ params }: { params: Promise<{ id: s
               {available.map((a) => (
                 <button
                   key={a.id}
-                  name="adjustment"
-                  value={a.id}
+                  formAction={adjustItem.bind(null, a.id)}
                   className="rounded-[7px] border border-rule2 bg-sheet px-2.5 py-1 text-xs text-quiet transition-colors hover:border-sink hover:text-sink"
                 >
                   {a.label}
@@ -577,6 +623,138 @@ export default async function GalleryPiece({ params }: { params: Promise<{ id: s
             </p>
           ) : null}
         </Sheet>
+
+        {item.production_v2 ? (
+          <Sheet>
+            <Label>Creative package</Label>
+            <div className="grid gap-2 text-xs leading-relaxed text-quiet">
+              <div className="flex flex-wrap gap-1.5">
+                {item.creative_family ? <Chip>{item.creative_family.replace(/_/g, ' ')}</Chip> : null}
+                {item.creative_objective ? <Chip>{item.creative_objective.replace(/_/g, ' ')}</Chip> : null}
+                {item.production_mode ? <Chip>{item.production_mode}</Chip> : null}
+                {item.production_human_review_required ? <Chip>human review</Chip> : null}
+              </div>
+              {item.creative_premise ? (
+                <p className="m-0"><span className="text-ink">Premise.</span> {item.creative_premise}</p>
+              ) : null}
+              {item.why_care_before_product ? (
+                <p className="m-0"><span className="text-ink">Why care first.</span> {item.why_care_before_product}</p>
+              ) : null}
+              {item.production_steps?.length ? (
+                <div>
+                  <span className="text-ink">Production route.</span>
+                  <ul className="mt-1 space-y-1">
+                    {item.production_steps.map((step, index) => (
+                      <li key={`${step.capability ?? 'step'}-${index}`}>
+                        <span className="font-data text-[10px] uppercase tracking-[0.06em] text-ink">
+                          {step.capability ?? 'step'} → {step.provider ?? 'unrouted'}
+                        </span>
+                        {step.reason ? <span className="block">{step.reason}</span> : null}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+              {item.production_refusals?.length ? (
+                <div className="text-onair">
+                  <span className="font-medium">Production refusal.</span>{' '}
+                  {item.production_refusals.map((refusal) => refusal.reason ?? refusal.capability ?? 'Unrouted requirement').join(' ')}
+                </div>
+              ) : null}
+            </div>
+          </Sheet>
+        ) : null}
+
+        {item.production_v2 && !needsProductionMedia && item.production_mode === 'calibration' && item.production_status === 'review_required' ? (
+          <Sheet tone="lit">
+            <Label>Reuse this production recipe?</Label>
+            <p className="m-0 text-xs leading-relaxed text-quiet">
+              The finished asset passed media QC. The gold Approve button below is only for this post.
+              Accepting the recipe here is a stronger permission: it lets Halyard reuse only the
+              generative provider/capability pairs that were actually reviewed in this recipe for future
+              production on this product.
+            </p>
+            <div className="mt-3 grid gap-2">
+              <form action={acceptProductionRecipe}>
+                <input type="hidden" name="id" value={item.id} />
+                <Action tone="brass" small>Accept recipe for automation</Action>
+              </form>
+              <form action={rejectProductionRecipe} className="grid gap-2">
+                <input type="hidden" name="id" value={item.id} />
+                <input
+                  name="note"
+                  required
+                  placeholder="Why this production recipe should not repeat"
+                  className="w-full rounded-[7px] border border-rule2 bg-sheet px-2.5 py-1.5 text-xs outline-none focus:border-lit"
+                />
+                <div>
+                  <Action tone="ghost" small>Reject recipe</Action>
+                </div>
+              </form>
+            </div>
+          </Sheet>
+        ) : null}
+
+        {item.production_v2 && item.production_status === 'accepted' ? (
+          <Sheet tone="cool">
+            <Label>Production recipe accepted</Label>
+            <p className="m-0 text-xs leading-relaxed text-quiet">
+              This reviewed recipe may contribute its accepted generative capabilities to future
+              production for this product. New capabilities still require their own calibration.
+            </p>
+          </Sheet>
+        ) : null}
+
+        {item.production_v2 && item.production_status === 'rejected' ? (
+          <Sheet tone="onair">
+            <Label>Production recipe rejected</Label>
+            <p className="m-0 text-xs leading-relaxed text-quiet">
+              Halyard may keep the current asset for manual decision-making, but this production recipe
+              is not eligible to unlock unattended generative production.
+            </p>
+          </Sheet>
+        ) : null}
+
+        {item.production_v2 && needsProductionMedia ? (
+          <Sheet tone="cool">
+            <Label>Production media not ready</Label>
+            <p className="m-0 text-xs leading-relaxed text-quiet">
+              This v2 creative has a provider-neutral production plan, but there is no finished media to review yet.
+              Approval is locked because approving copy is not approval of a Reel, Short, carousel, image or pin.
+            </p>
+            <p className="m-0 mt-1 font-data text-[10px] uppercase tracking-[0.07em] text-quiet">
+              {item.production_recipe_id ? `Recipe ${item.production_recipe_id}` : 'Production recipe not persisted'}
+            </p>
+          </Sheet>
+        ) : null}
+
+        {item.visual_provider === 'blotato' && needsExternalVisual ? (
+          <Sheet tone={item.visual_error ? 'onair' : 'cool'}>
+            <Label>{item.visual_error ? 'Blotato visual needs another try' : 'Visual not generated yet'}</Label>
+            <p className="m-0 text-xs leading-relaxed text-quiet">
+              The copy is ready for review first. Generating the media uses Blotato AI credits, so
+              Halyard waits for you here instead of spending credits on a concept you might reject.
+              Final approval stays locked until the returned media exists and has been reviewed.
+            </p>
+            <p className="m-0 mt-1 font-data text-[10px] uppercase tracking-[0.07em] text-quiet">
+              {item.visual_status ? `Blotato: ${item.visual_status}` : 'Blotato: waiting for approval'}
+              {item.blotato_template_id ? ` · template ${item.blotato_template_id}` : ''}
+            </p>
+            {item.visual_error ? (
+              <p className="m-0 mt-2 text-xs leading-relaxed text-onair">{item.visual_error}</p>
+            ) : null}
+            <form action={generateBlotatoVisual} className="mt-2.5">
+              <input type="hidden" name="id" value={item.id} />
+              <Action tone="brass" small disabled={visualInFlight}>
+                {visualInFlight
+                  ? 'Blotato is generating…'
+                  : item.visual_error
+                    ? 'Try Blotato visual again'
+                    : 'Generate Blotato visual'}
+              </Action>
+            </form>
+          </Sheet>
+        ) : null}
 
         {renderFailed ? (
           <Sheet tone="onair">
@@ -603,7 +781,11 @@ export default async function GalleryPiece({ params }: { params: Promise<{ id: s
                   title={
                     canApprove
                       ? 'Approve and schedule'
-                      : 'Approving a description of an asset is not approval — this is waiting on its render.'
+                      : needsProductionMedia
+                        ? 'Produce and review the actual media before approving this piece.'
+                        : needsExternalVisual
+                          ? 'Generate and review the Blotato visual before approving this piece.'
+                          : 'Approving a description of an asset is not approval — this is waiting on its render.'
                   }
                 >
                   Approve

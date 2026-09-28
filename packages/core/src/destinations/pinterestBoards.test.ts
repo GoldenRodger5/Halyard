@@ -56,6 +56,15 @@ describe('chooseBoard', () => {
     expect(choice.boardId).toBe('…087');
   });
 
+  it('does not infer a diet-specific board from the generic word swap', () => {
+    const choice = chooseBoard(BOARDS, {
+      body: 'A recipe swap can change moisture, timing, heat and texture.',
+    });
+    expect(choice.boardId).toBe('…091');
+    expect(choice.reason).toContain('Ingredient Substitutions');
+    expect(choice.reason).not.toContain('Vegan Substitutions');
+  });
+
   it('prefers the more specific board when two match', () => {
     // "Vegan Substitutions" and "Ingredient Substitutions" both match a vegan
     // swap. The vegan one is the better answer to give a search index.

@@ -27,6 +27,7 @@ import pg from 'pg';
 import {
   PLATFORM_CLIENT_ENV,
   PLATFORM_SCOPES,
+  buildTarget,
   composeCaption,
   dryRunPublish,
   estimateXCostUsd,
@@ -34,6 +35,7 @@ import {
   openToken,
   selfTest,
   stampUtm,
+  TARGET_TYPE,
   type PlatformId,
   type PublishAccount,
   type PublishItem,
@@ -63,6 +65,8 @@ interface Ctx {
   productId: string;
   /** Which adapter is under test. X by default — it is the only ungated one. */
   platform: PlatformId;
+  /** Direct platform API, or Blotato as the transport under first contact. */
+  transport: 'direct' | 'unified';
 }
 
 async function loadAccount(
@@ -79,17 +83,23 @@ async function loadAccount(
     token_expires_at: string | null;
     scopes: string[];
     identity_confirmed_at: string | null;
+    provider_account_id: string | null;
+    transport: 'direct' | 'unified';
   }>(
     `select id, handle, platform_user_id, capability_state, access_token_enc,
-            refresh_token_enc, token_expires_at, scopes, identity_confirmed_at
+            refresh_token_enc, token_expires_at, scopes, identity_confirmed_at,
+            provider_account_id, transport
        from social_accounts
       where platform = $2 and persona = $1
+        and product_id = case when $1 = 'founder' then 'founder' else $3 end
       order by identity_confirmed_at desc nulls last limit 1`,
-    [persona, ctx.platform],
+    [persona, ctx.platform, ctx.productId],
   );
 
   const row = rows[0];
-  if (!row?.access_token_enc) return null;
+  if (!row) return null;
+  if (ctx.transport === 'direct' && !row.access_token_enc) return null;
+  if (ctx.transport === 'unified' && !row.provider_account_id) return null;
 
   return {
     row: row as unknown as Record<string, unknown>,
@@ -99,12 +109,16 @@ async function loadAccount(
       handle: row.handle,
       platformUserId: row.platform_user_id,
       capabilityState: row.capability_state,
-      tokens: {
-        accessToken: openToken(row.access_token_enc),
-        refreshToken: row.refresh_token_enc ? openToken(row.refresh_token_enc) : null,
-        expiresAt: row.token_expires_at ? new Date(row.token_expires_at) : null,
-        scopes: row.scopes,
-      },
+      tokens:
+        ctx.transport === 'unified'
+          ? { accessToken: 'managed-by-unified-provider', scopes: [] }
+          : {
+              accessToken: openToken(row.access_token_enc!),
+              refreshToken: row.refresh_token_enc ? openToken(row.refresh_token_enc) : null,
+              expiresAt: row.token_expires_at ? new Date(row.token_expires_at) : null,
+              scopes: row.scopes,
+            },
+      meta: ctx.transport === 'unified' ? { providerAccountId: row.provider_account_id } : undefined,
     },
   };
 }
@@ -115,38 +129,72 @@ async function checkPreconditions(ctx: Ctx): Promise<boolean> {
   heading('1. Preconditions');
   let blocked = false;
 
-  const env = PLATFORM_CLIENT_ENV[ctx.platform];
-  if (!env) {
-    // Bluesky has no developer app at all — an app password is the credential.
-    ok('developer app credentials', 'this platform needs none');
-  } else if (process.env[env.id] && process.env[env.secret]) {
-    ok('developer app credentials', `${env.id} and ${env.secret} are set`);
-  } else {
-    bad('developer app credentials', `${env.id} and ${env.secret} are not set`);
-    console.log(`  ${DIM}Run ./scripts/doctor — it prints the whole acquisition sequence.${RESET}`);
-    blocked = true;
-  }
-
-  if (process.env.TOKEN_ENCRYPTION_KEY) {
-    ok('token encryption key', 'tokens can be opened');
-  } else {
-    bad('token encryption key', 'TOKEN_ENCRYPTION_KEY is not set, so no token can be opened');
-    blocked = true;
-  }
-
-  for (const persona of ['brand', 'founder'] as const) {
-    const loaded = await loadAccount(ctx, persona);
-    if (!loaded) {
-      warn(`${persona} account`, 'not connected — /accounts → Connect, in a private window');
+  if (ctx.transport === 'unified') {
+    if (process.env.BLOTATO_API_KEY) {
+      ok('Blotato API key', 'set');
+    } else {
+      bad('Blotato API key', 'BLOTATO_API_KEY is not set');
       blocked = true;
-      continue;
     }
-    const confirmed = loaded.row.identity_confirmed_at !== null;
-    ok(
-      `${persona} account`,
-      `${loaded.account.handle}${confirmed ? '' : ' — identity never confirmed'}`,
+
+    const { rows: mapped } = await ctx.pool.query<{ persona: string; handle: string; provider_account_id: string | null }>(
+      `select persona, handle, provider_account_id from social_accounts
+        where product_id = $1 and platform = $2 order by persona`,
+      [ctx.productId, ctx.platform],
     );
-    if (!confirmed) blocked = true;
+    const usable = mapped.filter((row) => row.provider_account_id);
+    if (usable.length === 0) {
+      bad('provider account mapping', 'no Blotato account id is mapped; run the provider probe first');
+      blocked = true;
+    } else {
+      for (const row of usable) {
+        ok(`${row.persona} provider mapping`, `${row.handle} → ${row.provider_account_id}`);
+      }
+    }
+
+    const { rows: beliefs } = await ctx.pool.query<{ n: string }>(
+      `select count(*)::text as n from provider_capabilities where provider = 'blotato'`,
+    );
+    if (Number(beliefs[0]?.n ?? 0) === 0) {
+      bad('provider probe', 'no read-only Blotato capability observation exists');
+      blocked = true;
+    } else {
+      ok('provider probe', 'read-only provider observation exists; first contact may settle unknown publish capability');
+    }
+  } else {
+    const env = PLATFORM_CLIENT_ENV[ctx.platform];
+    if (!env) {
+      // Bluesky has no developer app at all — an app password is the credential.
+      ok('developer app credentials', 'this platform needs none');
+    } else if (process.env[env.id] && process.env[env.secret]) {
+      ok('developer app credentials', `${env.id} and ${env.secret} are set`);
+    } else {
+      bad('developer app credentials', `${env.id} and ${env.secret} are not set`);
+      console.log(`  ${DIM}Run ./scripts/doctor — it prints the whole acquisition sequence.${RESET}`);
+      blocked = true;
+    }
+
+    if (process.env.TOKEN_ENCRYPTION_KEY) {
+      ok('token encryption key', 'tokens can be opened');
+    } else {
+      bad('token encryption key', 'TOKEN_ENCRYPTION_KEY is not set, so no token can be opened');
+      blocked = true;
+    }
+
+    for (const persona of ['brand', 'founder'] as const) {
+      const loaded = await loadAccount(ctx, persona);
+      if (!loaded) {
+        warn(`${persona} account`, 'not connected — /accounts → Connect, in a private window');
+        blocked = true;
+        continue;
+      }
+      const confirmed = loaded.row.identity_confirmed_at !== null;
+      ok(
+        `${persona} account`,
+        `${loaded.account.handle}${confirmed ? '' : ' — identity never confirmed'}`,
+      );
+      if (!confirmed) blocked = true;
+    }
   }
 
   const { rows: settings } = await ctx.pool.query<{ publishing_enabled: boolean }>(
@@ -165,6 +213,32 @@ async function checkPreconditions(ctx: Ctx): Promise<boolean> {
 
 async function runSelfTest(ctx: Ctx): Promise<void> {
   heading('2. Credential self-test');
+
+  if (ctx.transport === 'unified') {
+    const response = await fetch('https://backend.blotato.com/v2/users/me/accounts', {
+      headers: { 'blotato-api-key': process.env.BLOTATO_API_KEY ?? '' },
+    });
+    if (!response.ok) {
+      bad('Blotato account read', `HTTP ${response.status}`);
+      return;
+    }
+    const payload = (await response.json()) as { items?: Array<{ id?: string; platform?: string; username?: string }> };
+    const ids = new Set((payload.items ?? []).map((item) => String(item.id ?? '')));
+    const { rows } = await ctx.pool.query<{ persona: 'brand' | 'founder'; handle: string; provider_account_id: string | null }>(
+      `select persona, handle, provider_account_id from social_accounts
+        where product_id = $1 and platform = $2 and provider_account_id is not null`,
+      [ctx.productId, ctx.platform],
+    );
+    ok('Blotato API', `${(payload.items ?? []).length} connected accounts returned`);
+    for (const row of rows) {
+      const present = Boolean(row.provider_account_id && ids.has(row.provider_account_id));
+      (present ? ok : bad)(
+        `${row.persona}: ${row.handle}`,
+        present ? `provider account ${row.provider_account_id} is present` : `mapped provider account ${row.provider_account_id} was not returned`,
+      );
+    }
+    return;
+  }
 
   for (const persona of ['brand', 'founder'] as const) {
     const loaded = await loadAccount(ctx, persona);
@@ -194,7 +268,14 @@ async function pickItem(ctx: Ctx, itemId?: string): Promise<{
   item: PublishItem;
   account: PublishAccount | null;
   persona: 'brand' | 'founder';
-  row: { id: string; body: string; link_url: string | null };
+  row: {
+    id: string;
+    body: string;
+    link_url: string | null;
+    render_ids: string[];
+    attached_asset_ids: string[];
+    board_id: string | null;
+  };
 } | null> {
   const { rows } = await ctx.pool.query<{
     id: string;
@@ -210,6 +291,9 @@ async function pickItem(ctx: Ctx, itemId?: string): Promise<{
     requires_ai_label: boolean | null;
     persona: 'brand' | 'founder';
     status: string;
+    render_ids: string[];
+    attached_asset_ids: string[];
+    board_id: string | null;
   }>(
     itemId
       ? `select * from content_items where id = $1`
@@ -256,8 +340,39 @@ async function pickItem(ctx: Ctx, itemId?: string): Promise<{
       finalLinkUrl: finalLink,
       disclosureText: row.disclosure_text,
       requiresAiLabel: row.requires_ai_label ?? false,
+      boardId: row.board_id,
     },
   };
+}
+
+async function previewMediaUrls(
+  ctx: Ctx,
+  row: { render_ids: string[]; attached_asset_ids: string[] },
+): Promise<string[]> {
+  const renderIds = row.render_ids ?? [];
+  const attachedIds = row.attached_asset_ids ?? [];
+  const urls: string[] = [];
+
+  if (renderIds.length > 0) {
+    const { rows } = await ctx.pool.query<{ public_url: string | null }>(
+      `select a.public_url
+         from renders r join assets a on a.id = r.output_asset_id
+        where r.id = any($1::uuid[]) and a.archived_at is null
+        order by array_position($1::uuid[], r.id)`,
+      [renderIds],
+    );
+    urls.push(...rows.map((row) => row.public_url).filter((url): url is string => Boolean(url)));
+  }
+  if (attachedIds.length > 0) {
+    const { rows } = await ctx.pool.query<{ public_url: string | null }>(
+      `select public_url from assets
+        where id = any($1::uuid[]) and archived_at is null
+        order by array_position($1::uuid[], id)`,
+      [attachedIds],
+    );
+    urls.push(...rows.map((row) => row.public_url).filter((url): url is string => Boolean(url)));
+  }
+  return urls;
 }
 
 // ── 4. Dry run ─────────────────────────────────────────────────────────────
@@ -300,47 +415,77 @@ async function dryRun(ctx: Ctx, itemId?: string): Promise<void> {
     warn('no link', 'this post carries no destination, so nothing will route or attribute');
   }
 
-  // A dry run never sends, so a placeholder token is enough to walk the whole
-  // adapter path and see the requests it would build.
-  const account: PublishAccount = picked.account ?? {
-    id: 'not-connected',
-    platform: ctx.platform,
-    handle: `@${picked.persona}-account`,
-    capabilityState: 'pending_auth',
-    tokens: { accessToken: 'not-a-real-token' },
-  };
-
-  const result = await dryRunPublish(adapter, picked.item, [], account);
-
-  console.log(`\n  ${DIM}Requests it would send:${RESET}`);
-  for (const request of result.requests) {
-    console.log(`    ${request.method} ${request.url}`);
-    if (request.body) {
-      console.log(`      ${DIM}${JSON.stringify(request.body).slice(0, 300)}${RESET}`);
+  // A dry run never sends. Direct adapters use the existing recording fetch;
+  // Blotato is rendered as a pure payload because the unified adapter owns its
+  // fetch implementation and must never accidentally reach the network here.
+  let failed = false;
+  let wouldHave: string;
+  if (ctx.transport === 'unified') {
+    if (linkForReply && constraints.linkStrategy === 'first_reply') {
+      failed = true;
+      wouldHave = `${ctx.platform} needs its link in a first reply, which Blotato cannot express. Keep this account direct.`;
+      bad('unified dry run refused', wouldHave);
+    } else {
+      const account: PublishAccount = picked.account ?? {
+        id: 'not-connected',
+        platform: ctx.platform,
+        handle: `@${picked.persona}-account`,
+        capabilityState: 'pending_auth',
+        tokens: { accessToken: 'managed-by-unified-provider' },
+        meta: { providerAccountId: '<provider-account-id>' },
+      };
+      const providerAccountId = String(account.meta?.providerAccountId ?? '<provider-account-id>');
+      const mediaUrls = await previewMediaUrls(ctx, picked.row);
+      const payload = {
+        post: {
+          accountId: providerAccountId,
+          content: { text, platform: TARGET_TYPE[ctx.platform], mediaUrls },
+          target: buildTarget(ctx.platform, picked.item, account),
+        },
+      };
+      console.log(`\n  ${DIM}Request it would send through Blotato:${RESET}`);
+      console.log(`    POST https://backend.blotato.com/v2/posts`);
+      console.log(`      ${DIM}${JSON.stringify(payload).slice(0, 1800)}${RESET}`);
+      wouldHave = `submitted one ${ctx.platform} post to Blotato account ${providerAccountId}; Halyard would then poll the submission until published or failed`;
+      ok('unified dry run complete', wouldHave);
     }
+  } else {
+    const account: PublishAccount = picked.account ?? {
+      id: 'not-connected',
+      platform: ctx.platform,
+      handle: `@${picked.persona}-account`,
+      capabilityState: 'pending_auth',
+      tokens: { accessToken: 'not-a-real-token' },
+    };
+    const result = await dryRunPublish(adapter, picked.item, [], account);
+    console.log(`\n  ${DIM}Requests it would send:${RESET}`);
+    for (const request of result.requests) {
+      console.log(`    ${request.method} ${request.url}`);
+      if (request.body) console.log(`      ${DIM}${JSON.stringify(request.body).slice(0, 500)}${RESET}`);
+    }
+    failed = result.failed;
+    wouldHave = result.wouldHave;
+    (failed ? bad : ok)(failed ? 'dry run did not reach the platform' : 'dry run complete', wouldHave);
   }
 
-  // X is the only platform that bills per call, so it is the only one with a
-  // number to print here. Inventing one for the others would be noise.
+  // X is the only platform that bills per call, and that applies to the direct
+  // API path Halyard uses for its first-reply link strategy.
   const cost =
-    ctx.platform === 'x'
+    ctx.transport === 'direct' && ctx.platform === 'x'
       ? estimateXCostUsd([{ hasLink: false }, ...(linkForReply ? [{ hasLink: false }] : [])])
       : null;
-  // A rehearsal that never built a request has proved nothing, so it is not
-  // reported as a pass. Same rule as the QC gates: never verified is not passed.
-  (result.failed ? bad : ok)(
-    result.failed ? 'dry run did not reach the platform' : 'dry run complete',
-    result.wouldHave,
-  );
   if (!picked.account) {
     warn(
       'no connected account',
-      `this rehearsed against a placeholder token — connect the ${picked.persona} account to go further`,
+      ctx.transport === 'unified'
+        ? `no Blotato provider account is mapped for the ${picked.persona} account yet`
+        : `this rehearsed against a placeholder token — connect the ${picked.persona} account to go further`,
     );
   }
   if (cost !== null) {
     console.log(`  ${DIM}Estimated cost of the real thing: $${cost.toFixed(3)}${RESET}`);
   }
+  if (failed && wouldHave) console.log(`  ${DIM}${wouldHave}${RESET}`);
   console.log(
     `\n  ${DIM}Nothing was sent. Every authorization header above was redacted before it was printed.${RESET}`,
   );
@@ -391,6 +536,25 @@ async function publish(ctx: Ctx, itemId?: string): Promise<void> {
     return;
   }
 
+  if (ctx.transport === 'unified') {
+    const providerAccountId = String(picked.account.meta?.providerAccountId ?? '');
+    if (!providerAccountId) {
+      bad('aborted', 'the approved account has no Blotato provider account id');
+      return;
+    }
+    await ctx.pool.query(
+      `update social_accounts
+          set transport = 'unified', provider_account_id = $2
+        where id = $1`,
+      [picked.account.id, providerAccountId],
+    );
+    await ctx.pool.query(
+      `insert into audit_log (actor, action, entity_type, entity_id, detail)
+       values ('human', 'first_contact_transport_selected', 'social_account', $1, $2)`,
+      [picked.account.id, { transport: 'unified', provider: 'blotato', providerAccountId }],
+    );
+  }
+
   // Everything after this point is the ordinary publish path — the same handler
   // the worker runs, not a special one. A separate code path here would prove
   // nothing about the code that actually publishes.
@@ -403,7 +567,10 @@ async function publish(ctx: Ctx, itemId?: string): Promise<void> {
     {
       id: 'first-contact',
       kind: 'publish',
-      payload: { contentItemId: picked.row.id },
+      payload: {
+        contentItemId: picked.row.id,
+        allowUnverifiedUnifiedFirstContact: ctx.transport === 'unified',
+      },
       attempts: 1,
       max_attempts: 1,
       dedupe_key: null,
@@ -418,7 +585,20 @@ async function publish(ctx: Ctx, itemId?: string): Promise<void> {
     },
   );
 
-  ok('published', 'now run: pnpm first-contact --verify');
+  const { rows: after } = await ctx.pool.query<{ status: string }>(
+    'select status from content_items where id = $1',
+    [picked.row.id],
+  );
+  const status = after[0]?.status ?? 'unknown';
+  if (status === 'published') {
+    ok('published', 'the platform confirmed the post; now run first-contact --verify');
+  } else if (status === 'publishing' && ctx.transport === 'unified') {
+    ok('submitted to Blotato', 'not yet marked published; delivery reconciliation is queued and will settle it');
+  } else if (status === 'awaiting_manual_publish') {
+    warn('delivered as a draft/private upload', 'this is not a public post');
+  } else {
+    warn('publish path returned', `content item is now ${status}; inspect the publication row before doing anything else`);
+  }
 }
 
 // ── 6. Verify the chain ────────────────────────────────────────────────────
@@ -452,7 +632,7 @@ async function verify(ctx: Ctx): Promise<void> {
     `post ${publication.platform_post_id ?? 'MISSING — malformed response'}`,
   );
   (publication.permalink ? ok : warn)('permalink', publication.permalink ?? 'not recorded');
-  if (getAdapter(ctx.platform).constraints.linkStrategy === 'first_reply') {
+  if (ctx.transport === 'direct' && getAdapter(ctx.platform).constraints.linkStrategy === 'first_reply') {
     (publication.link_reply_post_id ? ok : warn)(
       'link in the first reply',
       publication.link_reply_post_id ?? 'no reply recorded — did the post carry a link?',
@@ -485,7 +665,7 @@ async function verify(ctx: Ctx): Promise<void> {
   // The reason `--platform=instagram` exists. If a direct post to an owned
   // account works, Instagram keeps the direct adapter: it returns saves, and the
   // unified transport does not.
-  if (ctx.platform === 'instagram' && publication.platform_post_id) {
+  if (ctx.transport === 'direct' && ctx.platform === 'instagram' && publication.platform_post_id) {
     const { rows: saves } = await ctx.pool.query<{ saves: number | null }>(
       `select saves from post_metrics where publication_id = $1
         order by collected_at desc limit 1`,
@@ -555,15 +735,19 @@ async function main(): Promise<void> {
   }
 
   const pool = new pg.Pool({ connectionString, max: 4 });
-  const ctx: Ctx = { pool, productId: 'recipefix', platform };
+  const transport: Ctx['transport'] = args.includes('--unified') ? 'unified' : 'direct';
+  const ctx: Ctx = { pool, productId: 'recipefix', platform, transport };
 
   console.log(
-    platform === 'x'
-      ? `\nFirst contact — X is the only platform with no review gate, so it is where the\n` +
-          `whole chain gets proved before the other six are touched.`
-      : `\nFirst contact on ${platform}. This platform gates public posting behind a review,\n` +
-          `so a failure here may mean the review has not landed rather than that the adapter is wrong.\n` +
-          `The self-test below distinguishes the two.`,
+    transport === 'unified'
+      ? `\nFirst contact on ${platform} through Blotato. This is the deliberately armed path that lets one\n` +
+          `explicitly approved real post settle an otherwise unknown provider capability. Ordinary automation\n` +
+          `remains fail-closed until the provider reports that post as published.`
+      : platform === 'x'
+        ? `\nFirst contact — X is the only platform with no review gate, so it is where the\n` +
+            `whole direct chain gets proved before the other direct adapters are touched.`
+        : `\nFirst contact on ${platform} through the direct adapter. This platform may gate public posting\n` +
+            `behind a review, so a failure can be provider policy rather than Halyard code.`,
   );
 
   const ready = await checkPreconditions(ctx);
@@ -597,7 +781,7 @@ async function main(): Promise<void> {
     if (ready) await runSelfTest(ctx);
     await dryRun(ctx, itemId);
     console.log(
-      `\n${DIM}When the request above looks right:  pnpm first-contact --publish${platform === 'x' ? '' : ` --platform=${platform}`}${RESET}\n`,
+      `\n${DIM}When the request above looks right:  pnpm first-contact --publish${transport === 'unified' ? ' --unified' : ''}${platform === 'x' ? '' : ` --platform=${platform}`} --item=<uuid>${RESET}\n`,
     );
   }
 

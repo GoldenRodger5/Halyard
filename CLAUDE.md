@@ -139,7 +139,7 @@ Landmines learned the hard way. Each one cost real time.
     `--minWorkers=1` is not decoration: `--maxWorkers=6` on its own now dies
     with `options.minThreads and options.maxThreads must not conflict` and
     reports **"no tests"** with a zero exit path that looks like a clean run
-    until you read the line above it. A full green run is 281 files and 3,798
+    until you read the line above it. A full green run is 294 files and 3,922
     tests with *nothing* skipped.
 
     `--maxWorkers=6` is not optional, and on a machine also running the worker
@@ -245,7 +245,24 @@ Landmines learned the hard way. Each one cost real time.
     nobody could see. Every check from the types step down carries
     `if: '!cancelled()'`. Do not remove it to "fail fast".
 
-18. **X publishing is billed per post** (~$0.015 without a link, ~$0.20 with). X v2 write endpoints return **402 credits-depleted** when the developer account has no credits.
+18. **A non-interactive shell has none of the toolchain, and the suite blames
+    your code for it.** An agent, a hook or a plain `sh -c` does not load the
+    profile, so `pnpm`, `ffmpeg`/`ffprobe` and `psql` are all absent —
+    `/usr/local/bin/node` shadows nvm's and is old enough that corepack's own
+    shim dies on `??=`. The failure does not look like a missing binary: it
+    looks like **42 failed tests across `audio.test.ts`, `tts.test.ts`,
+    `renderVideo.test.ts` and `reviewMedia.test.ts`**, all reading
+    `spawn ffprobe ENOENT` several screens up. Every one of them passes with the
+    path set. Export it before running anything:
+
+    ```
+    export PATH="$HOME/.nvm/versions/node/v23.8.0/bin:/opt/homebrew/bin:/opt/homebrew/opt/postgresql@17/bin:$PATH"
+    ```
+
+    Node 23.8.0 is the one carrying `pnpm@11.21.0`, which is what
+    `packageManager` pins.
+
+19. **X publishing is billed per post** (~$0.015 without a link, ~$0.20 with). X v2 write endpoints return **402 credits-depleted** when the developer account has no credits.
 
 ---
 

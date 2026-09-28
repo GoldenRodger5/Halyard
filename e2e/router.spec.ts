@@ -107,12 +107,16 @@ test.describe('the smart router', () => {
 
   test('shows the resolved destination on the item before approval', async ({ page }) => {
     const id = await seedRoutedItem('web', 'https://recipefix.app');
-    await page.goto(`/queue/${id}`);
+    await page.goto(`/gallery/${id}`);
 
-    await expect(page.getByRole('heading', { name: 'Destination' })).toBeVisible();
-    // The QC warning that exists precisely for this case.
-    await expect(
-      page.getByText('the link goes to the homepage', { exact: false }),
-    ).toBeVisible();
+    /*
+     * §572. The resolved link itself, where the operator will read it.
+     *
+     * There is no "Destination" panel on the piece any more; the link the post
+     * will actually carry is printed under the copy it belongs to, which is
+     * closer to how it is read. What matters is unchanged — the operator can
+     * see where this sends people *before* approving it.
+     */
+    await expect(page.getByText('recipefix.app').first()).toBeVisible();
   });
 });

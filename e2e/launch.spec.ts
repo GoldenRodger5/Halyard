@@ -10,48 +10,73 @@ import type { Page } from '@playwright/test';
 import { db, expect, test } from './fixtures';
 
 /**
- * The submit button, located by its form rather than its label.
+ * The submit button, located by the form that owns the run-length select rather than its label.
  *
- * The label changes once a batch exists ("Replan the batch"), and it changes on
- * a re-render the test does not control. Matching the form that owns the day
- * count is stable across both states.
+ * The control is a `<select name="days">`; the older test looked for an input
+ * with that name, so it never clicked anything and then waited for rows that
+ * could not exist. This selector follows the actual accessible form contract.
  */
-const generateButton = (page: Page) => page.locator('form:has(input[name="days"]) button');
+const generateButton = (page: Page) => page.locator('form:has(select[name="days"]) button');
 
 /** Click it and wait for the staged count the page reports back. */
 async function stage(page: Page): Promise<void> {
-  await page.goto('/launch');
+  await page.goto('/rundown/launch');
+  const stagedResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === 'POST' &&
+      response.url().includes('/rundown/launch'),
+  );
   await generateButton(page).click();
+  // The action writes package/brief/item/variant/recipe rows first, then jobs,
+  // then the audit record. Waiting only for the first content row observes a
+  // valid plan mid-flight and makes later assertions compare different moments.
+  await stagedResponse;
   await page.waitForLoadState('networkidle');
 
   /**
-   * Reload until the batch appears, rather than reloading once and hoping.
+   * §572. Polled on the rows, not on a sentence the page used to print.
    *
-   * Staging a fortnight is a server action that keeps working after the network
-   * goes quiet, and this page is server-rendered — so `toBeVisible` retries the
-   * locator against a snapshot that can never change. One reload was enough on
-   * a fast machine and lost the race on a CI runner.
+   * This waited for the text "posts staged", which the rebuilt Rundown does not
+   * say anywhere — so it reloaded for thirty seconds and gave up, on a batch
+   * that had staged correctly. What the test needs is that the rows exist, and
+   * the rows are readable directly. Staging is a server action that keeps
+   * working after the network goes quiet, so it is still polled rather than
+   * read once.
    */
   await expect
     .poll(async () => {
-      await page.reload();
-      return page.getByText(/posts staged/).isVisible();
+      const { rows } = await db().query<{ n: string }>(
+        `select count(*) as n from content_items
+          where generation_meta->>'source' = 'launch_batch'`,
+      );
+      return Number(rows[0]!.n);
     }, { timeout: 30_000 })
-    .toBe(true);
+    .toBeGreaterThan(0);
 }
 
 const CLEANUP = `delete from jobs where dedupe_key like 'launch_generate:%';
-                 delete from content_items where generation_meta->>'source' = 'launch_batch';`;
+                 delete from content_items where generation_meta->>'source' = 'launch_batch';
+                 delete from concepts where product_id = 'recipefix' and origin_kind = 'launch';
+                 update social_accounts set provider_account_id = null
+                   where product_id='recipefix' and provider_account_id like 'e2e-%';`;
 
 test.describe('launch batch', () => {
   test.beforeEach(async () => {
     await db().query(CLEANUP);
+    // A social-account row is not an actionable identity by itself. Production
+    // Launch requires either a direct credential or a unified provider mapping,
+    // so the E2E fixture proves that same boundary instead of bypassing it.
+    await db().query(
+      `update social_accounts
+          set provider_account_id = 'e2e-' || platform || '-' || id::text
+        where product_id='recipefix' and persona='brand' and capability_state <> 'disabled'`,
+    );
   });
   test.afterAll(async () => {
     await db().query(CLEANUP);
   });
 
-  test('stages a fortnight and queues one generation job per slot', async ({ page }) => {
+  test('stages the full run but queues only the cold-start calibration set', async ({ page }) => {
     await stage(page);
 
     const staged = await db().query<{
@@ -60,8 +85,14 @@ test.describe('launch batch', () => {
       status: string;
       scheduled_at: string | null;
       purpose: string | null;
+      concept_id: string | null;
+      brief_id: string | null;
+      production_recipe_id: string | null;
+      production_v2: boolean;
     }>(
-      `select id, body, status, scheduled_at, generation_meta->>'purpose' as purpose
+      `select id, body, status, scheduled_at, generation_meta->>'purpose' as purpose,
+              concept_id, brief_id, production_recipe_id,
+              coalesce((generation_meta->>'production_v2')::boolean, false) as production_v2
          from content_items where generation_meta->>'source' = 'launch_batch'
          order by scheduled_at`,
     );
@@ -74,6 +105,13 @@ test.describe('launch batch', () => {
       expect(row.body).toBe('');
       expect(row.status).toBe('draft');
       expect(row.scheduled_at).not.toBeNull();
+      expect(row.production_v2).toBe(true);
+      expect(row.concept_id).not.toBeNull();
+      expect(row.brief_id).not.toBeNull();
+      expect(row.production_recipe_id).not.toBeNull();
+      // The live orchestration rolls the whole opening run forward when today's
+      // day-one slots have already passed. Never stage an opening post in the past.
+      expect(new Date(row.scheduled_at!).getTime()).toBeGreaterThan(Date.now());
       // Nothing on the exact hour — that is the automation fingerprint.
       expect(new Date(row.scheduled_at!).getUTCMinutes()).not.toBe(0);
     }
@@ -84,7 +122,47 @@ test.describe('launch batch', () => {
     const jobs = await db().query<{ n: string }>(
       `select count(*) as n from jobs where dedupe_key like 'launch_generate:%'`,
     );
-    expect(Number(jobs.rows[0]!.n)).toBe(staged.rowCount);
+    const selected = await db().query<{ n: string }>(
+      `select count(*) as n from content_items
+        where generation_meta->>'source'='launch_batch'
+          and coalesce((generation_meta->>'calibration_selected')::boolean,false)`,
+    );
+    expect(Number(jobs.rows[0]!.n)).toBe(Number(selected.rows[0]!.n));
+    expect(Number(jobs.rows[0]!.n)).toBeGreaterThan(0);
+    expect(Number(jobs.rows[0]!.n)).toBeLessThanOrEqual(6);
+    expect(Number(jobs.rows[0]!.n)).toBeLessThan(staged.rowCount);
+
+    const lineage = await db().query<{
+      items: string;
+      concepts: string;
+      briefs: string;
+      variants: string;
+      recipes: string;
+      calibration_recipes: string;
+      human_review_recipes: string;
+    }>(
+      `select
+         count(*)::text as items,
+         count(distinct ci.concept_id)::text as concepts,
+         count(distinct ci.brief_id)::text as briefs,
+         count(distinct pv.id)::text as variants,
+         count(distinct pr.id)::text as recipes,
+         count(distinct pr.id) filter (where pr.mode='calibration')::text as calibration_recipes,
+         count(distinct pr.id) filter (where pr.human_review_required)::text as human_review_recipes
+       from content_items ci
+       left join platform_variants pv on pv.content_item_id = ci.id
+       left join production_recipes pr on pr.id = ci.production_recipe_id
+       where ci.generation_meta->>'source'='launch_batch'`,
+    );
+    const v2 = lineage.rows[0]!;
+    expect(Number(v2.briefs)).toBe(staged.rowCount);
+    expect(Number(v2.variants)).toBe(staged.rowCount);
+    expect(Number(v2.recipes)).toBe(staged.rowCount);
+    expect(Number(v2.calibration_recipes)).toBe(staged.rowCount);
+    // Text-native variants may need no media production; every visual variant
+    // is calibration-gated by the production router.
+    expect(Number(v2.human_review_recipes)).toBeGreaterThan(0);
+    expect(Number(v2.concepts)).toBeLessThan(staged.rowCount);
   });
 
   test('generating twice does not write the fortnight twice', async ({ page }) => {
@@ -119,11 +197,15 @@ test.describe('launch batch', () => {
     await stage(page);
 
     // A draft with a body is not scaffolding, whoever wrote it.
-    const edited = await db().query<{ id: string }>(
+    const before = await db().query<{ n: string }>(
+      `select count(*)::text as n from content_items
+        where generation_meta->>'source'='launch_batch'`,
+    );
+    const edited = await db().query<{ id: string; key: string }>(
       `update content_items set body = 'written by hand'
         where id = (select id from content_items
                      where generation_meta->>'source' = 'launch_batch' limit 1)
-        returning id`,
+        returning id, generation_meta->>'key' as key`,
     );
 
     await stage(page);
@@ -133,25 +215,29 @@ test.describe('launch batch', () => {
       [edited.rows[0]!.id],
     );
     expect(survived.rows[0]?.body).toBe('written by hand');
+
+    const after = await db().query<{ n: string }>(
+      `select count(*)::text as n from content_items
+        where generation_meta->>'source'='launch_batch'`,
+    );
+    expect(after.rows[0]!.n).toBe(before.rows[0]!.n);
+
+    const sameKey = await db().query<{ n: string }>(
+      `select count(*)::text as n from content_items
+        where generation_meta->>'source'='launch_batch'
+          and generation_meta->>'key'=$1`,
+      [edited.rows[0]!.key],
+    );
+    expect(Number(sameKey.rows[0]!.n)).toBe(1);
   });
 
-  test('discarding removes the batch', async ({ page }) => {
-    await stage(page);
-
-    await page.getByRole('button', { name: 'Discard the batch' }).click();
-    await page.waitForLoadState('networkidle');
-
-    // Polled, for the same reason as the counts above: discarding is a server
-    // action, and a quiet network is not a committed transaction. Read once,
-    // this saw the full batch still present on a CI runner. Same assertion.
-    await expect
-      .poll(async () => {
-        const { rows } = await db().query<{ n: string }>(
-          `select count(*) as n from content_items
-            where generation_meta->>'source' = 'launch_batch' and status = 'draft'`,
-        );
-        return Number(rows[0]!.n);
-      })
-      .toBe(0);
-  });
+  /*
+   * §572. Retired: there is no way to discard a batch from the screen.
+   *
+   * `discardLaunchBatch` is a server action with no caller — the rebuilt
+   * Rundown never renders a control that reaches it, so there is no user path
+   * for an end-to-end test to walk. The action is orphaned (§562's shape) and
+   * is recorded in `docs/E2E_CONTRACT.md`; restoring a discard control should
+   * restore this test with it.
+   */
 });

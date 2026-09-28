@@ -27,6 +27,7 @@ import {
   createLlmClient,
   discoverClaims,
   isInScope,
+  isStale,
   type PageOutline,
 } from '@halyard/core';
 import type { HandlerContext, Job } from '../poller.js';
@@ -39,19 +40,34 @@ interface ProductRow {
   id: string;
   name: string;
   destinations: { web?: string } | null;
+  capture_credentials: { email?: string; password?: string; loginPath?: string } | null;
 }
 
 export interface ExploreCredentials {
   email: string;
   password: string;
+  loginPath?: string;
 }
 
-/** The exploration account, which is deliberately not the operator's own. */
-export function credentialsFromEnv(): ExploreCredentials | null {
-  const email = process.env.EXPLORE_ACCOUNT_EMAIL;
-  const password = process.env.EXPLORE_ACCOUNT_PASSWORD;
+/**
+ * The exploration account, which is deliberately not the operator's own.
+ *
+ * Product-specific capture credentials win; the old global env pair remains a
+ * compatibility fallback. This is what lets RecipeFix and Kinolog each have a
+ * dedicated harmless browser account without sharing one identity.
+ */
+export function credentialsForProduct(
+  productCredentials: ProductRow['capture_credentials'],
+  env: NodeJS.ProcessEnv = process.env,
+): ExploreCredentials | null {
+  const email = productCredentials?.email ?? env.EXPLORE_ACCOUNT_EMAIL;
+  const password = productCredentials?.password ?? env.EXPLORE_ACCOUNT_PASSWORD;
   if (!email || !password) return null;
-  return { email, password };
+  return {
+    email,
+    password,
+    loginPath: productCredentials?.loginPath ?? env.EXPLORE_ACCOUNT_LOGIN_PATH,
+  };
 }
 
 export async function exploreHandler(job: Job, ctx: HandlerContext): Promise<void> {
@@ -59,7 +75,7 @@ export async function exploreHandler(job: Job, ctx: HandlerContext): Promise<voi
   if (!productId) throw new Error('explore job has no productId');
 
   const { rows } = await ctx.pool.query<ProductRow>(
-    'select id, name, destinations from products where id = $1',
+    'select id, name, destinations, capture_credentials from products where id = $1',
     [productId],
   );
   const product = rows[0];
@@ -72,12 +88,40 @@ export async function exploreHandler(job: Job, ctx: HandlerContext): Promise<voi
     return;
   }
 
-  const credentials = credentialsFromEnv();
-  const { rows: existing } = await ctx.pool.query<{ name: string }>(
-    'select name from feature_claims where product_id = $1',
+  const credentials = credentialsForProduct(product.capture_credentials);
+  const { rows: existing } = await ctx.pool.query<{
+    id: string;
+    name: string;
+    status: 'unverified' | 'verified' | 'refuted' | 'unverifiable';
+    verified_at: Date | null;
+  }>(
+    'select id, name, status, verified_at from feature_claims where product_id = $1',
     [productId],
   );
-  const existingNames = existing.map((e) => e.name);
+
+  /*
+   * A rescan is reconciliation, not just discovery. Anything never verified,
+   * previously refuted/unverifiable, or old enough to be stale gets another
+   * replay. The discovery pass below may replace its replay steps first; the
+   * queued job reads the row when it actually runs, so it sees the freshest
+   * demonstration rather than the stale one we started with.
+   */
+  let requeued = 0;
+  for (const claim of existing) {
+    const needsReplay =
+      claim.status !== 'verified' || !claim.verified_at || isStale(new Date(claim.verified_at));
+    if (!needsReplay) continue;
+    await ctx.enqueue(
+      'verify_feature',
+      { claimId: claim.id },
+      { dedupeKey: `verify_feature:${claim.id}`, priority: 60 },
+    );
+    requeued += 1;
+  }
+
+  // Deduplicate only *within this crawl*. Pre-existing claims are allowed back
+  // through so their summary/replay can be refreshed rather than rejected.
+  const discoveredThisRun: string[] = [];
 
   const llm = recordingClient(ctx.pool, createLlmClient(), { trigger: 'job', triggerRef: job.id });
   const browser = await chromium.launch({ headless: true });
@@ -108,7 +152,7 @@ export async function exploreHandler(job: Job, ctx: HandlerContext): Promise<voi
     } else {
       ctx.log('exploring signed out', {
         productId,
-        why: 'EXPLORE_ACCOUNT_EMAIL and EXPLORE_ACCOUNT_PASSWORD are not set',
+        why: 'No per-product capture credentials or global Explorer fallback are configured',
       });
     }
 
@@ -129,7 +173,7 @@ export async function exploreHandler(job: Job, ctx: HandlerContext): Promise<voi
       const outline = await outlineOf(page);
       const result = await discoverClaims(
         outline,
-        { productName: product.name, allowedOrigins: [root], existingNames },
+        { productName: product.name, allowedOrigins: [root], existingNames: discoveredThisRun },
         llm,
       );
       cost += result.costUsd;
@@ -139,7 +183,14 @@ export async function exploreHandler(job: Job, ctx: HandlerContext): Promise<voi
         const inserted = await ctx.pool.query<{ id: string }>(
           `insert into feature_claims (product_id, name, summary, source, replay, evidence)
            values ($1, $2, $3, 'crawl', $4, $5)
-           on conflict (product_id, name) do nothing
+           on conflict (product_id, name) do update set
+             summary = excluded.summary,
+             source = excluded.source,
+             replay = excluded.replay,
+             evidence = excluded.evidence,
+             status = 'unverified',
+             last_verdict = null,
+             updated_at = now()
            returning id`,
           [
             productId,
@@ -152,11 +203,12 @@ export async function exploreHandler(job: Job, ctx: HandlerContext): Promise<voi
         const id = inserted.rows[0]?.id;
         if (!id) continue;
 
-        existingNames.push(claim.name);
+        discoveredThisRun.push(claim.name);
         proposed += 1;
 
         // Queued rather than replayed inline: a claim is worthless until it is
-        // checked, and this handler already holds a browser.
+        // checked, and this handler already holds a browser. The dedupe key
+        // collapses the earlier rescan replay and this refreshed replay to one.
         await ctx.enqueue(
           'verify_feature',
           { claimId: id },
@@ -186,6 +238,7 @@ export async function exploreHandler(job: Job, ctx: HandlerContext): Promise<voi
       productId,
       pages: visited.size,
       proposed,
+      requeued,
       refused,
       costUsd: Number(cost.toFixed(4)),
       signedIn: Boolean(credentials),
@@ -262,30 +315,110 @@ async function linksOn(page: Page, root: string): Promise<string[]> {
  * Returns whether it believes it worked. It does not assert that it did: the
  * claims it goes on to make are verified by replay regardless.
  */
-async function signIn(page: Page, root: string, credentials: ExploreCredentials): Promise<boolean> {
-  for (const path of ['/login', '/signin', '/sign-in', '/auth/login']) {
+export async function signIn(page: Page, root: string, credentials: ExploreCredentials): Promise<boolean> {
+  const tryVisibleForm = async (): Promise<boolean> => {
+    let email = page.locator('input[type=email], input[name=email]').first();
+
+    /*
+     * Many current consumer apps keep auth in an in-page modal rather than a
+     * dedicated /login route. Open that surface before concluding the product
+     * has no password flow. Exact-ish labels keep this from clicking arbitrary
+     * "start" CTAs on a real account.
+     */
+    if (!(await email.isVisible({ timeout: 800 }).catch(() => false))) {
+      const buttonTrigger = page.getByRole('button', { name: /^(sign in|log in)$/i }).first();
+      const linkTrigger = page.getByRole('link', { name: /^(sign in|log in)$/i }).first();
+      const trigger = (await buttonTrigger.isVisible({ timeout: 800 }).catch(() => false))
+        ? buttonTrigger
+        : linkTrigger;
+      if (await trigger.isVisible({ timeout: 800 }).catch(() => false)) {
+        await trigger.click().catch(() => undefined);
+        await page.waitForTimeout(250);
+      }
+    }
+
+    email = page.locator('input[type=email], input[name=email]').first();
+    if (!(await email.isVisible({ timeout: 800 }).catch(() => false))) {
+      const emailChoice = page
+        .getByRole('button', { name: /continue with email|use email|email and password/i })
+        .first();
+      if (await emailChoice.isVisible({ timeout: 800 }).catch(() => false)) {
+        await emailChoice.click().catch(() => undefined);
+        await page.waitForTimeout(250);
+      }
+    }
+
+    email = page.locator('input[type=email], input[name=email]').first();
+    const password = page.locator('input[type=password]').first();
+    if (!(await email.isVisible({ timeout: 1_000 }).catch(() => false))) return false;
+    if (!(await password.isVisible({ timeout: 1_000 }).catch(() => false))) return false;
+
+    await email.fill(credentials.email);
+    await password.fill(credentials.password);
+
+    const submit = page.getByRole('button', { name: /^(sign in|log in|continue)$/i }).last();
+    if (await submit.isVisible({ timeout: 800 }).catch(() => false)) {
+      await submit.click();
+    } else {
+      await password.press('Enter');
+    }
+
+    // Give SPA auth enough time to persist the session and rerender the shell.
+    // Some apps update identity several seconds after the credential request,
+    // so do not fall through to the next conventional route while a successful
+    // login is still settling.
+    await page.waitForLoadState('networkidle', { timeout: 15_000 }).catch(() => undefined);
+
+    const succeeded = async (): Promise<boolean> => {
+      const passwordStillVisible = await page
+        .locator('input[type=password]')
+        .first()
+        .isVisible({ timeout: 250 })
+        .catch(() => false);
+      const signInStillVisible = await page
+        .getByRole('button', { name: /^(sign in|log in)$/i })
+        .first()
+        .isVisible({ timeout: 250 })
+        .catch(() => false);
+      const hasSessionKey = await page
+        .evaluate(() => Object.keys(localStorage).some((key) => /auth[-_]?token|session/i.test(key)))
+        .catch(() => false);
+      return !passwordStillVisible && (!signInStillVisible || hasSessionKey);
+    };
+
+    for (let attempt = 0; attempt < 12; attempt += 1) {
+      if (await succeeded()) return true;
+      await page.waitForTimeout(500);
+    }
+    return false;
+  };
+
+  const paths = [
+    credentials.loginPath,
+    '/login',
+    '/signin',
+    '/sign-in',
+    '/auth/login',
+  ].filter((path, index, all): path is string => Boolean(path) && all.indexOf(path) === index);
+
+  for (const path of paths) {
     try {
       await page.goto(new URL(path, root).toString(), {
         waitUntil: 'domcontentloaded',
         timeout: 15_000,
       });
+      if (await tryVisibleForm()) return true;
     } catch {
-      continue;
+      // Try the next conventional route. A broken auth route should not abort
+      // the public portion of the product inventory.
     }
-
-    const email = page.locator('input[type=email], input[name=email]').first();
-    const password = page.locator('input[type=password]').first();
-    if (!(await email.isVisible({ timeout: 3000 }).catch(() => false))) continue;
-
-    await email.fill(credentials.email);
-    if (await password.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await password.fill(credentials.password);
-    }
-    await page.keyboard.press('Enter');
-    await page.waitForLoadState('networkidle', { timeout: 15_000 }).catch(() => undefined);
-
-    // A password field still on screen is the clearest signal it did not take.
-    return !(await password.isVisible({ timeout: 2000 }).catch(() => false));
   }
-  return false;
+
+  // Final generic fallback: many products expose Sign In only in the app shell.
+  try {
+    await page.goto(root, { waitUntil: 'domcontentloaded', timeout: 15_000 });
+    return await tryVisibleForm();
+  } catch {
+    return false;
+  }
 }

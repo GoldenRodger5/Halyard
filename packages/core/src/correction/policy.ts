@@ -152,6 +152,13 @@ const BY_RULE: Record<string, PolicyEntry> = {
     action: 'escalate',
     correctable: false,
   },
+  'coherence.beat_subject_mismatch': {
+    rootCause:
+      'A specific beat depicts a different concrete subject from the one its screenplay staged.',
+    component: 'creative_plan',
+    action: 'escalate',
+    correctable: false,
+  },
 
   /*
    * §409. Nothing recorded what the frames were meant to show, so the check did
@@ -173,6 +180,13 @@ const BY_RULE: Record<string, PolicyEntry> = {
   },
   'creative.no_motion': {
     rootCause: 'Every beat is a still card, so nothing in the edit moves.',
+    component: 'creative_plan',
+    action: 'resequence_scenes',
+    correctable: true,
+  },
+  'creative.motion_plan_not_honoured': {
+    rootCause:
+      'The CreativePackage asked for moving media, but the finished beat structure collapsed into mostly static cards.',
     component: 'creative_plan',
     action: 'resequence_scenes',
     correctable: true,
@@ -441,6 +455,13 @@ const BY_RULE: Record<string, PolicyEntry> = {
    */
   'text.hook_closes_the_gap': {
     rootCause: 'The opening line answers the question the piece was about to ask.',
+    component: 'copy',
+    action: 'revise_copy',
+    correctable: true,
+  },
+  'text.internal_work_log': {
+    rootCause:
+      'The audience-facing copy reads like an internal QA report, test result or implementation log.',
     component: 'copy',
     action: 'revise_copy',
     correctable: true,

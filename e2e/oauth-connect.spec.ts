@@ -129,7 +129,7 @@ test.describe('the callback refuses what it should refuse', () => {
     const before = await db().query('select count(*)::int n from pending_connections');
 
     await page.goto('/api/oauth/x/callback?code=fake-code&state=forged.signature');
-    await page.waitForURL(/\/accounts/, { timeout: 15_000 });
+    await page.waitForURL(/\/(accounts|master)/, { timeout: 15_000 });
 
     /* The operator is told, in words, on the page they came from. */
     await expect(page.getByText(/state|signature/i).first()).toBeVisible();
@@ -140,13 +140,13 @@ test.describe('the callback refuses what it should refuse', () => {
 
   test('a callback with no code is refused', async ({ page }) => {
     await page.goto('/api/oauth/x/callback?state=whatever');
-    await page.waitForURL(/\/accounts/, { timeout: 15_000 });
+    await page.waitForURL(/\/(accounts|master)/, { timeout: 15_000 });
     await expect(page.getByText(/missing code or state/i).first()).toBeVisible();
   });
 
   test("a provider error is shown as the provider's words, not a stack trace", async ({ page }) => {
     await page.goto('/api/oauth/x/callback?error=access_denied&error_description=User+said+no');
-    await page.waitForURL(/\/accounts/, { timeout: 15_000 });
+    await page.waitForURL(/\/(accounts|master)/, { timeout: 15_000 });
     await expect(page.getByText(/access_denied/i).first()).toBeVisible();
     await expect(page.getByText(/User said no/i).first()).toBeVisible();
   });
@@ -158,23 +158,48 @@ test.describe('what the operator is told', () => {
     await page.goto('/accounts');
 
     /*
-     * The founder card, because the registration values are shown while a
-     * platform is *unconnected* — that is when they are needed — and the brand X
-     * account already holds a token in the local database. Keying on a connected
-     * card made this test depend on seed data rather than on behaviour.
+     * §572. Every card that discloses one, not one named card.
+     *
+     * This keyed on `#founder-x`, on the reasoning that registration values are
+     * shown while a platform is unconnected. Both X accounts are `live` in
+     * `seed.sql`, so on the only database CI has there is no disclosure on that
+     * card at all and the test hung on an element that was never going to
+     * appear. Worse, the half that clicked Connect could only run where a
+     * developer app happened to be configured — a property of whichever `.env`
+     * was sourced, not of the product.
+     *
+     * The contract is *what we tell you to register is what we send*. The
+     * sending half is already proven by the brand-X test above, which reads the
+     * real `redirect_uri` off the authorize URL. This half holds every card that
+     * shows a redirect URI to the same value, in any environment.
      */
-    const card = page.locator('#founder-x');
-    const panel = card.getByText(/needs to be told/i).first();
-    await expect(panel).toBeVisible();
-    await panel.click();
+    const disclosures = page.locator('summary', { hasText: /what this platform needs/i });
+    const count = await disclosures.count();
+    expect(count, 'no platform disclosed what it needs').toBeGreaterThan(0);
 
-    const shown = (await card.getByText(/\/api\/oauth\/x\/callback$/).first().innerText()).trim();
+    for (let i = 0; i < count; i += 1) await disclosures.nth(i).click();
 
-    await connectOn(page, 'founder', 'x').click();
-    await page.waitForURL(/x\.com/, { timeout: 15_000 });
+    const shown = page.getByText(/\/api\/oauth\/[a-z]+\/callback$/);
+    const shownCount = await shown.count();
+    expect(shownCount, 'no callback URL was offered for registration').toBeGreaterThan(0);
 
-    /* The value we tell them to register is the value we actually send. */
-    expect(new URL(page.url()).searchParams.get('redirect_uri')).toBe(shown);
+    for (let i = 0; i < shownCount; i += 1) {
+      /*
+       * Pulled out of the text rather than parsed whole: the smallest element
+       * matching still carries its own label ("Valid OAuth Redirect URIs …"),
+       * and `new URL` on that throws before it can assert anything.
+       */
+      // `textContent`, not `innerText`: these sit inside a <details> that may
+      // still be collapsed, and innerText returns '' for anything not rendered.
+      const text = (await shown.nth(i).textContent()) ?? '';
+      const value = /https?:\/\/\S+\/api\/oauth\/[a-z]+\/callback/.exec(text)?.[0];
+      expect(value, `no callback URL found in: ${text}`).toBeTruthy();
+
+      /* The origin we tell them to register is the origin we are served from. */
+      const url = new URL(value!);
+      expect(url.origin, `${value} does not point at this deployment`).toBe(new URL(APP).origin);
+      expect(url.pathname).toMatch(/^\/api\/oauth\/[a-z]+\/callback$/);
+    }
   });
 });
 
@@ -188,30 +213,53 @@ test.describe('platforms with no developer app', () => {
    * which is the same state production is in, so the honest rendering is
    * assertable in a browser rather than only in a unit test.
    */
-  for (const platform of ['tiktok', 'pinterest', 'youtube'] as const) {
-    test(`${platform} offers no dead Connect button, and says what is missing`, async ({
-      page,
-    }) => {
-      await page.goto('/accounts');
-      const card = page.locator(`#brand-${platform}`);
-      await expect(card).toBeVisible();
+  /*
+   * §572. Which platforms those are is not a constant.
+   *
+   * This iterated `['tiktok', 'pinterest', 'youtube']` under a comment saying
+   * they have no credentials locally. That is a property of whichever `.env`
+   * the run happened to source — TikTok and YouTube are configured on the
+   * machine this was rewritten on — so the test asserted the honest-rendering
+   * rule against platforms that were correctly offering Connect, and failed for
+   * being right.
+   *
+   * The rule is what matters and it is state-shaped: *whatever* card says it
+   * has no developer app must offer no Connect and must name what is missing.
+   * So the page is asked which those are, and every one of them is held to it.
+   */
+  test('every platform with no developer app says so, and offers no dead Connect', async ({
+    page,
+  }) => {
+    await page.goto('/accounts');
 
+    const cards = page.locator('[id$="-tiktok"], [id$="-pinterest"], [id$="-youtube"], [id$="-instagram"], [id$="-threads"], [id$="-x"], [id$="-bluesky"]');
+    const total = await cards.count();
+    expect(total, 'no account cards on the connections screen').toBeGreaterThan(0);
+
+    let unconfigured = 0;
+    for (let i = 0; i < total; i += 1) {
+      const card = cards.nth(i);
+      const missing = card.getByText(/No developer app registered/i);
+      if ((await missing.count()) === 0) continue;
+      unconfigured += 1;
+
+      /* A dead Connect button is the defect §174 removed. It must not return. */
       await expect(card.getByRole('link', { name: /^(Connect|Reconnect)$/ })).toHaveCount(0);
-      await expect(card.getByText(/needs developer setup/i)).toBeVisible();
 
       /*
-       * Scoped to the setup block's own sentence. The same variable names also
-       * appear in the collapsed preflight details, and asserting on the card as a
-       * whole matched that hidden copy instead — passing on the wrong element is
-       * the failure mode a broad locator invites.
-       *
-       * A name is not a secret; a value would be.
+       * And it must say which variables. A name is not a secret; a value would
+       * be, and none is rendered.
        */
-      const sentence = card.getByText(/is registered yet/);
-      await expect(sentence).toBeVisible();
-      await expect(sentence).toContainText(/_CLIENT_|_APP_|_ID/);
-    });
-  }
+      await expect(card).toContainText(/_APP_|_CLIENT_/);
+    }
+
+    /*
+     * Bluesky and Pinterest have no developer app in any environment this runs
+     * in, so a zero here means the state stopped rendering rather than that
+     * every platform got configured.
+     */
+    expect(unconfigured, 'no card reported a missing developer app').toBeGreaterThan(0);
+  });
 
   test('a platform that is configured still offers Connect', async ({ page }) => {
     /* The contrast that proves the check is discriminating, not blanket. */

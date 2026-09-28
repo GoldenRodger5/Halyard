@@ -3,6 +3,7 @@ import fixture from '../connectors/__fixtures__/recipeAdaptation.json' with { ty
 import {
   disclosureSatisfied,
   gatesAfterEdit,
+  refreshCopyGate,
   isBareHomepage,
   looksUnextracted,
   requiresAiLabel,
@@ -680,5 +681,32 @@ describe('gatesAfterEdit', () => {
   it('recomputes passed over the whole list', () => {
     const out = gatesAfterEdit(gates, clean);
     expect(out.passed).toBe(true);
+  });
+});
+
+describe('refreshCopyGate', () => {
+  const gates: GateResult[] = [
+    { gate: 'copy', status: 'warning', summary: 'verdict for older prose', detail: null },
+    { gate: 'claims', status: 'passed', summary: 'claims still verified', detail: null },
+    { gate: 'visual', status: 'passed', summary: 'media checked', detail: null },
+  ];
+
+  it('replaces only the copy verdict with one for the current body', () => {
+    const out = refreshCopyGate(gates, { passed: true, violations: [] });
+    expect(out.gates.find((g) => g.gate === 'copy')).toMatchObject({
+      status: 'passed',
+      summary: 're-run against current body — 0 flags',
+    });
+    expect(out.gates.find((g) => g.gate === 'claims')).toEqual(gates[1]);
+    expect(out.gates.find((g) => g.gate === 'visual')).toEqual(gates[2]);
+  });
+
+  it('adds a missing copy gate instead of letting approval have no current-text verdict', () => {
+    const out = refreshCopyGate(gates.filter((g) => g.gate !== 'copy'), {
+      passed: false,
+      violations: [{ rule: 'length.over_limit', message: 'too long' }],
+    });
+    expect(out.gates[0]).toMatchObject({ gate: 'copy', status: 'failed' });
+    expect(out.passed).toBe(false);
   });
 });

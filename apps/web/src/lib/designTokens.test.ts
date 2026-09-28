@@ -42,6 +42,9 @@ const NON_COLOUR = new Set([
    * gradients.
    */
   'cover','contain','repeat','no-repeat','repeat-x','repeat-y','local','scroll',
+  // SVG presentation attribute names can appear inside generated markup strings.
+  // text-anchor is not a Tailwind colour utility.
+  'anchor',
 ]);
 
 /**

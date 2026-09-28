@@ -455,7 +455,8 @@ export const POST_FORMAT_CATALOG: Record<PostFormatId, PostFormat> = {
   comparison: {
     id: 'comparison',
     name: 'Comparison',
-    intent: 'Two options, side by side, with the tradeoff named.',
+    intent:
+      'Two genuine alternatives for the same decision, side by side, with the tradeoff named. Never oppose unrelated facts merely because both are true.',
     pillar: 'teach',
     factuality: 'craft',
     /*
@@ -463,14 +464,35 @@ export const POST_FORMAT_CATALOG: Record<PostFormatId, PostFormat> = {
      * comparison is a strong long-form shape and there is no composition for
      * one, so the channel comes back with the composition rather than before.
      */
-    channels: ['text_post', 'carousel', 'pin'],
+    channels: ['short_video', 'text_post', 'carousel', 'pin'],
     needsArtifact: false,
     pace: 'standard',
     slots: [
-      { key: 'question', brief: 'The choice a reader is actually facing.', maxWords: 12, opensThePiece: true },
-      { key: 'option_a', brief: 'The first option and what it is good at.', maxWords: 22 },
-      { key: 'option_b', brief: 'The second option and what it is good at.', maxWords: 22 },
-      { key: 'verdict', brief: 'When to pick each. Never "it depends" alone.', maxWords: 25 },
+      {
+        key: 'question',
+        brief:
+          'One real decision with two interchangeable answers. The reader should be able to put either option after this question and get a grammatical, meaningful answer. Never invent a versus between unrelated checks or facts.',
+        maxWords: 12,
+        opensThePiece: true,
+      },
+      {
+        key: 'option_a',
+        brief:
+          'The first answer to that exact decision, plus the dimension it wins on. It must solve the same job as option B.',
+        maxWords: 22,
+      },
+      {
+        key: 'option_b',
+        brief:
+          'The second answer to that exact decision, plus the dimension it wins on. It must solve the same job as option A.',
+        maxWords: 22,
+      },
+      {
+        key: 'verdict',
+        brief:
+          'The decision rule that separates A from B. Resolve the same question; never stitch two unrelated truths together or say only "it depends".',
+        maxWords: 25,
+      },
     ],
   },
 

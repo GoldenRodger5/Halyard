@@ -9,8 +9,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   allocateCategories,
+  conceptFor,
   interleave,
   planLaunchBatch,
+  selectLaunchCalibrationSlots,
   type LaunchAccount,
   type LaunchBatchBrief,
 } from './launchBatch.js';
@@ -57,8 +59,13 @@ describe('allocateCategories', () => {
     expect(Object.values(allocation).reduce((a, b) => a + b, 0)).toBe(10);
   });
 
-  it('files everything under education when no mix is set, rather than inventing one', () => {
-    expect(allocateCategories({}, 5)).toEqual({ education: 5 });
+  it('uses a product-neutral cold-start mix when no product-specific mix exists', () => {
+    expect(allocateCategories({}, 5)).toEqual({
+      education: 2,
+      transformation: 1,
+      community: 1,
+      product: 1,
+    });
   });
 
   it('allocates nothing when there is nothing to allocate', () => {
@@ -187,12 +194,11 @@ describe('planLaunchBatch', () => {
     expect(longest).toBeLessThanOrEqual(3);
   });
 
-  it('says so when there are no mix targets rather than pretending to balance', () => {
+  it('uses and explains a varied product-neutral mix when the product has no learned mix yet', () => {
     const plan = planLaunchBatch(brief({ mixTargets: {} }));
-    expect(plan.warnings.join(' ')).toContain('No mix targets');
-    expect(plan.slots.every((s) => s.category === 'education' || s.purpose === 'introduction')).toBe(
-      true,
-    );
+    expect(plan.rationale.join(' ')).toContain('product-neutral editorial mix');
+    const regular = plan.slots.filter((s) => s.purpose === 'regular' && !s.deferred);
+    expect(new Set(regular.map((s) => s.category)).size).toBeGreaterThan(1);
   });
 
   it('drops an account whose platform has no slot windows, and names it', () => {
@@ -314,5 +320,141 @@ describe('planLaunchBatch', () => {
     const week = planLaunchBatch(brief({ days: 7 }));
     const fortnight = planLaunchBatch(brief({ days: 14 }));
     expect(week.slots.length).toBeLessThan(fortnight.slots.length);
+  });
+
+  it('alternates Instagram Reels and carousels when both are supported', () => {
+    const plan = planLaunchBatch(
+      brief({
+        accounts: [
+          account({ id: 'acct-ig', platform: 'instagram', supportedFormats: ['video', 'carousel', 'image'] }),
+        ],
+        slots: { instagram: WINDOWS },
+      }),
+    );
+    const regular = plan.slots.filter((slot) => slot.purpose === 'regular' && !slot.deferred);
+    expect(new Set(regular.map((slot) => slot.format))).toEqual(new Set(['video', 'carousel']));
+  });
+
+  it('rotates creative shapes instead of mapping a category to one permanent template', () => {
+    const plan = planLaunchBatch(
+      brief({
+        days: 28,
+        accounts: [
+          account(),
+          account({ id: 'acct-ig', platform: 'instagram', supportedFormats: ['video', 'carousel'] }),
+          account({ id: 'acct-tt', platform: 'tiktok', supportedFormats: ['video'] }),
+          account({ id: 'acct-yt', platform: 'youtube', supportedFormats: ['video'] }),
+        ],
+        slots: { x: WINDOWS, instagram: WINDOWS, tiktok: WINDOWS, youtube: WINDOWS },
+        mixTargets: { education: 1 },
+      }),
+    );
+    const packages = new Map<string, (typeof plan.slots)[number]>();
+    for (const slot of plan.slots.filter((s) => s.purpose === 'regular' && !s.deferred)) {
+      packages.set(slot.conceptKey, slot);
+    }
+    const treatments = [...packages.values()].map((slot) => slot.creativeVariation.treatment);
+    expect(new Set(treatments).size).toBeGreaterThan(1);
+    expect(plan.rationale.join(' ')).toContain('distinct creative shapes');
+  });
+
+  it('keeps one base creative variation on every placement of the same package', () => {
+    const plan = planLaunchBatch(
+      brief({
+        accounts: [
+          account(),
+          account({ id: 'acct-ig', platform: 'instagram', supportedFormats: ['video', 'carousel'] }),
+          account({ id: 'acct-tt', platform: 'tiktok', supportedFormats: ['video'] }),
+        ],
+        slots: { x: WINDOWS, instagram: WINDOWS, tiktok: WINDOWS },
+      }),
+    );
+    const byPackage = new Map<string, Set<string>>();
+    for (const slot of plan.slots.filter((s) => !s.deferred)) {
+      const key = JSON.stringify(slot.creativeVariation);
+      byPackage.set(slot.conceptKey, (byPackage.get(slot.conceptKey) ?? new Set()).add(key));
+    }
+    for (const variations of byPackage.values()) {
+      expect(variations.size).toBe(1);
+    }
+  });
+
+  it('does not force the first cold-start community package into a comparison', () => {
+    const first = conceptFor('community', 0);
+    const exploration = conceptFor('community', 4);
+
+    expect(first.treatment).toBe('myth_fact');
+    expect(first.intent).toContain('one concrete example');
+    expect(exploration.treatment).toBe('comparison');
+    expect(exploration.intent).toContain('same decision');
+    expect(exploration.intent).toContain('Two unrelated checks');
+  });
+
+  it('reuses a creative package across placements instead of inventing every idea independently', () => {
+    expect(conceptFor('transformation', 0).key).toBe(conceptFor('transformation', 3).key);
+    expect(conceptFor('transformation', 4).key).not.toBe(conceptFor('transformation', 0).key);
+    expect(conceptFor('transformation', 0).treatment).not.toBe(
+      conceptFor('transformation', 4).treatment,
+    );
+
+    const plan = planLaunchBatch(
+      brief({
+        accounts: [
+          account(),
+          account({ id: 'acct-ig', platform: 'instagram', supportedFormats: ['video', 'carousel'] }),
+          account({ id: 'acct-tt', platform: 'tiktok', supportedFormats: ['video'] }),
+        ],
+        slots: { x: WINDOWS, instagram: WINDOWS, tiktok: WINDOWS },
+      }),
+    );
+    const placed = plan.slots.filter((slot) => !slot.deferred);
+    const packages = new Set(placed.map((slot) => slot.conceptKey));
+    expect(packages.size).toBeLessThan(placed.length);
+
+    const conceptAccountPairs = new Set<string>();
+    for (const slot of placed) {
+      const pair = `${slot.conceptKey}|${slot.accountId}`;
+      expect(conceptAccountPairs.has(pair), `duplicate package on one account: ${pair}`).toBe(false);
+      conceptAccountPairs.add(pair);
+    }
+    expect(plan.rationale.join(' ')).toContain('creative packages');
+  });
+});
+
+describe('selectLaunchCalibrationSlots', () => {
+  const multiPlatformPlan = () =>
+    planLaunchBatch(
+      brief({
+        days: 3,
+        accounts: [
+          account({ id: 'acct-x', platform: 'x', supportedFormats: ['text'] }),
+          account({ id: 'acct-ig', platform: 'instagram', supportedFormats: ['carousel', 'video'] }),
+          account({ id: 'acct-tt', platform: 'tiktok', supportedFormats: ['video'] }),
+          account({ id: 'acct-pin', platform: 'pinterest', supportedFormats: ['pin'] }),
+        ],
+        slots: { x: WINDOWS, instagram: WINDOWS, tiktok: WINDOWS, pinterest: WINDOWS },
+        mixTargets: {},
+      }),
+    );
+
+  it('spends calibration capacity on reusable regular shapes before introductions', () => {
+    const plan = multiPlatformPlan();
+    const picked = selectLaunchCalibrationSlots(plan.slots, 4);
+    expect(picked).toHaveLength(4);
+    expect(picked.every((slot) => slot.purpose === 'regular')).toBe(true);
+  });
+
+  it('maximizes media-shape and platform diversity without knowing the product vertical', () => {
+    const plan = multiPlatformPlan();
+    const picked = selectLaunchCalibrationSlots(plan.slots, 4);
+    expect(new Set(picked.map((slot) => slot.format)).size).toBeGreaterThan(1);
+    expect(new Set(picked.map((slot) => slot.platform)).size).toBeGreaterThan(1);
+    expect(new Set(picked.map((slot) => slot.category)).size).toBeGreaterThan(1);
+  });
+
+  it('never selects more than the explicit calibration ceiling', () => {
+    const plan = multiPlatformPlan();
+    expect(selectLaunchCalibrationSlots(plan.slots, 2)).toHaveLength(2);
+    expect(selectLaunchCalibrationSlots(plan.slots, 0)).toEqual([]);
   });
 });

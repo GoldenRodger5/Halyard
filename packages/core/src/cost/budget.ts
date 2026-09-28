@@ -31,6 +31,12 @@ export const PAID_JOB_KINDS: readonly JobKind[] = [
   'correct_content',
   'review_media',
   'tts',
+  // Product intelligence spends model calls even though it produces no post.
+  'build_product_brain',
+  'explore_product',
+  // Blotato visual generation consumes provider credits. It is separately
+  // human-gated, and when queued it must still respect the same daily ceiling.
+  'generate_external_visual',
 ];
 
 export interface BudgetDecision {
@@ -45,10 +51,25 @@ export function budgetDecision(input: {
   kind: JobKind;
   spentTodayUsd: number;
   dailyBudgetUsd: number;
+  /**
+   * Optional preflight ceiling for this job. When a provider can quote or the
+   * caller deliberately caps a job, reserve that amount before starting so the
+   * last call of the day cannot knowingly push the ledger past the ceiling.
+   */
+  estimatedJobCostUsd?: number | null;
 }): BudgetDecision {
   const spentUsd = Number(input.spentTodayUsd.toFixed(2));
   const budgetUsd = Number(input.dailyBudgetUsd.toFixed(2));
   if (!PAID_JOB_KINDS.includes(input.kind)) return { proceed: true, spentUsd, budgetUsd };
+
+  const estimate =
+    input.estimatedJobCostUsd !== null &&
+    input.estimatedJobCostUsd !== undefined &&
+    Number.isFinite(input.estimatedJobCostUsd) &&
+    input.estimatedJobCostUsd > 0
+      ? Number(input.estimatedJobCostUsd.toFixed(2))
+      : null;
+
   /* A budget of zero means "no paid work today", which is a real setting. */
   if (spentUsd >= budgetUsd) {
     return {
@@ -60,5 +81,17 @@ export function budgetDecision(input: {
         `so ${input.kind} waits for tomorrow. Raise the budget on /master/system to continue today.`,
     };
   }
+
+  if (estimate !== null && spentUsd + estimate > budgetUsd) {
+    return {
+      proceed: false,
+      spentUsd,
+      budgetUsd,
+      because:
+        `${input.kind} is capped/estimated at $${estimate.toFixed(2)}; adding it to today's $${spentUsd.toFixed(2)} ` +
+        `would exceed the $${budgetUsd.toFixed(2)} daily budget, so it waits rather than knowingly overspend.`,
+    };
+  }
+
   return { proceed: true, spentUsd, budgetUsd };
 }

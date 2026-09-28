@@ -1,3 +1,4 @@
+export * from './creativePackages.js';
 export * from './types.gen.js';
 export * from './client.js';
 
@@ -14,7 +15,7 @@ export * from './client.js';
  * unapplied migrations and code that will reference columns that do not exist;
  * ahead means a migration landed before the deploy, which is the safe order.
  */
-export const EXPECTED_SCHEMA_VERSION = '0082';
+export const EXPECTED_SCHEMA_VERSION = '0096';
 
 
 /*
@@ -89,6 +90,9 @@ export const JOB_KINDS = [
   'score_performance',
   'digest_email',
   'reconcile_schedule',
+  /** Settle asynchronous provider submissions before anything is called published. */
+  'reconcile_delivery',
+  'generate_external_visual',
   'mark_stale_assets',
   'collect_app_store',
   'detect_release',
@@ -239,6 +243,8 @@ export const JOB_POLICY: Record<
   purge_logs: { timeoutMs: 10 * 60_000, maxAttempts: 2, backoffSeconds: 600 },
   digest_email: { timeoutMs: 2 * 60_000, maxAttempts: 2, backoffSeconds: 300 },
   reconcile_schedule: { timeoutMs: 2 * 60_000, maxAttempts: 2, backoffSeconds: 120 },
+  reconcile_delivery: { timeoutMs: 2 * 60_000, maxAttempts: 2, backoffSeconds: 30 },
+  generate_external_visual: { timeoutMs: 12 * 60_000, maxAttempts: 2, backoffSeconds: 120 },
   mark_stale_assets: { timeoutMs: 2 * 60_000, maxAttempts: 2, backoffSeconds: 300 },
   // Apple's first report for a new request can take a day, so a "pending" result
   // is normal rather than a failure worth retrying quickly.

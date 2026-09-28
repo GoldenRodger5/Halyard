@@ -18,15 +18,28 @@ export function PageHeader({
   title,
   subtitle,
   actions,
+  level = 2,
 }: {
   title: string;
   subtitle?: ReactNode;
   actions?: ReactNode;
+  /**
+   * §576. Which heading level this title is.
+   *
+   * Defaults to 2, because every studio page sits inside a shell whose Slate
+   * carries the `<h1>`. A page outside that shell — onboarding — is its own
+   * document and passes 1. Two `<h1>`s on a page is the same defect as none.
+   */
+  level?: 1 | 2;
 }) {
   return (
     <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
       <div>
-        <h1 className="font-serif text-4xl leading-tight text-ink">{title}</h1>
+        {level === 1 ? (
+          <h1 className="m-0 font-serif text-4xl leading-tight text-ink">{title}</h1>
+        ) : (
+          <h2 className="m-0 font-serif text-4xl leading-tight text-ink">{title}</h2>
+        )}
         {subtitle ? <p className="mt-2 max-w-2xl text-sm text-muted">{subtitle}</p> : null}
       </div>
       {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}

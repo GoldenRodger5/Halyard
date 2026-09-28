@@ -6,7 +6,7 @@
  * been asked anything, and the pause is the entire format.
  */
 import { describe, expect, it } from 'vitest';
-import { RENDERABLE_FORMATS, slidesForFormat, type SlotValue } from './formatSlides.js';
+import { pinForFormat, RENDERABLE_FORMATS, slidesForFormat, type SlotValue } from './formatSlides.js';
 import { CAROUSEL_LAYOUTS } from './layouts.js';
 
 const slot = (key: string, index: number, text: string, citation?: string): SlotValue => ({
@@ -175,5 +175,34 @@ describe('a format becomes slides', () => {
         ).toContain(id);
       }
     }
+  });
+});
+
+
+describe('Pinterest-native utility plans', () => {
+  it('turns tips into a numbered saveable Pin instead of a bare photo', () => {
+    const plan = pinForFormat('tips', [
+      slot('title', 0, 'Vegan lemon oats: three swaps'),
+      slot('tip', 0, 'Milk → oat milk'),
+      slot('tip', 1, 'Plain yogurt → plain soy yogurt'),
+      slot('tip', 2, 'Lemon curd → vegan lemon curd'),
+      slot('close', 0, 'The oats and chia still thicken overnight.'),
+    ]);
+    expect(plan?.templateId).toBe('pin_stack');
+    if (plan?.templateId !== 'pin_stack') throw new Error('expected pin_stack');
+    expect(plan.props.steps).toHaveLength(3);
+    expect(plan.props.title).toContain('Vegan lemon oats');
+  });
+
+  it('turns a comparison into a tall decision card', () => {
+    const plan = pinForFormat('comparison', [
+      slot('question', 0, 'Counter or fridge?'),
+      slot('option_a', 0, 'Counter is faster.'),
+      slot('option_b', 0, 'Fridge develops more flavour.'),
+      slot('verdict', 0, 'Use the fridge when you can wait.'),
+    ]);
+    expect(plan?.templateId).toBe('pinterest_tall');
+    if (plan?.templateId !== 'pinterest_tall') throw new Error('expected pinterest_tall');
+    expect(plan.props.bullets).toEqual(['Counter is faster.', 'Fridge develops more flavour.']);
   });
 });

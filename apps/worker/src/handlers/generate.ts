@@ -26,9 +26,12 @@ import {
   selectIdeas,
   writeDraft,
   type IdeaCandidate,
+  IDEA_CATEGORIES,
   type LlmClient,
   type ProductArtifact,
   type ProductDestinations,
+  type ProductionCapability,
+  type ProductionProviderId,
   classifyHookType,
   extractHookPattern,
   type SlopPlatform,
@@ -47,8 +50,22 @@ import {
   OpenAIEmbeddingClient,
   ideaText,
   canStart,
+  baselineProductionRequirements,
+  baselineQualityBar,
+  PRODUCTION_CAPABILITIES,
+  PRODUCTION_PROVIDERS,
+  configuredProductionProviders,
+  contentCategoryForFamily,
+  contentFamilyForCategory,
+  defaultAspectRatioForVariant,
+  defaultPresentationModeForFormat,
+  defaultTargetSecondsForVariant,
+  defaultTreatmentForCategory,
+  growthObjectiveForCategory,
+  mediaRequiredForFormat,
   getAdapter,
   planProduction,
+  routeProduction,
   postTypesForPlatform,
   requiresCitation,
   resolvePostType,
@@ -64,6 +81,7 @@ import {
   carouselProps,
   chooseLayout,
   slidesForFormat,
+  pinForFormat,
   transformationDiffProps,
   substitutionRatioProps,
   chefNoteProps,
@@ -112,6 +130,13 @@ import {
   type CreativeType,
   writeVoScript,
 } from '@halyard/core';
+import {
+  acceptedProductionCalibrations,
+  insertProductionRecipeRecord,
+  upsertCreativeBriefRecord,
+  upsertCreativePackageRecord,
+  upsertPlatformVariantRecord,
+} from '@halyard/db';
 import { resolveBrand } from '@halyard/render';
 import { chooseVideoComposition } from '@halyard/render/video-props';
 import { VIDEO_FORMATS, videoForFormat } from '@halyard/render/video';
@@ -132,6 +157,7 @@ import { chooseQuizTreatments, motifFor, treatmentsForBeats } from '@halyard/ren
 const VO_TARGET_SECONDS = 22;
 import { PermanentJobFailure } from '../poller.js';
 import type { Job, HandlerContext } from '../poller.js';
+import { buildProductMarketingContext } from '../productContext.js';
 import { generateHeroImage } from '../heroImage.js';
 import { recentShots } from '../shotRecency.js';
 import { continuityFor } from '../continuity.js';
@@ -449,8 +475,217 @@ function scalingServings(
   return { from, to };
 }
 
+interface TargetContentItem {
+  id: string;
+  product_id: string;
+  account_id: string | null;
+  platform: SlopPlatform;
+  persona: 'brand' | 'founder';
+  format: string;
+  category: string;
+  body: string;
+  status: string;
+  concept_id: string | null;
+  brief_id: string | null;
+  campaign_id: string | null;
+  generation_meta: Record<string, unknown> | null;
+}
+
+/** The scheduled row owns the media shape; production may not mutate it. */
+function postTypeForTargetMedia(format: string): PostTypeId | null {
+  switch (format) {
+    case 'video': return 'short_video';
+    case 'carousel': return 'carousel_images';
+    case 'image': return 'single_image';
+    case 'pin': return 'pin';
+    case 'story': return 'story';
+    case 'text': return 'caption_only';
+    default: return null;
+  }
+}
+
+/**
+ * Prefer the CreativePackage treatment over a category default.
+ *
+ * The category says what job the post serves. The treatment says how this
+ * particular package was deliberately designed to tell it. Conflating the two
+ * turned a selected comparison into a quiz simply because both were
+ * "community" pieces.
+ */
+export function shouldNarrateVideo(input: {
+  operatorVoice?: string | null;
+  audioMode?: string | null;
+  productionHasVoice: boolean;
+}): boolean {
+  if (input.operatorVoice === 'off') return false;
+  if (input.operatorVoice === 'on') return true;
+  if (input.audioMode === 'narrated') return true;
+  if (['silent_captioned', 'natural_sound', 'text_only'].includes(input.audioMode ?? '')) {
+    return false;
+  }
+  return input.productionHasVoice;
+}
+
+export function postFormatForTarget(
+  target: TargetContentItem,
+  treatment?: CreativeType | null,
+): string | null {
+  switch (treatment) {
+    case 'comparison': return 'comparison';
+    case 'myth_fact': return 'myth_fact';
+    case 'listicle': return 'tips';
+    case 'how_to':
+    case 'tutorial':
+      return target.category === 'product' && target.format === 'video' ? 'walkthrough' : 'tips';
+    case 'before_after': return 'transformation';
+    case 'feature_demo':
+      return target.format === 'video' ? 'walkthrough' : 'transformation';
+    default:
+      break;
+  }
+  switch (target.category) {
+    case 'transformation': return 'transformation';
+    case 'education': return 'tips';
+    case 'community': return 'myth_fact';
+    case 'product': return target.format === 'video' ? 'walkthrough' : 'transformation';
+    case 'founder_insight': return 'origin';
+    default: return null;
+  }
+}
+
+interface PackageArtifactRow {
+  id: string;
+  kind: string;
+  raw: unknown;
+  headline: string | null;
+  highlights: unknown;
+  visual_hints: string[];
+  imagery: unknown;
+}
+
+function hydratePackageArtifact(row: PackageArtifactRow): ProductArtifact {
+  const imagery = Array.isArray(row.imagery)
+    ? row.imagery.flatMap((value) => {
+        if (!value || typeof value !== 'object' || Array.isArray(value)) return [];
+        const source = value as Record<string, unknown>;
+        const retrievedAt =
+          typeof source.retrievedAt === 'string' && source.retrievedAt
+            ? new Date(source.retrievedAt)
+            : undefined;
+        return [{ ...source, ...(retrievedAt ? { retrievedAt } : {}) }] as NonNullable<ProductArtifact['imagery']>;
+      })
+    : [];
+
+  return {
+    kind: row.kind,
+    raw: row.raw,
+    headline: row.headline ?? 'Product output',
+    highlights: Array.isArray(row.highlights)
+      ? (row.highlights as ProductArtifact['highlights'])
+      : [],
+    visualHints: row.visual_hints ?? [],
+    ...(imagery.length > 0 ? { imagery } : {}),
+  };
+}
+
+async function lockedPackageArtifact(
+  pool: HandlerContext['pool'],
+  productId: string,
+  conceptId: string,
+): Promise<{ id: string; artifact: ProductArtifact } | null> {
+  const { rows } = await pool.query<PackageArtifactRow>(
+    `select id,kind,raw,headline,highlights,visual_hints,imagery
+       from product_artifacts
+      where product_id=$1 and concept_id=$2
+      order by fetched_at asc
+      limit 1`,
+    [productId, conceptId],
+  );
+  const row = rows[0];
+  return row ? { id: row.id, artifact: hydratePackageArtifact(row) } : null;
+}
+
+async function lockPackageArtifact(
+  pool: HandlerContext['pool'],
+  productId: string,
+  conceptId: string,
+  artifact: ProductArtifact,
+): Promise<{ id: string; artifact: ProductArtifact }> {
+  const imagery = (artifact.imagery ?? []).map((image) => ({
+    ...image,
+    ...(image.retrievedAt ? { retrievedAt: image.retrievedAt.toISOString() } : {}),
+  }));
+
+  const { rows } = await pool.query<PackageArtifactRow>(
+    `insert into product_artifacts
+       (product_id,kind,request_key,request,raw,headline,highlights,visual_hints,imagery,concept_id,hit_count)
+     values ($1,$2,$3,$4::jsonb,$5::jsonb,$6,$7::jsonb,$8,$9::jsonb,$10,1)
+     on conflict (product_id,request_key) do update
+       set hit_count=product_artifacts.hit_count+1
+     returning id,kind,raw,headline,highlights,visual_hints,imagery`,
+    [
+      productId,
+      artifact.kind,
+      `creative-package:${conceptId}`,
+      JSON.stringify({ conceptId, source: 'creative_package_v1' }),
+      JSON.stringify(artifact.raw),
+      artifact.headline,
+      JSON.stringify(artifact.highlights),
+      artifact.visualHints,
+      JSON.stringify(imagery),
+      conceptId,
+    ],
+  );
+
+  const row = rows[0];
+  if (!row) throw new Error(`failed to lock product artifact for creative package ${conceptId}`);
+  return { id: row.id, artifact: hydratePackageArtifact(row) };
+}
+
 export async function generateHandler(job: Job, ctx: HandlerContext): Promise<void> {
-  const productId = String(job.payload.productId ?? 'recipefix');
+  const productId = String(job.payload.productId ?? '').trim();
+  if (!productId) {
+    throw new PermanentJobFailure(
+      'Generation job is missing productId.',
+      'A product-neutral worker may never silently borrow another product\'s Brain, voice or evidence.',
+    );
+  }
+  const targetContentItemId = String(job.payload.targetContentItemId ?? '').trim() || null;
+  const targetItem = targetContentItemId
+    ? (
+        await ctx.pool.query<TargetContentItem>(
+          `select id,product_id,account_id,platform,persona,format,category,body,status,
+                  concept_id,brief_id,campaign_id,generation_meta
+             from content_items where id=$1`,
+          [targetContentItemId],
+        )
+      ).rows[0] ?? null
+    : null;
+  if (targetContentItemId && !targetItem) {
+    throw new PermanentJobFailure(
+      `Target content item ${targetContentItemId} does not exist.`,
+      'A scheduled target row cannot appear on retry.',
+    );
+  }
+  if (targetItem && targetItem.product_id !== productId) {
+    throw new PermanentJobFailure(
+      `Target content item ${targetItem.id} belongs to ${targetItem.product_id}, not ${productId}.`,
+      'Cross-product generation is never a retryable state.',
+    );
+  }
+  if (targetItem && targetItem.body.trim() !== '') {
+    ctx.log('targeted staged item already has copy, preserving it', {
+      contentItemId: targetItem.id,
+      source: targetItem.generation_meta?.source ?? null,
+    });
+    return;
+  }
+  if (targetItem && targetItem.status !== 'draft') {
+    throw new PermanentJobFailure(
+      `Target content item ${targetItem.id} is ${targetItem.status}, not draft.`,
+      'The mature generator may fill only untouched scheduled scaffolding.',
+    );
+  }
 
   /**
    * Built on first use rather than at the top.
@@ -578,6 +813,71 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
 
   const product = productRows.rows[0];
   if (!product) throw new Error(`product ${productId} not found`);
+  const manualBrief = product.brief_summary ?? product.brief_markdown;
+  const brainContext = await buildProductMarketingContext(ctx.pool, productId, manualBrief);
+  if (brainContext) product.brief_summary = brainContext;
+
+  /*
+   * CreativePackage v1: a concept explicitly selected in the Floor is an
+   * operator decision, not a hint. Before this branch existed `selectConcept`
+   * enqueued `conceptId` and this handler never read it at all — the UI could
+   * say "build this" while generation quietly selected something else.
+   */
+  const requestedConceptId = String(job.payload.conceptId ?? targetItem?.concept_id ?? '').trim() || null;
+  const requestedConcept = requestedConceptId
+    ? (
+        await ctx.pool.query<{
+          id: string;
+          product_id: string;
+          idea_id: string | null;
+          title: string;
+          premise: string;
+          hook: string | null;
+          audience: string | null;
+          objective: string;
+          family: string | null;
+          story_structure: Record<string, unknown> | null;
+          visual_treatment: Record<string, unknown> | null;
+          audio_direction: Record<string, unknown> | null;
+          evidence_requirements: Array<{ kind?: string; detail?: string }> | null;
+          retention_strategy: string | null;
+          status: string;
+        }>(
+          `select id, product_id, idea_id, title, premise, hook, audience, objective,
+                  family, story_structure, visual_treatment, audio_direction,
+                  evidence_requirements, retention_strategy, status
+             from concepts where id=$1 and product_id=$2`,
+          [requestedConceptId, productId],
+        )
+      ).rows[0] ?? null
+    : null;
+  if (requestedConceptId && !requestedConcept) {
+    throw new PermanentJobFailure(
+      `Selected concept ${requestedConceptId} does not exist for product ${productId}.`,
+      'The operator-selected CreativePackage cannot be resolved; retrying cannot create it.',
+    );
+  }
+  if (requestedConcept && ['rejected', 'expired'].includes(requestedConcept.status)) {
+    throw new PermanentJobFailure(
+      `Selected concept ${requestedConcept.id} is ${requestedConcept.status} and cannot be built.`,
+      'The concept was deliberately retired; an automatic retry must not resurrect it.',
+    );
+  }
+  const requestedTreatment =
+    requestedConcept && typeof requestedConcept.story_structure?.treatment === 'string'
+      ? (requestedConcept.story_structure.treatment as CreativeType)
+      : null;
+  const targetVariation =
+    targetItem?.generation_meta?.creative_variation &&
+    typeof targetItem.generation_meta.creative_variation === 'object' &&
+    !Array.isArray(targetItem.generation_meta.creative_variation)
+      ? (targetItem.generation_meta.creative_variation as Record<string, unknown>)
+      : null;
+  const requestedMediaMode =
+    typeof targetVariation?.mediaMode === 'string' ? targetVariation.mediaMode : null;
+  const requestedAudioMode =
+    typeof targetVariation?.audioMode === 'string' ? targetVariation.audioMode : null;
+  let requestedConceptIdeaId: string | null = null;
 
   const proposed = await ctx.pool.query<{
     id: string;
@@ -627,6 +927,79 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
   const briefed = (job.payload.subject as string | undefined)?.trim();
   /* §403. Which row the operator typed, so the novelty floor can let it past. */
   let briefedIdeaId: string | null = null;
+
+  if (requestedConcept) {
+    let backing: {
+      id: string;
+      title: string;
+      angle: string;
+      category: IdeaCandidate['category'];
+      embedding: number[] | null;
+    } | null = null;
+
+    if (requestedConcept.idea_id) {
+      const existing = await ctx.pool.query<{
+        id: string;
+        title: string;
+        angle: string;
+        category: IdeaCandidate['category'];
+        embedding: number[] | null;
+      }>(
+        `select id, title, angle, category, embedding from ideas where id=$1 and product_id=$2`,
+        [requestedConcept.idea_id, productId],
+      );
+      backing = existing.rows[0] ?? null;
+    }
+
+    if (!backing) {
+      const treatment = requestedTreatment ?? undefined;
+      const category =
+        targetItem && IDEA_CATEGORIES.includes(targetItem.category as (typeof IDEA_CATEGORIES)[number])
+          ? (targetItem.category as IdeaCandidate['category'])
+          : contentCategoryForFamily(
+              requestedConcept.family as Parameters<typeof contentCategoryForFamily>[0],
+              treatment,
+            );
+      const created = await ctx.pool.query<{
+        id: string;
+        title: string;
+        angle: string;
+        category: IdeaCandidate['category'];
+        embedding: number[] | null;
+      }>(
+        `insert into ideas
+           (product_id, title, angle, category, source_signals, score, score_breakdown, status)
+         values ($1,$2,$3,$4,'{}'::uuid[],1,'{"operator_concept":1}'::jsonb,'selected')
+         returning id, title, angle, category, embedding`,
+        [productId, requestedConcept.title, requestedConcept.premise, category],
+      );
+      backing = created.rows[0] ?? null;
+      if (backing) {
+        await ctx.pool.query(
+          `update concepts set idea_id=coalesce(idea_id,$2), status='selected',
+                               selected_at=coalesce(selected_at,now()), updated_at=now()
+            where id=$1`,
+          [requestedConcept.id, backing.id],
+        );
+      }
+    }
+
+    if (!backing) throw new PermanentJobFailure(
+      'Selected concept could not be given a backing idea.',
+      'The selected package has no buildable idea lineage and retrying the same database state cannot change that.',
+    );
+    proposed.rows.length = 0;
+    proposed.rows.push(backing);
+    requestedConceptIdeaId = backing.id;
+    briefedIdeaId = backing.id;
+    ctx.log('operator-selected concept controls this run', {
+      conceptId: requestedConcept.id,
+      ideaId: backing.id,
+      treatment: requestedTreatment,
+      premise: requestedConcept.premise.slice(0, 160),
+    });
+  }
+
   /*
    * §403. A brief wins outright. It used to win only when the idea table
    * happened to be empty.
@@ -642,7 +1015,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
    * brief does not join the pool, it **replaces** it. Whatever was queued is
    * still queued and still runs on the next scheduled batch.
    */
-  if (briefed) {
+  if (briefed && !requestedConcept) {
     const written = await ctx.pool.query<{
       id: string;
       title: string;
@@ -829,7 +1202,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
        * this, briefing the same subject twice reports success and produces
        * nothing — which is the exact failure §399 was written to end.
        */
-      briefed: row.id === briefedIdeaId,
+      briefed: row.id === briefedIdeaId || row.id === requestedConceptIdeaId,
       // Undefined, not 0, when a category has never been measured. The scorer's
       // own `?? 0.5` is the honest neutral; a zero would be a measured failure.
       historicalConversion: historical.get(row.category),
@@ -846,7 +1219,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
     },
     {
       recentEmbeddings,
-      limit: Number(job.payload.limit ?? 3),
+      limit: requestedConcept ? 1 : Number(job.payload.limit ?? 3),
       // Milestone 44: a running campaign lifts the product ceiling for its
       // window and lets it revert on its own.
       productCeiling: mixOverride.ceiling,
@@ -856,7 +1229,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
        * idea — the first one projects to 50% against a 15% cap — so the batch
        * that exists to start the account cannot contain the product.
        */
-      calibration,
+      calibration: calibration || Boolean(requestedConcept),
     },
   );
 
@@ -938,9 +1311,15 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
      * which is what the scheduler wants.
      */
     `select id, platform, persona, supported_formats from social_accounts
-      where product_id = $1 and capability_state in ('live','draft_only')
-        and ($2::text is null or platform = $2)`,
-    [productId, (job.payload.onlyPlatform as string | undefined) ?? null],
+      where product_id = $1 and capability_state <> 'disabled'
+        and (access_token_enc is not null or provider_account_id is not null)
+        and ($2::text is null or platform = $2)
+        and ($3::uuid is null or id = $3)`,
+    [
+      productId,
+      (job.payload.onlyPlatform as string | undefined) ?? targetItem?.platform ?? null,
+      (job.payload.onlyAccountId as string | undefined) ?? targetItem?.account_id ?? null,
+    ],
   );
 
   if (accounts.rows.length === 0) {
@@ -948,7 +1327,8 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
       productId,
       /* Named, because "nothing to draft" reads very differently when a
          platform filter is what emptied the list. */
-      onlyPlatform: (job.payload.onlyPlatform as string | undefined) ?? null,
+      onlyPlatform: (job.payload.onlyPlatform as string | undefined) ?? targetItem?.platform ?? null,
+      onlyAccountId: (job.payload.onlyAccountId as string | undefined) ?? targetItem?.account_id ?? null,
     });
     return;
   }
@@ -1016,7 +1396,9 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
    * because its own queue was full would be unusable. This governs the daily
    * run spending money unasked.
    */
-  const operatorAsked = Boolean(job.payload.onlyPlatform || job.payload.postFormat);
+  const operatorAsked = Boolean(
+    job.payload.onlyPlatform || job.payload.postFormat || requestedConceptId || targetContentItemId,
+  );
   /**
    * Every media kind an account could produce, not the one it prefers.
    *
@@ -1087,7 +1469,14 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
      * `pillarFit` reports that as its own case rather than as "off-pillar".
      */
     const fit = pillarFit(`${idea.title}. ${idea.angle}`, pillars);
-    if (pillars.length > 0 && !isOnPillar(fit)) {
+    if (requestedConcept) {
+      ctx.log('selected CreativePackage bypasses automatic pillar refusal', {
+        conceptId: requestedConcept.id,
+        ideaId: idea.id,
+        because:
+          'The strategy/operator already selected this package. Product truth, claims and media still pass the normal downstream evidence/QC gates.',
+      });
+    } else if (pillars.length > 0 && !isOnPillar(fit)) {
       ctx.log('subject is outside what this product talks about', {
         productId,
         ideaId: idea.id,
@@ -1096,8 +1485,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
         because: fit.because,
       });
       continue;
-    }
-    if (pillars.length > 0) {
+    } else if (pillars.length > 0) {
       ctx.log('subject sits on a pillar', { ideaId: idea.id, pillar: fit.pillar?.key, because: fit.because });
     }
 
@@ -1115,13 +1503,20 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
      * Conditional on the current status and atomic, so two workers cannot both
      * claim it. A row count of zero means someone else has it.
      */
-    const claim = await ctx.pool.query(
-      `update ideas set status = 'selected' where id = $1 and status = 'proposed' returning id`,
-      [idea.id],
-    );
-    if (claim.rowCount === 0) {
-      ctx.log('idea already claimed, not drafting twice', { ideaId: idea.id });
-      continue;
+    if (!requestedConcept || idea.id !== requestedConceptIdeaId) {
+      const claim = await ctx.pool.query(
+        `update ideas set status = 'selected' where id = $1 and status = 'proposed' returning id`,
+        [idea.id],
+      );
+      if (claim.rowCount === 0) {
+        ctx.log('idea already claimed, not drafting twice', { ideaId: idea.id });
+        continue;
+      }
+    } else {
+      ctx.log('operator-selected concept bypasses automatic idea claim/refusal', {
+        conceptId: requestedConcept.id,
+        ideaId: idea.id,
+      });
     }
 
     /**
@@ -1140,21 +1535,24 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
      * chooses from; the Floor's own button is not bounded, because that is a
      * person asking.
      */
-    const { rows: batchesToday } = await ctx.pool.query<{ n: string }>(
-      `select count(*)::text as n from jobs
-        where kind = 'generate_concepts' and created_at >= date_trunc('day', now())`,
-    );
-    if (Number(batchesToday[0]?.n ?? 0) < 3) {
-      await ctx.enqueue(
-        'generate_concepts',
-        { productId, ideaId: idea.id },
-        { dedupeKey: `concepts:${idea.id}`, priority: 40 },
+    if (!requestedConcept) {
+      const { rows: batchesToday } = await ctx.pool.query<{ n: string }>(
+        `select count(*)::text as n from jobs
+          where kind = 'generate_concepts' and created_at >= date_trunc('day', now())`,
       );
-    } else {
-      ctx.log('concept batch skipped: three already today', { ideaId: idea.id });
+      if (Number(batchesToday[0]?.n ?? 0) < 3) {
+        await ctx.enqueue(
+          'generate_concepts',
+          { productId, ideaId: idea.id },
+          { dedupeKey: `concepts:${idea.id}`, priority: 40 },
+        );
+      } else {
+        ctx.log('concept batch skipped: three already today', { ideaId: idea.id });
+      }
     }
 
     let artifact: ProductArtifact | null = null;
+    let packageArtifactId: string | null = null;
 
     /* §515. Set when the operator named a dish the catalogue does not have. */
 
@@ -1192,10 +1590,47 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
 
     if (connector && artifactIsNeeded) {
       try {
-        artifact = await connector.generateSample({
-          intent: `${idea.title}. ${idea.angle}`,
-          params: (job.payload.sampleParams as Record<string, unknown>) ?? {},
-        });
+        /*
+         * One CreativePackage, one real product artifact.
+         *
+         * A package may fan out to several social identities. If each variant
+         * independently asks the connector for a sample, "the same idea" can
+         * quietly become several different product outputs. The first
+         * evidence-bearing variant locks the artifact and every sibling reuses
+         * it. This is product-neutral: the connector decides what an artifact
+         * is; Halyard only preserves package coherence.
+         */
+        const locked = requestedConcept
+          ? await lockedPackageArtifact(ctx.pool, productId, requestedConcept.id)
+          : null;
+
+        if (locked) {
+          packageArtifactId = locked.id;
+          artifact = locked.artifact;
+          ctx.log('reusing CreativePackage product artifact', {
+            conceptId: requestedConcept?.id ?? null,
+            artifactId: packageArtifactId,
+          });
+        } else {
+          artifact = await connector.generateSample({
+            intent: `${idea.title}. ${idea.angle}`,
+            params: (job.payload.sampleParams as Record<string, unknown>) ?? {},
+          });
+          if (artifact && requestedConcept) {
+            const persisted = await lockPackageArtifact(
+              ctx.pool,
+              productId,
+              requestedConcept.id,
+              artifact,
+            );
+            packageArtifactId = persisted.id;
+            artifact = persisted.artifact;
+            ctx.log('locked product artifact to CreativePackage', {
+              conceptId: requestedConcept.id,
+              artifactId: packageArtifactId,
+            });
+          }
+        }
 
         /*
          * §515. When the catalogue has nothing like what was asked for, say so.
@@ -1339,7 +1774,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
        * nothing was inserted for this account yet and there is nothing to
        * disown.
        */
-      let insertedItemId: string | null = null;
+      let insertedItemId: string | null = targetContentItemId;
 
       const disownPartialItem = (why: string) => disownPartialContentItem(ctx.pool, insertedItemId, why);
 
@@ -1387,7 +1822,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
           platform: account.platform,
           hasArtifact: Boolean(artifact),
           recentFormats: (await recentFormats(ctx, account.id)) as never,
-          requested: (job.payload.postFormat as string | undefined) ?? null,
+          requested: (job.payload.postFormat as string | undefined) ?? (targetItem ? postFormatForTarget(targetItem, requestedTreatment) : null),
           canCite: true,
         });
         /**
@@ -1414,7 +1849,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
           format: chosenFormat.format,
           platform: account.platform,
           available: postTypesForPlatform(platformSupport),
-          requested: (job.payload.postType as PostTypeId | undefined) ?? null,
+          requested: (job.payload.postType as PostTypeId | undefined) ?? (targetItem ? postTypeForTargetMedia(targetItem.format) : null),
         });
 
 
@@ -1471,6 +1906,13 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
             to: format,
             because: `${resolvedType.postType.name} needs ${format}; the platform preference list guessed ${guessedFormat} before the post type was known.`,
           });
+        }
+
+        if (targetItem && format !== targetItem.format) {
+          throw new PermanentJobFailure(
+            `Target ${targetItem.id} is scheduled as ${targetItem.format}, but ${resolvedType.postType.id} resolved to ${format}.`,
+            'A scheduled media shape is an operator/planner decision. Production may not mutate it on retry.',
+          );
         }
 
         /**
@@ -1961,62 +2403,296 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
               )
             : VO_TARGET_SECONDS;
 
-        const inserted = await ctx.pool.query<{ id: string }>(
-          `insert into content_items
-             (product_id, idea_id, account_id, platform, persona, format, category,
-              body, title, alt_text, hashtags, product_artifact, claims, qc_results,
-              ai_components, status, generation_meta,
-              destination_type, destination_url, destination_reason,
-              board_id, board_reason,
-              /* §215. The writing that did not fit the caption budget, and
-                 where it belongs. Never discarded. */
-              overflow_body, overflow_home,
-              /* §250. Which variant of the format this is. The YouTube adapter
-                 reads it to decide Short vs long-form, and without it a
-                 long-form piece publishes as a Short. */
-              format_subtype,
-              /* §372. What this piece was staged from, so the mix, the render
-                 and the review screen can all read the same document. */
-              screenplay,
-              /* §419. The shape this caption was briefed to take, so the next
-                 one can be briefed differently. */
-              caption_shape)
-           values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,'pending_approval',$16,
-                   $17,$18,$19,$20,$21,$22,$23,$24,$25,$26)
-           returning id`,
-          [
+        const itemCategory = targetItem?.category ?? idea.category;
+        const sharedValues = [
+          idea.id,
+          account.id,
+          account.platform,
+          account.persona,
+          format,
+          itemCategory,
+          draft.body,
+          draft.title ?? null,
+          draft.altText ?? null,
+          draft.hashtags,
+          artifact?.raw ?? null,
+          JSON.stringify(draft.claims),
+          JSON.stringify(draft.qc),
+          ['copy'],
+          JSON.stringify(draft.generationMeta),
+          destination.type,
+          destination.url,
+          destination.blockedBy
+            ? `${destination.reason} ${destination.blockedBy}`
+            : destination.reason,
+          board?.boardId ?? null,
+          board?.reason ?? null,
+          draft.overflow ?? null,
+          draft.overflow ? budgetFor(account.platform).overflowHome : null,
+          subtype,
+          staged ? JSON.stringify(staged.screenplay) : null,
+          captionShape.shape,
+        ];
+
+        const inserted = targetItem
+          ? await ctx.pool.query<{ id: string }>(
+              `update content_items
+                  set idea_id=$2, account_id=$3, platform=$4, persona=$5,
+                      format=$6, category=$7, body=$8, title=$9, alt_text=$10,
+                      hashtags=$11, product_artifact=$12, claims=$13::jsonb,
+                      qc_results=$14::jsonb, ai_components=$15,
+                      status='pending_approval',
+                      generation_meta=coalesce(generation_meta,'{}'::jsonb) || $16::jsonb,
+                      destination_type=$17, destination_url=$18, destination_reason=$19,
+                      board_id=$20, board_reason=$21, overflow_body=$22,
+                      overflow_home=$23, format_subtype=$24, screenplay=$25::jsonb,
+                      caption_shape=$26
+                where id=$1 and status='draft' and body=''
+                returning id`,
+              [targetItem.id, ...sharedValues],
+            )
+          : await ctx.pool.query<{ id: string }>(
+              `insert into content_items
+                 (product_id, idea_id, account_id, platform, persona, format, category,
+                  body, title, alt_text, hashtags, product_artifact, claims, qc_results,
+                  ai_components, status, generation_meta,
+                  destination_type, destination_url, destination_reason,
+                  board_id, board_reason, overflow_body, overflow_home,
+                  format_subtype, screenplay, caption_shape)
+               values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13::jsonb,$14::jsonb,$15,
+                       'pending_approval',$16::jsonb,$17,$18,$19,$20,$21,$22,$23,$24,$25::jsonb,$26)
+               returning id`,
+              [productId, ...sharedValues],
+            );
+
+        const contentItemId = inserted.rows[0]?.id;
+        if (!contentItemId) {
+          ctx.log('targeted staged item changed before generation could fill it', {
+            contentItemId: targetItem?.id ?? null,
+          });
+          continue;
+        }
+        insertedItemId = contentItemId;
+
+        /*
+         * CreativePackage v1 lineage for ordinary daily + Floor/manual work.
+         *
+         * The mature generator above is intentionally not replaced: it already
+         * knows how to research, write, ground claims and choose formats. This
+         * bridge records those decisions in the same package/brief/variant/
+         * recipe model used by Launch and Campaigns, so downstream production,
+         * review and learning stop depending on which entry point created the
+         * piece.
+         */
+        const originKind = requestedConceptId || operatorAsked ? 'manual' : 'daily';
+        const originRef = requestedConceptId
+          ? `concept:${requestedConceptId}`
+          : `idea:${idea.id}`;
+        const v2Family =
+          requestedConcept?.family ?? contentFamilyForCategory(idea.category);
+        const baselineRequirements = baselineProductionRequirements(
+          format as 'text' | 'image' | 'carousel' | 'video' | 'pin' | 'story',
+          idea.category,
+        );
+        const qualityBar = baselineQualityBar(format);
+
+        let v2ConceptId = requestedConcept?.id ?? null;
+        if (!v2ConceptId) {
+          const existingConcept = await ctx.pool.query<{ id: string }>(
+            `select id from concepts
+              where product_id=$1
+                and (origin_ref=$2 or idea_id=$3)
+                and status not in ('rejected','expired')
+              order by (origin_ref=$2) desc, selected_at desc nulls last, created_at desc
+              limit 1`,
+            [productId, originRef, idea.id],
+          );
+          v2ConceptId = existingConcept.rows[0]?.id ?? null;
+        }
+
+        if (v2ConceptId) {
+          await ctx.pool.query(
+            `update concepts
+                set package_version=1,
+                    origin_kind=coalesce(origin_kind,$2),
+                    origin_ref=coalesce(origin_ref,$3),
+                    family=coalesce(family,$4),
+                    audience_problem=coalesce(audience_problem,$5),
+                    audience_awareness=coalesce(audience_awareness,'mixed'),
+                    why_care_before_product=coalesce(why_care_before_product,$5),
+                    payoff=coalesce(payoff,$6),
+                    quality_bar=case when quality_bar='[]'::jsonb then $7::jsonb else quality_bar end,
+                    production_requirements=case
+                      when production_requirements='[]'::jsonb then $8::jsonb
+                      else production_requirements
+                    end,
+                    status='selected',
+                    selected_at=coalesce(selected_at,now()),
+                    updated_at=now()
+              where id=$1`,
+            [
+              v2ConceptId,
+              originKind,
+              originRef,
+              v2Family,
+              requestedConcept?.premise ?? idea.angle,
+              'Deliver the useful/provable value promised by this idea before asking for action.',
+              JSON.stringify(qualityBar),
+              JSON.stringify(baselineRequirements),
+            ],
+          );
+        } else {
+          const packageRow = await upsertCreativePackageRecord(ctx.pool, {
             productId,
-            idea.id,
-            account.id,
-            account.platform,
-            account.persona,
-            format,
-            idea.category,
-            draft.body,
-            draft.title ?? null,
-            draft.altText ?? null,
-            draft.hashtags,
-            artifact?.raw ?? null,
-            JSON.stringify(draft.claims),
-            JSON.stringify(draft.qc),
-            ['copy'],
-            draft.generationMeta,
-            destination.type,
-            destination.url,
-            destination.blockedBy
-              ? `${destination.reason} ${destination.blockedBy}`
-              : destination.reason,
-            board?.boardId ?? null,
-            board?.reason ?? null,
-            draft.overflow ?? null,
-            draft.overflow ? budgetFor(account.platform).overflowHome : null,
-            subtype,
-            staged ? JSON.stringify(staged.screenplay) : null,
-            captionShape.shape,
-],
+            originKind,
+            originRef,
+            family: v2Family,
+            objective: requestedConcept?.objective ?? growthObjectiveForCategory(idea.category),
+            title: requestedConcept?.title ?? idea.title,
+            premise: requestedConcept?.premise ?? idea.angle,
+            audience: requestedConcept?.audience ?? null,
+            audienceProblem: requestedConcept?.premise ?? idea.angle,
+            audienceAwareness: 'mixed',
+            whyCareBeforeProduct: requestedConcept?.premise ?? idea.angle,
+            payoff: 'Deliver the useful/provable value promised by this idea before asking for action.',
+            storyStructure: requestedConcept?.story_structure ?? {},
+            visualTreatment: requestedConcept?.visual_treatment ?? {},
+            audioDirection: requestedConcept?.audio_direction ?? {},
+            ctaDirection: {},
+            qualityBar,
+            productionRequirements: baselineRequirements,
+            platformIntent: [account.platform],
+            differentiation: requestedConcept?.premise ?? idea.angle,
+            evidenceRequirements: requestedConcept?.evidence_requirements ?? [],
+            retentionStrategy: requestedConcept?.retention_strategy ??
+              'Earn the next beat with specificity, movement or useful information; no filler intro.',
+            status: 'selected',
+          });
+          v2ConceptId = packageRow.id;
+          await ctx.pool.query(
+            `update concepts set idea_id=coalesce(idea_id,$2) where id=$1`,
+            [v2ConceptId, idea.id],
+          );
+        }
+
+        const v2Brief = await upsertCreativeBriefRecord(ctx.pool, {
+          conceptId: v2ConceptId,
+          productId,
+          accountId: account.id,
+          platform: account.platform,
+          treatment: requestedTreatment ?? defaultTreatmentForCategory(idea.category),
+          presentationMode: defaultPresentationModeForFormat(format),
+          targetSeconds: defaultTargetSecondsForVariant(format),
+          aspectRatio: defaultAspectRatioForVariant(account.platform, format),
+          beats: [],
+          visualDirection: requestedConcept?.visual_treatment ?? { language: 'unplanned' },
+          audioDirection: requestedConcept?.audio_direction ?? { narration: 'unplanned' },
+          captionDirection: {
+            shape: captionShape.shape,
+            opening: opening.brief,
+            platform: account.platform,
+          },
+          evidence: [],
+          rationale: requestedConcept
+            ? 'Operator-selected CreativePackage controls this piece.'
+            : `Daily idea selected: ${idea.title}`,
+          format,
+          subtype,
+          hook: draft.body.split(/\n+/)[0]?.slice(0, 240) ?? null,
+          captionBrief: idea.angle,
+          titleBrief: draft.title ?? null,
+          productionRequirements: baselineRequirements,
+          qualityBar,
+        });
+
+        await ctx.pool.query(
+          `update content_items
+              set concept_id=$2,
+                  brief_id=$3,
+                  generation_meta=coalesce(generation_meta,'{}'::jsonb) || $4::jsonb
+            where id=$1`,
+          [
+            contentItemId,
+            v2ConceptId,
+            v2Brief.id,
+            JSON.stringify({
+              production_v2: true,
+              production_media_required: mediaRequiredForFormat(format),
+              package_origin: originKind,
+              package_origin_ref: originRef,
+            }),
+          ],
         );
 
-        const contentItemId = inserted.rows[0]!.id;
+        const v2Variant = await upsertPlatformVariantRecord(ctx.pool, {
+          conceptId: v2ConceptId,
+          briefId: v2Brief.id,
+          contentItemId,
+          platform: account.platform,
+          aspectRatio: defaultAspectRatioForVariant(account.platform, format),
+          targetSeconds: defaultTargetSecondsForVariant(format),
+          pacing: format === 'video' ? 'fast' : 'measured',
+          textDensity: format === 'video' ? 'sparse' : format === 'carousel' ? 'medium' : 'native',
+          hookTreatment: 'native_hook_written',
+          cta: 'native',
+          audioTreatment: format === 'video' ? 'planned_later' : 'none',
+          decision: 'produce',
+          decisionReason: requestedConcept
+            ? 'Operator selected this CreativePackage for production.'
+            : 'Daily strategy selected this idea for this account.',
+        });
+
+        const routeMode = requestedConceptId || operatorAsked ? 'calibration' : 'production';
+        const acceptedCalibrations =
+          routeMode === 'production'
+            ? await acceptedProductionCalibrations(ctx.pool, productId)
+            : [];
+        const calibratedCapabilities = acceptedCalibrations
+          .filter(
+            (row) =>
+              PRODUCTION_PROVIDERS.includes(row.provider as ProductionProviderId) &&
+              PRODUCTION_CAPABILITIES.includes(row.capability as ProductionCapability),
+          )
+          .map((row) => ({
+            provider: row.provider as ProductionProviderId,
+            capability: row.capability as ProductionCapability,
+          }));
+        const v2Route = routeProduction(baselineRequirements, {
+          mode: routeMode,
+          configuredProviders: configuredProductionProviders(process.env),
+          calibratedCapabilities,
+          costPreference: 'quality_first',
+        });
+        await ctx.pool.query(
+          `update production_recipes set status='obsolete', updated_at=now()
+            where brief_id=$1 and status='planned'`,
+          [v2Brief.id],
+        );
+        const revisionRow = await ctx.pool.query<{ revision: number }>(
+          `select coalesce(max(revision),0)::int + 1 as revision
+             from production_recipes where brief_id=$1`,
+          [v2Brief.id],
+        );
+        const v2Recipe = await insertProductionRecipeRecord(ctx.pool, {
+          conceptId: v2ConceptId,
+          briefId: v2Brief.id,
+          platformVariantId: v2Variant.id,
+          contentItemId,
+          mode: routeMode,
+          revision: revisionRow.rows[0]?.revision ?? 1,
+          status: v2Route.ready ? 'planned' : 'failed',
+          requirements: baselineRequirements,
+          steps: v2Route.steps,
+          refusals: v2Route.refusals,
+          reasons: v2Route.reasons,
+          // Visual media is always reviewed at artifact level even when every
+          // production step itself is deterministic.
+          humanReviewRequired: mediaRequiredForFormat(format) || v2Route.humanReviewRequired,
+        });
+        await ctx.pool.query(
+          `update content_items set production_recipe_id=$2 where id=$1`,
+          [contentItemId, v2Recipe.id],
+        );
 
         /*
          * §562. The copy was consumed the moment this row existed.
@@ -2073,6 +2749,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                 idea.title,
               /* §494. The job that paid for this piece, for `content_item_costs`. */
               jobId: job.id,
+              ...(packageArtifactId ? { package_artifact_id: packageArtifactId } : {}),
               /*
                * §515. Recorded on the piece, not only in a log line, because
                * the operator reading the gallery is the one who needs to know
@@ -2340,7 +3017,12 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
          * photographed at all. A refusal falls back to the artifact, which is
          * worse but is at least a noun.
          */
-        if (written) completed.push('write');
+        /*
+         * `transformation` is written from the locked product artifact rather
+         * than through writeToFormat, so `written` is intentionally null. It
+         * still has complete, evidence-backed content by this point.
+         */
+        if (written || chosenFormat.format.id === 'transformation') completed.push('write');
 
         /**
          * §345. Assets may not start before the content exists.
@@ -2351,16 +3033,29 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
          * whatever recipe was adapted that morning. The gate is the rule that
          * made that impossible rather than merely fixed.
          */
+        const assetsPlanned = production.stages.some((stage) => stage.stage === 'assets');
         const assetsGate = canStart('assets', completed);
-        if (production.stages.some((stage) => stage.stage === 'assets') && !assetsGate.ok) {
+        const shouldRunAssets = assetsPlanned && assetsGate.ok;
+        const utilityPin =
+          account.platform === 'pinterest' && requestedMediaMode === 'search_utility';
+        if (assetsPlanned && !assetsGate.ok) {
           ctx.log('assets stage refused', { contentItemId, because: assetsGate.because });
+        } else if (!assetsPlanned) {
+          ctx.log('assets stage skipped', {
+            contentItemId,
+            because: 'The resolved post type has no media asset stage.',
+          });
         }
 
-        /* §367. Everything the picture decisions log belongs to the assets lane. */
-        const assets = openStage(ctx, 'assets');
+        /*
+         * A workflow skip is an execution boundary, not documentation.
+         * Text-native posts must not call image generation just because the
+         * legacy media lane sits later in this handler.
+         */
+        const assets = shouldRunAssets ? openStage(ctx, 'assets') : ctx;
         const formatLine = written ? subjectFromFormat(written.draft.slots) : null;
         let heroSubject = subjectForImage(artifact, idea.title);
-        if (formatLine) {
+        if (shouldRunAssets && !utilityPin && formatLine) {
           const verdict = await photographicSubject(
             { line: formatLine, productContext: product.brief_summary ?? undefined },
             llmFor(),
@@ -2417,7 +3112,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
         let hero: Awaited<ReturnType<typeof generateHeroImage>>;
         try {
           hero =
-          heroSubject && imageClient
+          shouldRunAssets && !utilityPin && heroSubject && imageClient
             ? await generateHeroImage(assets, imageClient, {
                 subject: heroSubject,
                 shot,
@@ -2476,7 +3171,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
          * video, which is what the piece actually is.
          */
         const stillIsAboutThisPiece = chosenFormat.format.factuality === 'product';
-        if (artifact && !stillIsAboutThisPiece) {
+        if (shouldRunAssets && artifact && !stillIsAboutThisPiece) {
           ctx.log('no still for this piece', {
             contentItemId,
             format: chosenFormat.format.id,
@@ -2486,7 +3181,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
           });
         }
 
-        if (artifact && stillIsAboutThisPiece) {
+        if (shouldRunAssets && artifact && stillIsAboutThisPiece) {
           /*
            * §395. Four of these were built and unreachable.
            *
@@ -2619,7 +3314,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
          * piece has one, because §297 is explicit that a story wants immediacy
          * over production — a photograph is closer to that than a type card.
          */
-        if (resolvedType.postType.channel === 'story' && enabledTemplates.includes('story_card')) {
+        if (shouldRunAssets && resolvedType.postType.channel === 'story' && enabledTemplates.includes('story_card')) {
           const slotText = (key: string): string | null =>
             written?.draft.slots.find((sl) => sl.key === key)?.text?.trim() || null;
 
@@ -2659,6 +3354,60 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
         }
 
         /*
+         * Pinterest is a designed utility surface, not a request for a raw
+         * photograph. The renderer already has 2:3 Pin compositions; this
+         * production path reaches them directly.
+         */
+        if (
+          shouldRunAssets &&
+          account.platform === 'pinterest' &&
+          resolvedType.postType.requires.format === 'pin'
+        ) {
+          const pinSlots = written
+            ? written.draft.slots.map((slot) => ({
+                key: slot.key,
+                index: slot.index,
+                text: slot.text,
+                citation: slot.citation ?? null,
+              }))
+            : artifact
+              ? [
+                  { key: 'title', index: 0, text: artifact.headline, citation: null },
+                  ...artifact.highlights.slice(0, 4).map((highlight, index) => {
+                    const text =
+                      highlight.before && highlight.after
+                        ? `${String(highlight.before)} → ${String(highlight.after)}${highlight.reason ? ` — ${String(highlight.reason)}` : ''}`
+                        : String(highlight.text ?? highlight.note ?? highlight.reason ?? highlight.title ?? '');
+                    return { key: 'tip', index, text, citation: null };
+                  }),
+                ].filter((slot) => slot.text.trim().length > 0)
+              : [];
+          const pinPlan = pinForFormat(
+            written ? chosenFormat.format.id : 'tips',
+            pinSlots,
+            artifact?.headline ?? draft.title ?? idea.title,
+          );
+          if (!pinPlan) throw new Error(`${chosenFormat.format.id} is a Pin with no usable information to render.`);
+          if (!enabledTemplates.includes(pinPlan.templateId)) {
+            throw new Error(`Pin template ${pinPlan.templateId} is not enabled for ${productId}.`);
+          }
+          const pinRender = await ctx.pool.query<{ id: string }>(
+            `insert into renders
+               (content_item_id, template_id, renderer, input_props, quality, treatment)
+             values ($1,$2,'satori',$3,'final',$4)
+             returning id`,
+            [contentItemId,pinPlan.templateId,{ ...pinPlan.props, alt_text: draft.altText },`pin/${pinPlan.templateId}`],
+          );
+          await ctx.enqueue('render', { renderId: pinRender.rows[0]!.id }, { priority: 50 });
+          ctx.log('Pinterest utility render queued', {
+            contentItemId,
+            template: pinPlan.templateId,
+            format: chosenFormat.format.id,
+            generatedPhoto: Boolean(hero),
+          });
+        }
+
+        /*
          * §563. The subjects that became pictures, marked once the pictures
          * exist.
          *
@@ -2671,13 +3420,16 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
          * this line every image this piece will carry has been made and
          * attached.
          */
-        await markOutputConsumed(ctx.pool, {
-          agentId: 'photographic-subject',
-          triggerRef: job.id,
-          consumer: 'images attached to the piece and staged into renders',
-        }).catch(() => undefined);
+        if (shouldRunAssets && !utilityPin) {
+          await markOutputConsumed(ctx.pool, {
+            agentId: 'photographic-subject',
+            triggerRef: job.id,
+            consumer: 'images attached to the piece and staged into renders',
+          }).catch(() => undefined);
+        }
 
         if (
+          shouldRunAssets &&
           resolvedType.postType.media === 'carousel' &&
           enabledTemplates.includes('carousel_6')
         ) {
@@ -2882,38 +3634,39 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
          * the honest value and `null` says so.
          */
         if (!needsVideo(format)) {
-          const stillBrief = await ctx.pool.query<{ id: string }>(
-            `insert into creative_briefs
-               (product_id, account_id, platform, treatment, presentation_mode,
-                target_seconds, aspect_ratio, beats, visual_direction,
-                audio_direction, caption_direction, evidence, rationale)
-             values ($1,$2,$3,$4,$5,null,$6,'[]'::jsonb,$7::jsonb,'{}'::jsonb,$8::jsonb,$9,$10)
-             returning id`,
-            [
-              productId,
-              account.id,
-              account.platform,
-              chosenFormat.format.id,
-              presentationFor(account.platform, subtype).mode,
-              /* The canvas this piece is actually drawn on. */
-              resolvedType.postType.media === 'carousel' ? '4:5' : '1:1',
-              JSON.stringify({
-                /* The one visual decision a still or a deck actually makes. */
-                typography: cardType?.id ?? null,
-                language: null,
-                opening: null,
-              }),
-              JSON.stringify({ shape: captionShape.shape }),
-              (written?.draft.slots ?? [])
-                .map((s) => s.citation)
-                .filter((c): c is string => Boolean(c)),
-              `${chosenFormat.format.name} as ${format} for ${account.platform}. ${chosenFormat.reason}`,
-            ],
+          const stillBrief = await upsertCreativeBriefRecord(ctx.pool, {
+            conceptId: v2ConceptId,
+            productId,
+            accountId: account.id,
+            platform: account.platform,
+            treatment: chosenFormat.format.id,
+            presentationMode: presentationFor(account.platform, subtype).mode,
+            targetSeconds: null,
+            aspectRatio: resolvedType.postType.media === 'carousel' ? '4:5' : '1:1',
+            beats: [],
+            visualDirection: {
+              typography: cardType?.id ?? null,
+              language: null,
+              opening: null,
+            },
+            audioDirection: {},
+            captionDirection: { shape: captionShape.shape },
+            evidence: (written?.draft.slots ?? [])
+              .map((slot) => slot.citation)
+              .filter((citation): citation is string => Boolean(citation)),
+            rationale: `${chosenFormat.format.name} as ${format} for ${account.platform}. ${chosenFormat.reason}`,
+            format,
+            subtype,
+            hook: draft.body.split(/\n+/)[0]?.slice(0, 240) ?? null,
+            captionBrief: idea.angle,
+            titleBrief: draft.title ?? null,
+            productionRequirements: baselineRequirements,
+            qualityBar,
+          });
+          await ctx.pool.query(
+            `update content_items set concept_id=$2, brief_id=$3 where id=$1`,
+            [contentItemId, v2ConceptId, stillBrief.id],
           );
-          await ctx.pool.query('update content_items set brief_id = $2 where id = $1', [
-            contentItemId,
-            stillBrief.rows[0]!.id,
-          ]);
           ctx.log('brief recorded', {
             contentItemId,
             treatment: chosenFormat.format.id,
@@ -3635,12 +4388,19 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
            * video. An absent override means auto, which is the plan.
            */
           const overrides = (job.payload.options ?? {}) as Record<string, string>;
-          const wantsVoice =
-            overrides.voice === 'off'
-              ? false
-              : overrides.voice === 'on'
-                ? true
-                : production.stages.some((stage) => stage.stage === 'voice');
+          const variationVoicePreference =
+            requestedAudioMode === 'narrated'
+              ? true
+              : ['silent_captioned', 'natural_sound', 'text_only'].includes(
+                    requestedAudioMode ?? '',
+                  )
+                ? false
+                : null;
+          const wantsVoice = shouldNarrateVideo({
+            operatorVoice: overrides.voice ?? null,
+            audioMode: requestedAudioMode,
+            productionHasVoice: production.stages.some((stage) => stage.stage === 'voice'),
+          });
           /*
            * §387. The sound booth. Opened whether or not a voice is wanted,
            * because "we decided this piece is silent" is the booth's work and
@@ -3656,8 +4416,10 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
               because:
                 overrides.voice === 'off'
                   ? 'the operator asked for a silent, caption-led cut'
-                  : (production.skipped.find((stage) => stage.stage === 'voice')?.because ??
-                    'this production has no voice stage'),
+                  : variationVoicePreference === false
+                    ? `the CreativePackage selected ${requestedAudioMode}, so narration would violate the platform variant`
+                    : (production.skipped.find((stage) => stage.stage === 'voice')?.because ??
+                      'this production has no voice stage'),
             });
           }
 
@@ -3717,8 +4479,9 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
            * from the caption is two removes from the words on screen, which is
            * exactly the fault §350 traced.
            */
-          const narrationAlreadyWritten = (formatNarration?.length ?? 0) > 0;
-          if (narrationAlreadyWritten) {
+          if (wantsVoice) {
+            const narrationAlreadyWritten = (formatNarration?.length ?? 0) > 0;
+            if (narrationAlreadyWritten) {
             ctx.log('vo script skipped', {
               contentItemId,
               because:
@@ -3836,11 +4599,31 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
             ],
           );
 
-          await markOutputConsumed(ctx.pool, {
-            agentId: 'vo-scriptwriter',
-            triggerRef: job.id,
-            consumer: 'content_items.vo_script, spoken by the tts job',
-          }).catch(() => undefined);
+            await markOutputConsumed(ctx.pool, {
+              agentId: 'vo-scriptwriter',
+              triggerRef: job.id,
+              consumer: 'content_items.vo_script, spoken by the tts job',
+            }).catch(() => undefined);
+          } else {
+            await ctx.pool.query(
+              `update content_items
+                  set vo_script = null,
+                      vo_lines = null,
+                      audio_mode = 'text_only',
+                      ai_components = array_remove(ai_components, 'voiceover'),
+                      generation_meta = coalesce(generation_meta, '{}'::jsonb) || $2::jsonb
+                where id = $1`,
+              [
+                contentItemId,
+                JSON.stringify({
+                  audio_intent: {
+                    mode: requestedAudioMode ?? 'silent_captioned',
+                    source: overrides.voice === 'off' ? 'operator_override' : 'creative_package',
+                  },
+                }),
+              ],
+            );
+          }
 
           /**
            * §160. The creative plan, decided before anything renders.
@@ -4049,6 +4832,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                 targetSeconds: runtimeSeconds,
                 recentTypes,
                 insights: learned,
+                ...(requestedTreatment ? { preferredTypes: [requestedTreatment] } : {}),
                 ...(portfolio ? { portfolio } : {}),
                 ...(footage ? { footage } : {}),
               })
@@ -4414,63 +5198,92 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
              * beats, the runtime and the register; writing it down is not a
              * derivation, it is a record of a decision that was made.
              */
-            const brief = await ctx.pool.query<{ id: string }>(
-              `insert into creative_briefs
-                 (product_id, account_id, platform, treatment, presentation_mode,
-                  target_seconds, aspect_ratio, beats, visual_direction,
-                  audio_direction, caption_direction, evidence, rationale)
-               values ($1,$2,$3,$4,$5,$6,$7,$8::jsonb,$9::jsonb,$10::jsonb,$11::jsonb,$12,$13)
-               returning id`,
-              [
-                productId,
-                account.id,
+            const brief = await upsertCreativeBriefRecord(ctx.pool, {
+              conceptId: v2ConceptId,
+              productId,
+              accountId: account.id,
+              platform: account.platform,
+              treatment: plan.creativeType,
+              presentationMode: presentationFor(
                 account.platform,
-                plan.creativeType,
+                defaultSubtypeFor(account.platform, format),
+              ).mode,
+              targetSeconds: plan.targetSeconds,
+              aspectRatio: renderAspect,
+              beats: beatsForRender(
+                plan,
                 presentationFor(account.platform, defaultSubtypeFor(account.platform, format)).mode,
-                plan.targetSeconds,
-                renderAspect,
-                JSON.stringify(
-                  beatsForRender(
-                    plan,
-                    presentationFor(account.platform, defaultSubtypeFor(account.platform, format))
-                      .mode,
-                  ),
-                ),
-                /* §226. The typography id lives here because this is what the
-                   next piece's recency window reads. A choice recorded nowhere
-                   cannot be varied against. */
+              ),
+              visualDirection: {
+                language: direction?.language ?? LANGUAGE_FOR_TREATMENT[plan.creativeType] ?? null,
+                languageReason: direction?.reason ?? null,
+                languageConsidered: direction?.considered.slice(0, 5) ?? null,
+                typography: typography?.system.id ?? null,
+                typographyReason: typography?.reason ?? null,
+                opening: opening?.composition ?? null,
+                openingReason: opening?.reason ?? null,
+                longFormShape: longForm?.shape ?? null,
+                longFormRationale: longForm?.rationale ?? null,
+                longFormSections: longForm?.sections.map((x) => x.title) ?? null,
+              },
+              audioDirection: {
+                captionBackdrop: plan.captionBackdrop,
+                mode: wantsVoice ? 'narrated' : (requestedAudioMode ?? 'silent_captioned'),
+                ...(wantsVoice
+                  ? {
+                      voiceEnergy: voice.energy,
+                      voiceStability: voice.stability,
+                      voiceSimilarityBoost: voice.similarityBoost,
+                      voiceReason: voice.reason,
+                      deliveryNotes: voice.deliveryNotes,
+                    }
+                  : {
+                      voiceReason:
+                        overrides.voice === 'off'
+                          ? 'operator requested no narration'
+                          : 'CreativePackage selected a non-narrated audio mode',
+                    }),
+              },
+              captionDirection: {
+                overflowHome: budgetFor(account.platform).overflowHome,
+                shape: captionShape.shape,
+                opening: opening?.composition ?? null,
+              },
+              evidence: plan.evidence,
+              rationale: plan.rationale,
+              format,
+              subtype,
+              hook: hookText,
+              captionBrief: idea.angle,
+              titleBrief: draft.title ?? null,
+              productionRequirements: baselineRequirements,
+              qualityBar,
+            });
+            await ctx.pool.query(
+              `update content_items set concept_id=$2, brief_id=$3 where id=$1`,
+              [contentItemId, v2ConceptId, brief.id],
+            );
+
+            // The provider recipe was staged before the detailed treatment was
+            // known. Enrich the same recipe with the chosen creative decision
+            // rather than writing a second parallel plan.
+            await ctx.pool.query(
+              `update production_recipes
+                  set provider_versions = provider_versions || $2::jsonb,
+                      updated_at = now()
+                where id = $1`,
+              [
+                v2Recipe.id,
                 JSON.stringify({
-                  language: direction?.language ?? LANGUAGE_FOR_TREATMENT[plan.creativeType] ?? null,
-                  languageReason: direction?.reason ?? null,
-                  languageConsidered: direction?.considered.slice(0, 5) ?? null,
-                  typography: typography?.system.id ?? null,
-                  typographyReason: typography?.reason ?? null,
-                  opening: opening?.composition ?? null,
-                  openingReason: opening?.reason ?? null,
-                  /* §249. So the next long-form piece can vary from this one. */
-                  longFormShape: longForm?.shape ?? null,
-                  longFormRationale: longForm?.rationale ?? null,
-                  longFormSections: longForm?.sections.map((x) => x.title) ?? null,
+                  creativeType: plan.creativeType,
+                  visualLanguage: direction?.language ?? null,
+                  presentationMode: presentationFor(
+                    account.platform,
+                    defaultSubtypeFor(account.platform, format),
+                  ).mode,
                 }),
-                /* §232. The voice decision, recorded so `tts` reads it rather
-                   than deriving a second one from the same inputs. */
-                JSON.stringify({
-                  captionBackdrop: plan.captionBackdrop,
-                  voiceEnergy: voice.energy,
-                  voiceStability: voice.stability,
-                  voiceSimilarityBoost: voice.similarityBoost,
-                  voiceReason: voice.reason,
-                  deliveryNotes: voice.deliveryNotes,
-                }),
-                JSON.stringify({ overflowHome: budgetFor(account.platform).overflowHome }),
-                plan.evidence,
-                plan.rationale,
               ],
             );
-            await ctx.pool.query('update content_items set brief_id = $2 where id = $1', [
-              contentItemId,
-              brief.rows[0]!.id,
-            ]);
 
             /**
              * §231. What this concept should become on every other surface.
@@ -4509,27 +5322,21 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
               ),
             });
             for (const variant of variants) {
-              await ctx.pool.query(
-                `insert into platform_variants
-                   (brief_id, content_item_id, platform, aspect_ratio, target_seconds,
-                    pacing, text_density, hook_treatment, cta, audio_treatment,
-                    decision, decision_reason)
-                 values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
-                [
-                  brief.rows[0]!.id,
-                  variant.platform === account.platform ? contentItemId : null,
-                  variant.platform,
-                  variant.aspectRatio,
-                  variant.targetSeconds,
-                  variant.pacing,
-                  variant.textDensity,
-                  variant.hookTreatment,
-                  variant.cta,
-                  variant.audioTreatment,
-                  variant.decision,
-                  variant.decisionReason,
-                ],
-              );
+              await upsertPlatformVariantRecord(ctx.pool, {
+                conceptId: v2ConceptId,
+                briefId: brief.id,
+                contentItemId: variant.platform === account.platform ? contentItemId : null,
+                platform: variant.platform,
+                aspectRatio: variant.aspectRatio,
+                targetSeconds: variant.targetSeconds,
+                pacing: variant.pacing,
+                textDensity: variant.textDensity,
+                hookTreatment: variant.hookTreatment,
+                cta: variant.cta,
+                audioTreatment: variant.audioTreatment,
+                decision: variant.decision,
+                decisionReason: variant.decisionReason,
+              });
             }
             ctx.log('platform variants planned', {
               contentItemId,
@@ -4610,45 +5417,41 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
               (composition.props as { beats?: Array<{ seconds?: number; opening?: string }> })
                 .beats ?? [];
             const seconds = briefBeats.reduce((total, b) => total + (Number(b.seconds) || 0), 0);
-            const formatBrief = await ctx.pool.query<{ id: string }>(
-              `insert into creative_briefs
-                 (product_id, account_id, platform, treatment, presentation_mode,
-                  target_seconds, aspect_ratio, beats, visual_direction,
-                  audio_direction, caption_direction, evidence, rationale)
-               values ($1,$2,$3,$4,$5,$6,$7,$8::jsonb,$9::jsonb,$10::jsonb,$11::jsonb,$12,$13)
-               returning id`,
-              [
-                productId,
-                account.id,
-                account.platform,
-                chosenFormat.format.id,
-                presentationFor(account.platform, subtype).mode,
-                seconds > 0 ? Math.round(seconds) : null,
-                renderAspect,
-                JSON.stringify(briefBeats),
-                JSON.stringify({
-                  language: DEFAULT_LANGUAGE,
-                  typography: typography?.system.id ?? null,
-                  opening: briefBeats[0]?.opening ?? null,
-                }),
-                /*
-                 * Empty rather than invented. The voice is directed in `tts`,
-                 * which is where the script and the lexicon are; writing a guess
-                 * here would put a decision nobody made into the record.
-                 */
-                JSON.stringify({}),
-                JSON.stringify({ shape: captionShape.shape }),
-                /* The sources the writer actually cited, in citation order. */
-                (written?.draft.slots ?? [])
-                  .map((s) => s.citation)
-                  .filter((c): c is string => Boolean(c)),
-                `${chosenFormat.format.name} for ${account.platform}. ${chosenFormat.reason}`,
-              ],
+            const formatBrief = await upsertCreativeBriefRecord(ctx.pool, {
+              conceptId: v2ConceptId,
+              productId,
+              accountId: account.id,
+              platform: account.platform,
+              treatment: chosenFormat.format.id,
+              presentationMode: presentationFor(account.platform, subtype).mode,
+              targetSeconds: seconds > 0 ? Math.round(seconds) : null,
+              aspectRatio: renderAspect,
+              beats: briefBeats,
+              visualDirection: {
+                language: DEFAULT_LANGUAGE,
+                typography: typography?.system.id ?? null,
+                opening: briefBeats[0]?.opening ?? null,
+              },
+              audioDirection: {
+                mode: wantsVoice ? 'narrated' : (requestedAudioMode ?? 'silent_captioned'),
+              },
+              captionDirection: { shape: captionShape.shape },
+              evidence: (written?.draft.slots ?? [])
+                .map((slot) => slot.citation)
+                .filter((citation): citation is string => Boolean(citation)),
+              rationale: `${chosenFormat.format.name} for ${account.platform}. ${chosenFormat.reason}`,
+              format,
+              subtype,
+              hook: draft.body.split(/\n+/)[0]?.slice(0, 240) ?? null,
+              captionBrief: idea.angle,
+              titleBrief: draft.title ?? null,
+              productionRequirements: baselineRequirements,
+              qualityBar,
+            });
+            await ctx.pool.query(
+              `update content_items set concept_id=$2, brief_id=$3 where id=$1`,
+              [contentItemId, v2ConceptId, formatBrief.id],
             );
-            await ctx.pool.query('update content_items set brief_id = $2 where id = $1', [
-              contentItemId,
-              formatBrief.rows[0]!.id,
-            ]);
             ctx.log('brief recorded', {
               contentItemId,
               treatment: chosenFormat.format.id,
@@ -4658,11 +5461,35 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
             });
           }
 
-          await ctx.enqueue(
-            'tts',
-            { contentItemId },
-            { dedupeKey: `tts:${contentItemId}`, priority: 45 },
-          );
+          if (wantsVoice) {
+            await ctx.enqueue(
+              'tts',
+              { contentItemId },
+              { dedupeKey: `tts:${contentItemId}`, priority: 45 },
+            );
+          } else {
+            const { rows: silentRenders } = await ctx.pool.query<{ id: string }>(
+              `select id from renders
+                where content_item_id = $1
+                  and renderer = 'remotion'
+                  and quality = 'final'
+                  and status = 'queued'
+                order by created_at desc`,
+              [contentItemId],
+            );
+            for (const render of silentRenders) {
+              await ctx.enqueue(
+                'render',
+                { renderId: render.id },
+                { dedupeKey: `render:${render.id}`, priority: 50 },
+              );
+            }
+            ctx.log('silent video released directly to render', {
+              contentItemId,
+              audioMode: requestedAudioMode ?? 'silent_captioned',
+              renders: silentRenders.length,
+            });
+          }
         }
 
         /**

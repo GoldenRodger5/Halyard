@@ -22,14 +22,14 @@ test.describe('platform capability', () => {
     );
     test.skip(Number(rows[0]!.n) > 0, 'a probe exists, so the empty state is not under test');
 
-    await page.goto('/accounts');
+    await page.goto('/master/platforms');
     await expect(page.getByText('No probe has ever run')).toBeVisible();
     // Unknown must be presented as honest, not as a failure to hide.
     await expect(page.getByText(/unknown.*rather than unsupported/i)).toBeVisible();
   });
 
   test('shows a verdict with the reason that produced it', async ({ page }) => {
-    await page.goto('/accounts');
+    await page.goto('/master/platforms');
 
     // Real resolutions, computed from account state and an absent probe.
     await expect(page.getByText('Platform capability')).toBeVisible();
@@ -41,7 +41,7 @@ test.describe('platform capability', () => {
   });
 
   test('strategy states how much of itself is measured', async ({ page }) => {
-    await page.goto('/accounts');
+    await page.goto('/master/platforms');
     await expect(page.getByText('Platform strategy')).toBeVisible();
     // Halyard has published nothing, so nothing here may claim to be measured.
     await expect(page.getByText(/None of this is measured/)).toBeVisible();
@@ -49,7 +49,7 @@ test.describe('platform capability', () => {
   });
 
   test('probing enqueues the job the script never had a trigger for', async ({ page }) => {
-    await page.goto('/accounts');
+    await page.goto('/master/platforms');
     await page.getByRole('button', { name: 'Probe the provider' }).click();
 
     await expect
@@ -69,7 +69,7 @@ test.describe('platform capability', () => {
                'BLOTATO_API_KEY is not set, so nothing could be probed.')`,
     );
 
-    await page.goto('/accounts');
+    await page.goto('/master/platforms');
     await expect(page.getByText(/Last probe:/)).toBeVisible();
     await expect(page.getByText(/proves nothing, so no capability was downgraded/)).toBeVisible();
   });
@@ -103,7 +103,7 @@ test.describe('probe scope', () => {
       [rows[0]!.id],
     );
 
-    await page.goto('/accounts');
+    await page.goto('/master/platforms');
     // The account-scoped detail must not appear as the provider's headline.
     await expect(page.getByText('E2E ACCOUNT SCOPED OBSERVATION')).toHaveCount(0);
   });

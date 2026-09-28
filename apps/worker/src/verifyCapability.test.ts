@@ -9,7 +9,7 @@
 import type pg from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createIsolatedPool, databaseAvailable } from '../../../packages/db/src/__tests__/testDb.js';
-import { verifyCapabilityHandler, type ProbeRunner } from './handlers/verifyCapability.js';
+import { matchProviderAccount, mergeProviderCapabilities, verifyCapabilityHandler, type ProbeRunner } from './handlers/verifyCapability.js';
 import type { HandlerContext, Job } from './poller.js';
 import { testContext } from './testContext.js';
 
@@ -62,6 +62,81 @@ const confirming: ProbeRunner = async ({ provider }) => ({
       },
     },
   },
+});
+
+describe('provider capability evidence merging', () => {
+  it('does not let a read-only unknown erase a stronger earlier observation', () => {
+    const earlier = {
+      provider: 'blotato',
+      verifiedAt: '2026-09-26T12:00:00.000Z',
+      platforms: {
+        instagram: {
+          platform: 'instagram' as const,
+          publish: 'unknown' as const,
+          publishesPublicly: 'unknown' as const,
+          carousel: 'yes' as const,
+          video: 'yes' as const,
+          shortVideo: 'yes' as const,
+          altText: 'yes' as const,
+          scheduling: 'yes' as const,
+          metrics: ['saves' as const],
+          notes: ['schema checked'],
+        },
+      },
+    };
+    const incoming = {
+      provider: 'blotato',
+      verifiedAt: '2026-09-27T00:00:00.000Z',
+      platforms: {
+        instagram: {
+          platform: 'instagram' as const,
+          publish: 'unknown' as const,
+          publishesPublicly: 'unknown' as const,
+          carousel: 'unknown' as const,
+          video: 'unknown' as const,
+          shortVideo: 'unknown' as const,
+          altText: 'unknown' as const,
+          scheduling: 'unknown' as const,
+          metrics: [],
+          notes: ['account reachable'],
+        },
+      },
+    };
+    const merged = mergeProviderCapabilities(earlier, incoming);
+    expect(merged.platforms.instagram?.carousel).toBe('yes');
+    expect(merged.platforms.instagram?.altText).toBe('yes');
+    expect(merged.platforms.instagram?.metrics).toEqual(['saves']);
+    expect(merged.platforms.instagram?.notes).toEqual(['schema checked', 'account reachable']);
+  });
+});
+
+describe('provider account matching', () => {
+  const provider = [
+    { id: '23938', platform: 'twitter', username: 'IsaacMBuilds', fullname: null },
+    { id: '23940', platform: 'twitter', username: 'Recipe_Fix', fullname: null },
+    { id: '64295', platform: 'instagram', username: 'recipe.fix', fullname: null },
+  ];
+
+  it('maps Blotato twitter onto Halyard x without confusing two X accounts', () => {
+    expect(matchProviderAccount({ platform: 'x', handle: '@Recipe_Fix' }, provider)?.id).toBe('23940');
+    expect(matchProviderAccount({ platform: 'x', handle: '@IsaacMBuilds' }, provider)?.id).toBe('23938');
+  });
+
+  it('normalises punctuation when matching a unique identity', () => {
+    expect(matchProviderAccount({ platform: 'instagram', handle: '@recipefix' }, provider)?.id).toBe('64295');
+  });
+
+  it('uses a sole-platform fallback only when the caller explicitly proves it is safe', () => {
+    const pinterest = [{ id: '9034', platform: 'pinterest', username: 'opaque-provider-name', fullname: null }];
+    expect(matchProviderAccount({ platform: 'pinterest', handle: '@recipefix' }, pinterest)).toBeNull();
+    expect(
+      matchProviderAccount({ platform: 'pinterest', handle: '@recipefix' }, pinterest, { allowSolePlatformFallback: true })?.id,
+    ).toBe('9034');
+  });
+
+  it('refuses to guess between ambiguous identities', () => {
+    expect(matchProviderAccount({ platform: 'x', handle: '@unknown' }, provider)).toBeNull();
+  });
 });
 
 d('a probe that cannot run', () => {

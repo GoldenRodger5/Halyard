@@ -1,8 +1,8 @@
 # First contact
 
-Seven platform adapters exist. **None has met a live API.** This document is the
-map for the moment each one does — what was assumed, what turned out to be true,
-and what differed.
+Seven direct platform adapters exist. **No Halyard path has yet completed a real public social publication**, but the unified Blotato transport has now met its live read-only API and mapped RecipeFix accounts. This document is the map for the first real publication on each transport — what was assumed, what turned out to be true, and what differed.
+
+For the current hybrid architecture and the 2026-09-27 Blotato audit, read `DISTRIBUTION_OPERATING_MODEL_2026-09-27.md`.
 
 The rule from milestone 46 is: do not debug seven adapters simultaneously. X has
 no review gate and can be fully live today, so the whole chain gets proved there
@@ -37,9 +37,10 @@ Two of these are already proved and need no credentials:
 
 ```bash
 ./scripts/doctor                    # prints the full X credential acquisition sequence
-pnpm first-contact                  # dry run: the exact request, sent nowhere
-pnpm first-contact --publish        # real, costs money, two confirmations
-pnpm first-contact --verify         # walks the chain after a post
+pnpm first-contact                                      # direct dry run, sends nothing
+pnpm first-contact --unified --platform=instagram --item=<uuid> # Blotato dry run, sends nothing
+pnpm first-contact --publish --unified --platform=instagram --item=<uuid> # real; two confirmations
+pnpm first-contact --verify --unified --platform=instagram      # walks the settled chain
 ```
 
 `--publish` is the only destructive command in this repository. It requires

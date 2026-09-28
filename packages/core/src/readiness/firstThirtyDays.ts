@@ -38,15 +38,16 @@ export const FIRST_THIRTY_DAYS: FirstRunPhase[] = [
     when: 'day zero',
     happening: [
       'Nothing generates until the first-run wizard is finished. That is deliberate: a system that writes in nobody’s voice writes faster than you can delete it.',
-      'The launch batch stages a fortnight in one pass, then writes each post as a separate job, so a failure costs one slot rather than the batch.',
+      'The calendar can look two weeks ahead, but cold-start production works in a rolling three-day wave. Each post is still its own job, so a failure costs one slot rather than the batch.',
     ],
     yours: [
       'Create the accounts from /master/setup-kit, with the link-in-bio page already live.',
-      'Connect them on /master and confirm each identity. A token is not an account until you have looked at whose account it is.',
-      'Finish /onboarding, including the twenty calibration drafts. This is the step that cannot be automated, because it is your taste.',
+      'Connect them on /master and confirm each identity. A direct token or Blotato mapping is not an account until you have looked at whose account it is.',
+      'Review the real opening-wave drafts and finished calibration assets in Gallery. Your accept/reject/edit decisions teach voice and visual taste without manufacturing twenty disposable drafts.',
     ],
     expected: [
-      'Every platform except X and Bluesky will sit in draft_only until a manual review lands. That is the platform, not a bug, and the wait is measured in weeks.',
+      'A connected Blotato account proves identity, not publishing. Each provider/platform path remains fail-closed until an explicit first-contact post settles as actually published.',
+      'Generative visual providers may create calibration candidates, but production automation remains locked for that product/capability until a finished asset passes media QC and you explicitly accept the production recipe.',
     ],
     screens: [
       { href: '/master/setup-kit', label: 'Setup kit' },
@@ -58,12 +59,12 @@ export const FIRST_THIRTY_DAYS: FirstRunPhase[] = [
     title: 'The first fortnight',
     when: 'days 1 to 14',
     happening: [
-      'Posts publish on the staggered schedule, jittered inside each slot window.',
+      'Approved posts publish on the staggered schedule, jittered inside each slot window. The next rolling wave is allowed to change as early performance arrives.',
       'Metrics start arriving on a delay of an hour or two. Some platforms need a paid tier before they report at all.',
       'Every link goes through /l/<slug>, so clicks are counted here even where the platform will not report them.',
     ],
     yours: [
-      'Review the queue. It is built to work on a phone, because approval happens in spare moments or it does not happen.',
+      'Review the queue. For media posts, inspect the actual finished Reel, Short, carousel or image — approving copy is never treated as approval of media.',
       'Reply to comments yourself. Halyard drafts replies and never sends one.',
     ],
     expected: [

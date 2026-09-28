@@ -28,6 +28,7 @@ import {
   type ReplayOutcome,
 } from '@halyard/core';
 import type { HandlerContext, Job } from '../poller.js';
+import { credentialsForProduct, signIn, type ExploreCredentials } from './explore.js';
 
 interface ClaimRow {
   id: string;
@@ -37,14 +38,18 @@ interface ClaimRow {
   attempts: number;
 }
 
-/** Origins a claim for this product may touch. */
-async function allowedOriginsFor(ctx: HandlerContext, productId: string): Promise<string[]> {
-  const { rows } = await ctx.pool.query<{ destinations: Record<string, string> | null }>(
-    'select destinations from products where id = $1',
+interface VerificationProduct {
+  destinations: Record<string, string> | null;
+  capture_credentials: { email?: string; password?: string; loginPath?: string } | null;
+}
+
+/** Product context needed to replay a claim honestly. */
+async function verificationProduct(ctx: HandlerContext, productId: string): Promise<VerificationProduct | null> {
+  const { rows } = await ctx.pool.query<VerificationProduct>(
+    'select destinations, capture_credentials from products where id = $1',
     [productId],
   );
-  const web = rows[0]?.destinations?.web;
-  return web ? [web] : [];
+  return rows[0] ?? null;
 }
 
 const DEFAULT_TIMEOUT_MS = 15_000;
@@ -87,7 +92,10 @@ export async function verifyFeatureHandler(job: Job, ctx: HandlerContext): Promi
   }
 
   const steps = claim.replay.steps ?? [];
-  const allowedOrigins = await allowedOriginsFor(ctx, claim.product_id);
+  const product = await verificationProduct(ctx, claim.product_id);
+  const root = product?.destinations?.web ?? null;
+  const allowedOrigins = root ? [root] : [];
+  const credentials = credentialsForProduct(product?.capture_credentials ?? null);
 
   /**
    * Refuse before opening a browser, not after.
@@ -121,7 +129,7 @@ export async function verifyFeatureHandler(job: Job, ctx: HandlerContext): Promi
     return;
   }
 
-  const outcome = await replay(steps);
+  const outcome = await replay(steps, { rootUrl: root, credentials });
   const verdict = verdictFor(outcome);
 
   await record(ctx, claim, {
@@ -169,7 +177,10 @@ async function record(
  * different verdicts, and collapsing them is how a flaky run deletes a real
  * feature from the inventory.
  */
-export async function replay(steps: ExplorerStep[]): Promise<ReplayOutcome> {
+export async function replay(
+  steps: ExplorerStep[],
+  options: { rootUrl?: string | null; credentials?: ExploreCredentials | null } = {},
+): Promise<ReplayOutcome> {
   const expectations: Expectation[] = [];
   const started = Date.now();
 
@@ -184,10 +195,23 @@ export async function replay(steps: ExplorerStep[]): Promise<ReplayOutcome> {
         'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0 Safari/537.36',
     });
     const page = await context.newPage();
+    const authFlow = flowExplicitlyTargetsAuth(steps);
+    let signedIn = false;
+    if (options.rootUrl && options.credentials && !authFlow) {
+      signedIn = await signIn(page, options.rootUrl, options.credentials);
+    }
 
     for (const step of steps) {
       try {
         await runStep(page, step, expectations);
+        if (!authFlow && !signedIn && (await isAuthWall(page))) {
+          return {
+            completed: false,
+            error: 'authentication required, but no working exploration credentials are configured',
+            expectations,
+            elapsedMs: Date.now() - started,
+          };
+        }
       } catch (err) {
         if (step.optional) continue;
         return {
@@ -203,6 +227,28 @@ export async function replay(steps: ExplorerStep[]): Promise<ReplayOutcome> {
   } finally {
     await browser.close();
   }
+}
+
+function flowExplicitlyTargetsAuth(steps: ExplorerStep[]): boolean {
+  return steps.some((step) => {
+    if (step.action !== 'goto') return false;
+    const raw = step.value ?? step.target ?? '';
+    try {
+      return /\/(?:login|signin|sign-in|auth\/login)(?:\/|$)/i.test(new URL(raw, 'https://example.invalid').pathname);
+    } catch {
+      return false;
+    }
+  });
+}
+
+async function isAuthWall(page: Page): Promise<boolean> {
+  try {
+    const path = new URL(page.url()).pathname;
+    if (/\/(?:login|signin|sign-in|auth\/login)(?:\/|$)/i.test(path)) return true;
+  } catch {
+    // A non-URL page is not treated as an auth wall.
+  }
+  return page.locator('input[type=password]').first().isVisible({ timeout: 500 }).catch(() => false);
 }
 
 async function runStep(

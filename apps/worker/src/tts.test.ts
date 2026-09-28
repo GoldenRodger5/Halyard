@@ -15,7 +15,7 @@ import { promisify } from 'node:util';
 import type pg from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createIsolatedPool, databaseAvailable } from '../../../packages/db/src/__tests__/testDb.js';
-import { SpeechUnavailableError, type MusicClient, type SpeechClient } from '@halyard/core';
+import { providerRefusal, SpeechUnavailableError, type MusicClient, type SpeechClient } from '@halyard/core';
 import { ttsHandler } from './handlers/tts.js';
 import type { Job } from './poller.js';
 import { testContext, type TestContext } from './testContext.js';
@@ -348,6 +348,62 @@ d('ttsHandler', () => {
 
     const { rows } = await pool.query('select vo_asset_id from content_items where id = $1', [id]);
     expect(rows[0]!.vo_asset_id).toBeNull();
+  }, 60_000);
+
+  it('falls back to an explicit silent caption-led cut when the configured narration provider is exhausted', async () => {
+    const id = await seedItem();
+    const render = await pool.query<{ id: string }>(
+      `insert into renders (content_item_id, template_id, renderer, input_props, quality)
+       values ($1,'ChefNoteCard','remotion','{}'::jsonb,'final') returning id`,
+      [id],
+    );
+    await pool.query(
+      `update content_items
+          set ai_components=array['copy','voiceover'],
+              qc_results=$2::jsonb
+        where id=$1`,
+      [
+        id,
+        JSON.stringify({
+          passed: true,
+          gates: [{ gate: 'copy', status: 'passed', summary: 'clean', detail: null }],
+        }),
+      ],
+    );
+    const exhausted: SpeechClient = {
+      async synthesize() {
+        throw providerRefusal('elevenlabs', 401, 'payment_required: invoice incomplete');
+      },
+    };
+    const ctx = context();
+
+    await expect(ttsHandler(job(id), ctx, { speech: exhausted, music: null })).resolves.toBeUndefined();
+
+    const { rows } = await pool.query<{
+      audio_mode: string;
+      vo_asset_id: string | null;
+      ai_components: string[];
+      generation_meta: { audio_fallback?: { mode?: string; reason?: string } };
+      qc_results: { gates: Array<{ gate: string; status: string; summary: string }> };
+    }>(
+      `select audio_mode,vo_asset_id,ai_components,generation_meta,qc_results
+         from content_items where id=$1`,
+      [id],
+    );
+    expect(rows[0]!.audio_mode).toBe('text_only');
+    expect(rows[0]!.vo_asset_id).toBeNull();
+    expect(rows[0]!.ai_components).not.toContain('voiceover');
+    expect(rows[0]!.generation_meta.audio_fallback).toMatchObject({
+      mode: 'silent_captioned',
+      reason: 'narration_provider_exhausted',
+    });
+    expect(rows[0]!.qc_results.gates.find((gate) => gate.gate === 'audio')).toMatchObject({
+      status: 'warning',
+    });
+    expect(ctx.enqueued.map((e) => [e.kind, e.payload])).toContainEqual([
+      'render',
+      { renderId: render.rows[0]!.id },
+    ]);
   }, 60_000);
 
   it('releases the render it was gating, so a video item cannot stall silently', async () => {

@@ -35,6 +35,7 @@ import {
   composeCaption,
   platformFetch,
   type CapabilityReport,
+  type DeliveryStatus,
   type MetricSnapshot,
   // No OAuth option types: this transport's `getAuthUrl` and `exchangeCode`
   // take no arguments, because the provider dashboard owns the connection.
@@ -70,6 +71,11 @@ export interface UnifiedAdapterOptions {
   capabilities: ProviderCapabilities;
   apiKey?: string;
   fetchImpl?: typeof fetch;
+  /**
+   * Interactive first-contact only. Lets one explicitly approved real post be
+   * the observation that verifies this platform. Ordinary workers never set it.
+   */
+  allowUnverifiedFirstContact?: boolean;
 }
 
 /**
@@ -85,30 +91,26 @@ export interface UnifiedAdapterOptions {
 export function buildTarget(
   platform: PlatformId,
   item: PublishItem,
-  account: PublishAccount,
+  _account: PublishAccount,
 ): Record<string, unknown> {
   const target: Record<string, unknown> = { targetType: TARGET_TYPE[platform] };
 
   switch (platform) {
     case 'tiktok': {
-      // Six booleans are required, not optional. Sending none of them, as this
-      // adapter originally did, is a rejected request.
-      //
-      // Draft-first even where the probe confirms public posting works, and
-      // that is a product decision rather than a limitation: no API of any kind
-      // can attach trending commercial audio, and sound is a large share of
-      // TikTok distribution. `autoAddMusic` is Blotato's nearest offer and it
-      // is not the same thing — it does not reach the trending catalogue.
-      target.privacyLevel = 'SELF_ONLY';
-      target.isDraft = true;
+      // Blotato's current public API example posts videos directly with
+      // PUBLIC_TO_EVERYONE. The earlier adapter forced SELF_ONLY + isDraft,
+      // which turned a working publishing transport back into a manual handoff.
+      // Halyard already burns licensed music/voice into video, so public posting
+      // does not require TikTok's native music picker. Photo slideshows may ask
+      // Blotato to add TikTok's recommended music.
+      target.privacyLevel = 'PUBLIC_TO_EVERYONE';
       target.disabledComments = false;
       target.disabledDuet = false;
       target.disabledStitch = false;
-      // Declared, not guessed: this is Halyard publishing on behalf of the
-      // product it markets, which is exactly what "your brand" means here.
       target.isBrandedContent = false;
       target.isYourBrand = true;
       target.isAiGenerated = item.requiresAiLabel ?? false;
+      if (item.format === 'carousel') target.autoAddMusic = true;
       if (item.title) target.title = item.title.slice(0, 90);
       break;
     }
@@ -130,11 +132,13 @@ export function buildTarget(
     }
     case 'youtube': {
       target.title = (item.title ?? item.body.slice(0, 90)).replace(/[<>]/g, '').slice(0, 100);
-      // Uploads stay private until the compliance audit passes, the same rule
-      // the direct adapter follows and the same rule YouTube enforces anyway.
-      target.privacyStatus = account.meta?.complianceAuditPassed === true ? 'public' : 'private';
-      // Required. False on purpose: a private upload that notifies subscribers
-      // sends people to something they cannot watch.
+      /*
+       * Blotato owns the YouTube OAuth client and its platform approval. The
+       * compliance state on Halyard's *direct* YouTube adapter therefore says
+       * nothing about this transport. Once a Halyard item is approved, a
+       * unified first contact is deliberately testing public delivery.
+       */
+      target.privacyStatus = 'public';
       target.shouldNotifySubscribers = false;
       target.containsSyntheticMedia = item.requiresAiLabel ?? false;
       break;
@@ -159,6 +163,7 @@ export class UnifiedAdapter implements PlatformAdapter {
   private readonly capabilities: ProviderCapabilities;
   private readonly fetchImpl: typeof fetch;
   private readonly apiKey: string | undefined;
+  private readonly allowUnverifiedFirstContact: boolean;
 
   constructor(options: UnifiedAdapterOptions) {
     this.platform = options.platform;
@@ -166,6 +171,7 @@ export class UnifiedAdapter implements PlatformAdapter {
     this.capabilities = options.capabilities;
     this.fetchImpl = options.fetchImpl ?? fetch;
     this.apiKey = options.apiKey ?? process.env.BLOTATO_API_KEY;
+    this.allowUnverifiedFirstContact = options.allowUnverifiedFirstContact === true;
   }
 
   /**
@@ -269,10 +275,17 @@ export class UnifiedAdapter implements PlatformAdapter {
     account: PublishAccount,
   ): Promise<PublishResult> {
     const verdict = canPublish(this.capabilities, this.platform);
-    if (!verdict.allowed) {
+    if (!verdict.allowed && !this.allowUnverifiedFirstContact) {
       // Refusing here rather than at schedule time means an unverified transport
       // cannot quietly carry a real post.
       throw new PublishError(verdict.reason, 'permanent');
+    }
+    if (!verdict.allowed && this.allowUnverifiedFirstContact) {
+      const capability = this.capabilities.platforms[this.platform];
+      if (capability?.publish === 'no') {
+        // First contact may settle an unknown. It may never override a checked no.
+        throw new PublishError(verdict.reason, 'permanent');
+      }
     }
 
     if (!this.apiKey) {
@@ -354,19 +367,56 @@ export class UnifiedAdapter implements PlatformAdapter {
     }
 
     const capability = this.capabilities.platforms[this.platform];
-    const draftOnly = capability?.publishesPublicly !== 'yes' || this.platform === 'tiktok';
-    const linkReplyPostId: string | undefined = undefined;
+    const draftOnly = capability?.publishesPublicly === 'no';
 
+    /*
+     * A submission id is not a platform post id. Blotato explicitly documents
+     * this as asynchronous: poll GET /posts/:id until published/failed. The
+     * worker therefore records this receipt as pending and lets the delivery
+     * reconciler settle it before Halyard marks anything published.
+     */
     return {
       mode: draftOnly ? 'draft' : 'direct',
       platformPostId: postId,
-      // The submission response carries no permalink. It is resolved later from
-      // GET /v2/posts/:id, rather than fabricated here.
       permalink: undefined,
       manualPublishUrl: draftOnly ? 'https://my.blotato.com/published' : undefined,
-      linkReplyPostId,
+      pending: !draftOnly,
+      providerStatus: !draftOnly ? 'submitted' : 'draft',
       raw: response,
     };
+  }
+
+  async fetchDeliveryStatus(submissionId: string, _account: PublishAccount): Promise<DeliveryStatus> {
+    const response = (await this.get(`/posts/${encodeURIComponent(submissionId)}`)) as {
+      status?: string;
+      publicUrl?: string | null;
+      url?: string | null;
+      errorMessage?: string | null;
+      platformPostId?: string | null;
+      postId?: string | null;
+    };
+
+    const rawStatus = String(response.status ?? '').trim().toLowerCase();
+    const publicUrl = response.publicUrl ?? response.url ?? null;
+    const platformPostId = response.platformPostId ?? response.postId ?? null;
+
+    if (rawStatus === 'published') {
+      return { state: 'published', publicUrl, platformPostId, raw: response };
+    }
+    if (rawStatus === 'failed') {
+      return {
+        state: 'failed',
+        errorMessage: response.errorMessage ?? 'Blotato reported that the post failed.',
+        raw: response,
+      };
+    }
+    if (rawStatus === 'scheduled') {
+      return { state: 'scheduled', raw: response };
+    }
+
+    // Queued/processing/submitted and any newly introduced non-terminal state
+    // are all the same operational fact: do not publish again; poll later.
+    return { state: 'pending', raw: response };
   }
 
   /**

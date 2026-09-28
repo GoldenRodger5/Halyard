@@ -14161,3 +14161,187 @@ web caller goes through it. The comment there says the thing a future refactor
 needs to know: **do not fold those two lines into a loop**, because the
 substitution is textual and the value vanishes the moment the expression stops
 naming the variable outright.
+
+## §571–§573 · H0.5: repairing the release gate the E2E suite was supposed to be
+
+H0 shipped with `verify` and `build` green and `e2e` red, and said so. That is
+not the exit gate the programme asks for — a reproducible green release path —
+so this package finishes it. Three things were found on the way, and two of them
+were live defects rather than test problems.
+
+### §571 · Six links called "Connect", and no way to say which
+
+The connections screen renders one card per account and a link named `Connect`
+on each. Nothing distinguished them: no id, no accessible name beyond the verb.
+That is a real accessibility defect — six identically-named links on one page —
+before it is a testing problem, and it is why the OAuth specs had been keying on
+`#brand-x`, an anchor the reorganisation dropped.
+
+`Sheet` takes an optional `id`, and the connections card passes
+`${persona}-${platform}`. It is a fragment link target as much as a selector:
+"the Instagram row" is a thing an operator should be able to link somebody to.
+
+### §572 · A test suite that could only pass on one laptop
+
+Repointing 58 dead route references was necessary and nowhere near sufficient.
+Underneath were assertions that could never have passed anywhere else:
+
+- `accounts.spec.ts` asserted the handles `@recipe.fix` and `@kinolog.app` —
+  which exist in one developer's database and in no seed. On the fresh
+  `db:reset --fresh --seed` that CI runs, neither is there. It now reads the
+  accounts out of the fixtures and asserts every one of them renders, which is
+  what §497 actually promised.
+- `oauth-connect.spec.ts` iterated `['tiktok', 'pinterest', 'youtube']` as
+  "platforms with no developer app", under a comment saying they have no
+  credentials locally. Whether they do is a property of whichever `.env` was
+  sourced — two of them are configured on the machine this was rewritten on, so
+  the test failed for being *right*. It now asks the page which platforms report
+  no developer app and holds every one of them to the rule.
+- The same spec proved "what we tell you to register is what we send" by
+  clicking Connect on a card that only exists when a developer app happens to be
+  configured. The sending half is proven by the brand-X test; this half now
+  checks every disclosed callback URL against the origin the app is served from,
+  which is true in every environment.
+
+The pattern: **a test that depends on ambient data or ambient configuration is
+not a test of the product.** Each of these was rewritten to read its own
+fixtures or to derive the population from the page.
+
+`daily-path.spec.ts` was rewritten wholesale against the Gallery. The old queue
+put Approve, Reject and Regenerate on every card in a list; the Gallery is
+monitors that open, and the decision is made on the piece — deliberately,
+because approving is a judgement about a render and a set of gates and neither
+is legible on a thumbnail. The interactions moved; the contracts did not, and
+the contracts are what the file still asserts.
+
+One of its tests asserted behaviour the product had deliberately stopped:
+regeneration used to set `status = 'draft'`, which took the piece out of every
+queue filter so an operator who asked for a change watched it disappear.
+`adjustItem` fixed that on purpose. The test now asserts the current promise —
+the note is recorded, a correction job is queued, and **the piece stays in the
+room**.
+
+**Retired:** "editing copy preserves the original for learning". `editItem` is a
+server action with no caller — the inline-edit affordance is gone from the
+screen, so there is no user path for an end-to-end test to walk. The action is
+orphaned (§562's shape) and is named in `docs/E2E_CONTRACT.md` for whoever
+restores an edit path.
+
+### §573 · Every "Ask for a change" button was dead
+
+Found by writing the test that presses one. All eight adjustment buttons
+answered **500**: they are `<button name="adjustment" value="rewrite">` inside a
+`<form action={adjustItem}>` — correct HTML, correct React — and the value never
+arrived, so the action threw `There is no "" adjustment.`
+
+The whole creative-correction loop was unreachable from the UI. Nothing caught
+it because no test had ever pressed one of those buttons: the E2E suite was
+still clicking a *Regenerate* button on a screen that had been replaced, so it
+failed for the wrong reason and the right one stayed hidden behind it.
+
+Each button now binds its own id (`adjustItem.bind(null, a.id)` via
+`formAction`) rather than depending on the submitter being serialised into the
+action's FormData. Unambiguous, and it cannot silently become empty again. The
+FormData read is kept as a default, but nothing reaches it: no control sends an
+`adjustment` field now, and `rewrite` and `reground` carry no condition, so
+there is always at least one button and implicit submission activates the first
+one.
+
+This is the argument for the whole package in one defect: a broken E2E suite is
+not a tidiness problem. It is the absence of the only check that presses the
+buttons.
+
+## §574–§577 · What repairing the tests found
+
+H0.5's premise was that a broken E2E suite is not a tidiness problem. Four live
+defects and nine orphaned features later, that is no longer an argument.
+
+### §574 · The launch batch did nothing, silently
+
+`generateLaunchBatch` read `formData.get('product')`. The form has always sent
+`productId`. So it got an empty string, `buildLaunchPlan('')` found no accounts,
+nothing could be placed, and the action redirected to `?error=` — which the page
+did not render. **The button did nothing, said nothing, and had done so for as
+long as the two names disagreed.** `discardLaunchBatch` read the same wrong name,
+and failed even more quietly: its `delete` matched no row, so Discard reported
+success and threw nothing away.
+
+Fixing it exposed the next defect in the same dead path: the audit row wrote
+`productId` — `recipefix` — into `audit_log.entity_id`, which is a `uuid`. The
+whole action raised after staging every row. Two bugs stacked in a path nothing
+had ever executed to the end.
+
+The page now renders the refusal, because an error redirect nobody displays is
+a silence with extra steps.
+
+### §575 · Where a post sends people, before it is approved
+
+`destination_type`, `destination_url` and `destination_reason` are fetched by
+`getQueueItem` and were rendered nowhere. The router's decision — which is part
+of what an operator approves when they approve a post carrying a link — was
+visible only in the database. It is on the piece now, with its reason, because a
+destination without one is a URL rather than a decision.
+
+### §576 · Nine screens with no `<h1>`, and a colour below AA
+
+The accessibility suite could not reach most of the app while its routes were
+dead. Once it could, it found that **every studio screen had zero `<h1>`
+elements** — a screen reader's outline started at nothing — and that
+`--color-faint` was 3.70:1 on the dark ground, under AA.
+
+The Slate has always been the top-level thing on a studio page: it names the
+room and the question the room answers. It is an `<h1>` now, and `PageHeader`
+became an `<h2>` with a `level` prop for the one page that lives outside the
+shell.
+
+`--color-faint` moved to `#708b86`, solved the way §174 solved `muted`: against
+the grounds the text actually renders on rather than one nominal token. Faint
+text sits on a composite (`rgba(8,17,15,0.5)` over `berth` and `hull`) and on
+`deep`, and the old value failed all of them. `#6f8a85` was tried first and
+clears only the composites — 4.47 on bare `berth`, under AA — so the value
+shipped is the lightest step that clears 4.5 on every dark ground including that
+one (4.53). `dmut` stays at 6.74, so the hierarchy is unchanged.
+
+Both were regressions, both were invisible, and both were found by a test suite
+that had been red for so long nobody was reading it.
+
+### §577 · The credential scrub was guarding names nobody uses
+
+`vitest.setup.ts` replaced `INSTAGRAM_CLIENT_ID`, `THREADS_CLIENT_ID` and
+`PINTEREST_CLIENT_ID` with a sentinel. Those three platforms read `*_APP_ID` and
+`*_APP_SECRET` (§173, §184). **Six variables that do not exist were scrubbed;
+six that do were left in place.**
+
+No request escaped — the setup's other guard refuses every non-local `fetch`
+whatever credential it carries, and that is the layer that matters. But a
+defence-in-depth pair with one half guarding fictional names is a single defence
+wearing a second one's name.
+
+The list stays a literal in the setup file: it runs before every test file, and
+pulling the adapters barrel into that path costs every suite. What is new is
+`credentialIsolation.test.ts`, which reads `PLATFORM_CLIENT_ENV` and fails when
+the two fall out of step — gotcha 1's answer, and the same shape as §569's check
+on the CI key. Verified adversarially: restoring the old name fails with
+`expected [ 'INSTAGRAM_APP_ID' ] to deeply equal []`.
+
+It also asserts the *outcome* rather than the intention — that inside a running
+test, any of those variables that is set holds the sentinel and not something
+that could authenticate.
+
+### The nine orphaned actions
+
+Written, exported, reachable from no control: `editItem`, `publishNow`,
+`discardLaunchBatch`, `createCampaign`, `approveTake`, `discardTake`,
+`addWatchTerm`, `setWatchTermEnabled`, `collectWatchTermsNow`. You cannot edit
+copy, publish now, discard a batch, create a campaign, queue or discard a Daily
+Take, or set a watch term — and Finds tells you it needs a watch term.
+
+Every one of them was invisible for the same reason: the test that would have
+pressed the button was failing on a route that had moved, so it failed for the
+wrong reason and the right one stayed underneath. They are listed in
+`docs/E2E_CONTRACT.md`, and they are the most concrete inventory anyone has of
+what the UI redesign has to reconnect.
+
+**The general lesson, and the argument for the package:** a test suite that has
+been red long enough stops being a signal and becomes scenery. Everything above
+was sitting in production behind a wall of failures nobody read.

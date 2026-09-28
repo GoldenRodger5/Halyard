@@ -243,8 +243,31 @@ export async function publishHandler(job: Job, ctx: HandlerContext): Promise<voi
   );
   const accountRow = accountRows[0];
   if (!accountRow) throw new Error(`account ${item.account_id} not found`);
-  if (accountRow.capability_state === 'disabled' || accountRow.capability_state === 'error') {
-    throw new Error(`account ${accountRow.handle} is ${accountRow.capability_state}; not publishing`);
+
+  const usingUnified = accountRow.transport === 'unified';
+  const allowUnverifiedUnifiedFirstContact =
+    usingUnified &&
+    job.payload.allowUnverifiedUnifiedFirstContact === true &&
+    ctx.workerId === 'first-contact';
+
+  /*
+   * `capability_state` describes Halyard's direct platform connection. It must
+   * not leak across the transport boundary: Meta App Review can leave the
+   * direct Instagram adapter `draft_only` while Blotato is fully able to post.
+   * `disabled` remains global — an operator disabling an account means no
+   * transport may act — but direct auth/review errors govern direct only.
+   */
+  if (accountRow.capability_state === 'disabled') {
+    throw new Error(`account ${accountRow.handle} is disabled; not publishing`);
+  }
+  if (!usingUnified && accountRow.capability_state === 'error') {
+    throw new Error(`account ${accountRow.handle} is error; not publishing`);
+  }
+  if (usingUnified && !accountRow.provider_account_id) {
+    throw new PermanentJobFailure(
+      `account ${accountRow.handle} is routed through Blotato but has no provider account id; not publishing`,
+      'run the provider probe so Halyard can map the connected Blotato account',
+    );
   }
 
   /**
@@ -262,7 +285,7 @@ export async function publishHandler(job: Job, ctx: HandlerContext): Promise<voi
    * that disagreed, and it is the only one whose disagreement reaches a
    * platform.
    */
-  if (accountRow.capability_state === 'pending_auth') {
+  if (!usingUnified && accountRow.capability_state === 'pending_auth') {
     throw new PermanentJobFailure(
       `account ${accountRow.handle} has not completed authentication; not publishing`,
       'the account is pending_auth, which no retry resolves',
@@ -289,7 +312,7 @@ export async function publishHandler(job: Job, ctx: HandlerContext): Promise<voi
    * rendered media, the destination link. The queue surfaces it, the operator
    * posts it, and records the URL. Nothing is lost and nothing is pretended.
    */
-  if (accountRow.capability_state === 'draft_only') {
+  if (!usingUnified && accountRow.capability_state === 'draft_only') {
     await ctx.pool.query(
       `update content_items
           set status = 'awaiting_manual_publish', updated_at = now()
@@ -329,7 +352,7 @@ export async function publishHandler(job: Job, ctx: HandlerContext): Promise<voi
    * person to publish does not need a credential, and failing it here would
    * turn a working handover into a broken integration.
    */
-  if (!accountRow.access_token_enc) {
+  if (!usingUnified && !accountRow.access_token_enc) {
     // Permanent: no number of retries stores a credential. Reconnecting does,
     // and that requeues deliberately rather than on a backoff timer.
     throw new PermanentJobFailure(
@@ -464,14 +487,20 @@ export async function publishHandler(job: Job, ctx: HandlerContext): Promise<voi
     handle: accountRow.handle,
     platformUserId: accountRow.platform_user_id,
     capabilityState: accountRow.capability_state,
-    tokens: {
-      // Guaranteed present by the guard above. Never `?? ''` — an empty bearer
-      // is a request the platform has to refuse, not an absent credential.
-      accessToken: openToken(accountRow.access_token_enc),
-      refreshToken: accountRow.refresh_token_enc ? openToken(accountRow.refresh_token_enc) : null,
-      expiresAt: accountRow.token_expires_at ? new Date(accountRow.token_expires_at) : null,
-      scopes: accountRow.scopes,
-    },
+    tokens: usingUnified
+      ? {
+          // Blotato owns the platform credential. The adapter authenticates
+          // with BLOTATO_API_KEY and never reads this placeholder.
+          accessToken: 'managed-by-unified-provider',
+          scopes: [],
+        }
+      : {
+          // Guaranteed present by the direct-transport guard above. Never `?? ''`.
+          accessToken: openToken(accountRow.access_token_enc!),
+          refreshToken: accountRow.refresh_token_enc ? openToken(accountRow.refresh_token_enc) : null,
+          expiresAt: accountRow.token_expires_at ? new Date(accountRow.token_expires_at) : null,
+          scopes: accountRow.scopes,
+        },
     meta: {
       ...((job.payload.accountMeta as Record<string, unknown>) ?? {}),
       providerAccountId: accountRow.provider_account_id,
@@ -528,7 +557,7 @@ export async function publishHandler(job: Job, ctx: HandlerContext): Promise<voi
    * account private in the hours between approving and posting, which would make
    * a chosen PUBLIC_TO_EVERYONE invalid at exactly the moment it is used.
    */
-  if (item.platform === 'tiktok') {
+  if (item.platform === 'tiktok' && !usingUnified) {
     /*
      * §179. TikTok pulls the video itself, from a URL prefix it has verified, so
      * the stored asset URL — Supabase Storage, or a local dev path — is rewritten
@@ -594,9 +623,18 @@ export async function publishHandler(job: Job, ctx: HandlerContext): Promise<voi
       provider_account_id: accountRow.provider_account_id,
     },
     providerRows[0]?.capabilities ?? null,
+    { allowUnverifiedFirstContact: allowUnverifiedUnifiedFirstContact },
   );
 
   try {
+    if (allowUnverifiedUnifiedFirstContact) {
+      await ctx.pool.query(
+        `insert into audit_log (actor, action, entity_type, entity_id, detail)
+         values ('human', 'unified_first_contact_authorized', 'content_item', $1, $2)`,
+        [item.id, { platform: item.platform, account: accountRow.handle, worker: ctx.workerId }],
+      );
+    }
+
     let result: Awaited<ReturnType<typeof adapter.publish>>;
     try {
       result = await adapter.publish(publishItem, assets, account);
@@ -610,7 +648,7 @@ export async function publishHandler(job: Job, ctx: HandlerContext): Promise<voi
       // rethrown untouched — that is the distinction the whole idempotency
       // design rests on.
       const failure = err as PublishError;
-      if (failure.kind !== 'auth') throw err;
+      if (failure.kind !== 'auth' || usingUnified) throw err;
 
       const refreshed = await refreshAccountToken(ctx, accountRow, account);
       if (!refreshed) throw err;
@@ -620,6 +658,76 @@ export async function publishHandler(job: Job, ctx: HandlerContext): Promise<voi
         platform: item.platform,
       });
       result = await adapter.publish(publishItem, assets, refreshed);
+    }
+
+    if (result.pending) {
+      if (!result.platformPostId) {
+        // A pending provider submission with no receipt cannot be polled, and
+        // retrying the create call may double-post. Preserve the claim and
+        // escalate instead of pretending the request failed cleanly.
+        await ctx.pool.query(
+          `update publications
+              set raw_response = $2, needs_reconciliation = true,
+                  error = 'Provider accepted an asynchronous publish but returned no submission id.'
+            where id = $1`,
+          [publicationId, result.raw ?? null],
+        );
+        await notify(
+          ctx,
+          'duplicate_publish_abort',
+          'warning',
+          `Publish receipt missing for ${item.platform}`,
+          'The provider accepted an asynchronous request but returned no id Halyard can poll. The item remains publishing and will not be retried automatically.',
+          item.id,
+        );
+        ctx.log('provider submission cannot be reconciled automatically', {
+          contentItemId: item.id,
+          platform: item.platform,
+        });
+        return;
+      }
+
+      await ctx.pool.query(
+        `update publications
+            set platform_post_id = $2,
+                publish_mode = 'direct',
+                raw_response = $3,
+                needs_reconciliation = false,
+                published_at = null
+          where id = $1`,
+        [publicationId, result.platformPostId, result.raw ?? null],
+      );
+
+      await ctx.pool.query(
+        `insert into audit_log (actor, action, entity_type, entity_id, detail)
+         values ('worker', 'publish_submitted', 'content_item', $1, $2)`,
+        [
+          item.id,
+          {
+            transport: accountRow.transport,
+            providerStatus: result.providerStatus ?? 'submitted',
+            submissionId: result.platformPostId,
+            worker: ctx.workerId,
+          },
+        ],
+      );
+
+      await ctx.enqueue(
+        'reconcile_delivery',
+        { publicationId, pollNumber: 1 },
+        {
+          runAfter: new Date(Date.now() + 10_000),
+          dedupeKey: `reconcile_delivery:${publicationId}:1`,
+          priority: 8,
+        },
+      );
+
+      ctx.log('publish submitted; waiting for provider settlement', {
+        contentItemId: item.id,
+        platform: item.platform,
+        submissionId: result.platformPostId,
+      });
+      return;
     }
 
     await ctx.pool.query(
@@ -669,11 +777,12 @@ export async function publishHandler(job: Job, ctx: HandlerContext): Promise<voi
       [item.id, nextStatus, published],
     );
 
-    // An account that has posted recently is an account whose credential is
-    // known good, which is what /accounts and the readiness gate read.
-    await ctx.pool.query('update social_accounts set last_published_at = now() where id = $1', [
-      accountRow.id,
-    ]);
+    // A draft/private delivery is not evidence that the account published.
+    if (published) {
+      await ctx.pool.query('update social_accounts set last_published_at = now() where id = $1', [
+        accountRow.id,
+      ]);
+    }
 
     await ctx.pool.query(
       `insert into audit_log (actor, action, entity_type, entity_id, detail)
@@ -693,7 +802,7 @@ export async function publishHandler(job: Job, ctx: HandlerContext): Promise<voi
     }
 
     // Metrics polling, and comment polling for the first 24 hours (v2 I.1).
-    if (result.platformPostId) {
+    if (published && result.platformPostId) {
       await ctx.enqueue(
         'collect_metrics',
         { publicationId },
@@ -706,7 +815,11 @@ export async function publishHandler(job: Job, ctx: HandlerContext): Promise<voi
       );
     }
 
-    ctx.log('published', { contentItemId: item.id, platform: item.platform, mode: result.mode });
+    ctx.log(published ? 'published' : 'delivered without publishing', {
+      contentItemId: item.id,
+      platform: item.platform,
+      mode: result.mode,
+    });
   } catch (err) {
     const error = err as PublishError;
     const kind =

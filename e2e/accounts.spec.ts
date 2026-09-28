@@ -129,11 +129,30 @@ test.describe('routing safety', () => {
  */
 test.describe('the connections screen', () => {
   test('lists every account with a state and what to do about it', async ({ page }) => {
+    /*
+     * §572. Read the accounts, do not name them.
+     *
+     * This asserted `@recipe.fix` and `@kinolog.app` — two handles that exist
+     * only in one developer's database. On a fresh `db:reset --fresh --seed`,
+     * which is the only kind CI has, neither is there, so the test could not
+     * pass anywhere but on the machine it was written on. The contract §497
+     * actually asked for is *every account, whatever product it belongs to, on
+     * one page*, and that is checkable against whatever the fixtures hold.
+     */
+    const accounts = await db().query<{ handle: string; product_id: string }>(
+      'select handle, product_id from social_accounts order by product_id, platform',
+    );
+    expect(accounts.rows.length, 'the seed should hold some accounts to show').toBeGreaterThan(0);
+    expect(
+      new Set(accounts.rows.map((r) => r.product_id)).size,
+      'more than one product, or this page is not proving what §497 asked of it',
+    ).toBeGreaterThan(1);
+
     await page.goto('/master');
 
-    /* Both products, on one page — the thing §497 was asked for. */
-    await expect(page.getByText('@recipe.fix')).toBeVisible();
-    await expect(page.getByText('@kinolog.app')).toBeVisible();
+    for (const { handle } of accounts.rows) {
+      await expect(page.getByText(handle, { exact: false }).first()).toBeVisible();
+    }
 
     /*
      * Connected and *able to post publicly* are different things, and the page

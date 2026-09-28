@@ -415,6 +415,36 @@ export function disclosureSatisfied(input: {
  * a render, and blanking the visual verdict would mean re-rendering to get it
  * back.
  */
+/**
+ * Re-run only the deterministic copy gate against the body that exists now.
+ *
+ * Approval uses this even when no human edit was recorded. Generation can
+ * legitimately rewrite a caption after its first gate (hook/correction stages);
+ * the approval boundary must never display or trust a copy verdict for older
+ * prose. Claims/media are left untouched because this helper has no new
+ * evidence about them.
+ */
+export function refreshCopyGate(
+  gates: GateResult[],
+  lint: { passed: boolean; violations: Array<{ rule: string; message: string }> },
+): { gates: GateResult[]; passed: boolean } {
+  const flags = lint.violations.length;
+  let found = false;
+  const copy: GateResult = {
+    gate: 'copy',
+    status: !lint.passed ? 'failed' : flags > 0 ? 'warning' : 'passed',
+    summary: `re-run against current body — ${flags} flag${flags === 1 ? '' : 's'}`,
+    detail: { violations: lint.violations },
+  };
+  const next = gates.map((gate): GateResult => {
+    if (gate.gate !== 'copy') return gate;
+    found = true;
+    return copy;
+  });
+  if (!found) next.unshift(copy);
+  return { gates: next, passed: next.every((g) => g.status !== 'failed') };
+}
+
 export function gatesAfterEdit(
   gates: GateResult[],
   lint: { passed: boolean; violations: Array<{ rule: string; message: string }> },

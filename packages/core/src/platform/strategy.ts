@@ -138,8 +138,9 @@ export const PLATFORM_STRATEGIES: Record<PlatformId, PlatformStrategy> = {
     discovery: 'following_graph',
     primarySignal: 'replies',
     signalBrief: [
-      'Open a question this post does not answer. A reply is worth more here than a like.',
-      'One idea. A thread of caveats is a thread nobody replies to.',
+      'Write conversationally and keep one clear idea in the post; concise beats a press release.',
+      'Open a real answerable question only when the subject genuinely benefits from discussion.',
+      'Use no more than one or two specific hashtags; generic tag clouds are not discovery.',
       'The link goes in the first reply, never the body.',
     ],
     audienceBehaviour: {
@@ -178,9 +179,10 @@ export const PLATFORM_STRATEGIES: Record<PlatformId, PlatformStrategy> = {
     discovery: 'recommendation_engine',
     primarySignal: 'saves',
     signalBrief: [
-      'The payoff has to be worth keeping: a number, a rule, a list somebody would come back to.',
-      'Assume the sound is off. Every claim has to be legible on screen, not only spoken.',
-      'The first frame is the thumbnail and decides whether anything else is read.',
+      'Make the asset original to this account rather than a lightly reformatted cross-post.',
+      'The payoff has to be worth keeping: a useful rule, decision aid, demonstration or reference somebody would return to.',
+      'Assume the sound may be off. The core claim has to be legible on screen, not only spoken.',
+      'The first frame must make the subject and reason to continue obvious without a logo bumper.',
     ],
     audienceBehaviour: {
       claim: 'Browsed visually; the first frame decides whether anything else is read.',
@@ -223,8 +225,10 @@ export const PLATFORM_STRATEGIES: Record<PlatformId, PlatformStrategy> = {
     discovery: 'recommendation_engine',
     primarySignal: 'replies',
     signalBrief: [
-      'Posts that open a question outperform posts that close one.',
+      'Write for conversation: give people something specific to answer, add to or disagree with.',
       'Conversational register. A press release does not get replies.',
+      'When media is attached, the text should add context or a point of view instead of acting like a copied caption.',
+      'Prefer an original Threads-native angle over recycling the exact post from another network.',
     ],
     audienceBehaviour: {
       claim: 'Conversational; posts that open a question outperform posts that close one.',
@@ -301,10 +305,11 @@ export const PLATFORM_STRATEGIES: Record<PlatformId, PlatformStrategy> = {
     discovery: 'recommendation_engine',
     primarySignal: 'completion',
     signalBrief: [
-      'Completion decides reach. Shorter is better here than anywhere, and every second has to earn itself.',
-      'Withhold the payoff until the last third. A piece that answers in the first line has no reason to be finished.',
-      'End near where it began, so a replay reads as continuation. Replays are the strongest watch signal there is.',
-      'Something on screen changes at least every twelve seconds.',
+      'The first seconds must make the value, tension or curiosity obvious; do not spend them on branding or setup.',
+      'Structure the piece as hook → body → payoff/close, with every beat adding information or visible progress.',
+      'Keep the edit native and human rather than glossy-ad generic; demonstrations, close-ups, screen proof and direct text all beat decorative filler.',
+      'Short is a starting advantage, not a command: keep only the seconds the idea earns, then let measured retention decide what this account should repeat.',
+      'Captions and on-screen text must support the story without turning the whole frame into a paragraph.',
     ],
     audienceBehaviour: {
       claim: 'Reach is decided almost entirely by retention in the first seconds, not by followers.',
@@ -342,14 +347,15 @@ export const PLATFORM_STRATEGIES: Record<PlatformId, PlatformStrategy> = {
     discovery: 'search_index',
     primarySignal: 'post_view_engagement',
     signalBrief: [
-      'Half the audience arrived from a search, so they have already decided to watch. Use the room.',
-      'The title carries the search terms. It does work captions do elsewhere.',
-      'Close on a question. What happens after the watch is what ranks here.',
+      'The title and thumbnail/package make a promise; the opening seconds must immediately deliver on that promise.',
+      'Get to the value quickly. Do not restate the title, play a logo sting or delay the subject with generic setup.',
+      'Use a complete enough explanation to satisfy the viewer, then use retention data to move later top moments earlier in future edits.',
+      'For Shorts, optimize the opening and the stayed-to-watch/retention curve rather than assuming one universal duration.',
     ],
     audienceBehaviour: {
-      claim: 'Half search, half recommendation; titles do work that captions do elsewhere.',
-      basis: 'industry_heuristic',
-      why: 'Consistent with YouTube requiring a title where other platforms do not. Unmeasured here.',
+      claim: 'People may arrive from several surfaces, so packaging earns the click and the opening has to satisfy the expectation it created.',
+      basis: 'platform_fact',
+      why: 'YouTube exposes thumbnail impressions/CTR and audience-retention metrics and explicitly recommends matching the opening to the title/thumbnail promise.',
     },
     timing: {
       claim: 'Timing matters little; the index does the distributing.',

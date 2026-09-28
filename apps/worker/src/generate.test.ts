@@ -10,7 +10,13 @@ import type pg from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createIsolatedPool, databaseAvailable } from '../../../packages/db/src/__tests__/testDb.js';
 import { classifyHookType, extractHookPattern } from '@halyard/core';
-import { copywriterDontRules, disownPartialContentItem, generateHandler } from './handlers/generate.js';
+import {
+  copywriterDontRules,
+  disownPartialContentItem,
+  generateHandler,
+  postFormatForTarget,
+  shouldNarrateVideo,
+} from './handlers/generate.js';
 import type { Job } from './poller.js';
 import { testContext, type TestContext } from './testContext.js';
 
@@ -68,6 +74,52 @@ function context(): TestContext {
 
 const job = (payload: Record<string, unknown>): Job =>
   ({ id: 'j1', kind: 'generate', payload, attempts: 1, max_attempts: 3, dedupe_key: null }) as Job;
+
+describe('CreativePackage treatment controls the targeted format', () => {
+  it('keeps a community comparison as comparison instead of silently substituting quiz', () => {
+    const target = { category: 'community', format: 'video' } as never;
+    expect(postFormatForTarget(target, 'comparison')).toBe('comparison');
+  });
+});
+
+describe('CreativePackage audio mode controls narration', () => {
+  it('keeps silent-captioned and natural-sound video out of TTS', () => {
+    for (const audioMode of ['silent_captioned', 'natural_sound', 'text_only']) {
+      expect(
+        shouldNarrateVideo({ audioMode, productionHasVoice: true }),
+        audioMode,
+      ).toBe(false);
+    }
+  });
+
+  it('forces narration when the variant explicitly asks for it', () => {
+    expect(
+      shouldNarrateVideo({ audioMode: 'narrated', productionHasVoice: false }),
+    ).toBe(true);
+  });
+
+  it('lets the operator override the variant in either direction', () => {
+    expect(
+      shouldNarrateVideo({
+        operatorVoice: 'off',
+        audioMode: 'narrated',
+        productionHasVoice: true,
+      }),
+    ).toBe(false);
+    expect(
+      shouldNarrateVideo({
+        operatorVoice: 'on',
+        audioMode: 'silent_captioned',
+        productionHasVoice: false,
+      }),
+    ).toBe(true);
+  });
+
+  it('falls back to the production plan when no variant audio mode exists', () => {
+    expect(shouldNarrateVideo({ productionHasVoice: true })).toBe(true);
+    expect(shouldNarrateVideo({ productionHasVoice: false })).toBe(false);
+  });
+});
 
 d('the calibration batch is not blocked by calibration', () => {
   beforeEach(async () => {
@@ -688,8 +740,8 @@ d('an account that can take no format does not stop the rest', () => {
     // The account with unknown capabilities comes first in creation order.
     await pool.query(
       `insert into social_accounts
-         (product_id, platform, persona, handle, capability_state, supported_formats)
-       values ($1,'instagram','brand','@broken','draft_only','{}')`,
+         (product_id, platform, persona, handle, capability_state, supported_formats, provider_account_id)
+       values ($1,'instagram','brand','@broken','draft_only','{}','test-skip-instagram')`,
       [PRODUCT],
     );
     await pool.query(
@@ -773,8 +825,11 @@ d('an idea is claimed before anything is spent on it', () => {
     );
     await pool.query(
       `insert into social_accounts
-         (product_id, platform, persona, handle, capability_state, supported_formats)
-       values ($1,'x','brand','@ct','draft_only','{image,text}') on conflict do nothing`,
+         (product_id, platform, persona, handle, capability_state, supported_formats, provider_account_id)
+       values ($1,'x','brand','@ct','draft_only','{image,text}','test-claim-x')
+       on conflict (product_id, platform, persona)
+         do update set provider_account_id=excluded.provider_account_id,
+                       supported_formats=excluded.supported_formats`,
       [PRODUCT],
     );
     await pool.query(

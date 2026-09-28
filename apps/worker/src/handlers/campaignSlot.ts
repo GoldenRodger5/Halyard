@@ -18,8 +18,11 @@
  */
 import {
   ConnectorUnavailableError,
+  configuredProductionProviders,
   createConnector,
+  planPackageStory,
   resolveDestination,
+  routeProduction,
   runAllGates,
   writeDraft,
   type LlmClient,
@@ -28,6 +31,7 @@ import {
   type SlopPlatform,
 } from '@halyard/core';
 import type { Job, HandlerContext } from '../poller.js';
+import { buildProductMarketingContext, verifyClaimsAgainstProductBrain } from '../productContext.js';
 import { notify } from './publish.js';
 import { routeToBoard } from './boards.js';
 
@@ -41,7 +45,16 @@ interface SlotRow {
   format: string;
   category: string;
   body: string;
-  generation_meta: { purpose?: string; intent?: string };
+  generation_meta: {
+    purpose?: string;
+    intent?: string;
+    visual_provider?: string;
+    production_v2?: boolean;
+    production_media_required?: boolean;
+  };
+  concept_id: string | null;
+  brief_id: string | null;
+  production_recipe_id: string | null;
 }
 
 export async function fillCampaignSlot(
@@ -53,7 +66,7 @@ export async function fillCampaignSlot(
 
   const { rows: slotRows } = await ctx.pool.query<SlotRow>(
     `select id, product_id, account_id, campaign_id, platform, persona, format, category, body,
-            generation_meta
+            generation_meta, concept_id, brief_id, production_recipe_id
        from content_items where id = $1`,
     [contentItemId],
   );
@@ -120,6 +133,11 @@ export async function fillCampaignSlot(
   }>('select * from products where id = $1', [slot.product_id]);
   const product = productRows[0];
   if (!product) return;
+  const productContext = await buildProductMarketingContext(
+    ctx.pool,
+    slot.product_id,
+    product.brief_summary ?? product.brief_markdown,
+  );
 
   const { rows: voiceRows } = await ctx.pool.query<{
     display_name: string;
@@ -194,7 +212,7 @@ export async function fillCampaignSlot(
         examples: voice.examples ?? [],
         antiExamples: voice.anti_examples ?? [],
       },
-      productBrief: product.brief_summary ?? product.brief_markdown ?? product.name,
+      productBrief: productContext || product.name,
       contentRules: {
         forbiddenClaims: product.content_rules?.forbidden_claims,
         bannedPhrases: product.content_rules?.banned_phrases,
@@ -202,6 +220,142 @@ export async function fillCampaignSlot(
     },
     llm,
   );
+
+  /*
+   * CreativePackage v1 write-back. Copy is now real, so the package can move
+   * from "a scheduled intent" to an actual creative direction. The bounded
+   * story planner names what each beat must do and which media may carry it;
+   * ProductionRouter is then re-run against those richer requirements.
+   */
+  if (slot.generation_meta?.production_v2 && slot.concept_id && slot.brief_id) {
+    const opening = draft.body
+      .split(/\n+/)[0]
+      ?.split(/(?<=[.!?])\s+/)[0]
+      ?.trim()
+      .slice(0, 240) ?? draft.title ?? slot.generation_meta.intent ?? slot.category;
+    const evidence = artifact
+      ? [...new Set((artifact.highlights ?? []).map((highlight) => highlight.sourcePath).filter(Boolean))]
+      : [];
+    const { rows: packageRows } = await ctx.pool.query<{
+      family: 'proof_demo' | 'transformation' | 'teach' | 'story_pov' | 'entertainment_social' | 'creator_style' | null;
+      premise: string;
+      payoff: string | null;
+    }>(
+      `select family, premise, payoff from concepts where id=$1`,
+      [slot.concept_id],
+    );
+    const pkg = packageRows[0];
+    const family = pkg?.family ?? 'teach';
+    const mediaFormat = slot.format as 'text' | 'image' | 'carousel' | 'video' | 'pin' | 'story';
+    const story = planPackageStory({
+      family,
+      format: mediaFormat,
+      hook: opening,
+      premise: pkg?.premise ?? slot.generation_meta.intent ?? slot.category,
+      payoff: pkg?.payoff ?? draft.title ?? opening,
+      hasProductArtifact: Boolean(artifact),
+      requiresProductCapture:
+        family === 'proof_demo' || slot.generation_meta?.purpose === 'demo',
+      targetSeconds: slot.format === 'video' ? 15 : null,
+    });
+
+    await ctx.pool.query(
+      `update creative_briefs
+          set hook = coalesce($2, hook),
+              title_brief = coalesce($3, title_brief),
+              evidence = case when cardinality($4::text[]) > 0 then $4::text[] else evidence end,
+              beats = $5::jsonb,
+              visual_direction = $6::jsonb,
+              audio_direction = $7::jsonb,
+              production_requirements = $8::jsonb,
+              caption_direction = caption_direction || $9::jsonb
+        where id = $1`,
+      [
+        slot.brief_id,
+        opening,
+        draft.title ?? null,
+        evidence,
+        JSON.stringify(story.beats),
+        JSON.stringify(story.visual),
+        JSON.stringify(story.audio),
+        JSON.stringify(story.productionRequirements),
+        JSON.stringify({
+          written: true,
+          hookPattern: draft.hookPattern ?? null,
+          promptVersion: draft.generationMeta.promptVersion,
+        }),
+      ],
+    );
+    await ctx.pool.query(
+      `update concepts
+          set hook = coalesce(hook, $2),
+              story_structure = story_structure || $3::jsonb,
+              visual_treatment = $4::jsonb,
+              audio_direction = $5::jsonb,
+              production_requirements = $6::jsonb,
+              evidence_requirements = case
+                when cardinality($7::text[]) > 0
+                then jsonb_build_array(jsonb_build_object(
+                  'kind','product_artifact',
+                  'detail','Real product artifact paths attached to the platform brief.'
+                ))
+                else evidence_requirements
+              end,
+              updated_at = now()
+        where id = $1`,
+      [
+        slot.concept_id,
+        opening,
+        JSON.stringify({ beats: story.beats }),
+        JSON.stringify(story.visual),
+        JSON.stringify(story.audio),
+        JSON.stringify(story.productionRequirements),
+        evidence,
+      ],
+    );
+
+    if (slot.production_recipe_id) {
+      const route = routeProduction(story.productionRequirements, {
+        mode: 'calibration',
+        configuredProviders: configuredProductionProviders(process.env),
+        costPreference: 'quality_first',
+      });
+      await ctx.pool.query(
+        `update production_recipes
+            set status=$2,
+                requirements=$3::jsonb,
+                steps=$4::jsonb,
+                refusals=$5::jsonb,
+                reasons=$6::jsonb,
+                human_review_required=true,
+                provider_versions=provider_versions || $7::jsonb,
+                updated_at=now()
+          where id=$1`,
+        [
+          slot.production_recipe_id,
+          route.ready ? 'planned' : 'failed',
+          JSON.stringify(story.productionRequirements),
+          JSON.stringify(route.steps),
+          JSON.stringify(route.refusals),
+          JSON.stringify(route.reasons),
+          JSON.stringify({ storyPlanner: 'creative_package_v1' }),
+        ],
+      );
+      await ctx.pool.query(
+        `update content_items
+            set generation_meta = generation_meta || $2::jsonb
+          where id=$1`,
+        [
+          slot.id,
+          JSON.stringify({
+            production_story_ready: true,
+            production_route_ready: route.ready,
+            production_media_required: slot.generation_meta.production_media_required ?? slot.format !== 'text',
+          }),
+        ],
+      );
+    }
+  }
 
   const destination = resolveDestination({
     category: slot.category,
@@ -241,6 +395,30 @@ export async function fillCampaignSlot(
     },
   });
 
+  /*
+   * Non-artifact product claims are grounded in the Product Brain rather than
+   * silently skipped. The writer cites stable FACT:<category>:<key> tokens;
+   * code resolves those tokens to fresh verified rows. Editorial promises are
+   * warnings, unresolved/invented fact sources are failures.
+   */
+  if (!artifact && draft.claims.length > 0) {
+    const brainClaims = await verifyClaimsAgainstProductBrain(
+      ctx.pool,
+      product.id,
+      draft.claims,
+    );
+    const needsReview = brainClaims.checks.some((check) => check.verdict === 'needs_review');
+    const claimGate = {
+      gate: 'claims' as const,
+      status: !brainClaims.passed ? ('failed' as const) : needsReview ? ('warning' as const) : ('passed' as const),
+      summary: brainClaims.summary,
+      detail: brainClaims,
+      examined: brainClaims.checks.length,
+    };
+    qc.gates = qc.gates.map((gate) => (gate.gate === 'claims' ? claimGate : gate));
+    if (!brainClaims.passed) qc.passed = false;
+  }
+
   await ctx.pool.query(
     `update content_items
         set body = $2, title = $3, alt_text = $4, hashtags = $5,
@@ -264,12 +442,26 @@ export async function fillCampaignSlot(
       destination.blockedBy
         ? `${destination.reason} ${destination.blockedBy}`
         : destination.reason,
-      // QC failures never reach the approval queue, here as anywhere else.
+      /*
+       * Blotato visual generation spends credits. Put the *copy* in Holding so
+       * the operator can reject/edit the idea before any paid media call. The
+       * Gallery disables final approval until the visual exists and offers the
+       * explicit Generate visual action instead.
+       */
       qc.passed ? 'pending_approval' : 'failed',
       board?.boardId ?? null,
       board?.reason ?? null,
     ],
   );
+
+  if (qc.passed && slot.generation_meta?.visual_provider === 'blotato') {
+    await ctx.pool.query(
+      `update content_items
+          set generation_meta = generation_meta || $2::jsonb
+        where id = $1`,
+      [slot.id, JSON.stringify({ visual_status: 'awaiting_operator_approval' })],
+    );
+  }
 
   // The idea is consumed only once something was actually written from it.
   if (idea) {

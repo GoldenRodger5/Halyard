@@ -59,17 +59,48 @@ function servedRoutes(): RegExp[] {
   return out;
 }
 
-/** Every path a spec navigates to, with the file that asks for it. */
+/**
+ * Every path a spec could navigate to, with the file that asks for it.
+ *
+ * Not just `page.goto('…')`. The first version of this check looked only for
+ * single-quoted literals and reported thirty-five dead routes; every
+ * `` page.goto(`/queue/${id}`) `` and every route held in a `const ROUTES = […]`
+ * array that a loop later visits was invisible to it — and `/queue/:id` was
+ * dead too. A check that finds most of a problem tells you the problem is
+ * smaller than it is, which is its own kind of false green.
+ *
+ * So it reads **every path-shaped string literal in the file**, quoted or
+ * templated. That is deliberately wider than "things passed to goto": a path
+ * literal sitting in an E2E spec is a route this suite depends on whatever
+ * syntax carries it there, and the few that are not — an API path posted to
+ * rather than navigated — are routes the app must serve anyway.
+ */
 function navigatedPaths(): Array<{ target: string; spec: string }> {
   const out: Array<{ target: string; spec: string }> = [];
 
+  /* A leading slash, then only the characters a URL path is made of. */
+  const PATH_SHAPED = /^\/[A-Za-z0-9\-._~/[\]${}]*$/;
+
   for (const file of readdirSync(E2E).filter((f) => f.endsWith('.spec.ts'))) {
     const source = readFileSync(path.join(E2E, file), 'utf8');
-    for (const match of source.matchAll(/page\.goto\(\s*'([^']+)'/g)) {
-      const raw = match[1]!;
-      if (/^https?:\/\//.test(raw)) continue; // Not this app's router to answer for.
+
+    /* Single-quoted, double-quoted and backticked literals alike. */
+    for (const match of source.matchAll(/'([^'\n]*)'|"([^"\n]*)"|`([^`\n]*)`/g)) {
+      const raw = match[1] ?? match[2] ?? match[3] ?? '';
+      if (!PATH_SHAPED.test(raw)) continue;
+
       const target = raw.split('?')[0]!.split('#')[0]!;
-      if (target !== '') out.push({ target, spec: file });
+      if (target === '' || target === '/') {
+        if (target === '/') out.push({ target, spec: file });
+        continue;
+      }
+
+      /*
+       * `${id}` stands for a value only known at run time, and the router
+       * matches it with a dynamic segment — so it becomes the same wildcard
+       * `[param]` becomes on the other side.
+       */
+      out.push({ target: target.replace(/\$\{[^}]*\}/g, 'x'), spec: file });
     }
   }
 

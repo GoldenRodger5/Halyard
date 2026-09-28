@@ -84,6 +84,15 @@ jobs:
       - name: Install the browser for the replay tests
         run: pnpm exec playwright install --with-deps chromium
 
+      - name: Create Supabase roles in plain Postgres
+        run: |
+          psql "$TEST_DATABASE_URL" -Atqc "select 1 from pg_roles where rolname='anon'" | grep -qx 1 \
+            || psql "$TEST_DATABASE_URL" -v ON_ERROR_STOP=1 -c "create role anon nologin"
+          psql "$TEST_DATABASE_URL" -Atqc "select 1 from pg_roles where rolname='authenticated'" | grep -qx 1 \
+            || psql "$TEST_DATABASE_URL" -v ON_ERROR_STOP=1 -c "create role authenticated nologin"
+          psql "$TEST_DATABASE_URL" -Atqc "select 1 from pg_roles where rolname='service_role'" | grep -qx 1 \
+            || psql "$TEST_DATABASE_URL" -v ON_ERROR_STOP=1 -c "create role service_role nologin"
+
       - name: Apply migrations to a real Postgres
         run: pnpm db:reset -- --fresh --seed
         env:
@@ -151,6 +160,11 @@ jobs:
       # The E2E suite drives the dashboard, which is behind an operator gate.
       # Refused in production by the auth module itself, not by convention.
       HALYARD_DEV_UNAUTHENTICATED: '1'
+      # Browser OAuth tests need the UI to offer a real Connect action. These
+      # are throwaway CI values: provider requests are intercepted at the
+      # browser boundary and no token exchange leaves the runner.
+      X_CLIENT_ID: halyard-ci-x-client
+      X_CLIENT_SECRET: halyard-ci-x-secret
 
     steps:
       - uses: actions/checkout@v4
@@ -163,6 +177,15 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+
+      - name: Create Supabase roles in plain Postgres
+        run: |
+          psql "$DATABASE_URL" -Atqc "select 1 from pg_roles where rolname='anon'" | grep -qx 1 \
+            || psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "create role anon nologin"
+          psql "$DATABASE_URL" -Atqc "select 1 from pg_roles where rolname='authenticated'" | grep -qx 1 \
+            || psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "create role authenticated nologin"
+          psql "$DATABASE_URL" -Atqc "select 1 from pg_roles where rolname='service_role'" | grep -qx 1 \
+            || psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "create role service_role nologin"
 
       - name: Apply migrations and seed
         run: pnpm db:reset -- --fresh --seed

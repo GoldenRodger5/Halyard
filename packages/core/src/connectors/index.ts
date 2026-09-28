@@ -119,7 +119,7 @@ export function createConnector(
     const token = env[tokenEnv];
     const owner = product.connector_config.owner;
     const repo = product.connector_config.repo;
-    if (!token || typeof owner !== 'string' || typeof repo !== 'string') return null;
+    if (typeof owner !== 'string' || typeof repo !== 'string') return null;
     return new GitHubProductConnector(product.id, { token, config: { owner, repo } });
   }
 

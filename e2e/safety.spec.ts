@@ -29,13 +29,19 @@ test.describe('the kill switch', () => {
   test('pausing publishing shows everywhere and stops the publish job at its first check', async ({
     page,
   }) => {
-    await page.goto('/settings');
+    await page.goto('/master/system');
     await page.locator('input[name="reason"]').fill('E2E pause');
-    await page.getByRole('button', { name: 'Pause all publishing' }).click();
+    await page.getByRole('button', { name: 'Stop publishing' }).click();
     await page.waitForLoadState('networkidle');
 
-    await expect(page.getByText('Publishing is currently')).toBeVisible();
-    await expect(page.locator('aside').getByText('Publishing paused')).toBeVisible();
+    /*
+     * §572. The state is stated on the switch, in words.
+     *
+     * There is no sidebar chip any more; the panel says what is true and why —
+     * "Off. Nothing publishes, whatever any account says." — beside the reason
+     * the operator typed. That is the same promise, closer to the control.
+     */
+    await expect(page.getByText(/Nothing publishes, whatever any account says/i)).toBeVisible();
 
     const { rows } = await db().query<{ publishing_enabled: boolean; publishing_disabled_reason: string }>(
       'select publishing_enabled, publishing_disabled_reason from settings where id = true',
@@ -46,7 +52,7 @@ test.describe('the kill switch', () => {
     // An approved, due item stays approved: the worker checks the switch first.
     const item = await seedItem({ status: 'approved', scheduledAt: new Date(Date.now() - 60_000) });
     const before = await db().query('select count(*) from publications');
-    await page.goto('/queue?status=scheduled');
+    await page.goto('/gallery?status=scheduled');
     const after = await db().query('select count(*) from publications');
     expect(after.rows[0]).toEqual(before.rows[0]);
 
@@ -79,26 +85,38 @@ test.describe('draft_only accounts', () => {
       [item.id, account.rows[0]!.id],
     );
 
-    await page.goto('/queue?status=all');
-    await expect(
-      page.locator(`#queue-item-${item.id}`).getByText('awaiting manual publish'),
-    ).toBeVisible();
-
-    await page.goto('/accounts');
-    /**
-     * Provider-specific constraints moved into "Advanced connection details" in
-     * the Accounts clarity pass — they are secondary to whether the account
-     * works, but they are not deleted. This opens the disclosure and asserts
-     * the constraint is still there, which is the property that matters: an
-     * operator planning TikTok content can still find out that API-published
-     * video cannot carry trending audio.
+    /*
+     * §572. On the wall by its link, and on the piece by its state.
+     *
+     * The Gallery's monitors carry no id — the href is the identity — and the
+     * lifecycle state is on the piece rather than on the thumbnail, which is
+     * where the operator acts on it.
      */
-    // Every card has its own disclosure, so open them all rather than guessing
-    // which index belongs to TikTok.
-    const disclosures = page.getByText('Advanced connection details');
-    const count = await disclosures.count();
-    for (let i = 0; i < count; i += 1) await disclosures.nth(i).click();
-    await expect(page.getByText(/cannot attach trending audio/i).first()).toBeVisible();
+    await page.goto('/gallery?view=all');
+    await expect(page.locator(`a[href="/gallery/${item.id}"]`)).toBeVisible();
+
+    await page.goto(`/gallery/${item.id}`);
+    await expect(page.getByText(/finish it by hand/i).first()).toBeVisible();
+
+    await page.goto('/master/system/integrations');
+    /**
+     * §572. Provider constraints live on Master ▸ System ▸ Integrations now.
+     *
+     * They moved off the connections card, which is about whether the account
+     * works, onto the screen about what each integration can actually do. The
+     * property that matters is unchanged and is what is asserted: an operator
+     * planning TikTok content can still find out that API-published video
+     * cannot carry trending audio.
+     */
+    /*
+     * §572. Asserted on the page's text, not on a disclosure's label.
+     *
+     * The panel this lived behind has been renamed twice; what must not change
+     * is that the constraint is *on the page* for an operator planning TikTok
+     * content to find. `textContent` reads inside a collapsed `<details>`, so
+     * this holds whether the disclosure is open, closed, or renamed again.
+     */
+    expect(await page.locator('main').textContent()).toMatch(/cannot attach trending audio/i);
 
     await db().query('delete from publications where platform_post_id = $1', ['e2e-pub']);
   });
@@ -106,9 +124,9 @@ test.describe('draft_only accounts', () => {
 
 test.describe('the Daily Take is input-gated', () => {
   test('offers no way to generate an opinion without one', async ({ page }) => {
-    await page.goto('/take');
+    await page.goto('/wires/take');
 
-    await expect(page.getByRole('heading', { name: 'Daily Take' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Daily Take' }).first()).toBeVisible();
     await expect(page.getByText(/nothing is drafted until you give it one/i)).toBeVisible();
 
     // The absence is the assertion: there is no button that produces a take.
@@ -143,16 +161,37 @@ test.describe('the Daily Take is input-gated', () => {
                                                     status = 'new'`,
     );
 
-    await page.goto('/take');
-    await page.getByRole('button', { name: 'I have a take on this' }).first().click();
-    await expect(page.getByRole('button', { name: 'Check and draft' })).toBeDisabled();
+    await page.goto('/wires/take');
+
+    /*
+     * §572. The composer is inline now, and the refusal is the input's own.
+     *
+     * It used to be two steps — "I have a take on this", then a disabled "Check
+     * and draft". The input is on the page beside each story instead, marked
+     * `required`, so an empty submit never leaves the browser. Same guarantee,
+     * enforced one layer earlier: nothing is drafted from a story alone.
+     */
+    const input = page.locator('input[name="rawInput"]').first();
+    await expect(input).toBeVisible();
+    await expect(input).toHaveAttribute('required', '');
+
+    const before = await db().query<{ n: string }>('select count(*) as n from takes');
+    await page.getByRole('button', { name: 'Draft from this' }).first().click();
+    await page.waitForTimeout(1000);
+    const after = await db().query<{ n: string }>('select count(*) as n from takes');
+    expect(after.rows[0]!.n, 'an empty take must not create a row').toBe(before.rows[0]!.n);
   });
 });
 
 test.describe('the inbox never sends', () => {
   test('states the rule and offers no auto-reply', async ({ page }) => {
-    await page.goto('/inbox');
-    await expect(page.getByText(/There is no auto-reply in this system/i)).toBeVisible();
+    await page.goto('/wires');
+    /*
+     * §572. The rule, as the product now states it: there is no `reply()` on the
+     * adapter interface. That is a stronger claim than "no auto-reply" — it says
+     * the capability does not exist rather than that it is switched off.
+     */
+    await expect(page.getByText(/no reply\(\) on the adapter interface/i)).toBeVisible();
     await expect(page.getByRole('button', { name: /auto.?reply/i })).toHaveCount(0);
     await expect(page.getByRole('button', { name: /reply to all/i })).toHaveCount(0);
   });
@@ -175,7 +214,7 @@ test.describe('onboarding gates generation', () => {
     );
 
     await page.goto('/');
-    await expect(page.getByText(/First-run calibration is not finished/i)).toBeVisible();
+    await expect(page.getByText(/Daily generation will not start until it is done/i)).toBeVisible();
     await expect(page.getByRole('link', { name: 'Continue setup' })).toBeVisible();
 
     await page.goto('/onboarding');

@@ -318,10 +318,16 @@ export class Poller {
         spentTodayUsd(this.pool),
         this.pool.query<{ daily_budget_usd: string }>('select daily_budget_usd from settings where id = true'),
       ]);
+      const rawEstimate = job.payload.estimatedCostUsd ?? job.payload.maxCostUsd;
+      const estimatedJobCostUsd =
+        typeof rawEstimate === 'number' && Number.isFinite(rawEstimate) && rawEstimate > 0
+          ? rawEstimate
+          : null;
       const decision = budgetDecision({
         kind: job.kind,
         spentTodayUsd: spent,
         dailyBudgetUsd: Number(budgetRow.rows[0]?.daily_budget_usd ?? 5),
+        estimatedJobCostUsd,
       });
       if (!decision.proceed) {
         await this.pool.query(

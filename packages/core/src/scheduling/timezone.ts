@@ -48,6 +48,21 @@ export function localDateString(instant: Date, timeZone: string): string {
   return formatInTimeZone(instant, timeZone, 'yyyy-MM-dd');
 }
 
+
+/** Add calendar days to a local YYYY-MM-DD without letting UTC/DST move the date. */
+export function addLocalCalendarDays(
+  localDate: string,
+  offset: number,
+  timeZone: string,
+): string {
+  const [year, month, day] = localDate.split('-').map(Number);
+  if (!year || !month || !day) throw new Error(`Unparseable local date: ${localDate}`);
+  // Noon UTC is deliberately away from the midnight boundary. `localDateString`
+  // then resolves the resulting calendar day in the intended audience zone.
+  const base = Date.UTC(year, month - 1, day, 12);
+  return localDateString(new Date(base + offset * 86_400_000), timeZone);
+}
+
 /** ISO weekday (1 = Monday) for an instant, as seen in a given timezone. */
 export function localIsoWeekday(instant: Date, timeZone: string): number {
   const day = Number(formatInTimeZone(instant, timeZone, 'i'));

@@ -30,28 +30,56 @@
  */
 import { beforeAll } from 'vitest';
 
-/** Credentials that cost money, or that authorise writing to a platform. */
+/**
+ * Credentials that cost money, or that authorise writing to a platform.
+ *
+ * §577. The platform half of this list is checked against the real registry.
+ *
+ * It had drifted: it sanitised `INSTAGRAM_CLIENT_ID`, `THREADS_CLIENT_ID` and
+ * `PINTEREST_CLIENT_ID`, and the names those platforms actually use are
+ * `*_APP_ID` / `*_APP_SECRET` (§173, §184). Six variables that do not exist
+ * were being scrubbed and six that do were being left in place. Nothing leaked
+ * — the network guard below refuses the request whatever credential it carries
+ * — but the second layer of a defence-in-depth pair was guarding names nobody
+ * uses, which is the same as not being there.
+ *
+ * Kept as a literal rather than imported from `@halyard/core`: this file is a
+ * setup module that runs before every test file, and pulling the adapters
+ * barrel into that path costs every suite. `credentialIsolation.test.ts` reads
+ * `PLATFORM_CLIENT_ENV` and fails if this list ever falls behind it again.
+ */
 const PAID_OR_PRIVILEGED_KEYS = [
+  /* Paid providers — these are the ones that cost money per call. */
   'ANTHROPIC_API_KEY',
   'OPENAI_API_KEY',
   'ELEVENLABS_API_KEY',
   'PEXELS_API_KEY',
   'REPLICATE_API_TOKEN',
   'GITHUB_TOKEN',
+
+  /* Platform OAuth clients, mirroring `PLATFORM_CLIENT_ENV`. */
   'X_CLIENT_ID',
   'X_CLIENT_SECRET',
+  'INSTAGRAM_APP_ID',
+  'INSTAGRAM_APP_SECRET',
+  'THREADS_APP_ID',
+  'THREADS_APP_SECRET',
+  'PINTEREST_APP_ID',
+  'PINTEREST_APP_SECRET',
   'TIKTOK_CLIENT_KEY',
   'TIKTOK_CLIENT_SECRET',
-  'INSTAGRAM_CLIENT_ID',
-  'INSTAGRAM_CLIENT_SECRET',
-  'THREADS_CLIENT_ID',
-  'THREADS_CLIENT_SECRET',
-  'YOUTUBE_CLIENT_ID',
-  'YOUTUBE_CLIENT_SECRET',
   'GOOGLE_CLIENT_ID',
   'GOOGLE_CLIENT_SECRET',
-  'PINTEREST_CLIENT_ID',
-  'PINTEREST_CLIENT_SECRET',
+
+  /*
+   * Not in the registry, and scrubbed anyway: `META_APP_*` is what Instagram
+   * and Threads are usually configured on, the YouTube pair is read by an
+   * operator script, and a Bluesky app password is a live posting credential.
+   */
+  'META_APP_ID',
+  'META_APP_SECRET',
+  'YOUTUBE_CLIENT_ID',
+  'YOUTUBE_CLIENT_SECRET',
   'BLUESKY_APP_PASSWORD',
 ] as const;
 

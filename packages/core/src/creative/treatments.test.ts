@@ -219,6 +219,29 @@ describe('selectCreativePlan', () => {
     expect(again).not.toBeNull();
   });
 
+  it('honours an operator-selected treatment when the artifact supports it', () => {
+    const baseline = selectCreativePlan(rich, input)!;
+    const alternate = baseline.considered.find(
+      (candidate) => candidate.plan.creativeType !== baseline.chosen.creativeType,
+    )!;
+    const preferred = selectCreativePlan(rich, {
+      ...input,
+      preferredTypes: [alternate.plan.creativeType],
+    })!;
+    expect(preferred.chosen.creativeType).toBe(alternate.plan.creativeType);
+    expect(preferred.chosen.rationale).toMatch(/operator-selected concept/i);
+  });
+
+  it('cannot prefer a treatment no planner can build from the artifact', () => {
+    const result = selectCreativePlan(artifact({ highlights: [swap(1)] }), {
+      ...input,
+      preferredTypes: ['process_montage'],
+    });
+    expect(result?.considered.map((candidate) => candidate.plan.creativeType) ?? []).not.toContain(
+      'process_montage',
+    );
+  });
+
   it('explains the choice in the rationale', () => {
     const result = selectCreativePlan(rich, input)!;
     expect(result.chosen.rationale).toMatch(/Chosen over \d+ other treatment/);

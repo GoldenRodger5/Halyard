@@ -21,6 +21,7 @@
 import { GitHubConnector } from '@halyard/core';
 import type { Job, HandlerContext } from '../poller.js';
 import { detectAppVersion } from './capture.js';
+import { localGitHubToken } from './collectEvidence.js';
 
 export async function detectReleaseHandler(job: Job, ctx: HandlerContext): Promise<void> {
   const productId = String(job.payload.productId ?? 'recipefix');
@@ -39,8 +40,16 @@ export async function detectReleaseHandler(job: Job, ctx: HandlerContext): Promi
   const product = rows[0];
   if (!product) return;
 
+  /*
+   * The RecipeFix override predates multi-product Halyard. Applying it to every
+   * product makes a Kinolog rescan inspect RecipeFix's deployed bundle, then
+   * mark Kinolog assets stale when RecipeFix ships. Product-specific overrides
+   * stay product-specific; every other product uses its own configured web URL.
+   */
   const baseUrl =
-    process.env.RECIPEFIX_WEB_URL ?? product.destinations?.web ?? product.website_url;
+    (productId === 'recipefix' ? process.env.RECIPEFIX_WEB_URL : undefined) ??
+    product.destinations?.web ??
+    product.website_url;
   if (!baseUrl) {
     ctx.log('release detection skipped, no web URL', { productId });
     return;
@@ -127,13 +136,8 @@ async function latestGitHubRelease(
 ): Promise<{ version: string } | null> {
   if (!repoConfig?.owner || !repoConfig.repo) return null;
 
-  const token = process.env[repoConfig.token_env ?? 'GITHUB_TOKEN'];
-  if (!token) {
-    ctx.log('repo configured but no token, skipping GitHub release check', {
-      owner: repoConfig.owner,
-    });
-    return null;
-  }
+  const tokenEnv = repoConfig.token_env ?? 'GITHUB_TOKEN';
+  const token = localGitHubToken(tokenEnv);
 
   try {
     const connector = new GitHubConnector({
@@ -144,7 +148,10 @@ async function latestGitHubRelease(
     const latest = releases[0];
     return latest ? { version: latest.tag } : null;
   } catch (err) {
-    ctx.log('GitHub release check failed', { error: (err as Error).message });
+    ctx.log('GitHub release check failed', {
+      error: (err as Error).message,
+      credential: token ? tokenEnv : 'anonymous/public only',
+    });
     return null;
   }
 }

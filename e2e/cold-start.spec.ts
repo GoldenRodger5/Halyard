@@ -9,23 +9,28 @@
 import { db, expect, test } from './fixtures';
 
 test.describe('cold start', () => {
-  test('/analytics says what is not measurable before showing the charts', async ({ page }) => {
-    await page.goto('/analytics');
-    await expect(page.getByText('What is not measurable yet')).toBeVisible();
+  test('Numbers says what is not measurable before showing anything', async ({ page }) => {
+    /*
+     * §572. The rule, not the heading it used to sit under.
+     *
+     * This asserted a panel titled "What is not measurable yet". The rebuilt
+     * Numbers room states the same rule in the body, and the distinction it
+     * draws is the whole contract: a dash is unmeasured, a zero is measured and
+     * found to be zero, and those are different facts.
+     */
+    await page.goto('/numbers');
+    await expect(page.getByText(/nothing has published yet/i).first()).toBeVisible();
+    await expect(page.getByText(/a dash means unmeasured/i).first()).toBeVisible();
   });
 
-  test('best-posting-time windows are labelled defaults until enough posts run', async ({
-    page,
-  }) => {
-    await page.goto('/analytics');
-    const section = page.locator('section', { hasText: 'Best time to post' }).first();
-    await expect(section).toBeVisible();
-
-    // The seeded database is far below the sample threshold, so every window
-    // must say so rather than presenting a shipped default as a measurement.
-    await expect(section.getByText(/Timing computed from fewer than 30 is noise/).first()).toBeVisible();
-    await expect(section.getByText(/of 12 posts/).first()).toBeVisible();
-  });
+  /*
+   * §572. Retired: best-posting-time windows are not on this screen.
+   *
+   * The panel that labelled shipped defaults as defaults does not exist in the
+   * rebuilt Numbers room. The rule it protected — never present a default as a
+   * measurement — is still enforced where the timing is computed, and is
+   * covered by the scheduling unit tests. There is nothing here to click.
+   */
 
   test('a funnel with nothing behind it shows dashes, not zeros', async ({ page }) => {
     // "0.0% of the step before" computed from an empty database reads as a
@@ -34,21 +39,31 @@ test.describe('cold start', () => {
       `select count(*) as n from content_items where status = 'published'`,
     );
 
-    await page.goto('/analytics');
+    await page.goto('/numbers');
     if (Number(published.rows[0]!.n) === 0) {
-      await expect(page.getByText('they are absent ones')).toBeVisible();
+      await expect(page.getByText(/absent numbers, not low ones/i)).toBeVisible();
     } else {
       // With data present the page must not be claiming otherwise.
-      await expect(page.getByText('they are absent ones')).toHaveCount(0);
+      await expect(page.getByText(/absent numbers, not low ones/i)).toHaveCount(0);
     }
   });
 
-  test('the first-30-days page says which phase you are in', async ({ page }) => {
-    await page.goto('/first-30-days');
-    await expect(page.getByRole('heading', { name: 'The first thirty days' })).toBeVisible();
-    await expect(page.getByText('you are here').first()).toBeVisible();
-    // The point of the page: naming the things that look broken and are not.
-    await expect(page.getByText('What looks wrong but is not').first()).toBeVisible();
+  test('Learned says why there is nothing yet, rather than showing an empty chart', async ({
+    page,
+  }) => {
+    /*
+     * §572. The "first thirty days" page became Numbers ▸ Learned.
+     *
+     * Same job: say what looks broken and is not. It now does it by naming the
+     * reason a belief cannot exist yet — a cohort needs a baseline before a
+     * difference means anything — which is the honest version of the phase
+     * banner this used to assert.
+     */
+    await page.goto('/numbers/learned');
+    await expect(page.getByText(/no beliefs yet/i)).toBeVisible();
+    await expect(page.getByText(/nothing has published, so nothing has been measured/i)).toBeVisible();
+    /* And it must not be a model's opinion dressed as a measurement. */
+    await expect(page.getByText(/never written by a model/i)).toBeVisible();
   });
 
   test('/launch previews a fortnight without committing it', async ({ page }) => {
@@ -56,8 +71,8 @@ test.describe('cold start', () => {
       `select count(*) as n from content_items where generation_meta->>'source' = 'launch_batch'`,
     );
 
-    await page.goto('/launch');
-    await expect(page.getByRole('button', { name: 'Generate my first two weeks' })).toBeVisible();
+    await page.goto('/rundown/launch');
+    await expect(page.getByRole('button', { name: 'Generate the batch' })).toBeVisible();
 
     // Rendering the preview must not have written anything.
     const after = await db().query<{ n: string }>(
@@ -66,13 +81,34 @@ test.describe('cold start', () => {
     expect(after.rows[0]!.n).toBe(before.rows[0]!.n);
   });
 
-  test('the launch plan names what it could not place instead of dropping it silently', async ({
-    page,
-  }) => {
-    await page.goto('/launch');
-    const deferred = page.getByText('Could not be placed');
-    if ((await deferred.count()) > 0) {
-      await expect(page.getByText(/minimum is \d+/).first()).toBeVisible();
+  test('the launch plan never hides a deferred placement', async ({ page }) => {
+    await page.goto('/rundown/launch');
+
+    /*
+     * The repaired cold-start planner often fits the whole three-day wave.
+     * The previous assertion expected the old failure message and therefore
+     * failed when the planner improved. What must never regress is the actual
+     * safety contract: if a row is deferred, the summary counts it explicitly.
+     */
+    const deferredRows = page.getByText('deferred', { exact: true });
+    const deferredCount = await deferredRows.count();
+
+    if (deferredCount > 0) {
+      await expect(
+        page
+          .getByText(
+            new RegExp(
+              `${deferredCount} more could not be placed without breaking the spacing rules`,
+              'i',
+            ),
+          )
+          .first(),
+      ).toBeVisible();
+      await expect(page.getByText(/what could not be honoured/i).first()).toBeVisible();
+    } else {
+      await expect(
+        page.getByText(/more could not be placed without breaking the spacing rules/i),
+      ).toHaveCount(0);
     }
   });
 });

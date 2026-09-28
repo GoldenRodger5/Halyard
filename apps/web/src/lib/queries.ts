@@ -305,6 +305,28 @@ export interface QueueItem {
   product_id: string;
   attached_asset_ids: string[];
   attached_urls: string[];
+  /** External visual producer state, when a launch draft opted into one. */
+  visual_provider: string | null;
+  visual_status: string | null;
+  visual_error: string | null;
+  blotato_visual_id: string | null;
+  blotato_template_id: string | null;
+  /** v2: media cannot be approved from copy alone, regardless of producer. */
+  production_v2: boolean;
+  production_media_required: boolean;
+  production_recipe_id: string | null;
+  creative_family: string | null;
+  creative_objective: string | null;
+  creative_premise: string | null;
+  why_care_before_product: string | null;
+  creative_origin_kind: string | null;
+  creative_origin_ref: string | null;
+  production_mode: string | null;
+  production_status: string | null;
+  production_human_review_required: boolean | null;
+  production_steps: Array<{ capability?: string; provider?: string; reason?: string; humanReviewRequired?: boolean }> | null;
+  production_refusals: Array<{ capability?: string; reason?: string }> | null;
+  production_reasons: string[] | null;
   /** §362. Why generation gave up, from `generation_meta`. Null when it did not. */
   failed_because: string | null;
   /**
@@ -428,6 +450,26 @@ const QUEUE_SELECT = `
          ci.generation_meta -> 'grounds' as grounds,
          -- §515. Whether the subject the operator typed reached the artifact.
          ci.generation_meta -> 'subject_unmatched' as subject_unmatched,
+         ci.generation_meta ->> 'visual_provider' as visual_provider,
+         ci.generation_meta ->> 'visual_status' as visual_status,
+         ci.generation_meta ->> 'visual_error' as visual_error,
+         ci.generation_meta ->> 'blotato_visual_id' as blotato_visual_id,
+         ci.generation_meta ->> 'blotato_template_id' as blotato_template_id,
+         coalesce((ci.generation_meta ->> 'production_v2')::boolean, false) as production_v2,
+         coalesce((ci.generation_meta ->> 'production_media_required')::boolean, false) as production_media_required,
+         ci.production_recipe_id,
+         c.family as creative_family,
+         c.objective as creative_objective,
+         c.premise as creative_premise,
+         c.why_care_before_product,
+         c.origin_kind as creative_origin_kind,
+         c.origin_ref as creative_origin_ref,
+         pr.mode as production_mode,
+         pr.status as production_status,
+         pr.human_review_required as production_human_review_required,
+         pr.steps as production_steps,
+         pr.refusals as production_refusals,
+         pr.reasons as production_reasons,
          ci.reject_reason,
          -- §372. What this piece was staged from, so the review screen can show
          -- what it was meant to be beside what it became.
@@ -477,6 +519,8 @@ const QUEUE_SELECT = `
     left join provider_capabilities pc on pc.provider = 'blotato'
     left join ideas i on i.id = ci.idea_id
     left join series s on s.id = ci.series_id
+    left join concepts c on c.id = ci.concept_id
+    left join production_recipes pr on pr.id = ci.production_recipe_id
     left join lateral (
       select p2.publish_mode, p2.platform_post_id, p2.permalink,
              p2.manual_publish_url, p2.published_at

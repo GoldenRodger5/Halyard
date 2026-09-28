@@ -36,8 +36,8 @@ test.describe('the Product Brain', () => {
     );
     test.skip(Number(rows[0]!.n) > 0, 'facts exist, so the empty state is not the case under test');
 
-    await page.goto('/brain');
-    await expect(page.getByText('Halyard knows nothing about this product yet')).toBeVisible();
+    await page.goto('/master/product');
+    await expect(page.getByText(/The Brain has no facts about this product/i)).toBeVisible();
     // The offer must be an action, not an apology.
     await expect(page.getByRole('button', { name: 'Collect evidence' }).first()).toBeVisible();
   });
@@ -66,7 +66,7 @@ test.describe('the Product Brain', () => {
      * with few enough facts for the seeded one to surface — which stopped being
      * true, silently.
      */
-    await page.goto('/brain/identity');
+    await page.goto('/master/product/identity');
     const fact = page.locator('#fact-e2e_what');
     await expect(fact).toBeVisible();
     await expect(fact.getByText('Adapts recipes for real diets')).toBeVisible();
@@ -86,7 +86,7 @@ test.describe('the Product Brain', () => {
       [a],
     );
 
-    await page.goto('/brain/pricing');
+    await page.goto('/master/product/pricing');
     await expect(page.getByText('Free to try')).toBeVisible();
     await expect(page.getByText('https://e2e.test/traceable')).toBeVisible();
     await expect(page.getByText('store-listing')).toBeVisible();
@@ -103,7 +103,7 @@ test.describe('the Product Brain', () => {
       [a],
     );
 
-    await page.goto('/brain/users');
+    await page.goto('/master/product/users');
     await expect(page.getByText(/unverified · 0\.25 · 1 source/)).toBeVisible();
     await expect(page.getByText('never verified').first()).toBeVisible();
     // A fact is fine to show an operator long before it is fine to quote.
@@ -122,7 +122,7 @@ test.describe('the Product Brain', () => {
       [a, b],
     );
 
-    await page.goto('/brain/differentiators');
+    await page.goto('/master/product/differentiators');
     /*
      * Scoped to the fact this test seeded. The page lists every fact in the
      * category, so an unscoped match resolved to six elements and reported a
@@ -167,7 +167,7 @@ test.describe('the Product Brain', () => {
       explanation,
     ]);
 
-    await page.goto('/brain/contradictions');
+    await page.goto('/master/product/contradictions');
     await expect(page.getByText('5 pounds a month').first()).toBeVisible();
     await expect(page.getByText('9 pounds a month').first()).toBeVisible();
     await expect(page.getByText(explanation).first()).toBeVisible();
@@ -188,7 +188,7 @@ test.describe('the Product Brain', () => {
      */
     await seedEvidence('https://e2e.test/uncited', 'e2e-hash-uncited');
 
-    await page.goto('/brain/evidence');
+    await page.goto('/master/product/evidence');
     await expect(page.getByText('https://e2e.test/uncited')).toBeVisible();
     await expect(page.getByText(/produced no fact/)).toBeVisible();
   });
@@ -198,7 +198,7 @@ test.describe('the Product Brain', () => {
   }) => {
     // The Brain must not restate features. This screen states where they come
     // from so the distinction survives contact with a reader.
-    await page.goto('/brain/features');
+    await page.goto('/master/product/features');
     await expect(page.getByText(/replayed in a real browser/)).toBeVisible();
     await expect(page.getByText('feature_claims')).toBeVisible();
   });
@@ -211,7 +211,7 @@ test.describe('the Product Brain', () => {
      */
     await db().query(`delete from jobs where kind = 'explore_product'`);
 
-    await page.goto('/brain/features');
+    await page.goto('/master/product/features');
     await page.getByRole('button', { name: 'Explore the product' }).first().click();
 
     await expect
@@ -230,7 +230,7 @@ test.describe('the Product Brain', () => {
   test('collecting evidence enqueues the collector', async ({ page }) => {
     await db().query(`delete from jobs where kind = 'collect_product_evidence'`);
 
-    await page.goto('/brain');
+    await page.goto('/master/product');
     await page.getByRole('button', { name: 'Collect evidence' }).first().click();
 
     await expect
@@ -260,7 +260,7 @@ test.describe('the Product Brain', () => {
       [a],
     );
 
-    await page.goto('/brain');
+    await page.goto('/master/product');
     await expect(page.getByText('Not yet reachable')).toHaveCount(0);
   });
 });

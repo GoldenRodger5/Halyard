@@ -231,10 +231,16 @@ export async function buildBrainHandler(
     skipped.push('store-listing (no listing evidence)');
   }
 
-  const surface = byKind('connector_surface');
-  if (surface.length > 0) {
+  /*
+   * Implementation truth is additive: the product may advertise an MCP/API
+   * surface and also have a repository. `byKind` independently selects the best
+   * bounded evidence from each, so a large repo cannot crowd the live surface
+   * out and a tiny tool list cannot hide a shipped workflow documented in code.
+   */
+  const implementation = [...byKind('connector_surface'), ...byKind('repository')];
+  if (implementation.length > 0) {
     const result = await discoverImplementationFacts(
-      { productName: product.name, evidence: surface },
+      { productName: product.name, evidence: implementation },
       llm,
     );
     cost += result.costUsd;
@@ -242,11 +248,11 @@ export async function buildBrainHandler(
       ...attribute(
         result,
         { agentId: 'code-intelligence', agentVersion: '1.0', promptVersion: CODE_INTELLIGENCE_PROMPT_VERSION },
-        surface,
+        implementation,
       ),
     );
   } else {
-    skipped.push('code-intelligence (no connector surface)');
+    skipped.push('code-intelligence (no connector or repository evidence)');
   }
 
   const shots = byKind('screenshot');
@@ -469,6 +475,53 @@ export async function buildBrainHandler(
       consumer: 'product_facts.reconciliation',
     });
   }
+
+  /**
+   * Reconcile the old first-run checklist from the system that actually exists.
+   *
+   * A product can be fully configured through Master Control and later rescanned
+   * without ever revisiting the onboarding wizard. Leaving those booleans stale
+   * makes ordinary generation refuse to run even though the evidence, voice,
+   * templates and accounts are all present. Calibration is intentionally the
+   * exception: only human review decisions make that step true.
+   */
+  await ctx.pool.query(
+    `update onboarding_state os
+        set step_ingest_done = exists (
+              select 1 from product_evidence pe
+               where pe.product_id = os.product_id and pe.superseded_by is null
+            ),
+            step_voice_done = exists (
+              select 1 from brand_voices bv
+               where bv.product_id = os.product_id and bv.persona = 'brand'
+            ),
+            step_templates_done = exists (
+              select 1 from templates t
+               where t.product_id = os.product_id and t.enabled
+            ),
+            step_accounts_done = exists (
+              select 1 from social_accounts sa
+               where sa.product_id = os.product_id and sa.persona = 'brand'
+                 and (sa.access_token_enc is not null or sa.provider_account_id is not null)
+            ),
+            calibration_reviewed = (
+              select count(*)::int from calibration_reviews cr where cr.product_id = os.product_id
+            ),
+            step_calibration_done = (
+              select count(*) from calibration_reviews cr where cr.product_id = os.product_id
+            ) >= os.calibration_target
+      where os.product_id = $1`,
+    [productId],
+  );
+  await ctx.pool.query(
+    `update onboarding_state
+        set completed_at = case
+          when step_ingest_done and step_voice_done and step_calibration_done
+               and step_templates_done and step_accounts_done
+          then coalesce(completed_at, now()) else null end
+      where product_id = $1`,
+    [productId],
+  );
 
   ctx.log('built product brain', {
     productId,

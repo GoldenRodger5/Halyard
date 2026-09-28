@@ -1,5 +1,137 @@
 # Where Halyard is right now
 
+**2026-09-28 — V2 is now integrated with current `main` and release-green on the exact combined tree; creative calibration continues under the original $5 total cap.**
+
+- Current schema is **0096**; generated DB types cover **83 tables**.
+- Exact merged-tree verifier: **302 test files / 4,019 tests**, migrations/types/typecheck/lint/real Remotion renders/production build all green.
+- The V2 calibration rules now survive current MomentCircuit mainline work instead of only passing on an older branch base.
+- Pinterest's deterministic **2:3 utility Pin recipe passes visual review**. This accepts the visual production shape, not arbitrary copy/claims placed into it.
+- YouTube's orange-for-lemon close was repaired with an already-paid oatmeal + lemon asset for **$0 additional spend**. The opener still needs semantically correct existing motion before the video recipe is accepted unattended.
+- TikTok, Threads and Instagram still require a fresh finished-output pass before any production recipe is accepted. A technically valid first-pass file is not an approval.
+- Recorded paid calibration spend remains **$4.319496 of the $5 total operator ceiling**. Midnight does not reset this exercise cap. No paid Higgsfield generation and no public RecipeFix post have been sent.
+- Full details: `docs/HALYARD_V2_CREATIVE_VARIETY_CALIBRATION_2026-09-27.md`.
+
+**2026-09-28 — live creative calibration found and repaired the remaining strategy→production gaps; the first pack is deliberately NOT approved for automation yet.** See `docs/HALYARD_V2_CREATIVE_VARIETY_CALIBRATION_2026-09-27.md`.
+
+- RecipeFix remains the proving product, not shared architecture. The fixes are product-neutral contracts.
+- Finished-media review rejected the static/template-like TikTok execution, the orange-for-lemon YouTube beat, generic-photo Pinterest finish and QA-note Threads voice rather than treating technically valid outputs as publishable.
+- CreativePackage treatment now controls targeted format selection; `comparison` has a real short-video path instead of silently becoming `quiz`.
+- Video variants are promoted to real moving-media execution modes, and finished-media QC blocks motion plans that collapse into mostly static cards.
+- Coherence QC now checks the expected subject at the exact beat timestamp, so topically adjacent but wrong stock cannot hide inside a generally coherent edit.
+- Pinterest search/save utility work has a designed 2:3 render path; text criticism names internal system/QA language as a defect.
+- X was correctly refused by its copy/claim gates. Instagram remains uncalibrated because the hard budget guard stopped the next run.
+- The **$5 total ceiling held**; the guard refused a capped job once paid calls were about $4.32. **No paid Higgsfield generation and no public social post** were sent.
+- Source/test repair is pushed at `78d8365`; build is green and the independent CI verify/E2E pass is running. Do not describe this checkpoint as fully release-green until that run completes.
+
+
+**2026-09-27 late — creative variety + spend-controlled calibration is implemented and release-green.** Checkpoint: `docs/HALYARD_V2_CREATIVE_VARIETY_CALIBRATION_2026-09-27.md`.
+
+- Opening Run now rotates product-neutral creative shapes across treatment, opening, media, audio and caption-job axes instead of mapping each content category to one permanent template.
+- A missing product-specific mix uses a transparent cold-start prior (35% education / 25% transformation / 20% community / 20% product proof) until real strategy/performance replaces it.
+- The full launch plan is staged, but only a representative **max-six calibration set** is queued for cold-start production; selection prioritizes distinct formats, platforms, categories and treatments before spending wider.
+- Generation no longer defaults a missing `productId` to RecipeFix. Shared creative machinery is fail-closed and product-neutral.
+- One CreativePackage can now lock one normalized real product artifact, so sibling platform variants cannot silently become different product examples while retaining one creative lineage.
+- Paid-job budget preflight can reserve a provider quote/cap before starting; no paid Higgsfield generation has been submitted under the operator's $5 calibration ceiling.
+- Live calibration caught a legacy execution leak: a Threads `caption_only` plan correctly skipped assets on paper but still bought an illustrative image downstream. The worker was stopped, the stray media detached, and `generate.ts` now treats a missing `assets` stage as a hard execution boundary for every product/platform.
+- Verification: schema **0087**, generated types current, **302 test files / 4,005 tests**, typecheck/lint/build green before the live finding; the asset-boundary repair separately passes the real DB-backed generate suite **29/29** plus worker typecheck. No public post was sent.
+
+
+**2026-09-27 — Halyard Social Growth v2 implementation is release-green; visual calibration has started.** Governing docs: `docs/HALYARD_SOCIAL_GROWTH_V2_ARCHITECTURE_2026-09-27.md`, `docs/CREATIVE_PACKAGE_V1_SPEC_2026-09-27.md`, `docs/HALYARD_V2_IMPLEMENTATION_PLAN_2026-09-27.md`; visual checkpoint: `docs/HALYARD_V2_VISUAL_CALIBRATION_2026-09-27.md`.
+
+- Launch, Campaigns and ordinary Floor/daily generation now converge on CreativePackage → creative brief → platform variant → ProductionRecipe lineage instead of maintaining independent creative paths.
+- Launch/Campaign scheduled scaffolding is now filled by the **mature generator** (`targetContentItemId`) rather than the old lightweight campaign-slot writer, so the exact planned variant receives the normal evidence, native-writing, screenplay, asset, voice/render and QC pipeline without changing its scheduled media shape.
+- Opening Run excludes its own rows from calendar collision inputs and preserves written/reviewed slots by stable key. Visual QA proved the same plan remains **18 placements / 6 packages / 0 deferred** before staging, after staging on desktop, and after staging on mobile.
+- Narration-provider exhaustion no longer stalls a video forever: Halyard records a warning, drops the unavailable voice component, releases a **silent caption-led fallback** into the normal render/media-review path, and still cannot publish it without human approval.
+- ProductionRouter is provider-neutral and fail-closed. Truth-critical product proof routes to real capture; generative visual capabilities cannot participate in unattended production until that exact product/provider/capability has passed finished-media QC and explicit human recipe acceptance.
+- Higgsfield has a real server-side async client behind `HF_API_KEY`, but the local Halyard runtime currently has no Higgsfield backend key configured. ChatGPT/Higgsfield connection is not treated as a Halyard server credential.
+- Review visually separates post approval from production-recipe reuse. The actual media is the approval object; copy alone cannot approve video/carousel/image/pin work.
+- Full verifier: schema 0086, generated types current, 301 test files / 3,992 tests green, production web build green.
+- Visual QA rejected the current generic pan footage as weak/repetitive/unrelated B-roll. It does **not** unlock automation. A purpose-built Higgsfield Wild Card candidate was cost-preflighted at 60 credits but not submitted.
+- Mobile Review is functionally safe and has bottom clearance, but the fixed room-status + pocket navigation consume meaningful first-viewport space over tall 9:16 review media. That is recorded as a **studio-shell visual polish follow-up**, not mixed into the social-production architecture release.
+
+
+**2026-09-27 — Halyard Social Growth v2 foundation is implemented, release-verified, visually reviewed, and installed in the live local schema.** Governing architecture: `docs/HALYARD_SOCIAL_GROWTH_V2_ARCHITECTURE_2026-09-27.md`; contract: `docs/CREATIVE_PACKAGE_V1_SPEC_2026-09-27.md`; implementation plan: `docs/HALYARD_V2_IMPLEMENTATION_PLAN_2026-09-27.md`.
+
+The architecture reset is no longer only a design:
+
+- **CreativePackage v1** is the one product-neutral creative contract: audience/problem, premise/payoff, proof requirements, beats/media needs, platform variants, production requirements and quality bar.
+- Existing `concepts → creative_briefs → platform_variants → content_items` is the persisted package spine; **no duplicate creative-package tables were added**. `production_recipes` records reproducible provider routing.
+- **ProductionRouter** chooses capabilities/providers deterministically. Truth-critical product proof cannot route to synthetic media. Production mode refuses uncalibrated generative capabilities.
+- Calibration is persisted **per product + provider + capability** in schema `0086`. Accepting RecipeFix `higgsfield/generated_broll` does not unlock a Higgsfield presenter and does not unlock anything for KinoLog.
+- **Launch, Campaigns, Daily generation and Floor-selected manual creation converge on the same package/brief/variant/recipe lineage.** Launch/Campaign staging uses a shared atomic DB transaction so partial lineage cannot survive a failed write.
+- A creative package can travel across platforms, but it cannot hit the same social identity twice. More volume requires another angle/package rather than repeating the same premise in one feed.
+- Launch cadence is per account; a Reel no longer consumes TikTok/Shorts video headroom. Cold-start default is a **3-day rolling wave**, with 7/14-day capacity views available.
+- Launch orchestration rolls the whole opening run to the next local day when today's day-one slots are already past or leave under one hour for generation/review. Campaign planning similarly omits already-past slots with an explicit warning instead of scheduling yesterday.
+- Floor-selected concepts now control the generation they requested. A preferred treatment is honored only when the real artifact can support it.
+- Review shows the actual media first, then CreativePackage premise/why-care-first, provider route/refusals and calibration state. Media-required posts cannot be approved from copy alone in either UI or server action.
+- `review_media` moves a linked recipe to `review_required` **only after actual finished-media QC passes**; failures move the recipe to `failed`.
+- Review separates **Approve this post** from **Accept recipe for automation**. The latter is the stronger permission and can only persist reviewed generative provider/capability pairs.
+- A real server-side Higgsfield client implements submit/status/cancel against the current Open Higgsfield API contract. Halyard does not treat the ChatGPT Higgsfield connection as a worker credential; `HF_API_KEY` must exist on Halyard itself.
+- Current local provider readiness: **ElevenLabs + Blotato configured; Higgsfield + Canva + Descript worker credentials absent.** ProductionRouter therefore refuses to pretend those providers are executable today.
+
+**Verification on this exact checkpoint:** fresh schema through `0086`; generated DB types current; every package/app typechecks; 0 lint errors (existing warnings only); **301 test files / 3,992 tests pass** including real Remotion/video/media-QC suites; production Next build passes; the focused Launch + Campaign + calibration browser suite is **9/9**. Visual browser QA found and fixed two scheduling defects and two Review presentation defects; final Launch starts in the future, Campaign contains no past teaser, and Review cleanly separates post approval from production-recipe calibration.
+
+**Live local safety:** schema is now **0086**; global publishing remains **disabled**; RecipeFix has **0 publication rows and 0 published content items**; `production_provider_calibrations` contains **0 accepted RecipeFix calibrations**. The **18 pre-v2 RecipeFix launch drafts were retained as rejected/superseded history** so they cannot accidentally be approved under the new quality bar. No social post was sent during this work.
+
+**Next operational milestone:** configure a Halyard worker credential for the chosen source-production provider(s), make a small RecipeFix calibration set (short video, carousel/static, Pinterest utility asset, text-native post), visually critique the actual exports, reject/edit/regenerate weak work, and accept only production recipes that a strong human social team would publish. KinoLog then repeats the exact same architecture without product-specific pipeline code.
+
+
+**2026-09-27 — distribution readiness: RecipeFix is staged, Halyard/Blotato is now a real hybrid rather than a diagram, and publishing is deliberately still off.** Canonical operating model: `docs/DISTRIBUTION_OPERATING_MODEL_2026-09-27.md`; launch checkpoint: `docs/RECIPEFIX_LAUNCH_CHECKPOINT_2026-09-27.md`.
+
+What was verified against the live system rather than assumed:
+
+- RecipeFix Product Brain rescan read **8 live-site pages, the App Store listing, 13 MCP tools, and the private GitHub repo (1,692 paths, 12 high-value files, 7 recent user-facing PRs)**. GitHub evidence is now additive to MCP/REST rather than a mutually exclusive connector. The current rebuild produced 52 factual writes, 36 verified facts and 18 separate strategic inferences; contradictions remain a surfaced review state rather than being silently resolved.
+- The Rescan action now means evidence refresh + release drift + browser exploration/feature replay + Brain rebuild. Re-discovery updates existing feature demonstrations; private flows use the same dedicated capture credentials as exploration and an auth wall without credentials stays unverified instead of becoming a false refutation.
+- Live Blotato account contact succeeded. RecipeFix is mapped for Instagram, Pinterest, Threads, TikTok, X and YouTube; the mismatched founder-X identity was deliberately not guessed. Master Control now shows **direct state, Blotato mapping, current route and provider publish proof separately**.
+- Blotato publish receipts are asynchronous. `postSubmissionId` now remains `publishing` until `reconcile_delivery` observes a real `published`/`failed` state. A successful real publication is the evidence that upgrades that one provider/platform path; a later read-only probe cannot erase stronger evidence.
+- First contact supports `--unified` while ordinary automation remains fail-closed. It still requires an explicit item UUID, the target handle typed back, and `PUBLISH` before any real post.
+- Blotato's live MCP was audited directly (35 tools). The three configured visual templates still exist. Visual polling now follows the live >=15s guidance, terminal error states stop immediately, and template existence is checked before a paid call.
+- **Paid Blotato visual generation is no longer automatic.** Copy enters Holding first. The operator must press `Generate Blotato visual`; final approval is server-side blocked until the actual returned media exists and has been reviewed. Three already-queued paid visual jobs from the earlier behavior were disarmed before execution; no credits were spent by them.
+- Pinterest boards are synced through Blotato: Dairy-Free, Gluten-Free, High-Protein, Ingredient Substitutions and Vegan Substitutions. Generic words such as `swap` no longer misroute a pin to a diet-specific board without a diet signal.
+- Launch cadence is per account, not one global video budget shared by Instagram/TikTok/YouTube. The measured two-week capacity is **72 native placements from 20 coordinated creative packages**; the operating plan deliberately works in rolling waves instead of freezing all 14 days before learning.
+- The current rolling first wave is **18 RecipeFix placements across six platforms**. Seventeen copy drafts are generated and in Holding; one YouTube brand-introduction slot is still draft after copy QC refused three attempts and must be repaired rather than silently published. Product-artifact claims verify against real outputs; non-artifact product claims cite stable `FACT:<category>:<key>` Product Brain provenance and resolve against fresh verified Brain facts.
+
+**Safety state at this checkpoint:** global publishing kill switch remains disabled; RecipeFix has **0 publication rows and 0 published content items**. No social post was sent during this readiness work.
+
+**2026-09-08 — H0.5: the release gate is green, and repairing it found four
+live defects.** H0 shipped with `verify` and `build` green and `e2e` red, and
+said so. That is not the exit gate the programme asks for, so this package
+finished it. `pnpm verify --with-e2e` is now green end to end: 294 test files,
+3,922 tests, nothing skipped; 121 E2E tests passing in 3.9 minutes where 49 of
+64 used to fail behind a 20-minute timeout.
+
+The premise was that a broken E2E suite is not a tidiness problem. It held:
+
+| | what was actually broken |
+|---|---|
+| §573 | **every "Ask for a change" button answered 500.** The whole creative-correction loop was unreachable from the UI, because `name`/`value` on a submit button never reached the server action. Found by writing the test that presses one. |
+| §574 | **the launch batch did nothing, silently** — `generateLaunchBatch` read `product`, the form sends `productId`. Fixing it exposed a second bug stacked behind it: the audit row wrote a slug into a `uuid` column. `discardLaunchBatch` failed more quietly still — its delete matched no row, so Discard reported success and threw nothing away. |
+| §575 | the router's destination decision was fetched and rendered nowhere — visible only in the database, on a post an operator is asked to approve. |
+| §576 | **every studio screen had zero `<h1>`s**, and `--color-faint` was below AA. |
+| §577 | the test-suite credential scrub guarded six variable names that do not exist and left the six real ones in place. |
+
+Nine actions are written, exported and reachable from no control (`editItem`,
+`publishNow`, `discardLaunchBatch`, `createCampaign`, `approveTake`,
+`discardTake`, `addWatchTerm`, `setWatchTermEnabled`, `collectWatchTermsNow`).
+They are inventoried in `docs/E2E_CONTRACT.md` and are the most concrete list
+anyone has of what the UI redesign must reconnect.
+
+**The lesson worth keeping:** every one of these was invisible for the same
+reason — the test that would have pressed the button was failing on a route that
+had moved, so it failed for the wrong reason and the right one stayed
+underneath. A suite that has been red long enough stops being a signal and
+becomes scenery.
+
+**Also fixed on the way:** two tests could only ever have passed on one laptop
+(they asserted handles present in one developer's database, and derived
+"platforms with no developer app" from whichever `.env` was sourced). Both now
+read their own fixtures or ask the page. §572.
+
+**Open:** three E2E tests skip because `CRON_SECRET` is unset locally, and the
+visual-baseline suite is opt-in behind `HALYARD_VISUAL=1`. Both are honest
+conditional skips with stated reasons, not the silent kind — but the cron path
+is unexercised on this machine.
+
 **2026-09-07 — H0: the release path is trustworthy, and it was not.** The
 production programme in `docs/production/` starts by asking for one green,
 reproducible release state. Establishing it found that every layer of
@@ -36,17 +168,9 @@ against a real Postgres.
 
 **Open, and not papered over:**
 
-- **The E2E suite tests a UI that was renamed out from under it.** 49 of 64
-  desktop tests fail; **35 distinct routes across 12 spec files now 404**
-  because the studio reorganisation moved every screen (`/agents` →
-  `/master/crew`, `/brain` → `/master/product`, `/system` → `/master/system`,
-  and so on). Each waits 10s on a 404 then times out at 60s, which is why the
-  CI job has been reported only as a 20-minute timeout — the timeout was the
-  symptom. `e2e/routes.spec.ts` now names all 35 in **456ms**. They cannot
-  simply be repointed: the specs also assert copy that exists nowhere in the
-  app, so they need rewriting against the current screens — which the UI
-  redesign is about to change again. **This is the first thing the next
-  package should decide about.** §568.
+- ~~The E2E suite tests a UI that was renamed out from under it.~~ **Done in
+  H0.5 below** — and it was not a tidiness problem: repairing it found four
+  live defects and nine orphaned actions. §571–§577.
 - **Production's `publishing_enabled` could not be read** — no production
   database URL exists on this machine. Production's web tier answers
   `/api/health` 200 with a reachable database. The local dev database has

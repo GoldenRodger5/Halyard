@@ -5,7 +5,7 @@ import { query } from '@/lib/db';
 import { requireOperator } from '@/lib/auth';
 
 /**
- * The three things an operator can start from the Brain.
+ * The operator actions that can start Product Brain work.
  *
  * Each enqueues work for the worker rather than doing it here. The web tier has
  * no browser, no long timeout and no business holding a request open while
@@ -31,6 +31,44 @@ async function enqueue(kind: string, productId: string, priority: number): Promi
      on conflict do nothing`,
     [kind, JSON.stringify({ productId }), priority, `${kind}:${productId}:${minuteBucket()}`],
   );
+}
+
+/**
+ * One deliberate full product rescan.
+ *
+ * This is the operator action the Product Brain was designed around: re-read
+ * configured evidence (website, App Store, MCP/API, repository and screenshots),
+ * walk the live product to rediscover replayable features, and check whether a
+ * new deployed build invalidated captures. Collection chains the Brain rebuild;
+ * exploration chains feature verification. Nothing generated here can publish.
+ */
+export async function rescanProduct(formData: FormData): Promise<void> {
+  await requireOperator();
+  const productId = String(formData.get('productId') ?? '');
+  if (!productId) return;
+
+  const bucket = minuteBucket();
+  for (const [kind, priority] of [
+    ['detect_release', 15],
+    ['collect_product_evidence', 20],
+    ['explore_product', 30],
+  ] as const) {
+    await query(
+      `insert into jobs (kind, payload, priority, dedupe_key)
+       values ($1, $2, $3, $4)
+       on conflict do nothing`,
+      [kind, JSON.stringify({ productId, reason: 'operator_rescan' }), priority, `rescan:${kind}:${productId}:${bucket}`],
+    );
+  }
+
+  await query(
+    `insert into audit_log (actor, action, entity_type, entity_id, detail)
+     values ('human', 'product_rescan_started', 'product', null, $1)`,
+    [{ productId, bucket }],
+  );
+
+  revalidatePath('/master/product');
+  revalidatePath('/master/product/features');
 }
 
 export async function collectEvidence(formData: FormData): Promise<void> {

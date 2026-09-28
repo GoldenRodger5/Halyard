@@ -117,6 +117,19 @@ export interface CoherenceIntent {
    * the check reports itself unmeasured rather than passing.
    */
   expectedSubjects?: string[];
+  /**
+   * What a specific moment was supposed to depict.
+   *
+   * Unlike `expectedSubjects` (a set-level sanity check), this preserves the
+   * render timeline. It catches a clip that is topically adjacent to the piece
+   * but wrong for its beat.
+   */
+  expectedSubjectTimeline?: Array<{
+    startSeconds: number;
+    endSeconds: number;
+    subject: string;
+    role?: string | null;
+  }>;
 }
 
 export interface CoherenceInput {
@@ -162,6 +175,18 @@ const STOPWORDS = new Set([
   'is', 'it', 'this', 'that', 'your', 'you', 'we', 'our', 'be', 'are', 'was',
 ]);
 
+/**
+ * Words describing staging/action rather than the concrete visual subject.
+ */
+const GENERIC_VISUAL_WORDS = new Set([
+  'hand', 'hands', 'person', 'someone', 'food', 'ingredient', 'ingredients',
+  'bowl', 'plate', 'dish', 'jar', 'glass', 'cup', 'table', 'counter', 'kitchen',
+  'shot', 'photo', 'photograph', 'closeup', 'close-up',
+  'adding', 'add', 'mixing', 'mix', 'stirring', 'stir', 'pouring', 'pour',
+  'squeezing', 'squeeze', 'scooping', 'scoop', 'topping', 'top', 'holding',
+  'hold', 'placing', 'place', 'over', 'into',
+]);
+
 function normalise(text: string): string {
   return text.toLowerCase().replace(/[^a-z0-9\s-]/g, ' ').replace(/\s+/g, ' ').trim();
 }
@@ -170,6 +195,30 @@ function contentWords(term: string): string[] {
   return normalise(term)
     .split(/[\s-]+/)
     .filter((word) => word.length > 2 && !STOPWORDS.has(word));
+}
+
+function visualSubjectWords(term: string): string[] {
+  return contentWords(term)
+    .map((word) => {
+      if (word.endsWith('ies') && word.length > 4) return `${word.slice(0, -3)}y`;
+      if (word.endsWith('es') && word.length > 4) return word.slice(0, -2);
+      if (word.endsWith('s') && word.length > 3) return word.slice(0, -1);
+      return word;
+    })
+    .filter((word) => !GENERIC_VISUAL_WORDS.has(word));
+}
+
+function concreteSubjectsOverlap(expected: string, observed: string): boolean | null {
+  const want = visualSubjectWords(expected);
+  const seen = visualSubjectWords(observed);
+  if (want.length === 0 || seen.length === 0) return null;
+  return want.some((left) =>
+    seen.some((right) =>
+      left === right ||
+      (left.length >= 4 && right.startsWith(left)) ||
+      (right.length >= 4 && left.startsWith(right)),
+    ),
+  );
 }
 
 /**
@@ -495,6 +544,42 @@ export function runCoherenceQC(input: CoherenceInput): CoherenceResult {
         fix: 'Nothing is revealed, so there is no reason to keep watching. Break the text across beats.',
       });
     }
+  }
+
+  /*
+   * Compare each sampled frame against the concrete subject promised by the
+   * beat occupying that exact moment. Set-level topical similarity is not
+   * enough for a finished edit.
+   */
+  const timeline = input.intent.expectedSubjectTimeline ?? [];
+  const timedMismatches = frames.flatMap((frame) => {
+    if (!frame.subject) return [];
+    const expected = timeline.find(
+      (entry) =>
+        frame.atSeconds >= entry.startSeconds &&
+        (frame.atSeconds < entry.endSeconds ||
+          (entry === timeline[timeline.length - 1] && frame.atSeconds <= entry.endSeconds)),
+    );
+    if (!expected) return [];
+    const overlap = concreteSubjectsOverlap(expected.subject, frame.subject);
+    if (overlap !== false) return [];
+    return [{ frame, expected }];
+  });
+
+  if (timedMismatches.length > 0) {
+    const critical = timedMismatches.find(({ expected }) =>
+      ['hook', 'payoff', 'close'].includes(expected.role ?? ''),
+    );
+    const mismatch = critical ?? timedMismatches[0]!;
+    findings.push({
+      rule: 'coherence.beat_subject_mismatch',
+      severity: critical ? 'error' : 'warning',
+      message:
+        `At ${mismatch.frame.atSeconds}s the beat asked for "${mismatch.expected.subject}", ` +
+        `but the frame shows "${mismatch.frame.subject}".`,
+      fix:
+        'Use footage that depicts the subject staged for this exact beat. Topically adjacent stock is not a substitute.',
+    });
   }
 
   /**

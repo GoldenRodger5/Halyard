@@ -150,9 +150,13 @@ export default async function CallSheet() {
       <Sheet tone={action.tone === 'calm' ? 'plain' : 'lit'}>
         <div className="grid gap-x-8 gap-y-4 md:grid-cols-[minmax(0,32rem)_1fr]">
           <div>
-            <h1 className="font-display text-[26px] font-extrabold leading-tight tracking-[-0.03em]">
+            {/*
+              §576. An `<h2>`: the Slate above carries the room's `<h1>`, and
+              this is the one thing to do next *within* it, not the page itself.
+            */}
+            <h2 className="m-0 font-display text-[26px] font-extrabold leading-tight tracking-[-0.03em]">
               {action.title}
-            </h1>
+            </h2>
             <p className="mt-2 text-sm leading-relaxed text-quiet">{action.because}</p>
             <Link href={action.href} className="mt-4 inline-block">
               <Action tone={action.tone === 'calm' ? 'ghost' : 'brass'}>{action.cta}</Action>
