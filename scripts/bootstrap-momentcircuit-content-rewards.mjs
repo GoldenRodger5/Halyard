@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { spawn } from 'node:child_process';
 
 const CDP_HTTP = process.env.MOMENTCIRCUIT_CHROME_CDP || 'http://127.0.0.1:9229';
 const APP_DOMAIN = 'b4e0vdqv6zgqeqj4pfgm.apps.whop.com';
@@ -70,22 +71,39 @@ async function main() {
       }
     }
 
-    const response = await fetch(BOOTSTRAP_URL, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ cookies: selected }),
+    const payload = JSON.stringify({ cookies: selected });
+    const result = await new Promise((resolve, reject) => {
+      const child = spawn('/usr/bin/curl', [
+        '--silent',
+        '--show-error',
+        '--fail-with-body',
+        '--request', 'POST',
+        BOOTSTRAP_URL,
+        '--header', 'content-type: application/json',
+        '--data-binary', '@-',
+      ], { stdio: ['pipe', 'pipe', 'pipe'] });
+
+      let stdout = '';
+      let stderr = '';
+      child.stdout.on('data', (chunk) => { stdout += chunk.toString(); });
+      child.stderr.on('data', (chunk) => { stderr += chunk.toString(); });
+      child.on('error', reject);
+      child.on('close', (code) => {
+        let body = {};
+        try { body = JSON.parse(stdout); } catch {}
+        if (code !== 0) {
+          reject(new Error(body.error || stderr.trim() || `curl exited ${code}`));
+          return;
+        }
+        resolve(body);
+      });
+
+      child.stdin.end(payload);
     });
 
-    let body = {};
-    try { body = await response.json(); } catch {}
-
-    if (!response.ok) {
-      throw new Error(body.error || `Bootstrap HTTP ${response.status}`);
-    }
-
-    if (body.already_seeded) {
+    if (result.already_seeded) {
       console.log('Content Rewards cloud auth is already seeded.');
-    } else if (body.authenticated) {
+    } else if (result.authenticated) {
       console.log('Content Rewards cloud auth seeded and verified for circuitmoment@gmail.com.');
     } else {
       console.log('Content Rewards cloud auth bootstrap completed.');
