@@ -744,6 +744,8 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
    * does not need calibration to have already happened.
    */
   const calibration = job.payload.calibration === true;
+  const autonomousCalibration = job.payload.autonomous === true;
+  const mayRunBeforeCalibration = calibration || autonomousCalibration;
 
   // ── Cold-start guard (build pack §2) ─────────────────────────────────────
   const onboarding = await ctx.pool.query<{
@@ -755,11 +757,11 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
 
   const state = onboarding.rows[0];
   const incomplete = !state
-    ? ['ingest', 'voice', ...(calibration ? [] : ['calibration']), 'templates']
+    ? ['ingest', 'voice', ...(mayRunBeforeCalibration ? [] : ['calibration']), 'templates']
     : [
         !state.step_ingest_done && 'ingest',
         !state.step_voice_done && 'voice',
-        !calibration && !state.step_calibration_done && 'calibration',
+        !mayRunBeforeCalibration && !state.step_calibration_done && 'calibration',
         !state.step_templates_done && 'templates',
       ].filter(Boolean);
 
@@ -785,6 +787,12 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
   }
 
   if (calibration) ctx.log('calibration batch', { productId, limit: job.payload.limit });
+  if (autonomousCalibration && !state?.step_calibration_done) {
+    ctx.log('autonomous calibration draft allowed before review milestone', {
+      productId,
+      limit: job.payload.limit,
+    });
+  }
 
   // ── Product context ──────────────────────────────────────────────────────
   const productRows = await ctx.pool.query<{
