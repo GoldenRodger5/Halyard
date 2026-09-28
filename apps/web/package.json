@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --port 3200",
-    "build": "next build",
+    "build": "node scripts/prepare-ffmpeg.mjs && next build",
     "start": "next start --port 3200",
     "typecheck": "tsc --noEmit",
     "lint": "next lint --max-warnings=0"
