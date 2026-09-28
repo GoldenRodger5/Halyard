@@ -230,18 +230,25 @@ async function prepareSource(
 function xml(v: string) {
   return v.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');
 }
-function card(line: string, y: number, size: number) {
+function nativeHookLine(line: string, y: number, size: number) {
   if (!line) return '';
-  const width = Math.min(970, Math.max(280, Math.round(line.length * size * 0.6 + 72)));
-  const x = Math.round((1080 - width) / 2);
-  return `<rect x="${x}" y="${y}" width="${width}" height="${size+48}" rx="18" fill="rgba(255,255,255,.95)"/>
-  <text x="540" y="${y+size+4}" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-weight="700" font-size="${size}" fill="#090909">${xml(line)}</text>`;
+  const safe = xml(line.trim().slice(0, 42));
+  const baseline = y + size;
+  return `
+    <text x="540" y="${baseline + 3}" text-anchor="middle"
+      font-family="Arial,Helvetica,sans-serif" font-weight="800" font-size="${size}"
+      fill="rgba(0,0,0,.92)" stroke="rgba(0,0,0,.92)" stroke-width="10"
+      stroke-linejoin="round" paint-order="stroke">${safe}</text>
+    <text x="540" y="${baseline}" text-anchor="middle"
+      font-family="Arial,Helvetica,sans-serif" font-weight="800" font-size="${size}"
+      fill="white" stroke="rgba(0,0,0,.82)" stroke-width="4"
+      stroke-linejoin="round" paint-order="stroke">${safe}</text>`;
 }
 async function overlay(file: string, seg: Segment, kind: 'hook'|'required'|'persistent') {
   let body = '';
   if (kind === 'hook') {
-    body += card(seg.hook_line1 ?? '', 300, 58);
-    body += card(seg.hook_line2 ?? '', 400, 50);
+    body += nativeHookLine(seg.hook_line1 ?? '', 305, 56);
+    body += nativeHookLine(seg.hook_line2 ?? '', 382, 48);
     if (seg.disclosure && seg.disclosure_mode === 'opening') {
       body += `<rect x="46" y="250" width="104" height="52" rx="12" fill="rgba(0,0,0,.68)"/>
       <text x="98" y="285" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-weight="700" font-size="27" fill="white">${xml(seg.disclosure)}</text>`;
@@ -331,6 +338,18 @@ function normalize(p: RenderPayload) {
   if (!p?.source_url) throw new Error('SOURCE_URL_REQUIRED');
   const variants=p.variants?.length?p.variants:[{id:p.variant_id??'master',filename:p.filename??'momentcircuit.mp4',segments:p.segments??[]}];
   if (variants.some((v)=>!v.segments.length)) throw new Error('SEGMENTS_REQUIRED');
+  for (const variant of variants) {
+    for (const seg of variant.segments) {
+      if ((seg.hook_line1?.length ?? 0) > 42 || (seg.hook_line2?.length ?? 0) > 42) {
+        throw new Error('HOOK_LINE_TOO_LONG');
+      }
+      if ((seg.hook_duration ?? 1) > 1.3) throw new Error('HOOK_DURATION_TOO_LONG');
+      if ((seg.start ?? 0) < 0) throw new Error('BAD_SEGMENT_START');
+      if (seg.disclosure_mode && seg.disclosure_mode !== 'none' && !seg.disclosure) {
+        throw new Error('DISCLOSURE_MODE_WITHOUT_TEXT');
+      }
+    }
+  }
   return {...p,variants};
 }
 async function execute(id: string) {
