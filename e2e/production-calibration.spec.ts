@@ -125,7 +125,7 @@ test.describe('production recipe calibration', () => {
   test('accepts only the reviewed generative provider/capability pair', async ({ page }) => {
     await page.goto(`/gallery/${itemId}`);
 
-    await expect(page.getByText('Calibration decision')).toBeVisible();
+    await expect(page.getByText('Reuse this production recipe?')).toBeVisible();
     await expect(page.getByText(/generated_broll → higgsfield/i)).toBeVisible();
     await expect(page.getByText(/final_video_assembly → halyard_render/i)).toBeVisible();
 

@@ -1,5 +1,5 @@
 /**
- * §388. Rundown ▸ First two weeks — the opening run for a new account.
+ * §388. Rundown ▸ Opening run — the opening run for a new account.
  *
  * Fourteen pieces that establish what an account *is*, in an order that earns
  * the follow before it asks for anything. Generated as a batch and reviewed as

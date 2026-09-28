@@ -46,6 +46,8 @@ Key rules now enforced:
 - media-required work cannot be approved until the actual finished media exists;
 - product proof must be real capture/output, never generated UI;
 - generative visual providers are blocked in unattended production until the exact product/provider/capability has passed calibration;
+- the Opening Run never treats its own staged/generated rows as external spacing conflicts; written/reviewed slots are preserved by stable key instead of duplicated on replan;
+- scheduled Launch/Campaign rows are filled by the mature evidence/screenplay/render pipeline while keeping the planner's exact account, platform and media shape;
 - post approval and production-recipe automation approval are separate decisions.
 
 ## Current provider readiness
@@ -83,8 +85,8 @@ A ChatGPT connector is not treated as a Halyard server credential. The worker re
 - RecipeFix publication rows: **0**;
 - RecipeFix published items: **0**;
 - accepted RecipeFix provider calibrations: **0**;
-- full release verification: **301 test files / 3,991 tests**, migrations/types/typecheck/lint/build green;
+- full release verification: **301 test files / 3,992 tests**, migrations/types/typecheck/lint/build green;
 - focused Launch + Campaign + production-calibration browser suite: **9/9**;
-- final browser QA: no console/page/framework errors; Launch begins in the future; Campaign omits already-past teaser slots; Review shows actual media + CreativePackage + production route + separate calibration permission.
+- final browser QA: no console/page/framework errors; Opening Run remains 18 placements / 6 packages / 0 deferred before and after staging on desktop/mobile; Campaign omits already-past teaser slots; Review shows actual media + CreativePackage + production route + separate calibration permission.
 
 **Stop condition before a public post:** at least one real RecipeFix production recipe for the intended format has been visually accepted, its post itself is separately approved, the exact destination/platform payload has passed first-contact dry run, and the operator deliberately turns publishing on.

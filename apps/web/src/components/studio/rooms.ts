@@ -104,7 +104,7 @@ export const ROOMS: Room[] = [
       { href: '/rundown', label: 'This week', hint: 'The running order, by the clock' },
       { href: '/rundown/series', label: 'Series', hint: 'Recurring shapes with their own cadence' },
       { href: '/rundown/campaigns', label: 'Campaigns', hint: 'A window where the mix is allowed to change' },
-      { href: '/rundown/launch', label: 'First two weeks', hint: 'The opening run for a new account' },
+      { href: '/rundown/launch', label: 'Opening run', hint: 'The opening run for a new account' },
     ],
   },
   {

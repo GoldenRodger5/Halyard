@@ -26,6 +26,7 @@ import {
   selectIdeas,
   writeDraft,
   type IdeaCandidate,
+  IDEA_CATEGORIES,
   type LlmClient,
   type ProductArtifact,
   type ProductDestinations,
@@ -473,8 +474,85 @@ function scalingServings(
   return { from, to };
 }
 
+interface TargetContentItem {
+  id: string;
+  product_id: string;
+  account_id: string | null;
+  platform: SlopPlatform;
+  persona: 'brand' | 'founder';
+  format: string;
+  category: string;
+  body: string;
+  status: string;
+  concept_id: string | null;
+  brief_id: string | null;
+  campaign_id: string | null;
+  generation_meta: Record<string, unknown> | null;
+}
+
+/** The scheduled row owns the media shape; production may not mutate it. */
+function postTypeForTargetMedia(format: string): PostTypeId | null {
+  switch (format) {
+    case 'video': return 'short_video';
+    case 'carousel': return 'carousel_images';
+    case 'image': return 'single_image';
+    case 'pin': return 'pin';
+    case 'story': return 'story';
+    case 'text': return 'caption_only';
+    default: return null;
+  }
+}
+
+/** Prefer an editorial structure that matches the package category when known. */
+function postFormatForTarget(target: TargetContentItem): string | null {
+  switch (target.category) {
+    case 'transformation': return 'transformation';
+    case 'education': return 'tips';
+    case 'community': return target.format === 'video' ? 'quiz' : 'myth_fact';
+    case 'product': return target.format === 'video' ? 'walkthrough' : 'transformation';
+    case 'founder_insight': return 'origin';
+    default: return null;
+  }
+}
+
 export async function generateHandler(job: Job, ctx: HandlerContext): Promise<void> {
   const productId = String(job.payload.productId ?? 'recipefix');
+  const targetContentItemId = String(job.payload.targetContentItemId ?? '').trim() || null;
+  const targetItem = targetContentItemId
+    ? (
+        await ctx.pool.query<TargetContentItem>(
+          `select id,product_id,account_id,platform,persona,format,category,body,status,
+                  concept_id,brief_id,campaign_id,generation_meta
+             from content_items where id=$1`,
+          [targetContentItemId],
+        )
+      ).rows[0] ?? null
+    : null;
+  if (targetContentItemId && !targetItem) {
+    throw new PermanentJobFailure(
+      `Target content item ${targetContentItemId} does not exist.`,
+      'A scheduled target row cannot appear on retry.',
+    );
+  }
+  if (targetItem && targetItem.product_id !== productId) {
+    throw new PermanentJobFailure(
+      `Target content item ${targetItem.id} belongs to ${targetItem.product_id}, not ${productId}.`,
+      'Cross-product generation is never a retryable state.',
+    );
+  }
+  if (targetItem && targetItem.body.trim() !== '') {
+    ctx.log('targeted staged item already has copy, preserving it', {
+      contentItemId: targetItem.id,
+      source: targetItem.generation_meta?.source ?? null,
+    });
+    return;
+  }
+  if (targetItem && targetItem.status !== 'draft') {
+    throw new PermanentJobFailure(
+      `Target content item ${targetItem.id} is ${targetItem.status}, not draft.`,
+      'The mature generator may fill only untouched scheduled scaffolding.',
+    );
+  }
 
   /**
    * Built on first use rather than at the top.
@@ -612,7 +690,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
    * enqueued `conceptId` and this handler never read it at all — the UI could
    * say "build this" while generation quietly selected something else.
    */
-  const requestedConceptId = String(job.payload.conceptId ?? '').trim() || null;
+  const requestedConceptId = String(job.payload.conceptId ?? targetItem?.concept_id ?? '').trim() || null;
   const requestedConcept = requestedConceptId
     ? (
         await ctx.pool.query<{
@@ -732,10 +810,13 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
 
     if (!backing) {
       const treatment = requestedTreatment ?? undefined;
-      const category = contentCategoryForFamily(
-        requestedConcept.family as Parameters<typeof contentCategoryForFamily>[0],
-        treatment,
-      );
+      const category =
+        targetItem && IDEA_CATEGORIES.includes(targetItem.category as (typeof IDEA_CATEGORIES)[number])
+          ? (targetItem.category as IdeaCandidate['category'])
+          : contentCategoryForFamily(
+              requestedConcept.family as Parameters<typeof contentCategoryForFamily>[0],
+              treatment,
+            );
       const created = await ctx.pool.query<{
         id: string;
         title: string;
@@ -1089,8 +1170,13 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
     `select id, platform, persona, supported_formats from social_accounts
       where product_id = $1 and capability_state <> 'disabled'
         and (access_token_enc is not null or provider_account_id is not null)
-        and ($2::text is null or platform = $2)`,
-    [productId, (job.payload.onlyPlatform as string | undefined) ?? null],
+        and ($2::text is null or platform = $2)
+        and ($3::uuid is null or id = $3)`,
+    [
+      productId,
+      (job.payload.onlyPlatform as string | undefined) ?? targetItem?.platform ?? null,
+      (job.payload.onlyAccountId as string | undefined) ?? targetItem?.account_id ?? null,
+    ],
   );
 
   if (accounts.rows.length === 0) {
@@ -1098,7 +1184,8 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
       productId,
       /* Named, because "nothing to draft" reads very differently when a
          platform filter is what emptied the list. */
-      onlyPlatform: (job.payload.onlyPlatform as string | undefined) ?? null,
+      onlyPlatform: (job.payload.onlyPlatform as string | undefined) ?? targetItem?.platform ?? null,
+      onlyAccountId: (job.payload.onlyAccountId as string | undefined) ?? targetItem?.account_id ?? null,
     });
     return;
   }
@@ -1167,7 +1254,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
    * run spending money unasked.
    */
   const operatorAsked = Boolean(
-    job.payload.onlyPlatform || job.payload.postFormat || requestedConceptId,
+    job.payload.onlyPlatform || job.payload.postFormat || requestedConceptId || targetContentItemId,
   );
   /**
    * Every media kind an account could produce, not the one it prefers.
@@ -1239,7 +1326,14 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
      * `pillarFit` reports that as its own case rather than as "off-pillar".
      */
     const fit = pillarFit(`${idea.title}. ${idea.angle}`, pillars);
-    if (pillars.length > 0 && !isOnPillar(fit)) {
+    if (requestedConcept) {
+      ctx.log('selected CreativePackage bypasses automatic pillar refusal', {
+        conceptId: requestedConcept.id,
+        ideaId: idea.id,
+        because:
+          'The strategy/operator already selected this package. Product truth, claims and media still pass the normal downstream evidence/QC gates.',
+      });
+    } else if (pillars.length > 0 && !isOnPillar(fit)) {
       ctx.log('subject is outside what this product talks about', {
         productId,
         ideaId: idea.id,
@@ -1248,8 +1342,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
         because: fit.because,
       });
       continue;
-    }
-    if (pillars.length > 0) {
+    } else if (pillars.length > 0) {
       ctx.log('subject sits on a pillar', { ideaId: idea.id, pillar: fit.pillar?.key, because: fit.because });
     }
 
@@ -1500,7 +1593,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
        * nothing was inserted for this account yet and there is nothing to
        * disown.
        */
-      let insertedItemId: string | null = null;
+      let insertedItemId: string | null = targetContentItemId;
 
       const disownPartialItem = (why: string) => disownPartialContentItem(ctx.pool, insertedItemId, why);
 
@@ -1548,7 +1641,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
           platform: account.platform,
           hasArtifact: Boolean(artifact),
           recentFormats: (await recentFormats(ctx, account.id)) as never,
-          requested: (job.payload.postFormat as string | undefined) ?? null,
+          requested: (job.payload.postFormat as string | undefined) ?? (targetItem ? postFormatForTarget(targetItem) : null),
           canCite: true,
         });
         /**
@@ -1575,7 +1668,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
           format: chosenFormat.format,
           platform: account.platform,
           available: postTypesForPlatform(platformSupport),
-          requested: (job.payload.postType as PostTypeId | undefined) ?? null,
+          requested: (job.payload.postType as PostTypeId | undefined) ?? (targetItem ? postTypeForTargetMedia(targetItem.format) : null),
         });
 
 
@@ -1632,6 +1725,13 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
             to: format,
             because: `${resolvedType.postType.name} needs ${format}; the platform preference list guessed ${guessedFormat} before the post type was known.`,
           });
+        }
+
+        if (targetItem && format !== targetItem.format) {
+          throw new PermanentJobFailure(
+            `Target ${targetItem.id} is scheduled as ${targetItem.format}, but ${resolvedType.postType.id} resolved to ${format}.`,
+            'A scheduled media shape is an operator/planner decision. Production may not mutate it on retry.',
+          );
         }
 
         /**
@@ -2122,62 +2222,76 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
               )
             : VO_TARGET_SECONDS;
 
-        const inserted = await ctx.pool.query<{ id: string }>(
-          `insert into content_items
-             (product_id, idea_id, account_id, platform, persona, format, category,
-              body, title, alt_text, hashtags, product_artifact, claims, qc_results,
-              ai_components, status, generation_meta,
-              destination_type, destination_url, destination_reason,
-              board_id, board_reason,
-              /* §215. The writing that did not fit the caption budget, and
-                 where it belongs. Never discarded. */
-              overflow_body, overflow_home,
-              /* §250. Which variant of the format this is. The YouTube adapter
-                 reads it to decide Short vs long-form, and without it a
-                 long-form piece publishes as a Short. */
-              format_subtype,
-              /* §372. What this piece was staged from, so the mix, the render
-                 and the review screen can all read the same document. */
-              screenplay,
-              /* §419. The shape this caption was briefed to take, so the next
-                 one can be briefed differently. */
-              caption_shape)
-           values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,'pending_approval',$16,
-                   $17,$18,$19,$20,$21,$22,$23,$24,$25,$26)
-           returning id`,
-          [
-            productId,
-            idea.id,
-            account.id,
-            account.platform,
-            account.persona,
-            format,
-            idea.category,
-            draft.body,
-            draft.title ?? null,
-            draft.altText ?? null,
-            draft.hashtags,
-            artifact?.raw ?? null,
-            JSON.stringify(draft.claims),
-            JSON.stringify(draft.qc),
-            ['copy'],
-            draft.generationMeta,
-            destination.type,
-            destination.url,
-            destination.blockedBy
-              ? `${destination.reason} ${destination.blockedBy}`
-              : destination.reason,
-            board?.boardId ?? null,
-            board?.reason ?? null,
-            draft.overflow ?? null,
-            draft.overflow ? budgetFor(account.platform).overflowHome : null,
-            subtype,
-            staged ? JSON.stringify(staged.screenplay) : null,
-            captionShape.shape,
-],
-        );
+        const itemCategory = targetItem?.category ?? idea.category;
+        const sharedValues = [
+          idea.id,
+          account.id,
+          account.platform,
+          account.persona,
+          format,
+          itemCategory,
+          draft.body,
+          draft.title ?? null,
+          draft.altText ?? null,
+          draft.hashtags,
+          artifact?.raw ?? null,
+          JSON.stringify(draft.claims),
+          JSON.stringify(draft.qc),
+          ['copy'],
+          JSON.stringify(draft.generationMeta),
+          destination.type,
+          destination.url,
+          destination.blockedBy
+            ? `${destination.reason} ${destination.blockedBy}`
+            : destination.reason,
+          board?.boardId ?? null,
+          board?.reason ?? null,
+          draft.overflow ?? null,
+          draft.overflow ? budgetFor(account.platform).overflowHome : null,
+          subtype,
+          staged ? JSON.stringify(staged.screenplay) : null,
+          captionShape.shape,
+        ];
 
-        const contentItemId = inserted.rows[0]!.id;
+        const inserted = targetItem
+          ? await ctx.pool.query<{ id: string }>(
+              `update content_items
+                  set idea_id=$2, account_id=$3, platform=$4, persona=$5,
+                      format=$6, category=$7, body=$8, title=$9, alt_text=$10,
+                      hashtags=$11, product_artifact=$12, claims=$13::jsonb,
+                      qc_results=$14::jsonb, ai_components=$15,
+                      status='pending_approval',
+                      generation_meta=coalesce(generation_meta,'{}'::jsonb) || $16::jsonb,
+                      destination_type=$17, destination_url=$18, destination_reason=$19,
+                      board_id=$20, board_reason=$21, overflow_body=$22,
+                      overflow_home=$23, format_subtype=$24, screenplay=$25::jsonb,
+                      caption_shape=$26
+                where id=$1 and status='draft' and body=''
+                returning id`,
+              [targetItem.id, ...sharedValues],
+            )
+          : await ctx.pool.query<{ id: string }>(
+              `insert into content_items
+                 (product_id, idea_id, account_id, platform, persona, format, category,
+                  body, title, alt_text, hashtags, product_artifact, claims, qc_results,
+                  ai_components, status, generation_meta,
+                  destination_type, destination_url, destination_reason,
+                  board_id, board_reason, overflow_body, overflow_home,
+                  format_subtype, screenplay, caption_shape)
+               values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13::jsonb,$14::jsonb,$15,
+                       'pending_approval',$16::jsonb,$17,$18,$19,$20,$21,$22,$23,$24,$25::jsonb,$26)
+               returning id`,
+              [productId, ...sharedValues],
+            );
+
+        const contentItemId = inserted.rows[0]?.id;
+        if (!contentItemId) {
+          ctx.log('targeted staged item changed before generation could fill it', {
+            contentItemId: targetItem?.id ?? null,
+          });
+          continue;
+        }
+        insertedItemId = contentItemId;
 
         /*
          * CreativePackage v1 lineage for ordinary daily + Floor/manual work.

@@ -128,7 +128,10 @@ export async function buildLaunchPlan(
     `select id, platform, persona, scheduled_at from content_items
       where product_id = $1 and scheduled_at is not null
         and status not in ('rejected', 'failed')
-        and not (body = '' and status = 'draft' and generation_meta->>'source' = $3)
+        -- The opening run is one managed plan. None of its own rows are
+        -- external calendar pressure; preserved/written rows are handled by
+        -- stable key during staging below.
+        and coalesce(generation_meta->>'source','') <> $3
         and scheduled_at between now() and now() + ($2 || ' days')::interval`,
     [productId, String(days + 1), LAUNCH_SOURCE],
   );
@@ -211,6 +214,18 @@ export async function generateLaunchBatch(formData: FormData): Promise<void> {
     );
   }
 
+  const preservedLaunch = await query<{ key: string | null }>(
+    `select generation_meta->>'key' as key from content_items
+      where product_id=$1 and generation_meta->>'source'=$2
+        and not (body='' and status='draft')
+        and status not in ('rejected','failed')
+        and generation_meta->>'key' is not null`,
+    [productId, LAUNCH_SOURCE],
+  );
+  const preservedLaunchKeys = new Set(
+    preservedLaunch.map((row) => row.key).filter((key): key is string => Boolean(key)),
+  );
+
   await query(
     `delete from content_items
       where product_id = $1 and body = '' and status = 'draft'
@@ -236,6 +251,7 @@ export async function generateLaunchBatch(formData: FormData): Promise<void> {
   const staged: string[] = [];
   const configuredProviders = configuredProductionProviders(process.env);
   for (const slot of placed) {
+    if (preservedLaunchKeys.has(slot.key)) continue;
     const account = accounts.find((a) => a.id === slot.accountId);
     if (!account) continue;
 
@@ -374,16 +390,33 @@ export async function generateLaunchBatch(formData: FormData): Promise<void> {
   // One job per slot, deduped, exactly as campaigns do it. A dedupe key means
   // clicking twice does not write the fortnight twice.
   for (const contentItemId of staged) {
+    const target = await one<{
+      concept_id: string | null;
+      account_id: string | null;
+      platform: string;
+    }>(
+      `select concept_id,account_id,platform from content_items where id=$1`,
+      [contentItemId],
+    );
+    if (!target?.concept_id || !target.account_id) continue;
     await query(
-      // Bare `on conflict do nothing` on purpose: the dedupe index is partial
-      // (`dedupe_key is not null and status in ('queued','running')`), so
-      // naming the column would need the predicate repeated exactly to infer
-      // it. Getting that subtly wrong raises at runtime, and there is only one
-      // unique constraint that this insert can hit.
+      // `targetContentItemId` deliberately bypasses the legacy lightweight
+      // campaign-slot writer. The mature generator fills this exact scheduled
+      // row, then runs the normal screenplay/assets/voice/render pipeline.
       `insert into jobs (kind, payload, priority, dedupe_key)
        values ('generate', $1, 30, $2)
        on conflict do nothing`,
-      [{ productId, contentItemId }, `launch_generate:${contentItemId}`],
+      [
+        {
+          productId,
+          targetContentItemId: contentItemId,
+          calibration: true,
+          conceptId: target.concept_id,
+          onlyPlatform: target.platform,
+          onlyAccountId: target.account_id,
+        },
+        `launch_generate:${contentItemId}`,
+      ],
     );
   }
 

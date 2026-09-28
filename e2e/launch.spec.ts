@@ -189,11 +189,15 @@ test.describe('launch batch', () => {
     await stage(page);
 
     // A draft with a body is not scaffolding, whoever wrote it.
-    const edited = await db().query<{ id: string }>(
+    const before = await db().query<{ n: string }>(
+      `select count(*)::text as n from content_items
+        where generation_meta->>'source'='launch_batch'`,
+    );
+    const edited = await db().query<{ id: string; key: string }>(
       `update content_items set body = 'written by hand'
         where id = (select id from content_items
                      where generation_meta->>'source' = 'launch_batch' limit 1)
-        returning id`,
+        returning id, generation_meta->>'key' as key`,
     );
 
     await stage(page);
@@ -203,6 +207,20 @@ test.describe('launch batch', () => {
       [edited.rows[0]!.id],
     );
     expect(survived.rows[0]?.body).toBe('written by hand');
+
+    const after = await db().query<{ n: string }>(
+      `select count(*)::text as n from content_items
+        where generation_meta->>'source'='launch_batch'`,
+    );
+    expect(after.rows[0]!.n).toBe(before.rows[0]!.n);
+
+    const sameKey = await db().query<{ n: string }>(
+      `select count(*)::text as n from content_items
+        where generation_meta->>'source'='launch_batch'
+          and generation_meta->>'key'=$1`,
+      [edited.rows[0]!.key],
+    );
+    expect(Number(sameKey.rows[0]!.n)).toBe(1);
   });
 
   /*

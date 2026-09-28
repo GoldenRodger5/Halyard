@@ -366,25 +366,32 @@ export async function generateCampaign(formData: FormData): Promise<void> {
   );
   if (!campaign) return;
 
-  const slots = await query<{ id: string }>(
-    `select id from content_items where campaign_id = $1 and status = 'draft' and body = ''`,
+  const slots = await query<{
+    id: string;
+    concept_id: string | null;
+    account_id: string | null;
+    platform: string;
+  }>(
+    `select id,concept_id,account_id,platform from content_items
+      where campaign_id = $1 and status = 'draft' and body = ''`,
     [id],
   );
 
   for (const slot of slots) {
+    if (!slot.concept_id || !slot.account_id) continue;
     await query(
       `insert into jobs (kind, payload, priority, dedupe_key)
        values ('generate', $1, 30, $2)
        on conflict do nothing`,
       [
-        /*
-         * §375. No `campaignId`. It was sent and read by nothing:
-         * `fillCampaignSlot` dispatches on `contentItemId` and takes the
-         * campaign from `slot.campaign_id`, which is the row it is already
-         * holding. A second copy in the payload is a promise to the handler
-         * that the handler does not keep.
-         */
-        { productId: campaign.product_id, contentItemId: slot.id },
+        {
+          productId: campaign.product_id,
+          targetContentItemId: slot.id,
+          calibration: true,
+          conceptId: slot.concept_id,
+          onlyPlatform: slot.platform,
+          onlyAccountId: slot.account_id,
+        },
         `campaign_generate:${slot.id}`,
       ],
     );
