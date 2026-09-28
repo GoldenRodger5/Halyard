@@ -236,14 +236,10 @@ function nativeHookLine(line: string, y: number, size: number) {
   const safe = xml(line.trim().slice(0, 42));
   const baseline = y + size;
   return `
-    <text x="540" y="${baseline + 3}" text-anchor="middle"
-      font-family="Arial,Helvetica,sans-serif" font-weight="800" font-size="${size}"
-      fill="rgba(0,0,0,.92)" stroke="rgba(0,0,0,.92)" stroke-width="10"
-      stroke-linejoin="round" paint-order="stroke">${safe}</text>
     <text x="540" y="${baseline}" text-anchor="middle"
       font-family="Arial,Helvetica,sans-serif" font-weight="800" font-size="${size}"
-      fill="white" stroke="rgba(0,0,0,.82)" stroke-width="4"
-      stroke-linejoin="round" paint-order="stroke">${safe}</text>`;
+      fill="white" stroke="rgba(0,0,0,.88)" stroke-width="5"
+      stroke-linejoin="round" paint-order="stroke fill">${safe}</text>`;
 }
 async function overlay(file: string, seg: Segment, kind: 'hook'|'required'|'persistent') {
   let body = '';
