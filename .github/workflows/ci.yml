@@ -151,6 +151,11 @@ jobs:
       # The E2E suite drives the dashboard, which is behind an operator gate.
       # Refused in production by the auth module itself, not by convention.
       HALYARD_DEV_UNAUTHENTICATED: '1'
+      # Browser OAuth tests need the UI to offer a real Connect action. These
+      # are throwaway CI values: provider requests are intercepted at the
+      # browser boundary and no token exchange leaves the runner.
+      X_CLIENT_ID: halyard-ci-x-client
+      X_CLIENT_SECRET: halyard-ci-x-secret
 
     steps:
       - uses: actions/checkout@v4

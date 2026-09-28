@@ -133,3 +133,47 @@ The worker was stopped immediately. The defective run is retained as failed cali
 `generate.ts` now makes the resolved workflow authoritative: when `assets` is absent, Halyard does not call photographic-subject, image generation, still/story/carousel rendering, or record an image-agent consumption. This rule is product- and platform-neutral; a text-native post for any future connected product gets the same protection.
 
 At discovery, recorded Halyard spend for the day was **$0.3683**, still below the $5 calibration ceiling.
+
+## 2026-09-28 live finished-creative review
+
+The first real calibration pack proved the architecture boundary and also proved that **the current outputs are not yet automation-approved**. No public post was sent.
+
+### What the actual outputs showed
+
+- **Pinterest:** the generated lemon-oats photograph was believable and usable as source imagery, but too generic to carry the Pin by itself. Pinterest now routes search-utility work to a designed 2:3 utility composition (`pin_stack` / `pinterest_tall`) instead of treating a raw photo as the finished creative.
+- **Threads:** the text was technically grounded but read like an internal QA report ("this check kept..."). The text critic now has an explicit `text.internal_work_log` defect and can recover the exact slot when the critic quotes a line but misses its slot id.
+- **TikTok:** the rendered 28.9s quiz was visually polished frame-by-frame but used essentially one static energy-ball background. Root cause: the selected CreativePackage was `comparison` / motion-first, while the legacy category mapping silently replaced it with `quiz`. Comparison already had a real Narrative video builder; Halyard now keeps the selected treatment, advertises comparison as a short-video format, promotes static/text media modes into a real moving-media mode on video destinations, and blocks finished work that promises motion but collapses into cards.
+- **YouTube Short:** this was the strongest first render: multiple shot types, useful text moments and real visual progression. It still failed the publish bar because the close showed **oranges** while the beat/copy said **lemon**, and one oats-pour visual repeated. Finished-media coherence now compares sampled frames against the subject expected at that exact beat; hook/payoff/close subject mismatches are blocking errors.
+- **X:** the candidate was refused rather than shipped because the copy/claim gates did not pass. That is a successful refusal, not a missing deliverable.
+- **Instagram:** the artifact-backed transformation path initially failed its own asset dependency because `transformation` does not use the generic format writer. That execution boundary was repaired and proven live, but the next full calibration attempt was stopped by the spend guard before another paid run. Instagram remains **uncalibrated**, not silently accepted.
+
+### Spend outcome
+
+The hard operator ceiling remained **$5 total**. No paid Higgsfield generation was submitted. During the final Instagram retry the budget guard measured about **$4.32** of paid calls and refused a job capped at $0.75 because it would knowingly cross $5. The guard was not overridden.
+
+### What is accepted now
+
+Accepted as architecture/quality rules:
+
+- CreativePackage treatment controls downstream format selection.
+- Video destinations cannot remain in `text_native`, `designed_static` or `search_utility` execution modes.
+- Motion promises are checked against the finished beat/media structure.
+- Beat-level subject fidelity is checked against actual sampled frames.
+- Pinterest utility creative is designed information, not a naked generated photo.
+- Internal system/QA language is a named copy defect.
+- One bad component should be repaired in isolation; a technically valid render is not a reason to regenerate or approve the whole post.
+
+**No RecipeFix production recipe from this first visual pack is accepted for unattended automation yet.**
+
+### Next calibration run
+
+Spend only on the failed component, in this order:
+
+1. regenerate TikTok as the intended moving comparison, not a quiz;
+2. replace only the wrong/repeated YouTube visual beats using existing or correctly sourced lemon/oats media;
+3. render the designed Pinterest utility Pin from the already-written information;
+4. rewrite Threads from the audience point of view without system-report language;
+5. finish and visually inspect the Instagram carousel when the next budget window opens;
+6. rewrite X shorter and claim-safe.
+
+Only after these actual finished exports pass visual review should a production recipe be accepted or a first-contact Blotato post be attempted.

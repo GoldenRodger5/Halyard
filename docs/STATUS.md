@@ -1,5 +1,18 @@
 # Where Halyard is right now
 
+**2026-09-28 — live creative calibration found and repaired the remaining strategy→production gaps; the first pack is deliberately NOT approved for automation yet.** See `docs/HALYARD_V2_CREATIVE_VARIETY_CALIBRATION_2026-09-27.md`.
+
+- RecipeFix remains the proving product, not shared architecture. The fixes are product-neutral contracts.
+- Finished-media review rejected the static/template-like TikTok execution, the orange-for-lemon YouTube beat, generic-photo Pinterest finish and QA-note Threads voice rather than treating technically valid outputs as publishable.
+- CreativePackage treatment now controls targeted format selection; `comparison` has a real short-video path instead of silently becoming `quiz`.
+- Video variants are promoted to real moving-media execution modes, and finished-media QC blocks motion plans that collapse into mostly static cards.
+- Coherence QC now checks the expected subject at the exact beat timestamp, so topically adjacent but wrong stock cannot hide inside a generally coherent edit.
+- Pinterest search/save utility work has a designed 2:3 render path; text criticism names internal system/QA language as a defect.
+- X was correctly refused by its copy/claim gates. Instagram remains uncalibrated because the hard budget guard stopped the next run.
+- The **$5 total ceiling held**; the guard refused a capped job once paid calls were about $4.32. **No paid Higgsfield generation and no public social post** were sent.
+- Source/test repair is pushed at `78d8365`; build is green and the independent CI verify/E2E pass is running. Do not describe this checkpoint as fully release-green until that run completes.
+
+
 **2026-09-27 late — creative variety + spend-controlled calibration is implemented and release-green.** Checkpoint: `docs/HALYARD_V2_CREATIVE_VARIETY_CALIBRATION_2026-09-27.md`.
 
 - Opening Run now rotates product-neutral creative shapes across treatment, opening, media, audio and caption-job axes instead of mapping each content category to one permanent template.

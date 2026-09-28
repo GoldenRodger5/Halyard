@@ -81,17 +81,34 @@ test.describe('cold start', () => {
     expect(after.rows[0]!.n).toBe(before.rows[0]!.n);
   });
 
-  test('the launch plan names what it could not place instead of dropping it silently', async ({
-    page,
-  }) => {
+  test('the launch plan never hides a deferred placement', async ({ page }) => {
     await page.goto('/rundown/launch');
-    const deferred = page.getByText(/could not be honoured/i);
-    if ((await deferred.count()) > 0) {
-      /* Named and counted, with the rule that refused them. */
+
+    /*
+     * The repaired cold-start planner often fits the whole three-day wave.
+     * The previous assertion expected the old failure message and therefore
+     * failed when the planner improved. What must never regress is the actual
+     * safety contract: if a row is deferred, the summary counts it explicitly.
+     */
+    const deferredRows = page.getByText('deferred', { exact: true });
+    const deferredCount = await deferredRows.count();
+
+    if (deferredCount > 0) {
       await expect(
-        page.getByText(/slots? could not be placed without breaking a spacing rule/i).first(),
+        page
+          .getByText(
+            new RegExp(
+              `${deferredCount} more could not be placed without breaking the spacing rules`,
+              'i',
+            ),
+          )
+          .first(),
       ).toBeVisible();
-      await expect(page.getByText(/dropped rather than squeezed in/i).first()).toBeVisible();
+      await expect(page.getByText(/what could not be honoured/i).first()).toBeVisible();
+    } else {
+      await expect(
+        page.getByText(/more could not be placed without breaking the spacing rules/i),
+      ).toHaveCount(0);
     }
   });
 });
