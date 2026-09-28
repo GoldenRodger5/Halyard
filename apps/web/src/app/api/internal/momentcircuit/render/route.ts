@@ -171,7 +171,7 @@ async function segment(source: string, output: string, seg: Segment, work: strin
   if (seg.disclosure && seg.disclosure_mode==='persistent') {
     filter += `;${cur}[3:v]overlay=0:0[v3]`; cur='[v3]';
   }
-  args.push('-filter_complex',filter,'-map',cur,'-map','0:a?','-c:v','libx264','-crf','18','-preset','veryfast','-c:a','aac','-b:a','192k','-movflags','+faststart','-shortest',output);
+  args.push('-filter_complex',filter,'-map',cur,'-map','0:a?','-t',String(duration),'-c:v','libx264','-crf','18','-preset','veryfast','-c:a','aac','-b:a','192k','-movflags','+faststart','-shortest',output);
   await run(args);
 }
 async function concat(parts: string[], output: string, work: string) {
