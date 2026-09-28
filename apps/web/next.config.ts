@@ -1,21 +1,24 @@
 import type { NextConfig } from 'next';
+import path from 'node:path';
 
 const config: NextConfig = {
   reactStrictMode: true,
   // Workspace packages ship TypeScript source rather than a build step, so Next
   // compiles them alongside the app. Keeps the monorepo free of a dist/ dance.
   transpilePackages: ['@halyard/core', '@halyard/db', '@halyard/render', '@halyard/ui'],
-  serverExternalPackages: ['pg', 'sharp'],
+  serverExternalPackages: ['pg', 'sharp', '@resvg/resvg-js'],
 
+  outputFileTracingRoot: path.join(process.cwd(), '../..'),
   outputFileTracingIncludes: {
     '/api/internal/momentcircuit/render': [
       './bin/ffmpeg',
       '../../packages/render/assets/fonts/**/*',
-      './node_modules/@resvg/resvg-js/**/*',
       '../../node_modules/@resvg/resvg-js/**/*',
-      '../../node_modules/.pnpm/@resvg+resvg-js*/node_modules/@resvg/**/*',
-      '../../node_modules/.pnpm/@resvg+resvg-js-linux-x64-gnu*/node_modules/@resvg/**/*',
-      '../../node_modules/.pnpm/@resvg+resvg-js-linux-x64-musl*/node_modules/@resvg/**/*',
+      '../../node_modules/@resvg/resvg-js-darwin-arm64/**/*',
+      '../../node_modules/.pnpm/@resvg+resvg-js@*/node_modules/@resvg/resvg-js/**/*',
+      '../../node_modules/.pnpm/@resvg+resvg-js-darwin-arm64@*/node_modules/@resvg/resvg-js-darwin-arm64/**/*',
+      '../../node_modules/.pnpm/@resvg+resvg-js-linux-x64-gnu@*/node_modules/@resvg/resvg-js-linux-x64-gnu/**/*',
+      '../../node_modules/.pnpm/@resvg+resvg-js-linux-x64-musl@*/node_modules/@resvg/resvg-js-linux-x64-musl/**/*',
     ],
   },
   typedRoutes: false,
@@ -49,6 +52,7 @@ const config: NextConfig = {
       // transpiled workspace package rather than imported directly.
       config.externals = [
         ...(Array.isArray(config.externals) ? config.externals : [config.externals].filter(Boolean)),
+        '@resvg/resvg-js',
         'sharp',
       ];
     }
