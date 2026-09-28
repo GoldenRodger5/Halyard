@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import {
+  adaptVariationForPlatform,
   addLocalCalendarDays,
   baselineProductionRequirements,
   baselineQualityBar,
@@ -12,7 +13,6 @@ import {
   defaultPresentationModeForFormat,
   defaultSubtypeFor,
   defaultTargetSecondsForVariant,
-  defaultTreatmentForCategory,
   growthObjectiveForCategory,
   mediaRequiredForFormat,
   localDateString,
@@ -254,6 +254,7 @@ export async function generateLaunchBatch(formData: FormData): Promise<void> {
     if (preservedLaunchKeys.has(slot.key)) continue;
     const account = accounts.find((a) => a.id === slot.accountId);
     if (!account) continue;
+    const variation = adaptVariationForPlatform(slot.creativeVariation, slot.platform, slot.format);
 
     const packageSlots = slotsByConcept.get(slot.conceptKey) ?? [slot];
     const platformIntent = [...new Set(packageSlots.map((entry) => entry.platform))];
@@ -310,9 +311,21 @@ export async function generateLaunchBatch(formData: FormData): Promise<void> {
           source: LAUNCH_SOURCE,
           purpose: slot.purpose,
           conceptKey: slot.conceptKey,
+          treatment: slot.creativeVariation.treatment,
+          openingStyle: slot.creativeVariation.openingStyle,
+          mediaMode: slot.creativeVariation.mediaMode,
+          audioMode: slot.creativeVariation.audioMode,
+          captionJob: slot.creativeVariation.captionJob,
         },
-        visualTreatment: {},
-        audioDirection: {},
+        visualTreatment: {
+          openingStyle: slot.creativeVariation.openingStyle,
+          mediaMode: slot.creativeVariation.mediaMode,
+          source: 'creative_variety_v1',
+        },
+        audioDirection: {
+          mode: slot.creativeVariation.audioMode,
+          source: 'creative_variety_v1',
+        },
         ctaDirection: { kind: slot.category === 'community' ? 'conversation' : 'none' },
         qualityBar: packageQuality,
         productionRequirements: uniquePackageRequirements,
@@ -326,14 +339,19 @@ export async function generateLaunchBatch(formData: FormData): Promise<void> {
         productId,
         accountId: account.id,
         platform: slot.platform,
-        treatment: defaultTreatmentForCategory(slot.category),
+        treatment: variation.treatment,
         presentationMode: defaultPresentationModeForFormat(slot.format),
         targetSeconds,
         aspectRatio: defaultAspectRatioForVariant(slot.platform, slot.format),
         beats: [],
-        visualDirection: { language: 'unplanned', source: 'creative_package_v1' },
-        audioDirection: { narration: 'unplanned', music: 'unplanned' },
-        captionDirection: { job: slot.conceptIntent, platform: slot.platform },
+        visualDirection: {
+          language: 'unplanned',
+          source: 'creative_variety_v1',
+          openingStyle: variation.openingStyle,
+          mediaMode: variation.mediaMode,
+        },
+        audioDirection: { mode: variation.audioMode, source: 'creative_variety_v1' },
+        captionDirection: { job: variation.captionJob, intent: slot.conceptIntent, platform: slot.platform },
         evidence: [],
         rationale: slot.reason,
         format: slot.format,
@@ -361,6 +379,7 @@ export async function generateLaunchBatch(formData: FormData): Promise<void> {
           slot_name: slot.slotName,
           reason: slot.reason,
           intent: slot.conceptIntent,
+          creative_variation: variation,
         },
       },
       variant: {
@@ -368,9 +387,9 @@ export async function generateLaunchBatch(formData: FormData): Promise<void> {
         targetSeconds,
         pacing: slot.format === 'video' ? 'fast' : 'measured',
         textDensity: slot.format === 'video' ? 'sparse' : slot.format === 'carousel' ? 'medium' : 'native',
-        hookTreatment: 'native_hook_pending',
+        hookTreatment: variation.openingStyle,
         cta: slot.category === 'community' ? 'conversation' : 'none',
-        audioTreatment: slot.format === 'video' ? 'planned_later' : 'none',
+        audioTreatment: variation.audioMode,
         decision: 'produce',
         decisionReason: `Launch package ${slot.conceptKey}; native ${slot.platform} finish.`,
       },
@@ -382,6 +401,7 @@ export async function generateLaunchBatch(formData: FormData): Promise<void> {
         refusals: route.refusals,
         reasons: route.reasons,
         humanReviewRequired: true,
+        providerVersions: { creativeVariety: 'v1', variation },
       },
     });
     staged.push(stagedVariant.contentItemId);
