@@ -59,7 +59,9 @@ A model-free term builder derives up to 8 discovery topics from verified Brain f
 
 Managed rows are tagged `watch_terms.managed_by='product_brain'` and retain their source fact ids. Operator-created terms remain unmanaged and are never overwritten or disabled by Brain sync.
 
-RecipeFix-shaped and synthetic KinoLog-shaped tests prove the derivation is product-neutral.
+A successful Product Brain rebuild now immediately enqueues a **sync-only** watch-term refresh. The handoff uses an explicit empty source set, so it updates Halyard-owned discovery vocabulary without making Reddit/Pinterest/RSS requests or spending provider budget. If the current verified Brain yields no valid discovery topics, previously managed terms are disabled rather than left stale. Managed rows also refresh their source/min-occurrence policy when re-derived.
+
+RecipeFix-shaped and synthetic KinoLog-shaped tests prove the derivation is product-neutral. Real-Postgres regression coverage also proves stale Brain-managed terms are retired without touching operator-created rows.
 
 ### Pinterest Trends
 
@@ -169,6 +171,12 @@ Before reconciliation with newer `main`, the V3 worktree passed the complete rel
 - production Next build passes.
 
 Additional focused coverage includes real-DB editorial decisions, real jobs constraint, Pinterest trend promotion, Reddit momentum, Product-Brain watch-term bootstrap, synthetic KinoLog term derivation, scheduler ordering, blur/freeze probes, review-media regression tests, and approval boundary tests.
+
+### Current-main hardening checkpoint
+
+After V3, PR #25 and the later MomentCircuit-only dependency commits landed, current `main` was re-audited from a separate clean worktree at `de7bc4e`. The commits after PR #25 change only `apps/web/package.json` and `pnpm-lock.yaml`; they do not modify the autonomy/quality paths. GitHub CI for `de7bc4e` is green.
+
+Focused validation on the exact current-main tree plus the immediate Brain→watch refresh hardening first passed **40/40 targeted tests** against real Postgres. The complete release verifier then passed fresh migrations, generated DB types, every package typecheck, lint with **0 errors**, **312 test files / 4,078 tests**, the real Remotion render path, the production Next build, and browser E2E with **123 passed / 6 explicitly opt-in visual-baseline tests skipped**. This hardening used **$0** provider/model spend. Public publishing behavior was not changed.
 
 ## Rollout sequence (still no public posting)
 

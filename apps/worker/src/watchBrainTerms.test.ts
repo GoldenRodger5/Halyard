@@ -118,4 +118,34 @@ maybe('Product Brain bootstraps discovery terms', () => {
     );
     expect(after.rows[0]!.n).toBe(before.rows[0]!.n);
   });
+
+  it('disables stale Brain-managed terms when the Brain no longer yields discovery topics', async () => {
+    await pool.query(
+      `update product_facts
+          set category = 'identity'
+        where product_id = 'kinolog'`,
+    );
+
+    await collectWatchTermsHandler(
+      {
+        id: 'brain-watch-3',
+        kind: 'collect_watch_terms',
+        payload: { productId: 'kinolog', onlySources: [] },
+      } as never,
+      { pool, log: () => undefined, enqueue: async () => undefined } as never,
+    );
+
+    const managed = await pool.query<{ enabled: boolean }>(
+      `select enabled from watch_terms
+        where product_id='kinolog' and managed_by='product_brain'`,
+    );
+    expect(managed.rows.length).toBeGreaterThan(0);
+    expect(managed.rows.every((row) => row.enabled === false)).toBe(true);
+
+    const manual = await pool.query<{ enabled: boolean }>(
+      `select enabled from watch_terms
+        where product_id='kinolog' and term='operator chosen topic'`,
+    );
+    expect(manual.rows[0]!.enabled).toBe(true);
+  });
 });

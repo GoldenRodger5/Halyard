@@ -523,6 +523,24 @@ export async function buildBrainHandler(
     [productId],
   );
 
+  /**
+   * Discovery must follow the Brain that produced its vocabulary.
+   *
+   * The six-hour watch schedule is a freshness backstop, not a reason for a
+   * newly rebuilt Product Brain to search yesterday's terms until the next
+   * bucket. An empty source set intentionally means "sync managed rows only":
+   * no Reddit/Pinterest/RSS request happens here, so rebuilding product truth
+   * does not create surprise network traffic or provider spend.
+   */
+  await ctx.enqueue(
+    'collect_watch_terms',
+    { productId, onlySources: [] },
+    {
+      priority: 15,
+      dedupeKey: `brain-watch-sync:${productId}:${job.id}`,
+    },
+  );
+
   ctx.log('built product brain', {
     productId,
     evidence: evidence.length,
