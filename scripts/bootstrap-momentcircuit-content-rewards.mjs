@@ -70,7 +70,9 @@ async function readCdpVersion() {
 async function ensureDedicatedChrome() {
   try {
     return await readCdpVersion();
-  } catch {}
+  } catch {
+    // Expected when the dedicated Chrome endpoint is not running yet.
+  }
 
   const child = spawn(CHROME_PATH, [
     `--user-data-dir=${PROFILE_PATH}`,
@@ -179,7 +181,9 @@ async function bootstrapCloud(selected) {
     child.on('error', reject);
     child.on('close', (code) => {
       let body = {};
-      try { body = JSON.parse(stdout); } catch {}
+      try { body = JSON.parse(stdout); } catch {
+        // A non-JSON error body falls through to stderr / curl's exit code.
+      }
       if (code !== 0) {
         reject(new Error(
           body.error ||
@@ -193,7 +197,7 @@ async function bootstrapCloud(selected) {
     child.stdin.end(payload);
   });
 
-  let body = {};
+  let body;
   try { body = JSON.parse(stdout); } catch {
     throw new Error('Supabase bootstrap returned an invalid response.');
   }
@@ -215,10 +219,14 @@ async function main() {
     }
 
     if (launchedChrome) {
-      try { await call(ws, 'Browser.close', {}); } catch {}
+      try { await call(ws, 'Browser.close', {}); } catch {
+        // Chrome may already have closed after the bootstrap completed.
+      }
     }
   } finally {
-    try { ws.close(); } catch {}
+    try { ws.close(); } catch {
+      // The socket may already be closed by Browser.close.
+    }
   }
 }
 

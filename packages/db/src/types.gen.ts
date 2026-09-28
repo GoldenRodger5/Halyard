@@ -1905,6 +1905,132 @@ export interface LinkClicksUpdate {
   clicked_at?: string;
 }
 
+export interface MomentcircuitRenderJobsRow {
+  id: string;
+  github_issue_number: number | null;
+  github_delivery_id: string | null;
+  workflow_run_id: string | null;
+  campaign_id: string | null;
+  campaign_name: string | null;
+  story_family: string | null;
+  status: 'queued' | 'rendering' | 'ready' | 'failed' | 'cancelled';
+  payload: Json;
+  result: Json | null;
+  error: string | null;
+  sandbox_name: string | null;
+  active_cpu_ms: number | null;
+  network_ingress_bytes: number | null;
+  network_egress_bytes: number | null;
+  created_at: string;
+  started_at: string | null;
+  completed_at: string | null;
+  updated_at: string;
+}
+
+export interface MomentcircuitRenderJobsInsert {
+  id?: string;
+  github_issue_number?: number | null;
+  github_delivery_id?: string | null;
+  workflow_run_id?: string | null;
+  campaign_id?: string | null;
+  campaign_name?: string | null;
+  story_family?: string | null;
+  status?: 'queued' | 'rendering' | 'ready' | 'failed' | 'cancelled';
+  payload?: Json;
+  result?: Json | null;
+  error?: string | null;
+  sandbox_name?: string | null;
+  active_cpu_ms?: number | null;
+  network_ingress_bytes?: number | null;
+  network_egress_bytes?: number | null;
+  created_at?: string;
+  started_at?: string | null;
+  completed_at?: string | null;
+  updated_at?: string;
+}
+
+export interface MomentcircuitRenderJobsUpdate {
+  id?: string;
+  github_issue_number?: number | null;
+  github_delivery_id?: string | null;
+  workflow_run_id?: string | null;
+  campaign_id?: string | null;
+  campaign_name?: string | null;
+  story_family?: string | null;
+  status?: 'queued' | 'rendering' | 'ready' | 'failed' | 'cancelled';
+  payload?: Json;
+  result?: Json | null;
+  error?: string | null;
+  sandbox_name?: string | null;
+  active_cpu_ms?: number | null;
+  network_ingress_bytes?: number | null;
+  network_egress_bytes?: number | null;
+  created_at?: string;
+  started_at?: string | null;
+  completed_at?: string | null;
+  updated_at?: string;
+}
+
+export interface MomentcircuitSubmissionJobsRow {
+  id: string;
+  campaign_id: string;
+  campaign_name: string | null;
+  story_family: string | null;
+  metricool_uuid: string | null;
+  platform: string;
+  public_url: string;
+  published_at: string;
+  submission_deadline_minutes: number;
+  status: 'queued' | 'submitting' | 'submitted' | 'failed' | 'expired' | 'cancelled';
+  result: Json | null;
+  error: string | null;
+  workflow_run_id: string | null;
+  created_at: string;
+  started_at: string | null;
+  completed_at: string | null;
+  updated_at: string;
+}
+
+export interface MomentcircuitSubmissionJobsInsert {
+  id?: string;
+  campaign_id: string;
+  campaign_name?: string | null;
+  story_family?: string | null;
+  metricool_uuid?: string | null;
+  platform: string;
+  public_url: string;
+  published_at: string;
+  submission_deadline_minutes?: number;
+  status?: 'queued' | 'submitting' | 'submitted' | 'failed' | 'expired' | 'cancelled';
+  result?: Json | null;
+  error?: string | null;
+  workflow_run_id?: string | null;
+  created_at?: string;
+  started_at?: string | null;
+  completed_at?: string | null;
+  updated_at?: string;
+}
+
+export interface MomentcircuitSubmissionJobsUpdate {
+  id?: string;
+  campaign_id?: string;
+  campaign_name?: string | null;
+  story_family?: string | null;
+  metricool_uuid?: string | null;
+  platform?: string;
+  public_url?: string;
+  published_at?: string;
+  submission_deadline_minutes?: number;
+  status?: 'queued' | 'submitting' | 'submitted' | 'failed' | 'expired' | 'cancelled';
+  result?: Json | null;
+  error?: string | null;
+  workflow_run_id?: string | null;
+  created_at?: string;
+  started_at?: string | null;
+  completed_at?: string | null;
+  updated_at?: string;
+}
+
 export interface MusicBedsRow {
   id: string;
   asset_id: string;
@@ -4238,6 +4364,8 @@ export interface Database {
     jobs: { Row: JobsRow; Insert: JobsInsert; Update: JobsUpdate; Relationships: [] };
     learned_insights: { Row: LearnedInsightsRow; Insert: LearnedInsightsInsert; Update: LearnedInsightsUpdate; Relationships: [] };
     link_clicks: { Row: LinkClicksRow; Insert: LinkClicksInsert; Update: LinkClicksUpdate; Relationships: [] };
+    momentcircuit_render_jobs: { Row: MomentcircuitRenderJobsRow; Insert: MomentcircuitRenderJobsInsert; Update: MomentcircuitRenderJobsUpdate; Relationships: [] };
+    momentcircuit_submission_jobs: { Row: MomentcircuitSubmissionJobsRow; Insert: MomentcircuitSubmissionJobsInsert; Update: MomentcircuitSubmissionJobsUpdate; Relationships: [] };
     music_beds: { Row: MusicBedsRow; Insert: MusicBedsInsert; Update: MusicBedsUpdate; Relationships: [] };
     music_usage: { Row: MusicUsageRow; Insert: MusicUsageInsert; Update: MusicUsageUpdate; Relationships: [] };
     newsletters: { Row: NewslettersRow; Insert: NewslettersInsert; Update: NewslettersUpdate; Relationships: [] };

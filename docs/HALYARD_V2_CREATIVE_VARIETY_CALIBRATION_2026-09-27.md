@@ -177,3 +177,39 @@ Spend only on the failed component, in this order:
 6. rewrite X shorter and claim-safe.
 
 Only after these actual finished exports pass visual review should a production recipe be accepted or a first-contact Blotato post be attempted.
+
+## 2026-09-28 merged-main integration checkpoint
+
+The V2 calibration branch was merged locally with current `main` before release rather than relying on GitHub's synthetic merge alone. This pulled in the current MomentCircuit cloud-render / Content Rewards work and exposed several repository integration defects that were unrelated to the creative engine but would have made the merge red.
+
+Repairs made on the combined tree:
+
+- reserved no-op migrations **0088** and **0089** make the already-shared 0090+ MomentCircuit lineage contiguous without renumbering history;
+- migration **0096** forces RLS on the two private MomentCircuit queue tables and becomes the current schema marker;
+- `EXPECTED_SCHEMA_VERSION` is **0096** and generated database types now cover **83 tables**, including both MomentCircuit queue tables;
+- the V2 QC rules `text.internal_work_log`, `creative.motion_plan_not_honoured` and `coherence.beat_subject_mismatch` now have explicit correction policies rather than accidental namespace inheritance;
+- MomentCircuit's internal render secret is documented in `.env.example`;
+- the design-token audit no longer mistakes SVG `text-anchor` markup for a Tailwind text-colour utility;
+- the MomentCircuit Content Rewards bootstrap script has zero lint errors.
+
+Exact merged-tree verification:
+
+- migrations apply cleanly through **0096**;
+- generated DB types match the migrated schema;
+- all packages typecheck;
+- lint has **0 errors**;
+- **302 test files / 4,019 tests pass**;
+- the real Remotion/Chromium render tests pass;
+- the production Next.js build passes.
+
+### Second-pass visual review
+
+**Pinterest utility recipe — visual recipe accepted.** The new deterministic `pin_stack` render was inspected at 1000×1500. It is clean, native to a save/search surface, immediately scannable, and materially better than the first generic AI-food-photo finish. This accepts the *production visual shape*, not every piece of copy placed into it; claims still pass their normal evidence/copy gates.
+
+**YouTube repair — improved but not yet an unattended recipe.** The orange-for-lemon closing beat was removed without buying a new asset. A second deterministic render closes on an existing oatmeal + lemon image and is semantically much stronger. Review also exposed that the opening stock clip is labeled as lemon-over-oats while its pixels show lemon being squeezed into a metal bottle. The new beat-level coherence rule is specifically intended to block that kind of mislabeled stock. The recipe remains unaccepted until the opening ground is replaced with semantically correct existing motion or the screenplay is restaged.
+
+**TikTok / Threads first-pass recipes remain rejected for automation.** TikTok's first render was the wrong static quiz treatment for a motion-first comparison; Threads read like an internal QA note. The source fixes that caused those failures are now implemented and release-green, but the recipes must earn acceptance on fresh finished exports.
+
+### Spend discipline
+
+The complete Sept 27→28 calibration cycle has recorded **$4.319496** in paid agent calls against the operator's **$5 total ceiling**. Midnight does not reset that operator cap for this exercise. Remaining calibration work therefore defaults to already-paid assets, deterministic Halyard rendering, existing product capture, and text/render repair. No paid Higgsfield generation has been submitted.

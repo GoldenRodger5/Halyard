@@ -1,5 +1,16 @@
 # Where Halyard is right now
 
+**2026-09-28 — V2 is now integrated with current `main` and release-green on the exact combined tree; creative calibration continues under the original $5 total cap.**
+
+- Current schema is **0096**; generated DB types cover **83 tables**.
+- Exact merged-tree verifier: **302 test files / 4,019 tests**, migrations/types/typecheck/lint/real Remotion renders/production build all green.
+- The V2 calibration rules now survive current MomentCircuit mainline work instead of only passing on an older branch base.
+- Pinterest's deterministic **2:3 utility Pin recipe passes visual review**. This accepts the visual production shape, not arbitrary copy/claims placed into it.
+- YouTube's orange-for-lemon close was repaired with an already-paid oatmeal + lemon asset for **$0 additional spend**. The opener still needs semantically correct existing motion before the video recipe is accepted unattended.
+- TikTok, Threads and Instagram still require a fresh finished-output pass before any production recipe is accepted. A technically valid first-pass file is not an approval.
+- Recorded paid calibration spend remains **$4.319496 of the $5 total operator ceiling**. Midnight does not reset this exercise cap. No paid Higgsfield generation and no public RecipeFix post have been sent.
+- Full details: `docs/HALYARD_V2_CREATIVE_VARIETY_CALIBRATION_2026-09-27.md`.
+
 **2026-09-28 — live creative calibration found and repaired the remaining strategy→production gaps; the first pack is deliberately NOT approved for automation yet.** See `docs/HALYARD_V2_CREATIVE_VARIETY_CALIBRATION_2026-09-27.md`.
 
 - RecipeFix remains the proving product, not shared architecture. The fixes are product-neutral contracts.
