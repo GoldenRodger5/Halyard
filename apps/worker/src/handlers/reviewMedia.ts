@@ -53,6 +53,8 @@ interface ItemRow {
   alt_text?: string | null;
   /** §205. The recorded creative plan: type, beat count, evidence, rationale. */
   creative?: { type?: string; beats?: number; evidence?: string[] } | null;
+  /** V2 execution contract persisted by Launch/Campaign planning. */
+  creative_variation?: { mediaMode?: string } | null;
   /** §413. The catalogue format — `history`, `quiz`, `transformation`. */
   post_format?: string | null;
   id: string;
@@ -215,7 +217,8 @@ export async function reviewMediaHandler(
                apply to product-grounded pieces can tell. */
             post_format,
             /* §205. The creative gate reads the plan, not the pixels. */
-            generation_meta -> 'creative' as creative
+            generation_meta -> 'creative' as creative,
+            generation_meta -> 'creative_variation' as creative_variation
        from content_items where id = $1`,
     [contentItemId],
   );
@@ -395,10 +398,21 @@ export async function reviewMediaHandler(
     ? (renderProps[0]!.input_props.beats as Array<Record<string, unknown>>)
     : [];
 
+  let beatCursorSeconds = 0;
+  const expectedSubjectTimeline = plannedBeats.flatMap((beat) => {
+    const seconds = Number(beat.seconds ?? 0);
+    const startSeconds = beatCursorSeconds;
+    if (Number.isFinite(seconds) && seconds > 0) beatCursorSeconds += seconds;
+    const subject = typeof beat.footageSubject === 'string' ? beat.footageSubject.trim() : '';
+    if (!subject || beatCursorSeconds <= startSeconds) return [];
+    return [{ startSeconds, endSeconds: beatCursorSeconds, subject, role: typeof beat.role === 'string' ? beat.role : null }];
+  });
+
   const creativeResult = runCreativeQC({
     creativeType: item.creative?.type ?? 'unknown',
     platform: item.platform,
     footageAvailable,
+    mediaMode: item.creative_variation?.mediaMode ?? null,
     /*
      * §413. Only a product-grounded format is expected to show the product.
      *
@@ -598,11 +612,14 @@ export async function reviewMediaHandler(
           )`,
       [item.id],
     );
-    const expectedSubjects = subjectRows.map((r) => r.subject);
+    const expectedSubjects = [
+      ...new Set([...subjectRows.map((r) => r.subject), ...expectedSubjectTimeline.map((entry) => entry.subject)]),
+    ];
 
     const intent: CoherenceIntent = {
       body: item.body,
       expectedSubjects,
+      expectedSubjectTimeline,
       // The script was always available on the item and was passed as null, so
       // every rule comparing what was said against what was scripted compared
       // against nothing.

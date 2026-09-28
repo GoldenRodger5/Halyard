@@ -463,7 +463,7 @@ export const POST_FORMAT_CATALOG: Record<PostFormatId, PostFormat> = {
      * comparison is a strong long-form shape and there is no composition for
      * one, so the channel comes back with the composition rather than before.
      */
-    channels: ['text_post', 'carousel', 'pin'],
+    channels: ['short_video', 'text_post', 'carousel', 'pin'],
     needsArtifact: false,
     pace: 'standard',
     slots: [

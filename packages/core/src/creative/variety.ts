@@ -143,12 +143,28 @@ export function adaptVariationForPlatform(
   }
 
   if (format === 'video') {
+    /*
+     * A video cannot stay text-native/designed-static/search-utility just
+     * because the base package came from a conversational or saveable family.
+     * Those are valid package ideas and invalid moving-media executions.
+     */
+    const videoMediaMode: CreativeMediaMode =
+      variation.mediaMode === 'real_product_proof' ||
+      variation.mediaMode === 'mixed_broll_capture' ||
+      variation.mediaMode === 'motion_editorial'
+        ? variation.mediaMode
+        : 'motion_editorial';
+    const videoAudioMode: CreativeAudioMode =
+      variation.audioMode === 'text_only' ? 'silent_captioned' : variation.audioMode;
+
     if (platform === 'tiktok') {
       return {
         ...variation,
         openingStyle: ['result_first', 'contrarian'].includes(variation.openingStyle)
           ? variation.openingStyle
           : 'motion_first',
+        mediaMode: videoMediaMode,
+        audioMode: videoAudioMode,
         captionJob: 'debate',
       };
     }
@@ -156,6 +172,8 @@ export function adaptVariationForPlatform(
       return {
         ...variation,
         openingStyle: variation.openingStyle === 'motion_first' ? 'search_answer' : variation.openingStyle,
+        mediaMode: videoMediaMode,
+        audioMode: videoAudioMode,
         captionJob: 'search',
       };
     }
@@ -163,9 +181,12 @@ export function adaptVariationForPlatform(
       return {
         ...variation,
         openingStyle: variation.openingStyle === 'question_first' ? 'result_first' : variation.openingStyle,
+        mediaMode: videoMediaMode,
+        audioMode: videoAudioMode,
         captionJob: 'save',
       };
     }
+    return { ...variation, mediaMode: videoMediaMode, audioMode: videoAudioMode };
   }
 
   return { ...variation };

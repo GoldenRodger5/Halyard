@@ -94,6 +94,12 @@ export const TEXT_CRITIC_QUESTIONS: Array<{
       'Does any line read as assembled rather than said — a sentence no person would speak aloud? Quote it.',
   },
   {
+    rule: 'text.internal_work_log',
+    persona: 'scroller',
+    question:
+      'Does any line sound like an internal QA note, system report, test result or implementation log instead of something written for the audience? Phrases such as “this check kept”, “the system changed”, “the test passed”, or unexplained implementation language are defects even when technically true. Quote the line.',
+  },
+  {
     rule: 'text.overstated',
     persona: 'cook',
     question:
@@ -184,8 +190,21 @@ export function parseTextCriticReply(raw: unknown, piece: TextPiece): TextCritic
      * naming a slot is that a rewrite knows what to replace, and a wrong name
      * sends the rewrite at the wrong line.
      */
-    const slot =
+    let slot =
       typeof item.slot === 'string' && slots.has(item.slot) ? item.slot : null;
+
+    /*
+     * If the critic names the defect correctly but misses the slot, recover it
+     * only when the quoted evidence matches exactly one existing line.
+     */
+    if (!slot) {
+      const message = item.message.toLocaleLowerCase().replace(/\s+/g, ' ');
+      const matches = piece.lines.filter((line) => {
+        const text = line.text.trim().toLocaleLowerCase().replace(/\s+/g, ' ');
+        return text.length >= 8 && message.includes(text);
+      });
+      if (matches.length === 1) slot = matches[0]!.key;
+    }
 
     findings.push({
       rule: item.rule,

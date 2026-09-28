@@ -401,3 +401,16 @@ describe('§550 a slot brief instructs, it does not dictate', () => {
     }
   });
 });
+
+
+describe('comparison is a first-class short-video format', () => {
+  it('lets an operator-selected comparison stay a comparison on TikTok', () => {
+    const { format, reason } = selectFormat({
+      platform: 'tiktok',
+      hasArtifact: false,
+      requested: 'comparison',
+    });
+    expect(format.id).toBe('comparison');
+    expect(reason).toContain('operator');
+  });
+});

@@ -387,3 +387,119 @@ export function slidesForFormat(formatId: string, slots: SlotValue[]): FormatSli
 
 /** Which formats can be rendered. Asserted against the catalogue in tests. */
 export const RENDERABLE_FORMATS = Object.keys(BUILDERS);
+
+
+export type PinTemplatePlan =
+  | {
+      templateId: 'pin_stack';
+      props: { label: string; title: string; steps: string[] };
+    }
+  | {
+      templateId: 'pinterest_tall';
+      props: { title: string; subtitle: string; bullets: string[] };
+    }
+  | {
+      templateId: 'pin_quote';
+      props: { quote: string; attribution?: string | null };
+    };
+
+/**
+ * Turn a filled editorial format into one Pinterest-native 2:3 composition.
+ *
+ * This is deliberately not "pick a photo". Pinterest is a save/search surface,
+ * so the durable information hierarchy is the creative.
+ */
+export function pinForFormat(
+  formatId: string,
+  slots: SlotValue[],
+  fallbackTitle = 'Save this',
+): PinTemplatePlan | null {
+  const first = (...keys: string[]): string | null => {
+    for (const key of keys) {
+      const value = pick(slots, key);
+      if (value?.trim()) return value.trim();
+    }
+    return null;
+  };
+  const values = (key: string): string[] =>
+    all(slots, key).map((slot) => slot.text.trim()).filter(Boolean);
+
+  if (formatId === 'tips') {
+    const title = first('title', 'hook') ?? fallbackTitle;
+    const steps = values('tip');
+    if (steps.length >= 2) {
+      return {
+        templateId: 'pin_stack',
+        props: { label: 'Save this', title, steps: steps.slice(0, 5) },
+      };
+    }
+    const close = first('close') ?? 'A quick reference for later.';
+    return {
+      templateId: 'pinterest_tall',
+      props: { title, subtitle: close, bullets: steps.slice(0, 4) },
+    };
+  }
+
+  if (formatId === 'comparison') {
+    const title = first('question') ?? fallbackTitle;
+    const verdict = first('verdict') ?? 'Choose by the tradeoff, not the label.';
+    const bullets = [first('option_a'), first('option_b')].filter(
+      (value): value is string => Boolean(value),
+    );
+    return {
+      templateId: 'pinterest_tall',
+      props: { title, subtitle: verdict, bullets },
+    };
+  }
+
+  if (formatId === 'myth_fact') {
+    const title = first('myth') ?? fallbackTitle;
+    const correction = first('correction', 'fact') ?? 'The useful correction';
+    const bullets = [first('partly_true'), first('why')].filter(
+      (value): value is string => Boolean(value),
+    );
+    return {
+      templateId: 'pinterest_tall',
+      props: { title, subtitle: correction, bullets },
+    };
+  }
+
+  if (formatId === 'history' || formatId === 'origin') {
+    const title = first('hook') ?? fallbackTitle;
+    const subtitle = first('turn', 'change', 'now') ?? 'The part worth remembering.';
+    const bullets = [
+      first('setup', 'before'),
+      first('why_it_matters', 'now'),
+    ].filter((value): value is string => Boolean(value));
+    return {
+      templateId: 'pinterest_tall',
+      props: { title, subtitle, bullets },
+    };
+  }
+
+  if (formatId === 'walkthrough') {
+    const title = first('title', 'hook') ?? fallbackTitle;
+    const steps = values('step');
+    if (steps.length >= 2) {
+      return {
+        templateId: 'pin_stack',
+        props: { label: 'How it works', title, steps: steps.slice(0, 5) },
+      };
+    }
+  }
+
+  const usable = slots
+    .filter((slot) => !['source', 'citation'].includes(slot.key))
+    .map((slot) => slot.text.trim())
+    .filter(Boolean);
+  if (usable.length === 0) return null;
+
+  return {
+    templateId: 'pinterest_tall',
+    props: {
+      title: usable[0] ?? fallbackTitle,
+      subtitle: usable[1] ?? 'A useful reference for later.',
+      bullets: usable.slice(2, 6),
+    },
+  };
+}

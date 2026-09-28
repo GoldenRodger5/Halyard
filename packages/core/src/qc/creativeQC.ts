@@ -127,6 +127,8 @@ export interface CreativeQCInput {
   altText?: string | null;
   /** Cuts per minute this platform's variant asked for. */
   targetCutsPerMinute?: number | null;
+  /** The CreativePackage media execution the finished piece promised to honour. */
+  mediaMode?: string | null;
 }
 
 export interface CreativeFinding {
@@ -200,6 +202,27 @@ export function runCreativeQC(input: CreativeQCInput): CreativeQCResult {
   /* §478. A licensed clip is not a card; it is also not the product. Two counts. */
   const movingBeats = beats.filter((b) => b.hasMedia || b.hasFootage).length;
   const cardShare = (beats.length - movingBeats) / beats.length;
+
+  /*
+   * A planned moving-media execution has to survive into the finished beat
+   * structure. A package that promises motion cannot quietly collapse into one
+   * static background for thirty seconds.
+   */
+  if (
+    ['motion_editorial', 'mixed_broll_capture'].includes(input.mediaMode ?? '') &&
+    (input.durationSeconds ?? 0) >= 12 &&
+    (movingBeats < 2 || cardShare > 0.75)
+  ) {
+    findings.push({
+      rule: 'creative.motion_plan_not_honoured',
+      severity: 'error',
+      message:
+        `The package promised ${input.mediaMode}, but only ${movingBeats} of ${beats.length} beats use moving media.`,
+      detail:
+        'The platform variant asked for a moving-media execution. The finished structure is overwhelmingly cards, so the production recipe did not honour the creative plan.',
+      correction: 'restructure_beats',
+    });
+  }
 
   /*
    * The rule this gate exists for.

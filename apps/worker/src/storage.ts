@@ -8,9 +8,21 @@
 import { createHash } from 'node:crypto';
 import { mkdir, writeFile, readFile } from 'node:fs/promises';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { HandlerContext } from './poller.js';
 
 export const ASSET_BUCKET = 'halyard-assets';
+
+const DEFAULT_DEV_ASSET_DIR = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '../../web/public/dev-assets',
+);
+
+function localAssetDir(): string | null {
+  const configured = process.env.HALYARD_LOCAL_ASSET_DIR?.trim();
+  if (configured) return configured;
+  return process.env.NODE_ENV === 'production' ? null : DEFAULT_DEV_ASSET_DIR;
+}
 
 export interface UploadInput {
   bytes: Buffer;
@@ -100,7 +112,7 @@ export async function uploadAsset(
     // `file://` URL, the bytes go into the web app's public directory so the
     // asset is at least visible in the library and renderable locally. A Meta
     // publish still needs a real public URL, and /settings/readiness says so.
-    const publicDir = process.env.HALYARD_LOCAL_ASSET_DIR;
+    const publicDir = localAssetDir();
     if (publicDir) {
       const target = path.join(publicDir, storagePath.replace(/\//g, '-'));
       await mkdir(path.dirname(target), { recursive: true });
@@ -210,7 +222,7 @@ export async function readAssetBytes(
 
   // The local fallback flattens the storage path into one filename, so the
   // basename of the URL is the filename on disk.
-  const localDir = process.env.HALYARD_LOCAL_ASSET_DIR;
+  const localDir = localAssetDir();
   if (localDir && publicUrl?.startsWith('/dev-assets/')) {
     return readFile(path.join(localDir, path.basename(publicUrl))).catch(() => null);
   }

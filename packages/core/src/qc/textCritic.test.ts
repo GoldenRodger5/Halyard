@@ -41,6 +41,7 @@ describe('what the text critic is asked', () => {
     expect(rules).toContain('text.not_a_misconception');
     expect(rules).toContain('text.concession_concedes_nothing');
     expect(rules).toContain('text.hook_closes_the_gap');
+    expect(rules).toContain('text.internal_work_log');
   });
 
   /*
@@ -88,6 +89,28 @@ describe('reading the reply', () => {
       { rule: 'text.overstated', slot: 'nonexistent', message: 'This claim is far too strong to stand.' },
     ]);
     expect(v.findings[0]!.slot).toBeNull();
+  });
+
+  it('recovers a missing slot when the critic quotes exactly one existing line', () => {
+    const v = parse([
+      {
+        rule: 'text.overstated',
+        slot: null,
+        message: '“Salting eggplant removes bitterness” is too absolute for the evidence supplied.',
+      },
+    ]);
+    expect(v.findings[0]!.slot).toBe('myth');
+  });
+
+  it('recovers from a misspelled slot only when the quoted line makes the target unambiguous', () => {
+    const v = parse([
+      {
+        rule: 'text.overstated',
+        slot: 'mythh',
+        message: 'The line “Modern varieties are much less bitter.” overstates what was established.',
+      },
+    ]);
+    expect(v.findings[0]!.slot).toBe('correction');
   });
 
   it('never repeats a rule, because a critic repeating itself reads as noise', () => {

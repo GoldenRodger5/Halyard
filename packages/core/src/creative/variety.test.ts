@@ -69,3 +69,38 @@ describe('creative variety', () => {
     expect(carousel.captionJob).toBe('save');
   });
 });
+
+
+describe('moving-media contract', () => {
+  it('promotes a text-native package into real moving-media execution on TikTok', () => {
+    const base = {
+      treatment: 'comparison' as const,
+      openingStyle: 'question_first' as const,
+      mediaMode: 'text_native' as const,
+      audioMode: 'text_only' as const,
+      captionJob: 'debate' as const,
+    };
+    const video = adaptVariationForPlatform(base, 'tiktok', 'video');
+    expect(video.openingStyle).toBe('motion_first');
+    expect(video.mediaMode).toBe('motion_editorial');
+    expect(video.audioMode).toBe('silent_captioned');
+  });
+
+  it('never leaves a video destination in a static/text-only media mode', () => {
+    for (const platform of ['tiktok', 'instagram', 'youtube']) {
+      const video = adaptVariationForPlatform(
+        {
+          treatment: 'listicle',
+          openingStyle: 'saveable_rule',
+          mediaMode: 'designed_static',
+          audioMode: 'text_only',
+          captionJob: 'save',
+        },
+        platform,
+        'video',
+      );
+      expect(['real_product_proof', 'mixed_broll_capture', 'motion_editorial']).toContain(video.mediaMode);
+      expect(video.audioMode).not.toBe('text_only');
+    }
+  });
+});

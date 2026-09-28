@@ -136,6 +136,77 @@ describe('runCoherenceQC — the failure it exists to catch', () => {
   });
 });
 
+describe('runCoherenceQC — the picture at this exact beat', () => {
+  it('fails a payoff/close frame that depicts a different concrete subject', () => {
+    const result = runCoherenceQC(input({
+      intent: {
+        ...input().intent,
+        keyTerms: [],
+        expectedSubjectTimeline: [
+          { startSeconds: 0, endSeconds: 4, subject: 'hands squeezing lemon over oats', role: 'close' },
+        ],
+      },
+      frames: [
+        frame({
+          atSeconds: 2,
+          subject: 'hand squeezing an orange into a glass',
+          describes: 'A hand squeezes an orange into a drinking glass.',
+          visibleText: ['bright finish'],
+        }),
+      ],
+    }));
+    const finding = result.findings.find((f) => f.rule === 'coherence.beat_subject_mismatch');
+    expect(finding?.severity).toBe('error');
+    expect(finding?.message).toContain('lemon');
+    expect(finding?.message).toContain('orange');
+    expect(result.passed).toBe(false);
+  });
+
+  it('warns on an interior detail mismatch instead of overreacting to one crop', () => {
+    const result = runCoherenceQC(input({
+      intent: {
+        ...input().intent,
+        keyTerms: [],
+        expectedSubjectTimeline: [
+          { startSeconds: 0, endSeconds: 4, subject: 'rolled oats in a bowl', role: 'detail' },
+        ],
+      },
+      frames: [
+        frame({
+          atSeconds: 2,
+          subject: 'rice grains on a plate',
+          describes: 'A plate of dry rice grains.',
+          visibleText: ['use rolled oats'],
+        }),
+      ],
+    }));
+    const finding = result.findings.find((f) => f.rule === 'coherence.beat_subject_mismatch');
+    expect(finding?.severity).toBe('warning');
+    expect(result.passed).toBe(true);
+  });
+
+  it('accepts the subject when the concrete noun survives the crop description', () => {
+    const result = runCoherenceQC(input({
+      intent: {
+        ...input().intent,
+        keyTerms: [],
+        expectedSubjectTimeline: [
+          { startSeconds: 0, endSeconds: 4, subject: 'hands squeezing lemon over oats', role: 'close' },
+        ],
+      },
+      frames: [
+        frame({
+          atSeconds: 2,
+          subject: 'lemon being squeezed by hand',
+          describes: 'A hand squeezes a lemon.',
+          visibleText: ['bright finish'],
+        }),
+      ],
+    }));
+    expect(result.findings.map((f) => f.rule)).not.toContain('coherence.beat_subject_mismatch');
+  });
+});
+
 describe('runCoherenceQC — the hook, which is where the audience is won', () => {
   it('fails short-form with no burned-in text in the opening', () => {
     // Most first views are muted. Without an overlay the opening reaches nobody

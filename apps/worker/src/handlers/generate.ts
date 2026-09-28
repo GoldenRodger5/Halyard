@@ -81,6 +81,7 @@ import {
   carouselProps,
   chooseLayout,
   slidesForFormat,
+  pinForFormat,
   transformationDiffProps,
   substitutionRatioProps,
   chefNoteProps,
@@ -503,12 +504,35 @@ function postTypeForTargetMedia(format: string): PostTypeId | null {
   }
 }
 
-/** Prefer an editorial structure that matches the package category when known. */
-function postFormatForTarget(target: TargetContentItem): string | null {
+/**
+ * Prefer the CreativePackage treatment over a category default.
+ *
+ * The category says what job the post serves. The treatment says how this
+ * particular package was deliberately designed to tell it. Conflating the two
+ * turned a selected comparison into a quiz simply because both were
+ * "community" pieces.
+ */
+export function postFormatForTarget(
+  target: TargetContentItem,
+  treatment?: CreativeType | null,
+): string | null {
+  switch (treatment) {
+    case 'comparison': return 'comparison';
+    case 'myth_fact': return 'myth_fact';
+    case 'listicle': return 'tips';
+    case 'how_to':
+    case 'tutorial':
+      return target.category === 'product' && target.format === 'video' ? 'walkthrough' : 'tips';
+    case 'before_after': return 'transformation';
+    case 'feature_demo':
+      return target.format === 'video' ? 'walkthrough' : 'transformation';
+    default:
+      break;
+  }
   switch (target.category) {
     case 'transformation': return 'transformation';
     case 'education': return 'tips';
-    case 'community': return target.format === 'video' ? 'quiz' : 'myth_fact';
+    case 'community': return 'myth_fact';
     case 'product': return target.format === 'video' ? 'walkthrough' : 'transformation';
     case 'founder_insight': return 'origin';
     default: return null;
@@ -829,6 +853,14 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
     requestedConcept && typeof requestedConcept.story_structure?.treatment === 'string'
       ? (requestedConcept.story_structure.treatment as CreativeType)
       : null;
+  const targetVariation =
+    targetItem?.generation_meta?.creative_variation &&
+    typeof targetItem.generation_meta.creative_variation === 'object' &&
+    !Array.isArray(targetItem.generation_meta.creative_variation)
+      ? (targetItem.generation_meta.creative_variation as Record<string, unknown>)
+      : null;
+  const requestedMediaMode =
+    typeof targetVariation?.mediaMode === 'string' ? targetVariation.mediaMode : null;
   let requestedConceptIdeaId: string | null = null;
 
   const proposed = await ctx.pool.query<{
@@ -1774,7 +1806,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
           platform: account.platform,
           hasArtifact: Boolean(artifact),
           recentFormats: (await recentFormats(ctx, account.id)) as never,
-          requested: (job.payload.postFormat as string | undefined) ?? (targetItem ? postFormatForTarget(targetItem) : null),
+          requested: (job.payload.postFormat as string | undefined) ?? (targetItem ? postFormatForTarget(targetItem, requestedTreatment) : null),
           canCite: true,
         });
         /**
@@ -2969,7 +3001,12 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
          * photographed at all. A refusal falls back to the artifact, which is
          * worse but is at least a noun.
          */
-        if (written) completed.push('write');
+        /*
+         * `transformation` is written from the locked product artifact rather
+         * than through writeToFormat, so `written` is intentionally null. It
+         * still has complete, evidence-backed content by this point.
+         */
+        if (written || chosenFormat.format.id === 'transformation') completed.push('write');
 
         /**
          * §345. Assets may not start before the content exists.
@@ -2983,6 +3020,8 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
         const assetsPlanned = production.stages.some((stage) => stage.stage === 'assets');
         const assetsGate = canStart('assets', completed);
         const shouldRunAssets = assetsPlanned && assetsGate.ok;
+        const utilityPin =
+          account.platform === 'pinterest' && requestedMediaMode === 'search_utility';
         if (assetsPlanned && !assetsGate.ok) {
           ctx.log('assets stage refused', { contentItemId, because: assetsGate.because });
         } else if (!assetsPlanned) {
@@ -3000,7 +3039,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
         const assets = shouldRunAssets ? openStage(ctx, 'assets') : ctx;
         const formatLine = written ? subjectFromFormat(written.draft.slots) : null;
         let heroSubject = subjectForImage(artifact, idea.title);
-        if (shouldRunAssets && formatLine) {
+        if (shouldRunAssets && !utilityPin && formatLine) {
           const verdict = await photographicSubject(
             { line: formatLine, productContext: product.brief_summary ?? undefined },
             llmFor(),
@@ -3057,7 +3096,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
         let hero: Awaited<ReturnType<typeof generateHeroImage>>;
         try {
           hero =
-          shouldRunAssets && heroSubject && imageClient
+          shouldRunAssets && !utilityPin && heroSubject && imageClient
             ? await generateHeroImage(assets, imageClient, {
                 subject: heroSubject,
                 shot,
@@ -3299,6 +3338,60 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
         }
 
         /*
+         * Pinterest is a designed utility surface, not a request for a raw
+         * photograph. The renderer already has 2:3 Pin compositions; this
+         * production path reaches them directly.
+         */
+        if (
+          shouldRunAssets &&
+          account.platform === 'pinterest' &&
+          resolvedType.postType.requires.format === 'pin'
+        ) {
+          const pinSlots = written
+            ? written.draft.slots.map((slot) => ({
+                key: slot.key,
+                index: slot.index,
+                text: slot.text,
+                citation: slot.citation ?? null,
+              }))
+            : artifact
+              ? [
+                  { key: 'title', index: 0, text: artifact.headline, citation: null },
+                  ...artifact.highlights.slice(0, 4).map((highlight, index) => {
+                    const text =
+                      highlight.before && highlight.after
+                        ? `${String(highlight.before)} → ${String(highlight.after)}${highlight.reason ? ` — ${String(highlight.reason)}` : ''}`
+                        : String(highlight.text ?? highlight.note ?? highlight.reason ?? highlight.title ?? '');
+                    return { key: 'tip', index, text, citation: null };
+                  }),
+                ].filter((slot) => slot.text.trim().length > 0)
+              : [];
+          const pinPlan = pinForFormat(
+            written ? chosenFormat.format.id : 'tips',
+            pinSlots,
+            artifact?.headline ?? draft.title ?? idea.title,
+          );
+          if (!pinPlan) throw new Error(`${chosenFormat.format.id} is a Pin with no usable information to render.`);
+          if (!enabledTemplates.includes(pinPlan.templateId)) {
+            throw new Error(`Pin template ${pinPlan.templateId} is not enabled for ${productId}.`);
+          }
+          const pinRender = await ctx.pool.query<{ id: string }>(
+            `insert into renders
+               (content_item_id, template_id, renderer, input_props, quality, treatment)
+             values ($1,$2,'satori',$3,'final',$4)
+             returning id`,
+            [contentItemId,pinPlan.templateId,{ ...pinPlan.props, alt_text: draft.altText },`pin/${pinPlan.templateId}`],
+          );
+          await ctx.enqueue('render', { renderId: pinRender.rows[0]!.id }, { priority: 50 });
+          ctx.log('Pinterest utility render queued', {
+            contentItemId,
+            template: pinPlan.templateId,
+            format: chosenFormat.format.id,
+            generatedPhoto: Boolean(hero),
+          });
+        }
+
+        /*
          * §563. The subjects that became pictures, marked once the pictures
          * exist.
          *
@@ -3311,7 +3404,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
          * this line every image this piece will carry has been made and
          * attached.
          */
-        if (shouldRunAssets) {
+        if (shouldRunAssets && !utilityPin) {
           await markOutputConsumed(ctx.pool, {
             agentId: 'photographic-subject',
             triggerRef: job.id,

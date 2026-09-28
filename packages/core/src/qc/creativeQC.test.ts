@@ -408,3 +408,41 @@ describe('§505 motion density counts what the viewer sees', () => {
     expect(found).not.toContain('creative.constant_motion');
   });
 });
+
+
+describe('the finished piece honours its planned media mode', () => {
+  const base: CreativeQCInput = {
+    creativeType: 'comparison',
+    platform: 'tiktok',
+    footageAvailable: false,
+    durationSeconds: 29,
+    mediaMode: 'motion_editorial',
+    beats: [
+      { role: 'hook', emphasis: 'quick', wordCount: 5 },
+      { role: 'setup', emphasis: 'normal', wordCount: 7 },
+      { role: 'detail', emphasis: 'normal', wordCount: 7 },
+      { role: 'payoff', emphasis: 'hold', wordCount: 6, hasFootage: true },
+    ],
+  };
+
+  it('rejects a motion-first package that collapses into almost all cards', () => {
+    const result = runCreativeQC(base);
+    expect(result.findings.map((f) => f.rule)).toContain('creative.motion_plan_not_honoured');
+    expect(result.passed).toBe(false);
+  });
+
+  it('passes that contract once enough beats actually move', () => {
+    const result = runCreativeQC({
+      ...base,
+      beats: base.beats.map((beat, index) =>
+        index === 1 || index === 3 ? { ...beat, hasFootage: true } : beat,
+      ),
+    });
+    expect(result.findings.map((f) => f.rule)).not.toContain('creative.motion_plan_not_honoured');
+  });
+
+  it('does not impose a moving-media contract on intentional text-native work', () => {
+    const result = runCreativeQC({ ...base, mediaMode: 'text_native' });
+    expect(result.findings.map((f) => f.rule)).not.toContain('creative.motion_plan_not_honoured');
+  });
+});

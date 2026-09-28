@@ -10,7 +10,7 @@ import type pg from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createIsolatedPool, databaseAvailable } from '../../../packages/db/src/__tests__/testDb.js';
 import { classifyHookType, extractHookPattern } from '@halyard/core';
-import { copywriterDontRules, disownPartialContentItem, generateHandler } from './handlers/generate.js';
+import { copywriterDontRules, disownPartialContentItem, generateHandler, postFormatForTarget } from './handlers/generate.js';
 import type { Job } from './poller.js';
 import { testContext, type TestContext } from './testContext.js';
 
@@ -68,6 +68,13 @@ function context(): TestContext {
 
 const job = (payload: Record<string, unknown>): Job =>
   ({ id: 'j1', kind: 'generate', payload, attempts: 1, max_attempts: 3, dedupe_key: null }) as Job;
+
+describe('CreativePackage treatment controls the targeted format', () => {
+  it('keeps a community comparison as comparison instead of silently substituting quiz', () => {
+    const target = { category: 'community', format: 'video' } as never;
+    expect(postFormatForTarget(target, 'comparison')).toBe('comparison');
+  });
+});
 
 d('the calibration batch is not blocked by calibration', () => {
   beforeEach(async () => {
