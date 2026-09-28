@@ -4,7 +4,7 @@ const CDP_HTTP = process.env.MOMENTCIRCUIT_CHROME_CDP || 'http://127.0.0.1:9229'
 const APP_DOMAIN = 'b4e0vdqv6zgqeqj4pfgm.apps.whop.com';
 const BOOTSTRAP_URL =
   process.env.MOMENTCIRCUIT_CR_BOOTSTRAP_URL ||
-  'https://halyard-ihfwwitwj-isaac-mineos-projects.vercel.app/api/internal/momentcircuit/content-rewards/bootstrap-once';
+  'https://aleiahgcxhglnsvaajzn.supabase.co/functions/v1/momentcircuit-cr-bootstrap';
 
 const COOKIE_NAMES = new Set([
   '__Host-cr-session',
