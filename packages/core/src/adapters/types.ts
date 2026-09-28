@@ -152,6 +152,16 @@ export interface PublishItem {
   /** Pinterest requires one; supplied from account config. */
   boardId?: string | null;
   disclosureText?: string | null;
+  /**
+   * A material brand/campaign relationship. This is deliberately separate from
+   * disclosureText: the native platform label is structured metadata, not copy.
+   */
+  isSponsored?: boolean;
+  /**
+   * Optional Instagram professional-account ids to tag as paid partners.
+   * The generic Paid partnership label works without ids.
+   */
+  instagramSponsorIds?: string[];
   requiresAiLabel?: boolean;
   /**
    * The TikTok Direct Post choices a human made, when the destination is TikTok.

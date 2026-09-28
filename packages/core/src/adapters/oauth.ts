@@ -13,6 +13,8 @@ export interface OAuthStatePayload {
   productId: string;
   platform: string;
   persona: 'founder' | 'brand';
+  /** Optional alternate OAuth flavor for platforms that expose capabilities only on one login family. */
+  authFlavor?: 'default' | 'facebook';
   nonce: string;
   issuedAt: number;
 }
