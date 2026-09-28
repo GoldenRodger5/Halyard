@@ -330,6 +330,50 @@ describe('planLaunchBatch', () => {
     expect(new Set(regular.map((slot) => slot.format))).toEqual(new Set(['video', 'carousel']));
   });
 
+  it('rotates creative shapes instead of mapping a category to one permanent template', () => {
+    const plan = planLaunchBatch(
+      brief({
+        days: 28,
+        accounts: [
+          account(),
+          account({ id: 'acct-ig', platform: 'instagram', supportedFormats: ['video', 'carousel'] }),
+          account({ id: 'acct-tt', platform: 'tiktok', supportedFormats: ['video'] }),
+          account({ id: 'acct-yt', platform: 'youtube', supportedFormats: ['video'] }),
+        ],
+        slots: { x: WINDOWS, instagram: WINDOWS, tiktok: WINDOWS, youtube: WINDOWS },
+        mixTargets: { education: 1 },
+      }),
+    );
+    const packages = new Map<string, (typeof plan.slots)[number]>();
+    for (const slot of plan.slots.filter((s) => s.purpose === 'regular' && !s.deferred)) {
+      packages.set(slot.conceptKey, slot);
+    }
+    const treatments = [...packages.values()].map((slot) => slot.creativeVariation.treatment);
+    expect(new Set(treatments).size).toBeGreaterThan(1);
+    expect(plan.rationale.join(' ')).toContain('distinct creative shapes');
+  });
+
+  it('keeps one base creative variation on every placement of the same package', () => {
+    const plan = planLaunchBatch(
+      brief({
+        accounts: [
+          account(),
+          account({ id: 'acct-ig', platform: 'instagram', supportedFormats: ['video', 'carousel'] }),
+          account({ id: 'acct-tt', platform: 'tiktok', supportedFormats: ['video'] }),
+        ],
+        slots: { x: WINDOWS, instagram: WINDOWS, tiktok: WINDOWS },
+      }),
+    );
+    const byPackage = new Map<string, Set<string>>();
+    for (const slot of plan.slots.filter((s) => !s.deferred)) {
+      const key = JSON.stringify(slot.creativeVariation);
+      byPackage.set(slot.conceptKey, (byPackage.get(slot.conceptKey) ?? new Set()).add(key));
+    }
+    for (const variations of byPackage.values()) {
+      expect(variations.size).toBe(1);
+    }
+  });
+
   it('reuses a creative package across placements instead of inventing every idea independently', () => {
     expect(conceptFor('transformation', 0).key).toBe(conceptFor('transformation', 3).key);
     expect(conceptFor('transformation', 4).key).not.toBe(conceptFor('transformation', 0).key);
