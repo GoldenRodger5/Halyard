@@ -86,6 +86,38 @@ function run(args: string[]) {
     child.on('exit', (code) => code === 0 ? resolve() : reject(new Error(`FFMPEG_FAILED_${code}: ${err.slice(-4000)}`)));
   });
 }
+
+function probeDuration(file: string) {
+  return new Promise<number>((resolve, reject) => {
+    let binary: string;
+    try { binary = resolveFfmpegPath(); } catch (error) { reject(error); return; }
+    const child = spawn(binary, ['-hide_banner', '-i', file], {
+      stdio: ['ignore', 'ignore', 'pipe'],
+    });
+    let err = '';
+    child.stderr.on('data', (d) => {
+      err += d.toString();
+      if (err.length > 16000) err = err.slice(-16000);
+    });
+    child.on('error', reject);
+    child.on('exit', () => {
+      const match = err.match(/Duration:\s*(\d+):(\d+):([\d.]+)/);
+      if (!match) {
+        reject(new Error('FFMPEG_DURATION_NOT_FOUND'));
+        return;
+      }
+      const hours = Number(match[1] ?? 0);
+      const minutes = Number(match[2] ?? 0);
+      const seconds = Number(match[3] ?? 0);
+      const total = hours * 3600 + minutes * 60 + seconds;
+      if (!Number.isFinite(total) || total <= 0) {
+        reject(new Error('FFMPEG_DURATION_INVALID'));
+        return;
+      }
+      resolve(total);
+    });
+  });
+}
 async function download(url: string, dest: string) {
   const parsed = new URL(url);
   if (!['https:', 'http:'].includes(parsed.protocol)) throw new Error('BAD_SOURCE_PROTOCOL');
@@ -225,8 +257,10 @@ async function execute(id: string) {
       }
       const final=path.join(work,`${vid}.mp4`); await concat(parts,final,work);
       const stat=await fsp.stat(final); if (!stat.size) throw new Error('EMPTY_RENDER');
-      const contact=await sheet(final,duration,work,vid);
-      const tech={width:1080,height:1920,codec:'h264',duration_seconds:duration,size_bytes:stat.size,source_bytes:sourceBytes,template_system:'template-system-v3-2026-09-27'};
+      const actualDuration=await probeDuration(final).catch(()=>duration);
+      const safeDuration=Math.max(.1,Math.min(duration,Math.max(.1,actualDuration-.08)));
+      const contact=await sheet(final,safeDuration,work,vid);
+      const tech={width:1080,height:1920,codec:'h264',duration_seconds:actualDuration,size_bytes:stat.size,source_bytes:sourceBytes,template_system:'template-system-v3-2026-09-27'};
       const techFile=path.join(work,`${vid}-technical.json`); await fsp.writeFile(techFile,JSON.stringify(tech,null,2));
       const basePath=`${PREFIX}${safe(id)}/${crypto.randomUUID()}`;
       variants.push({
@@ -234,7 +268,7 @@ async function execute(id: string) {
         media_url:await upload(client,final,`${basePath}-${safe(v.filename??vid+'.mp4')}`,'video/mp4'),
         contact_sheet_url:await upload(client,contact,`${basePath}-contact.jpg`,'image/jpeg'),
         technical_url:await upload(client,techFile,`${basePath}-technical.json`,'application/json'),
-        duration_seconds:duration,size_bytes:stat.size,technical_qc:'passed',visual_qc:'pending_manager_review'
+        duration_seconds:actualDuration,size_bytes:stat.size,technical_qc:'passed',visual_qc:'pending_manager_review'
       });
     }
     const result={version:1,status:'render_ready',rendered_at:new Date().toISOString(),source_url:payload.source_url,source_rights:payload.source_rights??null,story_family:payload.story_family??claimed.story_family??null,variants};
