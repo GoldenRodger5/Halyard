@@ -8,7 +8,10 @@ const config: NextConfig = {
   serverExternalPackages: ['pg', 'sharp', '@resvg/resvg-js'],
 
   outputFileTracingIncludes: {
-    '/api/internal/momentcircuit/render': ['./bin/ffmpeg'],
+    '/api/internal/momentcircuit/render': [
+      './bin/ffmpeg',
+      '../../packages/render/assets/fonts/**/*',
+    ],
   },
   typedRoutes: false,
 
