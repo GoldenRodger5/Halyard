@@ -11,6 +11,9 @@ const config: NextConfig = {
     '/api/internal/momentcircuit/render': [
       './bin/ffmpeg',
       '../../packages/render/assets/fonts/**/*',
+      './node_modules/@resvg/resvg-js/**/*',
+      '../../node_modules/@resvg/resvg-js/**/*',
+      '../../node_modules/.pnpm/@resvg+resvg-js*/node_modules/@resvg/**/*',
     ],
   },
   typedRoutes: false,
