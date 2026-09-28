@@ -23,6 +23,12 @@ const REMOTE_SEEK_HOSTS = [
   'docs.google.com',
   'supabase.co',
 ];
+const PROACTIVE_REMOTE_SEEK_HOSTS = [
+  'dropbox.com',
+  'dropboxusercontent.com',
+  'supabase.co',
+];
+const DEEP_SEEK_SECONDS = 300;
 
 type SourceMode = 'downloaded' | 'remote_seek';
 
@@ -145,12 +151,31 @@ function validateSourceUrl(raw: string) {
   if (['localhost', '127.0.0.1', '::1'].includes(parsed.hostname)) throw new Error('LOCAL_SOURCE_FORBIDDEN');
   return parsed;
 }
-function remoteSeekAllowed(raw: string) {
+function hostAllowed(raw: string, allowlist: string[]) {
   let parsed: URL;
   try { parsed = validateSourceUrl(raw); } catch { return false; }
   if (parsed.protocol !== 'https:') return false;
   const host = parsed.hostname.toLowerCase();
-  return REMOTE_SEEK_HOSTS.some((allowed) => host === allowed || host.endsWith(`.${allowed}`));
+  return allowlist.some((allowed) => host === allowed || host.endsWith(`.${allowed}`));
+}
+function remoteSeekAllowed(raw: string) {
+  return hostAllowed(raw, REMOTE_SEEK_HOSTS);
+}
+function proactiveRemoteSeekAllowed(raw: string) {
+  return hostAllowed(raw, PROACTIVE_REMOTE_SEEK_HOSTS);
+}
+function deepestStart(payload: RenderPayload) {
+  const variants = payload.variants?.length
+    ? payload.variants
+    : [{ id: payload.variant_id ?? 'master', segments: payload.segments ?? [] }];
+  let max = 0;
+  for (const variant of variants) {
+    for (const seg of variant.segments ?? []) {
+      const start = Number(seg.start ?? 0);
+      if (Number.isFinite(start)) max = Math.max(max, start);
+    }
+  }
+  return max;
 }
 async function download(url: string, dest: string) {
   validateSourceUrl(url);
@@ -180,7 +205,14 @@ async function download(url: string, dest: string) {
   } finally { await fh.close(); }
   return bytes;
 }
-async function prepareSource(url: string, dest: string): Promise<{ input: string; mode: SourceMode; bytes: number | null }> {
+async function prepareSource(
+  url: string,
+  dest: string,
+  preferRemoteSeek = false,
+): Promise<{ input: string; mode: SourceMode; bytes: number | null }> {
+  if (preferRemoteSeek && proactiveRemoteSeekAllowed(url)) {
+    return { input: url, mode: 'remote_seek', bytes: null };
+  }
   try {
     const bytes = await download(url, dest);
     return { input: dest, mode: 'downloaded', bytes };
@@ -247,7 +279,13 @@ async function segment(source: string, output: string, seg: Segment, work: strin
   if ((seg.start ?? 0) > 0) args.push('-ss',String(seg.start));
   args.push('-t',String(duration));
   if (/^https:\/\//i.test(source)) {
-    args.push('-user_agent','MomentCircuitVercel/1.0','-reconnect','1','-reconnect_streamed','1','-reconnect_delay_max','5');
+    args.push(
+      '-user_agent','MomentCircuitVercel/1.0',
+      '-reconnect','1',
+      '-reconnect_streamed','1',
+      '-reconnect_delay_max','5',
+      '-rw_timeout','30000000',
+    );
   }
   args.push('-i',source,'-loop','1','-i',hook,'-loop','1','-i',req,'-loop','1','-i',disc);
   let filter = base(family,focus), cur='[v0]';
@@ -307,7 +345,8 @@ async function execute(id: string) {
   }
   const payload=normalize(claimed.payload as RenderPayload), work=await fsp.mkdtemp(path.join(os.tmpdir(),'mc-vercel-')), source=path.join(work,'source.mp4');
   try {
-    const preparedSource=await prepareSource(payload.source_url,source), variants=[];
+    const preferRemoteSeek = deepestStart(payload) >= DEEP_SEEK_SECONDS;
+    const preparedSource=await prepareSource(payload.source_url,source,preferRemoteSeek), variants=[];
     const sourceInput=preparedSource.input;
     for (const v of payload.variants) {
       const vid=safe(v.id,'master'), parts:string[]=[]; let duration=0;
