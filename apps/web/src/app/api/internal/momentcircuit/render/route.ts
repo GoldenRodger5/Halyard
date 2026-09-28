@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import sharp from 'sharp';
+import { renderMomentCircuitOverlay } from '@/lib/momentcircuit/overlay';
 import crypto from 'node:crypto';
 import fsp from 'node:fs/promises';
 import fs from 'node:fs';
@@ -228,37 +229,9 @@ async function prepareSource(
     return { input: remote, mode: 'remote_seek', bytes: error.declaredBytes };
   }
 }
-function xml(v: string) {
-  return v.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');
-}
-function nativeHookLine(line: string, y: number, size: number) {
-  if (!line) return '';
-  const safe = xml(line.trim().slice(0, 42));
-  const baseline = y + size;
-  return `
-    <text x="540" y="${baseline}" text-anchor="middle"
-      font-family="Arial,Helvetica,sans-serif" font-weight="800" font-size="${size}"
-      fill="white" stroke="rgba(0,0,0,.88)" stroke-width="5"
-      stroke-linejoin="round" paint-order="stroke fill">${safe}</text>`;
-}
 async function overlay(file: string, seg: Segment, kind: 'hook'|'required'|'persistent') {
-  let body = '';
-  if (kind === 'hook') {
-    body += nativeHookLine(seg.hook_line1 ?? '', 305, 56);
-    body += nativeHookLine(seg.hook_line2 ?? '', 382, 48);
-    if (seg.disclosure && seg.disclosure_mode === 'opening') {
-      body += `<rect x="46" y="250" width="104" height="52" rx="12" fill="rgba(0,0,0,.68)"/>
-      <text x="98" y="285" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-weight="700" font-size="27" fill="white">${xml(seg.disclosure)}</text>`;
-    }
-  } else if (kind === 'required' && seg.required_text) {
-    const v = xml(seg.required_text), w = Math.min(800, Math.max(260, v.length*22+70)), x = Math.round((1080-w)/2);
-    body = `<rect x="${x}" y="1305" width="${w}" height="70" rx="16" fill="rgba(0,0,0,.72)"/>
-    <text x="540" y="1352" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-weight="700" font-size="34" fill="white">${v}</text>`;
-  } else if (kind === 'persistent' && seg.disclosure) {
-    body = `<rect x="46" y="250" width="104" height="52" rx="12" fill="rgba(0,0,0,.68)"/>
-    <text x="98" y="285" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-weight="700" font-size="27" fill="white">${xml(seg.disclosure)}</text>`;
-  }
-  await sharp(Buffer.from(`<svg width="1080" height="1920" xmlns="http://www.w3.org/2000/svg">${body}</svg>`)).png().toFile(file);
+  const png = await renderMomentCircuitOverlay(seg, kind);
+  await fsp.writeFile(file, png);
 }
 function base(family: Family, focus: number, cropMode: Segment['crop_mode'] = 'speaker') {
   if (family === 'native_people') {
