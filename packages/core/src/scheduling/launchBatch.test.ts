@@ -12,6 +12,7 @@ import {
   conceptFor,
   interleave,
   planLaunchBatch,
+  selectLaunchCalibrationSlots,
   type LaunchAccount,
   type LaunchBatchBrief,
 } from './launchBatch.js';
@@ -58,8 +59,13 @@ describe('allocateCategories', () => {
     expect(Object.values(allocation).reduce((a, b) => a + b, 0)).toBe(10);
   });
 
-  it('files everything under education when no mix is set, rather than inventing one', () => {
-    expect(allocateCategories({}, 5)).toEqual({ education: 5 });
+  it('uses a product-neutral cold-start mix when no product-specific mix exists', () => {
+    expect(allocateCategories({}, 5)).toEqual({
+      education: 2,
+      transformation: 1,
+      community: 1,
+      product: 1,
+    });
   });
 
   it('allocates nothing when there is nothing to allocate', () => {
@@ -188,12 +194,11 @@ describe('planLaunchBatch', () => {
     expect(longest).toBeLessThanOrEqual(3);
   });
 
-  it('says so when there are no mix targets rather than pretending to balance', () => {
+  it('uses and explains a varied product-neutral mix when the product has no learned mix yet', () => {
     const plan = planLaunchBatch(brief({ mixTargets: {} }));
-    expect(plan.warnings.join(' ')).toContain('No mix targets');
-    expect(plan.slots.every((s) => s.category === 'education' || s.purpose === 'introduction')).toBe(
-      true,
-    );
+    expect(plan.rationale.join(' ')).toContain('product-neutral editorial mix');
+    const regular = plan.slots.filter((s) => s.purpose === 'regular' && !s.deferred);
+    expect(new Set(regular.map((s) => s.category)).size).toBeGreaterThan(1);
   });
 
   it('drops an account whose platform has no slot windows, and names it', () => {
@@ -377,6 +382,9 @@ describe('planLaunchBatch', () => {
   it('reuses a creative package across placements instead of inventing every idea independently', () => {
     expect(conceptFor('transformation', 0).key).toBe(conceptFor('transformation', 3).key);
     expect(conceptFor('transformation', 4).key).not.toBe(conceptFor('transformation', 0).key);
+    expect(conceptFor('transformation', 0).treatment).not.toBe(
+      conceptFor('transformation', 4).treatment,
+    );
 
     const plan = planLaunchBatch(
       brief({
@@ -399,5 +407,43 @@ describe('planLaunchBatch', () => {
       conceptAccountPairs.add(pair);
     }
     expect(plan.rationale.join(' ')).toContain('creative packages');
+  });
+});
+
+describe('selectLaunchCalibrationSlots', () => {
+  const multiPlatformPlan = () =>
+    planLaunchBatch(
+      brief({
+        days: 3,
+        accounts: [
+          account({ id: 'acct-x', platform: 'x', supportedFormats: ['text'] }),
+          account({ id: 'acct-ig', platform: 'instagram', supportedFormats: ['carousel', 'video'] }),
+          account({ id: 'acct-tt', platform: 'tiktok', supportedFormats: ['video'] }),
+          account({ id: 'acct-pin', platform: 'pinterest', supportedFormats: ['pin'] }),
+        ],
+        slots: { x: WINDOWS, instagram: WINDOWS, tiktok: WINDOWS, pinterest: WINDOWS },
+        mixTargets: {},
+      }),
+    );
+
+  it('spends calibration capacity on reusable regular shapes before introductions', () => {
+    const plan = multiPlatformPlan();
+    const picked = selectLaunchCalibrationSlots(plan.slots, 4);
+    expect(picked).toHaveLength(4);
+    expect(picked.every((slot) => slot.purpose === 'regular')).toBe(true);
+  });
+
+  it('maximizes media-shape and platform diversity without knowing the product vertical', () => {
+    const plan = multiPlatformPlan();
+    const picked = selectLaunchCalibrationSlots(plan.slots, 4);
+    expect(new Set(picked.map((slot) => slot.format)).size).toBeGreaterThan(1);
+    expect(new Set(picked.map((slot) => slot.platform)).size).toBeGreaterThan(1);
+    expect(new Set(picked.map((slot) => slot.category)).size).toBeGreaterThan(1);
+  });
+
+  it('never selects more than the explicit calibration ceiling', () => {
+    const plan = multiPlatformPlan();
+    expect(selectLaunchCalibrationSlots(plan.slots, 2)).toHaveLength(2);
+    expect(selectLaunchCalibrationSlots(plan.slots, 0)).toEqual([]);
   });
 });

@@ -18,6 +18,7 @@ import {
   localDateString,
   planLaunchBatch,
   routeProduction,
+  selectLaunchCalibrationSlots,
   type LaunchBatchPlan,
   type PlatformId,
   type SlotWindow,
@@ -226,6 +227,20 @@ export async function generateLaunchBatch(formData: FormData): Promise<void> {
     preservedLaunch.map((row) => row.key).filter((key): key is string => Boolean(key)),
   );
 
+  // Replanning replaces untouched scaffolding. Its queued generate job is part
+  // of that scaffolding too: leaving it behind creates a ghost job whose
+  // targetContentItemId no longer exists and, worse, leaves paid work in the
+  // queue that the operator can no longer see.
+  await query(
+    `delete from jobs j
+      using content_items ci
+      where j.dedupe_key = 'launch_generate:' || ci.id::text
+        and j.status = 'queued'
+        and ci.product_id = $1 and ci.body = '' and ci.status = 'draft'
+        and ci.generation_meta->>'source' = $2`,
+    [productId, LAUNCH_SOURCE],
+  );
+
   await query(
     `delete from content_items
       where product_id = $1 and body = '' and status = 'draft'
@@ -240,6 +255,10 @@ export async function generateLaunchBatch(formData: FormData): Promise<void> {
    * shared with Campaigns/future entry points, so partial lineage cannot survive
    * a failed insert.
    */
+  const calibrationKeys = new Set(
+    selectLaunchCalibrationSlots(placed, 6).map((slot) => slot.key),
+  );
+
   const slotsByConcept = new Map<string, typeof placed>();
   for (const slot of placed) {
     slotsByConcept.set(slot.conceptKey, [
@@ -375,6 +394,7 @@ export async function generateLaunchBatch(formData: FormData): Promise<void> {
           production_media_required: mediaRequiredForFormat(slot.format),
           purpose: slot.purpose,
           key: slot.key,
+          calibration_selected: calibrationKeys.has(slot.key),
           concept_key: slot.conceptKey,
           slot_name: slot.slotName,
           reason: slot.reason,
@@ -407,18 +427,23 @@ export async function generateLaunchBatch(formData: FormData): Promise<void> {
     staged.push(stagedVariant.contentItemId);
   }
 
-  // One job per slot, deduped, exactly as campaigns do it. A dedupe key means
-  // clicking twice does not write the fortnight twice.
+  // The entire opening run is staged, but a cold product only spends on a
+  // representative calibration set. Once those recipes are visually accepted,
+  // later waves can widen without buying eighteen unproven creatives up front.
+  // Dedupe still makes repeated clicks idempotent.
   for (const contentItemId of staged) {
     const target = await one<{
       concept_id: string | null;
       account_id: string | null;
       platform: string;
+      calibration_selected: boolean;
     }>(
-      `select concept_id,account_id,platform from content_items where id=$1`,
+      `select concept_id,account_id,platform,
+              coalesce((generation_meta->>'calibration_selected')::boolean,false) as calibration_selected
+         from content_items where id=$1`,
       [contentItemId],
     );
-    if (!target?.concept_id || !target.account_id) continue;
+    if (!target?.concept_id || !target.account_id || !target.calibration_selected) continue;
     await query(
       // `targetContentItemId` deliberately bypasses the legacy lightweight
       // campaign-slot writer. The mature generator fills this exact scheduled

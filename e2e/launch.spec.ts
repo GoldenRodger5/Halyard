@@ -76,7 +76,7 @@ test.describe('launch batch', () => {
     await db().query(CLEANUP);
   });
 
-  test('stages a fortnight and queues one generation job per slot', async ({ page }) => {
+  test('stages the full run but queues only the cold-start calibration set', async ({ page }) => {
     await stage(page);
 
     const staged = await db().query<{
@@ -122,7 +122,15 @@ test.describe('launch batch', () => {
     const jobs = await db().query<{ n: string }>(
       `select count(*) as n from jobs where dedupe_key like 'launch_generate:%'`,
     );
-    expect(Number(jobs.rows[0]!.n)).toBe(staged.rowCount);
+    const selected = await db().query<{ n: string }>(
+      `select count(*) as n from content_items
+        where generation_meta->>'source'='launch_batch'
+          and coalesce((generation_meta->>'calibration_selected')::boolean,false)`,
+    );
+    expect(Number(jobs.rows[0]!.n)).toBe(Number(selected.rows[0]!.n));
+    expect(Number(jobs.rows[0]!.n)).toBeGreaterThan(0);
+    expect(Number(jobs.rows[0]!.n)).toBeLessThanOrEqual(6);
+    expect(Number(jobs.rows[0]!.n)).toBeLessThan(staged.rowCount);
 
     const lineage = await db().query<{
       items: string;

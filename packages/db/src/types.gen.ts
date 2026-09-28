@@ -2510,6 +2510,8 @@ export interface ProductArtifactsRow {
   fetched_at: string;
   expires_at: string | null;
   hit_count: number;
+  concept_id: string | null;
+  imagery: Json;
 }
 
 export interface ProductArtifactsInsert {
@@ -2526,6 +2528,8 @@ export interface ProductArtifactsInsert {
   fetched_at?: string;
   expires_at?: string | null;
   hit_count?: number;
+  concept_id?: string | null;
+  imagery?: Json;
 }
 
 export interface ProductArtifactsUpdate {
@@ -2542,6 +2546,8 @@ export interface ProductArtifactsUpdate {
   fetched_at?: string;
   expires_at?: string | null;
   hit_count?: number;
+  concept_id?: string | null;
+  imagery?: Json;
 }
 
 export interface ProductEvidenceRow {

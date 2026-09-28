@@ -79,6 +79,8 @@ export interface LaunchSlot {
   platform: string;
   persona: 'founder' | 'brand';
   category: string;
+  /** Product-neutral creative treatment; one category should still vary in execution. */
+  treatment: string;
   format: string;
   purpose: LaunchSlotPurpose;
   /** Shared cross-platform creative package. Several placements can carry one concept. */
@@ -149,43 +151,77 @@ function formatFor(
   return available[0]!;
 }
 
+/**
+ * Product-neutral cold-start mix used only when a product has not learned or
+ * configured its own editorial mix yet. It prevents the worst default: an
+ * empty config turning into an all-education account.
+ */
+export const DEFAULT_COLD_START_MIX = {
+  education: 0.35,
+  transformation: 0.25,
+  community: 0.20,
+  product: 0.20,
+} as const;
+
+export interface LaunchConceptIntent {
+  treatment: string;
+  intent: string;
+}
+
 /** One product-agnostic editorial brief per creative package. */
-const CONCEPT_INTENTS: Record<string, string[]> = {
+const CONCEPT_INTENTS: Record<string, LaunchConceptIntent[]> = {
   transformation: [
-    'Show one concrete before-to-after transformation using real product output. Open on the audience problem, make the mechanism visible, and let the changed result be the proof. Never invent user outcomes.',
-    'Take one common failure mode and show exactly what changes when the product handles it correctly. Be specific enough that the post is useful without the CTA.',
-    'Use one surprising edge case to demonstrate the product. The hook is the unexpected constraint; the payoff is the real, inspectable change the product makes.',
-    'Turn a familiar task into a side-by-side: the naive approach versus the product-informed approach. Explain the difference instead of declaring a winner.',
+    { treatment: 'before_after', intent: 'Show one concrete before-to-after transformation using real product output. Open on the audience problem, make the mechanism visible, and let the changed result be the proof. Never invent user outcomes.' },
+    { treatment: 'comparison', intent: 'Turn a familiar task into a side-by-side: the naive approach versus the product-informed approach. Explain the difference instead of declaring a winner.' },
+    { treatment: 'process_montage', intent: 'Use one surprising edge case to demonstrate a sequence of meaningful changes. The hook is the unexpected constraint; the payoff is the real, inspectable change.' },
+    { treatment: 'feature_demo', intent: 'Take one common failure mode and show exactly what changes when the product handles it correctly. Be specific enough that the post is useful without the CTA.' },
   ],
   education: [
-    'Teach one practical rule or mechanism the audience can use even if they never install the product. The product may appear as a compact demonstration, not as the lesson itself.',
-    'Explain why the obvious approach often fails, then teach the better principle with one concrete example. Keep claims grounded in supplied evidence.',
-    'Answer one narrow high-intent question the audience actually asks. Lead with the answer, show the reasoning, and only then connect it to the product.',
+    { treatment: 'how_to', intent: 'Teach one practical rule or mechanism the audience can use even if they never install the product. The product may appear as a compact demonstration, not as the lesson itself.' },
+    { treatment: 'myth_fact', intent: 'Challenge one plausible but wrong assumption in the domain. State the misconception quickly, explain the mechanism, and give one evidence-backed example.' },
+    { treatment: 'comparison', intent: 'Compare two approaches people genuinely confuse. Give the decision rule that separates them instead of padding the post with a generic pros-and-cons list.' },
+    { treatment: 'listicle', intent: 'Give a short, saveable set of concrete checks, signs or rules. Every item must add a different piece of information and the final item should land the strongest payoff.' },
   ],
   community: [
-    'Ask one specific, answerable question about the audience problem after giving a useful example first. No generic engagement bait and no empty “what do you think?” prompt.',
-    'Create a choose-between-two-scenarios prompt grounded in a real workflow. The audience should be able to answer from experience and teach Halyard something useful.',
+    { treatment: 'comparison', intent: 'Create a choose-between-two-scenarios prompt grounded in a real workflow. Give enough context that the audience can answer from experience and teach Halyard something useful.' },
+    { treatment: 'myth_fact', intent: 'Offer one defensible point of view the audience may disagree with, backed by a concrete example. Leave a real question open rather than manufacturing engagement bait.' },
+    { treatment: 'listicle', intent: 'Show a few recognizable audience behaviors or failure modes and ask which one people actually encounter. The examples must be useful even without a reply.' },
+    { treatment: 'how_to', intent: 'Answer one community question with a compact useful explanation, then invite a specific edge case or counterexample rather than asking “what do you think?”' },
   ],
   product: [
-    'Demonstrate one verified workflow end to end: starting state, action, and result. Do not list features; show one job being completed.',
-    'Show one product detail that removes friction from a real task. The post should make the mechanism understandable before naming the feature.',
+    { treatment: 'feature_demo', intent: 'Demonstrate one verified workflow end to end: starting state, action, and result. Do not list features; show one job being completed.' },
+    { treatment: 'tutorial', intent: 'Show the shortest honest path through one high-value workflow. The audience should understand the job and result before the feature name matters.' },
+    { treatment: 'comparison', intent: 'Show the real workflow with and without one verified product capability. Keep the comparison factual and make the mechanism visible.' },
+    { treatment: 'process_montage', intent: 'Compress a real multi-step product workflow into a visual sequence with a clear starting state and payoff. Use only real capture for product behavior.' },
   ],
   brand: [
-    'Introduce the account through one sharp domain belief or concrete failure mode, not through an announcement. The opening must be useful or surprising even if the reader never learns the product name. Do NOT open with “welcome”, “this account is for”, the product name, or a generic X-needs-changing sentence. Sentence one earns attention. Then say who this is for and what they will repeatedly learn here. Prefer one mechanism/example over a feature list. Evergreen, specific, and restrained.',
+    { treatment: 'comparison', intent: 'Introduce the account through one sharp domain belief or concrete failure mode, not through an announcement. The opening must be useful or surprising even if the reader never learns the product name. Do NOT open with “welcome”, “this account is for”, the product name, or a generic X-needs-changing sentence. Sentence one earns attention. Then say who this is for and what they will repeatedly learn here. Prefer one mechanism/example over a feature list. Evergreen, specific, and restrained.' },
   ],
 };
 
 const CONCEPT_PACKAGE_SIZE = 4;
 
-export function conceptFor(category: string, ordinal: number): { key: string; intent: string; variation: CreativeVariation } {
+export function conceptFor(
+  category: string,
+  ordinal: number,
+): { key: string; intent: string; treatment: string; variation: CreativeVariation } {
   const options = CONCEPT_INTENTS[category] ?? [
-    'Make one specific, evidence-backed piece that earns attention before asking for anything. Show or teach; do not announce.',
+    {
+      treatment: 'how_to',
+      intent: 'Make one specific, evidence-backed piece that earns attention before asking for anything. Show or teach; do not announce.',
+    },
   ];
   const packageIndex = Math.floor(ordinal / CONCEPT_PACKAGE_SIZE);
+  const selected = options[packageIndex % options.length]!;
+  const variation = {
+    ...creativeVariationFor(contentFamilyForCategory(category), packageIndex),
+    treatment: selected.treatment as CreativeVariation['treatment'],
+  };
   return {
     key: `${category}:${packageIndex + 1}`,
-    intent: options[packageIndex % options.length]!,
-    variation: creativeVariationFor(contentFamilyForCategory(category), packageIndex),
+    intent: selected.intent,
+    treatment: variation.treatment,
+    variation,
   };
 }
 
@@ -194,17 +230,20 @@ export function conceptFor(category: string, ordinal: number): { key: string; in
  *
  * Derived from the mix targets by largest-remainder, so a 40/30/20/10 target
  * over twenty slots gives 8/6/4/2 rather than whatever rounding happens to
- * produce. With no targets set it returns a single 'education' bucket, which is
- * honest: an unspecified mix is not a mix.
+ * produce. With no targets set it uses DEFAULT_COLD_START_MIX: a transparent,
+ * product-neutral prior that prevents a blank config from becoming a monotonous
+ * single-category account while measured learning is still empty.
  */
 export function allocateCategories(
   mixTargets: Record<string, number>,
   total: number,
 ): Record<string, number> {
-  const entries = Object.entries(mixTargets).filter(([, share]) => share > 0);
-  if (entries.length === 0 || total <= 0) {
-    return total > 0 ? { education: total } : {};
-  }
+  if (total <= 0) return {};
+  const configured = Object.entries(mixTargets).filter(([, share]) => share > 0);
+  const entries =
+    configured.length > 0
+      ? configured
+      : Object.entries(DEFAULT_COLD_START_MIX);
 
   const sum = entries.reduce((acc, [, share]) => acc + share, 0);
   const exact = entries.map(([category, share]) => ({
@@ -298,11 +337,15 @@ export function planLaunchBatch(brief: LaunchBatchBrief): LaunchBatchPlan {
       platform: account.platform,
       persona: account.persona,
       category: 'brand',
+      treatment: CONCEPT_INTENTS.brand![0]!.treatment,
       format: formatFor(account, 0, 'introduction')!,
       purpose: 'introduction',
       conceptKey: `brand:introduction:${account.persona}`,
-      conceptIntent: CONCEPT_INTENTS.brand![0]!,
-      creativeVariation: creativeVariationFor(contentFamilyForCategory('brand'), 0),
+      conceptIntent: CONCEPT_INTENTS.brand![0]!.intent,
+      creativeVariation: {
+        ...creativeVariationFor(contentFamilyForCategory('brand'), 0),
+        treatment: CONCEPT_INTENTS.brand![0]!.treatment as CreativeVariation['treatment'],
+      },
     });
   }
   rationale.push(
@@ -450,6 +493,7 @@ export function planLaunchBatch(brief: LaunchBatchBrief): LaunchBatchPlan {
       platform: account.platform,
       persona: account.persona,
       category,
+      treatment: concept.treatment,
       format: slot.format,
       purpose: 'regular',
       conceptKey: concept.key,
@@ -459,8 +503,8 @@ export function planLaunchBatch(brief: LaunchBatchBrief): LaunchBatchPlan {
   });
 
   if (Object.keys(brief.mixTargets).length === 0) {
-    warnings.push(
-      'No mix targets are set on the brand voice, so every post was filed under education. Set them at /products so the batch is balanced on purpose rather than by default.',
+    rationale.push(
+      'No product-specific mix targets are configured yet, so this cold start uses the product-neutral editorial mix: education 35%, transformation 25%, community 20%, product proof 20%. Measured account performance can replace that prior later.',
     );
   }
 
@@ -536,6 +580,71 @@ export function planLaunchBatch(brief: LaunchBatchBrief): LaunchBatchPlan {
   }
 
   return { slots, rationale, warnings, perPlatform, perCategory };
+}
+
+/**
+ * Choose the first cold-start production set without knowing anything about a
+ * product vertical.
+ *
+ * The full launch remains on the calendar, but a new product should not buy
+ * media for every placement before Halyard has learned whether any recipe is
+ * worth repeating. Selection is deliberately product-neutral: cover distinct
+ * media shapes first, then distinct platforms, categories and treatments.
+ *
+ * Introductions are fallback-only. They are important to the account, but a
+ * calibration dollar is better spent proving a reusable editorial shape than
+ * producing six versions of "hello" before the product has a visual language.
+ */
+export function selectLaunchCalibrationSlots(
+  slots: LaunchSlot[],
+  maxSlots = 6,
+): LaunchSlot[] {
+  if (maxSlots <= 0) return [];
+
+  const placed = slots.filter((slot) => !slot.deferred && slot.scheduledAt);
+  const regular = placed.filter((slot) => slot.purpose === 'regular');
+  const pool = regular.length > 0 ? regular : placed;
+
+  const selected: LaunchSlot[] = [];
+  const remaining = [...pool];
+  const formats = new Set<string>();
+  const platforms = new Set<string>();
+  const categories = new Set<string>();
+  const treatments = new Set<string>();
+
+  while (remaining.length > 0 && selected.length < maxSlots) {
+    let bestIndex = 0;
+    let bestScore = Number.NEGATIVE_INFINITY;
+
+    for (const [index, slot] of remaining.entries()) {
+      let score = 0;
+      if (!formats.has(slot.format)) score += 12;
+      if (!platforms.has(slot.platform)) score += 10;
+      if (!categories.has(slot.category)) score += 5;
+      if (!treatments.has(slot.treatment)) score += 3;
+
+      // Earlier scheduled work is the deterministic tie-breaker: calibration
+      // should unlock the next wave, not a later one.
+      const time = new Date(slot.scheduledAt ?? 0).getTime();
+      const tieBreak = Number.isFinite(time) ? -time / 1e15 : 0;
+      score += tieBreak;
+
+      if (score > bestScore) {
+        bestScore = score;
+        bestIndex = index;
+      }
+    }
+
+    const [picked] = remaining.splice(bestIndex, 1);
+    if (!picked) break;
+    selected.push(picked);
+    formats.add(picked.format);
+    platforms.add(picked.platform);
+    categories.add(picked.category);
+    treatments.add(picked.treatment);
+  }
+
+  return selected;
 }
 
 /**

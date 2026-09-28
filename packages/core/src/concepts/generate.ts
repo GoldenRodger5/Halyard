@@ -120,8 +120,8 @@ in the verified list.
 
 VOICE
 Specific over clever. No "here's why", no fake enthusiasm, no exclamation marks,
-no "game-changer". Write like someone who knows the subject talking to someone
-who also cooks.`;
+no "game-changer". Write like someone who knows the subject talking to the actual audience described in the product brief.
+Do not import vocabulary, examples, assumptions, or tone from another product category.`;
 
   const user = `SUBJECT
 ${request.intent}

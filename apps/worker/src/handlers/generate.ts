@@ -515,8 +515,103 @@ function postFormatForTarget(target: TargetContentItem): string | null {
   }
 }
 
+interface PackageArtifactRow {
+  id: string;
+  kind: string;
+  raw: unknown;
+  headline: string | null;
+  highlights: unknown;
+  visual_hints: string[];
+  imagery: unknown;
+}
+
+function hydratePackageArtifact(row: PackageArtifactRow): ProductArtifact {
+  const imagery = Array.isArray(row.imagery)
+    ? row.imagery.flatMap((value) => {
+        if (!value || typeof value !== 'object' || Array.isArray(value)) return [];
+        const source = value as Record<string, unknown>;
+        const retrievedAt =
+          typeof source.retrievedAt === 'string' && source.retrievedAt
+            ? new Date(source.retrievedAt)
+            : undefined;
+        return [{ ...source, ...(retrievedAt ? { retrievedAt } : {}) }] as NonNullable<ProductArtifact['imagery']>;
+      })
+    : [];
+
+  return {
+    kind: row.kind,
+    raw: row.raw,
+    headline: row.headline ?? 'Product output',
+    highlights: Array.isArray(row.highlights)
+      ? (row.highlights as ProductArtifact['highlights'])
+      : [],
+    visualHints: row.visual_hints ?? [],
+    ...(imagery.length > 0 ? { imagery } : {}),
+  };
+}
+
+async function lockedPackageArtifact(
+  pool: HandlerContext['pool'],
+  productId: string,
+  conceptId: string,
+): Promise<{ id: string; artifact: ProductArtifact } | null> {
+  const { rows } = await pool.query<PackageArtifactRow>(
+    `select id,kind,raw,headline,highlights,visual_hints,imagery
+       from product_artifacts
+      where product_id=$1 and concept_id=$2
+      order by fetched_at asc
+      limit 1`,
+    [productId, conceptId],
+  );
+  const row = rows[0];
+  return row ? { id: row.id, artifact: hydratePackageArtifact(row) } : null;
+}
+
+async function lockPackageArtifact(
+  pool: HandlerContext['pool'],
+  productId: string,
+  conceptId: string,
+  artifact: ProductArtifact,
+): Promise<{ id: string; artifact: ProductArtifact }> {
+  const imagery = (artifact.imagery ?? []).map((image) => ({
+    ...image,
+    ...(image.retrievedAt ? { retrievedAt: image.retrievedAt.toISOString() } : {}),
+  }));
+
+  const { rows } = await pool.query<PackageArtifactRow>(
+    `insert into product_artifacts
+       (product_id,kind,request_key,request,raw,headline,highlights,visual_hints,imagery,concept_id,hit_count)
+     values ($1,$2,$3,$4::jsonb,$5::jsonb,$6,$7::jsonb,$8,$9::jsonb,$10,1)
+     on conflict (product_id,request_key) do update
+       set hit_count=product_artifacts.hit_count+1
+     returning id,kind,raw,headline,highlights,visual_hints,imagery`,
+    [
+      productId,
+      artifact.kind,
+      `creative-package:${conceptId}`,
+      JSON.stringify({ conceptId, source: 'creative_package_v1' }),
+      JSON.stringify(artifact.raw),
+      artifact.headline,
+      JSON.stringify(artifact.highlights),
+      artifact.visualHints,
+      JSON.stringify(imagery),
+      conceptId,
+    ],
+  );
+
+  const row = rows[0];
+  if (!row) throw new Error(`failed to lock product artifact for creative package ${conceptId}`);
+  return { id: row.id, artifact: hydratePackageArtifact(row) };
+}
+
 export async function generateHandler(job: Job, ctx: HandlerContext): Promise<void> {
-  const productId = String(job.payload.productId ?? 'recipefix');
+  const productId = String(job.payload.productId ?? '').trim();
+  if (!productId) {
+    throw new PermanentJobFailure(
+      'Generation job is missing productId.',
+      'A product-neutral worker may never silently borrow another product\'s Brain, voice or evidence.',
+    );
+  }
   const targetContentItemId = String(job.payload.targetContentItemId ?? '').trim() || null;
   const targetItem = targetContentItemId
     ? (
@@ -1409,6 +1504,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
     }
 
     let artifact: ProductArtifact | null = null;
+    let packageArtifactId: string | null = null;
 
     /* §515. Set when the operator named a dish the catalogue does not have. */
 
@@ -1446,10 +1542,47 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
 
     if (connector && artifactIsNeeded) {
       try {
-        artifact = await connector.generateSample({
-          intent: `${idea.title}. ${idea.angle}`,
-          params: (job.payload.sampleParams as Record<string, unknown>) ?? {},
-        });
+        /*
+         * One CreativePackage, one real product artifact.
+         *
+         * A package may fan out to several social identities. If each variant
+         * independently asks the connector for a sample, "the same idea" can
+         * quietly become several different product outputs. The first
+         * evidence-bearing variant locks the artifact and every sibling reuses
+         * it. This is product-neutral: the connector decides what an artifact
+         * is; Halyard only preserves package coherence.
+         */
+        const locked = requestedConcept
+          ? await lockedPackageArtifact(ctx.pool, productId, requestedConcept.id)
+          : null;
+
+        if (locked) {
+          packageArtifactId = locked.id;
+          artifact = locked.artifact;
+          ctx.log('reusing CreativePackage product artifact', {
+            conceptId: requestedConcept?.id ?? null,
+            artifactId: packageArtifactId,
+          });
+        } else {
+          artifact = await connector.generateSample({
+            intent: `${idea.title}. ${idea.angle}`,
+            params: (job.payload.sampleParams as Record<string, unknown>) ?? {},
+          });
+          if (artifact && requestedConcept) {
+            const persisted = await lockPackageArtifact(
+              ctx.pool,
+              productId,
+              requestedConcept.id,
+              artifact,
+            );
+            packageArtifactId = persisted.id;
+            artifact = persisted.artifact;
+            ctx.log('locked product artifact to CreativePackage', {
+              conceptId: requestedConcept.id,
+              artifactId: packageArtifactId,
+            });
+          }
+        }
 
         /*
          * §515. When the catalogue has nothing like what was asked for, say so.
@@ -2568,6 +2701,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                 idea.title,
               /* §494. The job that paid for this piece, for `content_item_costs`. */
               jobId: job.id,
+              ...(packageArtifactId ? { package_artifact_id: packageArtifactId } : {}),
               /*
                * §515. Recorded on the piece, not only in a log line, because
                * the operator reading the gallery is the one who needs to know
