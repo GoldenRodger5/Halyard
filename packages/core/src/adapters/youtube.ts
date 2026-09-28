@@ -413,6 +413,12 @@ export class YouTubeAdapter implements PlatformAdapter {
         ...(item.requiresAiLabel ? { containsSyntheticMedia: true } : {}),
         ...(publishAt ? { publishAt: publishAt.toISOString() } : {}),
       },
+      // Keep paid-promotion disclosure as structured YouTube metadata rather
+      // than burning "Ad" into the Short. YouTube exposes this as the Studio
+      // paid-product-placement flag on the video resource.
+      ...(item.isSponsored
+        ? { paidProductPlacementDetails: { hasPaidProductPlacement: true } }
+        : {}),
     };
 
     const videoId = await this.resumableUpload(asset, metadata, account);
@@ -520,7 +526,7 @@ export class YouTubeAdapter implements PlatformAdapter {
     const bytes = new Uint8Array(await source.arrayBuffer());
 
     const initiate = await fetchImpl(
-      `${UPLOAD_API}/videos?uploadType=resumable&part=snippet,status`,
+      `${UPLOAD_API}/videos?uploadType=resumable&part=${youtubeUploadParts(metadata).join(',')}`,
       {
         method: 'POST',
         headers: {
@@ -646,4 +652,12 @@ export class YouTubeAdapter implements PlatformAdapter {
       `YouTube GET ${path}`,
     );
   }
+}
+
+
+export function youtubeUploadParts(metadata: unknown): string[] {
+  const record = metadata && typeof metadata === 'object' ? (metadata as Record<string, unknown>) : {};
+  return record.paidProductPlacementDetails
+    ? ['snippet', 'status', 'paidProductPlacementDetails']
+    : ['snippet', 'status'];
 }

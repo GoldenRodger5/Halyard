@@ -528,6 +528,19 @@ export async function publishHandler(job: Job, ctx: HandlerContext): Promise<voi
     // queue is the board the pin lands on.
     boardId: item.board_id ?? (job.payload.boardId as string | undefined) ?? null,
     disclosureText: item.disclosure_text,
+    // Structured sponsorship metadata travels separately from caption copy.
+    // MomentCircuit/paid campaign jobs should set isSponsored explicitly. The
+    // fallback only recognizes an already-explicit disclosure; it never invents
+    // sponsorship from the subject or campaign name.
+    isSponsored:
+      typeof job.payload.isSponsored === 'boolean'
+        ? job.payload.isSponsored
+        : /(?:^|\s)(?:#?ad|sponsored|paid partnership)(?:\s|$)/i.test(
+            [item.disclosure_text ?? '', item.body ?? ''].join(' '),
+          ),
+    instagramSponsorIds: Array.isArray(job.payload.instagramSponsorIds)
+      ? job.payload.instagramSponsorIds.filter((v): v is string => typeof v === 'string' && v.length > 0)
+      : [],
     requiresAiLabel: item.requires_ai_label ?? false,
     /*
      * §179. Carried, never computed. TikTok requires these to be a person's
