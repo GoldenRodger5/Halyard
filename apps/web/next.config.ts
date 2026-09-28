@@ -9,7 +9,6 @@ const config: NextConfig = {
   serverExternalPackages: ['pg', 'sharp', '@resvg/resvg-js'],
 
   outputFileTracingRoot: path.join(process.cwd(), '../..'),
-  outputFileTracingRoot: path.join(process.cwd(), '../..'),
   outputFileTracingIncludes: {
     '/api/internal/momentcircuit/render': [
       './bin/ffmpeg',
