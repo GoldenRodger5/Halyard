@@ -1,9 +1,9 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import ffmpegPath from 'ffmpeg-static';
 import sharp from 'sharp';
 import crypto from 'node:crypto';
 import fsp from 'node:fs/promises';
+import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
@@ -63,10 +63,23 @@ function authorize(request: NextRequest) {
 function safe(value: string, fallback = 'item') {
   return String(value || fallback).replace(/[^A-Za-z0-9._-]/g, '_').replace(/_+/g, '_').slice(0, 100) || fallback;
 }
+function resolveFfmpegPath() {
+  const candidates = [
+    path.join(process.cwd(), 'bin', 'ffmpeg'),
+    path.join(process.cwd(), 'apps', 'web', 'bin', 'ffmpeg'),
+    '/var/task/apps/web/bin/ffmpeg',
+    '/var/task/bin/ffmpeg',
+  ];
+  const found = candidates.find((candidate) => fs.existsSync(candidate));
+  if (!found) throw new Error('FFMPEG_BINARY_MISSING');
+  return found;
+}
+
 function run(args: string[]) {
   return new Promise<void>((resolve, reject) => {
-    if (!ffmpegPath) return reject(new Error('FFMPEG_BINARY_MISSING'));
-    const child = spawn(ffmpegPath, args, { stdio: ['ignore', 'ignore', 'pipe'] });
+    let binary: string;
+    try { binary = resolveFfmpegPath(); } catch (error) { reject(error); return; }
+    const child = spawn(binary, args, { stdio: ['ignore', 'ignore', 'pipe'] });
     let err = '';
     child.stderr.on('data', (d) => { err += d.toString(); if (err.length > 12000) err = err.slice(-12000); });
     child.on('error', reject);
