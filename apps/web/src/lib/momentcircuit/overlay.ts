@@ -1,4 +1,6 @@
-import { box, renderElement, text as satoriText, type SatoriElement } from '@halyard/render/image';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import sharp from 'sharp';
 
 export type MomentCircuitOverlayKind = 'hook' | 'required' | 'persistent';
 
@@ -12,6 +14,7 @@ export interface MomentCircuitOverlaySegment {
 
 const WIDTH = 1080;
 const HEIGHT = 1920;
+let fontDataUrlPromise: Promise<string> | null = null;
 
 function portableText(value: string): string {
   const normalized = value
@@ -32,100 +35,117 @@ function portableText(value: string): string {
   return normalized;
 }
 
-function centeredText(content: string, top: number, size: number, color: string, dx = 0, dy = 0): SatoriElement {
-  return box(
-    {
-      position: 'absolute',
-      top: top + dy,
-      left: dx,
-      width: WIDTH,
-      height: Math.round(size * 1.45),
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    satoriText(content, {
-      fontFamily: 'Inter',
-      fontWeight: 700,
-      fontSize: size,
-      lineHeight: 1,
-      color,
-      textAlign: 'center',
-      whiteSpace: 'nowrap',
-    }),
-  );
+function escapeXml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
 }
 
-function outlinedText(content: string, top: number, size: number): SatoriElement[] {
-  const safe = portableText(content.trim().slice(0, 42));
+async function bundledFontDataUrl(): Promise<string> {
+  if (!fontDataUrlPromise) {
+    fontDataUrlPromise = (async () => {
+      const candidates = [
+        path.join(process.cwd(), '../../packages/render/assets/fonts/Inter-SemiBold.woff'),
+        path.join(process.cwd(), 'packages/render/assets/fonts/Inter-SemiBold.woff'),
+        '/var/task/packages/render/assets/fonts/Inter-SemiBold.woff',
+        '/var/task/apps/web/../../packages/render/assets/fonts/Inter-SemiBold.woff',
+      ];
+      for (const candidate of candidates) {
+        try {
+          const font = await fs.readFile(candidate);
+          return `data:font/woff;base64,${font.toString('base64')}`;
+        } catch {
+          // Try the next traced location.
+        }
+      }
+      throw new Error('MOMENTCIRCUIT_FONT_MISSING');
+    })();
+  }
+  return fontDataUrlPromise;
+}
+
+function textNode(
+  content: string,
+  y: number,
+  size: number,
+  options: { stroke?: number; x?: number; anchor?: 'middle' | 'start' } = {},
+): string {
+  const safe = escapeXml(portableText(content.trim().slice(0, 84)));
+  if (!safe) return '';
+  const x = options.x ?? WIDTH / 2;
+  const anchor = options.anchor ?? 'middle';
+  const stroke = options.stroke ?? 0;
+  const strokeAttrs = stroke
+    ? ` stroke="rgba(0,0,0,0.92)" stroke-width="${stroke}" paint-order="stroke fill" stroke-linejoin="round"`
+    : '';
+  return `<text x="${x}" y="${y}" text-anchor="${anchor}" font-family="MCInter, Arial, sans-serif" font-size="${size}" font-weight="700" fill="#ffffff"${strokeAttrs}>${safe}</text>`;
+}
+
+function wrapSubtitle(value: string, maxChars = 40): string[] {
+  const safe = portableText(value).trim();
   if (!safe) return [];
-  const shadow = 'rgba(0,0,0,0.90)';
-  const offsets = [
-    [-4, 0], [4, 0], [0, -4], [0, 4],
-    [-3, -3], [3, -3], [-3, 3], [3, 3],
-  ] as const;
+  const words = safe.split(/\s+/);
+  const lines: string[] = [];
+  let current = '';
+  for (const word of words) {
+    const next = current ? `${current} ${word}` : word;
+    if (next.length > maxChars && current) {
+      lines.push(current);
+      current = word;
+    } else {
+      current = next;
+    }
+  }
+  if (current) lines.push(current);
+  if (lines.length <= 2) return lines;
+  const first = lines[0]!;
+  const rest = lines.slice(1).join(' ');
+  return [first, rest.length <= maxChars ? rest : `${rest.slice(0, maxChars - 3)}...`];
+}
+
+function svgDocument(children: string, fontDataUrl: string | null): string {
+  const fontFace = fontDataUrl
+    ? `<style>@font-face{font-family:'MCInter';src:url('${fontDataUrl}') format('woff');font-weight:700;font-style:normal;}</style>`
+    : '';
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${WIDTH}" height="${HEIGHT}" viewBox="0 0 ${WIDTH} ${HEIGHT}"><defs>${fontFace}</defs>${children}</svg>`;
+}
+
+function disclosureBadge(value: string): string {
+  const safe = escapeXml(portableText(value).trim().slice(0, 24));
+  if (!safe) return '';
   return [
-    ...offsets.map(([dx, dy]) => centeredText(safe, top, size, shadow, dx, dy)),
-    centeredText(safe, top, size, '#ffffff'),
+    '<rect x="46" y="250" width="150" height="52" rx="12" fill="rgba(0,0,0,0.68)"/>',
+    `<text x="121" y="285" text-anchor="middle" font-family="MCInter, Arial, sans-serif" font-size="27" font-weight="700" fill="#ffffff">${safe}</text>`,
+  ].join('');
+}
+
+function requiredSubtitle(value: string): string {
+  const lines = wrapSubtitle(value);
+  if (!lines.length) return '';
+  const height = lines.length === 1 ? 86 : 128;
+  const top = lines.length === 1 ? 1305 : 1284;
+  const firstY = lines.length === 1 ? top + 56 : top + 49;
+  const nodes = [
+    `<rect x="90" y="${top}" width="900" height="${height}" rx="16" fill="rgba(0,0,0,0.72)"/>`,
   ];
-}
-
-function disclosureBadge(text: string): SatoriElement {
-  return box(
-    {
-      position: 'absolute',
-      top: 250,
-      left: 46,
-      width: 104,
-      height: 52,
-      borderRadius: 12,
-      backgroundColor: 'rgba(0,0,0,0.68)',
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    satoriText(portableText(text), {
-      fontFamily: 'Inter',
-      fontWeight: 700,
-      fontSize: 27,
-      lineHeight: 1,
-      color: '#ffffff',
-    }),
-  );
-}
-
-function requiredSubtitle(value: string): SatoriElement {
-  return box(
-    {
-      position: 'absolute',
-      top: 1305,
-      left: 90,
-      width: 900,
-      minHeight: 70,
-      padding: '14px 24px',
-      borderRadius: 16,
-      backgroundColor: 'rgba(0,0,0,0.72)',
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    satoriText(portableText(value), {
-      fontFamily: 'Inter',
-      fontWeight: 700,
-      fontSize: 34,
-      lineHeight: 1.18,
-      color: '#ffffff',
-      textAlign: 'center',
-    }),
-  );
+  for (let i = 0; i < lines.length; i += 1) {
+    nodes.push(textNode(lines[i]!, firstY + i * 43, 34));
+  }
+  return nodes.join('');
 }
 
 export async function renderMomentCircuitOverlay(
   segment: MomentCircuitOverlaySegment,
   kind: MomentCircuitOverlayKind,
 ): Promise<Buffer> {
-  const children: SatoriElement[] = [];
+  const children: string[] = [];
 
   if (kind === 'hook') {
-    children.push(...outlinedText(segment.hook_line1 ?? '', 305, 56));
-    children.push(...outlinedText(segment.hook_line2 ?? '', 382, 48));
+    if (segment.hook_line1) children.push(textNode(segment.hook_line1.slice(0, 42), 360, 56, { stroke: 8 }));
+    if (segment.hook_line2) children.push(textNode(segment.hook_line2.slice(0, 42), 430, 48, { stroke: 7 }));
     if (segment.disclosure && segment.disclosure_mode === 'opening') {
       children.push(disclosureBadge(segment.disclosure));
     }
@@ -135,18 +155,8 @@ export async function renderMomentCircuitOverlay(
     children.push(disclosureBadge(segment.disclosure));
   }
 
-  const root = box(
-    {
-      position: 'relative',
-      width: WIDTH,
-      height: HEIGHT,
-    },
-    ...children,
-  );
-  const rendered = await renderElement(root, {
-    aspectRatio: '9:16',
-    quality: 'final',
-    size: { width: WIDTH, height: HEIGHT },
-  });
-  return rendered.png;
+  const hasText = children.some(Boolean);
+  const fontDataUrl = hasText ? await bundledFontDataUrl() : null;
+  const svg = svgDocument(children.join(''), fontDataUrl);
+  return sharp(Buffer.from(svg)).png().toBuffer();
 }
