@@ -42,6 +42,7 @@ export * from './creative/director.js';
 export * from './creative/longform.js';
 export * from './creative/openings.js';
 export * from './creative/variants.js';
+export * from './creative/variety.js';
 export * from './creative/typography.js';
 export * from './creative/motion.js';
 export * from './imagery/types.js';
