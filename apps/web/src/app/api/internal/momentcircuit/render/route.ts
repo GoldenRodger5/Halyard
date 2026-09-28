@@ -15,6 +15,27 @@ export const maxDuration = 300;
 const BUCKET = 'halyard-assets';
 const PREFIX = 'momentcircuit/';
 const MAX_SOURCE_BYTES = 650_000_000;
+const REMOTE_SEEK_HOSTS = [
+  'dropbox.com',
+  'dropboxusercontent.com',
+  'googleusercontent.com',
+  'drive.google.com',
+  'docs.google.com',
+  'supabase.co',
+];
+
+type SourceMode = 'downloaded' | 'remote_seek';
+
+class SourceTooLargeError extends Error {
+  readonly finalUrl: string;
+  readonly declaredBytes: number | null;
+  constructor(finalUrl: string, declaredBytes: number | null) {
+    super('SOURCE_TOO_LARGE');
+    this.name = 'SourceTooLargeError';
+    this.finalUrl = finalUrl;
+    this.declaredBytes = declaredBytes;
+  }
+}
 
 type Family = 'native_people' | 'gameplay_focus' | 'cinematic_focus';
 type DisclosureMode = 'none' | 'opening' | 'persistent';
@@ -118,14 +139,30 @@ function probeDuration(file: string) {
     });
   });
 }
-async function download(url: string, dest: string) {
-  const parsed = new URL(url);
+function validateSourceUrl(raw: string) {
+  const parsed = new URL(raw);
   if (!['https:', 'http:'].includes(parsed.protocol)) throw new Error('BAD_SOURCE_PROTOCOL');
   if (['localhost', '127.0.0.1', '::1'].includes(parsed.hostname)) throw new Error('LOCAL_SOURCE_FORBIDDEN');
+  return parsed;
+}
+function remoteSeekAllowed(raw: string) {
+  let parsed: URL;
+  try { parsed = validateSourceUrl(raw); } catch { return false; }
+  if (parsed.protocol !== 'https:') return false;
+  const host = parsed.hostname.toLowerCase();
+  return REMOTE_SEEK_HOSTS.some((allowed) => host === allowed || host.endsWith(`.${allowed}`));
+}
+async function download(url: string, dest: string) {
+  validateSourceUrl(url);
   const response = await fetch(url, { redirect: 'follow', headers: { 'user-agent': 'MomentCircuitVercel/1.0' } });
   if (!response.ok || !response.body) throw new Error(`SOURCE_HTTP_${response.status}`);
-  const declared = Number(response.headers.get('content-length') ?? 0);
-  if (declared > MAX_SOURCE_BYTES) throw new Error('SOURCE_TOO_LARGE');
+  validateSourceUrl(response.url || url);
+  const declaredHeader = response.headers.get('content-length');
+  const declared = declaredHeader ? Number(declaredHeader) : 0;
+  if (declared > MAX_SOURCE_BYTES) {
+    await response.body.cancel().catch(() => undefined);
+    throw new SourceTooLargeError(response.url || url, declared);
+  }
   const fh = await fsp.open(dest, 'w');
   const reader = response.body.getReader();
   let bytes = 0;
@@ -134,11 +171,29 @@ async function download(url: string, dest: string) {
       const { done, value } = await reader.read();
       if (done) break;
       bytes += value.byteLength;
-      if (bytes > MAX_SOURCE_BYTES) throw new Error('SOURCE_TOO_LARGE');
+      if (bytes > MAX_SOURCE_BYTES) {
+        await reader.cancel().catch(() => undefined);
+        throw new SourceTooLargeError(response.url || url, declared || null);
+      }
       await fh.write(Buffer.from(value));
     }
   } finally { await fh.close(); }
   return bytes;
+}
+async function prepareSource(url: string, dest: string): Promise<{ input: string; mode: SourceMode; bytes: number | null }> {
+  try {
+    const bytes = await download(url, dest);
+    return { input: dest, mode: 'downloaded', bytes };
+  } catch (error) {
+    if (!(error instanceof SourceTooLargeError)) throw error;
+    const remote = error.finalUrl || url;
+    // Remote ffmpeg input is intentionally restricted to known campaign/storage
+    // providers. This lets ffmpeg seek to a 20-40s window without downloading a
+    // multi-GB source while preventing arbitrary URLs from becoming a network pivot.
+    if (!remoteSeekAllowed(url) || !remoteSeekAllowed(remote)) throw error;
+    await fsp.rm(dest, { force: true }).catch(() => undefined);
+    return { input: remote, mode: 'remote_seek', bytes: error.declaredBytes };
+  }
 }
 function xml(v: string) {
   return v.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');
@@ -190,7 +245,11 @@ async function segment(source: string, output: string, seg: Segment, work: strin
   await overlay(hook,seg,'hook'); await overlay(req,seg,'required'); await overlay(disc,seg,'persistent');
   const args = ['-y'];
   if ((seg.start ?? 0) > 0) args.push('-ss',String(seg.start));
-  args.push('-t',String(duration),'-i',source,'-loop','1','-i',hook,'-loop','1','-i',req,'-loop','1','-i',disc);
+  args.push('-t',String(duration));
+  if (/^https:\/\//i.test(source)) {
+    args.push('-user_agent','MomentCircuitVercel/1.0','-reconnect','1','-reconnect_streamed','1','-reconnect_delay_max','5');
+  }
+  args.push('-i',source,'-loop','1','-i',hook,'-loop','1','-i',req,'-loop','1','-i',disc);
   let filter = base(family,focus), cur='[v0]';
   if (seg.hook_line1 || seg.hook_line2 || (seg.disclosure && seg.disclosure_mode==='opening')) {
     const hd=Math.max(.6,Math.min(1.6,seg.hook_duration ?? 1.15));
@@ -248,19 +307,20 @@ async function execute(id: string) {
   }
   const payload=normalize(claimed.payload as RenderPayload), work=await fsp.mkdtemp(path.join(os.tmpdir(),'mc-vercel-')), source=path.join(work,'source.mp4');
   try {
-    const sourceBytes=await download(payload.source_url,source), variants=[];
+    const preparedSource=await prepareSource(payload.source_url,source), variants=[];
+    const sourceInput=preparedSource.input;
     for (const v of payload.variants) {
       const vid=safe(v.id,'master'), parts:string[]=[]; let duration=0;
       for (let i=0;i<v.segments.length;i++) {
         const seg=v.segments[i]!; duration+=Number(seg.duration);
-        const part=path.join(work,`${vid}-${i}.mp4`); await segment(source,part,seg,work,i); parts.push(part);
+        const part=path.join(work,`${vid}-${i}.mp4`); await segment(sourceInput,part,seg,work,i); parts.push(part);
       }
       const final=path.join(work,`${vid}.mp4`); await concat(parts,final,work);
       const stat=await fsp.stat(final); if (!stat.size) throw new Error('EMPTY_RENDER');
       const actualDuration=await probeDuration(final).catch(()=>duration);
       const safeDuration=Math.max(.1,Math.min(duration,Math.max(.1,actualDuration-.08)));
       const contact=await sheet(final,safeDuration,work,vid);
-      const tech={width:1080,height:1920,codec:'h264',duration_seconds:actualDuration,size_bytes:stat.size,source_bytes:sourceBytes,template_system:'template-system-v3-2026-09-27'};
+      const tech={width:1080,height:1920,codec:'h264',duration_seconds:actualDuration,size_bytes:stat.size,source_bytes:preparedSource.bytes,source_mode:preparedSource.mode,template_system:'template-system-v3-2026-09-27'};
       const techFile=path.join(work,`${vid}-technical.json`); await fsp.writeFile(techFile,JSON.stringify(tech,null,2));
       const basePath=`${PREFIX}${safe(id)}/${crypto.randomUUID()}`;
       variants.push({
@@ -271,7 +331,7 @@ async function execute(id: string) {
         duration_seconds:actualDuration,size_bytes:stat.size,technical_qc:'passed',visual_qc:'pending_manager_review'
       });
     }
-    const result={version:1,status:'render_ready',rendered_at:new Date().toISOString(),source_url:payload.source_url,source_rights:payload.source_rights??null,story_family:payload.story_family??claimed.story_family??null,variants};
+    const result={version:1,status:'render_ready',rendered_at:new Date().toISOString(),source_url:payload.source_url,source_mode:preparedSource.mode,source_rights:payload.source_rights??null,story_family:payload.story_family??claimed.story_family??null,variants};
     const {error:ue}=await client.from('momentcircuit_render_jobs').update({status:'ready',result,completed_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('id',id);
     if (ue) throw new Error(`READY_UPDATE_FAILED: ${ue.message}`);
     return {duplicate:false,job_id:id,result};
