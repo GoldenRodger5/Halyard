@@ -51,6 +51,7 @@ interface Segment {
   start?: number;
   duration: number;
   focus_x?: number;
+  crop_mode?: 'speaker' | 'two_shot' | 'action' | 'center';
   hook_line1?: string;
   hook_line2?: string;
   hook_duration?: number;
@@ -263,8 +264,11 @@ async function overlay(file: string, seg: Segment, kind: 'hook'|'required'|'pers
   }
   await sharp(Buffer.from(`<svg width="1080" height="1920" xmlns="http://www.w3.org/2000/svg">${body}</svg>`)).png().toFile(file);
 }
-function base(family: Family, focus: number) {
+function base(family: Family, focus: number, cropMode: Segment['crop_mode'] = 'speaker') {
   if (family === 'native_people') {
+    if (cropMode === 'two_shot') {
+      return '[0:v]scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2:color=black,format=yuv420p[v0]';
+    }
     return `[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920:(in_w-1080)*${focus.toFixed(4)}:(in_h-1920)/2,format=yuv420p[v0]`;
   }
   const brightness = family === 'gameplay_focus' ? '-0.26' : '-0.20';
@@ -280,6 +284,7 @@ async function segment(source: string, output: string, seg: Segment, work: strin
   if (!(duration > 0 && duration <= 180)) throw new Error('BAD_SEGMENT_DURATION');
   const family = seg.family ?? 'native_people';
   const focus = Math.max(0, Math.min(1, seg.focus_x ?? .5));
+  const cropMode = seg.crop_mode ?? (family === 'native_people' ? 'speaker' : 'action');
   const hook = path.join(work,`hook-${i}.png`), req = path.join(work,`req-${i}.png`), disc = path.join(work,`disc-${i}.png`);
   await overlay(hook,seg,'hook'); await overlay(req,seg,'required'); await overlay(disc,seg,'persistent');
   const args = ['-y'];
@@ -295,7 +300,7 @@ async function segment(source: string, output: string, seg: Segment, work: strin
     );
   }
   args.push('-i',source,'-loop','1','-i',hook,'-loop','1','-i',req,'-loop','1','-i',disc);
-  let filter = base(family,focus), cur='[v0]';
+  let filter = base(family,focus,cropMode), cur='[v0]';
   if (seg.hook_line1 || seg.hook_line2 || (seg.disclosure && seg.disclosure_mode==='opening')) {
     const hd=Math.max(.6,Math.min(1.6,seg.hook_duration ?? 1.15));
     filter += `;${cur}[1:v]overlay=0:0:enable='between(t,0,${hd})'[v1]`; cur='[v1]';
@@ -345,6 +350,8 @@ function normalize(p: RenderPayload) {
       }
       if ((seg.hook_duration ?? 1) > 1.3) throw new Error('HOOK_DURATION_TOO_LONG');
       if ((seg.start ?? 0) < 0) throw new Error('BAD_SEGMENT_START');
+      if (seg.crop_mode === 'speaker' && (seg.focus_x ?? .5) < .05) throw new Error('SPEAKER_CROP_TOO_FAR_LEFT');
+      if (seg.crop_mode === 'speaker' && (seg.focus_x ?? .5) > .95) throw new Error('SPEAKER_CROP_TOO_FAR_RIGHT');
       if (seg.disclosure_mode && seg.disclosure_mode !== 'none' && !seg.disclosure) {
         throw new Error('DISCLOSURE_MODE_WITHOUT_TEXT');
       }
