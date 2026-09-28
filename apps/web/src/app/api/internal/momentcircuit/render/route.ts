@@ -15,6 +15,33 @@ export const maxDuration = 300;
 const BUCKET = 'halyard-assets';
 const PREFIX = 'momentcircuit/';
 const MAX_SOURCE_BYTES = 650_000_000;
+const REMOTE_SEEK_HOSTS = [
+  'dropbox.com',
+  'dropboxusercontent.com',
+  'googleusercontent.com',
+  'drive.google.com',
+  'docs.google.com',
+  'supabase.co',
+];
+const PROACTIVE_REMOTE_SEEK_HOSTS = [
+  'dropbox.com',
+  'dropboxusercontent.com',
+  'supabase.co',
+];
+const DEEP_SEEK_SECONDS = 300;
+
+type SourceMode = 'downloaded' | 'remote_seek';
+
+class SourceTooLargeError extends Error {
+  readonly finalUrl: string;
+  readonly declaredBytes: number | null;
+  constructor(finalUrl: string, declaredBytes: number | null) {
+    super('SOURCE_TOO_LARGE');
+    this.name = 'SourceTooLargeError';
+    this.finalUrl = finalUrl;
+    this.declaredBytes = declaredBytes;
+  }
+}
 
 type Family = 'native_people' | 'gameplay_focus' | 'cinematic_focus';
 type DisclosureMode = 'none' | 'opening' | 'persistent';
@@ -118,14 +145,49 @@ function probeDuration(file: string) {
     });
   });
 }
-async function download(url: string, dest: string) {
-  const parsed = new URL(url);
+function validateSourceUrl(raw: string) {
+  const parsed = new URL(raw);
   if (!['https:', 'http:'].includes(parsed.protocol)) throw new Error('BAD_SOURCE_PROTOCOL');
   if (['localhost', '127.0.0.1', '::1'].includes(parsed.hostname)) throw new Error('LOCAL_SOURCE_FORBIDDEN');
+  return parsed;
+}
+function hostAllowed(raw: string, allowlist: string[]) {
+  let parsed: URL;
+  try { parsed = validateSourceUrl(raw); } catch { return false; }
+  if (parsed.protocol !== 'https:') return false;
+  const host = parsed.hostname.toLowerCase();
+  return allowlist.some((allowed) => host === allowed || host.endsWith(`.${allowed}`));
+}
+function remoteSeekAllowed(raw: string) {
+  return hostAllowed(raw, REMOTE_SEEK_HOSTS);
+}
+function proactiveRemoteSeekAllowed(raw: string) {
+  return hostAllowed(raw, PROACTIVE_REMOTE_SEEK_HOSTS);
+}
+function deepestStart(payload: RenderPayload) {
+  const variants = payload.variants?.length
+    ? payload.variants
+    : [{ id: payload.variant_id ?? 'master', segments: payload.segments ?? [] }];
+  let max = 0;
+  for (const variant of variants) {
+    for (const seg of variant.segments ?? []) {
+      const start = Number(seg.start ?? 0);
+      if (Number.isFinite(start)) max = Math.max(max, start);
+    }
+  }
+  return max;
+}
+async function download(url: string, dest: string) {
+  validateSourceUrl(url);
   const response = await fetch(url, { redirect: 'follow', headers: { 'user-agent': 'MomentCircuitVercel/1.0' } });
   if (!response.ok || !response.body) throw new Error(`SOURCE_HTTP_${response.status}`);
-  const declared = Number(response.headers.get('content-length') ?? 0);
-  if (declared > MAX_SOURCE_BYTES) throw new Error('SOURCE_TOO_LARGE');
+  validateSourceUrl(response.url || url);
+  const declaredHeader = response.headers.get('content-length');
+  const declared = declaredHeader ? Number(declaredHeader) : 0;
+  if (declared > MAX_SOURCE_BYTES) {
+    await response.body.cancel().catch(() => undefined);
+    throw new SourceTooLargeError(response.url || url, declared);
+  }
   const fh = await fsp.open(dest, 'w');
   const reader = response.body.getReader();
   let bytes = 0;
@@ -134,27 +196,59 @@ async function download(url: string, dest: string) {
       const { done, value } = await reader.read();
       if (done) break;
       bytes += value.byteLength;
-      if (bytes > MAX_SOURCE_BYTES) throw new Error('SOURCE_TOO_LARGE');
+      if (bytes > MAX_SOURCE_BYTES) {
+        await reader.cancel().catch(() => undefined);
+        throw new SourceTooLargeError(response.url || url, declared || null);
+      }
       await fh.write(Buffer.from(value));
     }
   } finally { await fh.close(); }
   return bytes;
 }
+async function prepareSource(
+  url: string,
+  dest: string,
+  preferRemoteSeek = false,
+): Promise<{ input: string; mode: SourceMode; bytes: number | null }> {
+  if (preferRemoteSeek && proactiveRemoteSeekAllowed(url)) {
+    return { input: url, mode: 'remote_seek', bytes: null };
+  }
+  try {
+    const bytes = await download(url, dest);
+    return { input: dest, mode: 'downloaded', bytes };
+  } catch (error) {
+    if (!(error instanceof SourceTooLargeError)) throw error;
+    const remote = error.finalUrl || url;
+    // Remote ffmpeg input is intentionally restricted to known campaign/storage
+    // providers. This lets ffmpeg seek to a 20-40s window without downloading a
+    // multi-GB source while preventing arbitrary URLs from becoming a network pivot.
+    if (!remoteSeekAllowed(url) || !remoteSeekAllowed(remote)) throw error;
+    await fsp.rm(dest, { force: true }).catch(() => undefined);
+    return { input: remote, mode: 'remote_seek', bytes: error.declaredBytes };
+  }
+}
 function xml(v: string) {
   return v.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');
 }
-function card(line: string, y: number, size: number) {
+function nativeHookLine(line: string, y: number, size: number) {
   if (!line) return '';
-  const width = Math.min(970, Math.max(280, Math.round(line.length * size * 0.6 + 72)));
-  const x = Math.round((1080 - width) / 2);
-  return `<rect x="${x}" y="${y}" width="${width}" height="${size+48}" rx="18" fill="rgba(255,255,255,.95)"/>
-  <text x="540" y="${y+size+4}" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-weight="700" font-size="${size}" fill="#090909">${xml(line)}</text>`;
+  const safe = xml(line.trim().slice(0, 42));
+  const baseline = y + size;
+  return `
+    <text x="540" y="${baseline + 3}" text-anchor="middle"
+      font-family="Arial,Helvetica,sans-serif" font-weight="800" font-size="${size}"
+      fill="rgba(0,0,0,.92)" stroke="rgba(0,0,0,.92)" stroke-width="10"
+      stroke-linejoin="round" paint-order="stroke">${safe}</text>
+    <text x="540" y="${baseline}" text-anchor="middle"
+      font-family="Arial,Helvetica,sans-serif" font-weight="800" font-size="${size}"
+      fill="white" stroke="rgba(0,0,0,.82)" stroke-width="4"
+      stroke-linejoin="round" paint-order="stroke">${safe}</text>`;
 }
 async function overlay(file: string, seg: Segment, kind: 'hook'|'required'|'persistent') {
   let body = '';
   if (kind === 'hook') {
-    body += card(seg.hook_line1 ?? '', 300, 58);
-    body += card(seg.hook_line2 ?? '', 400, 50);
+    body += nativeHookLine(seg.hook_line1 ?? '', 305, 56);
+    body += nativeHookLine(seg.hook_line2 ?? '', 382, 48);
     if (seg.disclosure && seg.disclosure_mode === 'opening') {
       body += `<rect x="46" y="250" width="104" height="52" rx="12" fill="rgba(0,0,0,.68)"/>
       <text x="98" y="285" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-weight="700" font-size="27" fill="white">${xml(seg.disclosure)}</text>`;
@@ -190,7 +284,17 @@ async function segment(source: string, output: string, seg: Segment, work: strin
   await overlay(hook,seg,'hook'); await overlay(req,seg,'required'); await overlay(disc,seg,'persistent');
   const args = ['-y'];
   if ((seg.start ?? 0) > 0) args.push('-ss',String(seg.start));
-  args.push('-t',String(duration),'-i',source,'-loop','1','-i',hook,'-loop','1','-i',req,'-loop','1','-i',disc);
+  args.push('-t',String(duration));
+  if (/^https:\/\//i.test(source)) {
+    args.push(
+      '-user_agent','MomentCircuitVercel/1.0',
+      '-reconnect','1',
+      '-reconnect_streamed','1',
+      '-reconnect_delay_max','5',
+      '-rw_timeout','30000000',
+    );
+  }
+  args.push('-i',source,'-loop','1','-i',hook,'-loop','1','-i',req,'-loop','1','-i',disc);
   let filter = base(family,focus), cur='[v0]';
   if (seg.hook_line1 || seg.hook_line2 || (seg.disclosure && seg.disclosure_mode==='opening')) {
     const hd=Math.max(.6,Math.min(1.6,seg.hook_duration ?? 1.15));
@@ -234,6 +338,18 @@ function normalize(p: RenderPayload) {
   if (!p?.source_url) throw new Error('SOURCE_URL_REQUIRED');
   const variants=p.variants?.length?p.variants:[{id:p.variant_id??'master',filename:p.filename??'momentcircuit.mp4',segments:p.segments??[]}];
   if (variants.some((v)=>!v.segments.length)) throw new Error('SEGMENTS_REQUIRED');
+  for (const variant of variants) {
+    for (const seg of variant.segments) {
+      if ((seg.hook_line1?.length ?? 0) > 42 || (seg.hook_line2?.length ?? 0) > 42) {
+        throw new Error('HOOK_LINE_TOO_LONG');
+      }
+      if ((seg.hook_duration ?? 1) > 1.3) throw new Error('HOOK_DURATION_TOO_LONG');
+      if ((seg.start ?? 0) < 0) throw new Error('BAD_SEGMENT_START');
+      if (seg.disclosure_mode && seg.disclosure_mode !== 'none' && !seg.disclosure) {
+        throw new Error('DISCLOSURE_MODE_WITHOUT_TEXT');
+      }
+    }
+  }
   return {...p,variants};
 }
 async function execute(id: string) {
@@ -248,19 +364,21 @@ async function execute(id: string) {
   }
   const payload=normalize(claimed.payload as RenderPayload), work=await fsp.mkdtemp(path.join(os.tmpdir(),'mc-vercel-')), source=path.join(work,'source.mp4');
   try {
-    const sourceBytes=await download(payload.source_url,source), variants=[];
+    const preferRemoteSeek = deepestStart(payload) >= DEEP_SEEK_SECONDS;
+    const preparedSource=await prepareSource(payload.source_url,source,preferRemoteSeek), variants=[];
+    const sourceInput=preparedSource.input;
     for (const v of payload.variants) {
       const vid=safe(v.id,'master'), parts:string[]=[]; let duration=0;
       for (let i=0;i<v.segments.length;i++) {
         const seg=v.segments[i]!; duration+=Number(seg.duration);
-        const part=path.join(work,`${vid}-${i}.mp4`); await segment(source,part,seg,work,i); parts.push(part);
+        const part=path.join(work,`${vid}-${i}.mp4`); await segment(sourceInput,part,seg,work,i); parts.push(part);
       }
       const final=path.join(work,`${vid}.mp4`); await concat(parts,final,work);
       const stat=await fsp.stat(final); if (!stat.size) throw new Error('EMPTY_RENDER');
       const actualDuration=await probeDuration(final).catch(()=>duration);
       const safeDuration=Math.max(.1,Math.min(duration,Math.max(.1,actualDuration-.08)));
       const contact=await sheet(final,safeDuration,work,vid);
-      const tech={width:1080,height:1920,codec:'h264',duration_seconds:actualDuration,size_bytes:stat.size,source_bytes:sourceBytes,template_system:'template-system-v3-2026-09-27'};
+      const tech={width:1080,height:1920,codec:'h264',duration_seconds:actualDuration,size_bytes:stat.size,source_bytes:preparedSource.bytes,source_mode:preparedSource.mode,template_system:'template-system-v3-2026-09-27'};
       const techFile=path.join(work,`${vid}-technical.json`); await fsp.writeFile(techFile,JSON.stringify(tech,null,2));
       const basePath=`${PREFIX}${safe(id)}/${crypto.randomUUID()}`;
       variants.push({
@@ -271,7 +389,7 @@ async function execute(id: string) {
         duration_seconds:actualDuration,size_bytes:stat.size,technical_qc:'passed',visual_qc:'pending_manager_review'
       });
     }
-    const result={version:1,status:'render_ready',rendered_at:new Date().toISOString(),source_url:payload.source_url,source_rights:payload.source_rights??null,story_family:payload.story_family??claimed.story_family??null,variants};
+    const result={version:1,status:'render_ready',rendered_at:new Date().toISOString(),source_url:payload.source_url,source_mode:preparedSource.mode,source_rights:payload.source_rights??null,story_family:payload.story_family??claimed.story_family??null,variants};
     const {error:ue}=await client.from('momentcircuit_render_jobs').update({status:'ready',result,completed_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('id',id);
     if (ue) throw new Error(`READY_UPDATE_FAILED: ${ue.message}`);
     return {duplicate:false,job_id:id,result};

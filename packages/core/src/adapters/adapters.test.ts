@@ -422,6 +422,46 @@ describe('InstagramAdapter — v2 A.3', () => {
     ).rejects.toThrow(/ERROR/);
   });
 
+  it('treats missing Instagram Paid Partnership support as a repairable capability gap', async () => {
+    await expect(
+      adapter.publish(
+        item({ platform: 'instagram', format: 'video', isSponsored: true }),
+        [asset({ kind: 'video', mimeType: 'video/mp4', publicUrl: 'https://storage.example.com/public/sponsored.mp4' })],
+        ig(),
+      ),
+    ).rejects.toThrow(/CAPABILITY_REPAIRABLE/);
+  });
+
+  it('sets the native Paid Partnership label on Facebook Login sponsored Reels', async () => {
+    const { fetchImpl, calls } = scriptedFetch([
+      {
+        match: (u, init) => /\/ig-user-1\/media(\?|$)/.test(u) && init?.method === 'POST',
+        respond: () => json({ id: 'container-sponsored' }),
+      },
+      { match: (u) => u.includes('status_code'), respond: () => json({ status_code: 'FINISHED' }) },
+      { match: (u) => u.includes('/media_publish'), respond: () => json({ id: 'reel-sponsored' }) },
+      { match: (u) => u.includes('fields=permalink'), respond: () => json({ permalink: 'https://instagram.com/reel/sponsored' }) },
+    ]);
+    await adapter.publish(
+      item({
+        platform: 'instagram',
+        format: 'video',
+        isSponsored: true,
+        instagramSponsorIds: ['12345'],
+      }),
+      [asset({ kind: 'video', mimeType: 'video/mp4', publicUrl: 'https://storage.example.com/public/sponsored.mp4' })],
+      {
+        ...ig(),
+        tokens: { accessToken: 'fb-token', scopes: ['instagram_basic', 'instagram_content_publish'] },
+        meta: { fetchImpl, sleep: async () => undefined },
+      },
+    );
+    const create = calls.find((c) => /\/ig-user-1\/media(\?|$)/.test(c.url) && c.method === 'POST')!;
+    expect(create.url).toContain('graph.facebook.com');
+    expect((create.body as Record<string, string>).is_paid_partnership).toBe('true');
+    expect((create.body as Record<string, string>).branded_content_sponsor_ids).toBe('["12345"]');
+  });
+
   it('refuses a signed asset URL — Meta cURLs the media itself', () => {
     expect(() =>
       assertPublicUrl(asset({ publicUrl: 'https://storage.example.com/o/card.png?token=abc&expires=123' })),
@@ -624,6 +664,31 @@ describe('YouTubeAdapter — v2 A.6', () => {
     const chunks = calls.filter((c) => c.url.includes('session-1'));
     expect(chunks.length).toBeGreaterThan(1);
     expect(chunks[0]?.headers['content-range']).toMatch(/^bytes 0-/);
+  });
+
+  it('sets native paid product placement metadata for sponsored uploads', async () => {
+    const { fetchImpl, calls } = uploadRoutes();
+    await adapter.publish(
+      item({
+        platform: 'youtube',
+        format: 'video',
+        title: 'A real sponsored Short',
+        isSponsored: true,
+      }),
+      [asset({
+        kind: 'video',
+        mimeType: 'video/mp4',
+        publicUrl: 'https://storage.example.com/public/sponsored-short.mp4',
+        width: 1080,
+        height: 1920,
+        durationSeconds: 24,
+      })],
+      account({ platform: 'youtube', capabilityState: 'live', meta: { fetchImpl, complianceAuditPassed: true } }),
+    );
+    const initiate = calls.find((c) => c.url.includes('uploadType=resumable'))!;
+    expect(initiate.url).toContain('paidProductPlacementDetails');
+    const body = initiate.body as { paidProductPlacementDetails?: { hasPaidProductPlacement?: boolean } };
+    expect(body.paidProductPlacementDetails?.hasPaidProductPlacement).toBe(true);
   });
 
   it('declares synthetic media when a label is required', async () => {

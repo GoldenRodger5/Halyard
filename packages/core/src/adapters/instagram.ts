@@ -61,6 +61,16 @@ export const GRAPH_VERSION = 'v23.0';
  * distinct from the Meta app's, exactly as Threads does (§173).
  */
 const GRAPH = `https://graph.instagram.com/${GRAPH_VERSION}`;
+const FACEBOOK_GRAPH = `https://graph.facebook.com/${GRAPH_VERSION}`;
+const FACEBOOK_AUTHORIZE_URL = `https://www.facebook.com/${GRAPH_VERSION}/dialog/oauth`;
+
+/** Facebook Login is the explicit alternate flavor for native Paid Partnership publishing. */
+export const INSTAGRAM_FACEBOOK_SCOPES = [
+  'instagram_basic',
+  'instagram_content_publish',
+  'pages_show_list',
+  'pages_read_engagement',
+];
 
 /** Short-lived code exchange. Note: api.instagram.com, not graph. */
 const TOKEN_URL = 'https://api.instagram.com/oauth/access_token';
@@ -120,6 +130,69 @@ export class InstagramAdapter implements PlatformAdapter {
       response_type: 'code',
       scope: (options.scopes ?? PLATFORM_SCOPES.instagram)!.join(','),
     });
+  }
+
+  getFacebookAuthUrl(state: string, options: OAuthUrlOptions): string {
+    return buildAuthUrl(FACEBOOK_AUTHORIZE_URL, {
+      client_id: options.clientId,
+      redirect_uri: options.redirectUri,
+      state,
+      response_type: 'code',
+      scope: (options.scopes ?? INSTAGRAM_FACEBOOK_SCOPES).join(','),
+    });
+  }
+
+  async exchangeFacebookCode(code: string, options: OAuthExchangeOptions): Promise<TokenSet> {
+    const short = (await platformFetch(
+      options.fetchImpl ?? fetch,
+      `${FACEBOOK_GRAPH}/oauth/access_token?` +
+        new URLSearchParams({
+          client_id: options.clientId,
+          client_secret: options.clientSecret,
+          redirect_uri: options.redirectUri,
+          code,
+        }),
+      { method: 'GET' },
+      'Instagram Facebook Login code exchange',
+    )) as TokenResponse;
+
+    const long = (await platformFetch(
+      options.fetchImpl ?? fetch,
+      `${FACEBOOK_GRAPH}/oauth/access_token?` +
+        new URLSearchParams({
+          grant_type: 'fb_exchange_token',
+          client_id: options.clientId,
+          client_secret: options.clientSecret,
+          fb_exchange_token: String(short.access_token),
+        }),
+      { method: 'GET' },
+      'Instagram Facebook Login long-lived token exchange',
+    )) as TokenResponse;
+
+    const accessToken = String(long.access_token ?? short.access_token ?? '');
+    if (!accessToken) throw new PublishError('Instagram Facebook Login returned no access token.', 'malformed_response');
+    const scopes = await this.grantedFacebookPermissions(accessToken, options.fetchImpl);
+    return {
+      ...toTokenSet({ ...long, access_token: accessToken }),
+      scopes,
+      meta: { instagramAuthFlavor: 'facebook_login' },
+    };
+  }
+
+  private async grantedFacebookPermissions(accessToken: string, fetchImpl?: typeof fetch): Promise<string[]> {
+    try {
+      const response = (await platformFetch(
+        fetchImpl ?? fetch,
+        `${FACEBOOK_GRAPH}/me/permissions?access_token=${encodeURIComponent(accessToken)}`,
+        { method: 'GET' },
+        'Instagram Facebook Login permission check',
+      )) as { data?: Array<{ permission?: string; status?: string }> };
+      return (response.data ?? [])
+        .filter((entry) => entry.status === 'granted' && typeof entry.permission === 'string')
+        .map((entry) => entry.permission as string);
+    } catch {
+      return [];
+    }
   }
 
   async exchangeCode(code: string, options: OAuthExchangeOptions): Promise<TokenSet> {
@@ -186,6 +259,27 @@ export class InstagramAdapter implements PlatformAdapter {
   }
 
   async refresh(tokens: TokenSet, options: OAuthClientOptions): Promise<TokenSet> {
+    if (isFacebookLoginToken(tokens)) {
+      const refreshed = (await platformFetch(
+        options.fetchImpl ?? fetch,
+        `${FACEBOOK_GRAPH}/oauth/access_token?` +
+          new URLSearchParams({
+            grant_type: 'fb_exchange_token',
+            client_id: options.clientId,
+            client_secret: options.clientSecret,
+            fb_exchange_token: tokens.accessToken,
+          }),
+        { method: 'GET' },
+        'Instagram Facebook Login token refresh',
+      )) as TokenResponse;
+      const next = toTokenSet(refreshed);
+      return {
+        ...next,
+        scopes: next.scopes.length > 0 ? next.scopes : (tokens.scopes ?? []),
+        meta: { ...(tokens.meta ?? {}), instagramAuthFlavor: 'facebook_login' },
+      };
+    }
+
     /*
      * §184. `ig_refresh_token` takes the long-lived token itself and needs no
      * client secret — unlike the Facebook flow's `fb_exchange_token`. Instagram
@@ -227,6 +321,45 @@ export class InstagramAdapter implements PlatformAdapter {
    * protection actually lives (§176).
    */
   async fetchIdentity(account: PublishAccount): Promise<PlatformIdentity> {
+    if (isFacebookLoginAccount(account)) {
+      const pages = (await this.get(
+        '/me/accounts?fields=name,instagram_business_account{id,username,name,profile_picture_url,followers_count}',
+        account,
+      )) as {
+        data?: Array<{
+          name?: string;
+          instagram_business_account?: {
+            id?: string;
+            username?: string;
+            name?: string;
+            profile_picture_url?: string;
+            followers_count?: number;
+          };
+        }>;
+      };
+      const linked = (pages.data ?? [])
+        .filter((page) => page.instagram_business_account?.id)
+        .map((page) => ({ page: page.name, ig: page.instagram_business_account! }));
+      if (linked.length === 0) {
+        throw new PublishError('Facebook Login found no Page linked to an Instagram Professional account.', 'permanent');
+      }
+      const [first, ...rest] = linked;
+      return {
+        platformUserId: first!.ig.id!,
+        handle: first!.ig.username ?? first!.ig.id!,
+        displayName: first!.ig.name,
+        avatarUrl: first!.ig.profile_picture_url,
+        followerCount: first!.ig.followers_count,
+        detail: `Facebook Login via Page "${first!.page ?? 'unnamed'}".`,
+        alternatives: rest.map((r) => ({
+          platformUserId: r.ig.id!,
+          handle: r.ig.username ?? r.ig.id!,
+          displayName: r.ig.name,
+          detail: `Page "${r.page ?? 'unnamed'}"`,
+        })),
+      };
+    }
+
     const me = (await this.get(
       '/me?fields=user_id,username,name,profile_picture_url,followers_count',
       account,
@@ -368,6 +501,7 @@ export class InstagramAdapter implements PlatformAdapter {
       assertPublicUrl(asset);
     }
 
+    const commercialFields = instagramCommercialFields(item, account);
     let containerId: string;
 
     if (item.format === 'carousel') {
@@ -392,7 +526,7 @@ export class InstagramAdapter implements PlatformAdapter {
 
       const parent = (await this.post(
         `/${igUserId}/media`,
-        { media_type: 'CAROUSEL', children: childIds.join(','), caption: text },
+        { media_type: 'CAROUSEL', children: childIds.join(','), caption: text, ...commercialFields },
         account,
       )) as { id?: string };
       if (!parent.id) throw new PublishError('Carousel parent container had no id.', 'malformed_response');
@@ -405,7 +539,8 @@ export class InstagramAdapter implements PlatformAdapter {
           media_type: 'REELS',
           video_url: asset.publicUrl,
           caption: text,
-          ...(item.requiresAiLabel ? { ai_generated: 'true' } : {}),
+          ...commercialFields,
+          ...(item.requiresAiLabel ? { is_ai_generated: 'true' } : {}),
         },
         account,
       )) as { id?: string };
@@ -416,7 +551,7 @@ export class InstagramAdapter implements PlatformAdapter {
       const asset = assets[0]!;
       const created = (await this.post(
         `/${igUserId}/media`,
-        { ...mediaFieldsFor(asset), caption: text },
+        { ...mediaFieldsFor(asset), caption: text, ...commercialFields },
         account,
       )) as { id?: string };
       if (!created.id) throw new PublishError('Media container had no id.', 'malformed_response');
@@ -536,7 +671,7 @@ export class InstagramAdapter implements PlatformAdapter {
     const separator = path.includes('?') ? '&' : '?';
     return platformFetch(
       fetchImpl,
-      `${GRAPH}${path}${separator}access_token=${encodeURIComponent(account.tokens.accessToken)}`,
+      `${graphFor(account)}${path}${separator}access_token=${encodeURIComponent(account.tokens.accessToken)}`,
       { method: 'GET' },
       `Instagram GET ${path}`,
     );
@@ -551,7 +686,7 @@ export class InstagramAdapter implements PlatformAdapter {
     const body = new URLSearchParams({ ...fields, access_token: account.tokens.accessToken });
     return platformFetch(
       fetchImpl,
-      `${GRAPH}${path}`,
+      `${graphFor(account)}${path}`,
       {
         method: 'POST',
         headers: { 'content-type': 'application/x-www-form-urlencoded' },
@@ -560,6 +695,46 @@ export class InstagramAdapter implements PlatformAdapter {
       `Instagram POST ${path}`,
     );
   }
+}
+
+export function isFacebookLoginToken(tokens: TokenSet): boolean {
+  return (
+    tokens.meta?.instagramAuthFlavor === 'facebook_login' ||
+    (tokens.scopes ?? []).includes('instagram_content_publish')
+  );
+}
+
+export function isFacebookLoginAccount(account: PublishAccount): boolean {
+  return isFacebookLoginToken(account.tokens);
+}
+
+export function graphFor(account: PublishAccount): string {
+  return isFacebookLoginAccount(account) ? FACEBOOK_GRAPH : GRAPH;
+}
+
+/**
+ * Native commercial disclosure fields. Meta exposes these fields only on the
+ * Instagram API with Facebook Login. Instagram-Login-only sponsorship is a
+ * repairable capability gap, not a reason to burn an Ad badge into the video.
+ */
+export function instagramCommercialFields(
+  item: PublishItem,
+  account: PublishAccount,
+): Record<string, string> {
+  if (!item.isSponsored) return {};
+  if (!isFacebookLoginAccount(account)) {
+    throw new PublishError(
+      'CAPABILITY_REPAIRABLE: sponsored Instagram publishing needs the native Paid Partnership label. ' +
+        'Reconnect with Halyard Facebook Login (or another verified transport exposing the label) and retry; ' +
+        'do not replace it with a burned-in Ad badge.',
+      'permanent',
+    );
+  }
+  const fields: Record<string, string> = { is_paid_partnership: 'true' };
+  if ((item.instagramSponsorIds ?? []).length > 0) {
+    fields.branded_content_sponsor_ids = JSON.stringify(item.instagramSponsorIds!.slice(0, 2));
+  }
+  return fields;
 }
 
 /**

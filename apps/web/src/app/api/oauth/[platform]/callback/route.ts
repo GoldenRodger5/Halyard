@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import {
   getAdapter,
+  InstagramAdapter,
   redactToken,
   resolvePlatformClient,
   verifyState,
@@ -55,7 +56,14 @@ export async function GET(
   }
 
   const adapter = getAdapter(platform as PlatformId);
-  const client = resolvePlatformClient(platform as PlatformId);
+  const instagramFacebook = platform === 'instagram' && payload.authFlavor === 'facebook';
+  const client = instagramFacebook
+    ? {
+        clientId: process.env.META_APP_ID?.trim() || null,
+        clientSecret: process.env.META_APP_SECRET?.trim() || null,
+        tried: ['META_APP_ID'],
+      }
+    : resolvePlatformClient(platform as PlatformId);
   if (!client.clientId || !client.clientSecret) {
     return redirectWithMessage(
       request,
@@ -69,12 +77,10 @@ export async function GET(
 
   let tokens;
   try {
-    tokens = await adapter.exchangeCode(code, {
-      clientId,
-      clientSecret,
-      redirectUri,
-      codeVerifier,
-    });
+    const exchangeOptions = { clientId, clientSecret, redirectUri, codeVerifier };
+    tokens = instagramFacebook
+      ? await (adapter as InstagramAdapter).exchangeFacebookCode(code, exchangeOptions)
+      : await adapter.exchangeCode(code, exchangeOptions);
   } catch (err) {
     return redirectWithMessage(request, `Token exchange failed: ${(err as Error).message}`);
   }

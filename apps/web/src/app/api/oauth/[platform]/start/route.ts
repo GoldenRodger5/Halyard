@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import {
   PLATFORM_SCOPES,
+  INSTAGRAM_FACEBOOK_SCOPES,
+  InstagramAdapter,
   createPkcePair,
   getAdapter,
   resolvePlatformClient,
@@ -42,7 +44,15 @@ export async function GET(
     return NextResponse.json({ error: `Unknown platform '${platform}'` }, { status: 404 });
   }
 
-  const client = resolvePlatformClient(platform as PlatformId);
+  const instagramFacebook =
+    platform === 'instagram' && request.nextUrl.searchParams.get('authFlavor') === 'facebook';
+  const client = instagramFacebook
+    ? {
+        clientId: process.env.META_APP_ID?.trim() || null,
+        clientSecret: process.env.META_APP_SECRET?.trim() || null,
+        tried: ['META_APP_ID'],
+      }
+    : resolvePlatformClient(platform as PlatformId);
   if (!client.clientId || !client.clientSecret) {
     return NextResponse.json(
       {
@@ -68,16 +78,24 @@ export async function GET(
         'recipefix'
       : (request.nextUrl.searchParams.get('product') ?? 'recipefix');
 
-  const state = signState({ productId, platform, persona });
+  const state = signState({
+    productId,
+    platform,
+    persona,
+    authFlavor: instagramFacebook ? 'facebook' : 'default',
+  });
   const pkce = createPkcePair();
 
-  const authUrl = adapter.getAuthUrl(state, {
+  const oauthOptions = {
     clientId,
     clientSecret,
     redirectUri,
     codeChallenge: pkce.challenge,
-    scopes: PLATFORM_SCOPES[platform],
-  });
+    scopes: instagramFacebook ? INSTAGRAM_FACEBOOK_SCOPES : PLATFORM_SCOPES[platform],
+  };
+  const authUrl = instagramFacebook
+    ? (adapter as InstagramAdapter).getFacebookAuthUrl(state, oauthOptions)
+    : adapter.getAuthUrl(state, oauthOptions);
 
   const response = NextResponse.redirect(authUrl);
   response.cookies.set(`halyard_pkce_${platform}`, pkce.verifier, {
