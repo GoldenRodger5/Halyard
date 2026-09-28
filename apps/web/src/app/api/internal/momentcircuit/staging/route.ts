@@ -142,6 +142,7 @@ export async function POST(request: NextRequest) {
       bucket: BUCKET,
       path: objectPath,
       token: data.token,
+      signedUrl: data.signedUrl,
       resumableUrl: `https://${projectRef}.storage.supabase.co/storage/v1/upload/resumable`,
       publicUrl: `${url}/storage/v1/object/public/${BUCKET}/${objectPath}`,
       expiresInSeconds: 7200,
