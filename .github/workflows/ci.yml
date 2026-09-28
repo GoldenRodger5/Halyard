@@ -84,6 +84,24 @@ jobs:
       - name: Install the browser for the replay tests
         run: pnpm exec playwright install --with-deps chromium
 
+      - name: Create Supabase roles in plain Postgres
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 <<'SQL'
+          do $
+          begin
+            if not exists (select 1 from pg_roles where rolname = 'anon') then
+              create role anon nologin;
+            end if;
+            if not exists (select 1 from pg_roles where rolname = 'authenticated') then
+              create role authenticated nologin;
+            end if;
+            if not exists (select 1 from pg_roles where rolname = 'service_role') then
+              create role service_role nologin;
+            end if;
+          end
+          $;
+          SQL
+
       - name: Apply migrations to a real Postgres
         run: pnpm db:reset -- --fresh --seed
         env:
@@ -168,6 +186,24 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+
+      - name: Create Supabase roles in plain Postgres
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 <<'SQL'
+          do $
+          begin
+            if not exists (select 1 from pg_roles where rolname = 'anon') then
+              create role anon nologin;
+            end if;
+            if not exists (select 1 from pg_roles where rolname = 'authenticated') then
+              create role authenticated nologin;
+            end if;
+            if not exists (select 1 from pg_roles where rolname = 'service_role') then
+              create role service_role nologin;
+            end if;
+          end
+          $;
+          SQL
 
       - name: Apply migrations and seed
         run: pnpm db:reset -- --fresh --seed
