@@ -15,7 +15,7 @@ export * from './client.js';
  * unapplied migrations and code that will reference columns that do not exist;
  * ahead means a migration landed before the deploy, which is the safe order.
  */
-export const EXPECTED_SCHEMA_VERSION = '0096';
+export const EXPECTED_SCHEMA_VERSION = '0097';
 
 
 /*
@@ -151,6 +151,11 @@ export const JOB_KINDS = [
    * and "write the post", which did not exist.
    */
   'generate_concepts',
+  /**
+   * Autonomous editorial controller. Free/deterministic: decides signal → account
+   * → objective/timing, persists the reasoning, then delegates to generate.
+   */
+  'plan_editorial',
 ] as const;
 export type JobKind = (typeof JOB_KINDS)[number];
 
@@ -208,6 +213,8 @@ export const JOB_POLICY: Record<
    * what it cannot narrow onto the contract.
    */
   generate_concepts: { timeoutMs: 4 * 60_000, maxAttempts: 2, backoffSeconds: 120 },
+  /* Pure DB arithmetic; it delegates any paid work to generate. */
+  plan_editorial: { timeoutMs: 2 * 60_000, maxAttempts: 1, backoffSeconds: 60 },
   /**
    * A real browser walking a real product flow. Generous, like `capture`, and
    * for the same reason: the thing being measured is someone's live app, and a

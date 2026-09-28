@@ -35,6 +35,16 @@ export interface MediaIntegrityFinding {
 export interface MediaIntegrityInput {
   /** Runtime of the rendered file, in seconds. */
   durationSeconds: number;
+  /** Final encoded dimensions. */
+  width?: number;
+  height?: number;
+  /** FFmpeg blurdetect aggregate. Higher means blurrier; null = unmeasured. */
+  blurMean?: number | null;
+  /** Whether the production plan explicitly promised moving media. */
+  expectedMotion?: boolean;
+  /** Share of the measured runtime spent in >=1.5s freezes. */
+  freezeShare?: number | null;
+  longestFreezeSeconds?: number | null;
   /**
    * Mean volume of the muxed audio, in dBFS.
    *
@@ -79,6 +89,14 @@ export interface MediaIntegrityInput {
  * need to be delicate — anything under -60 is not audio anybody will hear.
  */
 export const SILENCE_FLOOR_DB = -60;
+/** Technical delivery floor. A 720px short edge is the minimum acceptable final video. */
+export const MIN_VIDEO_SHORT_EDGE_PX = 720;
+/** Calibrated on reviewed Halyard food video: normal ~5.6–7.1, moderate blur ~9.6, destroyed ~24. */
+export const BLUR_WARNING_MEAN = 10;
+export const BLUR_ERROR_MEAN = 14;
+/** Calibrated on rejected static TikTok (~almost all frozen) vs repaired cut (none). */
+export const MOTION_FREEZE_WARNING_SHARE = 0.6;
+export const MOTION_FREEZE_ERROR_SHARE = 0.75;
 
 export interface MediaIntegrityResult {
   passed: boolean;
@@ -87,6 +105,62 @@ export interface MediaIntegrityResult {
 
 export function runMediaIntegrity(input: MediaIntegrityInput): MediaIntegrityResult {
   const findings: MediaIntegrityFinding[] = [];
+
+  /* ── Technical picture quality ───────────────────────────────────────── */
+  if (input.width !== undefined && input.height !== undefined) {
+    const shortEdge = Math.min(input.width, input.height);
+    if (shortEdge < MIN_VIDEO_SHORT_EDGE_PX) {
+      findings.push({
+        rule: 'media.low_resolution',
+        severity: 'error',
+        message: `The final video is ${input.width}×${input.height}; its short edge is only ${shortEdge}px.`,
+        detail:
+          `Final social video must keep at least a ${MIN_VIDEO_SHORT_EDGE_PX}px short edge. Upscaling a smaller export later does not restore detail.`,
+      });
+    }
+  }
+
+  if (input.blurMean != null) {
+    if (input.blurMean > BLUR_ERROR_MEAN) {
+      findings.push({
+        rule: 'media.severe_blur',
+        severity: 'error',
+        message: `The finished video measures ${input.blurMean.toFixed(1)} on the calibrated blur scale.`,
+        detail:
+          `Reviewed Halyard food videos measure about 5.6–7.1; deliberately destroyed footage measured about 24. Values above ${BLUR_ERROR_MEAN} are too soft for unattended production.`,
+      });
+    } else if (input.blurMean > BLUR_WARNING_MEAN) {
+      findings.push({
+        rule: 'media.soft_focus',
+        severity: 'warning',
+        message: `The finished video measures ${input.blurMean.toFixed(1)} on the calibrated blur scale and looks unusually soft.`,
+        detail:
+          'This may be intentional shallow focus, so it warns rather than blocks. Inspect the actual export before approving the recipe.',
+      });
+    }
+  }
+
+  if (input.expectedMotion && input.freezeShare != null) {
+    if (input.freezeShare > MOTION_FREEZE_ERROR_SHARE) {
+      findings.push({
+        rule: 'media.motion_mostly_frozen',
+        severity: 'error',
+        message:
+          `The file promised moving media but ${Math.round(input.freezeShare * 100)}% of the measured runtime is frozen.`,
+        detail:
+          `The longest freeze is ${(input.longestFreezeSeconds ?? 0).toFixed(1)}s. A motion-first execution that is mostly held frames is a slideshow, not production video.`,
+      });
+    } else if (input.freezeShare > MOTION_FREEZE_WARNING_SHARE) {
+      findings.push({
+        rule: 'media.motion_too_sparse',
+        severity: 'warning',
+        message:
+          `The file promised moving media but ${Math.round(input.freezeShare * 100)}% of the measured runtime is frozen.`,
+        detail:
+          'There is real motion, but not enough of it to trust this recipe unattended. Inspect the pacing before accepting the production recipe.',
+      });
+    }
+  }
 
   /* ── A narrated piece that makes no sound ──────────────────────────────── */
   if (input.hasNarration) {

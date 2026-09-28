@@ -69,6 +69,44 @@ describe('SCHEDULES', () => {
     }
   });
 
+  it('refreshes cheap signal/intelligence inputs before autonomous planning on shared ticks', () => {
+    const planner = SCHEDULES.find((s) => s.kind === 'plan_editorial')!;
+    const signals = SCHEDULES.find((s) => s.kind === 'collect_signals')!;
+    const intelligence = SCHEDULES.find((s) => s.kind === 'build_account_intelligence')!;
+    const pinterest = SCHEDULES.find(
+      (s) =>
+        s.kind === 'collect_watch_terms' &&
+        Array.isArray(s.payload?.onlySources) &&
+        s.payload?.onlySources.includes('pinterest'),
+    )!;
+
+    expect(planner.everyMinutes).toBe(6 * 60);
+    expect(signals.everyMinutes).toBe(planner.everyMinutes);
+    expect(intelligence.everyMinutes).toBe(planner.everyMinutes);
+    expect(pinterest.everyMinutes).toBe(planner.everyMinutes);
+
+    expect(signals.priority!).toBeLessThan(planner.priority!);
+    expect(intelligence.priority!).toBeLessThan(planner.priority!);
+    expect(pinterest.priority!).toBeLessThan(planner.priority!);
+  });
+
+  it('does not increase Reddit/RSS watch-term polling just to make Pinterest trends fresher', () => {
+    const questionWatch = SCHEDULES.find(
+      (s) =>
+        s.kind === 'collect_watch_terms' &&
+        Array.isArray(s.payload?.onlySources) &&
+        s.payload?.onlySources.includes('reddit'),
+    )!;
+    expect(questionWatch.everyMinutes).toBe(24 * 60);
+  });
+
+  it('scores performance before the daily learner consumes it', () => {
+    const score = SCHEDULES.find((s) => s.kind === 'score_performance')!;
+    const learn = SCHEDULES.find((s) => s.kind === 'learn_from_performance')!;
+    expect(score.everyMinutes).toBe(learn.everyMinutes);
+    expect(score.priority!).toBeLessThan(learn.priority!);
+  });
+
   it('has no duplicate entries for the same kind and payload', () => {
     const keys = SCHEDULES.map((s) => `${s.kind}:${JSON.stringify(s.payload ?? {})}`);
     expect(new Set(keys).size).toBe(keys.length);

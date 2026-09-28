@@ -877,6 +877,34 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
     typeof targetVariation?.mediaMode === 'string' ? targetVariation.mediaMode : null;
   const requestedAudioMode =
     typeof targetVariation?.audioMode === 'string' ? targetVariation.audioMode : null;
+  const strategyDecisionId = String(job.payload.strategyDecisionId ?? '').trim() || null;
+  const strategyDecision = strategyDecisionId
+    ? (
+        await ctx.pool.query<{
+          id: string;
+          product_id: string;
+          account_id: string;
+          platform: string;
+          signal_id: string | null;
+          preferred_treatments: string[];
+          avoid_treatments: string[];
+        }>(
+          `select id, product_id, account_id, platform, signal_id,
+                  preferred_treatments, avoid_treatments
+             from strategy_decisions
+            where id=$1 and product_id=$2`,
+          [strategyDecisionId, productId],
+        )
+      ).rows[0] ?? null
+    : null;
+  if (strategyDecisionId && !strategyDecision) {
+    throw new PermanentJobFailure(
+      `Strategy decision ${strategyDecisionId} does not exist for product ${productId}.`,
+      'An autonomous generation job must be traceable to the decision that created it.',
+    );
+  }
+  const preferredSignalId =
+    String(job.payload.preferredSignalId ?? strategyDecision?.signal_id ?? '').trim() || null;
   let requestedConceptIdeaId: string | null = null;
 
   const proposed = await ctx.pool.query<{
@@ -927,6 +955,52 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
   const briefed = (job.payload.subject as string | undefined)?.trim();
   /* §403. Which row the operator typed, so the novelty floor can let it past. */
   let briefedIdeaId: string | null = null;
+
+  if (preferredSignalId && !requestedConcept && !briefed) {
+    let targeted = await ctx.pool.query<{
+      id: string;
+      title: string;
+      angle: string;
+      category: IdeaCandidate['category'];
+      embedding: number[] | null;
+    }>(
+      `select id, title, angle, category, embedding
+         from ideas
+        where product_id=$1 and status='proposed'
+          and $2::uuid = any(source_signals)
+        order by created_at desc`,
+      [productId, preferredSignalId],
+    );
+
+    if (targeted.rows.length === 0) {
+      await proposeFromSignals(ctx, product, llmFor(), { onlySignalIds: [preferredSignalId] });
+      targeted = await ctx.pool.query(
+        `select id, title, angle, category, embedding
+           from ideas
+          where product_id=$1 and status='proposed'
+            and $2::uuid = any(source_signals)
+          order by created_at desc`,
+        [productId, preferredSignalId],
+      );
+    }
+
+    proposed.rows.length = 0;
+    proposed.rows.push(...targeted.rows);
+    if (proposed.rows.length === 0) {
+      ctx.log('autonomous signal produced no usable idea', {
+        productId,
+        signalId: preferredSignalId,
+        strategyDecisionId,
+      });
+      return;
+    }
+    ctx.log('autonomous signal controls this run', {
+      productId,
+      signalId: preferredSignalId,
+      strategyDecisionId,
+      proposals: proposed.rows.length,
+    });
+  }
 
   if (requestedConcept) {
     let backing: {
@@ -2419,7 +2493,12 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
           JSON.stringify(draft.claims),
           JSON.stringify(draft.qc),
           ['copy'],
-          JSON.stringify(draft.generationMeta),
+          JSON.stringify({
+            ...draft.generationMeta,
+            ...(strategyDecisionId ? { strategyDecisionId } : {}),
+            ...(preferredSignalId ? { preferredSignalId } : {}),
+            ...(job.payload.autonomous === true ? { autonomous: true } : {}),
+          }),
           destination.type,
           destination.url,
           destination.blockedBy
@@ -2473,6 +2552,45 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
           continue;
         }
         insertedItemId = contentItemId;
+
+        const autonomousScheduledRaw =
+          typeof job.payload.scheduledAt === 'string' ? job.payload.scheduledAt : null;
+        const autonomousScheduledAt = autonomousScheduledRaw
+          ? new Date(autonomousScheduledRaw)
+          : null;
+        const autonomousSlotName =
+          typeof job.payload.slotName === 'string' ? job.payload.slotName : null;
+        if (
+          autonomousScheduledAt &&
+          !Number.isNaN(autonomousScheduledAt.getTime())
+        ) {
+          await ctx.pool.query(
+            `update content_items
+                set scheduled_at = $2,
+                    slot_id = case
+                      when $3::text is null then slot_id
+                      else coalesce(
+                        (select s.id from slots s
+                          where s.product_id=$4 and s.platform=$5 and s.name=$3
+                          limit 1),
+                        slot_id
+                      )
+                    end
+              where id=$1`,
+            [
+              contentItemId,
+              autonomousScheduledAt,
+              autonomousSlotName,
+              productId,
+              account.platform,
+            ],
+          );
+          ctx.log('autonomous schedule attached to content item', {
+            contentItemId,
+            scheduledAt: autonomousScheduledAt,
+            slot: autonomousSlotName,
+          });
+        }
 
         /*
          * CreativePackage v1 lineage for ordinary daily + Floor/manual work.
@@ -4832,7 +4950,11 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                 targetSeconds: runtimeSeconds,
                 recentTypes,
                 insights: learned,
-                ...(requestedTreatment ? { preferredTypes: [requestedTreatment] } : {}),
+                ...(requestedTreatment
+                  ? { preferredTypes: [requestedTreatment] }
+                  : strategyDecision?.preferred_treatments?.length
+                    ? { preferredTypes: strategyDecision.preferred_treatments as CreativeType[] }
+                    : {}),
                 ...(portfolio ? { portfolio } : {}),
                 ...(footage ? { footage } : {}),
               })
@@ -4876,7 +4998,22 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
            * made, not a gate on making it.
            */
           try {
-            const decision = decideStrategy({
+            if (strategyDecisionId && strategyDecision) {
+              await ctx.pool.query(
+                `update strategy_decisions
+                    set idea_id = coalesce(idea_id, $2),
+                        content_item_id = coalesce(content_item_id, $3)
+                  where id = $1 and product_id = $4 and account_id = $5`,
+                [strategyDecisionId, idea.id, contentItemId, productId, account.id],
+              );
+              ctx.log('linked content to autonomous strategy decision', {
+                strategyDecisionId,
+                signalId: strategyDecision.signal_id,
+                ideaId: idea.id,
+                contentItemId,
+              });
+            } else {
+              const decision = decideStrategy({
               opportunity: {
                 id: idea.id,
                 summary: idea.title,
@@ -4927,6 +5064,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
                   decision.evidence,
                 ],
               );
+            }
             }
           } catch (err) {
             ctx.log('could not record the strategy decision', {
@@ -5044,6 +5182,14 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
             });
           }
 
+          const executionMediaMode =
+            requestedMediaMode ??
+            (format === 'video'
+              ? plan?.beats.some((beat) => Boolean(beat.media))
+                ? 'mixed_broll_capture'
+                : 'motion_editorial'
+              : null);
+
           await ctx.pool.query(
             /*
              * §394. `treatment` is what this render actually drew, and it is
@@ -5067,6 +5213,7 @@ export async function generateHandler(job: Job, ctx: HandlerContext): Promise<vo
               {
                 ...composition.props,
                 alt_text: draft.altText,
+                ...(executionMediaMode ? { mediaMode: executionMediaMode } : {}),
                 /**
                  * §215. The visual register, chosen per platform.
                  *
@@ -5805,6 +5952,7 @@ export async function proposeFromSignals(
   ctx: HandlerContext,
   product: { id: string; name: string; brief_summary: string | null; brief_markdown: string | null },
   llm: LlmClient,
+  options: { onlySignalIds?: string[] } = {},
 ): Promise<number> {
   /**
    * Claimed, not merely read.
@@ -5844,9 +5992,10 @@ export async function proposeFromSignals(
             expires_at, confidence, velocity, platform
        from signals
       where product_id = $1 and consumed_at is null
+        and ($2::uuid[] is null or id = any($2::uuid[]))
       order by coalesce(observed_at, created_at) desc
       limit 60`,
-    [product.id],
+    [product.id, options.onlySignalIds?.length ? options.onlySignalIds : null],
   );
 
   const ranked = rankSignals(

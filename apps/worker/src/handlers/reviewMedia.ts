@@ -72,6 +72,8 @@ interface ItemRow {
     gates?: GateResult[];
     passed?: boolean;
     ranAt?: string;
+    /** Written by render before upload: deterministic technical quality of the finished file. */
+    media?: { passed?: boolean; findings?: Array<{ rule?: string; severity?: string; message?: string }> };
     /** Written by the tts handler: what was actually said, in the finished mix. */
     audio?: { transcript?: string; openingSentence?: string };
   } | null;
@@ -412,7 +414,11 @@ export async function reviewMediaHandler(
     creativeType: item.creative?.type ?? 'unknown',
     platform: item.platform,
     footageAvailable,
-    mediaMode: item.creative_variation?.mediaMode ?? null,
+    mediaMode:
+      item.creative_variation?.mediaMode ??
+      (typeof renderProps[0]?.input_props?.mediaMode === 'string'
+        ? (renderProps[0]!.input_props.mediaMode as string)
+        : null),
     /*
      * §413. Only a product-grounded format is expected to show the product.
      *
@@ -826,15 +832,41 @@ export async function reviewMediaHandler(
       examined: criticVerdict?.examined ?? 0,
     };
 
+    const mediaIntegrity = item.qc_results?.media ?? null;
+    const mediaFindings = mediaIntegrity?.findings ?? [];
+    const mediaGate: GateResult = {
+      gate: 'media',
+      status:
+        mediaIntegrity == null
+          ? 'skipped'
+          : mediaIntegrity.passed === false
+            ? 'failed'
+            : mediaFindings.length > 0
+              ? 'warning'
+              : 'passed',
+      summary:
+        mediaIntegrity == null
+          ? 'Finished-file integrity was not measured.'
+          : mediaIntegrity.passed === false
+            ? 'Finished-file integrity failed.'
+            : mediaFindings.length > 0
+              ? 'Finished-file integrity passed with warnings.'
+              : 'Finished-file integrity passed.',
+      detail: mediaIntegrity,
+      examined: mediaIntegrity == null ? 0 : 1,
+    };
+
     const merged: GateResult[] = [
       criticGate,
+      mediaGate,
       ...previous.filter(
         (g) =>
           g.gate !== 'coherence' &&
           g.gate !== 'visual' &&
           g.gate !== 'retention' &&
           g.gate !== 'critic' &&
-          g.gate !== 'creative',
+          g.gate !== 'creative' &&
+          g.gate !== 'media',
       ),
       /**
        * §205. The creative gate, beside the technical ones.

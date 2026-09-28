@@ -36,6 +36,7 @@ import { purgeLogsHandler } from './purgeLogs.js';
 import { reviewMediaHandler } from './reviewMedia.js';
 import { buildAccountIntelligenceHandler } from './accountIntelligence.js';
 import { generateConceptsHandler } from './concepts.js';
+import { planEditorialHandler } from './editorialCycle.js';
 import { learnFromPerformanceHandler } from './learn.js';
 import { correctContentHandler } from './correct.js';
 import { collectSignalsHandler } from './signals.js';
@@ -538,6 +539,8 @@ export const HANDLERS: Partial<Record<JobKind, JobHandler>> = {
   build_account_intelligence: buildAccountIntelligenceHandler,
   /** §218: propose several creative directions and score them against the account. */
   generate_concepts: generateConceptsHandler,
+  /** Autonomous editorial controller: choose signal → account before generation. */
+  plan_editorial: planEditorialHandler,
   refresh_tokens: refreshTokens,
   review_media: reviewMediaHandler,
   /** §165: diagnose a failing verdict and apply the smallest correction. */

@@ -1,5 +1,20 @@
 # Where Halyard is right now
 
+**2026-09-28 — Autonomous Social V3 is implemented and release-green on its pre-reconciliation branch checkpoint. Public publishing is still OFF.** Full architecture: `docs/HALYARD_AUTONOMOUS_SOCIAL_V3_2026-09-28.md`.
+
+- New schema **0097** adds the deterministic `plan_editorial` controller plus Product-Brain-managed discovery-term provenance. No executable auto-approval job exists.
+- The autonomous controller runs every **6 hours**, spends $0 itself, records the real signal/account/platform strategy decision **before** generation, and may enqueue at most one targeted generation per pass / two per product per day.
+- General signals now route through platform-fit logic rather than account ordering. Platform-specific signals stay native; explore-vs-exploit is bounded by portfolio intelligence rather than converging the feed onto one winner.
+- A connected product can bootstrap up to **8 Brain-managed watch topics** from verified facts. Managed terms are refreshable without overwriting operator-created watch terms; synthetic KinoLog tests prove the derivation is product-neutral.
+- Pinterest official trend growth/time-series data now becomes expiring `trend` signals with measured velocity. Reddit recurring questions and accelerating engaged discussion are separate editorial/trend inputs. No brittle TikTok/YouTube public scraping was added.
+- Six-hour cadence ordering is now intentional: signal collection → Pinterest momentum → account intelligence → editorial planning. Daily performance scoring now executes before learning.
+- Finished-video QC is stronger: **720px minimum short edge**, calibrated blur warning/error bands, and actual exported-file freeze-share checks for motion-first work. The rejected static TikTok measures ~81.7% frozen runtime; the repaired cut 0%; the stronger YouTube edit ~43.9%.
+- File-level `media` integrity is a first-class gate. A video cannot be approved or have its production recipe accepted when media integrity is missing or failed.
+- Numbers → Learned → Decisions now exposes autonomous/manual lineage, explore/exploit, trigger signal, platform/account, rationale, treatments, metric and timing.
+- Calibration budget ceiling was raised to **$15 total**. Paid spend before V3 was **$4.682611**, leaving about **$10.32**; this V3 architecture/trend/QC implementation used **$0 additional paid model/provider spend** before live draft rollout.
+- Exact pre-reconciliation verifier: **311 test files / 4,067 tests**, fresh real-Postgres migrations, generated types, typecheck, lint (0 errors), real Remotion renders, and production web build all green.
+- Live rollout remains deliberately gated: merge/reverify current `main`, keep `publishing_enabled=false`, enable draft generation only, run one real autonomous cycle, inspect the actual artifact, and earn recipes platform by platform before any public posting.
+
 **2026-09-28 — V2 is now integrated with current `main` and release-green on the exact combined tree; creative calibration continues under the original $5 total cap.**
 
 - Current schema is **0096**; generated DB types cover **83 tables**.

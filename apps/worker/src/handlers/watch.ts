@@ -15,6 +15,8 @@ import {
   fetchReddit,
   fetchRss,
   findRecurringQuestions,
+  deriveDiscoveryTerms,
+  expiryFor,
   openToken,
   type WatchHit,
 } from '@halyard/core';
@@ -28,8 +30,167 @@ interface TermRow {
   min_occurrences: number;
 }
 
+async function syncBrainManagedWatchTerms(
+  ctx: HandlerContext,
+  productId: string,
+): Promise<number> {
+  const { rows: facts } = await ctx.pool.query<{
+    id: string;
+    category: string;
+    key: string;
+    value: string;
+    confidence: string | null;
+  }>(
+    `select id, category, key, value, confidence
+       from product_facts
+      where product_id = $1
+        and status = 'verified'
+        and superseded_by is null
+        and category in (
+          'content_pillars','jobs_to_be_done','personas','workflows',
+          'users','differentiators','app_store_positioning'
+        )
+      order by confidence desc nulls last, updated_at desc
+      limit 60`,
+    [productId],
+  );
+
+  const terms = deriveDiscoveryTerms(
+    facts.map((fact) => ({
+      id: fact.id,
+      category: fact.category,
+      key: fact.key,
+      value: fact.value,
+      confidence: fact.confidence === null ? null : Number(fact.confidence),
+    })),
+    8,
+  );
+
+  if (terms.length === 0) return 0;
+
+  const active = terms.map((term) => term.term);
+  await ctx.pool.query(
+    `update watch_terms
+        set enabled = false
+      where product_id = $1
+        and managed_by = 'product_brain'
+        and not (term = any($2::text[]))`,
+    [productId, active],
+  );
+
+  let written = 0;
+  for (const term of terms) {
+    const result = await ctx.pool.query(
+      `insert into watch_terms
+         (product_id, term, sources, enabled, min_occurrences, managed_by, source_fact_ids)
+       values ($1,$2,'{reddit,pinterest}'::text[],true,3,'product_brain',$3::uuid[])
+       on conflict (product_id, term) do update
+         set enabled = true,
+             source_fact_ids = excluded.source_fact_ids
+       where watch_terms.managed_by = 'product_brain'`,
+      [productId, term.term, term.factIds],
+    );
+    written += result.rowCount ?? 0;
+  }
+
+  return written;
+}
+
+async function promoteRedditMomentum(
+  ctx: HandlerContext,
+  term: TermRow,
+  productId: string,
+): Promise<number> {
+  const { rows } = await ctx.pool.query<{
+    current_hits: string;
+    previous_hits: string;
+    current_engagement: string;
+    urls: string[];
+  }>(
+    `select
+       count(*) filter (where seen_at > now() - interval '7 days')::text as current_hits,
+       count(*) filter (
+         where seen_at <= now() - interval '7 days'
+           and seen_at > now() - interval '14 days'
+       )::text as previous_hits,
+       coalesce(sum(coalesce(engagement,0)) filter (
+         where seen_at > now() - interval '7 days'
+       ),0)::text as current_engagement,
+       coalesce(
+         (array_agg(url order by seen_at desc) filter (
+           where seen_at > now() - interval '7 days'
+         ))[1:5],
+         '{}'::text[]
+       ) as urls
+     from watch_hits
+    where watch_term_id = $1 and source = 'reddit'`,
+    [term.id],
+  );
+
+  const current = Number(rows[0]?.current_hits ?? 0);
+  const previous = Number(rows[0]?.previous_hits ?? 0);
+  const engagement = Number(rows[0]?.current_engagement ?? 0);
+  const minimum = Math.max(3, term.min_occurrences);
+
+  /*
+   * Three mentions with no response can still be coincidence. Require either
+   * some demonstrated engagement or a denser cluster before calling it a trend.
+   */
+  if (current < minimum || (engagement < 20 && current < minimum * 2)) return 0;
+
+  const rawVelocity = previous === 0 ? 0.3 : (current - previous) / previous / 3;
+  const velocity = Math.max(-0.3, Math.min(0.3, rawVelocity));
+  if (velocity <= 0 && current < minimum * 2) return 0;
+
+  const relevance = Math.max(
+    0.5,
+    Math.min(0.9, 0.45 + current / 20 + Math.min(0.15, engagement / 1000)),
+  );
+  const trendKey = `reddit:${term.term.trim().toLowerCase()}`;
+  const observedAt = new Date();
+
+  const signal = await ctx.pool.query<{ id: string }>(
+    `insert into signals
+       (product_id, source, summary, raw, relevance, observed_at,
+        expires_at, confidence, velocity)
+     select $1, 'trend', $2, $3, $4, $5, $6, $7, $8
+      where not exists (
+        select 1 from signals
+         where product_id = $1 and source = 'trend'
+           and raw ->> 'trendKey' = $9
+           and created_at > now() - interval '7 days'
+      )
+     returning id`,
+    [
+      productId,
+      `Reddit discussion around "${term.term}" is accelerating: ${current} hit(s) in 7 days vs ${previous} the week before, with ${engagement} observed engagement.`,
+      {
+        trendKey,
+        term: term.term,
+        occurrences7d: current,
+        previous7d: previous,
+        engagement7d: engagement,
+        urls: rows[0]?.urls ?? [],
+      },
+      relevance,
+      observedAt,
+      expiryFor('trend', observedAt),
+      0.75,
+      velocity,
+      trendKey,
+    ],
+  );
+
+  return signal.rows[0] ? 1 : 0;
+}
+
 export async function collectWatchTermsHandler(job: Job, ctx: HandlerContext): Promise<void> {
   const productId = String(job.payload.productId ?? 'recipefix');
+  const onlySources = Array.isArray(job.payload.onlySources)
+    ? new Set(job.payload.onlySources.map((value) => String(value)))
+    : null;
+
+  const managedTerms = await syncBrainManagedWatchTerms(ctx, productId);
 
   const { rows: terms } = await ctx.pool.query<TermRow>(
     `select id, product_id, term, sources, min_occurrences
@@ -56,6 +217,7 @@ export async function collectWatchTermsHandler(job: Job, ctx: HandlerContext): P
     const failures: string[] = [];
 
     for (const source of term.sources) {
+      if (onlySources && !onlySources.has(source)) continue;
       try {
         if (source === 'reddit') {
           hits.push(...(await fetchReddit(term.term)));
@@ -99,26 +261,94 @@ export async function collectWatchTermsHandler(job: Job, ctx: HandlerContext): P
         ],
       );
       stored += inserted.rowCount ?? 0;
+
+      /*
+       * Pinterest Trends is already an aggregate observation, not an individual
+       * post/question. Requiring the keyword to recur as a question would throw
+       * away the thing the official endpoint measured: momentum.
+       */
+      if (hit.source === 'pinterest' && hit.trend) {
+        const observedAt = hit.postedAt ?? new Date();
+        const velocity = hit.trend.velocity ?? null;
+        const relevance = Math.max(
+          0.5,
+          Math.min(0.9, 0.75 + (velocity ?? 0) * 0.5),
+        );
+        const trendKey = hit.title.trim().toLowerCase();
+        const growthBits = [
+          hit.trend.pctGrowthWow != null ? `${hit.trend.pctGrowthWow}% WoW` : null,
+          hit.trend.pctGrowthMom != null ? `${hit.trend.pctGrowthMom}% MoM` : null,
+          hit.trend.pctGrowthYoy != null ? `${hit.trend.pctGrowthYoy}% YoY` : null,
+        ].filter(Boolean);
+
+        const signal = await ctx.pool.query<{ id: string }>(
+          `insert into signals
+             (product_id, source, summary, raw, relevance, observed_at,
+              expires_at, confidence, velocity, platform)
+           select $1, 'trend', $2, $3, $4, $5, $6, 0.98, $7, 'pinterest'
+            where not exists (
+              select 1 from signals
+               where product_id = $1 and source = 'trend'
+                 and platform = 'pinterest'
+                 and raw ->> 'trendKey' = $8
+                 and created_at > now() - interval '7 days'
+            )
+           returning id`,
+          [
+            productId,
+            `Pinterest trend: "${hit.title}"${growthBits.length ? ` (${growthBits.join(', ')})` : ''}`,
+            {
+              trendKey,
+              term: term.term,
+              sourceUrl: hit.url,
+              ...hit.trend,
+            },
+            relevance,
+            observedAt,
+            expiryFor('trend', observedAt),
+            velocity,
+            trendKey,
+          ],
+        );
+
+        if (signal.rows[0]) {
+          promoted += 1;
+          await ctx.pool.query(
+            `update watch_hits
+                set signal_id = $3, promoted_at = now()
+              where watch_term_id = $1 and url = $2`,
+            [term.id, hit.url, signal.rows[0].id],
+          );
+        }
+      }
     }
 
-    // Recurrence is measured across everything seen for this term in the last
-    // 30 days, not just this pass — the same question asked once a week for a
-    // month is exactly the pattern worth writing about.
-    const { rows: recent } = await ctx.pool.query<{ title: string; url: string; question: boolean }>(
-      `select title, url, question from watch_hits
-        where watch_term_id = $1 and seen_at > now() - interval '30 days'`,
-      [term.id],
-    );
+    const questionSourcesEnabled =
+      !onlySources || onlySources.has('reddit') || onlySources.has('rss');
 
-    const recurring = findRecurringQuestions(
-      recent.map((r) => ({
-        source: 'reddit' as const,
-        url: r.url,
-        title: r.title,
-        question: r.question,
-      })),
-      term.min_occurrences,
-    );
+    // Recurrence is measured across everything seen for this term in the last
+    // 30 days, but only on passes that intentionally include question sources.
+    const recent = questionSourcesEnabled
+      ? (
+          await ctx.pool.query<{ title: string; url: string; question: boolean }>(
+            `select title, url, question from watch_hits
+              where watch_term_id = $1 and seen_at > now() - interval '30 days'`,
+            [term.id],
+          )
+        ).rows
+      : [];
+
+    const recurring = questionSourcesEnabled
+      ? findRecurringQuestions(
+          recent.map((r) => ({
+            source: 'reddit' as const,
+            url: r.url,
+            title: r.title,
+            question: r.question,
+          })),
+          term.min_occurrences,
+        )
+      : [];
 
     for (const question of recurring) {
       // One signal per recurring question, not one per hit.
@@ -155,6 +385,10 @@ export async function collectWatchTermsHandler(job: Job, ctx: HandlerContext): P
       }
     }
 
+    if (term.sources.includes('reddit') && (!onlySources || onlySources.has('reddit'))) {
+      promoted += await promoteRedditMomentum(ctx, term, productId);
+    }
+
     await ctx.pool.query(
       `update watch_terms
           set last_run_at = now(), last_error = $2, last_hit_count = $3
@@ -163,5 +397,11 @@ export async function collectWatchTermsHandler(job: Job, ctx: HandlerContext): P
     );
   }
 
-  ctx.log('watch pass complete', { productId, terms: terms.length, stored, promoted });
+  ctx.log('watch pass complete', {
+    productId,
+    terms: terms.length,
+    brainManagedTerms: managedTerms,
+    stored,
+    promoted,
+  });
 }

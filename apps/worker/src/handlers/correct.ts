@@ -103,7 +103,7 @@ interface IterationRow {
  */
 function requiredGates(format: string): GateName[] {
   const base: GateName[] = ['copy'];
-  if (format === 'video') return [...base, 'audio', 'visual', 'coherence'];
+  if (format === 'video') return [...base, 'audio', 'media', 'visual', 'coherence'];
   if (format === 'image' || format === 'carousel' || format === 'pin' || format === 'story') {
     return [...base, 'visual'];
   }
