@@ -5,7 +5,11 @@ const config: NextConfig = {
   // Workspace packages ship TypeScript source rather than a build step, so Next
   // compiles them alongside the app. Keeps the monorepo free of a dist/ dance.
   transpilePackages: ['@halyard/core', '@halyard/db', '@halyard/render', '@halyard/ui'],
-  serverExternalPackages: ['pg', 'sharp', '@resvg/resvg-js'],
+  serverExternalPackages: ['pg', 'sharp', '@resvg/resvg-js', 'ffmpeg-static'],
+
+  outputFileTracingIncludes: {
+    '/api/internal/momentcircuit/render': ['./node_modules/ffmpeg-static/ffmpeg'],
+  },
   typedRoutes: false,
 
   env: {
