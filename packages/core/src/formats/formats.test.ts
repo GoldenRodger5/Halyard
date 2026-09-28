@@ -34,6 +34,21 @@ describe('the catalogue', () => {
     for (const id of POST_FORMATS) expect(POST_FORMAT_CATALOG[id].id).toBe(id);
   });
 
+  it('defines comparison as one shared decision, not two unrelated true facts', () => {
+    const comparison = POST_FORMAT_CATALOG.comparison;
+    expect(comparison.intent).toContain('same decision');
+    expect(comparison.intent).toContain('unrelated facts');
+    expect(comparison.slots.find((slot) => slot.key === 'question')?.brief).toContain(
+      'interchangeable answers',
+    );
+    expect(comparison.slots.find((slot) => slot.key === 'option_a')?.brief).toContain(
+      'same job as option B',
+    );
+    expect(comparison.slots.find((slot) => slot.key === 'verdict')?.brief).toContain(
+      'same question',
+    );
+  });
+
   it('gives every slot a brief and a ceiling', () => {
     for (const id of POST_FORMATS) {
       for (const slot of POST_FORMAT_CATALOG[id].slots) {

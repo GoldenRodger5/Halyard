@@ -208,8 +208,45 @@ Exact merged-tree verification:
 
 **YouTube repair — improved but not yet an unattended recipe.** The orange-for-lemon closing beat was removed without buying a new asset. A second deterministic render closes on an existing oatmeal + lemon image and is semantically much stronger. Review also exposed that the opening stock clip is labeled as lemon-over-oats while its pixels show lemon being squeezed into a metal bottle. The new beat-level coherence rule is specifically intended to block that kind of mislabeled stock. The recipe remains unaccepted until the opening ground is replaced with semantically correct existing motion or the screenplay is restaged.
 
-**TikTok / Threads first-pass recipes remain rejected for automation.** TikTok's first render was the wrong static quiz treatment for a motion-first comparison; Threads read like an internal QA note. The source fixes that caused those failures are now implemented and release-green, but the recipes must earn acceptance on fresh finished exports.
+**TikTok first-pass recipe was rejected; the repaired comparison production shape now passes visual calibration.** The original ~29-second TikTok was a static quiz even though the CreativePackage asked for a motion-first comparison. After the V2 execution repair, a zero-spend deterministic comparison preview was rendered through the real `videoForFormat('comparison')` → Narrative → production Remotion path. The finished preview is **14.97 seconds / 4.72 MB**, with one real moving food-prep beat and three distinct photographed beats. Visually, the production shape is clean, fast, legible and materially more native than the quiz. **Accept the comparison visual recipe; do not accept the exact editorial premise used for this proof.** Its two facts (gluten-free labeling threshold and oat weight for scaling) are individually sourced but are not naturally competing answers to one decision.
+
+That finding produced one more product-neutral source repair: the first cold-start community package no longer defaults to `comparison`; it starts with `myth_fact` / POV, and comparison is retained as an exploration treatment. The comparison format brief now explicitly requires A and B to be interchangeable answers to the **same decision** and refuses the idea of putting two unrelated true facts opposite each other merely for variety. Focused planner/format/QC/render verification after this change: **5 files / 159 tests pass**, all 7 packages typecheck, and lint is clean.
+
+**Threads copy shape repaired; unattended recipe remains locked.** The first pass read like an internal QA note. The live calibration item has since been rewritten audience-first — opening with “The best recipe adaptation is sometimes no adaptation,” demonstrating the concrete salmon/side example, and ending with a specific conversation question. The exact current 310-character body passes the deterministic Threads copy/slop gate with **0 violations and 0 warnings**. The `text.internal_work_log` critic and its copy-only correction policy are release-green. This accepts the current text-native copy shape; a fresh end-to-end generation still has to prove the autonomous writer reaches that quality before the production recipe is accepted unattended.
 
 ### Spend discipline
 
 The complete Sept 27→28 calibration cycle has recorded **$4.319496** in paid agent calls against the operator's **$5 total ceiling**. Midnight does not reset that operator cap for this exercise. Remaining calibration work therefore defaults to already-paid assets, deterministic Halyard rendering, existing product capture, and text/render repair. No paid Higgsfield generation has been submitted.
+
+## 2026-09-28 free Higgsfield source-footage calibration
+
+The connected Higgsfield account still exposed one free Genjutsu attempt, so Halyard's intended provider boundary was tested without increasing the operator's cash spend.
+
+Inputs:
+
+- a previously generated RecipeFix energy-ball reference still;
+- previously downloaded real hand/food motion footage;
+- **Genjutsu Replace Object**, 720p, free-generation counter;
+- narrow direction: preserve the real hand/camera motion and replace only the bowl contents with a thick, cohesive oat-peanut-maple energy-ball mixture.
+
+Result:
+
+- the clip was visually clean and physically plausible at a glance;
+- the actual food state was wrong: it read as **dry granola being poured**, not a cohesive, rollable energy-ball mixture being mixed;
+- no fake UI/product proof was involved, but semantic subject fidelity still failed.
+
+The result was **not integrated into a post** and no second generation was purchased. A durable provider calibration row now records:
+
+`RecipeFix + higgsfield + generated_broll + genjutsu_replace_object_energy_ball_mix_v1 = rejected`.
+
+This is the desired behavior: an external provider can be technically impressive and still fail a product/capability recipe. A free attempt does not lower the quality bar.
+
+The paid calibration ledger remains **$4.319496 / $5.00**. The free Higgsfield attempt did not change that cash total.
+
+## 2026-09-28 approval-boundary QC freshness
+
+Live review of the improved Threads caption exposed a separate lineage defect: the current audience-facing body had changed, while `qc_results.gates.copy` still contained an excerpt from older prose. That means a deterministic copy verdict could be factually stale even though the current text was better.
+
+The approval boundary now re-runs the deterministic copy/slop gate against the **exact body stored at approval time**, replaces the stale copy gate in `qc_results`, and refuses approval when that current-text gate fails. It does not rerun a model and costs nothing. Claims/media gates are left intact because copy lint has no new evidence about them.
+
+This is an approval invariant, not a RecipeFix special case: no connected product may be approved with a copy verdict for older prose.

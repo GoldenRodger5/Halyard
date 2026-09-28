@@ -183,8 +183,16 @@ const CONCEPT_INTENTS: Record<string, LaunchConceptIntent[]> = {
     { treatment: 'listicle', intent: 'Give a short, saveable set of concrete checks, signs or rules. Every item must add a different piece of information and the final item should land the strongest payoff.' },
   ],
   community: [
-    { treatment: 'comparison', intent: 'Create a choose-between-two-scenarios prompt grounded in a real workflow. Give enough context that the audience can answer from experience and teach Halyard something useful.' },
-    { treatment: 'myth_fact', intent: 'Offer one defensible point of view the audience may disagree with, backed by a concrete example. Leave a real question open rather than manufacturing engagement bait.' },
+    {
+      treatment: 'myth_fact',
+      intent:
+        'Offer one defensible point of view the audience may disagree with, backed by one concrete example. Leave a real question open rather than manufacturing engagement bait. Prefer this for a cold account because it needs one tension, not two artificially opposed facts.',
+    },
+    {
+      treatment: 'comparison',
+      intent:
+        'Use comparison only when the evidence contains two genuine alternatives that answer the same decision. Both sides must be interchangeable answers to one question, such as two methods for the same job. Two unrelated checks, facts, ingredients, or metrics are not a comparison; if the premise does not contain one shared decision axis, do not force this treatment.',
+    },
     { treatment: 'listicle', intent: 'Show a few recognizable audience behaviors or failure modes and ask which one people actually encounter. The examples must be useful even without a reply.' },
     { treatment: 'how_to', intent: 'Answer one community question with a compact useful explanation, then invite a specific edge case or counterexample rather than asking “what do you think?”' },
   ],

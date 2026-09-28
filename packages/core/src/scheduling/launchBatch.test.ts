@@ -379,6 +379,17 @@ describe('planLaunchBatch', () => {
     }
   });
 
+  it('does not force the first cold-start community package into a comparison', () => {
+    const first = conceptFor('community', 0);
+    const exploration = conceptFor('community', 4);
+
+    expect(first.treatment).toBe('myth_fact');
+    expect(first.intent).toContain('one concrete example');
+    expect(exploration.treatment).toBe('comparison');
+    expect(exploration.intent).toContain('same decision');
+    expect(exploration.intent).toContain('Two unrelated checks');
+  });
+
   it('reuses a creative package across placements instead of inventing every idea independently', () => {
     expect(conceptFor('transformation', 0).key).toBe(conceptFor('transformation', 3).key);
     expect(conceptFor('transformation', 4).key).not.toBe(conceptFor('transformation', 0).key);

@@ -9,6 +9,7 @@ import { requireOperator } from '@/lib/auth';
 import {
   emptyTikTokOptions,
   gatesAfterEdit,
+  refreshCopyGate,
   slopFilter,
   validateTikTokPost,
   type GateResult,
@@ -146,6 +147,9 @@ export async function approveItem(formData: FormData): Promise<void> {
     scheduled_at: string | null;
     platform: string;
     format: string;
+    body: string;
+    hashtags: string[];
+    gates: GateResult[];
     tiktok_options: unknown;
     tiktok_creator_info: unknown;
     generation_meta: Record<string, unknown> | null;
@@ -153,6 +157,8 @@ export async function approveItem(formData: FormData): Promise<void> {
     has_finished_render: boolean;
   }>(
     `select ci.status, ci.scheduled_at, ci.platform, ci.format,
+            ci.body, ci.hashtags,
+            coalesce(ci.qc_results->'gates', '[]'::jsonb) as gates,
             ci.tiktok_options, ci.tiktok_creator_info,
             ci.generation_meta, ci.attached_asset_ids,
             exists (
@@ -166,6 +172,35 @@ export async function approveItem(formData: FormData): Promise<void> {
     [id],
   );
   if (!item) return;
+
+  /*
+   * The body can change after its first generation-time QC (hook/correction
+   * stages). Approval is the last human boundary before scheduling, so refresh
+   * the deterministic copy gate against the exact prose that exists now.
+   * This is intentionally model-free and costs nothing.
+   */
+  const currentCopyLint = slopFilter({
+    body: item.body,
+    platform: item.platform as SlopPlatform,
+    hashtags: item.hashtags ?? [],
+  });
+  const refreshedCopy = refreshCopyGate(item.gates ?? [], currentCopyLint);
+  await query(
+    `update content_items
+        set qc_results = coalesce(qc_results, '{}'::jsonb)
+                         || jsonb_build_object('gates', $2::jsonb, 'passed', $3::boolean)
+      where id = $1`,
+    [id, JSON.stringify(refreshedCopy.gates), refreshedCopy.passed],
+  );
+  const currentCopyGate = refreshedCopy.gates.find((gate) => gate.gate === 'copy');
+  if (currentCopyGate?.status === 'failed') {
+    await audit('approve_refused_current_copy_qc', id, {
+      summary: currentCopyGate.summary,
+      violations: currentCopyLint.violations,
+    });
+    revalidatePath(`/gallery/${id}`);
+    return;
+  }
 
   /*
    * Paid external visual work is reviewed as the actual media, never as a
