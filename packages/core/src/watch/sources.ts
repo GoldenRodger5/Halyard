@@ -25,6 +25,15 @@ export interface WatchHit {
   author?: string;
   engagement?: number;
   postedAt?: Date;
+  /** Structured momentum from an official trends source when available. */
+  trend?: {
+    pctGrowthWow?: number;
+    pctGrowthMom?: number;
+    pctGrowthYoy?: number;
+    timeSeries?: Record<string, number>;
+    /** Normalised -0.3..0.3 tilt consumed by discovery freshness. */
+    velocity?: number;
+  };
   /** True when this reads as someone asking rather than telling. */
   question: boolean;
 }
@@ -158,11 +167,33 @@ function decodeXml(value: string): string {
 /**
  * Pinterest trends.
  *
- * Pinterest has no public trends API. The authenticated endpoint needs the same
- * Standard access that gates publishing, so this returns nothing and says why
+ * Pinterest has no unauthenticated trends API. The authenticated endpoint needs
+ * Standard access, so this returns nothing and says why
  * rather than pretending. When Standard access lands, the account token already
  * in `social_accounts` is what unlocks it.
  */
+function trendVelocity(
+  pctGrowthWow?: number,
+  pctGrowthMom?: number,
+  timeSeries?: Record<string, number>,
+): number | undefined {
+  if (Number.isFinite(pctGrowthWow)) {
+    return Math.max(-0.3, Math.min(0.3, Number(pctGrowthWow) / 100));
+  }
+  if (Number.isFinite(pctGrowthMom)) {
+    return Math.max(-0.3, Math.min(0.3, Number(pctGrowthMom) / 400));
+  }
+  const points = Object.entries(timeSeries ?? {})
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([, value]) => Number(value))
+    .filter(Number.isFinite);
+  if (points.length < 2) return undefined;
+  const previous = points.at(-2)!;
+  const latest = points.at(-1)!;
+  if (previous <= 0) return latest > previous ? 0.3 : undefined;
+  return Math.max(-0.3, Math.min(0.3, (latest - previous) / previous));
+}
+
 export async function fetchPinterestTrends(
   term: string,
   options: FetchOptions & { accessToken?: string } = {},
@@ -189,7 +220,15 @@ export async function fetchPinterestTrends(
     throw new Error(`Pinterest trends returned HTTP ${response.status}.`);
   }
 
-  const body = (await response.json()) as { trends?: Array<{ keyword?: string }> };
+  const body = (await response.json()) as {
+    trends?: Array<{
+      keyword?: string;
+      pct_growth_wow?: number;
+      pct_growth_mom?: number;
+      pct_growth_yoy?: number;
+      time_series?: Record<string, number>;
+    }>;
+  };
   return (body.trends ?? [])
     .filter((trend) => trend.keyword?.toLowerCase().includes(term.toLowerCase()))
     .map((trend) => ({
@@ -197,6 +236,15 @@ export async function fetchPinterestTrends(
       url: `https://www.pinterest.com/search/pins/?q=${encodeURIComponent(trend.keyword!)}`,
       title: trend.keyword!,
       question: false,
+      trend: {
+        ...(Number.isFinite(trend.pct_growth_wow) ? { pctGrowthWow: trend.pct_growth_wow } : {}),
+        ...(Number.isFinite(trend.pct_growth_mom) ? { pctGrowthMom: trend.pct_growth_mom } : {}),
+        ...(Number.isFinite(trend.pct_growth_yoy) ? { pctGrowthYoy: trend.pct_growth_yoy } : {}),
+        ...(trend.time_series ? { timeSeries: trend.time_series } : {}),
+        ...(trendVelocity(trend.pct_growth_wow, trend.pct_growth_mom, trend.time_series) !== undefined
+          ? { velocity: trendVelocity(trend.pct_growth_wow, trend.pct_growth_mom, trend.time_series) }
+          : {}),
+      },
     }));
 }
 

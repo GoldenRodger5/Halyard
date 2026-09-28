@@ -57,7 +57,7 @@ async function seedCalibrationCandidate(): Promise<void> {
         'An ingredient swap can change the method, not just the ingredient list.',
         'pending_approval',$2,$3,array[$4::uuid],
         '{"production_v2":true,"production_media_required":true}'::jsonb,
-        '{"passed":true,"gates":[{"gate":"visual","status":"passed","summary":"reviewed"},{"gate":"coherence","status":"passed","summary":"coherent"}]}'::jsonb)
+        '{"passed":true,"media":{"passed":true,"findings":[]},"gates":[{"gate":"media","status":"passed","summary":"technical integrity passed"},{"gate":"visual","status":"passed","summary":"reviewed"},{"gate":"coherence","status":"passed","summary":"coherent"}]}'::jsonb)
      returning id`,
     [account.rows[0]!.id, conceptId, brief.rows[0]!.id, asset.rows[0]!.id],
   );

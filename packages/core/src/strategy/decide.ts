@@ -62,6 +62,8 @@ export interface StrategyOpportunity {
   effectiveValue: number;
   /** Where it was observed, when platform-specific. */
   platform?: string | null;
+  /** Product Brain fact category, when this opportunity came from verified product knowledge. */
+  category?: string | null;
 }
 
 export interface StrategyAccount {
@@ -180,7 +182,17 @@ function reviewDaysFor(metric: string): number {
 function inferObjective(opportunity: StrategyOpportunity): ContentObjective {
   switch (opportunity.source) {
     case 'changelog':
+      return 'product_promotion';
     case 'product_activity':
+      if (
+        opportunity.category === 'jobs_to_be_done' ||
+        opportunity.category === 'content_pillars' ||
+        opportunity.category === 'workflows' ||
+        opportunity.category === 'users' ||
+        opportunity.category === 'personas'
+      ) {
+        return 'education';
+      }
       return 'product_promotion';
     case 'trend':
       return 'awareness';

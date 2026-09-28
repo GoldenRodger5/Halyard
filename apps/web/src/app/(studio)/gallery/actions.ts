@@ -150,6 +150,7 @@ export async function approveItem(formData: FormData): Promise<void> {
     body: string;
     hashtags: string[];
     gates: GateResult[];
+    media_integrity: { passed?: boolean; findings?: Array<{ rule?: string; severity?: string; message?: string }> } | null;
     tiktok_options: unknown;
     tiktok_creator_info: unknown;
     generation_meta: Record<string, unknown> | null;
@@ -159,6 +160,7 @@ export async function approveItem(formData: FormData): Promise<void> {
     `select ci.status, ci.scheduled_at, ci.platform, ci.format,
             ci.body, ci.hashtags,
             coalesce(ci.qc_results->'gates', '[]'::jsonb) as gates,
+            ci.qc_results->'media' as media_integrity,
             ci.tiktok_options, ci.tiktok_creator_info,
             ci.generation_meta, ci.attached_asset_ids,
             exists (
@@ -200,6 +202,30 @@ export async function approveItem(formData: FormData): Promise<void> {
     });
     revalidatePath(`/gallery/${id}`);
     return;
+  }
+
+  /*
+   * A finished video must have passed deterministic file-level integrity.
+   * This is independent of the later frame reviewer: a sharp-looking frame can
+   * come from a 480p export, and a semantically correct video can still be
+   * severely blurred or technically truncated.
+   */
+  if (item.format === 'video') {
+    if (!item.media_integrity) {
+      await audit('approve_refused_unmeasured_media_integrity', id, {
+        format: item.format,
+        hasFinishedRender: item.has_finished_render,
+      });
+      revalidatePath(`/gallery/${id}`);
+      return;
+    }
+    if (item.media_integrity.passed === false) {
+      await audit('approve_refused_media_integrity', id, {
+        findings: item.media_integrity.findings ?? [],
+      });
+      revalidatePath(`/gallery/${id}`);
+      return;
+    }
   }
 
   /*
@@ -541,6 +567,8 @@ export async function rescheduleItem(formData: FormData): Promise<void> {
 
 interface ProductionCalibrationCandidate {
   product_id: string;
+  format: string;
+  media_integrity: { passed?: boolean; findings?: Array<{ rule?: string; severity?: string; message?: string }> } | null;
   production_recipe_id: string | null;
   recipe_mode: string | null;
   recipe_status: string | null;
@@ -552,7 +580,8 @@ interface ProductionCalibrationCandidate {
 
 async function productionCalibrationCandidate(id: string): Promise<ProductionCalibrationCandidate | null> {
   return one<ProductionCalibrationCandidate>(
-    `select ci.product_id, ci.production_recipe_id,
+    `select ci.product_id, ci.format, ci.qc_results->'media' as media_integrity,
+            ci.production_recipe_id,
             pr.mode as recipe_mode, pr.status as recipe_status,
             coalesce(pr.steps, '[]'::jsonb) as steps,
             ci.qc_results, ci.attached_asset_ids,
@@ -603,7 +632,9 @@ export async function acceptProductionRecipe(formData: FormData): Promise<void> 
 
   const hasMedia = candidate.has_finished_render || (candidate.attached_asset_ids ?? []).length > 0;
   const failedGate = (candidate.qc_results?.gates ?? []).some((gate) => gate.status === 'failed');
-  const mediaPassed = candidate.qc_results?.passed === true && !failedGate;
+  const fileIntegrityPassed =
+    candidate.format !== 'video' || candidate.media_integrity?.passed === true;
+  const mediaPassed = candidate.qc_results?.passed === true && !failedGate && fileIntegrityPassed;
   if (
     candidate.recipe_mode !== 'calibration' ||
     candidate.recipe_status !== 'review_required' ||

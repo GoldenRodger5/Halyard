@@ -31,7 +31,7 @@ import { hasFaststart, meanVolumeDb, muxAudioIntoVideo } from '../audio.js';
 import { PermanentJobFailure } from '../poller.js';
 import type { Job, HandlerContext } from '../poller.js';
 import { readAssetBytes, uploadAsset, type UploadedAsset } from '../storage.js';
-import { extractFrame, measureLowerLuminance, renderVideo } from '../video.js';
+import { extractFrame, measureBlurMean, measureFreezeStats, measureLowerLuminance, renderVideo } from '../video.js';
 
 interface RenderRow {
   id: string;
@@ -503,8 +503,22 @@ async function renderVideoAsset(
      * produced a file is worth keeping — an operator can look at it — and the
      * approval gate is where a defective piece should be stopped, not here.
      */
+    const renderedDuration =
+      audio?.durationSeconds ?? result.durationInFrames / result.fps;
+    const freeze = await measureFreezeStats(output, renderedDuration);
+    const mediaMode =
+      typeof render.input_props.mediaMode === 'string' ? render.input_props.mediaMode : null;
     const integrity = runMediaIntegrity({
-      durationSeconds: audio?.durationSeconds ?? result.durationInFrames / result.fps,
+      durationSeconds: renderedDuration,
+      width: result.width,
+      height: result.height,
+      blurMean: await measureBlurMean(output),
+      expectedMotion:
+        mediaMode === 'motion_editorial' ||
+        mediaMode === 'mixed_broll_capture' ||
+        mediaMode === 'real_product_proof',
+      freezeShare: freeze?.freezeShare ?? null,
+      longestFreezeSeconds: freeze?.longestFreezeSeconds ?? null,
       meanVolumeDb: await meanVolumeDb(output),
       /* §320. Invisible to level measurement; asked separately. */
       moovBeforeMdat: await hasFaststart(output),

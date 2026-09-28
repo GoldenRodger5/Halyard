@@ -43,8 +43,8 @@ const NON_COLOUR = new Set([
    */
   'cover','contain','repeat','no-repeat','repeat-x','repeat-y','local','scroll',
   // SVG presentation attribute names can appear inside generated markup strings.
-  // text-anchor is not a Tailwind colour utility.
-  'anchor',
+  // They share Tailwind colour prefixes (`stroke-*`, `text-*`) but are not classes.
+  'anchor','width','linejoin','linecap','miterlimit','dasharray','dashoffset','opacity',
 ]);
 
 /**

@@ -80,33 +80,23 @@ export const SCHEDULES: Schedule[] = [
   },
   {
     /**
-     * The daily generation run.
+     * The autonomous editorial controller.
      *
-     * Halyard is described everywhere — the queue's own empty state included —
-     * as producing drafts daily, and two earlier decisions describe `generate`
-     * as having run "every day". It was enqueued only by the launch batch, a
-     * queue action and campaigns, so the promise was never kept: an operator
-     * who finished onboarding and waited got nothing, and the screen told them
-     * to expect otherwise.
+     * Cheap and frequent: the controller makes no model/provider calls. It
+     * chooses a current signal, one account/platform, and a measurable strategy
+     * decision first. Only a selected decision delegates to `generate`, so a
+     * six-hour trend check costs nothing when there is nothing worth making.
      *
-     * Safe to schedule because the operator already owns the switch.
-     * `generate` reads `settings.generation_enabled` and returns when it is
-     * off (`generate.ts`), `/settings` has the toggle, and the onboarding gate
-     * refuses to run before the wizard is complete. Spend is bounded by
-     * `limit` ideas per run — three by default — and an idea is claimed before
-     * anything is bought, so a retry cannot buy it twice (§120).
+     * The controller is capped at two autonomous decisions per product/day and
+     * enqueues at most one per pass. Manual, launch and campaign generation are
+     * separate paths and remain available.
      */
-    kind: 'generate',
-    everyMinutes: 24 * 60,
+    kind: 'plan_editorial',
+    everyMinutes: 6 * 60,
     perProduct: true,
+    payload: { maxDecisions: 1 },
     priority: 30,
-    /*
-     * §452. This sentence used to claim the run was bounded by "the cadence
-     * ceilings" and `generate.ts` did not contain the word. It does now, and
-     * the claim is true — which is the order those two things should have
-     * happened in.
-     */
-    why: 'The daily draft run the product has always described. Bounded by the per-run idea limit, settings.generation_enabled, and — since §452 — the per-format backlog ceiling, so it stops filling a queue nobody can empty.',
+    why: 'Signals and trend velocity can change within a day. A free six-hour planning pass catches that movement, but only one targeted generate job may leave a pass and only two autonomous decisions may exist per product/day.',
   },
   {
     /**
@@ -164,10 +154,19 @@ export const SCHEDULES: Schedule[] = [
   },
   {
     kind: 'collect_watch_terms',
+    everyMinutes: 6 * 60,
+    perProduct: true,
+    payload: { onlySources: ['pinterest'] },
+    priority: 20,
+    why: 'Pinterest Trends is an official aggregate momentum source. Six-hour refresh catches meaningful same-day movement without increasing Reddit/RSS reads.',
+  },
+  {
+    kind: 'collect_watch_terms',
     everyMinutes: 24 * 60,
     perProduct: true,
-    priority: 55,
-    why: 'Read-only, once a day, over public endpoints that ask to be treated politely. Recurrence is measured over 30 days, so reading more often changes nothing.',
+    payload: { onlySources: ['reddit', 'rss'] },
+    priority: 45,
+    why: 'Recurring questions are measured over 30 days. Daily Reddit/RSS reads are enough to establish recurrence without hammering public endpoints.',
   },
   {
     kind: 'collect_signals',
@@ -177,8 +176,8 @@ export const SCHEDULES: Schedule[] = [
     // founder persona, which is `kind = 'personal'`. The handler follows the
     // data instead: it collects for whichever products actually have feeds.
     perProduct: false,
-    priority: 50,
-    why: 'Watch terms and RSS. Frequent enough to catch a story the same day, rare enough not to hammer Reddit.',
+    priority: 18,
+    why: 'RSS/product/news signals refresh before the editorial controller on the same six-hour tick, so planning reads the newest observations rather than the previous cycle.',
   },
   {
     kind: 'collect_reviews',
@@ -223,8 +222,8 @@ export const SCHEDULES: Schedule[] = [
     kind: 'score_performance',
     everyMinutes: 24 * 60,
     perProduct: true,
-    priority: 30,
-    why: 'Scoring reads metric time series that only move on the polling schedule.',
+    priority: 20,
+    why: 'Scoring reads metric time series that only move on the polling schedule, and must finish before the daily learning pass consumes performance_scores.',
   },
   {
     /**
@@ -240,8 +239,8 @@ export const SCHEDULES: Schedule[] = [
     kind: 'learn_from_performance',
     everyMinutes: 24 * 60,
     perProduct: true,
-    priority: 25,
-    why: 'Turns measured performance into beliefs the next plan reads. Reads performance_scores, so it must follow scoring rather than lead it.',
+    priority: 24,
+    why: 'Turns measured performance into beliefs the next plan reads. Priority is intentionally after score_performance so today’s scores exist before beliefs are recomputed.',
   },
   {
     /*
@@ -250,9 +249,9 @@ export const SCHEDULES: Schedule[] = [
      * are already stored.
      */
     kind: 'build_account_intelligence',
-    everyMinutes: 12 * 60,
-    priority: 25,
-    why: 'Snapshots each account\'s content mix and refreshes social recommendations from comments and watch hits.',
+    everyMinutes: 6 * 60,
+    priority: 24,
+    why: 'Cheap arithmetic over stored posts/comments/watch hits. Refresh before the six-hour editorial planner so diversity gaps and recent mix are current.',
   },
   {
     kind: 'cluster_rejections',

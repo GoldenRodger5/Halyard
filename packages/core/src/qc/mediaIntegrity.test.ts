@@ -7,6 +7,9 @@ import { runMediaIntegrity } from './mediaIntegrity.js';
 
 const ok = {
   durationSeconds: 42.6,
+  width: 1080,
+  height: 1920,
+  blurMean: 7.1,
   meanVolumeDb: -19.1,
   hasNarration: true,
   requiredSeconds: 42.5,
@@ -15,6 +18,57 @@ const ok = {
 describe('runMediaIntegrity', () => {
   it('passes a narrated piece that actually makes sound', () => {
     expect(runMediaIntegrity(ok).passed).toBe(true);
+  });
+
+  it('blocks a final video below the 720px short-edge floor', () => {
+    const result = runMediaIntegrity({ ...ok, width: 480, height: 854 });
+    expect(result.passed).toBe(false);
+    expect(result.findings.map((f) => f.rule)).toContain('media.low_resolution');
+  });
+
+  it('warns on noticeable softness without rejecting shallow-focus footage', () => {
+    const result = runMediaIntegrity({ ...ok, blurMean: 10.5 });
+    expect(result.passed).toBe(true);
+    expect(result.findings.map((f) => f.rule)).toContain('media.soft_focus');
+  });
+
+  it('blocks severe blur calibrated against a deliberately destroyed render', () => {
+    const result = runMediaIntegrity({ ...ok, blurMean: 23.98 });
+    expect(result.passed).toBe(false);
+    expect(result.findings.map((f) => f.rule)).toContain('media.severe_blur');
+  });
+
+  it('blocks a motion-first video that is frozen for most of its runtime', () => {
+    const result = runMediaIntegrity({
+      ...ok,
+      expectedMotion: true,
+      freezeShare: 0.91,
+      longestFreezeSeconds: 4.27,
+    });
+    expect(result.passed).toBe(false);
+    expect(result.findings.map((f) => f.rule)).toContain('media.motion_mostly_frozen');
+  });
+
+  it('warns when a motion-first video has too many held stretches but is not a slideshow', () => {
+    const result = runMediaIntegrity({
+      ...ok,
+      expectedMotion: true,
+      freezeShare: 0.66,
+      longestFreezeSeconds: 4.0,
+    });
+    expect(result.passed).toBe(true);
+    expect(result.findings.map((f) => f.rule)).toContain('media.motion_too_sparse');
+  });
+
+  it('does not apply the motion promise rule to a deliberately still-led execution', () => {
+    const result = runMediaIntegrity({
+      ...ok,
+      expectedMotion: false,
+      freezeShare: 0.9,
+      longestFreezeSeconds: 6,
+    });
+    expect(result.passed).toBe(true);
+    expect(result.findings.map((f) => f.rule)).not.toContain('media.motion_mostly_frozen');
   });
 
   it('catches the silent audio track', () => {

@@ -293,6 +293,41 @@ const BY_RULE: Record<string, PolicyEntry> = {
    * built again with the right numbers. So they escalate, with the exception of
    * a dead tail, which is untidy rather than wrong.
    */
+  'media.low_resolution': {
+    rootCause:
+      'The finished video was encoded below the minimum delivery resolution, so detail is already gone.',
+    component: 'render',
+    action: 'escalate',
+    correctable: false,
+  },
+  'media.severe_blur': {
+    rootCause:
+      'The finished video is severely blurred; the source media or render is too soft for production.',
+    component: 'render',
+    action: 'escalate',
+    correctable: false,
+  },
+  'media.soft_focus': {
+    rootCause:
+      'The finished video is unusually soft. It may be intentional shallow focus and needs review before reuse.',
+    component: 'render',
+    action: 'escalate',
+    correctable: false,
+  },
+  'media.motion_mostly_frozen': {
+    rootCause:
+      'The production plan promised moving media, but the encoded file is frozen for most of the measured runtime.',
+    component: 'render',
+    action: 'escalate',
+    correctable: false,
+  },
+  'media.motion_too_sparse': {
+    rootCause:
+      'The production plan promised moving media, but long held stretches dominate enough of the file to need review.',
+    component: 'render',
+    action: 'escalate',
+    correctable: false,
+  },
   'media.silent_audio': {
     rootCause:
       'The file has an audio stream carrying digital silence, so every player shows a track and plays nothing.',

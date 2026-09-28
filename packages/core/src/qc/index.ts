@@ -45,6 +45,8 @@ export const GATE_NAMES = [
   'copy',
   'claims',
   'visual',
+  /** Finished-file technical integrity: resolution, blur, truncation, mux/audio. */
+  'media',
   'audio',
   'destination',
   'proof',

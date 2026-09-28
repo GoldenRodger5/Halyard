@@ -233,6 +233,12 @@ export interface VideoProbe {
   height: number;
   loudnessLufs?: number;
   truePeakDbtp?: number;
+  /** FFmpeg blurdetect mean edge width. Higher means blurrier; null means unmeasured. */
+  blurMean?: number;
+  /** Share of the measured window spent in >=1.5s freezes. */
+  freezeShare?: number;
+  /** Longest measured freeze in seconds. */
+  longestFreezeSeconds?: number;
   frameLuminance: number[];
   /**
    * Tonal range per sampled frame, `(YMAX - YMIN) / 255`, in the same order.
@@ -274,6 +280,108 @@ export function parseFrameRate(raw: string | undefined): number | null {
   return Number((n / d).toFixed(3));
 }
 
+/**
+ * Parse FFmpeg blurdetect's final aggregate. Higher values mean wider/softer
+ * edges. Null means the filter did not produce a measurement.
+ */
+export function parseBlurMean(output: string): number | null {
+  const matches = [...output.matchAll(/blur mean:\s*([0-9.]+)/gi)];
+  const value = Number(matches.at(-1)?.[1]);
+  return Number.isFinite(value) && value >= 0 ? value : null;
+}
+
+/**
+ * Sample up to the first twenty seconds at one frame/second.
+ *
+ * A full-length blur scan adds no useful precision for a technical gate and
+ * would make a long-form render disproportionately expensive to validate.
+ */
+export async function measureBlurMean(filePath: string): Promise<number | null> {
+  const result = await execFileAsync('ffmpeg', [
+    '-hide_banner',
+    '-loglevel', 'info',
+    '-i', filePath,
+    '-vf', 'fps=1,blurdetect=block_width=32:block_height=32:block_pct=80',
+    '-frames:v', '20',
+    '-f', 'null',
+    '-',
+  ]).catch((err: { stderr?: string; stdout?: string }) => ({
+    stderr: err.stderr ?? '',
+    stdout: err.stdout ?? '',
+  }));
+  return parseBlurMean(`${result.stdout ?? ''}\n${result.stderr ?? ''}`);
+}
+
+export interface FreezeStats {
+  freezeShare: number;
+  longestFreezeSeconds: number;
+  measuredSeconds: number;
+}
+
+export function parseFreezeStats(output: string, measuredSeconds: number): FreezeStats | null {
+  if (!Number.isFinite(measuredSeconds) || measuredSeconds <= 0) return null;
+
+  const durations = [...output.matchAll(/freeze_duration:\s*([0-9.]+)/gi)]
+    .map((match) => Number(match[1]))
+    .filter((value) => Number.isFinite(value) && value >= 0);
+  const starts = [...output.matchAll(/freeze_start:\s*([0-9.]+)/gi)]
+    .map((match) => Number(match[1]))
+    .filter((value) => Number.isFinite(value) && value >= 0);
+  const ends = [...output.matchAll(/freeze_end:\s*([0-9.]+)/gi)]
+    .map((match) => Number(match[1]))
+    .filter((value) => Number.isFinite(value) && value >= 0);
+
+  let total = durations.reduce((sum, value) => sum + value, 0);
+  let longest = durations.length > 0 ? Math.max(...durations) : 0;
+
+  const lastStart = starts.at(-1);
+  const lastEnd = ends.at(-1) ?? -Infinity;
+  if (lastStart !== undefined && lastStart > lastEnd && lastStart < measuredSeconds) {
+    const trailing = measuredSeconds - lastStart;
+    total += trailing;
+    longest = Math.max(longest, trailing);
+  }
+
+  total = Math.max(0, Math.min(measuredSeconds, total));
+  return {
+    freezeShare: Math.round((total / measuredSeconds) * 1000) / 1000,
+    longestFreezeSeconds: Math.round(longest * 1000) / 1000,
+    measuredSeconds,
+  };
+}
+
+/**
+ * Actual motion in the encoded file, not motion promised by the plan.
+ *
+ * The first minute is enough for short-form and bounds long-form validation.
+ * A freeze must last 1.5 seconds before it counts, so a deliberate held beat is
+ * tolerated; the gate cares about a "motion" video that is mostly frozen.
+ */
+export async function measureFreezeStats(
+  filePath: string,
+  durationSeconds: number,
+): Promise<FreezeStats | null> {
+  const measuredSeconds = Math.min(60, Math.max(0, durationSeconds));
+  if (measuredSeconds <= 0) return null;
+  const result = await execFileAsync('ffmpeg', [
+    '-hide_banner',
+    '-loglevel', 'info',
+    '-i', filePath,
+    '-t', String(measuredSeconds),
+    '-vf', 'freezedetect=n=-45dB:d=1.5',
+    '-an',
+    '-f', 'null',
+    '-',
+  ]).catch((err: { stderr?: string; stdout?: string }) => ({
+    stderr: err.stderr ?? '',
+    stdout: err.stdout ?? '',
+  }));
+  return parseFreezeStats(
+    `${result.stdout ?? ''}\n${result.stderr ?? ''}`,
+    measuredSeconds,
+  );
+}
+
 export async function probeVideo(filePath: string): Promise<VideoProbe> {
   const { stdout } = await execFileAsync('ffprobe', [
     '-v', 'error',
@@ -308,6 +416,13 @@ export async function probeVideo(filePath: string): Promise<VideoProbe> {
   const luminance = await sampleLuminance(filePath);
   probe.frameLuminance = luminance.mean;
   probe.frameContentRange = luminance.range;
+  const blurMean = await measureBlurMean(filePath);
+  if (blurMean !== null) probe.blurMean = blurMean;
+  const freeze = await measureFreezeStats(filePath, probe.durationSeconds);
+  if (freeze) {
+    probe.freezeShare = freeze.freezeShare;
+    probe.longestFreezeSeconds = freeze.longestFreezeSeconds;
+  }
 
   // ffprobe reports frame rate as a rational, "30000/1001" for 29.97. Left
   // undefined rather than guessed when it is missing or degenerate, so the

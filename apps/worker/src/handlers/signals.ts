@@ -114,11 +114,22 @@ export function isWorthReacting(
  */
 async function productsToCollect(ctx: HandlerContext, requested?: string): Promise<string[]> {
   const { rows } = await ctx.pool.query<{ product_id: string }>(
-    `select distinct s.product_id
-       from rss_sources s
-       join products p on p.id = s.product_id
-      where s.enabled and p.status = 'active'
-        and ($1::text is null or s.product_id = $1)
+    `select distinct p.id as product_id
+       from products p
+      where p.status = 'active'
+        and ($1::text is null or p.id = $1)
+        and (
+          exists (
+            select 1 from rss_sources s
+             where s.product_id = p.id and s.enabled
+          )
+          or exists (
+            select 1 from product_facts pf
+             where pf.product_id = p.id
+               and pf.status = 'verified'
+               and pf.superseded_by is null
+          )
+        )
       order by 1`,
     [requested ?? null],
   );
@@ -130,7 +141,7 @@ export async function collectSignalsHandler(job: Job, ctx: HandlerContext): Prom
   const products = await productsToCollect(ctx, requested);
 
   if (products.length === 0) {
-    ctx.log('no products have rss sources', { requested: requested ?? 'any' });
+    ctx.log('no products have RSS or verified Product Brain discovery sources', { requested: requested ?? 'any' });
     return;
   }
 
@@ -140,6 +151,10 @@ export async function collectSignalsHandler(job: Job, ctx: HandlerContext): Prom
 }
 
 async function collectForProduct(productId: string, ctx: HandlerContext): Promise<void> {
+  // Product Brain discovery is independent of RSS. A brand with no news feed
+  // still has verified capabilities/jobs worth turning into grounded signals.
+  const fromProduct = await promoteProductFacts(ctx, productId);
+
   const { rows: sources } = await ctx.pool.query<SourceRow>(
     `select id, product_id, name, feed_url, weight
        from rss_sources where product_id = $1 and enabled
@@ -148,7 +163,10 @@ async function collectForProduct(productId: string, ctx: HandlerContext): Promis
   );
 
   if (sources.length === 0) {
-    ctx.log('no rss sources configured', { productId });
+    ctx.log('no rss sources configured; Product Brain discovery still ran', {
+      productId,
+      fromProduct,
+    });
     return;
   }
 
@@ -177,7 +195,12 @@ async function collectForProduct(productId: string, ctx: HandlerContext): Promis
   }
 
   if (fetched.length === 0) {
-    ctx.log('no items fetched', { productId, sources: sources.length, failures });
+    ctx.log('no RSS items fetched; Product Brain discovery still ran', {
+      productId,
+      sources: sources.length,
+      failures,
+      fromProduct,
+    });
     return;
   }
 
@@ -299,7 +322,6 @@ async function collectForProduct(productId: string, ctx: HandlerContext): Promis
   );
 
   const promoted = await promoteToSignals(ctx, productId);
-  const fromProduct = await promoteProductFacts(ctx, productId);
 
   ctx.log('signals collected', {
     productId,
@@ -446,6 +468,54 @@ export async function promoteToSignals(
   return promoted;
 }
 
+const PRODUCT_FACT_DISCOVERY_PRIORITY: Record<string, number> = {
+  jobs_to_be_done: 100,
+  content_pillars: 96,
+  workflows: 92,
+  differentiators: 88,
+  personas: 84,
+  users: 82,
+  app_store_positioning: 78,
+  conversion_funnel: 74,
+  ux_model: 70,
+  identity: 64,
+  mission: 60,
+  claims: 58,
+  competitors: 52,
+  pricing: 46,
+  monetization: 46,
+  brand_voice: 40,
+  visual_identity: 40,
+};
+
+export function productFactDiscoveryPriority(category: string): number {
+  return PRODUCT_FACT_DISCOVERY_PRIORITY[category] ?? 50;
+}
+
+export function productFactSignalRelevance(category: string): number {
+  switch (category) {
+    case 'jobs_to_be_done':
+    case 'content_pillars':
+      return 0.95;
+    case 'workflows':
+      return 0.92;
+    case 'differentiators':
+      return 0.9;
+    case 'personas':
+    case 'users':
+      return 0.85;
+    case 'app_store_positioning':
+      return 0.8;
+    case 'conversion_funnel':
+    case 'ux_model':
+      return 0.75;
+    case 'identity':
+      return 0.65;
+    default:
+      return 0.7;
+  }
+}
+
 /** How many product facts become signals in one pass. */
 export const PROMOTE_FACTS_PER_RUN = 3;
 
@@ -497,13 +567,25 @@ export async function promoteProductFacts(
              and raw ->> 'factId' = product_facts.id::text
              and created_at > now() - interval '60 days')
       order by confidence desc nulls last, last_verified_at desc nulls last
-      limit $2`,
-    [productId, PROMOTE_FACTS_PER_RUN],
+      limit 40`,
+    [productId],
   );
+
+  const selectedFacts = [...facts]
+    .sort((a, b) => {
+      const category = productFactDiscoveryPriority(b.category) - productFactDiscoveryPriority(a.category);
+      if (category !== 0) return category;
+      const confidence = Number(b.confidence ?? 0) - Number(a.confidence ?? 0);
+      if (confidence !== 0) return confidence;
+      const verified = new Date(b.last_verified_at ?? 0).getTime() - new Date(a.last_verified_at ?? 0).getTime();
+      if (verified !== 0) return verified;
+      return a.key.localeCompare(b.key);
+    })
+    .slice(0, PROMOTE_FACTS_PER_RUN);
 
   let promoted = 0;
 
-  for (const fact of facts) {
+  for (const fact of selectedFacts) {
     const summary = fact.detail?.trim()
       ? `${fact.value} — ${fact.detail.trim().slice(0, 400)}`
       : fact.value;
@@ -520,9 +602,9 @@ export async function promoteProductFacts(
           category: fact.category,
           key: fact.key,
         },
-        /* A verified fact is fully relevant to its own product. Ranking between
-           facts is what `confidence` is for. */
-        1,
+        /* Truth and social usefulness are different axes. Every fact is
+           verified; relevance says how naturally it deserves an editorial slot. */
+        productFactSignalRelevance(fact.category),
         fact.last_verified_at,
         fact.confidence === null ? null : Number(fact.confidence),
       ],
