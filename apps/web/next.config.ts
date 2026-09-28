@@ -6,6 +6,10 @@ const config: NextConfig = {
   // compiles them alongside the app. Keeps the monorepo free of a dist/ dance.
   transpilePackages: ['@halyard/core', '@halyard/db', '@halyard/render', '@halyard/ui'],
   serverExternalPackages: ['pg', 'sharp', '@resvg/resvg-js'],
+
+  outputFileTracingIncludes: {
+    '/api/internal/momentcircuit/render': ['./bin/ffmpeg'],
+  },
   typedRoutes: false,
 
   env: {

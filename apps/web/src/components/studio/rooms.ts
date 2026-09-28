@@ -61,6 +61,7 @@ export const ROOMS: Room[] = [
     tabs: [
       { href: '/', label: 'Today', hint: 'What happened overnight, and the one thing to do now' },
       { href: '/first-run', label: 'First run', hint: 'Daily generation will not start until this is done' },
+      { href: '/first-run/momentcircuit', label: 'MomentCircuit', hint: 'Anonymous media launch — owner-only actions and readiness' },
     ],
   },
   {

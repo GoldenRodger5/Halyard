@@ -7,3 +7,4 @@ allowBuilds:
   esbuild: true
   sharp: true
   '@resvg/resvg-js': true
+  ffmpeg-static: true
