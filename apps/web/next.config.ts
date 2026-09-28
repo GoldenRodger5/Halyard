@@ -9,16 +9,11 @@ const config: NextConfig = {
   serverExternalPackages: ['pg', 'sharp', '@resvg/resvg-js'],
 
   outputFileTracingRoot: path.join(process.cwd(), '../..'),
+  outputFileTracingRoot: path.join(process.cwd(), '../..'),
   outputFileTracingIncludes: {
     '/api/internal/momentcircuit/render': [
       './bin/ffmpeg',
       '../../packages/render/assets/fonts/**/*',
-      '../../node_modules/@resvg/resvg-js/**/*',
-      '../../node_modules/@resvg/resvg-js-darwin-arm64/**/*',
-      '../../node_modules/.pnpm/@resvg+resvg-js@*/node_modules/@resvg/resvg-js/**/*',
-      '../../node_modules/.pnpm/@resvg+resvg-js-darwin-arm64@*/node_modules/@resvg/resvg-js-darwin-arm64/**/*',
-      '../../node_modules/.pnpm/@resvg+resvg-js-linux-x64-gnu@*/node_modules/@resvg/resvg-js-linux-x64-gnu/**/*',
-      '../../node_modules/.pnpm/@resvg+resvg-js-linux-x64-musl@*/node_modules/@resvg/resvg-js-linux-x64-musl/**/*',
     ],
   },
   typedRoutes: false,
