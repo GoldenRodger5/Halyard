@@ -146,6 +146,26 @@ d('the calibration batch is not blocked by calibration', () => {
     expect(ctx.logs.some((l) => l.includes('wizard incomplete'))).toBe(false);
   });
 
+  it('lets an autonomous run create review-only calibration drafts before the review target is met', async () => {
+    // V3 cannot earn the remaining review milestones if the editorial planner
+    // may decide but its targeted generator is blocked by the milestone it is
+    // supposed to help satisfy. Public publishing is a separate kill switch;
+    // this only allows draft generation to proceed.
+    const ctx = context();
+    await generateHandler(
+      job({
+        productId: 'recipefix',
+        autonomous: true,
+        preferredSignalId: crypto.randomUUID(),
+        strategyDecisionId: crypto.randomUUID(),
+        onlyPlatform: 'instagram',
+        limit: 1,
+      }),
+      ctx,
+    );
+    expect(ctx.logs.some((l) => l.includes('wizard incomplete'))).toBe(false);
+  });
+
   it('still requires a voice, which a calibration run genuinely needs', async () => {
     await pool.query('update onboarding_state set step_voice_done = false where product_id = $1', [
       'recipefix',
