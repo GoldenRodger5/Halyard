@@ -86,12 +86,12 @@ jobs:
 
       - name: Create Supabase roles in plain Postgres
         run: |
-          psql "$DATABASE_URL" -Atqc "select 1 from pg_roles where rolname='anon'" | grep -qx 1 \
-            || psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "create role anon nologin"
-          psql "$DATABASE_URL" -Atqc "select 1 from pg_roles where rolname='authenticated'" | grep -qx 1 \
-            || psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "create role authenticated nologin"
-          psql "$DATABASE_URL" -Atqc "select 1 from pg_roles where rolname='service_role'" | grep -qx 1 \
-            || psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "create role service_role nologin"
+          psql "$TEST_DATABASE_URL" -Atqc "select 1 from pg_roles where rolname='anon'" | grep -qx 1 \
+            || psql "$TEST_DATABASE_URL" -v ON_ERROR_STOP=1 -c "create role anon nologin"
+          psql "$TEST_DATABASE_URL" -Atqc "select 1 from pg_roles where rolname='authenticated'" | grep -qx 1 \
+            || psql "$TEST_DATABASE_URL" -v ON_ERROR_STOP=1 -c "create role authenticated nologin"
+          psql "$TEST_DATABASE_URL" -Atqc "select 1 from pg_roles where rolname='service_role'" | grep -qx 1 \
+            || psql "$TEST_DATABASE_URL" -v ON_ERROR_STOP=1 -c "create role service_role nologin"
 
       - name: Apply migrations to a real Postgres
         run: pnpm db:reset -- --fresh --seed
