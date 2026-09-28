@@ -66,8 +66,6 @@ async function syncBrainManagedWatchTerms(
     8,
   );
 
-  if (terms.length === 0) return 0;
-
   const active = terms.map((term) => term.term);
   await ctx.pool.query(
     `update watch_terms
@@ -86,6 +84,8 @@ async function syncBrainManagedWatchTerms(
        values ($1,$2,'{reddit,pinterest}'::text[],true,3,'product_brain',$3::uuid[])
        on conflict (product_id, term) do update
          set enabled = true,
+             sources = excluded.sources,
+             min_occurrences = excluded.min_occurrences,
              source_fact_ids = excluded.source_fact_ids
        where watch_terms.managed_by = 'product_brain'`,
       [productId, term.term, term.factIds],
@@ -191,6 +191,14 @@ export async function collectWatchTermsHandler(job: Job, ctx: HandlerContext): P
     : null;
 
   const managedTerms = await syncBrainManagedWatchTerms(ctx, productId);
+
+  // A Product Brain rebuild uses an explicit empty source set as a sync-only
+  // handoff. Refresh Halyard-owned discovery rows immediately without turning
+  // a Brain update into an unsolicited external-network sweep.
+  if (onlySources && onlySources.size === 0) {
+    ctx.log('brain-managed watch terms synced', { productId, managedTerms });
+    return;
+  }
 
   const { rows: terms } = await ctx.pool.query<TermRow>(
     `select id, product_id, term, sources, min_occurrences

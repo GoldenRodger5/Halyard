@@ -2661,3 +2661,40 @@ visible in five frames:
 
 Neither needed a person to spot: the frame critic asks about the first and the
 text critic asks about the second. Both now run.
+
+## 2026-09-28 — autonomous-social current-main hardening checkpoint
+
+Re-audited GitHub `main` after V3 and PR #25 rather than continuing from the old
+feature branch. Current `main` at audit time is `de7bc4e`; the only commits after
+the PR #25 merge are MomentCircuit overlay runtime dependency changes, so the
+shared autonomy/quality paths were not overwritten. GitHub CI on that exact
+commit is green.
+
+The original local Halyard worktree remains intentionally untouched because it
+contains older V2 calibration edits and generated media. Autonomous hardening is
+being done from a separate clean worktree/branch based on current `origin/main`.
+
+One real freshness gap was found and repaired before live calibration:
+
+- a Product Brain rebuild now queues an immediate **sync-only**
+  `collect_watch_terms` job;
+- the sync-only handoff performs no Reddit/Pinterest/RSS request;
+- if the rebuilt Brain yields zero valid discovery topics, stale
+  `managed_by='product_brain'` terms are disabled instead of surviving until a
+  later unrelated change;
+- operator-created terms remain untouched;
+- re-derived managed rows refresh their source and minimum-occurrence policy.
+
+Focused current-main validation for this slice first passed **40/40 tests against
+real Postgres**. The complete release verifier then passed fresh migrations,
+generated DB types, all package typechecks, lint with **0 errors**, **312 test
+files / 4,078 tests**, a real Remotion render, the production Next build, and
+browser E2E with **123 passed / 6 explicitly opt-in visual-baseline tests
+skipped**. `git diff --check` is clean. Spend for this hardening slice is **$0**.
+The standing calibration ledger therefore remains **$4.682611 / $15.00**, with
+approximately **$10.317389** available only for tests that buy genuinely new
+information.
+
+Public posting remains outside this phase. No executable `auto_approve` job was
+added, the dormant `evaluateAutonomousApproval` helper still has no caller, and
+the autonomous editorial controller still has no `publish` enqueue path.

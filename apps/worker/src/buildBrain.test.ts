@@ -37,6 +37,7 @@ afterAll(async () => {
 
 beforeEach(async () => {
   if (!available) return;
+  enqueued.length = 0;
   await pool.query('delete from product_facts');
   await pool.query('delete from product_evidence');
   await pool.query('delete from agent_runs');
@@ -268,6 +269,29 @@ d('building the brain', () => {
     expect(rows[0]!.n_evidence).toBe(2);
     // A verified fact carries a verification time; an unverified one must not.
     expect(rows[0]!.last_verified_at).not.toBeNull();
+  });
+
+  it('queues an immediate sync-only discovery refresh after rebuilding the Brain', async () => {
+    await seedEvidence('web_page', 'https://x.test/a', 'RecipeFix helps cooks adapt recipes.');
+
+    await buildBrainHandler(job(), context(), {
+      llm: scriptedLlm([
+        JSON.stringify({
+          facts: [
+            {
+              category: 'content_pillars',
+              key: 'recipe_adaptation_explainers',
+              value: 'Recipe adaptation explainers',
+            },
+          ],
+        }),
+      ]),
+    });
+
+    expect(enqueued).toContainEqual({
+      kind: 'collect_watch_terms',
+      payload: { productId: 'recipefix', onlySources: [] },
+    });
   });
 
   it('records a contradiction without resolving it', async () => {
