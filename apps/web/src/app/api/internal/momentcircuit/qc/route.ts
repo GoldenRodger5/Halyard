@@ -24,10 +24,11 @@ type Defect = {
 
 type RepairPlan = {
   dominant_problem?: string;
-  action?: 'NONE' | 'TRIM_START' | 'TRIM_END' | 'REPLACE_HOOK' | 'REMOVE_HOOK' | 'RERENDER_CAPTIONS' | 'REPLACE_MOMENT';
+  action?: 'NONE' | 'TRIM_START' | 'TRIM_END' | 'REPLACE_HOOK' | 'REMOVE_HOOK' | 'RERENDER_CAPTIONS' | 'REFRAME' | 'REFRAME_AND_HOOK' | 'REPLACE_MOMENT';
   trim_start_seconds?: number;
   trim_end_seconds?: number;
   new_hook_text?: string | null;
+  new_focus_x?: number | null;
 };
 
 type AiReply = {
@@ -244,9 +245,10 @@ Return JSON only with this exact shape:
  "artifact_scan":{"pass":true,"timestamp_tokens_visible":false,"ass_ssa_tokens_visible":false,"json_serialization_visible":false,"cue_numbers_visible":false},
  "visible_text":[{"atSeconds":0.5,"text":["..."]}],
  "defects":[{"class":"caption_legibility","severity":"critical|major|minor","atSeconds":[0.5],"evidence":"specific observable problem","repairable":true}],
- "repair_plan":{"dominant_problem":"...","action":"NONE|TRIM_START|TRIM_END|REPLACE_HOOK|REMOVE_HOOK|RERENDER_CAPTIONS|REPLACE_MOMENT","trim_start_seconds":0,"trim_end_seconds":0,"new_hook_text":null},
+ "repair_plan":{"dominant_problem":"...","action":"NONE|TRIM_START|TRIM_END|REPLACE_HOOK|REMOVE_HOOK|RERENDER_CAPTIONS|REFRAME|REFRAME_AND_HOOK|REPLACE_MOMENT","trim_start_seconds":0,"trim_end_seconds":0,"new_hook_text":null,"new_focus_x":null},
  "summary":"one concise sentence"
 }
+When crop/context is the dominant repairable defect, use REFRAME and return new_focus_x between 0.08 and 0.92: smaller shifts the portrait crop left in the source, larger shifts it right. When both crop and hook safe-zone/text are defective, use REFRAME_AND_HOOK with both new_focus_x and a shorter hook.
 PASS only when there is no material defect. A minor stylistic preference may remain a minor defect, but any major/critical defect means FAIL.`;
 
   const intro = `Platform: ${args.platform}
@@ -305,10 +307,19 @@ function applyRepair(payload: Record<string,unknown>, plan: RepairPlan) {
     seg.hook_text = null;
     seg.hook_duration = 0;
   } else if (action === 'RERENDER_CAPTIONS') {
-    // The V4 renderer already renders only cue.text; rerendering is safe and
-    // is useful if a transient/cached legacy artifact somehow reached a frame.
     seg.caption_mode = 'PHRASE_CUES_ONLY';
     seg.require_word_captions = true;
+  } else if (action === 'REFRAME' || action === 'REFRAME_AND_HOOK') {
+    const focus = Number(plan.new_focus_x);
+    if (!Number.isFinite(focus) || focus < 0.08 || focus > 0.92) return null;
+    seg.focus_x = focus;
+    seg.crop_mode = 'speaker';
+    if (action === 'REFRAME_AND_HOOK' && plan.new_hook_text) {
+      const hook=String(plan.new_hook_text).trim();
+      if (!hook || hook.length > 56) return null;
+      seg.hook_text=hook;
+      seg.hook_duration=Math.min(2.5,Number(seg.hook_duration ?? 2));
+    }
   } else {
     return null;
   }
