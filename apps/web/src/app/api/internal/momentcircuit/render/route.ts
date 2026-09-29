@@ -47,6 +47,18 @@ class SourceTooLargeError extends Error {
 type Family = 'native_people' | 'gameplay_focus' | 'cinematic_focus';
 type DisclosureMode = 'none' | 'opening' | 'persistent';
 
+interface CaptionWord {
+  start: number;
+  end: number;
+  text: string;
+}
+
+interface CaptionCue {
+  start: number;
+  end: number;
+  text: string;
+}
+
 interface Segment {
   family?: Family;
   start?: number;
@@ -55,11 +67,14 @@ interface Segment {
   crop_mode?: 'speaker' | 'two_shot' | 'action' | 'center';
   hook_line1?: string;
   hook_line2?: string;
+  hook_text?: string;
   hook_duration?: number;
   required_text?: string;
   required_duration?: number;
   disclosure?: string;
   disclosure_mode?: DisclosureMode;
+  caption_words?: CaptionWord[];
+  require_word_captions?: boolean;
 }
 interface Variant { id: string; filename?: string; segments: Segment[]; }
 interface RenderPayload {
@@ -229,8 +244,78 @@ async function prepareSource(
     return { input: remote, mode: 'remote_seek', bytes: error.declaredBytes };
   }
 }
-async function overlay(file: string, seg: Segment, kind: 'hook'|'required'|'persistent') {
-  const png = await renderMomentCircuitOverlay(seg, kind);
+function artifactText(value: string) {
+  return /(Dialogue:|Style:|Script Info|Format:|-->|,Cap,,|(?:^|\s)\d{1,2}:\d{2}:\d{2}[\.,]\d+)/i.test(value);
+}
+
+function cleanCaptionWord(raw: CaptionWord, duration: number): CaptionWord {
+  const start = Number(raw.start);
+  const end = Number(raw.end);
+  const text = String(raw.text ?? '').trim().replace(/\s+/g, ' ');
+  if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || end <= start || end > duration + 0.15) {
+    throw new Error('CAPTION_TIME_INVALID');
+  }
+  if (!text) throw new Error('CAPTION_TEXT_EMPTY');
+  if (artifactText(text)) throw new Error('RAW_SUBTITLE_ARTIFACT_TOKEN');
+  return { start, end, text };
+}
+
+function captionCues(seg: Segment): CaptionCue[] {
+  const duration = Number(seg.duration);
+  const raw = Array.isArray(seg.caption_words)
+    ? seg.caption_words.map((x) => cleanCaptionWord(x, duration)).sort((a,b)=>a.start-b.start)
+    : [];
+
+  if (seg.require_word_captions && raw.length === 0) throw new Error('CAPTIONS_REQUIRED');
+  if (raw.length === 0) return [];
+
+  const wordLike = raw.filter((x) => x.text.split(/\s+/).length <= 2).length / raw.length >= 0.7;
+  if (!wordLike) {
+    return raw.map((x) => ({ start: x.start, end: x.end, text: x.text.slice(0, 90) }));
+  }
+
+  const out: CaptionCue[] = [];
+  let words: string[] = [];
+  let start = raw[0]!.start;
+  let end = raw[0]!.end;
+  let previousEnd = raw[0]!.start;
+
+  const flush = () => {
+    if (!words.length) return;
+    out.push({ start, end, text: words.join(' ').slice(0, 90) });
+    words = [];
+  };
+
+  for (const item of raw) {
+    const nextWords = [...words, item.text];
+    const nextText = nextWords.join(' ');
+    const gap = item.start - previousEnd;
+    const span = item.end - start;
+    const previousEndedSentence = words.length > 0 && /[.!?]$/.test(words[words.length - 1]!);
+    const shouldBreak = words.length > 0 && (
+      nextWords.length > 6 ||
+      nextText.length > 42 ||
+      span > 1.9 ||
+      gap > 0.42 ||
+      previousEndedSentence
+    );
+    if (shouldBreak) {
+      flush();
+      start = item.start;
+    }
+    words.push(item.text);
+    end = item.end;
+    previousEnd = item.end;
+  }
+  flush();
+  return out;
+}
+
+async function overlay(file: string, seg: Segment, kind: 'hook'|'required'|'persistent'|'caption') {
+  const safeSeg = kind === 'hook'
+    ? { ...seg, hook_line1: seg.hook_line1 ?? seg.hook_text }
+    : seg;
+  const png = await renderMomentCircuitOverlay(safeSeg, kind);
   await fsp.writeFile(file, png);
 }
 function base(family: Family, focus: number, cropMode: Segment['crop_mode'] = 'speaker') {
@@ -255,7 +340,14 @@ async function segment(source: string, output: string, seg: Segment, work: strin
   const focus = Math.max(0, Math.min(1, seg.focus_x ?? .5));
   const cropMode = seg.crop_mode ?? (family === 'native_people' ? 'speaker' : 'action');
   const hook = path.join(work,`hook-${i}.png`), req = path.join(work,`req-${i}.png`), disc = path.join(work,`disc-${i}.png`);
+  const cues = captionCues(seg);
+  const captionFiles: string[] = [];
   await overlay(hook,seg,'hook'); await overlay(req,seg,'required'); await overlay(disc,seg,'persistent');
+  for (let ci=0; ci<cues.length; ci++) {
+    const file = path.join(work,`caption-${i}-${ci}.png`);
+    await overlay(file,{...seg,caption_text:cues[ci]!.text},'caption');
+    captionFiles.push(file);
+  }
   const args = ['-y'];
   if ((seg.start ?? 0) > 0) args.push('-ss',String(seg.start));
   args.push('-t',String(duration));
@@ -269,9 +361,10 @@ async function segment(source: string, output: string, seg: Segment, work: strin
     );
   }
   args.push('-i',source,'-loop','1','-i',hook,'-loop','1','-i',req,'-loop','1','-i',disc);
+  for (const file of captionFiles) args.push('-loop','1','-i',file);
   let filter = base(family,focus,cropMode), cur='[v0]';
-  if (seg.hook_line1 || seg.hook_line2 || (seg.disclosure && seg.disclosure_mode==='opening')) {
-    const hd=Math.max(.6,Math.min(1.6,seg.hook_duration ?? 1.15));
+  if (seg.hook_line1 || seg.hook_line2 || seg.hook_text || (seg.disclosure && seg.disclosure_mode==='opening')) {
+    const hd=Math.max(.6,Math.min(3.5,seg.hook_duration ?? 1.15));
     filter += `;${cur}[1:v]overlay=0:0:enable='between(t,0,${hd})'[v1]`; cur='[v1]';
   }
   if (seg.required_text) {
@@ -280,6 +373,13 @@ async function segment(source: string, output: string, seg: Segment, work: strin
   }
   if (seg.disclosure && seg.disclosure_mode==='persistent') {
     filter += `;${cur}[3:v]overlay=0:0[v3]`; cur='[v3]';
+  }
+  for (let ci=0; ci<cues.length; ci++) {
+    const cue=cues[ci]!;
+    const inputIndex=4+ci;
+    const next=`[vc${ci}]`;
+    filter += `;${cur}[${inputIndex}:v]overlay=0:0:enable='between(t,${cue.start.toFixed(3)},${cue.end.toFixed(3)})'${next}`;
+    cur=next;
   }
   args.push('-filter_complex',filter,'-map',cur,'-map','0:a?','-c:v','libx264','-crf','18','-preset','veryfast','-c:a','aac','-b:a','192k','-movflags','+faststart','-shortest',output);
   await run(args);
@@ -314,10 +414,14 @@ function normalize(p: RenderPayload) {
   if (variants.some((v)=>!v.segments.length)) throw new Error('SEGMENTS_REQUIRED');
   for (const variant of variants) {
     for (const seg of variant.segments) {
-      if ((seg.hook_line1?.length ?? 0) > 42 || (seg.hook_line2?.length ?? 0) > 42) {
+      if ((seg.hook_line1?.length ?? 0) > 42 || (seg.hook_line2?.length ?? 0) > 42 || (seg.hook_text?.length ?? 0) > 56) {
         throw new Error('HOOK_LINE_TOO_LONG');
       }
-      if ((seg.hook_duration ?? 1) > 1.3) throw new Error('HOOK_DURATION_TOO_LONG');
+      if (artifactText(seg.hook_line1 ?? '') || artifactText(seg.hook_line2 ?? '') || artifactText(seg.hook_text ?? '')) {
+        throw new Error('RAW_SUBTITLE_ARTIFACT_TOKEN');
+      }
+      if ((seg.hook_duration ?? 1) > 3.5) throw new Error('HOOK_DURATION_TOO_LONG');
+      captionCues(seg);
       if ((seg.start ?? 0) < 0) throw new Error('BAD_SEGMENT_START');
       if (seg.crop_mode === 'speaker' && (seg.focus_x ?? .5) < .05) throw new Error('SPEAKER_CROP_TOO_FAR_LEFT');
       if (seg.crop_mode === 'speaker' && (seg.focus_x ?? .5) > .95) throw new Error('SPEAKER_CROP_TOO_FAR_RIGHT');
@@ -354,7 +458,7 @@ async function execute(id: string) {
       const actualDuration=await probeDuration(final).catch(()=>duration);
       const safeDuration=Math.max(.1,Math.min(duration,Math.max(.1,actualDuration-.08)));
       const contact=await sheet(final,safeDuration,work,vid);
-      const tech={width:1080,height:1920,codec:'h264',duration_seconds:actualDuration,size_bytes:stat.size,source_bytes:preparedSource.bytes,source_mode:preparedSource.mode,template_system:'template-system-v3-2026-09-27'};
+      const tech={width:1080,height:1920,codec:'h264',duration_seconds:actualDuration,size_bytes:stat.size,source_bytes:preparedSource.bytes,source_mode:preparedSource.mode,template_system:'template-system-v3-2026-09-27',caption_renderer:'png_cue_layers_v2',subtitle_serialization_used:false};
       const techFile=path.join(work,`${vid}-technical.json`); await fsp.writeFile(techFile,JSON.stringify(tech,null,2));
       const basePath=`${PREFIX}${safe(id)}/${crypto.randomUUID()}`;
       variants.push({
