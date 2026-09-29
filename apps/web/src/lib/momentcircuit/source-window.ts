@@ -9,3 +9,20 @@ export function candidateSourceWindow(startValue:unknown,endValue:unknown):Candi
   if(duration<=0||duration>180) throw new Error('CANDIDATE_SOURCE_DURATION_INVALID');
   return {start:Number(start.toFixed(3)),duration:Number(duration.toFixed(3)),end:Number(end.toFixed(3))};
 }
+
+export function prepareSourceWindow(args:{
+  candidateStart:unknown;
+  candidateEnd:unknown;
+  existingSegment?:Record<string,unknown>;
+  alreadyPrepared?:boolean;
+}):CandidateWindow{
+  const candidate=candidateSourceWindow(args.candidateStart,args.candidateEnd);
+  if(!args.alreadyPrepared) return candidate;
+  const seg=args.existingSegment??{};
+  const start=Number(seg.start);
+  const duration=Number(seg.duration);
+  if(!Number.isFinite(start)||!Number.isFinite(duration)||duration<=0) return candidate;
+  const end=start+duration;
+  if(start<candidate.start-0.01||end>candidate.end+0.01) return candidate;
+  return {start:Number(start.toFixed(3)),duration:Number(duration.toFixed(3)),end:Number(end.toFixed(3))};
+}
