@@ -74,6 +74,9 @@ interface Segment {
   disclosure?: string;
   disclosure_mode?: DisclosureMode;
   caption_words?: CaptionWord[];
+  caption_cues?: CaptionCue[];
+  caption_mode?: 'PHRASE_CUES_ONLY';
+  caption_text?: string;
   require_word_captions?: boolean;
 }
 interface Variant { id: string; filename?: string; segments: Segment[]; }
@@ -260,12 +263,38 @@ function cleanCaptionWord(raw: CaptionWord, duration: number): CaptionWord {
   return { start, end, text };
 }
 
+function cleanCaptionCue(raw: CaptionCue, duration: number): CaptionCue {
+  const start = Number(raw.start);
+  const end = Number(raw.end);
+  const text = String(raw.text ?? '').trim().replace(/\s+/g, ' ');
+  if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || end <= start || end > duration + 0.15) {
+    throw new Error('CAPTION_TIME_INVALID');
+  }
+  if (!text) throw new Error('CAPTION_TEXT_EMPTY');
+  if (artifactText(text)) throw new Error('RAW_SUBTITLE_ARTIFACT_TOKEN');
+  if (/("start"|"end"|\{.*\}|\[.*\])/i.test(text)) throw new Error('CAPTION_SERIALIZATION_ARTIFACT');
+  return { start, end, text: text.slice(0, 90) };
+}
+
 function captionCues(seg: Segment): CaptionCue[] {
   const duration = Number(seg.duration);
+
+  if (Array.isArray(seg.caption_cues)) {
+    const cues = seg.caption_cues
+      .map((x) => cleanCaptionCue(x, duration))
+      .sort((a, b) => a.start - b.start);
+    if (seg.caption_mode === 'PHRASE_CUES_ONLY' && cues.length === 0) throw new Error('CAPTIONS_REQUIRED');
+    if (seg.require_word_captions && cues.length === 0) throw new Error('CAPTIONS_REQUIRED');
+    return cues;
+  }
+
   const raw = Array.isArray(seg.caption_words)
     ? seg.caption_words.map((x) => cleanCaptionWord(x, duration)).sort((a,b)=>a.start-b.start)
     : [];
 
+  if (seg.caption_mode === 'PHRASE_CUES_ONLY' && raw.length > 0) {
+    throw new Error('LEGACY_CAPTION_WORDS_FORBIDDEN_IN_V4');
+  }
   if (seg.require_word_captions && raw.length === 0) throw new Error('CAPTIONS_REQUIRED');
   if (raw.length === 0) return [];
 
