@@ -12,6 +12,22 @@ describe('MomentCircuit final audio/caption alignment',()=>{
     );
     expect(r.pass).toBe(true); expect(r.overall_coverage).toBeGreaterThan(.9); expect(r.payoff_coverage).toBe(1);
   });
+  it('stays aligned when ASR omits two consecutive low-information words',()=>{
+    const r=assessCaptionAlignment(
+      [
+        "Let's do couples therapy with me, you, and my couples therapist.",
+        'I love it. I love the idea.',
+        'I think it would be great.',
+        'I have so much to tell her.',
+        'Oh, never mind. This is a horrible idea.',
+      ],
+      "Let's do couples therapy with me, you, and my couples therapist. I love it. I love the idea. I think be great. I have so much to tell her. Oh, never mind. This is a horrible idea."
+    );
+    expect(r.pass).toBe(true);
+    expect(r.overall_coverage).toBeGreaterThan(.9);
+    expect(r.ordered_coverage).toBeGreaterThan(.9);
+    expect(r.payoff_coverage).toBe(1);
+  });
   it('fails when the payoff audio is missing even if setup matches',()=>{
     const r=assessCaptionAlignment(
       ['Have you ever had purple Doritos?',"He said, yeah. I go, that's Thai food.",'Georgia looked at me.',"She goes, that was genius."],
