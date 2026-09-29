@@ -471,8 +471,12 @@ async function execute(id: string) {
     const {data}=await client.from('momentcircuit_render_jobs').select('id,status,result,error').eq('id',id).maybeSingle();
     return {duplicate:true,job:data};
   }
-  const payload=normalize(claimed.payload as RenderPayload), work=await fsp.mkdtemp(path.join(os.tmpdir(),'mc-vercel-')), source=path.join(work,'source.mp4');
+
+  let work: string | null = null;
   try {
+    const payload=normalize(claimed.payload as RenderPayload);
+    work=await fsp.mkdtemp(path.join(os.tmpdir(),'mc-vercel-'));
+    const source=path.join(work,'source.mp4');
     const preferRemoteSeek = deepestStart(payload) >= DEEP_SEEK_SECONDS;
     const preparedSource=await prepareSource(payload.source_url,source,preferRemoteSeek), variants=[];
     const sourceInput=preparedSource.input;
@@ -506,7 +510,9 @@ async function execute(id: string) {
     const message=String(error instanceof Error?error.message:error).slice(0,4000);
     await client.from('momentcircuit_render_jobs').update({status:'failed',error:message,completed_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('id',id);
     throw error;
-  } finally { await fsp.rm(work,{recursive:true,force:true}).catch(()=>undefined); }
+  } finally {
+    if (work) await fsp.rm(work,{recursive:true,force:true}).catch(()=>undefined);
+  }
 }
 export async function POST(request: NextRequest) {
   try {
