@@ -5,6 +5,7 @@
  * enough to run on every co-pilot turn (v2 H.5).
  */
 import { readFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Resvg } from '@resvg/resvg-js';
@@ -20,10 +21,14 @@ export * from './elements.js';
 export * from './artifactProps.js';
 export * from './profileArt.js';
 
-const FONT_DIR = path.resolve(
+const PACKAGE_FONT_DIR = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   '../../assets/fonts',
 );
+const WEB_RUNTIME_FONT_DIR = path.resolve(process.cwd(), 'bin/fonts');
+const FONT_DIR = existsSync(path.join(WEB_RUNTIME_FONT_DIR, 'Inter-Regular.woff'))
+  ? WEB_RUNTIME_FONT_DIR
+  : PACKAGE_FONT_DIR;
 
 let fontCache: SatoriOptions['fonts'] | null = null;
 
