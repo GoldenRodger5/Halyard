@@ -129,6 +129,9 @@ function classifyFailureScope(verdict: {
   if (/(disclosure|paid promotion|sponsor tag|compliance|forbidden topic|brief violation)/i.test(corpus)) {
     return 'COMPLIANCE';
   }
+  if (/(captions?_missing|caption_missing|missing captions?|no spoken subtitles|no visible subtitles|subtitle track missing|expected captions?.*missing)/i.test(corpus)) {
+    return 'GENERATION_SYSTEMIC';
+  }
   if (/(template_ai_slop|template_crop_artifact|template padding|border template|white strip|canvas leak|non-native canvas|systemic crop)/i.test(corpus)) {
     return 'GENERATION_SYSTEMIC';
   }
