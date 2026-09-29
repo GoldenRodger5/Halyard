@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
-import { applyRepair, sampleTimes, type RepairPlan } from '@/lib/momentcircuit/quality-repair';
+import { applyRepair, sampleTimesWithCues, type QcCaptionCue, type RepairPlan } from '@/lib/momentcircuit/quality-repair';
 import { assessCaptionAlignment } from '@/lib/momentcircuit/av-qc';
 import { audiovisualLayer, coldViewerLayer, exactFinalPass, technicalLayer } from '@/lib/momentcircuit/quality-gates';
 
@@ -124,7 +124,7 @@ async function transcribeFinalAudio(audio:string){
   return {model:'gpt-transcribe',text};
 }
 
-function expectedCaptionText(payload: unknown):string[]{
+function expectedCaptionCues(payload: unknown):QcCaptionCue[]{
   const root = payload && typeof payload === 'object' ? payload as Record<string,unknown> : {};
   const renderSegment = root.render_segment && typeof root.render_segment === 'object'
     ? root.render_segment as Record<string,unknown> : {};
@@ -133,15 +133,18 @@ function expectedCaptionText(payload: unknown):string[]{
   const direct=renderSegment.caption_cues;
   const planned=editPlan.caption_cues;
   const raw: unknown[] = Array.isArray(planned)?planned:Array.isArray(direct)?direct:[];
-  return raw.map((x)=>{
-    if(!x || typeof x!=='object') return '';
-    return String((x as Record<string,unknown>).text??'').trim();
-  }).filter(Boolean);
+  return raw.flatMap((x)=>{
+    if(!x || typeof x!=='object') return [];
+    const row=x as Record<string,unknown>;
+    const start=Number(row.start),end=Number(row.end),text=String(row.text??'').trim();
+    if(!Number.isFinite(start)||!Number.isFinite(end)||end<=start||!text)return [];
+    return [{start,end,text}];
+  });
 }
 
-async function extractFrames(video: string, duration: number, work: string) {
+async function extractFrames(video: string, duration: number, work: string, captionCues:QcCaptionCue[]) {
   const frames: Array<{ atSeconds: number; bytes: Buffer }> = [];
-  for (const [i, atSeconds] of sampleTimes(duration).entries()) {
+  for (const [i, atSeconds] of sampleTimesWithCues(duration,captionCues).entries()) {
     const file = path.join(work, `frame-${i}.jpg`);
     await run(['-y','-ss',String(atSeconds),'-i',video,'-frames:v','1','-vf','scale=720:-2','-q:v','3',file]);
     frames.push({ atSeconds, bytes: await fsp.readFile(file) });
@@ -365,8 +368,9 @@ async function processRender(renderId: string) {
   const video = path.join(work,'final.mp4');
   try {
     await download(mediaUrl,video);
-    const frames = await extractFrames(video,duration,work);
-    const expectedCaptions = expectedCaptionText(wo.payload);
+    const expectedCaptionCues=expectedCaptionCues(wo.payload);
+    const frames = await extractFrames(video,duration,work,expectedCaptionCues);
+    const expectedCaptions = expectedCaptionCues.map((cue)=>String(cue.text??'')).filter(Boolean);
     const audioFile=await extractFinalAudio(video,work);
     const finalTranscript=await transcribeFinalAudio(audioFile);
     const audioAlignment=assessCaptionAlignment(expectedCaptions,finalTranscript.text);
