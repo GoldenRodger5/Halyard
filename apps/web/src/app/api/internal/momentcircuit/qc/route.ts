@@ -7,6 +7,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { applyRepair, sampleTimes, type RepairPlan } from '@/lib/momentcircuit/quality-repair';
+import { assessCaptionAlignment } from '@/lib/momentcircuit/av-qc';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -93,6 +94,36 @@ async function download(url: string, dest: string) {
   if (!bytes.length) throw new Error('EMPTY_MEDIA');
   if (bytes.length > 250_000_000) throw new Error('QC_MEDIA_TOO_LARGE');
   await fsp.writeFile(dest, bytes);
+}
+
+async function extractFinalAudio(video:string,work:string){
+  const audio=path.join(work,'final-audio.mp3');
+  await run(['-y','-i',video,'-vn','-ac','1','-ar','16000','-c:a','libmp3lame','-b:a','64k',audio]);
+  const stat=await fsp.stat(audio);
+  if(stat.size<1000) throw new Error('AUDIO_QC_EMPTY_AUDIO');
+  return audio;
+}
+
+async function transcribeFinalAudio(audio:string){
+  const key=process.env.OPENAI_API_KEY?.trim();
+  if(!key) throw new Error('OPENAI_API_KEY_MISSING_FOR_AUDIO_QC');
+  const bytes=await fsp.readFile(audio);
+  const form=new FormData();
+  form.set('model','gpt-transcribe');
+  form.set('response_format','json');
+  form.set('file',new Blob([new Uint8Array(bytes)],{type:'audio/mpeg'}),'final-audio.mp3');
+  const response=await fetch('https://api.openai.com/v1/audio/transcriptions',{method:'POST',headers:{authorization:`Bearer ${key}`},body:form});
+  const body=await response.json() as {text?:string;error?:{message?:string}};
+  if(!response.ok) throw new Error(`AUDIO_QC_TRANSCRIBE_${response.status}:${body.error?.message??'unknown'}`);
+  const text=String(body.text??'').trim();
+  return {model:'gpt-transcribe',text};
+}
+
+function expectedCaptionText(payload:any):string[]{
+  const direct=payload?.render_segment?.caption_cues;
+  const planned=payload?.edit_plan?.caption_cues;
+  const raw=Array.isArray(planned)?planned:Array.isArray(direct)?direct:[];
+  return raw.map((x:any)=>String(x?.text??'').trim()).filter(Boolean);
 }
 
 async function extractFrames(video: string, duration: number, work: string) {
@@ -314,13 +345,13 @@ async function processRender(renderId: string) {
   try {
     await download(mediaUrl,video);
     const frames = await extractFrames(video,duration,work);
-    const rawCaptionCues = wo.payload?.render_segment?.caption_cues;
-    const expectedCaptions = Array.isArray(rawCaptionCues)
-      ? rawCaptionCues.map((x: unknown) => {
-          if (!x || typeof x !== 'object' || !('text' in x)) return '';
-          return String((x as {text?: unknown}).text ?? '');
-        }).filter(Boolean)
-      : [];
+    const expectedCaptions = expectedCaptionText(wo.payload);
+    const audioFile=await extractFinalAudio(video,work);
+    const finalTranscript=await transcribeFinalAudio(audioFile);
+    const audioAlignment=assessCaptionAlignment(expectedCaptions,finalTranscript.text);
+    if(expectedCaptions.length>0 && !audioAlignment.pass){
+      throw new Error(`AUDIO_QC_CAPTION_MISMATCH:${JSON.stringify(audioAlignment)}`);
+    }
 
     const verdict = await critique({
       frames,
@@ -337,6 +368,7 @@ async function processRender(renderId: string) {
       ...verdict.artifact,
       failure_scope: failureScope,
       renderer_release: process.env.VERCEL_GIT_COMMIT_SHA ?? process.env.HALYARD_RELEASE ?? null,
+      audio_qc:{model:finalTranscript.model,alignment:audioAlignment,transcript_sha256:crypto.createHash('sha256').update(finalTranscript.text).digest('hex')},
     };
     const {data:qcId,error:qce} = await client.rpc('momentcircuit_record_ai_qc_report',{
       p_run_id:wo.run_id,
@@ -454,15 +486,15 @@ async function processRender(renderId: string) {
       p_run_id:wo.run_id,p_generation:wo.generation,p_work_order_id:wo.id,p_render_job_id:rj.id,
       p_variant:wo.platform,p_revision:1,p_status:'PASS_FIRST_RENDER',p_failure_class:null,
       p_critique:{ai_qc_report_id:qcId,summary:verdict.summary,defects:verdict.defects},
-      p_evidence:{exact_final:true,analysis_id:analysisId,artifact_scan:verdict.artifact,frame_count:frames.length,media_url:mediaUrl},
+      p_evidence:{exact_final:true,analysis_id:analysisId,artifact_scan:artifactWithScope,frame_count:frames.length,media_url:mediaUrl,audio_qc:{model:finalTranscript.model,alignment:audioAlignment,transcript_sha256:crypto.createHash('sha256').update(finalTranscript.text).digest('hex')}},
     });
     if (ve) throw new Error(`VALIDATION_RECORD_FAILED: ${ve.message}`);
 
     const {error:ae} = await client.rpc('momentcircuit_record_quality_audit',{
       p_run_id:wo.run_id,p_generation:wo.generation,p_work_order_id:wo.id,p_render_job_id:rj.id,
       p_stage:'POST_RENDER',p_status:'PASS',
-      p_metrics:{ai_exact_final:true,visual_story_match:verdict.visualStoryMatch,caption_visual_quality:verdict.captionVisualQuality,professional_quality:verdict.professionalQuality,artifact_scan:verdict.artifact,frame_count:frames.length,forensic_frame_review_pass:verdict.artifact.pass && verdict.textBoundsPass,raw_caption_artifact_free:verdict.artifact.pass,timestamp_artifact_free:verdict.artifact.pass,text_bounds_pass:verdict.textBoundsPass},
-      p_treatment:{critic:'OPENAI_EXACT_FINAL_V4',caption_mode:wo.payload?.render_segment?.caption_mode ?? null},
+      p_metrics:{ai_exact_final:true,visual_story_match:verdict.visualStoryMatch,caption_visual_quality:verdict.captionVisualQuality,professional_quality:verdict.professionalQuality,artifact_scan:artifactWithScope,frame_count:frames.length,forensic_frame_review_pass:verdict.artifact.pass && verdict.textBoundsPass,raw_caption_artifact_free:verdict.artifact.pass,timestamp_artifact_free:verdict.artifact.pass,text_bounds_pass:verdict.textBoundsPass,audio_present:true,audio_caption_alignment_pass:audioAlignment.pass,audio_caption_alignment:audioAlignment},
+      p_treatment:{critic:'OPENAI_EXACT_FINAL_VNEXT_AV',caption_mode:wo.payload?.edit_plan?.presentation_mode ?? wo.payload?.render_segment?.caption_mode ?? null,audio_transcriber:finalTranscript.model},
       p_reasons:[],
     });
     if (ae) throw new Error(`QUALITY_AUDIT_FAILED: ${ae.message}`);
@@ -479,7 +511,7 @@ async function processRender(renderId: string) {
       p_media_url:mediaUrl,
       p_packaging:{post_caption:wo.payload?.selected_packaging ?? '',youtube_title:wo.payload?.youtube_title ?? null,ai_qc_report_id:qcId},
       p_disclosure_route:disclosure,
-      p_dependencies:{ai_qc_v4:true,exact_final_reviewed:true,artifact_scan_pass:true,source_visual_story_match:true},
+      p_dependencies:{ai_qc_vnext:true,exact_final_reviewed:true,artifact_scan_pass:true,source_visual_story_match:true,audio_qc:true,audio_caption_alignment_pass:audioAlignment.pass},
       p_valid_until:new Date(Date.now()+12*60*60*1000).toISOString(),
     });
     if (pe) throw new Error(`READY_PROMOTION_FAILED: ${pe.message}`);
