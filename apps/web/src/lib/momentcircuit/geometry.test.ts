@@ -10,6 +10,7 @@ describe('MomentCircuit geometry',()=>{
   it('treats INTERVIEW as a true full-bleed active-speaker crop',()=>{
     expect(layoutNeedsContext('INTERVIEW')).toBe(false);
     const f=sourcePreservingFilter('INTERVIEW',.56);
+    expect(f).toContain('crop=iw:ih*0.88:0:ih*0.06');
     expect(f).toContain('crop=1080:1920');
     expect(f).toContain('0.5600');
     expect(f).not.toContain('gblur');
