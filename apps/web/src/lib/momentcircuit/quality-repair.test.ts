@@ -1,5 +1,5 @@
 import { describe,it,expect } from 'vitest';
-import { applyRepair,sampleTimes } from './quality-repair';
+import { applyRepair,sampleTimes,sampleTimesWithCues } from './quality-repair';
 type TestSegment = {start:number;duration:number;caption_cues:Array<{start:number;end:number;text:string}>;hook_line1?:string;hook_line2?:string;hook_text?:string;hook_duration?:number;focus_x?:number};
 const input = () => ({render_segment:{start:100,duration:12,require_word_captions:true,caption_cues:[{start:0,end:1,text:'first'},{start:1,end:4,text:'second'},{start:10,end:12,text:'last'}],hook_line1:'old headline',hook_line2:'old continuation',hook_text:'old fallback'}});
 describe('MomentCircuit bounded repair',()=>{
@@ -27,6 +27,37 @@ describe('MomentCircuit bounded repair',()=>{
 describe('Whole-timeline frame sampling',()=>{
   for(const d of [0.4,5,12,30,60,90,180]) it(`preserves opening and ending at ${d}s`,()=>{const t=sampleTimes(d);expect(t.length).toBeLessThanOrEqual(14);expect(t[0]).toBeLessThanOrEqual(0.05);expect(t.at(-1)).toBeGreaterThanOrEqual(d-0.151);expect(t.every(x=>x>=0&&x<d)).toBe(true);});
   it('rejects invalid durations',()=>{expect(()=>sampleTimes(0)).toThrow();expect(()=>sampleTimes(NaN)).toThrow();});
+});
+
+describe('Caption-aware exact-final frame sampling',()=>{
+  it('samples the midpoint of a late payoff cue instead of landing on both sides of it',()=>{
+    const cues=[
+      {start:0,end:2.589,text:'I know what could happen to you or me'},
+      {start:2.92,end:3.98,text:'or anyone else.'},
+      {start:4.939,end:6.14,text:"I've lost people,"},
+      {start:6.419,end:8.06,text:'people I loved more than anything.'},
+      {start:9.55,end:10.79,text:'This is my choice,'},
+      {start:10.989,end:11.39,text:'Mark.'},
+    ];
+    const times=sampleTimesWithCues(11.39,cues);
+    expect(times.length).toBeLessThanOrEqual(14);
+    expect(times.some((x)=>x>9.55&&x<10.79)).toBe(true);
+    expect(times.some((x)=>Math.abs(x-10.17)<.08)).toBe(true);
+    expect(times.at(-1)).toBeGreaterThanOrEqual(11.239);
+  });
+
+  it('keeps opening, ending and bounded cue coverage on caption-dense clips',()=>{
+    const cues=Array.from({length:20},(_,i)=>({start:i*.9,end:i*.9+.7,text:`cue ${i}`}));
+    const times=sampleTimesWithCues(18,cues);
+    expect(times.length).toBeLessThanOrEqual(14);
+    expect(times[0]).toBeLessThanOrEqual(.05);
+    expect(times.at(-1)).toBeGreaterThanOrEqual(17.849);
+    expect(times.some((x)=>x>14)).toBe(true);
+  });
+
+  it('rejects invalid frame budgets',()=>{
+    expect(()=>sampleTimesWithCues(10,[],5)).toThrow('QC_FRAME_BUDGET_INVALID');
+  });
 });
 
 describe('Upstream targeted reframe compatibility',()=>{
