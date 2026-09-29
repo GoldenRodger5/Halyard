@@ -1,9 +1,4 @@
 import type { NextConfig } from 'next';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-
 const config: NextConfig = {
   reactStrictMode: true,
   // Workspace packages ship TypeScript source rather than a build step, so Next
@@ -11,15 +6,9 @@ const config: NextConfig = {
   transpilePackages: ['@halyard/core', '@halyard/db', '@halyard/render', '@halyard/ui'],
   serverExternalPackages: ['pg', 'sharp', '@resvg/resvg-js'],
 
-  outputFileTracingRoot: REPO_ROOT,
   outputFileTracingIncludes: {
-    '/api/internal/momentcircuit/render': [
-      'apps/web/bin/ffmpeg',
-      'packages/render/assets/fonts/**/*',
-    ],
-    '/api/internal/momentcircuit/qc': [
-      'apps/web/bin/ffmpeg',
-    ],
+    '/api/internal/momentcircuit/render': ['./bin/**/*'],
+    '/api/internal/momentcircuit/qc': ['./bin/**/*'],
   },
   typedRoutes: false,
 
