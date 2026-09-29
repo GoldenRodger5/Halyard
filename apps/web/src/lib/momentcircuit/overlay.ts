@@ -1,4 +1,5 @@
 import { box, renderElementWithFonts, text as satoriText, type SatoriElement } from '@halyard/render/image';
+import { captionTopForAnchor, type CaptionAnchor } from './caption-layout';
 
 export type MomentCircuitOverlayKind = 'hook' | 'required' | 'persistent' | 'caption';
 
@@ -9,6 +10,7 @@ export interface MomentCircuitOverlaySegment {
   caption_text?: string;
   disclosure?: string;
   disclosure_mode?: 'none' | 'opening' | 'persistent';
+  caption_anchor?: CaptionAnchor;
 }
 
 const WIDTH = 1080;
@@ -133,11 +135,11 @@ function outlinedCaptionLine(content: string, top: number, size: number, dx=0, d
   );
 }
 
-function captionSubtitle(value: string): SatoriElement[] {
+function captionSubtitle(value: string, anchor: CaptionAnchor = 'LOWER_MIDDLE'): SatoriElement[] {
   const safe=portableText(value.trim());
   const lines=balancedNativeLines(safe,2,28);
   const size=lines.some((x)=>x.length>24)?50:58;
-  const startTop=lines.length===1?1320:1285;
+  const startTop=captionTopForAnchor(anchor,lines.length);
   const out:SatoriElement[]=[];
   const offsets=[[-4,0],[4,0],[0,-4],[0,4],[-3,-3],[3,-3],[-3,3],[3,3]] as const;
   for (const [index,line] of lines.entries()) {
@@ -214,7 +216,7 @@ export async function renderMomentCircuitOverlay(
   } else if (kind === 'persistent' && segment.disclosure) {
     children.push(disclosureBadge(segment.disclosure));
   } else if (kind === 'caption' && segment.caption_text) {
-    children.push(...captionSubtitle(segment.caption_text));
+    children.push(...captionSubtitle(segment.caption_text,segment.caption_anchor));
   }
 
   const root = box(
