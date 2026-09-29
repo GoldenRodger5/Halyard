@@ -10,15 +10,10 @@ export function candidateSourceWindow(startValue:unknown,endValue:unknown):Candi
   return {start:Number(start.toFixed(3)),duration:Number(duration.toFixed(3)),end:Number(end.toFixed(3))};
 }
 
-export function prepareSourceWindow(args:{
-  candidateStart:unknown;
-  candidateEnd:unknown;
-  existingSegment?:Record<string,unknown>;
-  alreadyPrepared?:boolean;
-}):CandidateWindow{
-  const candidate=candidateSourceWindow(args.candidateStart,args.candidateEnd);
-  if(!args.alreadyPrepared) return candidate;
-  const seg=args.existingSegment??{};
+export function prepareSourceWindow(candidateStart:unknown,candidateEnd:unknown,existingSegment:Record<string,unknown>|undefined,alreadyPrepared:boolean):CandidateWindow{
+  const candidate=candidateSourceWindow(candidateStart,candidateEnd);
+  if(!alreadyPrepared) return candidate;
+  const seg=existingSegment??{};
   const start=Number(seg.start);
   const duration=Number(seg.duration);
   if(!Number.isFinite(start)||!Number.isFinite(duration)||duration<=0) return candidate;
