@@ -166,6 +166,31 @@ export async function renderElement(
   };
 }
 
+export async function renderElementWithFonts(
+  element: SatoriElement,
+  options: RenderImageOptions,
+  fonts: SatoriOptions['fonts'],
+): Promise<RenderedImage> {
+  const startedAt = Date.now();
+  const canvas = options.size ?? CANVAS[options.aspectRatio] ?? CANVAS['1:1']!;
+  const svg = await satori(element as unknown as React.ReactNode, {
+    width: canvas.width,
+    height: canvas.height,
+    fonts,
+  });
+  const targetWidth =
+    options.quality === 'preview' && !options.size ? 480 : canvas.width;
+  const resvg = new Resvg(svg, { fitTo: { mode: 'width', value: targetWidth } });
+  const rendered = resvg.render();
+  return {
+    png: Buffer.from(rendered.asPng()),
+    svg,
+    width: rendered.width,
+    height: rendered.height,
+    durationMs: Date.now() - startedAt,
+  };
+}
+
 export interface RenderTemplateInput {
   templateId: TemplateId;
   props: Record<string, unknown>;
