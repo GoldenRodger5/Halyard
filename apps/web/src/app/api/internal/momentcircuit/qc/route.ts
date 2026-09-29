@@ -8,6 +8,7 @@ import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { applyRepair, sampleTimes, type RepairPlan } from '@/lib/momentcircuit/quality-repair';
 import { assessCaptionAlignment } from '@/lib/momentcircuit/av-qc';
+import { audiovisualLayer, coldViewerLayer, exactFinalPass, technicalLayer } from '@/lib/momentcircuit/quality-gates';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -30,6 +31,10 @@ type AiReply = {
   caption_visual_quality?: boolean;
   professional_quality?: boolean;
   text_bounds_pass?: boolean;
+  cold_viewer_clarity?: boolean;
+  first_second_hook?: boolean;
+  payoff_complete?: boolean;
+  ending_complete?: boolean;
   artifact_scan?: {
     pass?: boolean;
     timestamp_tokens_visible?: boolean;
@@ -215,6 +220,10 @@ function normalizeReply(raw: AiReply) {
     professionalQuality: raw.professional_quality === true,
     textBoundsPass: raw.text_bounds_pass === true,
     visibleText: visible,
+    coldViewerClarity: raw.cold_viewer_clarity === true,
+    firstSecondHook: raw.first_second_hook === true,
+    payoffComplete: raw.payoff_complete === true,
+    endingComplete: raw.ending_complete === true,
     repairPlan: raw.repair_plan ?? {},
     summary: String(raw.summary ?? ''),
   };
@@ -260,6 +269,10 @@ Return JSON only with this exact shape:
  "caption_visual_quality":true,
  "professional_quality":true,
  "text_bounds_pass":true,
+ "cold_viewer_clarity":true,
+ "first_second_hook":true,
+ "payoff_complete":true,
+ "ending_complete":true,
  "artifact_scan":{"pass":true,"timestamp_tokens_visible":false,"ass_ssa_tokens_visible":false,"json_serialization_visible":false,"cue_numbers_visible":false},
  "visible_text":[{"atSeconds":0.5,"text":["..."]}],
  "defects":[{"class":"caption_legibility","severity":"critical|major|minor","atSeconds":[0.5],"evidence":"specific observable problem","repairable":true}],
@@ -349,9 +362,6 @@ async function processRender(renderId: string) {
     const audioFile=await extractFinalAudio(video,work);
     const finalTranscript=await transcribeFinalAudio(audioFile);
     const audioAlignment=assessCaptionAlignment(expectedCaptions,finalTranscript.text);
-    if(expectedCaptions.length>0 && !audioAlignment.pass){
-      throw new Error(`AUDIO_QC_CAPTION_MISMATCH:${JSON.stringify(audioAlignment)}`);
-    }
 
     const verdict = await critique({
       frames,
@@ -362,6 +372,17 @@ async function processRender(renderId: string) {
       expectedCaptions,
     });
 
+    const qualityLayers={
+      technical:technicalLayer({technical_qc:variant?.technical_qc,duration,size:variant?.size_bytes,audio_present:true}),
+      audiovisual:audiovisualLayer({alignment_pass:audioAlignment.pass,captions_required:expectedCaptions.length>0,transcript_nonempty:Boolean(finalTranscript.text)}),
+      visual:{pass:verdict.pass,reason:verdict.pass?undefined:'VISUAL_EXACT_FINAL_FAIL'},
+      cold_viewer:coldViewerLayer({cold_viewer_clarity:verdict.coldViewerClarity,first_second_hook:verdict.firstSecondHook,payoff_complete:verdict.payoffComplete,ending_complete:verdict.endingComplete}),
+    };
+    if(!qualityLayers.technical.pass) verdict.defects.push({class:'technical_exact_final',severity:'critical',atSeconds:[],evidence:qualityLayers.technical.reason??'technical gate failed',repairable:false});
+    if(!qualityLayers.audiovisual.pass) verdict.defects.push({class:'caption_audio_mismatch',severity:'critical',atSeconds:[],evidence:qualityLayers.audiovisual.reason??'audio/caption gate failed',repairable:true});
+    if(!qualityLayers.cold_viewer.pass) verdict.defects.push({class:'cold_viewer_story_gate',severity:'major',atSeconds:[],evidence:qualityLayers.cold_viewer.reason??'cold-viewer gate failed',repairable:true});
+    verdict.pass=exactFinalPass(qualityLayers);
+
     const analysisId = crypto.randomUUID();
     const failureScope = verdict.pass ? 'CREATIVE_LOCAL' : classifyFailureScope(verdict);
     const artifactWithScope = {
@@ -369,6 +390,7 @@ async function processRender(renderId: string) {
       failure_scope: failureScope,
       renderer_release: process.env.VERCEL_GIT_COMMIT_SHA ?? process.env.HALYARD_RELEASE ?? null,
       audio_qc:{model:finalTranscript.model,alignment:audioAlignment,transcript_sha256:crypto.createHash('sha256').update(finalTranscript.text).digest('hex')},
+      quality_layers:qualityLayers,
     };
     const {data:qcId,error:qce} = await client.rpc('momentcircuit_record_ai_qc_report',{
       p_run_id:wo.run_id,
@@ -493,7 +515,7 @@ async function processRender(renderId: string) {
     const {error:ae} = await client.rpc('momentcircuit_record_quality_audit',{
       p_run_id:wo.run_id,p_generation:wo.generation,p_work_order_id:wo.id,p_render_job_id:rj.id,
       p_stage:'POST_RENDER',p_status:'PASS',
-      p_metrics:{ai_exact_final:true,visual_story_match:verdict.visualStoryMatch,caption_visual_quality:verdict.captionVisualQuality,professional_quality:verdict.professionalQuality,artifact_scan:artifactWithScope,frame_count:frames.length,forensic_frame_review_pass:verdict.artifact.pass && verdict.textBoundsPass,raw_caption_artifact_free:verdict.artifact.pass,timestamp_artifact_free:verdict.artifact.pass,text_bounds_pass:verdict.textBoundsPass,audio_present:true,audio_caption_alignment_pass:audioAlignment.pass,audio_caption_alignment:audioAlignment},
+      p_metrics:{ai_exact_final:true,visual_story_match:verdict.visualStoryMatch,caption_visual_quality:verdict.captionVisualQuality,professional_quality:verdict.professionalQuality,artifact_scan:artifactWithScope,frame_count:frames.length,forensic_frame_review_pass:verdict.artifact.pass && verdict.textBoundsPass,raw_caption_artifact_free:verdict.artifact.pass,timestamp_artifact_free:verdict.artifact.pass,text_bounds_pass:verdict.textBoundsPass,audio_present:true,audio_caption_alignment_pass:audioAlignment.pass,audio_caption_alignment:audioAlignment,quality_layers:qualityLayers,cold_viewer_clarity:verdict.coldViewerClarity,first_second_hook:verdict.firstSecondHook,payoff_complete:verdict.payoffComplete,ending_complete:verdict.endingComplete},
       p_treatment:{critic:'OPENAI_EXACT_FINAL_VNEXT_AV',caption_mode:wo.payload?.edit_plan?.presentation_mode ?? wo.payload?.render_segment?.caption_mode ?? null,audio_transcriber:finalTranscript.model},
       p_reasons:[],
     });
