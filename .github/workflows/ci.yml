@@ -2,8 +2,8 @@
 # CI from the first commit.
 #
 # The product this markets has no CI, and it cost sixteen days of silent
-# production drift. Typecheck, lint and test on every push, and block merge on
-# failure.
+# production drift. Typecheck, lint and test on PRs and main pushes;
+# block merge on failure without running push and PR copies of the same change.
 #
 # The database job is the important one: publish idempotency, SKIP LOCKED, RLS
 # and the AI-disclosure constraint only exist in Postgres, so CI runs a real one.
@@ -12,12 +12,13 @@ name: CI
 
 on:
   push:
-    branches: ['**']
+    branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 env:
