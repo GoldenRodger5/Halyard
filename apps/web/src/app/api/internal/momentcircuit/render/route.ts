@@ -64,7 +64,7 @@ interface Segment {
   start?: number;
   duration: number;
   focus_x?: number;
-  crop_mode?: 'speaker' | 'two_shot' | 'action' | 'center';
+  crop_mode?: 'speaker' | 'speaker_switch' | 'two_shot' | 'action' | 'center';
   hook_line1?: string;
   hook_line2?: string;
   hook_text?: string;
@@ -349,6 +349,14 @@ async function overlay(file: string, seg: Segment, kind: 'hook'|'required'|'pers
 }
 function base(family: Family, focus: number, cropMode: Segment['crop_mode'] = 'speaker') {
   if (family === 'native_people') {
+    if (cropMode === 'speaker_switch') {
+      // Source is a horizontal two-person split. Preserve both speakers/reactions by
+      // extracting each half and stacking them vertically for native 9:16.
+      return '[0:v]split=2[left0][right0];' +
+        '[left0]crop=iw/2:ih:0:0,scale=1080:960:force_original_aspect_ratio=increase,crop=1080:960[left];' +
+        '[right0]crop=iw/2:ih:iw/2:0,scale=1080:960:force_original_aspect_ratio=increase,crop=1080:960[right];' +
+        '[left][right]vstack=inputs=2,format=yuv420p[v0]';
+    }
     if (cropMode === 'two_shot') {
       return '[0:v]scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2:color=black,format=yuv420p[v0]';
     }
@@ -454,6 +462,7 @@ function normalize(p: RenderPayload) {
       if ((seg.start ?? 0) < 0) throw new Error('BAD_SEGMENT_START');
       if (seg.crop_mode === 'speaker' && (seg.focus_x ?? .5) < .05) throw new Error('SPEAKER_CROP_TOO_FAR_LEFT');
       if (seg.crop_mode === 'speaker' && (seg.focus_x ?? .5) > .95) throw new Error('SPEAKER_CROP_TOO_FAR_RIGHT');
+      if (seg.crop_mode === 'speaker_switch' && family !== 'native_people') throw new Error('SPEAKER_SWITCH_REQUIRES_NATIVE_PEOPLE');
       if (seg.disclosure_mode && seg.disclosure_mode !== 'none' && !seg.disclosure) {
         throw new Error('DISCLOSURE_MODE_WITHOUT_TEXT');
       }
