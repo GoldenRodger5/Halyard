@@ -14,7 +14,7 @@ export interface MomentCircuitOverlaySegment {
 const WIDTH = 1080;
 const HEIGHT = 1920;
 
-const RAW_SUBTITLE_ARTIFACT_RE = /(Dialogue:|Style:|Script Info|Format:|-->|,Cap,,|(?:^|\s)\d{1,2}:\d{2}:\d{2}[\.,]\d+)/i;
+const RAW_SUBTITLE_ARTIFACT_RE = /(Dialogue:|Style:|Script Info|Format:|-->|,Cap,,|(?:^|\s)\d{1,2}:\d{2}:\d{2}[.,]\d+)/i;
 
 export function assertCleanOverlayText(value: string): void {
   if (RAW_SUBTITLE_ARTIFACT_RE.test(value)) throw new Error('OVERLAY_RAW_SUBTITLE_ARTIFACT');
