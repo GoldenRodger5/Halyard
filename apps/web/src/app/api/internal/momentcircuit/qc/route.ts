@@ -132,6 +132,32 @@ function artifactToken(text: string): boolean {
   return /(Dialogue:|Style:|Script Info|Format:|,Cap,,|-->|(?:^|\s)\d{1,2}:\d{2}(?::\d{2})?[.,]\d+|["']?(?:start|end)["']?\s*:|\{\s*["']|\[\s*\{)/i.test(text);
 }
 
+function classifyFailureScope(verdict: {
+  defects: Defect[];
+  repairPlan: RepairPlan;
+  summary: string;
+}): 'INFRASTRUCTURE'|'GENERATION_SYSTEMIC'|'SOURCE_IDENTITY'|'COMPLIANCE'|'CREATIVE_LOCAL' {
+  const corpus = [
+    verdict.repairPlan?.dominant_problem ?? '',
+    verdict.summary ?? '',
+    ...verdict.defects.flatMap((d) => [d.class ?? '', d.evidence ?? '']),
+  ].join(' ').toLowerCase();
+
+  if (/(tofu|missing[- ]glyph|font failure|font render|caption render(ing)? fail|subtitle render(ing)? fail|blank caption|empty caption box|renderer failure)/i.test(corpus)) {
+    return 'INFRASTRUCTURE';
+  }
+  if (/(source_identity|source identity|wrong source|story mismatch|wrong story)/i.test(corpus)) {
+    return 'SOURCE_IDENTITY';
+  }
+  if (/(disclosure|paid promotion|sponsor tag|compliance|forbidden topic|brief violation)/i.test(corpus)) {
+    return 'COMPLIANCE';
+  }
+  if (/(template_ai_slop|template_crop_artifact|template padding|border template|white strip|canvas leak|non-native canvas|systemic crop)/i.test(corpus)) {
+    return 'GENERATION_SYSTEMIC';
+  }
+  return 'CREATIVE_LOCAL';
+}
+
 function normalizeReply(raw: AiReply) {
   const defects = Array.isArray(raw.defects) ? raw.defects.filter((d) => d && typeof d.class === 'string') : [];
   const visible = Array.isArray(raw.visible_text) ? raw.visible_text : [];
@@ -348,6 +374,12 @@ async function processRender(renderId: string) {
     });
 
     const analysisId = crypto.randomUUID();
+    const failureScope = verdict.pass ? 'CREATIVE_LOCAL' : classifyFailureScope(verdict);
+    const artifactWithScope = {
+      ...verdict.artifact,
+      failure_scope: failureScope,
+      renderer_release: process.env.VERCEL_GIT_COMMIT_SHA ?? process.env.HALYARD_RELEASE ?? null,
+    };
     const {data:qcId,error:qce} = await client.rpc('momentcircuit_record_ai_qc_report',{
       p_run_id:wo.run_id,
       p_generation:wo.generation,
@@ -361,7 +393,7 @@ async function processRender(renderId: string) {
       p_visual_story_match:verdict.visualStoryMatch,
       p_caption_visual_quality:verdict.captionVisualQuality,
       p_professional_quality:verdict.professionalQuality,
-      p_artifact_scan:verdict.artifact,
+      p_artifact_scan:artifactWithScope,
       p_defects:verdict.defects,
       p_repair_plan:verdict.repairPlan,
       p_ai_summary:verdict.summary,
@@ -369,16 +401,66 @@ async function processRender(renderId: string) {
     if (qce) throw new Error(`QC_RECORD_FAILED: ${qce.message}`);
 
     if (!verdict.pass) {
-      const {count} = await client.from('momentcircuit_ai_repair_queue')
-        .select('id',{count:'exact',head:true}).eq('work_order_id',wo.id);
-      const attempt = Number(count ?? 0);
-      const repaired = attempt < 2 ? applyRepair(wo.payload as Record<string,unknown>,verdict.repairPlan) : null;
       await client.from('momentcircuit_render_jobs').update({
         status:'failed',
-        error:`AI_QC_FAIL:${String(verdict.repairPlan?.dominant_problem ?? verdict.defects?.[0]?.class ?? 'quality')}`,
+        error:`AI_QC_${failureScope}:${String(verdict.repairPlan?.dominant_problem ?? verdict.defects?.[0]?.class ?? 'quality')}`,
         completed_at:new Date().toISOString(),
         updated_at:new Date().toISOString(),
       }).eq('id',rj.id);
+
+      if (failureScope !== 'CREATIVE_LOCAL') {
+        await client.from('momentcircuit_creative_work_orders').update({
+          status:'repair_required',
+          updated_at:new Date().toISOString(),
+        }).eq('id',wo.id);
+
+        await client.from('momentcircuit_ai_repair_queue').update({
+          state:'RESOLVED',
+          repair_instruction:{
+            ...(verdict.repairPlan ?? {}),
+            root_cause_first:true,
+            failure_scope:failureScope,
+            renderer_release:process.env.VERCEL_GIT_COMMIT_SHA ?? process.env.HALYARD_RELEASE ?? null,
+            creative_attempt_not_counted:true,
+          },
+          updated_at:new Date().toISOString(),
+        }).eq('failed_qc_report_id',qcId);
+
+        await client.from('momentcircuit_architecture_events').insert({
+          severity: failureScope === 'INFRASTRUCTURE' ? 'critical' : 'high',
+          component:'ai_qc_rejection_loop',
+          error_class:`AI_QC_${failureScope}`,
+          root_cause:String(verdict.repairPlan?.dominant_problem ?? verdict.defects?.[0]?.evidence ?? 'systemic rejection'),
+          fix_applied:'ROOT_CAUSE_REPAIR_REQUIRED_BEFORE_TARGETED_RERENDER',
+          regression_guard:'Failure does not consume creative repair budget; affected work stays blocked until systemic repair is resolved.',
+          evidence:{
+            work_order_id:wo.id,
+            render_job_id:rj.id,
+            qc_report_id:qcId,
+            platform:wo.platform,
+            defects:verdict.defects,
+            repair_plan:verdict.repairPlan,
+            renderer_release:process.env.VERCEL_GIT_COMMIT_SHA ?? process.env.HALYARD_RELEASE ?? null,
+          },
+        });
+
+        return {
+          ok:false,
+          qc_id:qcId,
+          failure_scope:failureScope,
+          root_cause_repair_required:true,
+          creative_attempt_consumed:false,
+          defects:verdict.defects,
+          repair_plan:verdict.repairPlan,
+        };
+      }
+
+      const {count} = await client.from('momentcircuit_ai_repair_queue')
+        .select('id',{count:'exact',head:true})
+        .eq('work_order_id',wo.id)
+        .eq('failure_scope','CREATIVE_LOCAL');
+      const attempt = Number(count ?? 0);
+      const repaired = attempt < 2 ? applyRepair(wo.payload as Record<string,unknown>,verdict.repairPlan) : null;
 
       if (repaired) {
         await client.from('momentcircuit_creative_work_orders').update({
@@ -389,11 +471,11 @@ async function processRender(renderId: string) {
         await client.from('momentcircuit_ai_repair_queue').update({
           state:'REWATCH_REQUIRED',
           updated_at:new Date().toISOString(),
-        }).eq('work_order_id',wo.id).eq('state','QUEUED');
+        }).eq('work_order_id',wo.id).eq('failure_scope','CREATIVE_LOCAL').eq('state','QUEUED');
         await client.rpc('momentcircuit_dispatch_pending_renders',{p_limit:8});
-        return {ok:false,qc_id:qcId,repair_enqueued:true,defects:verdict.defects,repair_plan:verdict.repairPlan};
+        return {ok:false,qc_id:qcId,failure_scope:failureScope,repair_enqueued:true,defects:verdict.defects,repair_plan:verdict.repairPlan};
       }
-      return {ok:false,qc_id:qcId,replace_moment:true,defects:verdict.defects,repair_plan:verdict.repairPlan};
+      return {ok:false,qc_id:qcId,failure_scope:failureScope,replace_moment:true,defects:verdict.defects,repair_plan:verdict.repairPlan};
     }
 
     const {data:validationId,error:ve} = await client.rpc('momentcircuit_record_validation',{
