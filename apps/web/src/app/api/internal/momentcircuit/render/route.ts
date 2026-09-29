@@ -263,11 +263,11 @@ async function overlay(file: string, seg: Segment, kind: 'hook'|'required'|'pers
   const png = await renderMomentCircuitOverlay(safeSeg, kind);
   await fsp.writeFile(file, png);
 }
-function base(layout: SourceLayout, focus: number) {
-  return sourcePreservingFilter(layout,focus);
+function base(layout: SourceLayout, focus: number, sourceLayout?: SourceLayout) {
+  return sourcePreservingFilter(layout,focus,sourceLayout);
 }
 
-async function renderVisualShot(source:string,output:string,sourceStart:number,shot:ShotPlan){
+async function renderVisualShot(source:string,output:string,sourceStart:number,shot:ShotPlan,sourceLayout:SourceLayout){
   validateProtectedFocus(shot);
   const duration=shotDuration(shot);
   const args=['-y'];
@@ -276,7 +276,7 @@ async function renderVisualShot(source:string,output:string,sourceStart:number,s
   if(/^https:\/\//i.test(source)){
     args.push('-user_agent','MomentCircuitVercel/1.0','-reconnect','1','-reconnect_streamed','1','-reconnect_delay_max','5','-rw_timeout','30000000');
   }
-  args.push('-i',source,'-filter_complex',base(shot.layout,shot.focus_x),'-map','[v0]','-map','0:a?','-c:v','libx264','-crf','18','-preset','veryfast','-c:a','aac','-b:a','192k','-movflags','+faststart','-shortest',output);
+  args.push('-i',source,'-filter_complex',base(shot.layout,shot.focus_x,sourceLayout),'-map','[v0]','-map','0:a?','-c:v','libx264','-crf','18','-preset','veryfast','-c:a','aac','-b:a','192k','-movflags','+faststart','-shortest',output);
   await run(args);
 }
 
@@ -284,7 +284,7 @@ async function segment(source: string, output: string, seg: EditSegment, work: s
   const visualParts:string[]=[];
   for(const [si,shot] of seg.shots.entries()){
     const shotFile=path.join(work,`visual-${i}-${si}.mp4`);
-    await renderVisualShot(source,shotFile,seg.start+shot.start,shot);
+    await renderVisualShot(source,shotFile,seg.start+shot.start,shot,seg.source_layout);
     visualParts.push(shotFile);
   }
   const visual=path.join(work,`visual-${i}.mp4`);
