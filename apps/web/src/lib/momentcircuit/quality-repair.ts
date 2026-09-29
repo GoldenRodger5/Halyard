@@ -18,6 +18,78 @@ export function sampleTimes(duration: number): number[] {
   return [...new Set(anchors.filter(t => t >= 0 && t < duration).map(t => Number(t.toFixed(3))))].sort((a,b)=>a-b);
 }
 
+export type QcCaptionCue = { start:number; end:number; text?:string };
+
+/**
+ * Exact-final QC must see the actual subtitle/payoff beats it is judging.
+ * Uniform timeline sampling alone can land on both sides of a short cue and
+ * falsely conclude that required text/payoff never appeared.
+ *
+ * Keep cost bounded: preserve opening + ending, then caption midpoints, then
+ * fill remaining slots from the ordinary whole-timeline sampler.
+ */
+export function sampleTimesWithCues(
+  duration:number,
+  cues:QcCaptionCue[],
+  maxFrames=14,
+):number[] {
+  if (!Number.isFinite(duration) || duration <= 0) throw new Error('QC_DURATION_INVALID');
+  if (!Number.isInteger(maxFrames) || maxFrames < 6 || maxFrames > 20) throw new Error('QC_FRAME_BUDGET_INVALID');
+
+  const last=Math.max(duration*.8,duration-.15);
+  const opening=[
+    Math.min(.05,duration/10),
+    Math.min(.5,duration/3),
+    Math.min(1,duration/2),
+  ];
+  const normalized=(Array.isArray(cues)?cues:[])
+    .map((cue)=>({start:Number(cue?.start),end:Number(cue?.end)}))
+    .filter((cue)=>Number.isFinite(cue.start)&&Number.isFinite(cue.end)&&cue.start>=0&&cue.end>cue.start&&cue.start<duration)
+    .map((cue)=>({
+      start:Math.max(0,cue.start),
+      end:Math.min(duration,cue.end),
+      mid:Number(((Math.max(0,cue.start)+Math.min(duration,cue.end))/2).toFixed(3)),
+    }))
+    .filter((cue)=>cue.end>cue.start);
+
+  const selected:number[]=[];
+  const add=(value:number)=>{
+    if(!Number.isFinite(value)||value<0||value>=duration)return;
+    if(selected.some((x)=>Math.abs(x-value)<.055))return;
+    selected.push(Number(value.toFixed(3)));
+  };
+
+  opening.forEach(add);
+  add(last);
+
+  const cueMids=normalized.map((cue)=>cue.mid);
+  if(cueMids.length <= maxFrames-selected.length){
+    cueMids.forEach(add);
+  } else {
+    // Payoff protection first: first cue, final four cues, then evenly spaced
+    // remaining cue beats until the bounded frame budget is exhausted.
+    add(cueMids[0]!);
+    cueMids.slice(-4).forEach(add);
+    const remaining=cueMids.filter((mid)=>!selected.some((x)=>Math.abs(x-mid)<.055));
+    while(selected.length<maxFrames && remaining.length){
+      const index=Math.floor((remaining.length-1)/2);
+      add(remaining.splice(index,1)[0]!);
+    }
+  }
+
+  for(const t of sampleTimes(duration)){
+    if(selected.length>=maxFrames)break;
+    add(t);
+  }
+
+  // Ending is non-negotiable even if a future change modifies insertion order.
+  if(!selected.some((x)=>Math.abs(x-last)<.055)){
+    if(selected.length>=maxFrames) selected.splice(Math.max(3,selected.length-2),1);
+    add(last);
+  }
+  return selected.sort((a,b)=>a-b);
+}
+
 export function applyRepair(payload: Record<string,unknown>, plan: RepairPlan): Record<string,unknown> | null {
   const next = structuredClone(payload);
   const original = next.render_segment;
