@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import sharp from 'sharp';
 import { renderMomentCircuitOverlay } from '@/lib/momentcircuit/overlay';
 import { adaptLegacySegment, type EditSegment, type PresentationMode, type SourceLayout, type ShotPlan, type HeadlinePlan } from '@/lib/momentcircuit/edit-plan';
+import { shotDuration, sourcePreservingFilter, validateProtectedFocus } from '@/lib/momentcircuit/geometry';
 import crypto from 'node:crypto';
 import fsp from 'node:fs/promises';
 import fs from 'node:fs';
@@ -356,28 +357,32 @@ async function overlay(file: string, seg: Segment, kind: 'hook'|'required'|'pers
   await fsp.writeFile(file, png);
 }
 function base(layout: SourceLayout, focus: number) {
-  if (layout === 'VERTICAL_NATIVE') {
-    return '[0:v]scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2:color=black,format=yuv420p[v0]';
-  }
-  if (layout === 'TWO_SHOT' || layout === 'SPLIT_SCREEN' || layout === 'INTERVIEW') {
-    return '[0:v]scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2:color=black,format=yuv420p[v0]';
-  }
-  if (layout === 'GAMEPLAY_PLUS_FACE' || layout === 'FULLSCREEN_GAMEPLAY' || layout === 'CINEMATIC') {
-    const brightness = layout === 'FULLSCREEN_GAMEPLAY' ? '-0.26' : '-0.20';
-    const saturation = layout === 'FULLSCREEN_GAMEPLAY' ? '0.76' : '0.88';
-    const y = layout === 'FULLSCREEN_GAMEPLAY' ? 600 : 575;
-    return '[0:v]split=2[bg0][fg0];' +
-      `[bg0]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,gblur=sigma=30,eq=brightness=${brightness}:saturation=${saturation}[bg];` +
-      '[fg0]scale=1020:574:force_original_aspect_ratio=decrease,pad=1020:574:(ow-iw)/2:(oh-ih)/2:color=black[fg];' +
-      `[bg]drawbox=x=26:y=${y-4}:w=1028:h=582:color=white@0.20:t=3[fr];[fr][fg]overlay=30:${y}[v0]`;
-  }
-  return `[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920:(in_w-1080)*${focus.toFixed(4)}:(in_h-1920)/2,format=yuv420p[v0]`;
+  return sourcePreservingFilter(layout,focus);
 }
+
+async function renderVisualShot(source:string,output:string,sourceStart:number,shot:ShotPlan){
+  validateProtectedFocus(shot);
+  const duration=shotDuration(shot);
+  const args=['-y'];
+  if(sourceStart>0) args.push('-ss',String(sourceStart));
+  args.push('-t',String(duration));
+  if(/^https:\/\//i.test(source)){
+    args.push('-user_agent','MomentCircuitVercel/1.0','-reconnect','1','-reconnect_streamed','1','-reconnect_delay_max','5','-rw_timeout','30000000');
+  }
+  args.push('-i',source,'-filter_complex',base(shot.layout,shot.focus_x),'-map','[v0]','-map','0:a?','-c:v','libx264','-crf','18','-preset','veryfast','-c:a','aac','-b:a','192k','-movflags','+faststart','-shortest',output);
+  await run(args);
+}
+
 async function segment(source: string, output: string, seg: EditSegment, work: string, i: number) {
   const duration = seg.duration;
-  if (seg.shots.length !== 1) throw new Error('MULTI_SHOT_REQUIRES_GEOMETRY_PHASE');
-  const shot=seg.shots[0]!;
-  const focus=shot.focus_x;
+  const visualParts:string[]=[];
+  for(const [si,shot] of seg.shots.entries()){
+    const shotFile=path.join(work,`visual-${i}-${si}.mp4`);
+    await renderVisualShot(source,shotFile,seg.start+shot.start,shot);
+    visualParts.push(shotFile);
+  }
+  const visual=path.join(work,`visual-${i}.mp4`);
+  await concat(visualParts,visual,work);
   const hook = path.join(work,`hook-${i}.png`), req = path.join(work,`req-${i}.png`), disc = path.join(work,`disc-${i}.png`);
   const cues = seg.caption_cues;
   const captionFiles: string[] = [];
@@ -394,21 +399,9 @@ async function segment(source: string, output: string, seg: EditSegment, work: s
     await overlay(file,{...seg,caption_text:cues[ci]!.text},'caption');
     captionFiles.push(file);
   }
-  const args = ['-y'];
-  if ((seg.start ?? 0) > 0) args.push('-ss',String(seg.start));
-  args.push('-t',String(duration));
-  if (/^https:\/\//i.test(source)) {
-    args.push(
-      '-user_agent','MomentCircuitVercel/1.0',
-      '-reconnect','1',
-      '-reconnect_streamed','1',
-      '-reconnect_delay_max','5',
-      '-rw_timeout','30000000',
-    );
-  }
-  args.push('-i',source,'-loop','1','-i',hook,'-loop','1','-i',req,'-loop','1','-i',disc);
+  const args = ['-y','-i',visual,'-loop','1','-i',hook,'-loop','1','-i',req,'-loop','1','-i',disc];
   for (const file of captionFiles) args.push('-loop','1','-i',file);
-  let filter = base(shot.layout,focus), cur='[v0]';
+  let filter = '[0:v]format=yuv420p[v0]', cur='[v0]';
   if (seg.headline || (seg.disclosure && seg.disclosure_mode==='opening')) {
     const hs=seg.headline?.start ?? 0, he=seg.headline?.end ?? Math.min(seg.duration,1.8);
     filter += `;${cur}[1:v]overlay=0:0:enable='between(t,${hs.toFixed(3)},${he.toFixed(3)})'[v1]`; cur='[v1]';
