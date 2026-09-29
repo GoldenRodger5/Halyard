@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'node:crypto';
 import { buildVerifiedEditPlan, verifiedSourceLayout, verifiedShotsFromShotMap, type AiEditDecision } from '@/lib/momentcircuit/edit-planner';
+import { assessPackageQuality, packageRevisionFeedback } from '@/lib/momentcircuit/package-quality';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -96,6 +97,7 @@ async function generatePackage(args:{
   requiredHashtags:string[];
   shotMap:unknown;
   duration:number;
+  revision?: {previous:PackageReply;feedback:string};
 }) {
   const key = process.env.OPENAI_API_KEY?.trim();
   if (!key) throw new Error('OPENAI_API_KEY_MISSING_FOR_PREPARE');
@@ -150,12 +152,22 @@ Set unsupported_claims to any phrase you cannot directly support from the suppli
     clip_duration_seconds:args.duration,
   });
 
+  const messages:Array<{role:'system'|'user'|'assistant';content:string}>=[
+    {role:'system',content:system},
+    {role:'user',content:user},
+  ];
+  if(args.revision){
+    messages.push(
+      {role:'assistant',content:JSON.stringify(args.revision.previous)},
+      {role:'user',content:`One bounded correction pass only. The previous package failed these quality dimensions: ${args.revision.feedback} Rewrite the package while preserving all verified facts, required hashtags, platform, and source-layout truth. Do not invent anything. Return the complete JSON object again.`},
+    );
+  }
   const response = await fetch(OPENAI,{
     method:'POST',
     headers:{authorization:`Bearer ${key}`,'content-type':'application/json'},
     body:JSON.stringify({
       model:MODEL,
-      messages:[{role:'system',content:system},{role:'user',content:user}],
+      messages,
       response_format:{type:'json_object'},
       max_completion_tokens:1800,
     }),
@@ -215,7 +227,7 @@ async function prepareWorkOrder(id:string) {
   const duration=Number(existingSeg.duration ?? candidateDuration);
   if(!Number.isFinite(duration) || duration<=0) throw new Error('EDIT_PLAN_DURATION_INVALID');
 
-  const generated = await generatePackage({
+  const packageArgs={
     platform:String(wo.platform),
     campaignName:String(cc.campaign_name),
     story:String(cm.verified_story_claim ?? ''),
@@ -224,10 +236,22 @@ async function prepareWorkOrder(id:string) {
     requiredHashtags,
     shotMap:cm.shot_map,
     duration,
-  });
+  };
+  const firstGenerated = await generatePackage(packageArgs);
+  const firstQuality = assessPackageQuality(firstGenerated);
+  let generated=firstGenerated;
+  let packageRevisionCount=0;
+  if(!firstQuality.pass && !firstQuality.reasons.includes('UNSUPPORTED_CLAIMS')){
+    generated=await generatePackage({...packageArgs,revision:{previous:firstGenerated,feedback:packageRevisionFeedback(firstQuality)}});
+    packageRevisionCount=1;
+  }
 
   const unsupported = Array.isArray(generated.unsupported_claims) ? generated.unsupported_claims.filter(Boolean) : [];
   if (unsupported.length) throw new Error(`UNSUPPORTED_PACKAGING_CLAIMS: ${unsupported.join(' | ').slice(0,600)}`);
+  const finalPackageQuality=assessPackageQuality(generated);
+  if(!finalPackageQuality.pass){
+    throw new Error(`AI_PACKAGE_QUALITY_BELOW_FLOOR:${finalPackageQuality.reasons.join(',')}`);
+  }
 
   let postCaption = cleanCaption(String(generated.post_caption ?? ''));
   for (const tag of requiredHashtags) {
@@ -257,9 +281,8 @@ async function prepareWorkOrder(id:string) {
     disclosure:typeof existingSeg.disclosure==='string'?existingSeg.disclosure:undefined,
     disclosure_mode:(existingSeg.disclosure_mode as 'none'|'opening'|'persistent'|undefined)??'none',
   });
-  const specificity = Math.max(0,Math.min(1,Number(generated.specificity ?? 0)));
-  const nativeVoice = Math.max(0,Math.min(1,Number(generated.native_voice ?? 0)));
-  if (specificity < 0.78 || nativeVoice < 0.80) throw new Error('AI_PACKAGE_QUALITY_BELOW_FLOOR');
+  const specificity = finalPackageQuality.specificity;
+  const nativeVoice = finalPackageQuality.nativeVoice;
 
   const qualityInputs = {
     truthful:true,
@@ -272,6 +295,8 @@ async function prepareWorkOrder(id:string) {
     caption_cues_structurally_safe:true,
     caption_version:'V4',
     package_model:MODEL,
+    package_revision_count:packageRevisionCount,
+    package_revision_policy:'ONE_FEEDBACK_DIRECTED_REVISION_MAX',
   };
 
   const {data:packageId,error:pe} = await client.rpc('momentcircuit_record_caption_package',{
