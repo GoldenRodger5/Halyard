@@ -7,6 +7,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { applyRepair, sampleTimes, type RepairPlan } from '@/lib/momentcircuit/quality-repair';
+import { assessCaptionAlignment } from '@/lib/momentcircuit/av-qc';
+import { audiovisualLayer, coldViewerLayer, exactFinalPass, technicalLayer } from '@/lib/momentcircuit/quality-gates';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -29,6 +31,10 @@ type AiReply = {
   caption_visual_quality?: boolean;
   professional_quality?: boolean;
   text_bounds_pass?: boolean;
+  cold_viewer_clarity?: boolean;
+  first_second_hook?: boolean;
+  payoff_complete?: boolean;
+  ending_complete?: boolean;
   artifact_scan?: {
     pass?: boolean;
     timestamp_tokens_visible?: boolean;
@@ -95,6 +101,44 @@ async function download(url: string, dest: string) {
   await fsp.writeFile(dest, bytes);
 }
 
+async function extractFinalAudio(video:string,work:string){
+  const audio=path.join(work,'final-audio.mp3');
+  await run(['-y','-i',video,'-vn','-ac','1','-ar','16000','-c:a','libmp3lame','-b:a','64k',audio]);
+  const stat=await fsp.stat(audio);
+  if(stat.size<1000) throw new Error('AUDIO_QC_EMPTY_AUDIO');
+  return audio;
+}
+
+async function transcribeFinalAudio(audio:string){
+  const key=process.env.OPENAI_API_KEY?.trim();
+  if(!key) throw new Error('OPENAI_API_KEY_MISSING_FOR_AUDIO_QC');
+  const bytes=await fsp.readFile(audio);
+  const form=new FormData();
+  form.set('model','gpt-transcribe');
+  form.set('response_format','json');
+  form.set('file',new Blob([new Uint8Array(bytes)],{type:'audio/mpeg'}),'final-audio.mp3');
+  const response=await fetch('https://api.openai.com/v1/audio/transcriptions',{method:'POST',headers:{authorization:`Bearer ${key}`},body:form});
+  const body=await response.json() as {text?:string;error?:{message?:string}};
+  if(!response.ok) throw new Error(`AUDIO_QC_TRANSCRIBE_${response.status}:${body.error?.message??'unknown'}`);
+  const text=String(body.text??'').trim();
+  return {model:'gpt-transcribe',text};
+}
+
+function expectedCaptionText(payload: unknown):string[]{
+  const root = payload && typeof payload === 'object' ? payload as Record<string,unknown> : {};
+  const renderSegment = root.render_segment && typeof root.render_segment === 'object'
+    ? root.render_segment as Record<string,unknown> : {};
+  const editPlan = root.edit_plan && typeof root.edit_plan === 'object'
+    ? root.edit_plan as Record<string,unknown> : {};
+  const direct=renderSegment.caption_cues;
+  const planned=editPlan.caption_cues;
+  const raw: unknown[] = Array.isArray(planned)?planned:Array.isArray(direct)?direct:[];
+  return raw.map((x)=>{
+    if(!x || typeof x!=='object') return '';
+    return String((x as Record<string,unknown>).text??'').trim();
+  }).filter(Boolean);
+}
+
 async function extractFrames(video: string, duration: number, work: string) {
   const frames: Array<{ atSeconds: number; bytes: Buffer }> = [];
   for (const [i, atSeconds] of sampleTimes(duration).entries()) {
@@ -129,7 +173,7 @@ function classifyFailureScope(verdict: {
   if (/(disclosure|paid promotion|sponsor tag|compliance|forbidden topic|brief violation)/i.test(corpus)) {
     return 'COMPLIANCE';
   }
-  if (/(captions?_missing|caption_missing|missing captions?|no spoken subtitles|no visible subtitles|subtitle track missing|expected captions?.*missing)/i.test(corpus)) {
+  if (/(captions?_missing|caption_missing|missing captions?|no spoken subtitles|no visible subtitles|subtitle track missing|expected captions?.*missing|caption_audio_mismatch|audio\/caption gate failed)/i.test(corpus)) {
     return 'GENERATION_SYSTEMIC';
   }
   if (/(template_ai_slop|template_crop_artifact|template padding|border template|white strip|canvas leak|non-native canvas|systemic crop)/i.test(corpus)) {
@@ -184,6 +228,10 @@ function normalizeReply(raw: AiReply) {
     professionalQuality: raw.professional_quality === true,
     textBoundsPass: raw.text_bounds_pass === true,
     visibleText: visible,
+    coldViewerClarity: raw.cold_viewer_clarity === true,
+    firstSecondHook: raw.first_second_hook === true,
+    payoffComplete: raw.payoff_complete === true,
+    endingComplete: raw.ending_complete === true,
     repairPlan: raw.repair_plan ?? {},
     summary: String(raw.summary ?? ''),
   };
@@ -229,6 +277,10 @@ Return JSON only with this exact shape:
  "caption_visual_quality":true,
  "professional_quality":true,
  "text_bounds_pass":true,
+ "cold_viewer_clarity":true,
+ "first_second_hook":true,
+ "payoff_complete":true,
+ "ending_complete":true,
  "artifact_scan":{"pass":true,"timestamp_tokens_visible":false,"ass_ssa_tokens_visible":false,"json_serialization_visible":false,"cue_numbers_visible":false},
  "visible_text":[{"atSeconds":0.5,"text":["..."]}],
  "defects":[{"class":"caption_legibility","severity":"critical|major|minor","atSeconds":[0.5],"evidence":"specific observable problem","repairable":true}],
@@ -314,13 +366,10 @@ async function processRender(renderId: string) {
   try {
     await download(mediaUrl,video);
     const frames = await extractFrames(video,duration,work);
-    const rawCaptionCues = wo.payload?.render_segment?.caption_cues;
-    const expectedCaptions = Array.isArray(rawCaptionCues)
-      ? rawCaptionCues.map((x: unknown) => {
-          if (!x || typeof x !== 'object' || !('text' in x)) return '';
-          return String((x as {text?: unknown}).text ?? '');
-        }).filter(Boolean)
-      : [];
+    const expectedCaptions = expectedCaptionText(wo.payload);
+    const audioFile=await extractFinalAudio(video,work);
+    const finalTranscript=await transcribeFinalAudio(audioFile);
+    const audioAlignment=assessCaptionAlignment(expectedCaptions,finalTranscript.text);
 
     const verdict = await critique({
       frames,
@@ -331,12 +380,25 @@ async function processRender(renderId: string) {
       expectedCaptions,
     });
 
+    const qualityLayers={
+      technical:technicalLayer({technical_qc:variant?.technical_qc,duration,size:variant?.size_bytes,audio_present:true}),
+      audiovisual:audiovisualLayer({alignment_pass:audioAlignment.pass,captions_required:expectedCaptions.length>0,transcript_nonempty:Boolean(finalTranscript.text)}),
+      visual:{pass:verdict.pass,reason:verdict.pass?undefined:'VISUAL_EXACT_FINAL_FAIL'},
+      cold_viewer:coldViewerLayer({cold_viewer_clarity:verdict.coldViewerClarity,first_second_hook:verdict.firstSecondHook,payoff_complete:verdict.payoffComplete,ending_complete:verdict.endingComplete}),
+    };
+    if(!qualityLayers.technical.pass) verdict.defects.push({class:'technical_exact_final',severity:'critical',atSeconds:[],evidence:qualityLayers.technical.reason??'technical gate failed',repairable:false});
+    if(!qualityLayers.audiovisual.pass) verdict.defects.push({class:'caption_audio_mismatch',severity:'critical',atSeconds:[],evidence:qualityLayers.audiovisual.reason??'audio/caption gate failed',repairable:true});
+    if(!qualityLayers.cold_viewer.pass) verdict.defects.push({class:'cold_viewer_story_gate',severity:'major',atSeconds:[],evidence:qualityLayers.cold_viewer.reason??'cold-viewer gate failed',repairable:true});
+    verdict.pass=exactFinalPass(qualityLayers);
+
     const analysisId = crypto.randomUUID();
     const failureScope = verdict.pass ? 'CREATIVE_LOCAL' : classifyFailureScope(verdict);
     const artifactWithScope = {
       ...verdict.artifact,
       failure_scope: failureScope,
       renderer_release: process.env.VERCEL_GIT_COMMIT_SHA ?? process.env.HALYARD_RELEASE ?? null,
+      audio_qc:{model:finalTranscript.model,alignment:audioAlignment,transcript_sha256:crypto.createHash('sha256').update(finalTranscript.text).digest('hex')},
+      quality_layers:qualityLayers,
     };
     const {data:qcId,error:qce} = await client.rpc('momentcircuit_record_ai_qc_report',{
       p_run_id:wo.run_id,
@@ -381,6 +443,15 @@ async function processRender(renderId: string) {
       }).eq('id',rj.id);
 
       if (failureScope !== 'CREATIVE_LOCAL') {
+        if (failureScope === 'INFRASTRUCTURE' || failureScope === 'GENERATION_SYSTEMIC') {
+          const rendererRelease=process.env.VERCEL_GIT_COMMIT_SHA ?? process.env.HALYARD_RELEASE ?? 'unknown';
+          const {error:circuitError}=await client.rpc('momentcircuit_open_quality_circuit',{
+            p_platform:String(wo.platform),p_failure_scope:failureScope,p_renderer_release:rendererRelease,
+            p_reason:String(verdict.repairPlan?.dominant_problem ?? verdict.defects?.[0]?.evidence ?? verdict.summary ?? 'systemic quality failure'),
+            p_evidence:{work_order_id:wo.id,render_job_id:rj.id,qc_report_id:qcId,quality_layers:qualityLayers,defects:verdict.defects},
+          });
+          if(circuitError) throw new Error(`QUALITY_CIRCUIT_OPEN_FAILED: ${circuitError.message}`);
+        }
         await client.from('momentcircuit_creative_work_orders').update({
           status:'repair_required',
           updated_at:new Date().toISOString(),
@@ -427,14 +498,11 @@ async function processRender(renderId: string) {
         };
       }
 
-      const {count} = await client.from('momentcircuit_ai_repair_queue')
-        .select('id',{count:'exact',head:true})
-        .eq('work_order_id',wo.id)
-        .eq('failure_scope','CREATIVE_LOCAL');
-      const attempt = Number(count ?? 0);
-      const repaired = attempt < 2 ? applyRepair(wo.payload as Record<string,unknown>,verdict.repairPlan) : null;
+      const attempt = Math.max(0,Number((wo.payload as Record<string,unknown>)?.vnext_creative_repairs ?? 0));
+      const repaired = attempt < 1 ? applyRepair(wo.payload as Record<string,unknown>,verdict.repairPlan) : null;
 
       if (repaired) {
+        repaired.vnext_creative_repairs=attempt+1;
         await client.from('momentcircuit_creative_work_orders').update({
           payload:repaired,
           status:'ready_to_render',
@@ -447,22 +515,25 @@ async function processRender(renderId: string) {
         await client.rpc('momentcircuit_dispatch_pending_renders',{p_limit:8});
         return {ok:false,qc_id:qcId,failure_scope:failureScope,repair_enqueued:true,defects:verdict.defects,repair_plan:verdict.repairPlan};
       }
-      return {ok:false,qc_id:qcId,failure_scope:failureScope,replace_moment:true,defects:verdict.defects,repair_plan:verdict.repairPlan};
+      await client.from('momentcircuit_creative_work_orders').update({status:'critic_fail',updated_at:new Date().toISOString()}).eq('id',wo.id);
+      await client.from('momentcircuit_ai_repair_queue').update({state:'REPLACE_MOMENT',updated_at:new Date().toISOString()})
+        .eq('work_order_id',wo.id).eq('failure_scope','CREATIVE_LOCAL').eq('state','QUEUED');
+      return {ok:false,qc_id:qcId,failure_scope:failureScope,replace_moment:true,creative_repairs_consumed:attempt,defects:verdict.defects,repair_plan:verdict.repairPlan};
     }
 
     const {data:validationId,error:ve} = await client.rpc('momentcircuit_record_validation',{
       p_run_id:wo.run_id,p_generation:wo.generation,p_work_order_id:wo.id,p_render_job_id:rj.id,
       p_variant:wo.platform,p_revision:1,p_status:'PASS_FIRST_RENDER',p_failure_class:null,
       p_critique:{ai_qc_report_id:qcId,summary:verdict.summary,defects:verdict.defects},
-      p_evidence:{exact_final:true,analysis_id:analysisId,artifact_scan:verdict.artifact,frame_count:frames.length,media_url:mediaUrl},
+      p_evidence:{exact_final:true,analysis_id:analysisId,artifact_scan:artifactWithScope,frame_count:frames.length,media_url:mediaUrl,audio_qc:{model:finalTranscript.model,alignment:audioAlignment,transcript_sha256:crypto.createHash('sha256').update(finalTranscript.text).digest('hex')}},
     });
     if (ve) throw new Error(`VALIDATION_RECORD_FAILED: ${ve.message}`);
 
     const {error:ae} = await client.rpc('momentcircuit_record_quality_audit',{
       p_run_id:wo.run_id,p_generation:wo.generation,p_work_order_id:wo.id,p_render_job_id:rj.id,
       p_stage:'POST_RENDER',p_status:'PASS',
-      p_metrics:{ai_exact_final:true,visual_story_match:verdict.visualStoryMatch,caption_visual_quality:verdict.captionVisualQuality,professional_quality:verdict.professionalQuality,artifact_scan:verdict.artifact,frame_count:frames.length,forensic_frame_review_pass:verdict.artifact.pass && verdict.textBoundsPass,raw_caption_artifact_free:verdict.artifact.pass,timestamp_artifact_free:verdict.artifact.pass,text_bounds_pass:verdict.textBoundsPass},
-      p_treatment:{critic:'OPENAI_EXACT_FINAL_V4',caption_mode:wo.payload?.render_segment?.caption_mode ?? null},
+      p_metrics:{ai_exact_final:true,visual_story_match:verdict.visualStoryMatch,caption_visual_quality:verdict.captionVisualQuality,professional_quality:verdict.professionalQuality,artifact_scan:artifactWithScope,frame_count:frames.length,forensic_frame_review_pass:verdict.artifact.pass && verdict.textBoundsPass,raw_caption_artifact_free:verdict.artifact.pass,timestamp_artifact_free:verdict.artifact.pass,text_bounds_pass:verdict.textBoundsPass,audio_present:true,audio_caption_alignment_pass:audioAlignment.pass,audio_caption_alignment:audioAlignment,quality_layers:qualityLayers,cold_viewer_clarity:verdict.coldViewerClarity,first_second_hook:verdict.firstSecondHook,payoff_complete:verdict.payoffComplete,ending_complete:verdict.endingComplete},
+      p_treatment:{critic:'OPENAI_EXACT_FINAL_VNEXT_AV',caption_mode:wo.payload?.edit_plan?.presentation_mode ?? wo.payload?.render_segment?.caption_mode ?? null,audio_transcriber:finalTranscript.model},
       p_reasons:[],
     });
     if (ae) throw new Error(`QUALITY_AUDIT_FAILED: ${ae.message}`);
@@ -479,7 +550,7 @@ async function processRender(renderId: string) {
       p_media_url:mediaUrl,
       p_packaging:{post_caption:wo.payload?.selected_packaging ?? '',youtube_title:wo.payload?.youtube_title ?? null,ai_qc_report_id:qcId},
       p_disclosure_route:disclosure,
-      p_dependencies:{ai_qc_v4:true,exact_final_reviewed:true,artifact_scan_pass:true,source_visual_story_match:true},
+      p_dependencies:{ai_qc_vnext:true,exact_final_reviewed:true,artifact_scan_pass:true,source_visual_story_match:true,audio_qc:true,audio_caption_alignment_pass:audioAlignment.pass},
       p_valid_until:new Date(Date.now()+12*60*60*1000).toISOString(),
     });
     if (pe) throw new Error(`READY_PROMOTION_FAILED: ${pe.message}`);

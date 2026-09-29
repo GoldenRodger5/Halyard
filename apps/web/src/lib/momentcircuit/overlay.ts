@@ -50,69 +50,102 @@ function portableText(value: string): string {
   return normalized;
 }
 
-export function fitHookFontSize(content: string, preferred: number): number {
-  // Conservative Inter width bound; exact pixel-bound tests protect every release.
-  const units = [...content].reduce((n,c) => n + (/[MW@%]/.test(c) ? 1.12 : /[ilI.,!:;'| ]/.test(c) ? 0.38 : /[A-Z]/.test(c) ? 0.82 : 0.70),0);
-  const size = Math.min(preferred, Math.floor(866 / Math.max(1,units)));
-  if (size < 34) throw new Error('OVERLAY_HOOK_TOO_DENSE');
-  return size;
+export function balancedNativeLines(value: string, maxLines: number = 3, maxChars: number = 30): string[] {
+  const safe = portableText(value.trim());
+  if (!safe) return [];
+  const words = safe.split(/\s+/);
+  const lines: string[] = [];
+  let current = '';
+  for (const word of words) {
+    const candidate = current ? current + ' ' + word : word;
+    if (candidate.length <= maxChars || !current) {
+      current = candidate;
+      continue;
+    }
+    lines.push(current);
+    current = word;
+  }
+  if (current) lines.push(current);
+  if (lines.length > maxLines) throw new Error('OVERLAY_TEXT_TOO_DENSE');
+  return lines;
 }
 
-function centeredText(content: string, top: number, size: number, color: string, dx = 0, dy = 0): SatoriElement {
+export function fitHookFontSize(content: string, preferred: number): number {
+  const lines = balancedNativeLines(content,3,30);
+  const longest = Math.max(1,...lines.map((x)=>x.length));
+  const size = Math.min(preferred, Math.floor(1720 / longest));
+  if (size < 52) throw new Error('OVERLAY_HOOK_TOO_DENSE');
+  return Math.max(52,size);
+}
+
+function headlineCard(content: string): SatoriElement {
+  const safe=portableText(content.trim());
+  const lines=balancedNativeLines(safe,3,30);
+  const size=fitHookFontSize(safe,72);
+  const lineHeight=1.08;
+  const height=Math.round(lines.length*size*lineHeight + 64);
   return box(
     {
-      position: 'absolute',
-      top: top + dy,
-      left: 88 + dx,
-      width: 904,
-      height: Math.round(size * 1.45),
-      justifyContent: 'center',
-      alignItems: 'center',
+      position:'absolute',
+      top:210,
+      left:58,
+      width:964,
+      height,
+      padding:'28px 36px',
+      borderRadius:26,
+      backgroundColor:'#ffffff',
+      justifyContent:'center',
+      alignItems:'center',
+      flexDirection:'column',
     },
-    satoriText(content, {
-      fontFamily: 'Inter',
-      fontWeight: 700,
-      fontSize: size,
-      lineHeight: 1,
+    ...lines.map((line)=>satoriText(line,{
+      fontFamily:'Inter',
+      fontWeight:700,
+      fontSize:size,
+      lineHeight,
+      color:'#090909',
+      textAlign:'center',
+      whiteSpace:'nowrap',
+    })),
+  );
+}
+
+function outlinedCaptionLine(content: string, top: number, size: number, dx=0, dy=0, color='#ffffff'): SatoriElement {
+  return box(
+    {
+      position:'absolute',
+      top:top+dy,
+      left:108+dx,
+      width:764,
+      height:Math.round(size*1.34),
+      justifyContent:'center',
+      alignItems:'center',
+    },
+    satoriText(content,{
+      fontFamily:'Inter',
+      fontWeight:700,
+      fontSize:size,
+      lineHeight:1,
       color,
-      textAlign: 'center',
-      whiteSpace: 'nowrap',
+      textAlign:'center',
+      whiteSpace:'nowrap',
     }),
   );
 }
 
-function balancedHookLines(value: string): string[] {
-  const safe = portableText(value.trim());
-  if (safe.length > 56) throw new Error('OVERLAY_HOOK_TOO_DENSE');
-  if (!safe) return [];
-  if (safe.length <= 24) return [safe];
-  const words = safe.split(/\s+/);
-  let best = 1;
-  let bestDiff = Number.POSITIVE_INFINITY;
-  for (let i=1;i<words.length;i++) {
-    const a=words.slice(0,i).join(' ');
-    const b=words.slice(i).join(' ');
-    if (a.length>30 || b.length>30) continue;
-    const diff=Math.abs(a.length-b.length);
-    if (diff<bestDiff){best=i;bestDiff=diff;}
+function captionSubtitle(value: string): SatoriElement[] {
+  const safe=portableText(value.trim());
+  const lines=balancedNativeLines(safe,2,28);
+  const size=lines.some((x)=>x.length>24)?50:58;
+  const startTop=lines.length===1?1320:1285;
+  const out:SatoriElement[]=[];
+  const offsets=[[-4,0],[4,0],[0,-4],[0,4],[-3,-3],[3,-3],[-3,3],[3,3]] as const;
+  for (const [index,line] of lines.entries()) {
+    const top=startTop+index*68;
+    out.push(...offsets.map(([dx,dy])=>outlinedCaptionLine(line,top,size,dx,dy,'#050505')));
+    out.push(outlinedCaptionLine(line,top,size,0,0,'#ffffff'));
   }
-  return [words.slice(0,best).join(' '),words.slice(best).join(' ')].filter(Boolean);
-}
-
-function outlinedText(content: string, top: number, size: number): SatoriElement[] {
-  const safe = portableText(content.trim());
-  if (safe.length > 56) throw new Error('OVERLAY_HOOK_TOO_DENSE');
-  size = fitHookFontSize(safe, size);
-  if (!safe) return [];
-  const shadow = 'rgba(0,0,0,0.90)';
-  const offsets = [
-    [-4, 0], [4, 0], [0, -4], [0, 4],
-    [-3, -3], [3, -3], [-3, 3], [3, 3],
-  ] as const;
-  return [
-    ...offsets.map(([dx, dy]) => centeredText(safe, top, size, shadow, dx, dy)),
-    centeredText(safe, top, size, '#ffffff'),
-  ];
+  return out;
 }
 
 function disclosureBadge(text: string): SatoriElement {
@@ -163,33 +196,6 @@ function requiredSubtitle(value: string): SatoriElement {
   );
 }
 
-function captionSubtitle(value: string): SatoriElement {
-  const safe = portableText(value.trim().slice(0, 90));
-  return box(
-    {
-      position: 'absolute',
-      top: 1370,
-      left: 72,
-      width: 936,
-      minHeight: 96,
-      padding: '16px 26px',
-      borderRadius: 18,
-      backgroundColor: 'rgba(0,0,0,0.64)',
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    satoriText(safe, {
-      fontFamily: 'Inter',
-      fontWeight: 700,
-      fontSize: 46,
-      lineHeight: 1.12,
-      wordSpacing: 3,
-      letterSpacing: 0.2,
-      color: '#ffffff',
-      textAlign: 'center',
-    }),
-  );
-}
 
 export async function renderMomentCircuitOverlay(
   segment: MomentCircuitOverlaySegment,
@@ -198,13 +204,8 @@ export async function renderMomentCircuitOverlay(
   const children: SatoriElement[] = [];
 
   if (kind === 'hook') {
-    const primary = balancedHookLines(segment.hook_line1 ?? '');
-    const secondary = balancedHookLines(segment.hook_line2 ?? '');
-    if (primary[0]) children.push(...outlinedText(primary[0], 300, primary.length > 1 ? 50 : 56));
-    if (primary[1]) children.push(...outlinedText(primary[1], 366, 50));
-    const secondaryTop = primary.length > 1 ? 432 : 382;
-    if (secondary[0]) children.push(...outlinedText(secondary[0], secondaryTop, 44));
-    if (secondary[1]) children.push(...outlinedText(secondary[1], secondaryTop + 56, 44));
+    const headline=[segment.hook_line1,segment.hook_line2].filter(Boolean).join(' ').trim();
+    if (headline) children.push(headlineCard(headline));
     if (segment.disclosure && segment.disclosure_mode === 'opening') {
       children.push(disclosureBadge(segment.disclosure));
     }
@@ -213,7 +214,7 @@ export async function renderMomentCircuitOverlay(
   } else if (kind === 'persistent' && segment.disclosure) {
     children.push(disclosureBadge(segment.disclosure));
   } else if (kind === 'caption' && segment.caption_text) {
-    children.push(captionSubtitle(segment.caption_text));
+    children.push(...captionSubtitle(segment.caption_text));
   }
 
   const root = box(

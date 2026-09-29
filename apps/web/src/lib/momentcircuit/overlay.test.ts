@@ -34,26 +34,21 @@ describe('MomentCircuit portable overlays', () => {
     expect(alpha!.max).toBe(0);
   });
 
-  it('renders native white hook text without a solid card', async () => {
+  it('renders the approved white headline card rather than legacy outlined hook text', async () => {
     const png = await renderMomentCircuitOverlay(
-      {
-        hook_line1: "Trae isn’t Dylan Brooks",
-        hook_line2: 'Villain talk, in his words',
-      },
-      'hook',
+      {hook_line1:"Trae isn't Dylan Brooks",hook_line2:'Villain talk, in his words'},'hook',
     );
-    const stats = await sharp(png).stats();
-    expect(stats.channels[3]!.max).toBeGreaterThan(0);
-    const { data, info } = await sharp(png)
-      .ensureAlpha()
-      .raw()
-      .toBuffer({ resolveWithObject: true });
-    let opaquePixels = 0;
-    const pixelCount = info.width * info.height;
-    for (let i = 3; i < data.length; i += 4) {
-      if (data[i]! > 245) opaquePixels += 1;
+    const {data,info}=await sharp(png).ensureAlpha().raw().toBuffer({resolveWithObject:true});
+    let opaque=0,white=0,black=0;
+    for(let i=0;i<data.length;i+=4){
+      const r=data[i]!,g=data[i+1]!,b=data[i+2]!,alpha=data[i+3]!;
+      if(alpha>245) opaque++;
+      if(alpha>245&&r>240&&g>240&&b>240) white++;
+      if(alpha>245&&r<30&&g<30&&b<30) black++;
     }
-    expect(opaquePixels / pixelCount).toBeLessThan(0.05);
+    expect(opaque/(info.width*info.height)).toBeGreaterThan(0.07);
+    expect(white).toBeGreaterThan(100_000);
+    expect(black).toBeGreaterThan(2_000);
   });
 
   it('fails unsupported glyphs instead of silently rendering tofu boxes', async () => {
@@ -93,7 +88,7 @@ describe('Hook safety margins',()=>{
     const {data,info}=await sharp(png).ensureAlpha().raw().toBuffer({resolveWithObject:true});
     let outside=0;
     for(let y=0;y<info.height;y++) for(let x=0;x<info.width;x++){
-      if((x<76||x>1004) && data[(y*info.width+x)*4+3]!>10) outside++;
+      if((x<55||x>1025) && data[(y*info.width+x)*4+3]!>10) outside++;
     }
     expect(outside).toBe(0);
   });

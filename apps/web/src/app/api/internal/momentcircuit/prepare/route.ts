@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'node:crypto';
+import { buildVerifiedEditPlan, type AiEditDecision } from '@/lib/momentcircuit/edit-planner';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -18,6 +19,12 @@ type PackageReply = {
   native_voice?: number;
   unsupported_claims?: string[];
   rationale?: string;
+  presentation_mode?: AiEditDecision['presentation_mode'];
+  source_layout?: AiEditDecision['source_layout'];
+  focus_x?: number;
+  shots?: AiEditDecision['shots'];
+  headline?: string | null;
+  headline_duration?: number;
 };
 
 function db() {
@@ -57,7 +64,7 @@ function cleanHook(value: string | null | undefined) {
   if (!value) return null;
   const cleaned = value.replace(/\s+/g, ' ').trim();
   if (!cleaned) return null;
-  return cleaned.split(/\s+/).slice(0, 8).join(' ').slice(0, 56);
+  return cleaned.split(/\s+/).slice(0, 14).join(' ').slice(0, 90);
 }
 
 function validateCueArray(value: unknown): Array<{start:number;end:number;text:string}> {
@@ -87,6 +94,8 @@ async function generatePackage(args:{
   payoff:string;
   requirements:unknown;
   requiredHashtags:string[];
+  shotMap:unknown;
+  duration:number;
 }) {
   const key = process.env.OPENAI_API_KEY?.trim();
   if (!key) throw new Error('OPENAI_API_KEY_MISSING_FOR_PREPARE');
@@ -100,8 +109,13 @@ Style:
 - concrete, casual, specific;
 - never use #fyp, #viral, #trending, "wait for it", "you won't believe";
 - do not simply repeat a subtitle as the post caption;
-- optional on-screen hook only if it materially improves cold-viewer context; max 8 words;
-- if the source opening is already excellent, return null hook and NONE;
+- choose exactly one presentation mode: NATIVE_SOURCE_ONLY, HEADLINE_CARD_OPENING, or HEADLINE_CARD_PLUS_DYNAMIC_SUBTITLES;
+- use a contextual headline only when it materially improves cold-viewer comprehension; max 14 words and 90 characters;
+- if the source opening is already excellent, choose NATIVE_SOURCE_ONLY;
+- classify source layout as VERTICAL_NATIVE, SINGLE_SPEAKER, TWO_SHOT, SPLIT_SCREEN, GAMEPLAY_PLUS_FACE, FULLSCREEN_GAMEPLAY, INTERVIEW, or CINEMATIC;
+- focus_x is 0..1 across source width and must keep faces/action safe;
+- shots are relative to the selected clip and must cover the whole duration exactly; use one shot unless a real speaker/layout change requires more;
+- never write subtitle wording; verified caption cues are injected deterministically after your decision;
 - TikTok: fast, conversational, reaction/share/comment energy;
 - YouTube Shorts: standalone, clear premise; youtube_title must be concise and searchable without clickbait;
 - preserve every supplied required hashtag exactly.
@@ -115,7 +129,13 @@ Return JSON only:
  "specificity":0.0,
  "native_voice":0.0,
  "unsupported_claims":[],
- "rationale":"short"
+ "rationale":"short",
+ "presentation_mode":"NATIVE_SOURCE_ONLY|HEADLINE_CARD_OPENING|HEADLINE_CARD_PLUS_DYNAMIC_SUBTITLES",
+ "source_layout":"VERTICAL_NATIVE|SINGLE_SPEAKER|TWO_SHOT|SPLIT_SCREEN|GAMEPLAY_PLUS_FACE|FULLSCREEN_GAMEPLAY|INTERVIEW|CINEMATIC",
+ "focus_x":0.5,
+ "shots":[],
+ "headline":null,
+ "headline_duration":2.4
 }
 Set unsupported_claims to any phrase you cannot directly support from the supplied facts. If unsupported_claims is non-empty the package will be rejected.`;
 
@@ -126,6 +146,8 @@ Set unsupported_claims to any phrase you cannot directly support from the suppli
     verified_payoff:args.payoff,
     campaign_requirements:args.requirements,
     required_hashtags:args.requiredHashtags,
+    verified_shot_map:args.shotMap,
+    clip_duration_seconds:args.duration,
   });
 
   const response = await fetch(OPENAI,{
@@ -161,7 +183,7 @@ async function prepareWorkOrder(id:string) {
 
   const [{data:cm,error:ce},{data:cc,error:cce},{data:cues,error:cueError}] = await Promise.all([
     client.from('momentcircuit_candidate_moments')
-      .select('id,story_family,verified_story_claim,verified_payoff,status,semantic_state')
+      .select('id,story_family,start_seconds,end_seconds,verified_story_claim,verified_payoff,shot_map,status,semantic_state')
       .eq('id',wo.candidate_moment_id).maybeSingle(),
     client.from('momentcircuit_campaign_contracts')
       .select('id,campaign_id,campaign_name,requirements,evidence,publish_allowed,source_work_allowed,valid_until')
@@ -184,6 +206,15 @@ async function prepareWorkOrder(id:string) {
     ...collectHashtags(cc.requirements).values(),
   ])];
 
+  const existingSeg =
+    payload.render_segment && typeof payload.render_segment === 'object' && !Array.isArray(payload.render_segment)
+      ? payload.render_segment as Record<string,unknown>
+      : {};
+  const sourceStart=Number(existingSeg.start ?? 0);
+  const candidateDuration=Number(cm.end_seconds)-Number(cm.start_seconds);
+  const duration=Number(existingSeg.duration ?? candidateDuration);
+  if(!Number.isFinite(duration) || duration<=0) throw new Error('EDIT_PLAN_DURATION_INVALID');
+
   const generated = await generatePackage({
     platform:String(wo.platform),
     campaignName:String(cc.campaign_name),
@@ -191,6 +222,8 @@ async function prepareWorkOrder(id:string) {
     payoff:String(cm.verified_payoff ?? ''),
     requirements:cc.requirements,
     requiredHashtags,
+    shotMap:cm.shot_map,
+    duration,
   });
 
   const unsupported = Array.isArray(generated.unsupported_claims) ? generated.unsupported_claims.filter(Boolean) : [];
@@ -202,8 +235,26 @@ async function prepareWorkOrder(id:string) {
   }
   if (postCaption.length < 8) throw new Error('POST_CAPTION_TOO_SHORT');
 
-  const hook = generated.hook_mode === 'OPENING_CONTEXT' ? cleanHook(generated.onscreen_hook) : null;
+  const plannedHeadline=cleanHook(generated.headline ?? generated.onscreen_hook);
+  const requestedMode=generated.presentation_mode ?? (generated.hook_mode==='OPENING_CONTEXT'?'HEADLINE_CARD_PLUS_DYNAMIC_SUBTITLES':'NATIVE_SOURCE_ONLY');
+  const hook = requestedMode==='NATIVE_SOURCE_ONLY' ? null : plannedHeadline;
   const hookMode = hook ? 'OPENING_CONTEXT' : 'NONE';
+  const editPlan=buildVerifiedEditPlan({
+    decision:{
+      presentation_mode:requestedMode,
+      source_layout:generated.source_layout,
+      focus_x:generated.focus_x,
+      shots:generated.shots,
+      headline:hook,
+      headline_duration:generated.headline_duration,
+    },
+    start:sourceStart,
+    duration,
+    caption_cues:verifiedCues,
+    captions_required:true,
+    disclosure:typeof existingSeg.disclosure==='string'?existingSeg.disclosure:undefined,
+    disclosure_mode:(existingSeg.disclosure_mode as 'none'|'opening'|'persistent'|undefined)??'none',
+  });
   const specificity = Math.max(0,Math.min(1,Number(generated.specificity ?? 0)));
   const nativeVoice = Math.max(0,Math.min(1,Number(generated.native_voice ?? 0)));
   if (specificity < 0.78 || nativeVoice < 0.80) throw new Error('AI_PACKAGE_QUALITY_BELOW_FLOOR');
@@ -234,26 +285,14 @@ async function prepareWorkOrder(id:string) {
   });
   if (pe) throw new Error(`CAPTION_PACKAGE_WRITE_FAILED: ${pe.message}`);
 
-  const oldSeg =
-    payload.render_segment && typeof payload.render_segment === 'object' && !Array.isArray(payload.render_segment)
-      ? payload.render_segment as Record<string,unknown>
-      : {};
-  const renderSegment:Record<string,unknown> = {
-    ...oldSeg,
-    caption_cues:verifiedCues,
-    caption_mode:'PHRASE_CUES_ONLY',
-    require_word_captions:true,
-    preserve_source_audio:true,
-    hook_text:hook,
-    hook_duration:hook ? Math.min(2.5,Number(oldSeg.hook_duration ?? 2.2)) : 0,
-  };
-
-  payload.render_segment=renderSegment;
+  payload.edit_plan=editPlan;
+  // Dispatcher compatibility: render_segment is now the exact canonical EditPlan, not a second renderer dialect.
+  payload.render_segment=editPlan;
   payload.selected_packaging=postCaption;
   payload.required_hashtags=requiredHashtags;
   payload.quality_inputs=qualityInputs;
   payload.caption_package_id=packageId;
-  payload.prepare_version='AI_PREPARE_V1';
+  payload.prepare_version='AI_EDIT_PLAN_VNEXT_1';
   payload.prepared_at=new Date().toISOString();
   if (wo.platform==='youtube') {
     const yt = cleanCaption(String(generated.youtube_title ?? ''));

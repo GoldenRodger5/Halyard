@@ -2,6 +2,8 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import sharp from 'sharp';
 import { renderMomentCircuitOverlay } from '@/lib/momentcircuit/overlay';
+import { adaptLegacySegment, type EditSegment, type PresentationMode, type SourceLayout, type ShotPlan, type HeadlinePlan } from '@/lib/momentcircuit/edit-plan';
+import { shotDuration, sourcePreservingFilter, validateProtectedFocus } from '@/lib/momentcircuit/geometry';
 import crypto from 'node:crypto';
 import fsp from 'node:fs/promises';
 import fs from 'node:fs';
@@ -44,7 +46,6 @@ class SourceTooLargeError extends Error {
   }
 }
 
-type Family = 'native_people' | 'gameplay_focus' | 'cinematic_focus';
 type DisclosureMode = 'none' | 'opening' | 'persistent';
 
 interface CaptionWord {
@@ -60,7 +61,6 @@ interface CaptionCue {
 }
 
 interface Segment {
-  family?: Family;
   start?: number;
   duration: number;
   focus_x?: number;
@@ -78,8 +78,16 @@ interface Segment {
   caption_mode?: 'PHRASE_CUES_ONLY';
   caption_text?: string;
   require_word_captions?: boolean;
+  edit_plan_version?: number;
+  presentation_mode?: PresentationMode;
+  source_layout?: SourceLayout;
+  shots?: ShotPlan[];
+  headline?: HeadlinePlan;
+  captions_required?: boolean;
 }
 interface Variant { id: string; filename?: string; segments: Segment[]; }
+interface CanonicalVariant { id: string; filename?: string; segments: EditSegment[]; }
+
 interface RenderPayload {
   source_url: string;
   campaign_id?: string;
@@ -247,99 +255,6 @@ async function prepareSource(
     return { input: remote, mode: 'remote_seek', bytes: error.declaredBytes };
   }
 }
-function artifactText(value: string) {
-  return /(Dialogue:|Style:|Script Info|Format:|-->|,Cap,,|(?:^|\s)\d{1,2}:\d{2}:\d{2}[.,]\d+)/i.test(value);
-}
-
-function cleanCaptionWord(raw: CaptionWord, duration: number): CaptionWord {
-  const start = Number(raw.start);
-  const end = Number(raw.end);
-  const text = String(raw.text ?? '').trim().replace(/\s+/g, ' ');
-  if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || end <= start || end > duration + 0.15) {
-    throw new Error('CAPTION_TIME_INVALID');
-  }
-  if (!text) throw new Error('CAPTION_TEXT_EMPTY');
-  if (artifactText(text)) throw new Error('RAW_SUBTITLE_ARTIFACT_TOKEN');
-  return { start, end, text };
-}
-
-function cleanCaptionCue(raw: CaptionCue, duration: number): CaptionCue {
-  const start = Number(raw.start);
-  const end = Number(raw.end);
-  const text = String(raw.text ?? '').trim().replace(/\s+/g, ' ');
-  if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || end <= start || end > duration + 0.15) {
-    throw new Error('CAPTION_TIME_INVALID');
-  }
-  if (!text) throw new Error('CAPTION_TEXT_EMPTY');
-  if (artifactText(text)) throw new Error('RAW_SUBTITLE_ARTIFACT_TOKEN');
-  if (/("start"|"end"|\{.*\}|\[.*\])/i.test(text)) throw new Error('CAPTION_SERIALIZATION_ARTIFACT');
-  return { start, end, text: text.slice(0, 90) };
-}
-
-function captionCues(seg: Segment): CaptionCue[] {
-  const duration = Number(seg.duration);
-
-  if (Array.isArray(seg.caption_cues)) {
-    const cues = seg.caption_cues
-      .map((x) => cleanCaptionCue(x, duration))
-      .sort((a, b) => a.start - b.start);
-    if (seg.caption_mode === 'PHRASE_CUES_ONLY' && cues.length === 0) throw new Error('CAPTIONS_REQUIRED');
-    if (seg.require_word_captions && cues.length === 0) throw new Error('CAPTIONS_REQUIRED');
-    return cues;
-  }
-
-  const raw = Array.isArray(seg.caption_words)
-    ? seg.caption_words.map((x) => cleanCaptionWord(x, duration)).sort((a,b)=>a.start-b.start)
-    : [];
-
-  if (seg.caption_mode === 'PHRASE_CUES_ONLY' && raw.length > 0) {
-    throw new Error('LEGACY_CAPTION_WORDS_FORBIDDEN_IN_V4');
-  }
-  if (seg.require_word_captions && raw.length === 0) throw new Error('CAPTIONS_REQUIRED');
-  if (raw.length === 0) return [];
-
-  const wordLike = raw.filter((x) => x.text.split(/\s+/).length <= 2).length / raw.length >= 0.7;
-  if (!wordLike) {
-    return raw.map((x) => ({ start: x.start, end: x.end, text: x.text.slice(0, 90) }));
-  }
-
-  const out: CaptionCue[] = [];
-  let words: string[] = [];
-  let start = raw[0]!.start;
-  let end = raw[0]!.end;
-  let previousEnd = raw[0]!.start;
-
-  const flush = () => {
-    if (!words.length) return;
-    out.push({ start, end, text: words.join(' ').slice(0, 90) });
-    words = [];
-  };
-
-  for (const item of raw) {
-    const nextWords = [...words, item.text];
-    const nextText = nextWords.join(' ');
-    const gap = item.start - previousEnd;
-    const span = item.end - start;
-    const previousEndedSentence = words.length > 0 && /[.!?]$/.test(words[words.length - 1]!);
-    const shouldBreak = words.length > 0 && (
-      nextWords.length > 6 ||
-      nextText.length > 42 ||
-      span > 1.9 ||
-      gap > 0.42 ||
-      previousEndedSentence
-    );
-    if (shouldBreak) {
-      flush();
-      start = item.start;
-    }
-    words.push(item.text);
-    end = item.end;
-    previousEnd = item.end;
-  }
-  flush();
-  return out;
-}
-
 async function overlay(file: string, seg: Segment, kind: 'hook'|'required'|'persistent'|'caption') {
   const safeSeg = kind === 'hook'
     ? { ...seg, hook_line1: seg.hook_line1 ?? seg.hook_text }
@@ -347,58 +262,54 @@ async function overlay(file: string, seg: Segment, kind: 'hook'|'required'|'pers
   const png = await renderMomentCircuitOverlay(safeSeg, kind);
   await fsp.writeFile(file, png);
 }
-function base(family: Family, focus: number, cropMode: Segment['crop_mode'] = 'speaker') {
-  if (family === 'native_people') {
-    if (cropMode === 'two_shot') {
-      return '[0:v]scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2:color=black,format=yuv420p[v0]';
-    }
-    return `[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920:(in_w-1080)*${focus.toFixed(4)}:(in_h-1920)/2,format=yuv420p[v0]`;
-  }
-  const brightness = family === 'gameplay_focus' ? '-0.26' : '-0.20';
-  const saturation = family === 'gameplay_focus' ? '0.76' : '0.88';
-  const y = family === 'gameplay_focus' ? 600 : 575;
-  return '[0:v]split=2[bg0][fg0];' +
-    `[bg0]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,gblur=sigma=30,eq=brightness=${brightness}:saturation=${saturation}[bg];` +
-    '[fg0]scale=1020:574:force_original_aspect_ratio=decrease,pad=1020:574:(ow-iw)/2:(oh-ih)/2:color=black[fg];' +
-    `[bg]drawbox=x=26:y=${y-4}:w=1028:h=582:color=white@0.20:t=3[fr];[fr][fg]overlay=30:${y}[v0]`;
+function base(layout: SourceLayout, focus: number) {
+  return sourcePreservingFilter(layout,focus);
 }
-async function segment(source: string, output: string, seg: Segment, work: string, i: number) {
-  const duration = Number(seg.duration);
-  if (!(duration > 0 && duration <= 180)) throw new Error('BAD_SEGMENT_DURATION');
-  const family = seg.family ?? 'native_people';
-  const focus = Math.max(0, Math.min(1, seg.focus_x ?? .5));
-  const cropMode = seg.crop_mode ?? (family === 'native_people' ? 'speaker' : 'action');
+
+async function renderVisualShot(source:string,output:string,sourceStart:number,shot:ShotPlan){
+  validateProtectedFocus(shot);
+  const duration=shotDuration(shot);
+  const args=['-y'];
+  if(sourceStart>0) args.push('-ss',String(sourceStart));
+  args.push('-t',String(duration));
+  if(/^https:\/\//i.test(source)){
+    args.push('-user_agent','MomentCircuitVercel/1.0','-reconnect','1','-reconnect_streamed','1','-reconnect_delay_max','5','-rw_timeout','30000000');
+  }
+  args.push('-i',source,'-filter_complex',base(shot.layout,shot.focus_x),'-map','[v0]','-map','0:a?','-c:v','libx264','-crf','18','-preset','veryfast','-c:a','aac','-b:a','192k','-movflags','+faststart','-shortest',output);
+  await run(args);
+}
+
+async function segment(source: string, output: string, seg: EditSegment, work: string, i: number) {
+  const visualParts:string[]=[];
+  for(const [si,shot] of seg.shots.entries()){
+    const shotFile=path.join(work,`visual-${i}-${si}.mp4`);
+    await renderVisualShot(source,shotFile,seg.start+shot.start,shot);
+    visualParts.push(shotFile);
+  }
+  const visual=path.join(work,`visual-${i}.mp4`);
+  await concat(visualParts,visual,work);
   const hook = path.join(work,`hook-${i}.png`), req = path.join(work,`req-${i}.png`), disc = path.join(work,`disc-${i}.png`);
-  const cues = captionCues(seg);
+  const cues = seg.caption_cues;
   const captionFiles: string[] = [];
-  await overlay(hook,seg,'hook'); await overlay(req,seg,'required'); await overlay(disc,seg,'persistent');
+  await overlay(hook,{
+    duration:seg.duration,
+    hook_line1:seg.headline?.text,
+    disclosure:seg.disclosure,
+    disclosure_mode:seg.disclosure_mode,
+  },'hook');
+  await overlay(req,{duration:seg.duration},'required');
+  await overlay(disc,{duration:seg.duration,disclosure:seg.disclosure,disclosure_mode:seg.disclosure_mode},'persistent');
   for (let ci=0; ci<cues.length; ci++) {
     const file = path.join(work,`caption-${i}-${ci}.png`);
     await overlay(file,{...seg,caption_text:cues[ci]!.text},'caption');
     captionFiles.push(file);
   }
-  const args = ['-y'];
-  if ((seg.start ?? 0) > 0) args.push('-ss',String(seg.start));
-  args.push('-t',String(duration));
-  if (/^https:\/\//i.test(source)) {
-    args.push(
-      '-user_agent','MomentCircuitVercel/1.0',
-      '-reconnect','1',
-      '-reconnect_streamed','1',
-      '-reconnect_delay_max','5',
-      '-rw_timeout','30000000',
-    );
-  }
-  args.push('-i',source,'-loop','1','-i',hook,'-loop','1','-i',req,'-loop','1','-i',disc);
+  const args = ['-y','-i',visual,'-loop','1','-i',hook,'-loop','1','-i',req,'-loop','1','-i',disc];
   for (const file of captionFiles) args.push('-loop','1','-i',file);
-  let filter = base(family,focus,cropMode), cur='[v0]';
-  if (seg.hook_line1 || seg.hook_line2 || seg.hook_text || (seg.disclosure && seg.disclosure_mode==='opening')) {
-    const hd=Math.max(.6,Math.min(3.5,seg.hook_duration ?? 1.15));
-    filter += `;${cur}[1:v]overlay=0:0:enable='between(t,0,${hd})'[v1]`; cur='[v1]';
-  }
-  if (seg.required_text) {
-    const rd=Number(seg.required_duration ?? 0), en=rd>0?`enable='between(t,0,${rd})'`:'enable=1';
-    filter += `;${cur}[2:v]overlay=0:0:${en}[v2]`; cur='[v2]';
+  let filter = '[0:v]format=yuv420p[v0]', cur='[v0]';
+  if (seg.headline || (seg.disclosure && seg.disclosure_mode==='opening')) {
+    const hs=seg.headline?.start ?? 0, he=seg.headline?.end ?? Math.min(seg.duration,1.8);
+    filter += `;${cur}[1:v]overlay=0:0:enable='between(t,${hs.toFixed(3)},${he.toFixed(3)})'[v1]`; cur='[v1]';
   }
   if (seg.disclosure && seg.disclosure_mode==='persistent') {
     filter += `;${cur}[3:v]overlay=0:0[v3]`; cur='[v3]';
@@ -439,26 +350,13 @@ async function upload(client: ReturnType<typeof db>, file: string, object: strin
 }
 function normalize(p: RenderPayload) {
   if (!p?.source_url) throw new Error('SOURCE_URL_REQUIRED');
-  const variants=p.variants?.length?p.variants:[{id:p.variant_id??'master',filename:p.filename??'momentcircuit.mp4',segments:p.segments??[]}];
-  if (variants.some((v)=>!v.segments.length)) throw new Error('SEGMENTS_REQUIRED');
-  for (const variant of variants) {
-    for (const seg of variant.segments) {
-      if ((seg.hook_line1?.length ?? 0) > 42 || (seg.hook_line2?.length ?? 0) > 42 || (seg.hook_text?.length ?? 0) > 56) {
-        throw new Error('HOOK_LINE_TOO_LONG');
-      }
-      if (artifactText(seg.hook_line1 ?? '') || artifactText(seg.hook_line2 ?? '') || artifactText(seg.hook_text ?? '')) {
-        throw new Error('RAW_SUBTITLE_ARTIFACT_TOKEN');
-      }
-      if ((seg.hook_duration ?? 1) > 3.5) throw new Error('HOOK_DURATION_TOO_LONG');
-      captionCues(seg);
-      if ((seg.start ?? 0) < 0) throw new Error('BAD_SEGMENT_START');
-      if (seg.crop_mode === 'speaker' && (seg.focus_x ?? .5) < .05) throw new Error('SPEAKER_CROP_TOO_FAR_LEFT');
-      if (seg.crop_mode === 'speaker' && (seg.focus_x ?? .5) > .95) throw new Error('SPEAKER_CROP_TOO_FAR_RIGHT');
-      if (seg.disclosure_mode && seg.disclosure_mode !== 'none' && !seg.disclosure) {
-        throw new Error('DISCLOSURE_MODE_WITHOUT_TEXT');
-      }
-    }
-  }
+  const inbound=p.variants?.length?p.variants:[{id:p.variant_id??'master',filename:p.filename??'momentcircuit.mp4',segments:p.segments??[]}];
+  if (inbound.some((v)=>!v.segments.length)) throw new Error('SEGMENTS_REQUIRED');
+  const variants: CanonicalVariant[] = inbound.map((variant)=>({
+    id:variant.id,
+    filename:variant.filename,
+    segments:variant.segments.map((seg)=>adaptLegacySegment(seg)),
+  }));
   return {...p,variants};
 }
 async function execute(id: string) {
@@ -491,7 +389,7 @@ async function execute(id: string) {
       const actualDuration=await probeDuration(final).catch(()=>duration);
       const safeDuration=Math.max(.1,Math.min(duration,Math.max(.1,actualDuration-.08)));
       const contact=await sheet(final,safeDuration,work,vid);
-      const tech={width:1080,height:1920,codec:'h264',duration_seconds:actualDuration,size_bytes:stat.size,source_bytes:preparedSource.bytes,source_mode:preparedSource.mode,template_system:'template-system-v3-2026-09-27',caption_renderer:'png_cue_layers_v2',subtitle_serialization_used:false};
+      const tech={width:1080,height:1920,codec:'h264',duration_seconds:actualDuration,size_bytes:stat.size,source_bytes:preparedSource.bytes,source_mode:preparedSource.mode,template_system:'momentcircuit-edit-plan-v1',caption_renderer:'phrase-cues-only-vnext',subtitle_serialization_used:false};
       const techFile=path.join(work,`${vid}-technical.json`); await fsp.writeFile(techFile,JSON.stringify(tech,null,2));
       const basePath=`${PREFIX}${safe(id)}/${crypto.randomUUID()}`;
       variants.push({

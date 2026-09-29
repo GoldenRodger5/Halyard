@@ -1,0 +1,30 @@
+import {describe,expect,it} from 'vitest';
+import {assessCaptionAlignment,normalizeSpeech} from './av-qc';
+
+describe('MomentCircuit final audio/caption alignment',()=>{
+  it('normalizes punctuation and smart apostrophes',()=>{
+    expect(normalizeSpeech("Georgia looked at me. She goes, ‘That was genius.’")).toEqual(['georgia','looked','at','me','she','goes','that','was','genius']);
+  });
+  it('passes an accurate final transcript with natural filler',()=>{
+    const r=assessCaptionAlignment(
+      ['Have you ever had purple Doritos?',"He said, yeah. I go, that's Thai food.",'Georgia looked at me.',"She goes, that was genius."],
+      "Have you ever had purple Doritos? He said yeah and I go that's Thai food. Georgia looked at me. She goes that was genius."
+    );
+    expect(r.pass).toBe(true); expect(r.overall_coverage).toBeGreaterThan(.9); expect(r.payoff_coverage).toBe(1);
+  });
+  it('fails when the payoff audio is missing even if setup matches',()=>{
+    const r=assessCaptionAlignment(
+      ['Have you ever had purple Doritos?',"He said, yeah. I go, that's Thai food.",'Georgia looked at me.',"She goes, that was genius."],
+      "Have you ever had purple Doritos? He said yeah. I go that's Thai food. Georgia looked at me."
+    );
+    expect(r.pass).toBe(false); expect(r.payoff_coverage).toBeLessThan(.72);
+  });
+  it('fails a materially wrong subtitle transcript',()=>{
+    const r=assessCaptionAlignment(['I got fired from McDonalds for stealing chicken nuggets'],'I worked there for a long time and then I went home.');
+    expect(r.pass).toBe(false); expect(r.overall_coverage).toBeLessThan(.5);
+  });
+  it('does not invent a speech requirement for clips without caption phrases',()=>{
+    expect(assessCaptionAlignment([],'hello there').pass).toBe(true);
+    expect(assessCaptionAlignment([],'').pass).toBe(true);
+  });
+});
