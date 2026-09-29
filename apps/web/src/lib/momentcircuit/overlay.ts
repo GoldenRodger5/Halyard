@@ -1,11 +1,12 @@
 import { box, renderElement, text as satoriText, type SatoriElement } from '@halyard/render/image';
 
-export type MomentCircuitOverlayKind = 'hook' | 'required' | 'persistent';
+export type MomentCircuitOverlayKind = 'hook' | 'required' | 'persistent' | 'caption';
 
 export interface MomentCircuitOverlaySegment {
   hook_line1?: string;
   hook_line2?: string;
   required_text?: string;
+  caption_text?: string;
   disclosure?: string;
   disclosure_mode?: 'none' | 'opening' | 'persistent';
 }
@@ -13,7 +14,14 @@ export interface MomentCircuitOverlaySegment {
 const WIDTH = 1080;
 const HEIGHT = 1920;
 
+const RAW_SUBTITLE_ARTIFACT_RE = /(Dialogue:|Style:|Script Info|Format:|-->|,Cap,,|(?:^|\s)\d{1,2}:\d{2}:\d{2}[.,]\d+)/i;
+
+export function assertCleanOverlayText(value: string): void {
+  if (RAW_SUBTITLE_ARTIFACT_RE.test(value)) throw new Error('OVERLAY_RAW_SUBTITLE_ARTIFACT');
+}
+
 function portableText(value: string): string {
+  assertCleanOverlayText(value);
   const normalized = value
     .normalize('NFC')
     .replace(/[\u2018\u2019]/g, "'")
@@ -117,6 +125,32 @@ function requiredSubtitle(value: string): SatoriElement {
   );
 }
 
+function captionSubtitle(value: string): SatoriElement {
+  const safe = portableText(value.trim().slice(0, 90));
+  return box(
+    {
+      position: 'absolute',
+      top: 1370,
+      left: 72,
+      width: 936,
+      minHeight: 96,
+      padding: '16px 26px',
+      borderRadius: 18,
+      backgroundColor: 'rgba(0,0,0,0.64)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    satoriText(safe, {
+      fontFamily: 'Inter',
+      fontWeight: 700,
+      fontSize: 46,
+      lineHeight: 1.12,
+      color: '#ffffff',
+      textAlign: 'center',
+    }),
+  );
+}
+
 export async function renderMomentCircuitOverlay(
   segment: MomentCircuitOverlaySegment,
   kind: MomentCircuitOverlayKind,
@@ -133,6 +167,8 @@ export async function renderMomentCircuitOverlay(
     children.push(requiredSubtitle(segment.required_text));
   } else if (kind === 'persistent' && segment.disclosure) {
     children.push(disclosureBadge(segment.disclosure));
+  } else if (kind === 'caption' && segment.caption_text) {
+    children.push(captionSubtitle(segment.caption_text));
   }
 
   const root = box(

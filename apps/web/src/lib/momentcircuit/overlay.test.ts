@@ -1,6 +1,6 @@
 import sharp from 'sharp';
 import { describe, expect, it } from 'vitest';
-import { renderMomentCircuitOverlay } from './overlay';
+import { assertCleanOverlayText, renderMomentCircuitOverlay } from './overlay';
 
 describe('MomentCircuit portable overlays', () => {
   it('renders campaign-required subtitle text with bundled fonts', async () => {
@@ -60,5 +60,28 @@ describe('MomentCircuit portable overlays', () => {
     await expect(
       renderMomentCircuitOverlay({ hook_line1: 'Great clip 🔥' }, 'hook'),
     ).rejects.toThrow('OVERLAY_UNSUPPORTED_GLYPH');
+  });
+  it('renders caption cue text as a dedicated visual layer', async () => {
+    const png = await renderMomentCircuitOverlay(
+      { caption_text: 'Never mind. This is a horrible idea.' },
+      'caption',
+    );
+    const meta = await sharp(png).metadata();
+    expect(meta.width).toBe(1080);
+    expect(meta.height).toBe(1920);
+    const stats = await sharp(png).stats();
+    expect(stats.channels[3]!.max).toBeGreaterThan(0);
+  });
+
+  it('rejects raw ASS/SRT/timestamp serialization before rasterization', () => {
+    expect(() =>
+      assertCleanOverlayText('0:00:01.68,0:00:03.35,Cap,,0,0,0,,YOU AND MY COUPLES THERAPIST'),
+    ).toThrow('OVERLAY_RAW_SUBTITLE_ARTIFACT');
+    expect(() => assertCleanOverlayText('Dialogue: 0,0:00:01.68,0:00:03.35,Cap,text')).toThrow(
+      'OVERLAY_RAW_SUBTITLE_ARTIFACT',
+    );
+    expect(() => assertCleanOverlayText('00:00:01,680 --> 00:00:03,350')).toThrow(
+      'OVERLAY_RAW_SUBTITLE_ARTIFACT',
+    );
   });
 });
