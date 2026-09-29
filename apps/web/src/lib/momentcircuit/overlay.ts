@@ -71,6 +71,23 @@ function centeredText(content: string, top: number, size: number, color: string,
   );
 }
 
+function balancedHookLines(value: string): string[] {
+  const safe = portableText(value.trim().slice(0, 56));
+  if (!safe) return [];
+  if (safe.length <= 24) return [safe];
+  const words = safe.split(/\s+/);
+  let best = 1;
+  let bestDiff = Number.POSITIVE_INFINITY;
+  for (let i=1;i<words.length;i++) {
+    const a=words.slice(0,i).join(' ');
+    const b=words.slice(i).join(' ');
+    if (a.length>30 || b.length>30) continue;
+    const diff=Math.abs(a.length-b.length);
+    if (diff<bestDiff){best=i;bestDiff=diff;}
+  }
+  return [words.slice(0,best).join(' '),words.slice(best).join(' ')].filter(Boolean);
+}
+
 function outlinedText(content: string, top: number, size: number): SatoriElement[] {
   const safe = portableText(content.trim().slice(0, 42));
   if (!safe) return [];
@@ -166,8 +183,13 @@ export async function renderMomentCircuitOverlay(
   const children: SatoriElement[] = [];
 
   if (kind === 'hook') {
-    children.push(...outlinedText(segment.hook_line1 ?? '', 305, 56));
-    children.push(...outlinedText(segment.hook_line2 ?? '', 382, 48));
+    const primary = balancedHookLines(segment.hook_line1 ?? '');
+    const secondary = balancedHookLines(segment.hook_line2 ?? '');
+    if (primary[0]) children.push(...outlinedText(primary[0], 300, primary.length > 1 ? 50 : 56));
+    if (primary[1]) children.push(...outlinedText(primary[1], 366, 50));
+    const secondaryTop = primary.length > 1 ? 432 : 382;
+    if (secondary[0]) children.push(...outlinedText(secondary[0], secondaryTop, 44));
+    if (secondary[1]) children.push(...outlinedText(secondary[1], secondaryTop + 56, 44));
     if (segment.disclosure && segment.disclosure_mode === 'opening') {
       children.push(disclosureBadge(segment.disclosure));
     }
