@@ -27,6 +27,7 @@ describe('MomentCircuit permanent production regression corpus',()=>{
     const split=sourcePreservingFilter('SPLIT_SCREEN',.5);
     expect(split).toContain('crop=iw*0.445:ih*0.92'); expect(split).toContain('vstack=inputs=2'); expect(split).not.toContain('gblur');
   });
+  it('R06b keeps active-speaker crops inside verified split-screen speaker panels',()=>{const left=sourcePreservingFilter('SINGLE_SPEAKER',.18,'SPLIT_SCREEN');const right=sourcePreservingFilter('SINGLE_SPEAKER',.82,'SPLIT_SCREEN');expect(left).toContain('crop=iw*0.35:ih*0.84:iw*0.05');expect(right).toContain('crop=iw*0.34:ih*0.78:iw*0.44');});
   it('R07 fails a final audio transcript missing the payoff',()=>{
     const r=assessCaptionAlignment(['setup words','the final payoff lands here'],'setup words and then it cuts');
     expect(r.pass).toBe(false);
