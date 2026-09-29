@@ -165,7 +165,7 @@ function classifyFailureScope(verdict: {
   if (/(disclosure|paid promotion|sponsor tag|compliance|forbidden topic|brief violation)/i.test(corpus)) {
     return 'COMPLIANCE';
   }
-  if (/(captions?_missing|caption_missing|missing captions?|no spoken subtitles|no visible subtitles|subtitle track missing|expected captions?.*missing)/i.test(corpus)) {
+  if (/(captions?_missing|caption_missing|missing captions?|no spoken subtitles|no visible subtitles|subtitle track missing|expected captions?.*missing|caption_audio_mismatch|audio\/caption gate failed)/i.test(corpus)) {
     return 'GENERATION_SYSTEMIC';
   }
   if (/(template_ai_slop|template_crop_artifact|template padding|border template|white strip|canvas leak|non-native canvas|systemic crop)/i.test(corpus)) {
@@ -435,6 +435,15 @@ async function processRender(renderId: string) {
       }).eq('id',rj.id);
 
       if (failureScope !== 'CREATIVE_LOCAL') {
+        if (failureScope === 'INFRASTRUCTURE' || failureScope === 'GENERATION_SYSTEMIC') {
+          const rendererRelease=process.env.VERCEL_GIT_COMMIT_SHA ?? process.env.HALYARD_RELEASE ?? 'unknown';
+          const {error:circuitError}=await client.rpc('momentcircuit_open_quality_circuit',{
+            p_platform:String(wo.platform),p_failure_scope:failureScope,p_renderer_release:rendererRelease,
+            p_reason:String(verdict.repairPlan?.dominant_problem ?? verdict.defects?.[0]?.evidence ?? verdict.summary ?? 'systemic quality failure'),
+            p_evidence:{work_order_id:wo.id,render_job_id:rj.id,qc_report_id:qcId,quality_layers:qualityLayers,defects:verdict.defects},
+          });
+          if(circuitError) throw new Error(`QUALITY_CIRCUIT_OPEN_FAILED: ${circuitError.message}`);
+        }
         await client.from('momentcircuit_creative_work_orders').update({
           status:'repair_required',
           updated_at:new Date().toISOString(),
@@ -481,14 +490,11 @@ async function processRender(renderId: string) {
         };
       }
 
-      const {count} = await client.from('momentcircuit_ai_repair_queue')
-        .select('id',{count:'exact',head:true})
-        .eq('work_order_id',wo.id)
-        .eq('failure_scope','CREATIVE_LOCAL');
-      const attempt = Number(count ?? 0);
-      const repaired = attempt < 2 ? applyRepair(wo.payload as Record<string,unknown>,verdict.repairPlan) : null;
+      const attempt = Math.max(0,Number((wo.payload as Record<string,unknown>)?.vnext_creative_repairs ?? 0));
+      const repaired = attempt < 1 ? applyRepair(wo.payload as Record<string,unknown>,verdict.repairPlan) : null;
 
       if (repaired) {
+        repaired.vnext_creative_repairs=attempt+1;
         await client.from('momentcircuit_creative_work_orders').update({
           payload:repaired,
           status:'ready_to_render',
@@ -501,7 +507,10 @@ async function processRender(renderId: string) {
         await client.rpc('momentcircuit_dispatch_pending_renders',{p_limit:8});
         return {ok:false,qc_id:qcId,failure_scope:failureScope,repair_enqueued:true,defects:verdict.defects,repair_plan:verdict.repairPlan};
       }
-      return {ok:false,qc_id:qcId,failure_scope:failureScope,replace_moment:true,defects:verdict.defects,repair_plan:verdict.repairPlan};
+      await client.from('momentcircuit_creative_work_orders').update({status:'critic_fail',updated_at:new Date().toISOString()}).eq('id',wo.id);
+      await client.from('momentcircuit_ai_repair_queue').update({state:'REPLACE_MOMENT',updated_at:new Date().toISOString()})
+        .eq('work_order_id',wo.id).eq('failure_scope','CREATIVE_LOCAL').eq('state','QUEUED');
+      return {ok:false,qc_id:qcId,failure_scope:failureScope,replace_moment:true,creative_repairs_consumed:attempt,defects:verdict.defects,repair_plan:verdict.repairPlan};
     }
 
     const {data:validationId,error:ve} = await client.rpc('momentcircuit_record_validation',{

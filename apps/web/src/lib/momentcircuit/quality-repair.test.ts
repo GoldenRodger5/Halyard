@@ -33,3 +33,34 @@ describe('Upstream targeted reframe compatibility',()=>{
  it('keeps reframe and hook repair without old text precedence',()=>{const s=applyRepair(input(),{action:'REFRAME_AND_HOOK',new_focus_x:0.65,new_hook_text:'A clearer hook'})!.render_segment as TestSegment;expect(s.focus_x).toBe(0.65);expect(s.hook_line1).toBeUndefined();expect(s.hook_text).toBe('A clearer hook');});
  it('rejects missing or invalid reframe coordinates',()=>{expect(applyRepair(input(),{action:'REFRAME'})).toBeNull();expect(applyRepair(input(),{action:'REFRAME',new_focus_x:2})).toBeNull();});
 });
+
+describe('MomentCircuit vNext repair bounds',()=>{
+  const vnext=()=>({render_segment:{edit_plan_version:1,start:100,duration:10,presentation_mode:'HEADLINE_CARD_PLUS_DYNAMIC_SUBTITLES',source_layout:'SINGLE_SPEAKER',shots:[{start:0,end:10,focus_x:.5,layout:'SINGLE_SPEAKER'}],headline:{text:'Old headline',start:0,end:2},caption_cues:[{start:0,end:2,text:'first words'},{start:8,end:10,text:'last words'}],captions_required:true,disclosure_mode:'none'}});
+  it('reframes the first planned shot without reverting to legacy focus fields',()=>{
+    const out=applyRepair(vnext(),{action:'REFRAME',new_focus_x:.35})!;
+    const seg=out.render_segment as any;
+    expect(seg.shots[0].focus_x).toBe(.35);
+    expect(seg.focus_x).toBeUndefined();
+    expect((out.edit_plan as any).shots[0].focus_x).toBe(.35);
+  });
+  it('replaces the native headline in the canonical plan',()=>{
+    const out=applyRepair(vnext(),{action:'REPLACE_HOOK',new_hook_text:'Better context for this clip'})!;
+    expect((out.render_segment as any).headline.text).toBe('Better context for this clip');
+  });
+  it('removes headline by returning to source-only treatment while preserving captions',()=>{
+    const out=applyRepair(vnext(),{action:'REMOVE_HOOK'})!;
+    const seg=out.render_segment as any;
+    expect(seg.presentation_mode).toBe('NATIVE_SOURCE_ONLY');
+    expect(seg.headline).toBeUndefined();
+    expect(seg.caption_cues).toHaveLength(2);
+  });
+  it('retimes shots and cues together on trim',()=>{
+    const out=applyRepair(vnext(),{action:'TRIM_START',trim_start_seconds:1})!;
+    const seg=out.render_segment as any;
+    expect(seg.start).toBe(101);
+    expect(seg.duration).toBe(9);
+    expect(seg.shots[0].start).toBe(0);
+    expect(seg.shots.at(-1).end).toBe(9);
+    expect(seg.caption_cues.at(-1)).toEqual({start:7,end:9,text:'last words'});
+  });
+});
