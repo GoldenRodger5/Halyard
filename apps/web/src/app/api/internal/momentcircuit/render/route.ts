@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import sharp from 'sharp';
 import { renderMomentCircuitOverlay } from '@/lib/momentcircuit/overlay';
+import { adaptLegacySegment, type EditSegment, type PresentationMode, type SourceLayout, type ShotPlan, type HeadlinePlan } from '@/lib/momentcircuit/edit-plan';
 import crypto from 'node:crypto';
 import fsp from 'node:fs/promises';
 import fs from 'node:fs';
@@ -60,7 +61,6 @@ interface CaptionCue {
 }
 
 interface Segment {
-  family?: Family;
   start?: number;
   duration: number;
   focus_x?: number;
@@ -78,8 +78,16 @@ interface Segment {
   caption_mode?: 'PHRASE_CUES_ONLY';
   caption_text?: string;
   require_word_captions?: boolean;
+  edit_plan_version?: number;
+  presentation_mode?: PresentationMode;
+  source_layout?: SourceLayout;
+  shots?: ShotPlan[];
+  headline?: HeadlinePlan;
+  captions_required?: boolean;
 }
 interface Variant { id: string; filename?: string; segments: Segment[]; }
+interface CanonicalVariant { id: string; filename?: string; segments: EditSegment[]; }
+
 interface RenderPayload {
   source_url: string;
   campaign_id?: string;
@@ -347,31 +355,40 @@ async function overlay(file: string, seg: Segment, kind: 'hook'|'required'|'pers
   const png = await renderMomentCircuitOverlay(safeSeg, kind);
   await fsp.writeFile(file, png);
 }
-function base(family: Family, focus: number, cropMode: Segment['crop_mode'] = 'speaker') {
-  if (family === 'native_people') {
-    if (cropMode === 'two_shot') {
-      return '[0:v]scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2:color=black,format=yuv420p[v0]';
-    }
-    return `[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920:(in_w-1080)*${focus.toFixed(4)}:(in_h-1920)/2,format=yuv420p[v0]`;
+function base(layout: SourceLayout, focus: number) {
+  if (layout === 'VERTICAL_NATIVE') {
+    return '[0:v]scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2:color=black,format=yuv420p[v0]';
   }
-  const brightness = family === 'gameplay_focus' ? '-0.26' : '-0.20';
-  const saturation = family === 'gameplay_focus' ? '0.76' : '0.88';
-  const y = family === 'gameplay_focus' ? 600 : 575;
-  return '[0:v]split=2[bg0][fg0];' +
-    `[bg0]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,gblur=sigma=30,eq=brightness=${brightness}:saturation=${saturation}[bg];` +
-    '[fg0]scale=1020:574:force_original_aspect_ratio=decrease,pad=1020:574:(ow-iw)/2:(oh-ih)/2:color=black[fg];' +
-    `[bg]drawbox=x=26:y=${y-4}:w=1028:h=582:color=white@0.20:t=3[fr];[fr][fg]overlay=30:${y}[v0]`;
+  if (layout === 'TWO_SHOT' || layout === 'SPLIT_SCREEN' || layout === 'INTERVIEW') {
+    return '[0:v]scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2:color=black,format=yuv420p[v0]';
+  }
+  if (layout === 'GAMEPLAY_PLUS_FACE' || layout === 'FULLSCREEN_GAMEPLAY' || layout === 'CINEMATIC') {
+    const brightness = layout === 'FULLSCREEN_GAMEPLAY' ? '-0.26' : '-0.20';
+    const saturation = layout === 'FULLSCREEN_GAMEPLAY' ? '0.76' : '0.88';
+    const y = layout === 'FULLSCREEN_GAMEPLAY' ? 600 : 575;
+    return '[0:v]split=2[bg0][fg0];' +
+      `[bg0]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,gblur=sigma=30,eq=brightness=${brightness}:saturation=${saturation}[bg];` +
+      '[fg0]scale=1020:574:force_original_aspect_ratio=decrease,pad=1020:574:(ow-iw)/2:(oh-ih)/2:color=black[fg];' +
+      `[bg]drawbox=x=26:y=${y-4}:w=1028:h=582:color=white@0.20:t=3[fr];[fr][fg]overlay=30:${y}[v0]`;
+  }
+  return `[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920:(in_w-1080)*${focus.toFixed(4)}:(in_h-1920)/2,format=yuv420p[v0]`;
 }
-async function segment(source: string, output: string, seg: Segment, work: string, i: number) {
-  const duration = Number(seg.duration);
-  if (!(duration > 0 && duration <= 180)) throw new Error('BAD_SEGMENT_DURATION');
-  const family = seg.family ?? 'native_people';
-  const focus = Math.max(0, Math.min(1, seg.focus_x ?? .5));
-  const cropMode = seg.crop_mode ?? (family === 'native_people' ? 'speaker' : 'action');
+async function segment(source: string, output: string, seg: EditSegment, work: string, i: number) {
+  const duration = seg.duration;
+  if (seg.shots.length !== 1) throw new Error('MULTI_SHOT_REQUIRES_GEOMETRY_PHASE');
+  const shot=seg.shots[0]!;
+  const focus=shot.focus_x;
   const hook = path.join(work,`hook-${i}.png`), req = path.join(work,`req-${i}.png`), disc = path.join(work,`disc-${i}.png`);
-  const cues = captionCues(seg);
+  const cues = seg.caption_cues;
   const captionFiles: string[] = [];
-  await overlay(hook,seg,'hook'); await overlay(req,seg,'required'); await overlay(disc,seg,'persistent');
+  await overlay(hook,{
+    duration:seg.duration,
+    hook_line1:seg.headline?.text,
+    disclosure:seg.disclosure,
+    disclosure_mode:seg.disclosure_mode,
+  },'hook');
+  await overlay(req,{duration:seg.duration},'required');
+  await overlay(disc,{duration:seg.duration,disclosure:seg.disclosure,disclosure_mode:seg.disclosure_mode},'persistent');
   for (let ci=0; ci<cues.length; ci++) {
     const file = path.join(work,`caption-${i}-${ci}.png`);
     await overlay(file,{...seg,caption_text:cues[ci]!.text},'caption');
@@ -391,14 +408,10 @@ async function segment(source: string, output: string, seg: Segment, work: strin
   }
   args.push('-i',source,'-loop','1','-i',hook,'-loop','1','-i',req,'-loop','1','-i',disc);
   for (const file of captionFiles) args.push('-loop','1','-i',file);
-  let filter = base(family,focus,cropMode), cur='[v0]';
-  if (seg.hook_line1 || seg.hook_line2 || seg.hook_text || (seg.disclosure && seg.disclosure_mode==='opening')) {
-    const hd=Math.max(.6,Math.min(3.5,seg.hook_duration ?? 1.15));
-    filter += `;${cur}[1:v]overlay=0:0:enable='between(t,0,${hd})'[v1]`; cur='[v1]';
-  }
-  if (seg.required_text) {
-    const rd=Number(seg.required_duration ?? 0), en=rd>0?`enable='between(t,0,${rd})'`:'enable=1';
-    filter += `;${cur}[2:v]overlay=0:0:${en}[v2]`; cur='[v2]';
+  let filter = base(shot.layout,focus), cur='[v0]';
+  if (seg.headline || (seg.disclosure && seg.disclosure_mode==='opening')) {
+    const hs=seg.headline?.start ?? 0, he=seg.headline?.end ?? Math.min(seg.duration,1.8);
+    filter += `;${cur}[1:v]overlay=0:0:enable='between(t,${hs.toFixed(3)},${he.toFixed(3)})'[v1]`; cur='[v1]';
   }
   if (seg.disclosure && seg.disclosure_mode==='persistent') {
     filter += `;${cur}[3:v]overlay=0:0[v3]`; cur='[v3]';
@@ -439,26 +452,13 @@ async function upload(client: ReturnType<typeof db>, file: string, object: strin
 }
 function normalize(p: RenderPayload) {
   if (!p?.source_url) throw new Error('SOURCE_URL_REQUIRED');
-  const variants=p.variants?.length?p.variants:[{id:p.variant_id??'master',filename:p.filename??'momentcircuit.mp4',segments:p.segments??[]}];
-  if (variants.some((v)=>!v.segments.length)) throw new Error('SEGMENTS_REQUIRED');
-  for (const variant of variants) {
-    for (const seg of variant.segments) {
-      if ((seg.hook_line1?.length ?? 0) > 42 || (seg.hook_line2?.length ?? 0) > 42 || (seg.hook_text?.length ?? 0) > 56) {
-        throw new Error('HOOK_LINE_TOO_LONG');
-      }
-      if (artifactText(seg.hook_line1 ?? '') || artifactText(seg.hook_line2 ?? '') || artifactText(seg.hook_text ?? '')) {
-        throw new Error('RAW_SUBTITLE_ARTIFACT_TOKEN');
-      }
-      if ((seg.hook_duration ?? 1) > 3.5) throw new Error('HOOK_DURATION_TOO_LONG');
-      captionCues(seg);
-      if ((seg.start ?? 0) < 0) throw new Error('BAD_SEGMENT_START');
-      if (seg.crop_mode === 'speaker' && (seg.focus_x ?? .5) < .05) throw new Error('SPEAKER_CROP_TOO_FAR_LEFT');
-      if (seg.crop_mode === 'speaker' && (seg.focus_x ?? .5) > .95) throw new Error('SPEAKER_CROP_TOO_FAR_RIGHT');
-      if (seg.disclosure_mode && seg.disclosure_mode !== 'none' && !seg.disclosure) {
-        throw new Error('DISCLOSURE_MODE_WITHOUT_TEXT');
-      }
-    }
-  }
+  const inbound=p.variants?.length?p.variants:[{id:p.variant_id??'master',filename:p.filename??'momentcircuit.mp4',segments:p.segments??[]}];
+  if (inbound.some((v)=>!v.segments.length)) throw new Error('SEGMENTS_REQUIRED');
+  const variants: CanonicalVariant[] = inbound.map((variant)=>({
+    id:variant.id,
+    filename:variant.filename,
+    segments:variant.segments.map((seg)=>adaptLegacySegment(seg)),
+  }));
   return {...p,variants};
 }
 async function execute(id: string) {
@@ -491,7 +491,7 @@ async function execute(id: string) {
       const actualDuration=await probeDuration(final).catch(()=>duration);
       const safeDuration=Math.max(.1,Math.min(duration,Math.max(.1,actualDuration-.08)));
       const contact=await sheet(final,safeDuration,work,vid);
-      const tech={width:1080,height:1920,codec:'h264',duration_seconds:actualDuration,size_bytes:stat.size,source_bytes:preparedSource.bytes,source_mode:preparedSource.mode,template_system:'template-system-v3-2026-09-27',caption_renderer:'png_cue_layers_v2',subtitle_serialization_used:false};
+      const tech={width:1080,height:1920,codec:'h264',duration_seconds:actualDuration,size_bytes:stat.size,source_bytes:preparedSource.bytes,source_mode:preparedSource.mode,template_system:'momentcircuit-edit-plan-v1',caption_renderer:'phrase-cues-only-vnext',subtitle_serialization_used:false};
       const techFile=path.join(work,`${vid}-technical.json`); await fsp.writeFile(techFile,JSON.stringify(tech,null,2));
       const basePath=`${PREFIX}${safe(id)}/${crypto.randomUUID()}`;
       variants.push({
