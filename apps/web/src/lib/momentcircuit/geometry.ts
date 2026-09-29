@@ -20,8 +20,14 @@ export function shotDuration(shot:ShotPlan):number {
   return Number(d.toFixed(3));
 }
 
-export function sourcePreservingFilter(layout:SourceLayout,focus:number):string {
+export function sourcePreservingFilter(layout:SourceLayout,focus:number,sourceLayout?:SourceLayout):string {
   if (layout==='VERTICAL_NATIVE') return '[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920:(in_w-1080)/2:(in_h-1920)/2,format=yuv420p[v0]';
+  if (layout==='SINGLE_SPEAKER' && sourceLayout==='SPLIT_SCREEN') {
+    const panel = focus < 0.5
+      ? 'crop=iw*0.35:ih*0.84:iw*0.05:ih*0.06'
+      : 'crop=iw*0.34:ih*0.78:iw*0.44:ih*0.12';
+    return '[0:v]'+panel+',scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920:(in_w-1080)/2:(in_h-1920)/2,format=yuv420p[v0]';
+  }
   if (layout==='INTERVIEW') return '[0:v]crop=iw:ih*0.88:0:ih*0.06,scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920:(in_w-1080)*'+focus.toFixed(4)+':(in_h-1920)/2,format=yuv420p[v0]';
   if (layout==='SPLIT_SCREEN') return '[0:v]split=2[left0][right0];[left0]crop=iw*0.445:ih*0.92:iw*0.04:ih*0.04,scale=1080:960:force_original_aspect_ratio=increase,crop=1080:960[left];[right0]crop=iw*0.445:ih*0.92:iw*0.515:ih*0.04,scale=1080:960:force_original_aspect_ratio=increase,crop=1080:960[right];[left][right]vstack=inputs=2,format=yuv420p[v0]';
   if (layout==='TWO_SHOT') return '[0:v]crop=iw:ih*0.88:0:ih*0.06,scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920:(in_w-1080)/2:(in_h-1920)/2,format=yuv420p[v0]';
