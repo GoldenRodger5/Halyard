@@ -27,6 +27,7 @@ type PackageReply = {
   shots?: AiEditDecision['shots'];
   headline?: string | null;
   headline_duration?: number;
+  first_second_strategy?: 'NATIVE_COLD_OPEN' | 'REACTION_FIRST_TRIM' | 'HEADLINE_CONTEXT' | 'PAYOFF_FORWARD_TRIM' | 'AI_REVIEW_REQUIRED';
 };
 
 function db() {
@@ -98,6 +99,12 @@ async function generatePackage(args:{
   requiredHashtags:string[];
   shotMap:unknown;
   duration:number;
+  editorialProfile:unknown;
+  treatmentHint:unknown;
+  editorialThesis:string;
+  audienceTraits:string[];
+  trendTopics:string[];
+  firstSecondEvidence:string;
   revision?: {previous:PackageReply;feedback:string};
 }) {
   const key = process.env.OPENAI_API_KEY?.trim();
@@ -123,6 +130,16 @@ Style:
 - YouTube Shorts: standalone, clear premise; youtube_title must be concise and searchable without clickbait;
 - preserve every supplied required hashtag exactly.
 
+Editorial Intelligence V3:
+- treat editorial_profile and editorial_thesis as ranking/editorial evidence, never as permission to invent facts;
+- audience_traits describe the reusable viewer interest this moment serves; packaging should strengthen that promise without naming internal traits;
+- trend_topics are context, not clickbait. If trend evidence is absent/neutral, do not manufacture trend language;
+- first_second_evidence and treatment_hint describe the verified opening. Preserve a strong native opening rather than covering it with a card;
+- when cold clarity needs context, HEADLINE_CARD_OPENING is allowed, but the headline must be truthful, specific, and disappear quickly;
+- never use a weaker generic headline simply because the campaign/topic is hot;
+- do not reorder chronology in a misleading way;
+- the goal is stop power + comprehension + payoff + share/comment reason, not decorative editing.
+
 Return JSON only:
 {
  "post_caption":"8-180 chars including required hashtags",
@@ -138,7 +155,8 @@ Return JSON only:
  "focus_x":0.5,
  "shots":[],
  "headline":null,
- "headline_duration":2.4
+ "headline_duration":2.4,
+ "first_second_strategy":"NATIVE_COLD_OPEN|REACTION_FIRST_TRIM|HEADLINE_CONTEXT|PAYOFF_FORWARD_TRIM|AI_REVIEW_REQUIRED"
 }
 Set unsupported_claims to any phrase you cannot directly support from the supplied facts. If unsupported_claims is non-empty the package will be rejected.`;
 
@@ -151,6 +169,12 @@ Set unsupported_claims to any phrase you cannot directly support from the suppli
     required_hashtags:args.requiredHashtags,
     verified_shot_map:args.shotMap,
     clip_duration_seconds:args.duration,
+    editorial_profile:args.editorialProfile,
+    editorial_treatment_hint:args.treatmentHint,
+    editorial_thesis:args.editorialThesis,
+    audience_traits:args.audienceTraits,
+    trend_topics:args.trendTopics,
+    first_second_evidence:args.firstSecondEvidence,
   });
 
   const messages:Array<{role:'system'|'user'|'assistant';content:string}>=[
@@ -194,18 +218,34 @@ async function prepareWorkOrder(id:string) {
     throw new Error('STALE_PREPARE_RUN');
   }
 
-  const [{data:cm,error:ce},{data:cc,error:cce},{data:cues,error:cueError}] = await Promise.all([
+  const [
+    {data:cm,error:ce},
+    {data:cc,error:cce},
+    {data:cues,error:cueError},
+    {data:editorialProfile,error:editorialError},
+    {data:treatmentHint,error:treatmentError},
+    {data:editorialGate,error:editorialGateError},
+  ] = await Promise.all([
     client.from('momentcircuit_candidate_moments')
-      .select('id,story_family,start_seconds,end_seconds,verified_story_claim,verified_payoff,shot_map,status,semantic_state')
+      .select('id,story_family,start_seconds,end_seconds,verified_story_claim,verified_payoff,shot_map,status,semantic_state,scores,semantic_evidence')
       .eq('id',wo.candidate_moment_id).maybeSingle(),
     client.from('momentcircuit_campaign_contracts')
       .select('id,campaign_id,campaign_name,requirements,evidence,publish_allowed,source_work_allowed,valid_until')
       .eq('id',wo.campaign_contract_id).maybeSingle(),
     client.rpc('momentcircuit_verified_caption_cues',{p_candidate_moment_id:wo.candidate_moment_id}),
+    client.rpc('momentcircuit_editorial_candidate_value',{p_candidate_moment_id:wo.candidate_moment_id,p_platform:wo.platform}),
+    client.rpc('momentcircuit_editorial_treatment_decision',{p_candidate_moment_id:wo.candidate_moment_id,p_platform:wo.platform}),
+    client.rpc('momentcircuit_editorial_v3_gate',{p_candidate_moment_id:wo.candidate_moment_id,p_platform:wo.platform}),
   ]);
   if (ce || !cm) throw new Error(`MOMENT_NOT_FOUND: ${ce?.message ?? wo.candidate_moment_id}`);
   if (cce || !cc) throw new Error(`CONTRACT_NOT_FOUND: ${cce?.message ?? wo.campaign_contract_id}`);
   if (cueError) throw new Error(`CUE_LOOKUP_FAILED: ${cueError.message}`);
+  if (editorialError) throw new Error(`EDITORIAL_PROFILE_FAILED: ${editorialError.message}`);
+  if (treatmentError) throw new Error(`EDITORIAL_TREATMENT_FAILED: ${treatmentError.message}`);
+  if (editorialGateError) throw new Error(`EDITORIAL_GATE_FAILED: ${editorialGateError.message}`);
+  if (!editorialGate || editorialGate.pass !== true) {
+    throw new Error(`EDITORIAL_V3_REQUIRED: ${JSON.stringify(editorialGate ?? {})}`);
+  }
   if (!['verified','selected'].includes(String(cm.status))) throw new Error('MOMENT_NOT_VERIFIED');
   if (!String(cm.semantic_state ?? '').toUpperCase().startsWith('VERIFIED')) throw new Error('MOMENT_SEMANTIC_STATE_NOT_VERIFIED');
 
@@ -232,6 +272,13 @@ async function prepareWorkOrder(id:string) {
   const sourceStart=sourceWindow.start;
   const duration=sourceWindow.duration;
 
+  const semanticEvidence = (cm.semantic_evidence ?? {}) as Record<string,unknown>;
+  const audienceTraits = Array.isArray(semanticEvidence.audience_traits)
+    ? semanticEvidence.audience_traits.map((x)=>String(x)).filter(Boolean)
+    : [];
+  const trendTopics = Array.isArray(semanticEvidence.trend_topics)
+    ? semanticEvidence.trend_topics.map((x)=>String(x)).filter(Boolean)
+    : [];
   const packageArgs={
     platform:String(wo.platform),
     campaignName:String(cc.campaign_name),
@@ -241,6 +288,12 @@ async function prepareWorkOrder(id:string) {
     requiredHashtags,
     shotMap:cm.shot_map,
     duration,
+    editorialProfile,
+    treatmentHint,
+    editorialThesis:String(semanticEvidence.editorial_thesis ?? ''),
+    audienceTraits,
+    trendTopics,
+    firstSecondEvidence:String(semanticEvidence.first_second_evidence ?? ''),
   };
   const firstGenerated = await generatePackage(packageArgs);
   const firstQuality = assessPackageQuality(firstGenerated);
@@ -302,6 +355,13 @@ async function prepareWorkOrder(id:string) {
     package_model:MODEL,
     package_revision_count:packageRevisionCount,
     package_revision_policy:'ONE_FEEDBACK_DIRECTED_REVISION_MAX',
+    editorial_intelligence_version:'V3',
+    editorial_hit_index:Number((editorialProfile as Record<string,unknown> | null)?.editorial_candidate_score ?? 0),
+    editorial_thesis:String(semanticEvidence.editorial_thesis ?? ''),
+    audience_traits:audienceTraits,
+    trend_topics:trendTopics,
+    first_second_strategy:String(generated.first_second_strategy ?? (treatmentHint as Record<string,unknown> | null)?.first_second_strategy ?? ''),
+    editorial_treatment_hint:treatmentHint,
   };
 
   const {data:packageId,error:pe} = await client.rpc('momentcircuit_record_caption_package',{
@@ -324,7 +384,11 @@ async function prepareWorkOrder(id:string) {
   payload.required_hashtags=requiredHashtags;
   payload.quality_inputs=qualityInputs;
   payload.caption_package_id=packageId;
-  payload.prepare_version='AI_EDIT_PLAN_VNEXT_1';
+  payload.editorial_intelligence=editorialProfile;
+  payload.editorial_treatment_hint=treatmentHint;
+  payload.prepare_version='AI_EDIT_PLAN_EDITORIAL_V3';
+  payload.editorial_intelligence_version='V3';
+  payload.editorial_reprepare_required=false;
   payload.prepared_at=new Date().toISOString();
   if (wo.platform==='youtube') {
     const yt = cleanCaption(String(generated.youtube_title ?? ''));
@@ -357,6 +421,9 @@ async function prepareWorkOrder(id:string) {
     caption_cues:verifiedCues.length,
     post_caption:postCaption,
     youtube_title:wo.platform==='youtube' ? payload.youtube_title : null,
+    editorial_intelligence_version:'V3',
+    editorial_profile:editorialProfile,
+    editorial_treatment_hint:treatmentHint,
   };
 }
 
