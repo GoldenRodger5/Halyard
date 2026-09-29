@@ -11,7 +11,7 @@ export function validateProtectedFocus(shot: ShotPlan): void {
 }
 
 export function layoutNeedsContext(layout:SourceLayout):boolean {
-  return layout==='TWO_SHOT' || layout==='SPLIT_SCREEN' || layout==='INTERVIEW' || layout==='GAMEPLAY_PLUS_FACE';
+  return layout==='TWO_SHOT' || layout==='SPLIT_SCREEN' || layout==='GAMEPLAY_PLUS_FACE';
 }
 
 export function shotDuration(shot:ShotPlan):number {
@@ -22,6 +22,7 @@ export function shotDuration(shot:ShotPlan):number {
 
 export function sourcePreservingFilter(layout:SourceLayout,focus:number):string {
   if (layout==='VERTICAL_NATIVE') return '[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920:(in_w-1080)/2:(in_h-1920)/2,format=yuv420p[v0]';
+  if (layout==='INTERVIEW') return '[0:v]split=2[bg0][fg0];[bg0]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,gblur=sigma=34,eq=brightness=-0.28:saturation=0.78[bg];[fg0]scale=1080:1180:force_original_aspect_ratio=increase,crop=1080:1180:(in_w-1080)*'+focus.toFixed(4)+':(in_h-1180)/2[fg];[bg][fg]overlay=0:(H-h)/2,format=yuv420p[v0]';
   if (layoutNeedsContext(layout)) return '[0:v]split=2[bg0][fg0];[bg0]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,gblur=sigma=34,eq=brightness=-0.28:saturation=0.78[bg];[fg0]scale=1020:1810:force_original_aspect_ratio=decrease[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2,format=yuv420p[v0]';
   if (layout==='FULLSCREEN_GAMEPLAY') return '[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920:(in_w-1080)*'+focus.toFixed(4)+':(in_h-1920)/2,format=yuv420p[v0]';
   if (layout==='CINEMATIC') return '[0:v]split=2[bg0][fg0];[bg0]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,gblur=sigma=30,eq=brightness=-0.24:saturation=0.82[bg];[fg0]scale=1020:1810:force_original_aspect_ratio=decrease[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2,format=yuv420p[v0]';
