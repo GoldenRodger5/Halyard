@@ -6,6 +6,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
+import { applyRepair, sampleTimes, type RepairPlan } from '@/lib/momentcircuit/quality-repair';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -22,20 +23,12 @@ type Defect = {
   repairable?: boolean;
 };
 
-type RepairPlan = {
-  dominant_problem?: string;
-  action?: 'NONE' | 'TRIM_START' | 'TRIM_END' | 'REPLACE_HOOK' | 'REMOVE_HOOK' | 'RERENDER_CAPTIONS' | 'REFRAME' | 'REFRAME_AND_HOOK' | 'REPLACE_MOMENT';
-  trim_start_seconds?: number;
-  trim_end_seconds?: number;
-  new_hook_text?: string | null;
-  new_focus_x?: number | null;
-};
-
 type AiReply = {
   verdict?: 'PASS' | 'FAIL';
   visual_story_match?: boolean;
   caption_visual_quality?: boolean;
   professional_quality?: boolean;
+  text_bounds_pass?: boolean;
   artifact_scan?: {
     pass?: boolean;
     timestamp_tokens_visible?: boolean;
@@ -102,23 +95,6 @@ async function download(url: string, dest: string) {
   await fsp.writeFile(dest, bytes);
 }
 
-function sampleTimes(duration: number): number[] {
-  const candidates = [
-    0.05, 0.5, 1,
-    duration * 0.18, duration * 0.32, duration * 0.5,
-    duration * 0.68, duration * 0.82,
-    Math.max(0.05, duration - 0.35),
-  ];
-  if (duration > 20) {
-    for (let t = 3; t < duration - 1; t += 4) candidates.push(t);
-  }
-  return [...new Set(candidates
-    .filter((t) => Number.isFinite(t) && t >= 0 && t < duration)
-    .map((t) => Number(t.toFixed(2))))]
-    .sort((a,b)=>a-b)
-    .slice(0,14);
-}
-
 async function extractFrames(video: string, duration: number, work: string) {
   const frames: Array<{ atSeconds: number; bytes: Buffer }> = [];
   for (const [i, atSeconds] of sampleTimes(duration).entries()) {
@@ -144,7 +120,7 @@ function classifyFailureScope(verdict: {
     ...verdict.defects.flatMap((d) => [d.class ?? '', d.evidence ?? '']),
   ].join(' ').toLowerCase();
 
-  if (/(tofu|missing[- ]glyph|font failure|font render|caption render(ing)? fail|subtitle render(ing)? fail|blank caption|empty caption box|renderer failure)/i.test(corpus)) {
+  if (/(incomplete_frame_inspection|incomplete exact-final visual evidence|tofu|missing[- ]glyph|font failure|font render|caption render(ing)? fail|subtitle render(ing)? fail|blank caption|empty caption box|renderer failure)/i.test(corpus)) {
     return 'INFRASTRUCTURE';
   }
   if (/(source_identity|source identity|wrong source|story mismatch|wrong story)/i.test(corpus)) {
@@ -180,7 +156,11 @@ function normalizeReply(raw: AiReply) {
   }
   const artifact = {
     ...(raw.artifact_scan ?? {}),
-    pass: Boolean(raw.artifact_scan?.pass) && forensicHits.length === 0,
+    pass: raw.artifact_scan?.pass === true && forensicHits.length === 0
+      && raw.artifact_scan?.timestamp_tokens_visible === false
+      && raw.artifact_scan?.ass_ssa_tokens_visible === false
+      && raw.artifact_scan?.json_serialization_visible === false
+      && raw.artifact_scan?.cue_numbers_visible === false,
     deterministic_visible_text_hits: forensicHits,
   };
   const hardDefect = defects.some((d) => d.severity === 'critical' || d.severity === 'major');
@@ -189,6 +169,7 @@ function normalizeReply(raw: AiReply) {
     raw.visual_story_match === true &&
     raw.caption_visual_quality === true &&
     raw.professional_quality === true &&
+    raw.text_bounds_pass === true &&
     artifact.pass === true &&
     !hardDefect;
   return {
@@ -198,6 +179,8 @@ function normalizeReply(raw: AiReply) {
     visualStoryMatch: raw.visual_story_match === true,
     captionVisualQuality: raw.caption_visual_quality === true,
     professionalQuality: raw.professional_quality === true,
+    textBoundsPass: raw.text_bounds_pass === true,
+    visibleText: visible,
     repairPlan: raw.repair_plan ?? {},
     summary: String(raw.summary ?? ''),
   };
@@ -242,6 +225,7 @@ Return JSON only with this exact shape:
  "visual_story_match":true,
  "caption_visual_quality":true,
  "professional_quality":true,
+ "text_bounds_pass":true,
  "artifact_scan":{"pass":true,"timestamp_tokens_visible":false,"ass_ssa_tokens_visible":false,"json_serialization_visible":false,"cue_numbers_visible":false},
  "visible_text":[{"atSeconds":0.5,"text":["..."]}],
  "defects":[{"class":"caption_legibility","severity":"critical|major|minor","atSeconds":[0.5],"evidence":"specific observable problem","repairable":true}],
@@ -278,58 +262,18 @@ Sample times: ${args.frames.map((f)=>f.atSeconds).join(', ')} seconds.`;
   if (!response.ok) throw new Error(`AI_QC_${response.status}: ${body.error?.message ?? 'unknown'}`);
   const text = body.choices?.[0]?.message?.content ?? '';
   if (!text) throw new Error('AI_QC_EMPTY');
-  return normalizeReply(JSON.parse(text) as AiReply);
-}
-
-function applyRepair(payload: Record<string,unknown>, plan: RepairPlan) {
-  const next = structuredClone(payload) as Record<string,unknown>;
-  const sourceSegment =
-    next.render_segment && typeof next.render_segment === 'object' && !Array.isArray(next.render_segment)
-      ? next.render_segment as Record<string,unknown>
-      : {};
-  const seg: Record<string,unknown> = {...sourceSegment};
-  const action = plan.action ?? 'REPLACE_MOMENT';
-  if (action === 'TRIM_START') {
-    const amount = Math.max(0,Math.min(3,Number(plan.trim_start_seconds ?? 0)));
-    if (!(amount > 0) || !(Number(seg.duration) - amount > 5)) return null;
-    seg.start = Number(seg.start ?? 0) + amount;
-    seg.duration = Number(seg.duration) - amount;
-  } else if (action === 'TRIM_END') {
-    const amount = Math.max(0,Math.min(4,Number(plan.trim_end_seconds ?? 0)));
-    if (!(amount > 0) || !(Number(seg.duration) - amount > 5)) return null;
-    seg.duration = Number(seg.duration) - amount;
-  } else if (action === 'REPLACE_HOOK') {
-    const hook = String(plan.new_hook_text ?? '').trim();
-    if (!hook || hook.length > 56) return null;
-    seg.hook_text = hook;
-    seg.hook_duration = Math.min(2.5,Number(seg.hook_duration ?? 2));
-  } else if (action === 'REMOVE_HOOK') {
-    seg.hook_text = null;
-    seg.hook_duration = 0;
-  } else if (action === 'RERENDER_CAPTIONS') {
-    seg.caption_mode = 'PHRASE_CUES_ONLY';
-    seg.require_word_captions = true;
-  } else if (action === 'REFRAME' || action === 'REFRAME_AND_HOOK') {
-    const focus = Number(plan.new_focus_x);
-    if (!Number.isFinite(focus) || focus < 0.08 || focus > 0.92) return null;
-    seg.focus_x = focus;
-    seg.crop_mode = 'speaker';
-    if (action === 'REFRAME_AND_HOOK' && plan.new_hook_text) {
-      const hook=String(plan.new_hook_text).trim();
-      if (!hook || hook.length > 56) return null;
-      seg.hook_text=hook;
-      seg.hook_duration=Math.min(2.5,Number(seg.hook_duration ?? 2));
-    }
-  } else {
-    return null;
+  const verdict = normalizeReply(JSON.parse(text) as AiReply);
+  const inspectedAllFrames = args.frames.length >= 8 && args.frames.every(frame =>
+    verdict.visibleText.some(row => Number.isFinite(Number(row.atSeconds)) &&
+      Math.abs(Number(row.atSeconds)-frame.atSeconds) <= 0.03 && Array.isArray(row.text)));
+  if (!inspectedAllFrames) {
+    verdict.pass = false;
+    verdict.artifact.pass = false;
+    verdict.defects.push({class:'incomplete_frame_inspection',severity:'critical',atSeconds:[],
+      evidence:'The critic did not provide an observation for every sampled frame.',repairable:false});
+    verdict.summary = 'Incomplete exact-final visual evidence; publication remains blocked.';
   }
-  next.render_segment = seg;
-  next.ai_repair_applied = {
-    action,
-    dominant_problem: plan.dominant_problem ?? null,
-    applied_at: new Date().toISOString(),
-  };
-  return next;
+  return verdict;
 }
 
 async function processRender(renderId: string) {
@@ -410,6 +354,20 @@ async function processRender(renderId: string) {
       p_ai_summary:verdict.summary,
     });
     if (qce) throw new Error(`QC_RECORD_FAILED: ${qce.message}`);
+
+    // This is the exact frame set inspected by the critic, not a manual waiver.
+    const {error:forensicError} = await client.rpc('momentcircuit_record_forensic_frame_review',{
+      p_run_id:wo.run_id,p_generation:wo.generation,p_work_order_id:wo.id,p_render_job_id:rj.id,
+      p_platform:wo.platform,p_method:'MODEL_PIXEL_FRAME_SET',p_sampled_frame_count:frames.length,
+      p_expected_overlay_text:expectedCaptions,p_artifact_free:verdict.artifact.pass && verdict.textBoundsPass,
+      p_artifact_classes_checked:['timestamps','ASS_SSA_markup','serialized_cue_rows','JSON_timing_keys','subtitle_overflow','unexpected_overlay_text'],
+      p_observed_artifacts:verdict.defects.filter(d=>/caption|subtitle|text|artifact/i.test(d.class)),
+      p_evidence:{exact_final_media_url:mediaUrl,qc_report_id:qcId,analysis_id:analysisId,
+        sampled_seconds:frames.map(f=>f.atSeconds),visible_text:verdict.visibleText,
+        text_bounds_pass:verdict.textBoundsPass,review_scope:'VISUAL_FRAMES_NOT_AUDIO'},
+    });
+    if (forensicError) throw new Error(`FORENSIC_RECORD_FAILED: ${forensicError.message}`);
+
 
     if (!verdict.pass) {
       await client.from('momentcircuit_render_jobs').update({
@@ -500,7 +458,7 @@ async function processRender(renderId: string) {
     const {error:ae} = await client.rpc('momentcircuit_record_quality_audit',{
       p_run_id:wo.run_id,p_generation:wo.generation,p_work_order_id:wo.id,p_render_job_id:rj.id,
       p_stage:'POST_RENDER',p_status:'PASS',
-      p_metrics:{ai_exact_final:true,visual_story_match:true,caption_visual_quality:true,professional_quality:true,artifact_scan:verdict.artifact,frame_count:frames.length},
+      p_metrics:{ai_exact_final:true,visual_story_match:verdict.visualStoryMatch,caption_visual_quality:verdict.captionVisualQuality,professional_quality:verdict.professionalQuality,artifact_scan:verdict.artifact,frame_count:frames.length,forensic_frame_review_pass:verdict.artifact.pass && verdict.textBoundsPass,raw_caption_artifact_free:verdict.artifact.pass,timestamp_artifact_free:verdict.artifact.pass,text_bounds_pass:verdict.textBoundsPass},
       p_treatment:{critic:'OPENAI_EXACT_FINAL_V4',caption_mode:wo.payload?.render_segment?.caption_mode ?? null},
       p_reasons:[],
     });

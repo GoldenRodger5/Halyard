@@ -48,13 +48,21 @@ function portableText(value: string): string {
   return normalized;
 }
 
+export function fitHookFontSize(content: string, preferred: number): number {
+  // Conservative Inter width bound; exact pixel-bound tests protect every release.
+  const units = [...content].reduce((n,c) => n + (/[MW@%]/.test(c) ? 1.12 : /[ilI.,!:;'| ]/.test(c) ? 0.38 : /[A-Z]/.test(c) ? 0.82 : 0.70),0);
+  const size = Math.min(preferred, Math.floor(866 / Math.max(1,units)));
+  if (size < 34) throw new Error('OVERLAY_HOOK_TOO_DENSE');
+  return size;
+}
+
 function centeredText(content: string, top: number, size: number, color: string, dx = 0, dy = 0): SatoriElement {
   return box(
     {
       position: 'absolute',
       top: top + dy,
-      left: dx,
-      width: WIDTH,
+      left: 88 + dx,
+      width: 904,
       height: Math.round(size * 1.45),
       justifyContent: 'center',
       alignItems: 'center',
@@ -72,7 +80,8 @@ function centeredText(content: string, top: number, size: number, color: string,
 }
 
 function balancedHookLines(value: string): string[] {
-  const safe = portableText(value.trim().slice(0, 56));
+  const safe = portableText(value.trim());
+  if (safe.length > 56) throw new Error('OVERLAY_HOOK_TOO_DENSE');
   if (!safe) return [];
   if (safe.length <= 24) return [safe];
   const words = safe.split(/\s+/);
@@ -89,7 +98,9 @@ function balancedHookLines(value: string): string[] {
 }
 
 function outlinedText(content: string, top: number, size: number): SatoriElement[] {
-  const safe = portableText(content.trim().slice(0, 42));
+  const safe = portableText(content.trim());
+  if (safe.length > 56) throw new Error('OVERLAY_HOOK_TOO_DENSE');
+  size = fitHookFontSize(safe, size);
   if (!safe) return [];
   const shadow = 'rgba(0,0,0,0.90)';
   const offsets = [
