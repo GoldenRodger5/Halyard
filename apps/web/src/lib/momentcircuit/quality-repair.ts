@@ -27,12 +27,11 @@ export function applyRepair(payload: Record<string,unknown>, plan: RepairPlan): 
   if (!Number.isFinite(duration) || duration <= 0) return null;
   const action = plan.action ?? 'REPLACE_MOMENT';
   let trimStart = 0;
-  let newDuration = duration;
   if (action === 'TRIM_START' || action === 'TRIM_END') {
     const value = Number(action === 'TRIM_START' ? plan.trim_start_seconds : plan.trim_end_seconds);
     if (!Number.isFinite(value) || value <= 0) return null;
     const amount = Math.min(action === 'TRIM_START' ? 3 : 4, value);
-    newDuration = duration - amount;
+    const newDuration = duration - amount;
     if (newDuration <= 5) return null;
     if (action === 'TRIM_START') {
       trimStart = amount;
