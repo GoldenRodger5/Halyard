@@ -247,7 +247,7 @@ async function prepareSource(
   }
 }
 function artifactText(value: string) {
-  return /(Dialogue:|Style:|Script Info|Format:|-->|,Cap,,|(?:^|\s)\d{1,2}:\d{2}:\d{2}[\.,]\d+)/i.test(value);
+  return /(Dialogue:|Style:|Script Info|Format:|-->|,Cap,,|(?:^|\s)\d{1,2}:\d{2}:\d{2}[.,]\d+)/i.test(value);
 }
 
 function cleanCaptionWord(raw: CaptionWord, duration: number): CaptionWord {
