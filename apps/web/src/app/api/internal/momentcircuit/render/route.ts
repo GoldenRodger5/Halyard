@@ -1,7 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import sharp from 'sharp';
-import { renderMomentCircuitOverlay } from '@/lib/momentcircuit/overlay';
 import crypto from 'node:crypto';
 import fsp from 'node:fs/promises';
 import fs from 'node:fs';
@@ -340,12 +339,60 @@ function captionCues(seg: Segment): CaptionCue[] {
   return out;
 }
 
+function overlayPortableText(value: string) {
+  if (artifactText(value)) throw new Error('OVERLAY_RAW_SUBTITLE_ARTIFACT');
+  return value
+    .normalize('NFC')
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201C\u201D]/g, '"')
+    .replace(/[\u2013\u2014]/g, '-')
+    .replace(/\u2026/g, '...')
+    .replace(/\u00A0/g, ' ')
+    .replace(/[^\x20-\x7E]/g, '')
+    .trim();
+}
+function overlayXml(value: string) {
+  return overlayPortableText(value)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&apos;');
+}
+function svgCenteredText(value: string, y: number, size: number, max = 56) {
+  const safe = overlayXml(value.slice(0,max));
+  if (!safe) return '';
+  return `<text x="540" y="${y}" text-anchor="middle"
+    font-family="Arial,Helvetica,sans-serif" font-weight="800" font-size="${size}"
+    fill="white" stroke="rgba(0,0,0,.90)" stroke-width="5"
+    stroke-linejoin="round" paint-order="stroke fill">${safe}</text>`;
+}
 async function overlay(file: string, seg: Segment, kind: 'hook'|'required'|'persistent'|'caption') {
-  const safeSeg = kind === 'hook'
-    ? { ...seg, hook_line1: seg.hook_line1 ?? seg.hook_text }
-    : seg;
-  const png = await renderMomentCircuitOverlay(safeSeg, kind);
-  await fsp.writeFile(file, png);
+  let body='';
+  if (kind==='hook') {
+    const headline=(seg.hook_line1 ?? seg.hook_text ?? '').trim();
+    body += svgCenteredText(headline, 350, 54, 56);
+    if (seg.hook_line2) body += svgCenteredText(seg.hook_line2, 420, 46, 42);
+    if (seg.disclosure && seg.disclosure_mode==='opening') {
+      body += `<rect x="46" y="250" width="104" height="52" rx="12" fill="rgba(0,0,0,.68)"/>
+        <text x="98" y="285" text-anchor="middle" font-family="Arial,Helvetica,sans-serif"
+        font-weight="700" font-size="27" fill="white">${overlayXml(seg.disclosure)}</text>`;
+    }
+  } else if (kind==='required' && seg.required_text) {
+    body += `<rect x="90" y="1305" width="900" height="90" rx="16" fill="rgba(0,0,0,.72)"/>
+      ${svgCenteredText(seg.required_text,1363,34,90)}`;
+  } else if (kind==='persistent' && seg.disclosure) {
+    body += `<rect x="46" y="250" width="104" height="52" rx="12" fill="rgba(0,0,0,.68)"/>
+      <text x="98" y="285" text-anchor="middle" font-family="Arial,Helvetica,sans-serif"
+      font-weight="700" font-size="27" fill="white">${overlayXml(seg.disclosure)}</text>`;
+  } else if (kind==='caption' && seg.caption_text) {
+    const caption=overlayXml(seg.caption_text.slice(0,90));
+    body += `<rect x="72" y="1360" width="936" height="118" rx="18" fill="rgba(0,0,0,.64)"/>
+      <text x="540" y="1433" text-anchor="middle" font-family="Arial,Helvetica,sans-serif"
+      font-weight="800" font-size="44" fill="white">${caption}</text>`;
+  }
+  await sharp(Buffer.from(`<svg width="1080" height="1920" xmlns="http://www.w3.org/2000/svg">${body}</svg>`))
+    .png().toFile(file);
 }
 function base(family: Family, focus: number, cropMode: Segment['crop_mode'] = 'speaker') {
   if (family === 'native_people') {
