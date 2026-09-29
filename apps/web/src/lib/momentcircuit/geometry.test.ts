@@ -6,7 +6,9 @@ const shot=(patch:Partial<ShotPlan>={}):ShotPlan=>({start:0,end:4,focus_x:.5,lay
 
 describe('MomentCircuit geometry',()=>{
   it('guards focus against protected speaker regions',()=>{expect(()=>validateProtectedFocus(shot({focus_x:.5}))).not.toThrow();expect(()=>validateProtectedFocus(shot({focus_x:.9}))).toThrow('SHOT_FOCUS_MISSES_PROTECTED_SUBJECT');});
-  it('keeps multi-person layouts context-preserving',()=>{for(const layout of ['TWO_SHOT','SPLIT_SCREEN','GAMEPLAY_PLUS_FACE'] as const){expect(layoutNeedsContext(layout)).toBe(true);const f=sourcePreservingFilter(layout,.5);expect(f).toContain('gblur');expect(f).not.toContain('color=black');}});
+  it('stacks verified split-screen panels vertically with no blur-box treatment',()=>{const f=sourcePreservingFilter('SPLIT_SCREEN',.5);expect(f).toContain('crop=iw*0.445:ih*0.92');expect(f).toContain('vstack=inputs=2');expect(f).not.toContain('gblur');});
+  it('renders shared-camera two-shot full-bleed rather than boxed in blur',()=>{const f=sourcePreservingFilter('TWO_SHOT',.5);expect(f).toContain('scale=1080:1920');expect(f).not.toContain('gblur');expect(f).not.toContain('vstack=inputs=2');});
+  it('keeps gameplay-plus-face context-preserving with background fill',()=>{const f=sourcePreservingFilter('GAMEPLAY_PLUS_FACE',.5);expect(f).toContain('gblur');});
   it('treats INTERVIEW as a true full-bleed active-speaker crop',()=>{
     expect(layoutNeedsContext('INTERVIEW')).toBe(false);
     const f=sourcePreservingFilter('INTERVIEW',.56);
