@@ -20,6 +20,27 @@ export function verifiedSourceLayout(shotMap: unknown): SourceLayout | undefined
   return undefined;
 }
 
+export function verifiedShotsFromShotMap(shotMap: unknown, duration: number): ShotPlan[] | undefined {
+  if (!shotMap || typeof shotMap !== 'object' || Array.isArray(shotMap)) return undefined;
+  const x=shotMap as Record<string,unknown>;
+  const verified = x.representative_frames_verified===true || x.verified===true || x.visual_verified===true;
+  if (!verified || !Array.isArray(x.shots) || x.shots.length===0) return undefined;
+  const shots=x.shots.map((raw)=>{
+    if (!raw || typeof raw!=='object') throw new Error('VERIFIED_SHOT_MAP_INVALID');
+    const r=raw as Record<string,unknown>;
+    const layout=String(r.layout ?? r.source_layout ?? '').toUpperCase() as SourceLayout;
+    if (!VALID_LAYOUTS.has(layout)) throw new Error('VERIFIED_SHOT_LAYOUT_INVALID');
+    return {
+      start:Number(r.start), end:Number(r.end), focus_x:Number(r.focus_x ?? .5), layout,
+      ...(r.protected_region?{protected_region:r.protected_region as ShotPlan['protected_region']}:{}),
+    };
+  });
+  if (!Number.isFinite(duration) || duration<=0) throw new Error('VERIFIED_SHOT_DURATION_INVALID');
+  if (shots[0]!.start!==0 || Math.abs(shots.at(-1)!.end-duration)>.06) throw new Error('VERIFIED_SHOT_MAP_MUST_COVER_SEGMENT');
+  for(let i=1;i<shots.length;i++) if(Math.abs(shots[i]!.start-shots[i-1]!.end)>.06) throw new Error('VERIFIED_SHOT_MAP_GAP_OR_OVERLAP');
+  return shots;
+}
+
 export type AiEditDecision = {
   presentation_mode?:PresentationMode;
   source_layout?:SourceLayout;

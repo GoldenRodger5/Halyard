@@ -1,10 +1,12 @@
 import {describe,expect,it} from 'vitest';
-import {buildVerifiedEditPlan,verifiedSourceLayout} from './edit-planner';
+import {buildVerifiedEditPlan,verifiedSourceLayout,verifiedShotsFromShotMap} from './edit-planner';
 
 const cues=[{start:0,end:2,text:'This wording is verified.'},{start:2.1,end:4,text:'So is this payoff.'}];
 
 describe('AI planner boundary',()=>{
   it('honors verified source layout metadata over AI guesses',()=>{expect(verifiedSourceLayout({layout:'SPLIT_SCREEN',representative_frames_verified:true})).toBe('SPLIT_SCREEN');expect(verifiedSourceLayout({layout:'TWO_SHOT'})).toBeUndefined();});
+  it('uses verified layout intervals when the source changes camera mode',()=>{const shots=verifiedShotsFromShotMap({representative_frames_verified:true,shots:[{start:0,end:3.2,layout:'SINGLE_SPEAKER',focus_x:.5},{start:3.2,end:11.59,layout:'SPLIT_SCREEN',focus_x:.5}]},11.59);expect(shots?.map(x=>x.layout)).toEqual(['SINGLE_SPEAKER','SPLIT_SCREEN']);});
+  it('rejects verified shot metadata with a timing gap',()=>expect(()=>verifiedShotsFromShotMap({verified:true,shots:[{start:0,end:3,layout:'SINGLE_SPEAKER'},{start:3.5,end:10,layout:'SPLIT_SCREEN'}]},10)).toThrow('VERIFIED_SHOT_MAP_GAP_OR_OVERLAP'));
   it('uses AI for layout but never rewrites verified cues',()=>{
     const p=buildVerifiedEditPlan({decision:{presentation_mode:'HEADLINE_CARD_PLUS_DYNAMIC_SUBTITLES',source_layout:'SINGLE_SPEAKER',focus_x:.45,headline:'Why this story gets weird'},start:20,duration:5,caption_cues:cues,captions_required:true});
     expect(p.caption_cues).toEqual(cues);
