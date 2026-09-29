@@ -11,7 +11,7 @@ describe('MomentCircuit bounded repair',()=>{
   });
   it('clamps end-trim captions without changing source start',()=>{
     const s=applyRepair(input(),{action:'TRIM_END',trim_end_seconds:1})!.render_segment as TestSegment;
-    expect(s.start).toBe(100); expect(s.caption_cues.at(-1).end).toBe(11);
+    expect(s.start).toBe(100); expect(s.caption_cues.at(-1)?.end).toBe(11);
   });
   it('replaces all higher-precedence old headline fields',()=>{
     const s=applyRepair(input(),{action:'REPLACE_HOOK',new_hook_text:'A better hook'})!.render_segment as TestSegment;
