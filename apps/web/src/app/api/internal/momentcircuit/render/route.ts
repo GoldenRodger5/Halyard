@@ -4,6 +4,7 @@ import sharp from 'sharp';
 import { renderMomentCircuitOverlay } from '@/lib/momentcircuit/overlay';
 import { adaptLegacySegment, type EditSegment, type PresentationMode, type SourceLayout, type ShotPlan, type HeadlinePlan } from '@/lib/momentcircuit/edit-plan';
 import { shotDuration, sourcePreservingFilter, validateProtectedFocus } from '@/lib/momentcircuit/geometry';
+import { captionAnchorForCue, type CaptionAnchor } from '@/lib/momentcircuit/caption-layout';
 import crypto from 'node:crypto';
 import fsp from 'node:fs/promises';
 import fs from 'node:fs';
@@ -84,6 +85,7 @@ interface Segment {
   shots?: ShotPlan[];
   headline?: HeadlinePlan;
   captions_required?: boolean;
+  caption_anchor?: CaptionAnchor;
 }
 interface Variant { id: string; filename?: string; segments: Segment[]; }
 interface CanonicalVariant { id: string; filename?: string; segments: EditSegment[]; }
@@ -301,7 +303,9 @@ async function segment(source: string, output: string, seg: EditSegment, work: s
   await overlay(disc,{duration:seg.duration,disclosure:seg.disclosure,disclosure_mode:seg.disclosure_mode},'persistent');
   for (let ci=0; ci<cues.length; ci++) {
     const file = path.join(work,`caption-${i}-${ci}.png`);
-    await overlay(file,{...seg,caption_text:cues[ci]!.text},'caption');
+    const cue=cues[ci]!;
+    const captionAnchor=captionAnchorForCue(seg.shots,cue);
+    await overlay(file,{...seg,caption_text:cue.text,caption_anchor:captionAnchor},'caption');
     captionFiles.push(file);
   }
   const args = ['-y','-i',visual,'-loop','1','-i',hook,'-loop','1','-i',req,'-loop','1','-i',disc];
