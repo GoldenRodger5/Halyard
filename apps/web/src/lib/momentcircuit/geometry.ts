@@ -30,3 +30,10 @@ export function sourcePreservingFilter(layout:SourceLayout,focus:number):string 
   if (layout==='CINEMATIC') return '[0:v]split=2[bg0][fg0];[bg0]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,gblur=sigma=30,eq=brightness=-0.24:saturation=0.82[bg];[fg0]scale=1020:1810:force_original_aspect_ratio=decrease[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2,format=yuv420p[v0]';
   return '[0:v]crop=iw:ih*0.88:0:ih*0.06,scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920:(in_w-1080)*'+focus.toFixed(4)+':(in_h-1920)/2,format=yuv420p[v0]';
 }
+
+export function shotLayoutAt(shots: ShotPlan[], atSeconds: number): SourceLayout {
+  if (!Array.isArray(shots) || shots.length===0) throw new Error('SHOT_PLAN_REQUIRED');
+  if (!Number.isFinite(atSeconds) || atSeconds<0) throw new Error('SHOT_TIME_INVALID');
+  const shot=shots.find((x)=>atSeconds>=x.start-0.001 && atSeconds<x.end+0.001) ?? shots.at(-1)!;
+  return shot.layout;
+}

@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import sharp from 'sharp';
 import { renderMomentCircuitOverlay } from '@/lib/momentcircuit/overlay';
 import { adaptLegacySegment, type EditSegment, type PresentationMode, type SourceLayout, type ShotPlan, type HeadlinePlan } from '@/lib/momentcircuit/edit-plan';
-import { shotDuration, sourcePreservingFilter, validateProtectedFocus } from '@/lib/momentcircuit/geometry';
+import { shotDuration, shotLayoutAt, sourcePreservingFilter, validateProtectedFocus } from '@/lib/momentcircuit/geometry';
 import crypto from 'node:crypto';
 import fsp from 'node:fs/promises';
 import fs from 'node:fs';
@@ -77,6 +77,7 @@ interface Segment {
   caption_cues?: CaptionCue[];
   caption_mode?: 'PHRASE_CUES_ONLY';
   caption_text?: string;
+  caption_zone?: 'LOWER_MIDDLE' | 'CENTER_SEAM';
   require_word_captions?: boolean;
   edit_plan_version?: number;
   presentation_mode?: PresentationMode;
@@ -301,7 +302,10 @@ async function segment(source: string, output: string, seg: EditSegment, work: s
   await overlay(disc,{duration:seg.duration,disclosure:seg.disclosure,disclosure_mode:seg.disclosure_mode},'persistent');
   for (let ci=0; ci<cues.length; ci++) {
     const file = path.join(work,`caption-${i}-${ci}.png`);
-    await overlay(file,{...seg,caption_text:cues[ci]!.text},'caption');
+    const cue=cues[ci]!;
+    const activeLayout=shotLayoutAt(seg.shots,(cue.start+cue.end)/2);
+    const captionZone=activeLayout==='SPLIT_SCREEN' ? 'CENTER_SEAM' : 'LOWER_MIDDLE';
+    await overlay(file,{...seg,caption_text:cue.text,caption_zone:captionZone},'caption');
     captionFiles.push(file);
   }
   const args = ['-y','-i',visual,'-loop','1','-i',hook,'-loop','1','-i',req,'-loop','1','-i',disc];
