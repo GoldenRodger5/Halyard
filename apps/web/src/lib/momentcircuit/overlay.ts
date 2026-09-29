@@ -36,7 +36,9 @@ function portableText(value: string): string {
     .replace(/[\u201C\u201D]/g, '"')
     .replace(/[\u2013\u2014]/g, '-')
     .replace(/\u2026/g, '...')
-    .replace(/\u00A0/g, ' ');
+    .replace(/\u00A0/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 
   for (const char of normalized) {
     const code = char.codePointAt(0) ?? 0;
@@ -181,6 +183,8 @@ function captionSubtitle(value: string): SatoriElement {
       fontWeight: 700,
       fontSize: 46,
       lineHeight: 1.12,
+      wordSpacing: 3,
+      letterSpacing: 0.2,
       color: '#ffffff',
       textAlign: 'center',
     }),
