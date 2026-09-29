@@ -49,6 +49,13 @@ describe('MomentCircuit native reference style',()=>{
     expect(b.count/(b.width*b.height)).toBeLessThan(0.12);
   });
 
+
+  it('moves split-screen captions to the center seam safe band',async()=>{
+    const png=await renderMomentCircuitOverlay({caption_text:'This payoff stays off the speaker face',caption_zone:'CENTER_SEAM'},'caption');
+    const b=await alphaBounds(png);
+    expect(b.minY).toBeGreaterThanOrEqual(800);
+    expect(b.maxY).toBeLessThan(1010);
+  });
   it('rejects over-dense headline cards rather than shrinking them into unreadable text',async()=>{
     await expect(renderMomentCircuitOverlay({hook_line1:'word '.repeat(35)},'hook')).rejects.toThrow();
   });
