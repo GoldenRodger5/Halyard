@@ -129,7 +129,7 @@ async function extractFrames(video: string, duration: number, work: string) {
 }
 
 function artifactToken(text: string): boolean {
-  return /(Dialogue:|Style:|Script Info|Format:|,Cap,,|-->|(?:^|\s)\d{1,2}:\d{2}(?::\d{2})?[\.,]\d+|["']?(?:start|end)["']?\s*:|\{\s*["']|\[\s*\{)/i.test(text);
+  return /(Dialogue:|Style:|Script Info|Format:|,Cap,,|-->|(?:^|\s)\d{1,2}:\d{2}(?::\d{2})?[.,]\d+|["']?(?:start|end)["']?\s*:|\{\s*["']|\[\s*\{)/i.test(text);
 }
 
 function normalizeReply(raw: AiReply) {
@@ -254,8 +254,12 @@ Sample times: ${args.frames.map((f)=>f.atSeconds).join(', ')} seconds.`;
 }
 
 function applyRepair(payload: Record<string,unknown>, plan: RepairPlan) {
-  const next = structuredClone(payload) as Record<string,any>;
-  const seg = {...(next.render_segment ?? {})};
+  const next = structuredClone(payload) as Record<string,unknown>;
+  const sourceSegment =
+    next.render_segment && typeof next.render_segment === 'object' && !Array.isArray(next.render_segment)
+      ? next.render_segment as Record<string,unknown>
+      : {};
+  const seg: Record<string,unknown> = {...sourceSegment};
   const action = plan.action ?? 'REPLACE_MOMENT';
   if (action === 'TRIM_START') {
     const amount = Math.max(0,Math.min(3,Number(plan.trim_start_seconds ?? 0)));
@@ -326,8 +330,12 @@ async function processRender(renderId: string) {
   try {
     await download(mediaUrl,video);
     const frames = await extractFrames(video,duration,work);
-    const expectedCaptions = Array.isArray(wo.payload?.render_segment?.caption_cues)
-      ? wo.payload.render_segment.caption_cues.map((x:any)=>String(x?.text ?? '')).filter(Boolean)
+    const rawCaptionCues = wo.payload?.render_segment?.caption_cues;
+    const expectedCaptions = Array.isArray(rawCaptionCues)
+      ? rawCaptionCues.map((x: unknown) => {
+          if (!x || typeof x !== 'object' || !('text' in x)) return '';
+          return String((x as {text?: unknown}).text ?? '');
+        }).filter(Boolean)
       : [];
 
     const verdict = await critique({
