@@ -368,9 +368,9 @@ async function processRender(renderId: string) {
   const video = path.join(work,'final.mp4');
   try {
     await download(mediaUrl,video);
-    const expectedCaptionCues=expectedCaptionCues(wo.payload);
-    const frames = await extractFrames(video,duration,work,expectedCaptionCues);
-    const expectedCaptions = expectedCaptionCues.map((cue)=>String(cue.text??'')).filter(Boolean);
+    const captionCues=expectedCaptionCues(wo.payload);
+    const frames = await extractFrames(video,duration,work,captionCues);
+    const expectedCaptions = captionCues.map((cue)=>String(cue.text??'')).filter(Boolean);
     const audioFile=await extractFinalAudio(video,work);
     const finalTranscript=await transcribeFinalAudio(audioFile);
     const audioAlignment=assessCaptionAlignment(expectedCaptions,finalTranscript.text);
