@@ -19,5 +19,6 @@ describe('MomentCircuit geometry',()=>{
   it('protects interview speaker focus regions',()=>{expect(()=>validateProtectedFocus(shot({layout:'INTERVIEW',focus_x:.5}))).not.toThrow();expect(()=>validateProtectedFocus(shot({layout:'INTERVIEW',focus_x:.9}))).toThrow('SHOT_FOCUS_MISSES_PROTECTED_SUBJECT');});
   it('allows native vertical to fill without template chrome',()=>{const f=sourcePreservingFilter('VERTICAL_NATIVE',.5);expect(f).toContain('crop=1080:1920');expect(f).not.toContain('drawbox');});
   it('uses requested speaker focus',()=>{expect(sourcePreservingFilter('SINGLE_SPEAKER',.25)).toContain('0.2500');expect(sourcePreservingFilter('SINGLE_SPEAKER',.75)).toContain('0.7500');});
+  it('overscans horizontal single-speaker sources to remove baked frame edges',()=>{const f=sourcePreservingFilter('SINGLE_SPEAKER',.5);expect(f).toContain('crop=iw:ih*0.88:0:ih*0.06');expect(f).not.toContain('gblur');});
   it('computes shot duration and blocks invalid time',()=>{expect(shotDuration(shot({start:1.25,end:3.75}))).toBe(2.5);expect(()=>shotDuration(shot({start:4,end:4}))).toThrow();});
 });

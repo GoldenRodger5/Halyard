@@ -9,16 +9,25 @@ export type AlignmentResult = {
 };
 
 export function normalizeSpeech(value:string):string[] {
-  return String(value??'')
+  const expanded=String(value??'')
     .normalize('NFKD')
     .toLowerCase()
     .replace(/[’‘]/g,"'")
-    .replace(/[^a-z0-9'\s]/g,' ')
+    .replace(/\b(it|he|she|that|what|who|there|here)'s\b/g,'$1 is')
+    .replace(/\b(i|you|we|they|he|she|it)'d\b/g,'$1 would')
+    .replace(/\b(i|you|we|they)'re\b/g,'$1 are')
+    .replace(/\b(i|you|we|they|he|she)'ll\b/g,'$1 will')
+    .replace(/\b(can)'t\b/g,'cannot')
+    .replace(/\b(won)'t\b/g,'will not')
+    .replace(/n't\b/g,' not')
+    .replace(/'ve\b/g,' have')
+    .replace(/'m\b/g,' am')
+    .replace(/'s\b/g,'s');
+  return expanded
+    .replace(/[^a-z0-9\s]/g,' ')
     .replace(/\s+/g,' ')
     .trim()
     .split(' ')
-    .filter(Boolean)
-    .map((w)=>w.replace(/^'+|'+$/g,''))
     .filter(Boolean);
 }
 
@@ -27,9 +36,7 @@ function orderedCoverage(expected:string[],actual:string[]):number {
   if(!actual.length) return 0;
 
   // Longest-common-subsequence coverage preserves word order while tolerating
-  // bounded ASR omissions/insertions. The former one-word-lookahead matcher
-  // permanently desynchronized after two consecutive missing words, causing
-  // false systemic failures on otherwise faithful final audio.
+  // bounded ASR omissions/insertions.
   const dp=new Array<number>(actual.length+1).fill(0);
   for(let i=1;i<=expected.length;i++){
     let diagonal=0;

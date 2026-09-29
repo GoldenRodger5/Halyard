@@ -35,6 +35,10 @@ describe('MomentCircuit final audio/caption alignment',()=>{
     );
     expect(r.pass).toBe(false); expect(r.payoff_coverage).toBeLessThan(.72);
   });
+  it('handles normal ASR contractions without hiding real omissions',()=>{
+    const r=assessCaptionAlignment(["Let's do couples therapy with me, you, and my couples therapist.",'I love it. I love the idea.','I think it would be great.','I have so much to tell her.','Oh, never mind. This is a horrible idea.'],"Let's do a couple's therapy with me, you and my couple's therapist. I love it. I love it. I love the idea. I think it'd be great. I have so much to tell her. Oh, never mind. This is a horrible idea.");
+    expect(r.pass).toBe(true);expect(r.overall_coverage).toBeGreaterThan(.9);expect(r.ordered_coverage).toBeGreaterThan(.85);expect(r.payoff_coverage).toBe(1);
+  });
   it('fails a materially wrong subtitle transcript',()=>{
     const r=assessCaptionAlignment(['I got fired from McDonalds for stealing chicken nuggets'],'I worked there for a long time and then I went home.');
     expect(r.pass).toBe(false); expect(r.overall_coverage).toBeLessThan(.5);
