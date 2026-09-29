@@ -24,12 +24,23 @@ export function normalizeSpeech(value:string):string[] {
 
 function orderedCoverage(expected:string[],actual:string[]):number {
   if(!expected.length) return 1;
-  let j=0,found=0;
-  for(const word of actual){
-    if(j<expected.length && word===expected[j]){found++;j++;continue;}
-    if(j+1<expected.length && word===expected[j+1]){found++;j+=2;}
+  if(!actual.length) return 0;
+
+  // Longest-common-subsequence coverage preserves word order while tolerating
+  // bounded ASR omissions/insertions. The former one-word-lookahead matcher
+  // permanently desynchronized after two consecutive missing words, causing
+  // false systemic failures on otherwise faithful final audio.
+  const dp=new Array<number>(actual.length+1).fill(0);
+  for(let i=1;i<=expected.length;i++){
+    let diagonal=0;
+    for(let j=1;j<=actual.length;j++){
+      const previous=dp[j]!;
+      if(expected[i-1]===actual[j-1]) dp[j]=diagonal+1;
+      else dp[j]=Math.max(dp[j]!,dp[j-1]!);
+      diagonal=previous;
+    }
   }
-  return found/expected.length;
+  return dp[actual.length]!/expected.length;
 }
 
 export function assessCaptionAlignment(expectedPhrases:string[],transcript:string):AlignmentResult {
