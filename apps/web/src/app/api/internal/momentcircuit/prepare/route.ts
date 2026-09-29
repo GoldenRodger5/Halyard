@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'node:crypto';
-import { buildVerifiedEditPlan, type AiEditDecision } from '@/lib/momentcircuit/edit-planner';
+import { buildVerifiedEditPlan, verifiedSourceLayout, type AiEditDecision } from '@/lib/momentcircuit/edit-planner';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -239,12 +239,13 @@ async function prepareWorkOrder(id:string) {
   const requestedMode=generated.presentation_mode ?? (generated.hook_mode==='OPENING_CONTEXT'?'HEADLINE_CARD_PLUS_DYNAMIC_SUBTITLES':'NATIVE_SOURCE_ONLY');
   const hook = requestedMode==='NATIVE_SOURCE_ONLY' ? null : plannedHeadline;
   const hookMode = hook ? 'OPENING_CONTEXT' : 'NONE';
+  const verifiedLayout=verifiedSourceLayout(cm.shot_map);
   const editPlan=buildVerifiedEditPlan({
     decision:{
       presentation_mode:requestedMode,
-      source_layout:generated.source_layout,
+      source_layout:verifiedLayout ?? generated.source_layout,
       focus_x:generated.focus_x,
-      shots:generated.shots,
+      shots:generated.shots?.map((shot)=>verifiedLayout?{...shot,layout:verifiedLayout}:shot),
       headline:hook,
       headline_duration:generated.headline_duration,
     },

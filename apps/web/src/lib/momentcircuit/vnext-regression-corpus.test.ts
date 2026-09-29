@@ -21,9 +21,11 @@ describe('MomentCircuit permanent production regression corpus',()=>{
   it('R05 blocks a crop focus that misses the protected face region',()=>{
     expect(()=>validateProtectedFocus({start:0,end:5,focus_x:.9,layout:'SINGLE_SPEAKER',protected_region:{x1:.25,y1:.1,x2:.65,y2:.9}})).toThrow('SHOT_FOCUS_MISSES_PROTECTED_SUBJECT');
   });
-  it('R06 preserves two-shot context without black template bars',()=>{
-    const f=sourcePreservingFilter('TWO_SHOT',.5);
-    expect(f).toContain('gblur'); expect(f).not.toContain('color=black'); expect(f).not.toContain('drawbox');
+  it('R06 keeps shared-camera two-shot native full-bleed and split-screen stacked',()=>{
+    const two=sourcePreservingFilter('TWO_SHOT',.5);
+    expect(two).toContain('scale=1080:1920'); expect(two).not.toContain('gblur'); expect(two).not.toContain('color=black');
+    const split=sourcePreservingFilter('SPLIT_SCREEN',.5);
+    expect(split).toContain('crop=iw*0.445:ih*0.92'); expect(split).toContain('vstack=inputs=2'); expect(split).not.toContain('gblur');
   });
   it('R07 fails a final audio transcript missing the payoff',()=>{
     const r=assessCaptionAlignment(['setup words','the final payoff lands here'],'setup words and then it cuts');
