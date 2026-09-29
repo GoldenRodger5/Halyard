@@ -124,11 +124,19 @@ async function transcribeFinalAudio(audio:string){
   return {model:'gpt-transcribe',text};
 }
 
-function expectedCaptionText(payload:any):string[]{
-  const direct=payload?.render_segment?.caption_cues;
-  const planned=payload?.edit_plan?.caption_cues;
-  const raw=Array.isArray(planned)?planned:Array.isArray(direct)?direct:[];
-  return raw.map((x:any)=>String(x?.text??'').trim()).filter(Boolean);
+function expectedCaptionText(payload: unknown):string[]{
+  const root = payload && typeof payload === 'object' ? payload as Record<string,unknown> : {};
+  const renderSegment = root.render_segment && typeof root.render_segment === 'object'
+    ? root.render_segment as Record<string,unknown> : {};
+  const editPlan = root.edit_plan && typeof root.edit_plan === 'object'
+    ? root.edit_plan as Record<string,unknown> : {};
+  const direct=renderSegment.caption_cues;
+  const planned=editPlan.caption_cues;
+  const raw: unknown[] = Array.isArray(planned)?planned:Array.isArray(direct)?direct:[];
+  return raw.map((x)=>{
+    if(!x || typeof x!=='object') return '';
+    return String((x as Record<string,unknown>).text??'').trim();
+  }).filter(Boolean);
 }
 
 async function extractFrames(video: string, duration: number, work: string) {

@@ -46,7 +46,6 @@ class SourceTooLargeError extends Error {
   }
 }
 
-type Family = 'native_people' | 'gameplay_focus' | 'cinematic_focus';
 type DisclosureMode = 'none' | 'opening' | 'persistent';
 
 interface CaptionWord {
@@ -256,99 +255,6 @@ async function prepareSource(
     return { input: remote, mode: 'remote_seek', bytes: error.declaredBytes };
   }
 }
-function artifactText(value: string) {
-  return /(Dialogue:|Style:|Script Info|Format:|-->|,Cap,,|(?:^|\s)\d{1,2}:\d{2}:\d{2}[.,]\d+)/i.test(value);
-}
-
-function cleanCaptionWord(raw: CaptionWord, duration: number): CaptionWord {
-  const start = Number(raw.start);
-  const end = Number(raw.end);
-  const text = String(raw.text ?? '').trim().replace(/\s+/g, ' ');
-  if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || end <= start || end > duration + 0.15) {
-    throw new Error('CAPTION_TIME_INVALID');
-  }
-  if (!text) throw new Error('CAPTION_TEXT_EMPTY');
-  if (artifactText(text)) throw new Error('RAW_SUBTITLE_ARTIFACT_TOKEN');
-  return { start, end, text };
-}
-
-function cleanCaptionCue(raw: CaptionCue, duration: number): CaptionCue {
-  const start = Number(raw.start);
-  const end = Number(raw.end);
-  const text = String(raw.text ?? '').trim().replace(/\s+/g, ' ');
-  if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || end <= start || end > duration + 0.15) {
-    throw new Error('CAPTION_TIME_INVALID');
-  }
-  if (!text) throw new Error('CAPTION_TEXT_EMPTY');
-  if (artifactText(text)) throw new Error('RAW_SUBTITLE_ARTIFACT_TOKEN');
-  if (/("start"|"end"|\{.*\}|\[.*\])/i.test(text)) throw new Error('CAPTION_SERIALIZATION_ARTIFACT');
-  return { start, end, text: text.slice(0, 90) };
-}
-
-function captionCues(seg: Segment): CaptionCue[] {
-  const duration = Number(seg.duration);
-
-  if (Array.isArray(seg.caption_cues)) {
-    const cues = seg.caption_cues
-      .map((x) => cleanCaptionCue(x, duration))
-      .sort((a, b) => a.start - b.start);
-    if (seg.caption_mode === 'PHRASE_CUES_ONLY' && cues.length === 0) throw new Error('CAPTIONS_REQUIRED');
-    if (seg.require_word_captions && cues.length === 0) throw new Error('CAPTIONS_REQUIRED');
-    return cues;
-  }
-
-  const raw = Array.isArray(seg.caption_words)
-    ? seg.caption_words.map((x) => cleanCaptionWord(x, duration)).sort((a,b)=>a.start-b.start)
-    : [];
-
-  if (seg.caption_mode === 'PHRASE_CUES_ONLY' && raw.length > 0) {
-    throw new Error('LEGACY_CAPTION_WORDS_FORBIDDEN_IN_V4');
-  }
-  if (seg.require_word_captions && raw.length === 0) throw new Error('CAPTIONS_REQUIRED');
-  if (raw.length === 0) return [];
-
-  const wordLike = raw.filter((x) => x.text.split(/\s+/).length <= 2).length / raw.length >= 0.7;
-  if (!wordLike) {
-    return raw.map((x) => ({ start: x.start, end: x.end, text: x.text.slice(0, 90) }));
-  }
-
-  const out: CaptionCue[] = [];
-  let words: string[] = [];
-  let start = raw[0]!.start;
-  let end = raw[0]!.end;
-  let previousEnd = raw[0]!.start;
-
-  const flush = () => {
-    if (!words.length) return;
-    out.push({ start, end, text: words.join(' ').slice(0, 90) });
-    words = [];
-  };
-
-  for (const item of raw) {
-    const nextWords = [...words, item.text];
-    const nextText = nextWords.join(' ');
-    const gap = item.start - previousEnd;
-    const span = item.end - start;
-    const previousEndedSentence = words.length > 0 && /[.!?]$/.test(words[words.length - 1]!);
-    const shouldBreak = words.length > 0 && (
-      nextWords.length > 6 ||
-      nextText.length > 42 ||
-      span > 1.9 ||
-      gap > 0.42 ||
-      previousEndedSentence
-    );
-    if (shouldBreak) {
-      flush();
-      start = item.start;
-    }
-    words.push(item.text);
-    end = item.end;
-    previousEnd = item.end;
-  }
-  flush();
-  return out;
-}
-
 async function overlay(file: string, seg: Segment, kind: 'hook'|'required'|'persistent'|'caption') {
   const safeSeg = kind === 'hook'
     ? { ...seg, hook_line1: seg.hook_line1 ?? seg.hook_text }
@@ -374,7 +280,6 @@ async function renderVisualShot(source:string,output:string,sourceStart:number,s
 }
 
 async function segment(source: string, output: string, seg: EditSegment, work: string, i: number) {
-  const duration = seg.duration;
   const visualParts:string[]=[];
   for(const [si,shot] of seg.shots.entries()){
     const shotFile=path.join(work,`visual-${i}-${si}.mp4`);
