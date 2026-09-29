@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import crypto from 'node:crypto';
 import { buildVerifiedEditPlan, verifiedSourceLayout, verifiedShotsFromShotMap, type AiEditDecision } from '@/lib/momentcircuit/edit-planner';
 import { assessPackageQuality, packageRevisionFeedback } from '@/lib/momentcircuit/package-quality';
+import { prepareSourceWindow } from '@/lib/momentcircuit/source-window';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -222,10 +223,14 @@ async function prepareWorkOrder(id:string) {
     payload.render_segment && typeof payload.render_segment === 'object' && !Array.isArray(payload.render_segment)
       ? payload.render_segment as Record<string,unknown>
       : {};
-  const sourceStart=Number(existingSeg.start ?? 0);
-  const candidateDuration=Number(cm.end_seconds)-Number(cm.start_seconds);
-  const duration=Number(existingSeg.duration ?? candidateDuration);
-  if(!Number.isFinite(duration) || duration<=0) throw new Error('EDIT_PLAN_DURATION_INVALID');
+  const sourceWindow=prepareSourceWindow(
+    cm.start_seconds,
+    cm.end_seconds,
+    existingSeg,
+    payload.prepare_version==='AI_EDIT_PLAN_VNEXT_1' && existingSeg.edit_plan_version===1,
+  );
+  const sourceStart=sourceWindow.start;
+  const duration=sourceWindow.duration;
 
   const packageArgs={
     platform:String(wo.platform),
