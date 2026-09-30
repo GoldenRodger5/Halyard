@@ -57,49 +57,70 @@ async function processJob(body:unknown){
     if(we||!work||work.work_kind!=='clip'||work.state!=='REPAIR_REQUIRED'){
       throw new Error('REPAIR_WORK_NOT_READY');
     }
-    const [qcResult,planResult]=await Promise.all([
+    const [qcResult,planResult,revisionResult]=await Promise.all([
       client.from('momentcircuit_v4_exact_final_qc').select('*')
         .eq('work_id',work.id).eq('qc_verdict_id',work.latest_qc_id)
         .maybeSingle(),
       client.from('momentcircuit_v4_edit_plans').select('*')
-        .eq('work_id',work.id).eq('revision',1).maybeSingle()
+        .eq('work_id',work.id).eq('revision',1).maybeSingle(),
+      client.from('momentcircuit_v4_edit_plans')
+        .select('id,registered_by_job_id,segment_sha256,plan_sha256,planner_release')
+        .eq('work_id',work.id).eq('revision',2).maybeSingle()
     ]);
-    const qc=qcResult.data,first=planResult.data;
-    if(qcResult.error||planResult.error||!qc||!first
+    const qc=qcResult.data,first=planResult.data,
+      existing=revisionResult.data;
+    if(qcResult.error||planResult.error||revisionResult.error||!qc||!first
       ||qc.verdict!=='LOCAL_FAIL'||qc.artifact_id!==work.current_artifact_id){
       throw new Error('REPAIR_LOCAL_QC_EVIDENCE_MISSING');
     }
     const {error:liveError}=await client.rpc('momentcircuit_v4_assert_clip_live',{
       p_work_id:work.id});
     if(liveError) throw new Error('REPAIR_CURRENT_CONTRACT_HOLD');
-    const evidence=qc.evidence as Record<string,unknown>;
-    const visual=evidence.visual as Record<string,unknown>|undefined;
-    const suggestion=visual?.repair_plan;
-    const repair=applyV4RepairPlan(first.edit_plan,suggestion);
-    if(!repair){
-      const {data:retired,error:re}=await client.rpc(
-        'momentcircuit_v4_complete_job',{
-          p_job_id:jobId,p_worker:worker,p_lease_epoch:leaseEpoch,
-          p_event:'REPAIR_UNAVAILABLE',p_evidence:{
-            prior_qc_id:qc.qc_verdict_id,
-            reason:'No safe bounded crop or existing-headline revision fixes this defect'}});
-      if(re||!retired) throw new Error('REPAIR_RETIRE_REJECTED');
-      return {work_id:work.id,retired:true,reason:'NO_SAFE_LOCAL_REPAIR'};
+    if(existing&&(existing.registered_by_job_id!==jobId
+      ||existing.segment_sha256!==first.segment_sha256)){
+      throw new Error('REPAIR_EXISTING_REVISION_CONFLICT');
     }
-    const {data:registered,error:registerError}=await client.rpc(
-      'momentcircuit_v4_register_repair_plan',{
-        p_job_id:jobId,p_worker:worker,p_lease_epoch:leaseEpoch,
-        p_plan:repair.plan,p_planner_model:String(qc.critic_model),
-        p_planner_release:release(),p_reason:repair.reason});
-    if(registerError||!registered){
-      throw new Error('REPAIR_PLAN_REGISTRATION_REJECTED');
+    let registered:{plan_id:string;plan_sha256:string};
+    let plannerRelease:string;
+    if(existing){
+      // Registration may have committed before an HTTP timeout or worker
+      // restart. The sealed revision and its original release are authority.
+      registered={plan_id:String(existing.id),
+        plan_sha256:String(existing.plan_sha256)};
+      plannerRelease=String(existing.planner_release);
+    }else{
+      const evidence=qc.evidence as Record<string,unknown>;
+      const visual=evidence.visual as Record<string,unknown>|undefined;
+      const suggestion=visual?.repair_plan;
+      const repair=applyV4RepairPlan(first.edit_plan,suggestion);
+      if(!repair){
+        const {data:retired,error:re}=await client.rpc(
+          'momentcircuit_v4_complete_job',{
+            p_job_id:jobId,p_worker:worker,p_lease_epoch:leaseEpoch,
+            p_event:'REPAIR_UNAVAILABLE',p_evidence:{
+              prior_qc_id:qc.qc_verdict_id,
+              reason:'No safe bounded crop or existing-headline revision fixes this defect'}});
+        if(re||!retired) throw new Error('REPAIR_RETIRE_REJECTED');
+        return {work_id:work.id,retired:true,reason:'NO_SAFE_LOCAL_REPAIR'};
+      }
+      plannerRelease=release();
+      const {data:sealed,error:registerError}=await client.rpc(
+        'momentcircuit_v4_register_repair_plan',{
+          p_job_id:jobId,p_worker:worker,p_lease_epoch:leaseEpoch,
+          p_plan:repair.plan,p_planner_model:String(qc.critic_model),
+          p_planner_release:plannerRelease,p_reason:repair.reason});
+      if(registerError||!sealed){
+        throw new Error('REPAIR_PLAN_REGISTRATION_REJECTED');
+      }
+      registered={plan_id:String(sealed.plan_id),
+        plan_sha256:String(sealed.plan_sha256)};
     }
     const {data:completed,error:ce}=await client.rpc('momentcircuit_v4_complete_job',{
       p_job_id:jobId,p_worker:worker,p_lease_epoch:leaseEpoch,
       p_event:'REVISION_READY',p_evidence:{
         plan_id:registered.plan_id,plan_sha256:registered.plan_sha256,
         segment_sha256:first.segment_sha256,
-        planner_release:release(),prior_qc_id:qc.qc_verdict_id}});
+        planner_release:plannerRelease,prior_qc_id:qc.qc_verdict_id}});
     if(ce||!completed) throw new Error('REPAIR_REVISION_COMPLETION_REJECTED');
     return {work_id:work.id,plan_id:registered.plan_id,
       plan_sha256:registered.plan_sha256,completed};
