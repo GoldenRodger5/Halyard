@@ -232,7 +232,8 @@ async function processJob(body:unknown){
       :await client.rpc('momentcircuit_v4_fail_job',{
         p_job_id:jobId,p_worker:worker,p_lease_epoch:leaseEpoch,
         p_failure_class:klass,p_error:message});
-    if(failure.error) throw new Error(`QC_FAILURE_RECORD_REJECTED:${message}`);
+    if(failure.error) throw new Error(`QC_FAILURE_RECORD_REJECTED:${message}`,
+      {cause:error});
     throw error;
   }
 }
