@@ -1,6 +1,7 @@
 import {describe,it,expect} from 'vitest';
-import {captionCuesFromSourceSpeech,normalizeEditorialCaption,
-  normalizeEditorialDecision} from './v4-editorial';
+import {captionCuesFromSourceSpeech,generatedCaptionsRequired,
+  normalizeEditorialCaption,normalizeEditorialDecision,
+  trustedNativeSubtitlePolicy} from './v4-editorial';
 
 describe('v4 editorial handoff',()=>{
   it('turns source-local timed speech into short segment-local cues',()=>{
@@ -14,6 +15,32 @@ describe('v4 editorial handoff',()=>{
   it('holds missing required captions',()=>{
     expect(()=>captionCuesFromSourceSpeech([],0,10,true))
       .toThrow('CAPTIONS_REQUIRED');
+  });
+  it('trusts native subtitles only with manifest and visual agreement',()=>{
+    const trusted={trusted_native_subtitles:true,
+      manifest_official_pre_subtitled:true,
+      visual_source_caption_mode:'BURNED_IN_SPEECH_SUBTITLES',
+      visual_source_caption_samples:[
+        {at_seconds:.7,text:'But it still hurts'},
+        {at_seconds:9.3,text:'for doing this'}]};
+    expect(trustedNativeSubtitlePolicy(trusted)).toBe(true);
+    expect(trustedNativeSubtitlePolicy({...trusted,
+      visual_source_caption_samples:[trusted.visual_source_caption_samples[0]]})).toBe(false);
+    expect(trustedNativeSubtitlePolicy({...trusted,
+      manifest_official_pre_subtitled:false})).toBe(false);
+  });
+  it('does not burn generated subtitles over trusted official native subtitles',()=>{
+    const requirements={caption:{language:'English',must_include_one_of:['Invincible']}};
+    const trusted={trusted_native_subtitles:true,
+      manifest_official_pre_subtitled:true,
+      visual_source_caption_mode:'BURNED_IN_SPEECH_SUBTITLES',
+      visual_source_caption_samples:[
+        {at_seconds:.7,text:'But it still hurts'},
+        {at_seconds:9.3,text:'for doing this'}]};
+    expect(generatedCaptionsRequired(requirements,trusted)).toBe(false);
+    expect(generatedCaptionsRequired(requirements,{...trusted,
+      visual_source_caption_mode:'AMBIGUOUS'})).toBe(true);
+    expect(generatedCaptionsRequired(requirements,null)).toBe(true);
   });
   it('puts paid disclosure first and includes campaign token',()=>{
     expect(normalizeEditorialCaption('The payoff lands.',{
