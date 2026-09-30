@@ -60,7 +60,16 @@ async function processJob(body:unknown){
     const {data:receipt,error:re}=await client.from('momentcircuit_v4_rendered_media')
       .select('id,artifact_id,media_sha256').eq('rendered_by_job_id',jobId)
       .maybeSingle();
-    if(re||!receipt) throw new Error('RENDER_DONE_RECEIPT_MISSING');
+    if(re) throw new Error('RENDER_DONE_RECEIPT_MISSING');
+    if(!receipt){
+      const {data:retired,error:ee}=await client.from('momentcircuit_v4_events')
+        .select('event,evidence').eq('job_id',jobId).maybeSingle();
+      if(ee||retired?.event!=='REPAIR_NO_CHANGE'){
+        throw new Error('RENDER_DONE_RECEIPT_MISSING');
+      }
+      return {work_id:job.work_id,duplicate:true,retired:true,
+        reason:'REPAIR_NO_CHANGE',evidence:retired.evidence};
+    }
     return {work_id:job.work_id,duplicate:true,receipt};
   }
   if(job.status!=='LEASED'||job.lease_owner!==worker
@@ -70,7 +79,7 @@ async function processJob(body:unknown){
   }
   try{
     const {data:work,error:we}=await client.from('momentcircuit_v4_work')
-      .select('id,work_kind,state,platform,campaign_contract_id,candidate_moment_id,source_sha256')
+      .select('id,work_kind,state,platform,campaign_contract_id,candidate_moment_id,source_sha256,media_sha256,current_artifact_id')
       .eq('id',String(job.work_id)).maybeSingle();
     if(we||!work||work.work_kind!=='clip'||work.state!=='RENDERING'){
       throw new Error('RENDER_WORK_NOT_RENDERING');
@@ -78,10 +87,7 @@ async function processJob(body:unknown){
     const {error:liveError}=await client.rpc('momentcircuit_v4_assert_clip_live',{
       p_work_id:work.id});
     if(liveError) throw new Error('RENDER_CURRENT_CONTRACT_HOLD');
-    const [requestResult,segmentResult,contractResult,eventResult]=await Promise.all([
-      client.from('momentcircuit_v4_render_requests').select('*')
-        .eq('work_id',work.id).order('created_at',{ascending:false}).limit(1)
-        .maybeSingle(),
+    const [segmentResult,contractResult,eventResult]=await Promise.all([
       client.from('momentcircuit_v4_segment_assets').select('*')
         .eq('work_id',work.id).maybeSingle(),
       client.from('momentcircuit_v4_current_contract')
@@ -91,12 +97,18 @@ async function processJob(body:unknown){
         .eq('work_id',work.id).eq('event','RENDER_START')
         .order('state_version',{ascending:false}).limit(1).maybeSingle()
     ]);
-    const renderRequest=requestResult.data,segment=segmentResult.data;
+    const segment=segmentResult.data;
     const contract=contractResult.data,startEvent=eventResult.data;
-    if(requestResult.error||segmentResult.error||contractResult.error
-      ||eventResult.error||!renderRequest||!segment||!contract||!startEvent){
+    if(segmentResult.error||contractResult.error
+      ||eventResult.error||!segment||!contract||!startEvent){
       throw new Error('RENDER_INPUT_MISSING');
     }
+    const startEvidence=startEvent.evidence as Record<string,unknown>;
+    const {data:renderRequest,error:requestError}=await client
+      .from('momentcircuit_v4_render_requests').select('*')
+      .eq('id',String(startEvidence.render_request_id??''))
+      .eq('work_id',work.id).maybeSingle();
+    if(requestError||!renderRequest) throw new Error('RENDER_REQUEST_MISSING');
     const {data:plan,error:pe}=await client.from('momentcircuit_v4_edit_plans')
       .select('id,revision,plan_sha256,segment_sha256,edit_plan')
       .eq('id',String(renderRequest.plan_id)).maybeSingle();
@@ -104,7 +116,7 @@ async function processJob(body:unknown){
     const requestBody=renderRequest.render_request as Record<string,unknown>;
     const requestSegment=requestBody?.segment as Record<string,unknown>|undefined;
     const requestPlan=requestBody?.plan as Record<string,unknown>|undefined;
-    const evidence=startEvent.evidence as Record<string,unknown>;
+    const evidence=startEvidence;
     if(requestBody?.schema!=='v4-render-request-1'
       ||requestBody?.work_id!==work.id
       ||requestBody?.platform!==work.platform
@@ -170,6 +182,19 @@ async function processJob(body:unknown){
       }
       const outputBytes=await fsp.readFile(output);
       const mediaSha=crypto.createHash('sha256').update(outputBytes).digest('hex');
+      if(Number(plan.revision)===2 && mediaSha===work.media_sha256){
+        const {data:retired,error:retireError}=await client.rpc(
+          'momentcircuit_v4_complete_job',{
+            p_job_id:jobId,p_worker:worker,p_lease_epoch:leaseEpoch,
+            p_event:'REPAIR_NO_CHANGE',p_evidence:{
+              render_request_id:renderRequest.id,
+              request_sha256:renderRequest.request_sha256,
+              plan_id:plan.id,media_sha256:mediaSha,
+              prior_artifact_id:work.current_artifact_id}});
+        if(retireError||!retired) throw new Error('REPAIR_NO_CHANGE_RETIRE_REJECTED');
+        return {work_id:work.id,media_sha256:mediaSha,retired:true,
+          reason:'REPAIR_NO_CHANGE'};
+      }
       const objectPath=`momentcircuit/renders/${work.id}/${mediaSha}.mp4`;
       try{
         await uploadPrivateContentAddressed(outputBytes,objectPath,key,url);
@@ -212,9 +237,18 @@ async function processJob(body:unknown){
     }finally{await fsp.rm(dir,{recursive:true,force:true}).catch(()=>undefined);}
   }catch(error){
     const message=error instanceof Error?error.message:'RENDER_UNKNOWN';
-    await client.rpc('momentcircuit_v4_fail_job',{
-      p_job_id:jobId,p_worker:worker,p_lease_epoch:leaseEpoch,
-      p_failure_class:classifyFailure(message),p_error:message});
+    const klass=classifyFailure(message);
+    const failure=klass==='SYSTEMIC'
+      ?await client.rpc('momentcircuit_v4_fail_systemic_job',{
+        p_job_id:jobId,p_worker:worker,p_lease_epoch:leaseEpoch,
+        p_lane:'renderer',p_release:release(),
+        p_failure_scope:'RENDER_SYSTEMIC',p_error:message,
+        p_evidence:{job_id:jobId,error:message}})
+      :await client.rpc('momentcircuit_v4_fail_job',{
+        p_job_id:jobId,p_worker:worker,p_lease_epoch:leaseEpoch,
+        p_failure_class:klass,p_error:message});
+    if(failure.error) throw new Error(`RENDER_FAILURE_RECORD_REJECTED:${message}`,
+      {cause:error});
     throw error;
   }
 }
