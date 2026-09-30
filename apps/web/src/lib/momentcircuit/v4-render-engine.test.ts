@@ -49,7 +49,7 @@ describe('v4 exact-segment renderer',()=>{
       const source=path.join(dir,'source.mp4');
       const output=path.join(dir,'output.mp4');
       await runV4Ffmpeg(['-y','-f','lavfi','-i',
-        'color=c=blue:s=270x480:r=24','-f','lavfi','-i',
+        'color=c=blue:s=640x360:r=24','-f','lavfi','-i',
         'sine=frequency=440:sample_rate=44100','-t','29.8',
         '-c:v','libx264','-pix_fmt','yuv420p','-c:a','aac',
         '-shortest',source],false,30_000);
@@ -57,8 +57,8 @@ describe('v4 exact-segment renderer',()=>{
       await renderV4EditSegment(source,output,{
         edit_plan_version:1,start:0,duration:29.8,
         presentation_mode:'HEADLINE_CARD_PLUS_DYNAMIC_SUBTITLES',
-        source_layout:'VERTICAL_NATIVE',
-        shots:[{start:0,end:29.8,focus_x:0.5,layout:'VERTICAL_NATIVE'}],
+        source_layout:'CINEMATIC',
+        shots:[{start:0,end:29.8,focus_x:0.5,layout:'CINEMATIC'}],
         headline:{text:'An unexpected story unfolds',start:0,end:1.8},
         caption_cues:Array.from({length:20},(_,index)=>({
           start:index*1.45,end:index*1.45+1.2,

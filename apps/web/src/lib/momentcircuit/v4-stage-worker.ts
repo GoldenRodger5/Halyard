@@ -17,7 +17,7 @@ function database(){
   return {url,client:createClient(url,key,{auth:{persistSession:false}})};
 }
 
-function ffmpegBinary(){
+export function v4FfmpegBinaryPath(){
   const candidates=[path.join(process.cwd(),'bin','ffmpeg'),
     path.join(process.cwd(),'apps','web','bin','ffmpeg'),
     '/var/task/apps/web/bin/ffmpeg','/var/task/bin/ffmpeg'];
@@ -28,7 +28,7 @@ function ffmpegBinary(){
 
 export function runV4Ffmpeg(args:string[],allowNonzero=false,timeoutMs=90_000){
   return new Promise<string>((resolve,reject)=>{
-    const child=spawn(ffmpegBinary(),args,{stdio:['ignore','ignore','pipe']});
+    const child=spawn(v4FfmpegBinaryPath(),args,{stdio:['ignore','ignore','pipe']});
     let stderr='',timedOut=false;
     const timer=setTimeout(()=>{timedOut=true;child.kill('SIGKILL');},timeoutMs);
     child.stderr.on('data',(chunk)=>{

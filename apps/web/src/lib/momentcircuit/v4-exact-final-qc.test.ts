@@ -47,6 +47,18 @@ describe('v4 exact-final QC gate',()=>{
       transcript:'',technicalPass:true});
     expect(result.verdict).toBe('MOMENT_BAD');
   });
+  it('opens the generation circuit when required captions are visibly absent',()=>{
+    const normalized=normalizeV4FinalReview(review({
+      caption_visual_quality:false,professional_quality:false,
+      cold_viewer_clarity:false,first_second_hook:false,
+      defects:[{class:'blank_caption_renderer_failure',severity:'major',
+        evidence:'Expected generated captions are absent from caption-beat frames',
+        repairable:false}],
+    }),times);
+    expect(()=>evaluateV4Final({review:normalized,
+      captions:['A complete caption'],transcript:'A complete caption',
+      technicalPass:true})).toThrow('QC_GENERATION_SYSTEMIC');
+  });
   it('opens the generation circuit for a final caption/audio mismatch',()=>{
     const normalized=normalizeV4FinalReview(review(),times);
     expect(()=>evaluateV4Final({review:normalized,
