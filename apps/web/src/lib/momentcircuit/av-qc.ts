@@ -70,7 +70,8 @@ export function assessCaptionAlignment(expectedPhrases:string[],transcript:strin
   const tail=actual.slice(-Math.max(8,payoffExpected.length*2));
   const tailSet=new Set(tail);
   const payoff=payoffExpected.length ? payoffExpected.filter((w)=>tailSet.has(w)).length/payoffExpected.length : 1;
-  const pass=overall>=0.82 && ordered>=0.72 && payoff>=0.72;
+  const shortPayoffAsrFallback=payoffExpected.length>0 && payoffExpected.length<=3 && overall>=0.95 && ordered>=0.95 && Math.abs(actual.length-expected.length)<=2 && payoff>=0.33;
+  const pass=overall>=0.82 && ordered>=0.72 && (payoff>=0.72 || shortPayoffAsrFallback);
   return {
     pass,
     overall_coverage:Number(overall.toFixed(3)),
