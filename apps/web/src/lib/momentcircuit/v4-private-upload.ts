@@ -16,7 +16,7 @@ export async function uploadPrivateContentAddressed(
   const sha=crypto.createHash('sha256').update(bytes).digest('hex');
   const extension=contentType==='video/mp4'?'mp4':'mov';
   if(!bytes.length||!serviceRoleKey
-    ||!/^momentcircuit\/(sources|segments)\/[A-Za-z0-9_./-]+$/.test(objectPath)
+    ||!/^momentcircuit\/(sources|segments|renders)\/[A-Za-z0-9_./-]+$/.test(objectPath)
     ||objectPath.split('/').includes('..')
     ||!objectPath.endsWith(`/${sha}.${extension}`)){
     throw new Error('PRIVATE_UPLOAD_INPUT_INVALID');
