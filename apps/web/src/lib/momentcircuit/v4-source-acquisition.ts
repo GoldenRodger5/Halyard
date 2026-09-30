@@ -18,6 +18,12 @@ export function parseV4SourceRequest(value:unknown){
   return {jobId,worker,leaseEpoch:Number(leaseEpoch)};
 }
 
+export function isClaimOneSourceRequest(value:unknown){
+  return !!value&&typeof value==='object'&&!Array.isArray(value)
+    &&Object.keys(value).length===1
+    &&(value as Record<string,unknown>).claim_one===true;
+}
+
 export function sourceUrlAllowed(raw:string){
   try{
     const url=new URL(raw);

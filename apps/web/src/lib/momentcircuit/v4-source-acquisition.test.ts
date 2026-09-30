@@ -1,6 +1,7 @@
 import {afterEach,describe,expect,it,vi} from 'vitest';
 import {
-  assertSourceLease,fetchAuthorizedSourceBytes,parseSourceProbe,parseV4SourceRequest,
+  assertSourceLease,fetchAuthorizedSourceBytes,isClaimOneSourceRequest,
+  parseSourceProbe,parseV4SourceRequest,
   sourceMediaType,sourceUrlAllowed,
   v4SourceObjectPath
 } from './v4-source-acquisition';
@@ -42,6 +43,8 @@ describe('v4 source acquisition boundary',()=>{
       .toBe(`momentcircuit/sources/${id}/${'a'.repeat(64)}.mp4`);
     expect(()=>parseV4SourceRequest({job_id:id,worker:'source-worker',lease_epoch:0}))
       .toThrow('SOURCE_REQUEST_INVALID');
+    expect(isClaimOneSourceRequest({claim_one:true})).toBe(true);
+    expect(isClaimOneSourceRequest({claim_one:true,job_id:id})).toBe(false);
   });
 
   it('requires an MP4 or QuickTime file signature',()=>{

@@ -8,7 +8,8 @@ import path from 'node:path';
 import {spawn} from 'node:child_process';
 import {uploadPrivateContentAddressed} from '@/lib/momentcircuit/v4-private-upload';
 import {
-  assertSourceLease,fetchAuthorizedSourceBytes,parseV4SourceRequest,
+  assertSourceLease,fetchAuthorizedSourceBytes,isClaimOneSourceRequest,
+  parseV4SourceRequest,
   parseSourceProbe,v4SourceObjectPath
 } from '@/lib/momentcircuit/v4-source-acquisition';
 import {V4_PRIVATE_BUCKET} from '@/lib/momentcircuit/v4-segment-stage';
@@ -181,10 +182,30 @@ async function execute(body:unknown){
   }
 }
 
+async function claimOne(){
+  const worker='halyard-v4-source';
+  const {client}=database();
+  const {data,error}=await client.rpc('momentcircuit_v4_claim_jobs',{
+    p_kind:'source_worker',p_worker:worker,p_limit:1,p_lease_seconds:600
+  });
+  if(error||!Array.isArray(data)) throw new Error('SOURCE_CLAIM_FAILED');
+  if(data.length===0) return null;
+  const claim=data[0] as {job_id:string;lease_epoch:number};
+  return {job_id:claim.job_id,worker,lease_epoch:Number(claim.lease_epoch)};
+}
+
 export async function POST(request:NextRequest){
   try{
     authorize(request);
-    return NextResponse.json({ok:true,...await execute(await request.json())});
+    let body:unknown;
+    try{body=await request.json();}
+    catch{throw new Error('SOURCE_REQUEST_INVALID');}
+    if(isClaimOneSourceRequest(body)){
+      const claim=await claimOne();
+      if(!claim) return NextResponse.json({ok:true,processed:0});
+      return NextResponse.json({ok:true,processed:1,...await execute(claim)});
+    }
+    return NextResponse.json({ok:true,...await execute(body)});
   }catch(error){
     const message=error instanceof Error?error.message:'SOURCE_WORKER_UNKNOWN';
     const status=message==='UNAUTHORIZED'?401:message==='SOURCE_REQUEST_INVALID'?400:503;
