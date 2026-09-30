@@ -1,7 +1,8 @@
 import {describe,expect,it} from 'vitest';
 import {
-  applyBoundaryRecovery,normalizeMinerProposals,parseMinerSourceProbe,
-  recoverableShortMinerProposals,stableMomentId
+  applyBoundaryRecovery,mergeMinerFrameObservations,
+  normalizeMinerFrameObservations,normalizeMinerProposals,parseMinerSourceProbe,
+  recoverableShortMinerProposals,selectMinerFrameEvidenceRepairTargets,stableMomentId
 } from './v4-moment-miner';
 import {deriveV4DurationPolicy} from './v4-duration-policy';
 
@@ -31,6 +32,44 @@ describe('v4 source-local moment mining',()=>{
       width:1080,height:1920,audioPresent:true});
     expect(()=>parseMinerSourceProbe('Duration: 00:00:11.46\nAudio: aac'))
       .toThrow('MINER_SOURCE_PROBE_INVALID');
+  });
+
+  it('normalizes only grounded frame observations and deduplicates frame times',()=>{
+    const frames=[{at:0.5},{at:1.5},{at:2.5},{at:3.5}];
+    expect(normalizeMinerFrameObservations([
+      {at_seconds:0.49,observation:'Opening character enters frame'},
+      {at_seconds:0.5,observation:'Duplicate opening observation'},
+      {at_seconds:1.5,observation:'A second character reacts visibly'},
+      {at_seconds:99,observation:'Invented off-source frame'},
+      {at_seconds:2.5,observation:'short'}
+    ],frames)).toEqual([
+      {at:0.5,observation:'Duplicate opening observation'},
+      {at:1.5,observation:'A second character reacts visibly'}
+    ]);
+  });
+
+  it('selects only enough missing frames to repair the four-frame evidence floor',()=>{
+    const frames=Array.from({length:8},(_,index)=>({at:index+0.5}));
+    const existing=[{at:0.5,observation:'Opening evidence is already grounded'},
+      {at:3.5,observation:'Middle evidence is already grounded'},
+      {at:7.5,observation:'Ending evidence is already grounded'}];
+    const targets=selectMinerFrameEvidenceRepairTargets({frames,existing,target:4});
+    expect(targets).toHaveLength(1);
+    expect(existing.some(row=>row.at===targets[0]?.at)).toBe(false);
+    expect(selectMinerFrameEvidenceRepairTargets({frames,
+      existing:[...existing,{at:4.5,observation:'Fourth grounded observation'}],target:4}))
+      .toEqual([]);
+  });
+
+  it('merges repaired frame evidence without replacing already-grounded observations',()=>{
+    expect(mergeMinerFrameObservations(
+      [{at:0.5,observation:'Original opening observation'}],
+      [{at:0.5,observation:'Repair should not replace original'},
+       {at:4.5,observation:'Recovered missing visual evidence'}]
+    )).toEqual([
+      {at:0.5,observation:'Original opening observation'},
+      {at:4.5,observation:'Recovered missing visual evidence'}
+    ]);
   });
 
   it('rejects the historical 7.821-second candidate under a 10-second campaign',()=>{
