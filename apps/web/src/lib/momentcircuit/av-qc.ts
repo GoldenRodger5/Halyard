@@ -81,3 +81,19 @@ export function assessCaptionAlignment(expectedPhrases:string[],transcript:strin
     missing_words:[...new Set(missing)].slice(0,20),
   };
 }
+
+/**
+ * A high-overlap transcript can fail the lexical payoff gate because ASR
+ * substitutes a proper noun or paraphrases a short payoff phrase. That is
+ * exactly the narrow case where a second semantic check is useful.
+ *
+ * Grossly mismatched audio never reaches semantic adjudication.
+ */
+export function shouldSemanticAdjudicateAlignment(result:AlignmentResult):boolean {
+  return !result.pass
+    && result.expected_words>0
+    && result.transcript_words>0
+    && result.overall_coverage>=0.9
+    && result.ordered_coverage>=0.88
+    && result.payoff_coverage<0.72;
+}
