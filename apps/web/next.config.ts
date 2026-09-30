@@ -9,6 +9,7 @@ const config: NextConfig = {
   outputFileTracingIncludes: {
     '/api/internal/momentcircuit/render': ['./bin/**/*'],
     '/api/internal/momentcircuit/qc': ['./bin/**/*'],
+    '/api/internal/momentcircuit/v4/render': ['./bin/**/*'],
   },
   typedRoutes: false,
 
