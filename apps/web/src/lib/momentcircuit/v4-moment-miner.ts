@@ -57,6 +57,36 @@ function safeText(value:unknown,max:number){
   return typeof value==='string'?value.trim().replace(/\s+/g,' ').slice(0,max):'';
 }
 
+function numericSeconds(value:unknown){
+  if(typeof value==='number'&&Number.isFinite(value)) return value;
+  if(typeof value==='string'&&/^\s*\d+(?:\.\d+)?\s*$/.test(value)){
+    const parsed=Number(value.trim());
+    return Number.isFinite(parsed)?parsed:null;
+  }
+  return null;
+}
+
+function normalizedPlatforms(value:unknown){
+  const values=Array.isArray(value)?value:typeof value==='string'?[value]:[];
+  return values.filter((x):x is 'tiktok'|'youtube'=>x==='tiktok'||x==='youtube');
+}
+
+export function v4MinerCandidateSchemaPrompt(allowedPlatforms:string[]){
+  const eligible=allowedPlatforms.filter(x=>x==='tiktok'||x==='youtube');
+  return 'Return exactly this JSON shape: '
+    +'{'+'"frame_observations":[{"at_seconds":0.0,"observation":"visible fact"}],'
+    +'"candidates":[{"story_family":"short_stable_slug",'
+    +'"proposed_story_claim":"complete story claim",'
+    +'"payoff":"specific payoff",'
+    +'"visual_reason":"specific visible reason",'
+    +'"start_seconds":0.0,"end_seconds":10.5,'
+    +'"platforms":["tiktok"]}],"reason":"brief explanation"}. '
+    +'start_seconds and end_seconds must be JSON numbers, never strings. '
+    +'platforms must be an array containing only eligible values: '+eligible.join(', ')+'. '
+    +'Every candidate must already satisfy the supplied preferred minimum and campaign maximum. '
+    +'If the semantic core is shorter, widen to meaningful source-native setup, action, reaction or payoff before returning it; otherwise omit it.';
+}
+
 export function normalizeMinerFrameObservations(raw:unknown,frames:MinerFrameRef[]){
   const observations=(Array.isArray(raw)?raw:[]).flatMap(value=>{
     if(!value||typeof value!=='object') return [];
@@ -99,9 +129,8 @@ export function mergeMinerFrameObservations(
 }
 
 function normalizedWindow(row:MinerProposal){
-  if(typeof row.start_seconds!=='number'||typeof row.end_seconds!=='number') return null;
-  const start=Number(row.start_seconds),end=Number(row.end_seconds);
-  if(!Number.isFinite(start)||!Number.isFinite(end)) return null;
+  const start=numericSeconds(row.start_seconds),end=numericSeconds(row.end_seconds);
+  if(start===null||end===null) return null;
   const s=Math.round(start*1000)/1000,e=Math.floor(end*1000)/1000;
   return e>s?{start:s,end:e,length:e-s}:null;
 }
@@ -111,9 +140,8 @@ function proposalShapeValid(row:MinerProposal,allowedPlatforms:string[]){
   const claim=safeText(row.proposed_story_claim,240);
   const payoff=safeText(row.payoff,240);
   const visualReason=safeText(row.visual_reason,300);
-  const platforms=Array.isArray(row.platforms)?row.platforms:[];
-  const selected=platforms.filter((x):x is 'tiktok'|'youtube'=>
-    (x==='tiktok'||x==='youtube')&&allowedPlatforms.includes(x));
+  const selected=normalizedPlatforms(row.platforms)
+    .filter(x=>allowedPlatforms.includes(x));
   return family.length>=3&&claim.length>=8&&payoff.length>=8&&visualReason.length>=8
     &&selected.length>0;
 }
@@ -169,10 +197,11 @@ export function applyBoundaryRecovery(args:{
     const row=raw as RecoveryProposal;
     const family=storySlug(row.story_family);
     const original=byFamily.get(family);
-    if(!original||used.has(family)
-      ||typeof row.start_seconds!=='number'||typeof row.end_seconds!=='number') continue;
-    const start=Math.round(Number(row.start_seconds)*1000)/1000;
-    const end=Math.floor(Number(row.end_seconds)*1000)/1000;
+    const rawStart=numericSeconds(row.start_seconds);
+    const rawEnd=numericSeconds(row.end_seconds);
+    if(!original||used.has(family)||rawStart===null||rawEnd===null) continue;
+    const start=Math.round(rawStart*1000)/1000;
+    const end=Math.floor(rawEnd*1000)/1000;
     if(!Number.isFinite(start)||!Number.isFinite(end)
       ||start<0||end>args.durationSeconds||end<=start
       ||start>original.start+0.001||end<original.end-0.001
@@ -259,9 +288,8 @@ export function normalizeMinerProposals(args:{
       return overlap/Math.min(length,w.end-w.start)>0.7;
     });
     if(nearDuplicate) continue;
-    const platforms=Array.isArray(row.platforms)?row.platforms:[];
-    const selected=platforms.filter((x):x is 'tiktok'|'youtube'=>
-      (x==='tiktok'||x==='youtube')&&args.allowedPlatforms.includes(x));
+    const selected=normalizedPlatforms(row.platforms)
+      .filter(x=>args.allowedPlatforms.includes(x));
     if(!selected.length) continue;
     const id=stableMomentId(args.sourceWorkId,s,e,family);
     const speech=args.transcript.filter(x=>x.end>s&&x.start<e)

@@ -2,7 +2,8 @@ import {describe,expect,it} from 'vitest';
 import {
   applyBoundaryRecovery,mergeMinerFrameObservations,
   normalizeMinerFrameObservations,normalizeMinerProposals,parseMinerSourceProbe,
-  recoverableShortMinerProposals,selectMinerFrameEvidenceRepairTargets,stableMomentId
+  recoverableShortMinerProposals,selectMinerFrameEvidenceRepairTargets,stableMomentId,
+  v4MinerCandidateSchemaPrompt
 } from './v4-moment-miner';
 import {deriveV4DurationPolicy} from './v4-duration-policy';
 
@@ -70,6 +71,73 @@ describe('v4 source-local moment mining',()=>{
       {at:0.5,observation:'Original opening observation'},
       {at:4.5,observation:'Recovered missing visual evidence'}
     ]);
+  });
+
+  it('states the exact candidate JSON contract upstream',()=>{
+    const prompt=v4MinerCandidateSchemaPrompt(['tiktok','youtube']);
+    expect(prompt).toContain('story_family');
+    expect(prompt).toContain('proposed_story_claim');
+    expect(prompt).toContain('payoff');
+    expect(prompt).toContain('visual_reason');
+    expect(prompt).toContain('start_seconds');
+    expect(prompt).toContain('end_seconds');
+    expect(prompt).toContain('platforms');
+    expect(prompt).toContain('JSON numbers, never strings');
+    expect(prompt).toContain('tiktok, youtube');
+    expect(prompt).toContain('preferred minimum');
+  });
+
+  it('tolerates harmless numeric-string timestamps and a scalar eligible platform',()=>{
+    const rows=normalizeMinerProposals({...base,durationSeconds:11.456,
+      proposals:[{
+        ...proposal(0,10.74,'awkward_affection_joke'),
+        start_seconds:'0.000',end_seconds:'10.740',platforms:'tiktok'
+      }]});
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({platform:'tiktok',start_seconds:0,end_seconds:10.74,
+      story_family:'awkward_affection_joke'});
+  });
+
+  it('recovers the inspected 10.440-second hug core to a meaningful 10.740-second reaction boundary',()=>{
+    const sourceTranscript=[
+      {start:0,end:2.2,text:'But I also know it still hurts.'},
+      {start:2.2,end:3.3,text:'So come here.'},
+      {start:3.3,end:4.2,text:'No, what are you?'},
+      {start:4.2,end:5.04,text:"I don't..."},
+      {start:5.92,end:6.76,text:'See?'},
+      {start:6.76,end:9.6,text:'Before, you would have punched my head off for doing this.'},
+      {start:9.6,end:10.44,text:'I still might.'}
+    ];
+    const original={
+      ...proposal(0,10.44,'awkward_affection_joke'),
+      start_seconds:'0.000',end_seconds:'10.440',platforms:'tiktok',
+      proposed_story_claim:'A comforting hug tests whether the mustached man has softened',
+      payoff:'The mustached man undercuts the hug with I still might',
+      visual_reason:'The hug contrasts with his annoyed late reaction'
+    };
+    const short=recoverableShortMinerProposals({proposals:[original],
+      durationSeconds:11.456,durationPolicy:policy,allowedPlatforms:['tiktok','youtube']});
+    expect(short).toHaveLength(1);
+    const recovered=applyBoundaryRecovery({
+      originalProposals:[original],
+      recoveredProposals:[{
+        story_family:'awkward_affection_joke',start_seconds:'0.000',end_seconds:'10.740',
+        added_context_reason:'The visible annoyed reaction after the final line completes the same punchline',
+        added_visual_evidence_at_seconds:[10.74]
+      }],
+      durationSeconds:11.456,durationPolicy:policy,
+      allowedPlatforms:['tiktok','youtube'],transcript:sourceTranscript,
+      frameObservations:[{at:10.74,observation:'The mustached man remains in the hug with an annoyed reaction'}]
+    });
+    expect(recovered).toHaveLength(1);
+    const rows=normalizeMinerProposals({...base,durationSeconds:11.456,
+      transcript:sourceTranscript,proposals:recovered});
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({platform:'tiktok',start_seconds:0,end_seconds:10.74,
+      story_family:'awkward_affection_joke'});
+    expect(rows[0]?.transcript_evidence).toMatchObject({
+      boundary_recovery:{original_end_seconds:10.44}
+    });
   });
 
   it('rejects the historical 7.821-second candidate under a 10-second campaign',()=>{
