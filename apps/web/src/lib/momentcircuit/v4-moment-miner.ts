@@ -6,6 +6,7 @@ import {
 export type SourceProbe={durationSeconds:number;videoCodec:string;width:number;height:number;audioPresent:boolean};
 export type TimedSpeech={start:number;end:number;text:string};
 export type FrameObservation={at:number;observation:string};
+export type MinerFrameRef={at:number};
 export type MinerProposal={start_seconds?:unknown;end_seconds?:unknown;
   story_family?:unknown;proposed_story_claim?:unknown;payoff?:unknown;
   platforms?:unknown;visual_reason?:unknown;boundary_recovery?:unknown};
@@ -54,6 +55,47 @@ function storySlug(value:unknown){
 
 function safeText(value:unknown,max:number){
   return typeof value==='string'?value.trim().replace(/\s+/g,' ').slice(0,max):'';
+}
+
+export function normalizeMinerFrameObservations(raw:unknown,frames:MinerFrameRef[]){
+  const observations=(Array.isArray(raw)?raw:[]).flatMap(value=>{
+    if(!value||typeof value!=='object') return [];
+    const item=value as {at_seconds?:unknown;observation?:unknown};
+    const at=Number(item.at_seconds);
+    const observation=safeText(item.observation,300);
+    const frame=frames.find(row=>Math.abs(row.at-at)<=0.05);
+    return Number.isFinite(at)&&observation.length>=8&&frame
+      ?[{at:frame.at,observation}]:[];
+  });
+  return [...new Map(observations.map(x=>[x.at,x])).values()]
+    .sort((a,b)=>a.at-b.at);
+}
+
+export function selectMinerFrameEvidenceRepairTargets(args:{
+  frames:MinerFrameRef[];existing:FrameObservation[];target?:number;
+}){
+  const target=Math.max(1,args.target??4);
+  const existingTimes=new Set(args.existing.map(x=>x.at));
+  const missing=args.frames.filter(frame=>!existingTimes.has(frame.at));
+  const need=Math.max(0,target-args.existing.length);
+  if(need===0||missing.length===0) return [] as MinerFrameRef[];
+  if(missing.length<=need) return missing;
+  const selected:MinerFrameRef[]=[];
+  for(let i=0;i<need;i++){
+    const index=Math.min(missing.length-1,
+      Math.floor((i+0.5)*missing.length/need));
+    const frame=missing[index];
+    if(frame&&!selected.some(x=>x.at===frame.at)) selected.push(frame);
+  }
+  return selected;
+}
+
+export function mergeMinerFrameObservations(
+  existing:FrameObservation[],repaired:FrameObservation[]){
+  // Existing evidence came from the primary multimodal mining decision and
+  // remains authoritative when the repair call happens to repeat a timestamp.
+  return [...new Map([...repaired,...existing].map(x=>[x.at,x])).values()]
+    .sort((a,b)=>a.at-b.at);
 }
 
 function normalizedWindow(row:MinerProposal){
