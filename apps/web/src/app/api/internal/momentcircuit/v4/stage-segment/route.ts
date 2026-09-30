@@ -10,6 +10,7 @@ import {
   V4_PRIVATE_BUCKET,assertStageEligibility,parseFfmpegDuration,
   parseV4StageRequest,signedStorageUrlAllowed,v4SegmentObjectPath
 } from '@/lib/momentcircuit/v4-segment-stage';
+import {uploadPrivateContentAddressed} from '@/lib/momentcircuit/v4-private-upload';
 
 export const dynamic='force-dynamic';
 export const runtime='nodejs';
@@ -105,15 +106,14 @@ async function execute(body:unknown){
     const sha=crypto.createHash('sha256').update(bytes).digest('hex');
     const objectPath=v4SegmentObjectPath(String(work.id),sha);
     const storage=client.storage.from(V4_PRIVATE_BUCKET);
-    const {error:uploadError}=await storage.upload(objectPath,bytes,{
-      contentType:'video/mp4',cacheControl:'3600',upsert:false
-    });
-    if(uploadError){
-      if(!/already exists|duplicate/i.test(uploadError.message)){
-        throw new Error('SEGMENT_UPLOAD_FAILED');
-      }
+    try{
+      await uploadPrivateContentAddressed(bytes,objectPath,
+        process.env.SUPABASE_SERVICE_ROLE_KEY??'',url);
+    }catch{
+      // TUS completion may be unknown after a timeout. A retry only adopts
+      // a pre-existing path when the remote bytes match the local exact SHA.
       const {data:existing,error:downloadError}=await storage.download(objectPath);
-      if(downloadError||!existing) throw new Error('SEGMENT_REPLAY_READ_FAILED');
+      if(downloadError||!existing) throw new Error('SEGMENT_UPLOAD_UNKNOWN');
       const existingBytes=Buffer.from(await existing.arrayBuffer());
       if(existingBytes.length!==bytes.length
         ||crypto.createHash('sha256').update(existingBytes).digest('hex')!==sha){
