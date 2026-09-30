@@ -47,6 +47,41 @@ async function sampleFrames(file:string,duration:number,dir:string){
   return frames;
 }
 
+async function transcribeExactSegment(file:string,dir:string,audioPresent:boolean){
+  if(!audioPresent) return [];
+  const key=process.env.OPENAI_API_KEY?.trim();
+  if(!key) throw new Error('OPENAI_API_KEY_MISSING');
+  const audio=path.join(dir,'exact-segment-audio.mp3');
+  await runV4Ffmpeg(['-y','-i',file,'-vn','-ac','1','-ar','16000',
+    '-c:a','libmp3lame','-b:a','64k',audio],false,90_000);
+  const bytes=await fsp.readFile(audio);
+  if(bytes.length<1000||bytes.length>24_000_000){
+    throw new Error('EDITORIAL_AUDIO_BOUNDS_INVALID');
+  }
+  const form=new FormData();
+  form.set('model','whisper-1');
+  form.set('response_format','verbose_json');
+  form.append('timestamp_granularities[]','segment');
+  form.set('file',new Blob([new Uint8Array(bytes)],{type:'audio/mpeg'}),
+    'exact-segment-audio.mp3');
+  const response=await fetch('https://api.openai.com/v1/audio/transcriptions',{
+    method:'POST',headers:{authorization:`Bearer ${key}`},body:form,
+    signal:AbortSignal.timeout(90_000)});
+  if(!response.ok) throw new Error(`EDITORIAL_TRANSCRIPTION_HTTP_${response.status}`);
+  const body=await response.json() as {text?:unknown;
+    segments?:Array<{start?:unknown;end?:unknown;text?:unknown}>};
+  const segments=(Array.isArray(body.segments)?body.segments:[]).flatMap(row=>{
+    const start=Number(row.start),end=Number(row.end);
+    const text=typeof row.text==='string'?row.text.trim():'';
+    return Number.isFinite(start)&&Number.isFinite(end)&&start>=0&&end>start&&text
+      ?[{start,end,text}]:[];
+  });
+  if(typeof body.text==='string'&&body.text.trim()&&!segments.length){
+    throw new Error('EDITORIAL_TRANSCRIPT_TIMING_MISSING');
+  }
+  return segments;
+}
+
 async function decide(args:{frames:Array<{at:number;bytes:Buffer}>;
   platform:string;campaignName:string;requirements:unknown;
   visualEvidence:unknown;storyFamily:string;captionCues:unknown}){
@@ -149,6 +184,10 @@ async function processJob(body:unknown){
     }
     segmentShaForFailure=String(segment.source_sha256);
     const start=Number(moment.start_seconds),duration=Number(segment.duration_seconds);
+    if(start!==Number(segment.source_window_start)
+      ||Number(moment.end_seconds)!==Number(segment.source_window_end)){
+      throw new Error('EDITORIAL_SEGMENT_WINDOW_MISMATCH');
+    }
     const requirements=contract.requirements as Record<string,unknown>;
     const captionRequired=Boolean(requirements?.caption);
     const transcriptEvidence=moment.transcript_evidence as Record<string,unknown>;
@@ -171,9 +210,6 @@ async function processJob(body:unknown){
       return {work_id:work.id,plan_id:prior.id,
         plan_sha256:prior.plan_sha256,recovered:true,completed};
     }
-    const transcript=transcriptEvidence.speech_segments;
-    const cues=captionCuesFromSourceSpeech(transcript,start,duration,captionRequired);
-    if(captionRequired&&cues.length===0) throw new Error('EDITORIAL_CAPTIONS_MISSING');
     if(segment.storage_bucket!==V4_PRIVATE_BUCKET){
       throw new Error('EDITORIAL_PRIVATE_BUCKET_REQUIRED');
     }
@@ -190,6 +226,12 @@ async function processJob(body:unknown){
     try{
       const file=path.join(dir,'segment.mp4');
       await fsp.writeFile(file,bytes);
+      const probe=await runV4Ffmpeg(['-i',file],true,20_000);
+      const speech=await transcribeExactSegment(file,dir,/Audio:\s*[a-zA-Z0-9_.-]+/.test(probe));
+      const cues=captionCuesFromSourceSpeech(speech,0,duration,captionRequired);
+      if(captionRequired&&cues.length===0){
+        throw new Error('EDITORIAL_CAPTIONS_MISSING');
+      }
       const frames=await sampleFrames(file,duration,dir);
       const raw=await decide({frames,platform:work.platform,
         campaignName:String(contract.campaign_name??''),requirements,
