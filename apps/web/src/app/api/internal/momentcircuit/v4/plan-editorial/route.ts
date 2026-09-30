@@ -210,6 +210,26 @@ async function processJob(body:unknown){
       return {work_id:work.id,plan_id:prior.id,
         plan_sha256:prior.plan_sha256,recovered:true,completed};
     }
+    const retireExactDuplicate=async(canonicalWorkId:string)=>{
+      const {data:completed,error:ce}=await client.rpc('momentcircuit_v4_complete_job',{
+        p_job_id:jobId,p_worker:worker,p_lease_epoch:leaseEpoch,
+        p_event:'EDITORIAL_REJECTED',p_evidence:{
+          candidate_id:work.candidate_moment_id,
+          segment_sha256:segment.source_sha256,
+          failure_stage:'DUPLICATE_SEGMENT',canonical_work_id:canonicalWorkId,
+          reason:'Exact segment bytes already have a platform editorial plan'}});
+      if(ce||!completed) throw new Error('EDITORIAL_DUPLICATE_RETIRE_REJECTED');
+      return {work_id:work.id,verdict:'EDITORIAL_REJECTED',
+        canonical_work_id:canonicalWorkId,completed};
+    };
+    const findExactDuplicate=async()=>{
+      const {data,error}=await client.rpc('momentcircuit_v4_duplicate_editorial_plan',{
+        p_work_id:work.id});
+      if(error) throw new Error('EDITORIAL_DUPLICATE_CHECK_FAILED');
+      return typeof data==='string'&&data!==work.id?data:null;
+    };
+    const existingCanonical=await findExactDuplicate();
+    if(existingCanonical) return await retireExactDuplicate(existingCanonical);
     if(segment.storage_bucket!==V4_PRIVATE_BUCKET){
       throw new Error('EDITORIAL_PRIVATE_BUCKET_REQUIRED');
     }
@@ -247,7 +267,13 @@ async function processJob(body:unknown){
           p_job_id:jobId,p_worker:worker,p_lease_epoch:leaseEpoch,
           p_plan:plan,p_post_caption:postCaption,
           p_planner_model:MODEL,p_planner_release:RELEASE});
-      if(re||!registered) throw new Error('EDITORIAL_PLAN_REGISTRATION_REJECTED');
+      if(re||!registered){
+        // Another leased planner may have sealed the same bytes while this
+        // worker transcribed. The database unique index chooses one winner.
+        const concurrentCanonical=await findExactDuplicate();
+        if(concurrentCanonical) return await retireExactDuplicate(concurrentCanonical);
+        throw new Error('EDITORIAL_PLAN_REGISTRATION_REJECTED');
+      }
       const result=registered as Record<string,unknown>;
       const {data:completed,error:ce}=await client.rpc('momentcircuit_v4_complete_job',{
         p_job_id:jobId,p_worker:worker,p_lease_epoch:leaseEpoch,
