@@ -1,6 +1,7 @@
 import {afterEach,describe,expect,it} from 'vitest';
 import {NextRequest} from 'next/server';
 import {POST} from './route';
+import {classifyV4RenderFailure} from '@/lib/momentcircuit/v4-render-failure';
 
 const previous=process.env.MOMENTCIRCUIT_RENDER_SECRET;
 afterEach(()=>{
@@ -24,5 +25,11 @@ describe('v4 render HTTP boundary',()=>{
         'x-momentcircuit-render-secret':'test-secret'},
       body:JSON.stringify({job_id:'bad',worker:'renderer',lease_epoch:0})}));
     expect(response.status).toBe(400);
+  });
+  it('classifies caption burn-in failures as systemic',()=>{
+    expect(classifyV4RenderFailure('V4_RENDER_CAPTIONS_NOT_VISIBLE')).toBe('SYSTEMIC');
+    expect(classifyV4RenderFailure('V4_RENDER_CAPTION_FONT_MISSING')).toBe('SYSTEMIC');
+    expect(classifyV4RenderFailure('V4_RENDER_CAPTION_PROOF_GEOMETRY_MISMATCH'))
+      .toBe('SYSTEMIC');
   });
 });

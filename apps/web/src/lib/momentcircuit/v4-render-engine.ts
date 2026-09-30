@@ -5,7 +5,7 @@ import {balancedNativeLines,renderMomentCircuitOverlay} from './overlay';
 import {shotDuration,shotLayoutAt,sourcePreservingFilter,
   validateProtectedFocus} from './geometry';
 import {validateEditSegment,type EditSegment,type ShotPlan} from './edit-plan';
-import {runV4Ffmpeg} from './v4-stage-worker';
+import {runV4Ffmpeg,v4FfmpegBinaryPath} from './v4-stage-worker';
 
 async function concat(parts:string[],output:string,dir:string){
   if(parts.length===1){await fsp.copyFile(parts[0]!,output);return;}
@@ -110,7 +110,12 @@ export async function renderV4EditSegment(source:string,output:string,
   // Use explicit font-file drawtext filters rather than relying on libass font
   // discovery inside a serverless bundle. This keeps one video input while
   // avoiding the old full-resolution PNG input per caption cue.
-  const font=path.join(process.cwd(),'bin','fonts','static','DMSans-700.ttf');
+  const font=path.join(path.dirname(v4FfmpegBinaryPath()),
+    'fonts','static','DMSans-700.ttf');
+  if(plan.caption_cues.length){
+    try{await fsp.access(font);}
+    catch{throw new Error('V4_RENDER_CAPTION_FONT_MISSING');}
+  }
   const captionFiles=await Promise.all(plan.caption_cues.map(async(cue,index)=>{
     const lines=balancedNativeLines(cue.text,2,28);
     const file=path.join(dir,`caption-${index}.txt`);

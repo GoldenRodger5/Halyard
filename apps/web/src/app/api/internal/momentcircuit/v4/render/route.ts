@@ -12,6 +12,7 @@ import {runV4Ffmpeg} from '@/lib/momentcircuit/v4-stage-worker';
 import {uploadPrivateContentAddressed}
   from '@/lib/momentcircuit/v4-private-upload';
 import {V4_RENDER_HEADROOM_SECONDS} from '@/lib/momentcircuit/v4-duration-policy';
+import {classifyV4RenderFailure} from '@/lib/momentcircuit/v4-render-failure';
 
 export const dynamic='force-dynamic';
 export const runtime='nodejs';
@@ -38,16 +39,6 @@ function database(){
 function release(){
   return process.env.VERCEL_GIT_COMMIT_SHA??process.env.HALYARD_RELEASE??
     'v4-render-local';
-}
-
-function classifyFailure(message:string){
-  if(/CONTRACT|RIGHTS|BUDGET|CAMPAIGN|SPEC|DISCLOSURE/.test(message)){
-    return 'COMPLIANCE';
-  }
-  if(/FFMPEG|SEGMENT_SHA|OUTPUT_METADATA|RENDER_DURATION|RENDER_SIZE/.test(message)){
-    return 'SYSTEMIC';
-  }
-  return 'TRANSIENT';
 }
 
 async function processJob(body:unknown){
@@ -244,7 +235,7 @@ async function processJob(body:unknown){
     }finally{await fsp.rm(dir,{recursive:true,force:true}).catch(()=>undefined);}
   }catch(error){
     const message=error instanceof Error?error.message:'RENDER_UNKNOWN';
-    const klass=classifyFailure(message);
+    const klass=classifyV4RenderFailure(message);
     const failure=klass==='SYSTEMIC'
       ?await client.rpc('momentcircuit_v4_fail_systemic_job',{
         p_job_id:jobId,p_worker:worker,p_lease_epoch:leaseEpoch,
