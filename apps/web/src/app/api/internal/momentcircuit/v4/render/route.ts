@@ -11,6 +11,7 @@ import {parseFfmpegDuration,parseV4StageRequest,V4_PRIVATE_BUCKET}
 import {runV4Ffmpeg} from '@/lib/momentcircuit/v4-stage-worker';
 import {uploadPrivateContentAddressed}
   from '@/lib/momentcircuit/v4-private-upload';
+import {V4_RENDER_HEADROOM_SECONDS} from '@/lib/momentcircuit/v4-duration-policy';
 
 export const dynamic='force-dynamic';
 export const runtime='nodejs';
@@ -142,8 +143,8 @@ async function processJob(body:unknown){
     const editPlan=validateEditSegment(plan.edit_plan);
     if(editPlan.start!==0
       ||Math.abs(editPlan.duration-Number(segment.duration_seconds))>0.06
-      ||editPlan.duration<Number(contract.min_video_seconds)+0.1
-      ||Number(segment.duration_seconds)<Number(contract.min_video_seconds)+0.1
+      ||editPlan.duration<Number(contract.min_video_seconds)+V4_RENDER_HEADROOM_SECONDS
+      ||Number(segment.duration_seconds)<Number(contract.min_video_seconds)+V4_RENDER_HEADROOM_SECONDS
       ||(contract.max_video_seconds!==null
         &&editPlan.duration>Number(contract.max_video_seconds))){
       throw new Error('RENDER_PLAN_OUTSIDE_CAMPAIGN_SPEC');

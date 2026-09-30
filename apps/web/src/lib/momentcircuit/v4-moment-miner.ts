@@ -1,10 +1,17 @@
 import crypto from 'node:crypto';
+import {
+  deriveV4DurationPolicy,effectiveV4CandidateMin,type V4DurationPolicy
+} from './v4-duration-policy';
 
 export type SourceProbe={durationSeconds:number;videoCodec:string;width:number;height:number;audioPresent:boolean};
 export type TimedSpeech={start:number;end:number;text:string};
+export type FrameObservation={at:number;observation:string};
 export type MinerProposal={start_seconds?:unknown;end_seconds?:unknown;
   story_family?:unknown;proposed_story_claim?:unknown;payoff?:unknown;
-  platforms?:unknown;visual_reason?:unknown};
+  platforms?:unknown;visual_reason?:unknown;boundary_recovery?:unknown};
+export type RecoveryProposal={story_family?:unknown;start_seconds?:unknown;
+  end_seconds?:unknown;added_context_reason?:unknown;
+  added_visual_evidence_at_seconds?:unknown};
 export type MinedCandidate={candidate_id:string;platform:'tiktok'|'youtube';
   start_seconds:number;end_seconds:number;story_family:string;
   proposed_story_claim:string;transcript_evidence:Record<string,unknown>};
@@ -49,11 +56,133 @@ function safeText(value:unknown,max:number){
   return typeof value==='string'?value.trim().replace(/\s+/g,' ').slice(0,max):'';
 }
 
+function normalizedWindow(row:MinerProposal){
+  if(typeof row.start_seconds!=='number'||typeof row.end_seconds!=='number') return null;
+  const start=Number(row.start_seconds),end=Number(row.end_seconds);
+  if(!Number.isFinite(start)||!Number.isFinite(end)) return null;
+  const s=Math.round(start*1000)/1000,e=Math.floor(end*1000)/1000;
+  return e>s?{start:s,end:e,length:e-s}:null;
+}
+
+function proposalShapeValid(row:MinerProposal,allowedPlatforms:string[]){
+  const family=storySlug(row.story_family);
+  const claim=safeText(row.proposed_story_claim,240);
+  const payoff=safeText(row.payoff,240);
+  const visualReason=safeText(row.visual_reason,300);
+  const platforms=Array.isArray(row.platforms)?row.platforms:[];
+  const selected=platforms.filter((x):x is 'tiktok'|'youtube'=>
+    (x==='tiktok'||x==='youtube')&&allowedPlatforms.includes(x));
+  return family.length>=3&&claim.length>=8&&payoff.length>=8&&visualReason.length>=8
+    &&selected.length>0;
+}
+
+export function recoverableShortMinerProposals(args:{
+  proposals:unknown;durationSeconds:number;durationPolicy:V4DurationPolicy;
+  allowedPlatforms:string[];
+}){
+  if(!Array.isArray(args.proposals)) return [] as Array<{
+    row:MinerProposal;family:string;start:number;end:number;length:number}>;
+  const floor=effectiveV4CandidateMin(args.durationPolicy,args.durationSeconds);
+  if(floor===null) return [];
+  const rows:Array<{row:MinerProposal;family:string;start:number;end:number;length:number}>=[];
+  for(const raw of args.proposals.slice(0,40)){
+    if(!raw||typeof raw!=='object') continue;
+    const row=raw as MinerProposal;
+    const window=normalizedWindow(row);
+    if(!window||window.start<0||window.end>args.durationSeconds
+      ||window.length>=floor||window.length>180
+      ||(args.durationPolicy.contractMaxSeconds!==null
+        &&window.length>args.durationPolicy.contractMaxSeconds)
+      ||!proposalShapeValid(row,args.allowedPlatforms)) continue;
+    rows.push({row,family:storySlug(row.story_family),...window});
+    if(rows.length>=8) break;
+  }
+  return rows;
+}
+
+function overlaps(start:number,end:number,a:number,b:number){
+  return Math.max(0,Math.min(end,b)-Math.max(start,a))>0.001;
+}
+
+export function applyBoundaryRecovery(args:{
+  originalProposals:unknown;
+  recoveredProposals:unknown;
+  durationSeconds:number;
+  durationPolicy:V4DurationPolicy;
+  allowedPlatforms:string[];
+  transcript:TimedSpeech[];
+  frameObservations:FrameObservation[];
+}):MinerProposal[]{
+  if(!Array.isArray(args.recoveredProposals)) return [];
+  const floor=effectiveV4CandidateMin(args.durationPolicy,args.durationSeconds);
+  if(floor===null) return [];
+  const originals=recoverableShortMinerProposals({
+    proposals:args.originalProposals,durationSeconds:args.durationSeconds,
+    durationPolicy:args.durationPolicy,allowedPlatforms:args.allowedPlatforms});
+  const byFamily=new Map(originals.map(x=>[x.family,x]));
+  const accepted:MinerProposal[]=[];
+  const used=new Set<string>();
+  for(const raw of args.recoveredProposals.slice(0,16)){
+    if(!raw||typeof raw!=='object') continue;
+    const row=raw as RecoveryProposal;
+    const family=storySlug(row.story_family);
+    const original=byFamily.get(family);
+    if(!original||used.has(family)
+      ||typeof row.start_seconds!=='number'||typeof row.end_seconds!=='number') continue;
+    const start=Math.round(Number(row.start_seconds)*1000)/1000;
+    const end=Math.floor(Number(row.end_seconds)*1000)/1000;
+    if(!Number.isFinite(start)||!Number.isFinite(end)
+      ||start<0||end>args.durationSeconds||end<=start
+      ||start>original.start+0.001||end<original.end-0.001
+      ||(Math.abs(start-original.start)<=0.001&&Math.abs(end-original.end)<=0.001)) continue;
+    const length=end-start;
+    if(length+0.0005<floor||length>180
+      ||(args.durationPolicy.contractMaxSeconds!==null
+        &&length>args.durationPolicy.contractMaxSeconds+0.0005)) continue;
+    const reason=safeText(row.added_context_reason,300);
+    if(reason.length<12) continue;
+
+    const addedSpeech=args.transcript.filter(segment=>{
+      const text=segment.text.trim();
+      if(!text) return false;
+      return (start<original.start
+          &&overlaps(segment.start,segment.end,start,original.start))
+        ||(end>original.end
+          &&overlaps(segment.start,segment.end,original.end,end));
+    });
+    const requestedVisual=Array.isArray(row.added_visual_evidence_at_seconds)
+      ?row.added_visual_evidence_at_seconds.map(Number).filter(Number.isFinite):[];
+    const visualEvidence=requestedVisual.flatMap(at=>{
+      const frame=args.frameObservations.find(x=>Math.abs(x.at-at)<=0.05);
+      if(!frame) return [];
+      const inExtension=(start<original.start&&frame.at>=start&&frame.at<original.start)
+        ||(end>original.end&&frame.at>original.end&&frame.at<=end);
+      return inExtension&&frame.observation.trim().length>=8?[frame]:[];
+    });
+    if(!addedSpeech.length&&!visualEvidence.length) continue;
+
+    accepted.push({...original.row,start_seconds:start,end_seconds:end,
+      boundary_recovery:{
+        policy_version:args.durationPolicy.version,
+        original_start_seconds:original.start,
+        original_end_seconds:original.end,
+        added_context_reason:reason,
+        added_speech_segments:addedSpeech,
+        added_visual_evidence:visualEvidence
+      }});
+    used.add(family);
+  }
+  return accepted;
+}
+
 export function normalizeMinerProposals(args:{
   proposals:unknown;sourceWorkId:string;sourceSha256:string;
   durationSeconds:number;minVideoSeconds:number;maxVideoSeconds:number|null;
   allowedPlatforms:string[];transcript:TimedSpeech[];model:string;
+  durationPolicy?:V4DurationPolicy;
 }):MinedCandidate[]{
+  const policy=args.durationPolicy??deriveV4DurationPolicy({
+    minVideoSeconds:args.minVideoSeconds,maxVideoSeconds:args.maxVideoSeconds});
   if(!UUID.test(args.sourceWorkId)||!SHA.test(args.sourceSha256)
     ||!Array.isArray(args.proposals)
     ||!Number.isFinite(args.durationSeconds)||args.durationSeconds<=0
@@ -62,6 +191,8 @@ export function normalizeMinerProposals(args:{
       ||args.maxVideoSeconds<args.minVideoSeconds)){
     throw new Error('MINER_PROPOSALS_INVALID');
   }
+  const minCandidate=effectiveV4CandidateMin(policy,args.durationSeconds);
+  if(minCandidate===null) return [];
   const accepted:MinedCandidate[]=[];
   const seenFamilies=new Set<string>();
   const seenWindows:Array<{start:number;end:number}>=[];
@@ -70,12 +201,10 @@ export function normalizeMinerProposals(args:{
   for(const raw of args.proposals.slice(0,40)){
     if(!raw||typeof raw!=='object') continue;
     const row=raw as MinerProposal;
-    if(typeof row.start_seconds!=='number'||typeof row.end_seconds!=='number') continue;
-    const start=Number(row.start_seconds),end=Number(row.end_seconds);
-    if(!Number.isFinite(start)||!Number.isFinite(end)) continue;
-    const s=Math.round(start*1000)/1000,e=Math.floor(end*1000)/1000;
-    const length=e-s;
-    if(s<0||e>args.durationSeconds||length<args.minVideoSeconds
+    const window=normalizedWindow(row);
+    if(!window) continue;
+    const {start:s,end:e,length}=window;
+    if(s<0||e>args.durationSeconds||length+0.0005<minCandidate
       ||length>180||(args.maxVideoSeconds!==null&&length>args.maxVideoSeconds)) continue;
     const family=storySlug(row.story_family);
     const claim=safeText(row.proposed_story_claim,240);
@@ -95,12 +224,18 @@ export function normalizeMinerProposals(args:{
     const id=stableMomentId(args.sourceWorkId,s,e,family);
     const speech=args.transcript.filter(x=>x.end>s&&x.start<e)
       .map(x=>({start:x.start,end:x.end,text:x.text.slice(0,500)}));
+    const recovery=row.boundary_recovery&&typeof row.boundary_recovery==='object'
+      ?row.boundary_recovery:undefined;
     for(const platform of [...new Set(selected)]){
       accepted.push({candidate_id:id,platform,start_seconds:s,end_seconds:e,
         story_family:family,proposed_story_claim:claim,
         transcript_evidence:{model:args.model,source_sha256:args.sourceSha256,
           transcript_sha256:transcriptSha,speech_segments:speech,
-          payoff,visual_reason:visualReason}});
+          payoff,visual_reason:visualReason,
+          duration_policy:{version:policy.version,
+            render_safe_min_seconds:policy.renderSafeMinSeconds,
+            preferred_min_seconds:minCandidate},
+          ...(recovery?{boundary_recovery:recovery}:{})}});
     }
     seenFamilies.add(family);
     seenWindows.push({start:s,end:e});
