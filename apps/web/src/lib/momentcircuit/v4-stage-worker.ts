@@ -1,4 +1,3 @@
-import {NextResponse,type NextRequest} from 'next/server';
 import {createClient} from '@supabase/supabase-js';
 import crypto from 'node:crypto';
 import fsp from 'node:fs/promises';
@@ -11,19 +10,6 @@ import {
   parseV4StageRequest,signedStorageUrlAllowed,v4SegmentObjectPath
 } from '@/lib/momentcircuit/v4-segment-stage';
 import {uploadPrivateContentAddressed} from '@/lib/momentcircuit/v4-private-upload';
-
-export const dynamic='force-dynamic';
-export const runtime='nodejs';
-export const maxDuration=300;
-
-function authorize(request:NextRequest){
-  const expected=process.env.MOMENTCIRCUIT_RENDER_SECRET??'';
-  const actual=request.headers.get('x-momentcircuit-render-secret')??'';
-  const a=Buffer.from(actual),b=Buffer.from(expected);
-  if(!actual||!expected||a.length!==b.length||!crypto.timingSafeEqual(a,b)){
-    throw new Error('UNAUTHORIZED');
-  }
-}
 
 function database(){
   const url=process.env.SUPABASE_URL,key=process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -40,23 +26,26 @@ function ffmpegBinary(){
   return found;
 }
 
-function runFfmpeg(args:string[],allowNonzero=false){
+export function runV4Ffmpeg(args:string[],allowNonzero=false,timeoutMs=90_000){
   return new Promise<string>((resolve,reject)=>{
     const child=spawn(ffmpegBinary(),args,{stdio:['ignore','ignore','pipe']});
-    let stderr='';
+    let stderr='',timedOut=false;
+    const timer=setTimeout(()=>{timedOut=true;child.kill('SIGKILL');},timeoutMs);
     child.stderr.on('data',(chunk)=>{
       stderr+=chunk.toString();
       if(stderr.length>16000) stderr=stderr.slice(-16000);
     });
-    child.on('error',()=>reject(new Error('FFMPEG_LAUNCH_FAILED')));
+    child.on('error',()=>{clearTimeout(timer);reject(new Error('FFMPEG_LAUNCH_FAILED'));});
     child.on('exit',(code)=>{
-      if(code===0||allowNonzero) resolve(stderr);
+      clearTimeout(timer);
+      if(timedOut) reject(new Error('FFMPEG_TIMEOUT'));
+      else if(code===0||allowNonzero) resolve(stderr);
       else reject(new Error(`FFMPEG_SEGMENT_FAILED_${code??'UNKNOWN'}`));
     });
   });
 }
 
-async function execute(body:unknown){
+export async function stageV4Segment(body:unknown){
   const {jobId,worker,leaseEpoch}=parseV4StageRequest(body);
   const {client,url}=database();
   const {data:job,error:jobError}=await client.from('momentcircuit_v4_jobs')
@@ -89,12 +78,12 @@ async function execute(body:unknown){
   const temp=await fsp.mkdtemp(path.join(os.tmpdir(),'mc-v4-segment-'));
   try{
     const output=path.join(temp,'segment.mp4');
-    await runFfmpeg(['-y','-ss',String(window.start),'-t',String(window.duration),
+    await runV4Ffmpeg(['-y','-ss',String(window.start),'-t',String(window.duration),
       '-reconnect','1','-reconnect_streamed','1','-reconnect_delay_max','5',
       '-rw_timeout','30000000','-i',signed.signedUrl,
       '-map','0:v:0','-map','0:a?','-c:v','libx264','-crf','18','-preset','veryfast',
       '-c:a','aac','-b:a','192k','-movflags','+faststart','-shortest',output]);
-    const probe=await runFfmpeg(['-i',output],true);
+    const probe=await runV4Ffmpeg(['-i',output],true,20_000);
     const duration=parseFfmpegDuration(probe);
     if(duration<Number(contract.min_video_seconds)
       ||(contract.max_video_seconds!==null&&duration>Number(contract.max_video_seconds))){
@@ -133,27 +122,5 @@ async function execute(body:unknown){
       registered};
   }finally{
     await fsp.rm(temp,{recursive:true,force:true}).catch(()=>undefined);
-  }
-}
-
-export async function POST(request:NextRequest){
-  try{
-    authorize(request);
-    const result=await execute(await request.json());
-    return NextResponse.json({ok:true,...result});
-  }catch(error){
-    const message=error instanceof Error?error.message:'STAGE_FAILED';
-    const failureClass=message==='UNAUTHORIZED'||message==='STAGE_REQUEST_INVALID'
-      ?null
-      :/CAMPAIGN_SPEC|SOURCE_NATIVE_WINDOW|ENCODED_SEGMENT/.test(message)
-        ?'MOMENT_BAD'
-        :/RIGHTS|CURRENT_CONTRACT/.test(message)
-          ?'COMPLIANCE'
-          :/PRIVATE_SOURCE_BUCKET|FFMPEG_BINARY|SEGMENT_OBJECT_CONFLICT/.test(message)
-            ?'SYSTEMIC':'TRANSIENT';
-    const status=message==='UNAUTHORIZED'?401
-      :message==='STAGE_REQUEST_INVALID'?400
-        :failureClass==='SYSTEMIC'||failureClass==='TRANSIENT'?503:409;
-    return NextResponse.json({error:message,failure_class:failureClass},{status});
   }
 }
