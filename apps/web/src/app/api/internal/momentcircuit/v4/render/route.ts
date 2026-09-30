@@ -53,7 +53,7 @@ async function processJob(body:unknown){
   const {jobId,worker,leaseEpoch}=parseV4StageRequest(body);
   const {url,key,client}=database();
   const {data:job,error:je}=await client.from('momentcircuit_v4_jobs')
-    .select('id,work_id,kind,status,lease_owner,lease_epoch,lease_until')
+    .select('id,work_id,kind,status,idempotency_key,lease_owner,lease_epoch,lease_until')
     .eq('id',jobId).maybeSingle();
   if(je||!job||job.kind!=='renderer') throw new Error('RENDER_JOB_MISSING');
   if(job.status==='DONE'){
@@ -78,6 +78,11 @@ async function processJob(body:unknown){
     throw new Error('RENDER_LEASE_INVALID');
   }
   try{
+    const recoveryRelease=String(job.idempotency_key).split(':render-recovery:')[1]
+      ?.split(':').at(-1);
+    if(recoveryRelease&&recoveryRelease!==release()){
+      throw new Error('RENDER_RECOVERY_RELEASE_MISMATCH');
+    }
     const {data:work,error:we}=await client.from('momentcircuit_v4_work')
       .select('id,work_kind,state,platform,campaign_contract_id,candidate_moment_id,source_sha256,media_sha256,current_artifact_id')
       .eq('id',String(job.work_id)).maybeSingle();
