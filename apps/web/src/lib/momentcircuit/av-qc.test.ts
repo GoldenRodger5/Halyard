@@ -47,4 +47,18 @@ describe('MomentCircuit final audio/caption alignment',()=>{
     expect(assessCaptionAlignment([],'hello there').pass).toBe(true);
     expect(assessCaptionAlignment([],'').pass).toBe(true);
   });
+  it('passes a bounded short-payoff ASR substitution only with near-exact global alignment',()=>{
+    const setup=Array.from({length:66},(_,i)=>`word${i+1}`).join(' ');
+    const r=assessCaptionAlignment([setup,'finish this game'],`${setup} complete this match`);
+    expect(r.overall_coverage).toBeGreaterThanOrEqual(.95);
+    expect(r.ordered_coverage).toBeGreaterThanOrEqual(.95);
+    expect(r.payoff_coverage).toBeCloseTo(.333,3);
+    expect(r.pass).toBe(true);
+  });
+  it('still fails a short payoff when the final audio is materially missing',()=>{
+    const setup=Array.from({length:30},(_,i)=>`word${i+1}`).join(' ');
+    const r=assessCaptionAlignment([setup,'finish this game'],setup);
+    expect(r.pass).toBe(false);
+  });
+
 });
