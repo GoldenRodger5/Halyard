@@ -18,6 +18,11 @@ export const maxDuration=300;
 const WORKER='halyard-v4-qc';
 const MAX_BYTES=300_000_000;
 
+function release(){
+  return process.env.VERCEL_GIT_COMMIT_SHA??process.env.HALYARD_RELEASE??
+    'v4-qc-local';
+}
+
 function authorize(request:NextRequest){
   const expected=process.env.MOMENTCIRCUIT_RENDER_SECRET??'';
   const actual=request.headers.get('x-momentcircuit-render-secret')??'';
@@ -186,6 +191,7 @@ async function processJob(body:unknown){
         technicalPass});
       const evidence={rendered_media_id:media.id,artifact_id:media.artifact_id,
         media_sha256:media.media_sha256,plan_id:plan.id,
+        qc_worker_release:release(),
         plan_sha256:plan.plan_sha256,segment_sha256:plan.segment_sha256,
         render_request_sha256:request.request_sha256,
         technical:{pass:true,readback_sha256:sha,width,height,codec:'h264',
@@ -217,9 +223,16 @@ async function processJob(body:unknown){
     }finally{await fsp.rm(dir,{recursive:true,force:true}).catch(()=>undefined);}
   }catch(error){
     const message=error instanceof Error?error.message:'QC_UNKNOWN';
-    await client.rpc('momentcircuit_v4_fail_job',{
-      p_job_id:jobId,p_worker:worker,p_lease_epoch:leaseEpoch,
-      p_failure_class:failureClass(message),p_error:message});
+    const klass=failureClass(message);
+    const failure=klass==='SYSTEMIC'
+      ?await client.rpc('momentcircuit_v4_fail_systemic_job',{
+        p_job_id:jobId,p_worker:worker,p_lease_epoch:leaseEpoch,
+        p_lane:'qc',p_release:release(),p_failure_scope:'QC_SYSTEMIC',
+        p_error:message,p_evidence:{job_id:jobId,error:message}})
+      :await client.rpc('momentcircuit_v4_fail_job',{
+        p_job_id:jobId,p_worker:worker,p_lease_epoch:leaseEpoch,
+        p_failure_class:klass,p_error:message});
+    if(failure.error) throw new Error(`QC_FAILURE_RECORD_REJECTED:${message}`);
     throw error;
   }
 }

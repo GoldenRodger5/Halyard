@@ -212,9 +212,17 @@ async function processJob(body:unknown){
     }finally{await fsp.rm(dir,{recursive:true,force:true}).catch(()=>undefined);}
   }catch(error){
     const message=error instanceof Error?error.message:'RENDER_UNKNOWN';
-    await client.rpc('momentcircuit_v4_fail_job',{
-      p_job_id:jobId,p_worker:worker,p_lease_epoch:leaseEpoch,
-      p_failure_class:classifyFailure(message),p_error:message});
+    const klass=classifyFailure(message);
+    const failure=klass==='SYSTEMIC'
+      ?await client.rpc('momentcircuit_v4_fail_systemic_job',{
+        p_job_id:jobId,p_worker:worker,p_lease_epoch:leaseEpoch,
+        p_lane:'renderer',p_release:release(),
+        p_failure_scope:'RENDER_SYSTEMIC',p_error:message,
+        p_evidence:{job_id:jobId,error:message}})
+      :await client.rpc('momentcircuit_v4_fail_job',{
+        p_job_id:jobId,p_worker:worker,p_lease_epoch:leaseEpoch,
+        p_failure_class:klass,p_error:message});
+    if(failure.error) throw new Error(`RENDER_FAILURE_RECORD_REJECTED:${message}`);
     throw error;
   }
 }
