@@ -1,6 +1,6 @@
 import fsp from 'node:fs/promises';
 import path from 'node:path';
-import {renderMomentCircuitOverlay} from './overlay';
+import {balancedNativeLines,renderMomentCircuitOverlay} from './overlay';
 import {shotDuration,shotLayoutAt,sourcePreservingFilter,
   validateProtectedFocus} from './geometry';
 import {validateEditSegment,type EditSegment,type ShotPlan} from './edit-plan';
@@ -64,19 +64,43 @@ export async function renderV4EditSegment(source:string,output:string,
       disclosure:plan.disclosure,disclosure_mode:'persistent'},'persistent'));
     overlays.push({file,start:0,end:plan.duration});
   }
-  for(const [index,cue] of plan.caption_cues.entries()){
-    const file=path.join(dir,`caption-${index}.png`);
+  // A PNG input and overlay filter for every cue grows linearly with the
+  // transcript and timed out a real 29.78-second clip. ASS renders all cues
+  // through one libass pass, with the same safe zones and outlined type.
+  const subtitle=path.join(dir,'captions.ass');
+  const assTime=(seconds:number)=>{
+    const centiseconds=Math.round(seconds*100);
+    const hours=Math.floor(centiseconds/360000);
+    const minutes=Math.floor(centiseconds/6000)%60;
+    const secs=Math.floor(centiseconds/100)%60;
+    return `${hours}:${String(minutes).padStart(2,'0')}:${String(secs).padStart(2,'0')}.${String(centiseconds%100).padStart(2,'0')}`;
+  };
+  const assText=(value:string)=>value.replace(/\\/g,'\\\\')
+    .replace(/[{}]/g,'').replace(/\r?\n/g,' ');
+  const dialogue=plan.caption_cues.map(cue=>{
+    const lines=balancedNativeLines(cue.text,2,28);
+    const size=lines.some(line=>line.length>24)?50:58;
     const layout=shotLayoutAt(plan.shots,(cue.start+cue.end)/2);
-    await fsp.writeFile(file,await renderMomentCircuitOverlay({
-      caption_text:cue.text,
-      caption_zone:layout==='SPLIT_SCREEN'?'CENTER_SEAM':'LOWER_MIDDLE'},
-    'caption'));
-    overlays.push({file,start:cue.start,end:cue.end});
-  }
+    const y=layout==='SPLIT_SCREEN'?910:1360;
+    const text=lines.map(assText).join('\\N');
+    return `Dialogue: 0,${assTime(cue.start)},${assTime(cue.end)},Caption,,0,0,0,,{\\an5\\pos(540,${y})\\fs${size}}${text}`;
+  });
+  await fsp.writeFile(subtitle,[
+    '[Script Info]','ScriptType: v4.00+','PlayResX: 1080','PlayResY: 1920',
+    'ScaledBorderAndShadow: yes','WrapStyle: 2','',
+    '[V4+ Styles]',
+    'Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding',
+    'Style: Caption,DM Sans,58,&H00FFFFFF,&H00FFFFFF,&H00050505,&H00050505,-1,0,0,0,100,100,0,0,1,4,0,5,108,108,0,1',
+    '','[Events]','Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text',
+    ...dialogue,''].join('\n'));
 
   const args=['-y','-i',visual];
   for(const overlay of overlays) args.push('-loop','1','-i',overlay.file);
-  let filter='[0:v]format=yuv420p[v0]';
+  const fonts=path.join(process.cwd(),'bin','fonts','static');
+  const escapeFilterPath=(value:string)=>value.replace(/\\/g,'\\\\')
+    .replace(/'/g,"\\'").replace(/:/g,'\\:').replace(/,/g,'\\,')
+    .replace(/\[/g,'\\[').replace(/\]/g,'\\]');
+  let filter=`[0:v]ass=filename='${escapeFilterPath(subtitle)}':fontsdir='${escapeFilterPath(fonts)}',format=yuv420p[v0]`;
   let current='[v0]';
   for(const [index,overlay] of overlays.entries()){
     const next=`[v${index+1}]`;

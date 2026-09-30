@@ -137,7 +137,8 @@ async function processJob(body:unknown){
     const editPlan=validateEditSegment(plan.edit_plan);
     if(editPlan.start!==0
       ||Math.abs(editPlan.duration-Number(segment.duration_seconds))>0.06
-      ||editPlan.duration<Number(contract.min_video_seconds)
+      ||editPlan.duration<Number(contract.min_video_seconds)+0.1
+      ||Number(segment.duration_seconds)<Number(contract.min_video_seconds)+0.1
       ||(contract.max_video_seconds!==null
         &&editPlan.duration>Number(contract.max_video_seconds))){
       throw new Error('RENDER_PLAN_OUTSIDE_CAMPAIGN_SPEC');
