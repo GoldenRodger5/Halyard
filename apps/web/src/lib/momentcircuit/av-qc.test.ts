@@ -1,5 +1,5 @@
 import {describe,expect,it} from 'vitest';
-import {assessCaptionAlignment,normalizeSpeech} from './av-qc';
+import {assessCaptionAlignment,normalizeSpeech,shouldSemanticAdjudicateAlignment} from './av-qc';
 
 describe('MomentCircuit final audio/caption alignment',()=>{
   it('normalizes punctuation and smart apostrophes',()=>{
@@ -47,4 +47,19 @@ describe('MomentCircuit final audio/caption alignment',()=>{
     expect(assessCaptionAlignment([],'hello there').pass).toBe(true);
     expect(assessCaptionAlignment([],'').pass).toBe(true);
   });
+  it('routes only high-overlap payoff misses to semantic adjudication',()=>{
+    const high=assessCaptionAlignment(
+      ['We should leave before the train arrives.','All right, lets do it right after we just','finish this game.'],
+      'We should leave before the train arrives. All right, lets do it right after we just finish the match.'
+    );
+    expect(high.pass).toBe(false);
+    expect(shouldSemanticAdjudicateAlignment(high)).toBe(true);
+
+    const wrong=assessCaptionAlignment(
+      ['We should leave before the train arrives.','finish this game.'],
+      'I would rather order dinner and stay home tonight.'
+    );
+    expect(shouldSemanticAdjudicateAlignment(wrong)).toBe(false);
+  });
+
 });
