@@ -66,10 +66,17 @@ export function assessCaptionAlignment(expectedPhrases:string[],transcript:strin
   }
   const overall=found/expected.length;
   const ordered=orderedCoverage(expected,actual);
-  const payoffExpected=normalizeSpeech(expectedPhrases.at(-1)??'');
-  const tail=actual.slice(-Math.max(8,payoffExpected.length*2));
-  const tailSet=new Set(tail);
-  const payoff=payoffExpected.length ? payoffExpected.filter((w)=>tailSet.has(w)).length/payoffExpected.length : 1;
+  const payoffWordCount=Math.min(14,Math.max(8,Math.ceil(expected.length*0.2)));
+  const payoffExpected=expected.slice(-payoffWordCount);
+  const tail=actual.slice(-Math.max(16,payoffExpected.length*2));
+  const tailCounts=new Map<string,number>();
+  for(const w of tail) tailCounts.set(w,(tailCounts.get(w)??0)+1);
+  let payoffFound=0;
+  for(const w of payoffExpected){
+    const n=tailCounts.get(w)??0;
+    if(n>0){payoffFound++;tailCounts.set(w,n-1);}
+  }
+  const payoff=payoffExpected.length ? payoffFound/payoffExpected.length : 1;
   const pass=overall>=0.82 && ordered>=0.72 && payoff>=0.72;
   return {
     pass,
