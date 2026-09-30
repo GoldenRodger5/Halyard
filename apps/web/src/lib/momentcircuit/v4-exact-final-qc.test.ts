@@ -47,12 +47,10 @@ describe('v4 exact-final QC gate',()=>{
       transcript:'',technicalPass:true});
     expect(result.verdict).toBe('MOMENT_BAD');
   });
-  it('uses a local failure for a correctable caption/audio mismatch',()=>{
+  it('opens the generation circuit for a final caption/audio mismatch',()=>{
     const normalized=normalizeV4FinalReview(review(),times);
-    const result=evaluateV4Final({review:normalized,
+    expect(()=>evaluateV4Final({review:normalized,
       captions:['The complete payoff arrives'],transcript:'unrelated audio',
-      technicalPass:true});
-    expect(result.verdict).toBe('LOCAL_FAIL');
-    expect(result.defects.some((d)=>d.class==='caption_audio_mismatch')).toBe(true);
+      technicalPass:true})).toThrow('QC_GENERATION_SYSTEMIC');
   });
 });

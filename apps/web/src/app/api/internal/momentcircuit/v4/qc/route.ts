@@ -208,7 +208,7 @@ async function processJob(body:unknown){
           payoff_complete:review.payoff_complete,
           ending_complete:review.ending_complete,
           artifact_scan_pass:review.artifact_scan_pass,
-          summary:review.summary},
+          summary:review.summary,repair_plan:review.repair_plan},
         frames:review.frames,defects:evaluated.defects};
       const {data:result,error:re}=await client.rpc(
         'momentcircuit_v4_register_exact_final_qc',{

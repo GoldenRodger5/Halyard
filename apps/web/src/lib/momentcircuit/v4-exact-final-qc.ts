@@ -14,6 +14,10 @@ export type FinalReview={
   artifact_scan_pass?:boolean;
   frames?:Array<{at_seconds?:number;observation?:string;visible_text?:string[]}>;
   defects?:QcDefect[];summary?:string;
+  repair_plan?:{
+    action?:'NONE'|'REFRAME'|'REPLACE_HOOK'|'REFRAME_AND_HOOK';
+    new_focus_x?:number;new_hook_text?:string;rationale?:string;
+  };
 };
 
 const ARTIFACT=/(Dialogue:|Style:|Script Info|Format:|,Cap,,|-->|(?:^|\s)\d{1,2}:\d{2}(?::\d{2})?[.,]\d+|["']?(?:start|end)["']?\s*:|\{\s*["']|\[\s*\{)/i;
@@ -59,7 +63,8 @@ export function normalizeV4FinalReview(raw:FinalReview,times:number[]){
     payoff_complete:raw.payoff_complete===true,
     ending_complete:raw.ending_complete===true,
     artifact_scan_pass:raw.artifact_scan_pass===true&&artifactHits.length===0,
-    frames,defects,summary:String(raw.summary??'').slice(0,500)};
+    frames,defects,summary:String(raw.summary??'').slice(0,500),
+    repair_plan:raw.repair_plan??{action:'NONE'}};
 }
 
 export function evaluateV4Final(args:{
@@ -74,6 +79,7 @@ export function evaluateV4Final(args:{
       evidence:`Final audio/caption alignment ${alignment.overall_coverage}/${alignment.ordered_coverage}`,
       repairable:true});
   }
+  if(!alignment.pass) throw new Error('QC_GENERATION_SYSTEMIC');
   const systemic=defects.some((item)=>item.class==='caption_serialization_artifact'
     ||/font failure|blank caption|renderer failure|template padding/i.test(item.class));
   if(systemic) throw new Error('QC_GENERATION_SYSTEMIC');
@@ -94,7 +100,7 @@ export async function critiqueV4Final(args:{
 }){
   const key=process.env.OPENAI_API_KEY?.trim();
   if(!key) throw new Error('OPENAI_API_KEY_MISSING_FOR_QC');
-  const system=`You are the strict production exact-final QC critic for a professional short-form clipping account. Examine every supplied frame of the exact export, including its opening, caption beats and ending. Judge source/story match, legible native framing, cold context, first-second hook, caption spelling, text bounds and safe zones, visible paid disclosure when used, professional appearance, complete payoff and ending. Transcribe every readable text string per frame. Detect leaked SRT/ASS syntax, timestamps, JSON or cue numbers. A material defect fails. Return JSON only with booleans story_match, caption_visual_quality, professional_quality, text_bounds_pass, cold_viewer_clarity, first_second_hook, payoff_complete, ending_complete, artifact_scan_pass; frames:[{at_seconds,observation,visible_text:[...]}] for EVERY exact requested timestamp; defects:[{class,severity,evidence,at_seconds,repairable}]; summary. Do not infer unseen frames. Do not force a headline onto native-source clips.`;
+  const system=`You are the strict production exact-final QC critic for a professional short-form clipping account. Examine every supplied frame of the exact export, including its opening, caption beats and ending. Judge source/story match, legible native framing, cold context, first-second hook, caption spelling, text bounds and safe zones, visible paid disclosure when used, professional appearance, complete payoff and ending. Transcribe every readable text string per frame. Detect leaked SRT/ASS syntax, timestamps, JSON or cue numbers. A material defect fails. Return JSON only with booleans story_match, caption_visual_quality, professional_quality, text_bounds_pass, cold_viewer_clarity, first_second_hook, payoff_complete, ending_complete, artifact_scan_pass; frames:[{at_seconds,observation,visible_text:[...]}] for EVERY exact requested timestamp; defects:[{class,severity,evidence,at_seconds,repairable}]; repair_plan:{action:"NONE|REFRAME|REPLACE_HOOK|REFRAME_AND_HOOK",new_focus_x?,new_hook_text?,rationale}; summary. A local repair can only adjust portrait crop focus or replace an existing headline while keeping source timing, captions and disclosure unchanged. Use NONE if those cannot fix the observed defect. Do not infer unseen frames. Do not force a headline onto native-source clips.`;
   const content:Array<Record<string,unknown>>=[{type:'text',text:
     `Platform ${args.platform}; presentation ${args.presentation_mode}. Verified story: ${args.story_claim}. Verified payoff: ${args.payoff}. Expected spoken captions: ${JSON.stringify(args.expected_captions)}. Exact timestamps: ${args.frames.map((f)=>f.at_seconds).join(', ')}.`}];
   for(const frame of args.frames){
