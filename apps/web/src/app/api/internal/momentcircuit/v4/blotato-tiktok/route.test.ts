@@ -39,6 +39,10 @@ describe('MomentCircuit Blotato TikTok provider',()=>{
       {id:'yt1',platform:'youtube',username:'Moment Circuit'}
     ]});
     expect(chooseTikTokAccount(accounts).id).toBe('tt1');
+    expect(chooseTikTokAccount([
+      {id:'tt1',platform:'tiktok',username:'momentcircuit0'},
+      {id:'tt2',platform:'tiktok',username:'other'}
+    ],'tt1').username).toBe('momentcircuit0');
     expect(()=>chooseTikTokAccount([
       {id:'tt1',platform:'tiktok'},
       {id:'tt2',platform:'tiktok'}

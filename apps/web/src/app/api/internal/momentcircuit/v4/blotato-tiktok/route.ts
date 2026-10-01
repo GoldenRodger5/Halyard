@@ -96,11 +96,15 @@ async function blotato(path:string,init:RequestInit={}){
   return body;
 }
 
-async function account(){
-  const accounts=parseBlotatoAccounts(await blotato('/users/me/accounts'));
+async function accounts(){
+  return parseBlotatoAccounts(await blotato('/users/me/accounts'));
+}
+
+async function account(requestedId?:string|null){
+  const all=await accounts();
   return chooseTikTokAccount(
-    accounts,
-    process.env.MOMENTCIRCUIT_BLOTATO_TIKTOK_ACCOUNT_ID??null
+    all,
+    requestedId||(process.env.MOMENTCIRCUIT_BLOTATO_TIKTOK_ACCOUNT_ID??null)
   );
 }
 
@@ -120,8 +124,25 @@ export async function POST(request:NextRequest){
 
   const action=String(body.action??'');
   try{
+    if(action==='accounts'){
+      const connected=(await accounts())
+        .filter((acct)=>acct.platform==='tiktok')
+        .map((acct)=>({
+          id:acct.id,
+          username:acct.username??null,
+          fullname:acct.fullname??null
+        }));
+      return NextResponse.json({
+        ok:true,
+        provider:'blotato',
+        platform:'tiktok',
+        accounts:connected
+      });
+    }
+
     if(action==='health'){
-      const acct=await account();
+      const requestedId=String(body.account_id??'').trim()||null;
+      const acct=await account(requestedId);
       return NextResponse.json({
         ok:true,
         provider:'blotato',
@@ -166,6 +187,7 @@ export async function POST(request:NextRequest){
       const scheduledMs=Date.parse(scheduledAt);
       const sponsored=body.is_branded_content===true;
       const ownBrand=body.is_your_brand===true;
+      const requestedAccountId=String(body.account_id??'').trim()||null;
       if(!UUID.test(actionId)||!UUID.test(readyId)||!SHA256.test(sha)
          ||!/^https:\/\//i.test(mediaUrl)||!caption.trim()
          ||!Number.isFinite(scheduledMs)
@@ -175,7 +197,7 @@ export async function POST(request:NextRequest){
         return NextResponse.json({error:'BLOTATO_PUBLISH_REQUEST_INVALID'},{status:400});
       }
 
-      const acct=await account();
+      const acct=await account(requestedAccountId);
       const post=buildSponsoredTikTokPost({
         accountId:acct.id,
         caption,
