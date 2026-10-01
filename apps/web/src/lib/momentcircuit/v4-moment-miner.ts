@@ -9,7 +9,23 @@ export type FrameObservation={at:number;observation:string};
 export type MinerFrameRef={at:number};
 export type MinerProposal={start_seconds?:unknown;end_seconds?:unknown;
   story_family?:unknown;proposed_story_claim?:unknown;payoff?:unknown;
-  platforms?:unknown;visual_reason?:unknown;boundary_recovery?:unknown};
+  platforms?:unknown;visual_reason?:unknown;source_beat_ids?:unknown;
+  hook_type?:unknown;hook_strength?:unknown;cold_clarity?:unknown;
+  payoff_strength?:unknown;context_tax?:unknown;social_currency?:unknown;
+  stop_reason?:unknown;boundary_recovery?:unknown};
+export type SourceIntelligenceBeat={
+  beat_id:string;start_seconds:number;end_seconds:number;beat_type:string;
+  hook_potential:number;cold_clarity:number;payoff_potential:number;
+  context_tax:number;social_currency:number;candidate_worthy:boolean;
+  transcript_reason:string;visual_reason:string;
+};
+export type SourceIntelligence={
+  version:'v4-source-intelligence-20261001';
+  source_summary:string;selection_directive:string;
+  beats:SourceIntelligenceBeat[];
+  dead_zones:Array<{start_seconds:number;end_seconds:number;reason:string}>;
+  frame_observations:FrameObservation[];
+};
 export type RecoveryProposal={story_family?:unknown;start_seconds?:unknown;
   end_seconds?:unknown;added_context_reason?:unknown;
   added_visual_evidence_at_seconds?:unknown};
@@ -71,20 +87,127 @@ function normalizedPlatforms(value:unknown){
   return values.filter((x):x is 'tiktok'|'youtube'=>x==='tiktok'||x==='youtube');
 }
 
+const SOURCE_BEAT_TYPES=new Set([
+  'CONFLICT','DANGER','SURPRISE_REVEAL','PUNCHLINE','PHYSICAL_ACTION',
+  'REACTION','SOCIAL_AWKWARDNESS','HIGH_STAKES_CHOICE','SPECTACLE',
+  'EMOTIONAL_TURN','EXPOSITION','TRANSITION','OTHER'
+]);
+const DIRECTOR_HOOK_TYPES=new Set([
+  'CONFLICT','DANGER','SURPRISE_REVEAL','PUNCHLINE','PHYSICAL_ACTION',
+  'REACTION','SOCIAL_AWKWARDNESS','HIGH_STAKES_CHOICE','SPECTACLE',
+  'EMOTIONAL_TURN','OTHER'
+]);
+
+function score100(value:unknown){
+  const n=Number(value);
+  return Number.isFinite(n)&&n>=0&&n<=100?Number(n.toFixed(2)):null;
+}
+
+export function v4SourceIntelligencePrompt(){
+  return 'First analyze the WHOLE source before selecting any clip. Return JSON only: '
+    +'{"source_summary":"what happens across the source",'
+    +'"selection_directive":"what kinds of beats are actually worth considering",'
+    +'"frame_observations":[{"at_seconds":0.0,"observation":"visible fact"}],'
+    +'"beats":[{"beat_id":"b1","start_seconds":0.0,"end_seconds":4.0,'
+    +'"beat_type":"CONFLICT|DANGER|SURPRISE_REVEAL|PUNCHLINE|PHYSICAL_ACTION|REACTION|SOCIAL_AWKWARDNESS|HIGH_STAKES_CHOICE|SPECTACLE|EMOTIONAL_TURN|EXPOSITION|TRANSITION|OTHER",'
+    +'"hook_potential":0,"cold_clarity":0,"payoff_potential":0,"context_tax":0,'
+    +'"social_currency":0,"candidate_worthy":false,'
+    +'"transcript_reason":"what the spoken beat contributes",'
+    +'"visual_reason":"what the supplied frames visibly contribute"}],'
+    +'"dead_zones":[{"start_seconds":0.0,"end_seconds":2.0,"reason":"routine setup/exposition/logistics/etc"}]}. '
+    +'Scores are 0-100 editorial estimates, not measured retention. Map the source honestly. '
+    +'Routine exposition, greetings, logistics, generic affection/goodbyes, fandom-only lore and slow setup '
+    +'should normally be candidate_worthy=false unless an immediate twist, conflict, stakes, reaction or payoff makes the beat intrinsically compelling.';
+}
+
+export function normalizeSourceIntelligence(args:{
+  raw:unknown;durationSeconds:number;frames:MinerFrameRef[];
+}):SourceIntelligence{
+  if(!args.raw||typeof args.raw!=='object'||Array.isArray(args.raw)
+    ||!Number.isFinite(args.durationSeconds)||args.durationSeconds<=0){
+    throw new Error('SOURCE_INTELLIGENCE_INVALID');
+  }
+  const row=args.raw as Record<string,unknown>;
+  const sourceSummary=safeText(row.source_summary,800);
+  const selectionDirective=safeText(row.selection_directive,600);
+  if(sourceSummary.length<12||selectionDirective.length<12){
+    throw new Error('SOURCE_INTELLIGENCE_SUMMARY_MISSING');
+  }
+  const frameObservations=normalizeMinerFrameObservations(row.frame_observations,args.frames);
+  const beats=(Array.isArray(row.beats)?row.beats:[]).flatMap((value,index)=>{
+    if(!value||typeof value!=='object') return [];
+    const b=value as Record<string,unknown>;
+    const start=numericSeconds(b.start_seconds),end=numericSeconds(b.end_seconds);
+    const beatType=safeText(b.beat_type,40).toUpperCase();
+    const hook=score100(b.hook_potential),cold=score100(b.cold_clarity);
+    const payoff=score100(b.payoff_potential),context=score100(b.context_tax);
+    const social=score100(b.social_currency);
+    const transcriptReason=safeText(b.transcript_reason,400);
+    const visualReason=safeText(b.visual_reason,400);
+    if(start===null||end===null||start<0||end<=start||end>args.durationSeconds+0.001
+      ||!SOURCE_BEAT_TYPES.has(beatType)||hook===null||cold===null||payoff===null
+      ||context===null||social===null||typeof b.candidate_worthy!=='boolean'
+      ||transcriptReason.length<8||visualReason.length<8) return [];
+    return [{
+      beat_id:storySlug(b.beat_id)||`beat_${index+1}`,
+      start_seconds:start,end_seconds:end,beat_type:beatType,
+      hook_potential:hook,cold_clarity:cold,payoff_potential:payoff,
+      context_tax:context,social_currency:social,candidate_worthy:b.candidate_worthy,
+      transcript_reason:transcriptReason,visual_reason:visualReason
+    }];
+  }).slice(0,30);
+  if(!beats.length) throw new Error('SOURCE_INTELLIGENCE_BEATS_MISSING');
+  const deadZones=(Array.isArray(row.dead_zones)?row.dead_zones:[]).flatMap(value=>{
+    if(!value||typeof value!=='object') return [];
+    const d=value as Record<string,unknown>;
+    const start=numericSeconds(d.start_seconds),end=numericSeconds(d.end_seconds);
+    const reason=safeText(d.reason,300);
+    return start!==null&&end!==null&&start>=0&&end>start&&end<=args.durationSeconds+0.001
+      &&reason.length>=8?[{start_seconds:start,end_seconds:end,reason}]:[];
+  }).slice(0,20);
+  return {version:'v4-source-intelligence-20261001',source_summary:sourceSummary,
+    selection_directive:selectionDirective,beats,dead_zones:deadZones,frame_observations:frameObservations};
+}
+
+function directorEvidence(row:MinerProposal){
+  const hookType=safeText(row.hook_type,40).toUpperCase();
+  const hook=score100(row.hook_strength),cold=score100(row.cold_clarity);
+  const payoff=score100(row.payoff_strength),context=score100(row.context_tax);
+  const social=score100(row.social_currency);
+  const stopReason=safeText(row.stop_reason,500);
+  const beatIds=(Array.isArray(row.source_beat_ids)?row.source_beat_ids:[])
+    .map(x=>storySlug(x)).filter(Boolean).slice(0,6);
+  if(!DIRECTOR_HOOK_TYPES.has(hookType)||hook===null||cold===null||payoff===null
+    ||context===null||social===null||stopReason.length<12||beatIds.length===0) return null;
+  const score=Number((0.30*hook+0.20*cold+0.20*payoff+0.15*social+0.15*(100-context)).toFixed(2));
+  const reasons:string[]=[];
+  if(hook<70) reasons.push('HOOK_LT_70');
+  if(cold<65) reasons.push('COLD_CLARITY_LT_65');
+  if(payoff<65) reasons.push('PAYOFF_LT_65');
+  if(context>60) reasons.push('CONTEXT_TAX_GT_60');
+  if(score<70) reasons.push('DIRECTOR_SCORE_LT_70');
+  return {pass:reasons.length===0,score,hook_type:hookType,hook_strength:hook,
+    cold_clarity:cold,payoff_strength:payoff,context_tax:context,
+    social_currency:social,stop_reason:stopReason,source_beat_ids:beatIds,reasons};
+}
+
 export function v4MinerCandidateSchemaPrompt(allowedPlatforms:string[]){
   const eligible=allowedPlatforms.filter(x=>x==='tiktok'||x==='youtube');
   return 'Return exactly this JSON shape: '
-    +'{'+'"frame_observations":[{"at_seconds":0.0,"observation":"visible fact"}],'
-    +'"candidates":[{"story_family":"short_stable_slug",'
-    +'"proposed_story_claim":"complete story claim",'
-    +'"payoff":"specific payoff",'
-    +'"visual_reason":"specific visible reason",'
-    +'"start_seconds":0.0,"end_seconds":10.5,'
-    +'"platforms":["tiktok"]}],"reason":"brief explanation"}. '
-    +'start_seconds and end_seconds must be JSON numbers, never strings. '
+    +'{"candidates":[{"story_family":"short_stable_slug",'
+    +'"proposed_story_claim":"complete story claim","payoff":"specific payoff",'
+    +'"visual_reason":"specific visible reason","start_seconds":0.0,"end_seconds":10.5,'
+    +'"platforms":["tiktok"],"source_beat_ids":["b1"],'
+    +'"hook_type":"CONFLICT|DANGER|SURPRISE_REVEAL|PUNCHLINE|PHYSICAL_ACTION|REACTION|SOCIAL_AWKWARDNESS|HIGH_STAKES_CHOICE|SPECTACLE|EMOTIONAL_TURN|OTHER",'
+    +'"hook_strength":0,"cold_clarity":0,"payoff_strength":0,"context_tax":0,'
+    +'"social_currency":0,"stop_reason":"why a cold viewer would stop now"}],'
+    +'"reason":"brief explanation"}. '
+    +'All scores are JSON numbers 0-100, never strings. start_seconds and end_seconds must be JSON numbers, never strings. '
     +'platforms must be an array containing only eligible values: '+eligible.join(', ')+'. '
+    +'Select ONLY high-conviction windows anchored to source_beat_ids from the supplied source-intelligence map. '
     +'Every candidate must already satisfy the supplied preferred minimum and campaign maximum. '
-    +'If the semantic core is shorter, widen to meaningful source-native setup, action, reaction or payoff before returning it; otherwise omit it.';
+    +'If the semantic core is shorter, widen to meaningful source-native setup, action, reaction or payoff before returning it; otherwise omit it. '
+    +'A merely coherent or emotional scene is not enough: routine exposition, logistics, greetings, generic affection/goodbyes and fandom-only lore should be omitted unless the opening itself has immediate conflict, surprise, stakes, action/reaction, humor or another strong stop reason.';
 }
 
 export function normalizeMinerFrameObservations(raw:unknown,frames:MinerFrameRef[]){
@@ -250,7 +373,7 @@ export function normalizeMinerProposals(args:{
   proposals:unknown;sourceWorkId:string;sourceSha256:string;
   durationSeconds:number;minVideoSeconds:number;maxVideoSeconds:number|null;
   allowedPlatforms:string[];transcript:TimedSpeech[];model:string;
-  durationPolicy?:V4DurationPolicy;
+  durationPolicy?:V4DurationPolicy;requireDirectorEvidence?:boolean;
 }):MinedCandidate[]{
   const policy=args.durationPolicy??deriveV4DurationPolicy({
     minVideoSeconds:args.minVideoSeconds,maxVideoSeconds:args.maxVideoSeconds});
@@ -281,8 +404,10 @@ export function normalizeMinerProposals(args:{
     const claim=safeText(row.proposed_story_claim,240);
     const payoff=safeText(row.payoff,240);
     const visualReason=safeText(row.visual_reason,300);
+    const director=args.requireDirectorEvidence?directorEvidence(row):null;
     if(family.length<3||claim.length<8||payoff.length<8||visualReason.length<8
-      ||seenFamilies.has(family)) continue;
+      ||seenFamilies.has(family)
+      ||(args.requireDirectorEvidence&&(!director||!director.pass))) continue;
     const nearDuplicate=seenWindows.some(w=>{
       const overlap=Math.max(0,Math.min(e,w.end)-Math.max(s,w.start));
       return overlap/Math.min(length,w.end-w.start)>0.7;
@@ -302,6 +427,7 @@ export function normalizeMinerProposals(args:{
         transcript_evidence:{model:args.model,source_sha256:args.sourceSha256,
           transcript_sha256:transcriptSha,speech_segments:speech,
           payoff,visual_reason:visualReason,
+          ...(director?{source_intelligence_selection:director}:{}),
           duration_policy:{version:policy.version,
             render_safe_min_seconds:policy.renderSafeMinSeconds,
             preferred_min_seconds:minCandidate},
