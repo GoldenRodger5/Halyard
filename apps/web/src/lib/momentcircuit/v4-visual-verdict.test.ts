@@ -44,7 +44,7 @@ describe('v4 visual verdict boundary',()=>{
       observations}})).toThrow('VISUAL_PASS_EVIDENCE_INCOMPLETE');
   });
 
-  it('persists bounded attention estimates separately from PASS quality',()=>{
+  it('requires strong bounded attention estimates for a PASS',()=>{
     const verdict=normalizeVisualVerdict({...base,raw:{visual_verdict:'PASS',
       story_claim:'A complete surprising encounter',payoff:'The reveal resolves the setup',
       first_second_reason:'Visible conflict is immediate',
@@ -56,6 +56,29 @@ describe('v4 visual verdict boundary',()=>{
     expect(verdict.evidence.attention.hook_visual).toBe(85);
     expect(verdict.evidence.attention.context_tax).toBe(12);
     expect(verdict.evidence.attention.version).toBe('v4-attention-director-20261001');
+    expect(verdict.evidence.attention.gate.pass).toBe(true);
+    expect(verdict.evidence.attention.gate.score).toBeGreaterThanOrEqual(65);
+  });
+
+  it('rejects a technically coherent but scroll-stopping-weak opener',()=>{
+    const boringAttention={...attention,
+      hook_visual:20,hook_spoken:28,cold_comprehension:78,
+      motion_reaction_density:20,surprise_tension_humor:12,
+      payoff_strength:72,commentability:18,rewatchability:15,
+      context_tax:20,hook_latency_seconds:0.4,
+      attention_reason:'A calm setup is understandable but provides little immediate curiosity or tension.'};
+    const verdict=normalizeVisualVerdict({...base,raw:{visual_verdict:'PASS',
+      story_claim:'A parent calmly prepares food before a goodbye',
+      payoff:'The characters eventually share an affectionate hug',
+      first_second_reason:'The parent immediately mentions making sandwiches',
+      content_class:'ANIMATION_SCENE',
+      content_class_evidence:'Animated characters have a calm conversation in a room',
+      attention:boringAttention,observations}});
+    expect(verdict.event).toBe('MOMENT_REJECTED');
+    if(verdict.event!=='MOMENT_REJECTED') throw new Error('expected rejection');
+    expect(verdict.evidence.failure_stage).toBe('ATTENTION_GATE');
+    expect(verdict.evidence.attention.gate.pass).toBe(false);
+    expect(verdict.evidence.attention.gate.reasons).toContain('HOOK_STRENGTH_LT_65');
   });
 
   it('rejects a PASS with an unbounded attention estimate',()=>{
