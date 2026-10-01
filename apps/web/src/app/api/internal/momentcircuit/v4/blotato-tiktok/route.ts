@@ -5,7 +5,9 @@ import {
   buildSponsoredTikTokPost,
   chooseTikTokAccount,
   normalizeBlotatoStatus,
-  parseBlotatoAccounts
+  parseBlotatoAccounts,
+  parseBlotatoSchedules,
+  resolveBlotatoSchedule
 } from './logic';
 
 export const dynamic='force-dynamic';
@@ -175,7 +177,21 @@ export async function POST(request:NextRequest){
       const result=normalizeBlotatoStatus(
         await blotato('/posts/'+encodeURIComponent(submissionId))
       );
-      return NextResponse.json({ok:true,submission_id:submissionId,...result});
+      let scheduleId=result.scheduleId;
+      if(!scheduleId&&['scheduled','pending','processing','queued','publishing']
+        .includes(result.status)){
+        const schedules=parseBlotatoSchedules(await blotato('/schedules'));
+        const matched=resolveBlotatoSchedule({
+          schedules,
+          submissionId,
+          accountId:String(body.account_id??'').trim()||null,
+          scheduledAt:String(body.scheduled_at??result.scheduledAt??'').trim()||null
+        });
+        scheduleId=matched?.id??null;
+      }
+      return NextResponse.json({
+        ok:true,submission_id:submissionId,...result,scheduleId
+      });
     }
 
     if(action==='cancel_schedule'){

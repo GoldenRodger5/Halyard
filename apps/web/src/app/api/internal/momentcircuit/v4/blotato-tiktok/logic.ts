@@ -82,6 +82,72 @@ export function buildSponsoredTikTokPost(args:{
   };
 }
 
+export interface BlotatoSchedule {
+  id:string;
+  accountId?:string;
+  scheduledAt?:string;
+  submissionId?:string;
+}
+
+export function parseBlotatoSchedules(input:unknown):BlotatoSchedule[]{
+  const row=(input&&typeof input==='object')?input as Record<string,unknown>:{};
+  const raw=Array.isArray(input)
+    ?input
+    :Array.isArray(row.items)
+      ?row.items
+      :Array.isArray(row.schedules)
+        ?row.schedules
+        :Array.isArray(row.data)
+          ?row.data
+          :[];
+  return raw.flatMap((value)=>{
+    if(!value||typeof value!=='object') return [];
+    const item=value as Record<string,unknown>;
+    const post=(item.post&&typeof item.post==='object'&&!Array.isArray(item.post))
+      ?item.post as Record<string,unknown>:{};
+    const id=String(item.id??item.scheduleId??item.schedule_id??'').trim();
+    if(!id) return [];
+    const scheduledAt=String(
+      item.scheduledTime??item.scheduledAt??item.scheduled_at??''
+    ).trim()||undefined;
+    const accountId=String(
+      item.accountId??item.account_id??post.accountId??post.account_id??''
+    ).trim()||undefined;
+    const submissionId=String(
+      item.postSubmissionId??item.submissionId??item.submission_id
+      ??post.postSubmissionId??post.submissionId??''
+    ).trim()||undefined;
+    return [{id,accountId,scheduledAt,submissionId}];
+  });
+}
+
+export function resolveBlotatoSchedule(args:{
+  schedules:BlotatoSchedule[];
+  submissionId?:string|null;
+  accountId?:string|null;
+  scheduledAt?:string|null;
+}):BlotatoSchedule|null{
+  const submission=String(args.submissionId??'').trim();
+  const account=String(args.accountId??'').trim();
+  const expectedMs=Date.parse(String(args.scheduledAt??''));
+
+  const exactSubmission=submission
+    ?args.schedules.filter((s)=>s.submissionId===submission)
+    :[];
+  if(exactSubmission.length===1) return exactSubmission[0]!;
+  if(exactSubmission.length>1) throw new Error('BLOTATO_SCHEDULE_MATCH_AMBIGUOUS');
+
+  const timed=args.schedules.filter((s)=>{
+    if(account&&s.accountId&&s.accountId!==account) return false;
+    const actualMs=Date.parse(String(s.scheduledAt??''));
+    return Number.isFinite(expectedMs)&&Number.isFinite(actualMs)
+      &&Math.abs(actualMs-expectedMs)<=120_000;
+  });
+  if(timed.length===1) return timed[0]!;
+  if(timed.length>1) throw new Error('BLOTATO_SCHEDULE_MATCH_AMBIGUOUS');
+  return null;
+}
+
 export function normalizeBlotatoStatus(input:unknown){
   const row=(input&&typeof input==='object')?input as Record<string,unknown>:{};
   const status=String(row.status??'').trim().toLowerCase();
