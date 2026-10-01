@@ -22,6 +22,34 @@ function boundedLatency(value:unknown,duration:number,name:string){
   return Number(Math.min(duration,n).toFixed(3));
 }
 
+export function attentionGate(attention:{
+  hook_visual:number;hook_spoken:number;cold_comprehension:number;
+  motion_reaction_density:number;surprise_tension_humor:number;
+  payoff_strength:number;commentability:number;rewatchability:number;
+  context_tax:number;hook_latency_seconds:number;requires_fandom_context:boolean;
+}){
+  const hook=Math.max(attention.hook_visual,attention.hook_spoken);
+  const score=Number(Math.max(0,Math.min(100,
+    0.25*hook
+    +0.15*attention.cold_comprehension
+    +0.10*attention.motion_reaction_density
+    +0.15*attention.surprise_tension_humor
+    +0.15*attention.payoff_strength
+    +0.08*attention.commentability
+    +0.07*attention.rewatchability
+    +0.05*(100-attention.context_tax)
+    -(attention.requires_fandom_context?8:0)
+  )).toFixed(2));
+  const reasons:string[]=[];
+  if(hook<65) reasons.push('HOOK_STRENGTH_LT_65');
+  if(attention.cold_comprehension<62) reasons.push('COLD_COMPREHENSION_LT_62');
+  if(attention.payoff_strength<60) reasons.push('PAYOFF_STRENGTH_LT_60');
+  if(attention.context_tax>65) reasons.push('CONTEXT_TAX_GT_65');
+  if(attention.hook_latency_seconds>2) reasons.push('HOOK_LATENCY_GT_2S');
+  if(score<65) reasons.push('STOP_POWER_LT_65');
+  return {pass:reasons.length===0,score,hook,reasons};
+}
+
 function normalizeAttention(value:unknown,duration:number){
   if(!value||typeof value!=='object'||Array.isArray(value)){
     throw new Error('ATTENTION_PROFILE_MISSING');
@@ -110,10 +138,20 @@ export function normalizeVisualVerdict(input:{raw:unknown;frames:Frame[];
     throw new Error('VISUAL_PASS_EVIDENCE_INCOMPLETE');
   }
   const attention=normalizeAttention(row.attention,end-start);
+  const attentionGateResult=attentionGate(attention);
+  if(!attentionGateResult.pass){
+    return {event:'MOMENT_REJECTED' as const,evidence:{...common,
+      visual_verdict:'FAIL',failure_stage:'ATTENTION_GATE',
+      reason:`Cold-feed stop power failed: ${attentionGateResult.reasons.join(', ')}`,
+      story_claim:storyClaim,payoff,first_second_reason:firstSecondReason,
+      content_class:contentClass,content_class_evidence:contentClassEvidence,
+      attention:{...attention,gate:attentionGateResult}}};
+  }
   return {event:'CANDIDATE_VERIFIED' as const,evidence:{...common,
     visual_verdict:'PASS',story_claim:storyClaim,payoff,
     first_second_reason:firstSecondReason,content_class:contentClass,
-    content_class_evidence:contentClassEvidence,attention}};
+    content_class_evidence:contentClassEvidence,
+    attention:{...attention,gate:attentionGateResult}}};
 }
 
 export function classifyVisualFailure(message:string){
