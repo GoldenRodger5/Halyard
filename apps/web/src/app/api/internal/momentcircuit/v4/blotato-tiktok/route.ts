@@ -37,6 +37,22 @@ function database(){
   return createClient(url,key,{auth:{persistSession:false}});
 }
 
+async function existingStageReceipt(actionId:string){
+  const {data,error}=await database()
+    .from('momentcircuit_runtime_receipts')
+    .select('payload')
+    .eq('key','blotato_tiktok_stage:'+actionId)
+    .maybeSingle();
+  if(error) throw new Error('BLOTATO_STAGE_RECEIPT_LOOKUP_FAILED:'+error.message);
+  return data?.payload&&typeof data.payload==='object'
+    ?data.payload as Record<string,unknown>
+    :null;
+}
+
+function definiteNoMutation(error:string){
+  return /^BLOTATO_HTTP_(400|401|403|404|409|422|429):/.test(error);
+}
+
 async function persistStageReceipt(args:{
   actionId:string;
   readyId:string;
@@ -198,6 +214,41 @@ export async function POST(request:NextRequest){
       }
 
       const acct=await account(requestedAccountId);
+      const prior=await existingStageReceipt(actionId);
+      if(prior){
+        const priorSubmission=String(prior.post_submission_id??'').trim();
+        const priorReady=String(prior.v4_ready_asset_id??'').toLowerCase();
+        const priorSha=String(prior.media_sha256??'').toLowerCase();
+        const priorAccount=String(prior.account_id??'').trim();
+        const priorScheduled=String(prior.scheduled_at??'');
+        const priorScheduledMs=Date.parse(priorScheduled);
+        if(!priorSubmission
+           ||priorReady!==readyId
+           ||priorSha!==sha
+           ||priorAccount!==acct.id
+           ||!Number.isFinite(priorScheduledMs)
+           ||Math.abs(priorScheduledMs-scheduledMs)>120_000){
+          return NextResponse.json({
+            error:'BLOTATO_STAGE_IDENTITY_CONFLICT'
+          },{status:409});
+        }
+        return NextResponse.json({
+          ok:true,
+          duplicate:true,
+          provider:'blotato',
+          platform:'tiktok',
+          action_id:actionId,
+          v4_ready_asset_id:readyId,
+          media_sha256:sha,
+          account_id:acct.id,
+          post_submission_id:priorSubmission,
+          scheduled_at:new Date(priorScheduledMs).toISOString(),
+          provider_mutation_occurred:true,
+          stage_receipt_persisted:true,
+          target:prior.target??null
+        });
+      }
+
       const post=buildSponsoredTikTokPost({
         accountId:acct.id,
         caption,
@@ -205,10 +256,24 @@ export async function POST(request:NextRequest){
         scheduledAt,
         isAiGenerated:body.is_ai_generated===true
       });
-      const response=await blotato('/posts',{
-        method:'POST',
-        body:JSON.stringify(post)
-      }) as Record<string,unknown>;
+
+      let response:Record<string,unknown>;
+      try{
+        response=await blotato('/posts',{
+          method:'POST',
+          body:JSON.stringify(post)
+        }) as Record<string,unknown>;
+      }catch(error){
+        const message=String(error instanceof Error?error.message:error);
+        const noMutation=definiteNoMutation(message);
+        return NextResponse.json({
+          error:'BLOTATO_CREATE_FAILED',
+          detail:message.slice(0,500),
+          provider_mutation_occurred:noMutation?false:null,
+          provider_mutation_unknown:!noMutation
+        },{status:noMutation?409:502});
+      }
+
       const submissionId=String(response?.postSubmissionId??'').trim();
       if(!submissionId){
         return NextResponse.json({
