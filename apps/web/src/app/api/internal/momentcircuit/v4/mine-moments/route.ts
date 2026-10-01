@@ -438,7 +438,7 @@ async function processJob(body:unknown){
         sourceSha256:sha,durationSeconds:probe.durationSeconds,
         minVideoSeconds:min,maxVideoSeconds:max,allowedPlatforms:platforms,
         transcript:transcript.segments,model:MODEL,durationPolicy,
-        requireDirectorEvidence:true});
+        requireDirectorEvidence:true,sourceIntelligence});
       if(initialProposals.length>0&&candidates.length===0&&shortCount===0){
         throw new Error('MINER_NO_VALID_PROPOSALS');
       }
