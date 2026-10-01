@@ -24,7 +24,7 @@ function database(){
   return createClient(url,key,{auth:{persistSession:false}});
 }
 
-function parseRequest(body:unknown){
+export function parseRequest(body:unknown){
   if(!body||typeof body!=='object') throw new Error('PROVIDER_MEDIA_REQUEST_INVALID');
   const row=body as Record<string,unknown>;
   const readyId=String(row.v4_ready_asset_id??'').toLowerCase();
@@ -36,7 +36,7 @@ function parseRequest(body:unknown){
      ||scheduledMs<=Date.now()
      ||scheduledMs>Date.now()+6*60*60_000
      ||!Number.isInteger(expiresRaw)
-     ||expiresRaw<300||expiresRaw>7200){
+     ||expiresRaw<300||expiresRaw>14400){
     throw new Error('PROVIDER_MEDIA_REQUEST_INVALID');
   }
   return {readyId,scheduledAt,expiresInSeconds:expiresRaw};
@@ -59,7 +59,7 @@ export async function POST(request:NextRequest){
   try{
     const client=database();
     const {data:decision,error:decisionError}=await client.rpc(
-      'momentcircuit_v4_ready_schedulability',{
+      'momentcircuit_v4_early_arm_schedulability',{
         p_v4_ready_asset_id:parsed.readyId,
         p_slot_at:parsed.scheduledAt
       }

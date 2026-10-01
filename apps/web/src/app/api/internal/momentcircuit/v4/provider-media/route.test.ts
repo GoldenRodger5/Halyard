@@ -1,6 +1,6 @@
 import {afterEach,describe,expect,it} from 'vitest';
 import {NextRequest} from 'next/server';
-import {POST} from './route';
+import {POST,parseRequest} from './route';
 
 const endpoint='http://localhost/api/internal/momentcircuit/v4/provider-media';
 const previous=process.env.MOMENTCIRCUIT_RENDER_SECRET;
@@ -11,6 +11,23 @@ afterEach(()=>{
 });
 
 describe('v4 provider media HTTP boundary',()=>{
+  it('accepts a three-hour slot with a four-hour signing TTL',()=>{
+    const parsed=parseRequest({
+      v4_ready_asset_id:'7781c42b-963d-484d-8a66-c7b48b62187f',
+      scheduled_at:new Date(Date.now()+3*60*60_000-60_000).toISOString(),
+      expires_in_seconds:14400
+    });
+    expect(parsed.expiresInSeconds).toBe(14400);
+  });
+
+  it('rejects signing TTLs above the bounded four-hour maximum',()=>{
+    expect(()=>parseRequest({
+      v4_ready_asset_id:'7781c42b-963d-484d-8a66-c7b48b62187f',
+      scheduled_at:new Date(Date.now()+3*60*60_000-60_000).toISOString(),
+      expires_in_seconds:14401
+    })).toThrow('PROVIDER_MEDIA_REQUEST_INVALID');
+  });
+
   it('rejects unauthenticated signing requests before database access',async()=>{
     process.env.MOMENTCIRCUIT_RENDER_SECRET='test-secret';
     const response=await POST(new NextRequest(endpoint,{method:'POST',
