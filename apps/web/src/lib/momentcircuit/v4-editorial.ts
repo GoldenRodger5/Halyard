@@ -48,6 +48,22 @@ function strings(value:unknown){
     typeof x==='string'&&x.trim().length>0).map(x=>x.trim()):[];
 }
 
+export function trustedNativeSubtitlePolicy(value:unknown){
+  if(!value||typeof value!=='object'||Array.isArray(value)) return false;
+  const row=value as Record<string,unknown>;
+  return row.trusted_native_subtitles===true
+    &&row.manifest_official_pre_subtitled===true
+    &&row.visual_source_caption_mode==='BURNED_IN_SPEECH_SUBTITLES'
+    &&Array.isArray(row.visual_source_caption_samples)
+    &&row.visual_source_caption_samples.length>=2;
+}
+
+export function generatedCaptionsRequired(requirements:unknown,sourceCaptionPolicy:unknown){
+  const req=requirements&&typeof requirements==='object'&&!Array.isArray(requirements)
+    ?requirements as Record<string,unknown>:{};
+  return Boolean(req.caption)&&!trustedNativeSubtitlePolicy(sourceCaptionPolicy);
+}
+
 export function normalizeEditorialCaption(raw:unknown,requirements:unknown,
   platform:'tiktok'|'youtube'){
   if(typeof raw!=='string') throw new Error('EDITORIAL_POST_CAPTION_MISSING');

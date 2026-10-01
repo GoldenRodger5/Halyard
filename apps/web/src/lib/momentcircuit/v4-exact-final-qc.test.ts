@@ -39,6 +39,18 @@ describe('v4 exact-final QC gate',()=>{
     expect(result.verdict).toBe('PASS');
     expect(result.alignment.pass).toBe(true);
   });
+  it('passes spoken audio with zero generated captions for trusted native-subtitle mode',()=>{
+    const normalized=normalizeV4FinalReview(review({
+      frames:times.map((at_seconds)=>({at_seconds,
+        observation:'Official source-native dialogue subtitles remain readable',
+        visible_text:['I still might.']}))
+    }),times);
+    const result=evaluateV4Final({review:normalized,captions:[],
+      transcript:'But I also know it still hurts. I still might.',technicalPass:true});
+    expect(result.verdict).toBe('PASS');
+    expect(result.alignment).toMatchObject({pass:true,expected_words:0});
+  });
+
   it('routes a wrong story to immediate retirement',()=>{
     const normalized=normalizeV4FinalReview(review({story_match:false,
       defects:[{class:'story_mismatch',severity:'critical',
