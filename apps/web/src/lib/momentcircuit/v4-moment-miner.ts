@@ -17,7 +17,7 @@ export type SourceIntelligenceBeat={
   beat_id:string;start_seconds:number;end_seconds:number;beat_type:string;
   hook_potential:number;cold_clarity:number;payoff_potential:number;
   context_tax:number;social_currency:number;candidate_worthy:boolean;
-  transcript_reason:string;visual_reason:string;
+  transcript_reason:string;visual_reason:string;audio_reason:string;
 };
 export type SourceIntelligence={
   version:'v4-source-intelligence-20261001';
@@ -113,7 +113,8 @@ export function v4SourceIntelligencePrompt(){
     +'"hook_potential":0,"cold_clarity":0,"payoff_potential":0,"context_tax":0,'
     +'"social_currency":0,"candidate_worthy":false,'
     +'"transcript_reason":"what the spoken beat contributes",'
-    +'"visual_reason":"what the supplied frames visibly contribute"}],'
+    +'"visual_reason":"what the supplied frames visibly contribute",'
+    +'"audio_reason":"what timing/pauses/audio-energy evidence contributes; say unavailable when unsupported"}],'
     +'"dead_zones":[{"start_seconds":0.0,"end_seconds":2.0,"reason":"routine setup/exposition/logistics/etc"}]}. '
     +'Scores are 0-100 editorial estimates, not measured retention. Map the source honestly. '
     +'Routine exposition, greetings, logistics, generic affection/goodbyes, fandom-only lore and slow setup '
@@ -144,16 +145,17 @@ export function normalizeSourceIntelligence(args:{
     const social=score100(b.social_currency);
     const transcriptReason=safeText(b.transcript_reason,400);
     const visualReason=safeText(b.visual_reason,400);
+    const audioReason=safeText(b.audio_reason,400);
     if(start===null||end===null||start<0||end<=start||end>args.durationSeconds+0.001
       ||!SOURCE_BEAT_TYPES.has(beatType)||hook===null||cold===null||payoff===null
       ||context===null||social===null||typeof b.candidate_worthy!=='boolean'
-      ||transcriptReason.length<8||visualReason.length<8) return [];
+      ||transcriptReason.length<8||visualReason.length<8||audioReason.length<8) return [];
     return [{
       beat_id:storySlug(b.beat_id)||`beat_${index+1}`,
       start_seconds:start,end_seconds:end,beat_type:beatType,
       hook_potential:hook,cold_clarity:cold,payoff_potential:payoff,
       context_tax:context,social_currency:social,candidate_worthy:b.candidate_worthy,
-      transcript_reason:transcriptReason,visual_reason:visualReason
+      transcript_reason:transcriptReason,visual_reason:visualReason,audio_reason:audioReason
     }];
   }).slice(0,30);
   if(!beats.length) throw new Error('SOURCE_INTELLIGENCE_BEATS_MISSING');
