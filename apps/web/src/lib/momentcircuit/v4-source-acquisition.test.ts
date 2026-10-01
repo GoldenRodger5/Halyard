@@ -1,9 +1,10 @@
 import {afterEach,describe,expect,it,vi} from 'vitest';
 import {
-  assertSourceLease,fetchAuthorizedSourceBytes,isClaimOneSourceRequest,
-  parseSourceProbe,parseV4SourceRequest,
-  sourceMediaType,sourceUrlAllowed,
-  v4SourceObjectPath
+  assertNormalizedSourceFitsStorage,assertSourceLease,fetchAuthorizedSourceBytes,
+  isClaimOneSourceRequest,parseSourceProbe,parseV4SourceRequest,
+  sourceMediaType,sourceUrlAllowed,v4SourceNormalizationArgs,
+  v4SourceObjectPath,v4SourceStoragePlan,
+  V4_PRIVATE_STORAGE_PASSTHROUGH_BYTES,V4_PRIVATE_STORAGE_TARGET_BYTES
 } from './v4-source-acquisition';
 
 const id='00000000-0000-4000-8000-000000000111';
@@ -60,6 +61,47 @@ describe('v4 source acquisition boundary',()=>{
       .toThrow('SOURCE_VIDEO_DURATION_INVALID');
     expect(()=>parseSourceProbe('Duration: 00:12:05.25\nStream #0:0: Audio: aac'))
       .toThrow('SOURCE_VIDEO_PROBE_FAILED');
+  });
+
+  it('plans private-storage normalization only above the hosted ceiling',()=>{
+    expect(v4SourceStoragePlan(51_435_788,27.903)).toEqual({
+      normalize:false,targetBytes:51_435_788,videoKbps:null,audioKbps:null
+    });
+    const therapy=v4SourceStoragePlan(80_278_307,65.649);
+    expect(therapy.normalize).toBe(true);
+    expect(therapy.targetBytes).toBe(V4_PRIVATE_STORAGE_TARGET_BYTES);
+    expect(therapy.videoKbps).toBeGreaterThanOrEqual(2_500);
+    expect(therapy.videoKbps).toBeLessThanOrEqual(12_000);
+    expect(V4_PRIVATE_STORAGE_PASSTHROUGH_BYTES).toBeLessThan(52_428_800);
+    expect(()=>v4SourceStoragePlan(0,65)).toThrow('SOURCE_STORAGE_PLAN_INVALID');
+  });
+
+  it('builds a time-preserving H264/AAC normalization command without padding',()=>{
+    const args=v4SourceNormalizationArgs({
+      videoKbps:5_200,audioKbps:160,inputPath:'/tmp/source.mp4',
+      outputPath:'/tmp/normalized.mp4'
+    });
+    expect(args).toContain('libx264');
+    expect(args).toContain('aac');
+    expect(args).toContain('5200k');
+    expect(args).toContain('/tmp/source.mp4');
+    expect(args.at(-1)).toBe('/tmp/normalized.mp4');
+    expect(args.join(' ')).not.toMatch(/setpts|atempo|tpad|loop|stream_loop/);
+  });
+
+  it('fails closed when a normalized derivative is too large or changes timing',()=>{
+    expect(()=>assertNormalizedSourceFitsStorage({
+      sizeBytes:44_000_000,originalDurationSeconds:65.649,
+      normalizedDurationSeconds:65.66
+    })).not.toThrow();
+    expect(()=>assertNormalizedSourceFitsStorage({
+      sizeBytes:52_000_001,originalDurationSeconds:65.649,
+      normalizedDurationSeconds:65.649
+    })).toThrow('SOURCE_NORMALIZED_SIZE_INVALID');
+    expect(()=>assertNormalizedSourceFitsStorage({
+      sizeBytes:44_000_000,originalDurationSeconds:65.649,
+      normalizedDurationSeconds:66.0
+    })).toThrow('SOURCE_NORMALIZED_DURATION_DRIFT');
   });
 
   it('rejects a redirect to an unapproved host before fetching it',async()=>{

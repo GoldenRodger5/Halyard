@@ -8,9 +8,10 @@ import path from 'node:path';
 import {spawn} from 'node:child_process';
 import {uploadPrivateContentAddressed} from '@/lib/momentcircuit/v4-private-upload';
 import {
-  assertSourceLease,fetchAuthorizedSourceBytes,isClaimOneSourceRequest,
-  parseV4SourceRequest,
-  parseSourceProbe,v4SourceObjectPath
+  assertNormalizedSourceFitsStorage,assertSourceLease,fetchAuthorizedSourceBytes,
+  isClaimOneSourceRequest,parseV4SourceRequest,parseSourceProbe,sourceMediaType,
+  v4SourceNormalizationArgs,v4SourceObjectPath,v4SourceStoragePlan,
+  V4_SOURCE_NORMALIZATION_VERSION
 } from '@/lib/momentcircuit/v4-source-acquisition';
 import {V4_PRIVATE_BUCKET} from '@/lib/momentcircuit/v4-segment-stage';
 
@@ -73,6 +74,63 @@ async function probeSourceVideo(bytes:Buffer){
   }finally{await fsp.rm(temporary,{recursive:true,force:true}).catch(()=>undefined);}
 }
 
+async function normalizeSourceForPrivateStorage(
+  source:{bytes:Buffer;sha256:string;contentType:'video/mp4'|'video/quicktime'},
+  originalDurationSeconds:number
+){
+  const plan=v4SourceStoragePlan(source.bytes.length,originalDurationSeconds);
+  if(!plan.normalize){
+    return {...source,durationSeconds:originalDurationSeconds,normalized:false,
+      originalSha256:source.sha256,originalSizeBytes:source.bytes.length,
+      originalDurationSeconds};
+  }
+  if(plan.videoKbps===null||plan.audioKbps===null){
+    throw new Error('SOURCE_NORMALIZATION_PLAN_INVALID');
+  }
+  const temporary=await fsp.mkdtemp(path.join(os.tmpdir(),'mc-v4-normalize-'));
+  try{
+    const inputFile=path.join(temporary,
+      `source.${source.contentType==='video/mp4'?'mp4':'mov'}`);
+    const outputFile=path.join(temporary,'normalized.mp4');
+    await fsp.writeFile(inputFile,source.bytes);
+    const args=v4SourceNormalizationArgs({
+      videoKbps:plan.videoKbps,audioKbps:plan.audioKbps,
+      inputPath:inputFile,outputPath:outputFile
+    });
+    await new Promise<void>((resolve,reject)=>{
+      const child=spawn(ffmpegBinary(),args,{stdio:['ignore','ignore','pipe']});
+      let timedOut=false;
+      let stderr='';
+      const timer=setTimeout(()=>{timedOut=true;child.kill('SIGKILL');},220_000);
+      child.stderr.on('data',(chunk)=>{
+        stderr+=chunk.toString();
+        if(stderr.length>16000) stderr=stderr.slice(-16000);
+      });
+      child.on('error',()=>{
+        clearTimeout(timer);reject(new Error('SOURCE_NORMALIZATION_LAUNCH_FAILED'));
+      });
+      child.on('exit',(code)=>{
+        clearTimeout(timer);
+        if(timedOut) reject(new Error('SOURCE_NORMALIZATION_TIMEOUT'));
+        else if(code!==0) reject(new Error('SOURCE_NORMALIZATION_FAILED'));
+        else resolve();
+      });
+    });
+    const bytes=await fsp.readFile(outputFile);
+    const contentType=sourceMediaType(bytes);
+    const sha256=crypto.createHash('sha256').update(bytes).digest('hex');
+    const durationSeconds=await probeSourceVideo(bytes);
+    assertNormalizedSourceFitsStorage({
+      sizeBytes:bytes.length,originalDurationSeconds,normalizedDurationSeconds:durationSeconds
+    });
+    return {bytes,sha256,contentType,durationSeconds,normalized:true,
+      originalSha256:source.sha256,originalSizeBytes:source.bytes.length,
+      originalDurationSeconds};
+  }finally{
+    await fsp.rm(temporary,{recursive:true,force:true}).catch(()=>undefined);
+  }
+}
+
 async function execute(body:unknown){
   const {jobId,worker,leaseEpoch}=parseV4SourceRequest(body);
   const {client,url,key}=database();
@@ -107,31 +165,38 @@ async function execute(body:unknown){
       if(refreshed.source_url===current.source_url) throw error;
       source=await fetchAuthorizedSourceBytes(refreshed.source_url);
     }
-    const durationSeconds=await probeSourceVideo(source.bytes);
+    const providerDurationSeconds=await probeSourceVideo(source.bytes);
+    const durableSource=await normalizeSourceForPrivateStorage(
+      source,providerDurationSeconds
+    );
     const stillCurrent=await readCurrent();
     assertSourceLease({job,work,request:sourceRequest,current:stillCurrent,
       worker,leaseEpoch,now:Date.now()});
     const {data:bucket,error:bucketError}=await client.storage.getBucket(V4_PRIVATE_BUCKET);
     if(bucketError||!bucket||bucket.public) throw new Error('PRIVATE_SOURCE_BUCKET_REQUIRED');
-    const objectPath=v4SourceObjectPath(work.id,source.sha256,source.contentType);
+    const objectPath=v4SourceObjectPath(
+      work.id,durableSource.sha256,durableSource.contentType
+    );
     const storage=client.storage.from(V4_PRIVATE_BUCKET);
     try{
-      await uploadPrivateContentAddressed(source.bytes,objectPath,key,url,source.contentType);
+      await uploadPrivateContentAddressed(
+        durableSource.bytes,objectPath,key,url,durableSource.contentType
+      );
     }catch{
       // An unknown TUS completion can be adopted only after exact byte readback.
       const {data:existing,error:existingError}=await storage.download(objectPath);
       if(existingError||!existing) throw new Error('SOURCE_UPLOAD_UNKNOWN');
       const known=Buffer.from(await existing.arrayBuffer());
-      if(known.length!==source.bytes.length
-        ||crypto.createHash('sha256').update(known).digest('hex')!==source.sha256){
+      if(known.length!==durableSource.bytes.length
+        ||crypto.createHash('sha256').update(known).digest('hex')!==durableSource.sha256){
         throw new Error('SOURCE_OBJECT_CONFLICT');
       }
     }
     const {data:stored,error:storedError}=await storage.download(objectPath);
     if(storedError||!stored) throw new Error('SOURCE_READBACK_UNAVAILABLE');
     const storedBytes=Buffer.from(await stored.arrayBuffer());
-    if(storedBytes.length!==source.bytes.length
-      ||crypto.createHash('sha256').update(storedBytes).digest('hex')!==source.sha256){
+    if(storedBytes.length!==durableSource.bytes.length
+      ||crypto.createHash('sha256').update(storedBytes).digest('hex')!==durableSource.sha256){
       throw new Error('SOURCE_READBACK_SHA_MISMATCH');
     }
     const latest=await readCurrent();
@@ -141,14 +206,21 @@ async function execute(body:unknown){
       source_manifest_id:latest.source_manifest_id,
       campaign_contract_id:latest.campaign_contract_id,
       brief_snapshot_id:latest.brief_snapshot_id,brief_hash:latest.brief_hash,
-      rights_state:latest.rights_state,market_snapshot_id:latest.market_snapshot_id};
+      rights_state:latest.rights_state,market_snapshot_id:latest.market_snapshot_id,
+      provider_source_sha256:durableSource.originalSha256,
+      provider_source_size_bytes:durableSource.originalSizeBytes,
+      provider_source_duration_seconds:durableSource.originalDurationSeconds,
+      storage_normalized:durableSource.normalized,
+      storage_normalization_version:durableSource.normalized
+        ?V4_SOURCE_NORMALIZATION_VERSION:null};
     const {data:registered,error:registerError}=await client.rpc(
       'momentcircuit_v4_register_source_asset',{
         p_job_id:jobId,p_worker:worker,p_lease_epoch:leaseEpoch,
         p_source_fingerprint:latest.provider_fingerprint,
         p_storage_bucket:V4_PRIVATE_BUCKET,p_storage_path:objectPath,
-        p_content_type:source.contentType,p_size_bytes:source.bytes.length,
-        p_full_source_sha256:source.sha256,p_rights_evidence:rightsEvidence,
+        p_content_type:durableSource.contentType,
+        p_size_bytes:durableSource.bytes.length,
+        p_full_source_sha256:durableSource.sha256,p_rights_evidence:rightsEvidence,
         p_rights_valid_until:latest.rights_valid_until
       });
     if(registerError||!registered) throw new Error('SOURCE_REGISTRATION_REJECTED');
@@ -156,19 +228,25 @@ async function execute(body:unknown){
       'momentcircuit_v4_complete_job',{
         p_job_id:jobId,p_worker:worker,p_lease_epoch:leaseEpoch,
         p_event:'SOURCE_READY',p_evidence:{
-          source_fingerprint:latest.provider_fingerprint,source_sha256:source.sha256,
+          source_fingerprint:latest.provider_fingerprint,
+          source_sha256:durableSource.sha256,
           storage_bucket:V4_PRIVATE_BUCKET,storage_path:objectPath,
-          market_snapshot_id:latest.market_snapshot_id
+          market_snapshot_id:latest.market_snapshot_id,
+          storage_normalized:durableSource.normalized,
+          provider_source_sha256:durableSource.originalSha256
         }
       });
     if(completeError||!completed) throw new Error('SOURCE_READY_NOT_CONFIRMED');
-    return {work_id:work.id,source_sha256:source.sha256,
-      duration_seconds:durationSeconds,
-      size_bytes:source.bytes.length,storage_bucket:V4_PRIVATE_BUCKET,
-      storage_path:objectPath,registered,completed};
+    return {work_id:work.id,source_sha256:durableSource.sha256,
+      duration_seconds:durableSource.durationSeconds,
+      size_bytes:durableSource.bytes.length,
+      provider_source_sha256:durableSource.originalSha256,
+      provider_source_size_bytes:durableSource.originalSizeBytes,
+      storage_normalized:durableSource.normalized,
+      storage_bucket:V4_PRIVATE_BUCKET,storage_path:objectPath,registered,completed};
   }catch(error){
     const message=error instanceof Error?error.message:'SOURCE_WORKER_UNKNOWN';
-    const failureClass=/SOURCE_EXCEEDS_BOUNDED_ADAPTER|PRIVATE_SOURCE_BUCKET|FFMPEG_BINARY|SOURCE_OBJECT_CONFLICT|SOURCE_READBACK_SHA_MISMATCH/.test(message)
+    const failureClass=/SOURCE_EXCEEDS_BOUNDED_ADAPTER|PRIVATE_SOURCE_BUCKET|FFMPEG_BINARY|SOURCE_OBJECT_CONFLICT|SOURCE_READBACK_SHA_MISMATCH|SOURCE_NORMALIZATION/.test(message)
       ?'SYSTEMIC':/RIGHTS|BUDGET|IDENTITY|ORIGIN/.test(message)
         ?'COMPLIANCE':/SOURCE_MEDIA|SOURCE_BYTES_TOO_SMALL|SOURCE_VIDEO_DURATION/.test(message)
           ?'SOURCE_BAD':'TRANSIENT';
