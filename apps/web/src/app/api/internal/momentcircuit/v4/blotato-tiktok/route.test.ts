@@ -4,7 +4,9 @@ import {POST} from './route';
 import {
   buildSponsoredTikTokPost,
   chooseTikTokAccount,
-  parseBlotatoAccounts
+  parseBlotatoAccounts,
+  parseBlotatoSchedules,
+  resolveBlotatoSchedule
 } from './logic';
 
 const endpoint='http://localhost/api/internal/momentcircuit/v4/blotato-tiktok';
@@ -47,6 +49,38 @@ describe('MomentCircuit Blotato TikTok provider',()=>{
       {id:'tt1',platform:'tiktok'},
       {id:'tt2',platform:'tiktok'}
     ])).toThrow('BLOTATO_TIKTOK_ACCOUNT_AMBIGUOUS');
+  });
+
+  it('resolves a Blotato schedule by exact submission identity',()=>{
+    const schedules=parseBlotatoSchedules({items:[
+      {id:'sched-a',accountId:'61612',scheduledTime:'2026-10-01T23:00:00Z',
+        postSubmissionId:'submission-a'},
+      {id:'sched-b',accountId:'61612',scheduledTime:'2026-10-02T00:00:00Z',
+        postSubmissionId:'submission-b'}
+    ]});
+    expect(resolveBlotatoSchedule({schedules,
+      submissionId:'submission-b',accountId:'61612',
+      scheduledAt:'2026-10-02T00:00:00Z'})?.id).toBe('sched-b');
+  });
+
+  it('falls back to unique account plus scheduled time',()=>{
+    const schedules=parseBlotatoSchedules({items:[
+      {id:'sched-a',post:{accountId:'61612'},scheduledAt:'2026-10-01T23:00:30Z'},
+      {id:'sched-b',post:{accountId:'99999'},scheduledAt:'2026-10-01T23:00:00Z'}
+    ]});
+    expect(resolveBlotatoSchedule({schedules,
+      submissionId:'unknown',accountId:'61612',
+      scheduledAt:'2026-10-01T23:00:00Z'})?.id).toBe('sched-a');
+  });
+
+  it('fails closed when schedule matching is ambiguous',()=>{
+    const schedules=parseBlotatoSchedules({items:[
+      {id:'sched-a',accountId:'61612',scheduledTime:'2026-10-01T23:00:00Z'},
+      {id:'sched-b',accountId:'61612',scheduledTime:'2026-10-01T23:00:20Z'}
+    ]});
+    expect(()=>resolveBlotatoSchedule({schedules,
+      accountId:'61612',scheduledAt:'2026-10-01T23:00:00Z'}))
+      .toThrow('BLOTATO_SCHEDULE_MATCH_AMBIGUOUS');
   });
 
   it('rejects unauthenticated requests before provider access',async()=>{
