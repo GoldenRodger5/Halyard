@@ -374,6 +374,7 @@ export function normalizeMinerProposals(args:{
   durationSeconds:number;minVideoSeconds:number;maxVideoSeconds:number|null;
   allowedPlatforms:string[];transcript:TimedSpeech[];model:string;
   durationPolicy?:V4DurationPolicy;requireDirectorEvidence?:boolean;
+  sourceIntelligence?:SourceIntelligence;
 }):MinedCandidate[]{
   const policy=args.durationPolicy??deriveV4DurationPolicy({
     minVideoSeconds:args.minVideoSeconds,maxVideoSeconds:args.maxVideoSeconds});
@@ -405,9 +406,13 @@ export function normalizeMinerProposals(args:{
     const payoff=safeText(row.payoff,240);
     const visualReason=safeText(row.visual_reason,300);
     const director=args.requireDirectorEvidence?directorEvidence(row):null;
+    const mappedBeatIds=new Set((args.sourceIntelligence?.beats??[])
+      .filter(beat=>beat.candidate_worthy).map(beat=>beat.beat_id));
+    const directorBeatPass=!args.requireDirectorEvidence
+      ||!!director&&director.source_beat_ids.every(id=>mappedBeatIds.has(id));
     if(family.length<3||claim.length<8||payoff.length<8||visualReason.length<8
       ||seenFamilies.has(family)
-      ||(args.requireDirectorEvidence&&(!director||!director.pass))) continue;
+      ||(args.requireDirectorEvidence&&(!director||!director.pass||!directorBeatPass))) continue;
     const nearDuplicate=seenWindows.some(w=>{
       const overlap=Math.max(0,Math.min(e,w.end)-Math.max(s,w.start));
       return overlap/Math.min(length,w.end-w.start)>0.7;
