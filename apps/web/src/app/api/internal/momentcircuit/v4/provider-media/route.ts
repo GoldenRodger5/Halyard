@@ -1,14 +1,13 @@
 import {NextResponse,type NextRequest} from 'next/server';
 import {createClient} from '@supabase/supabase-js';
 import crypto from 'node:crypto';
+import {parseRequest} from './request';
 
 export const dynamic='force-dynamic';
 export const runtime='nodejs';
 
 const PRIVATE_BUCKET='momentcircuit-private';
 const RENDER_PREFIX='momentcircuit/renders/';
-const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 function authorize(request:NextRequest){
   const expected=process.env.MOMENTCIRCUIT_RENDER_SECRET??'';
   const actual=request.headers.get('x-momentcircuit-render-secret')??'';
@@ -22,24 +21,6 @@ function database(){
   const url=process.env.SUPABASE_URL,key=process.env.SUPABASE_SERVICE_ROLE_KEY;
   if(!url||!key) throw new Error('SUPABASE_NOT_CONFIGURED');
   return createClient(url,key,{auth:{persistSession:false}});
-}
-
-export function parseRequest(body:unknown){
-  if(!body||typeof body!=='object') throw new Error('PROVIDER_MEDIA_REQUEST_INVALID');
-  const row=body as Record<string,unknown>;
-  const readyId=String(row.v4_ready_asset_id??'').toLowerCase();
-  const scheduledAt=String(row.scheduled_at??'');
-  const expiresRaw=Number(row.expires_in_seconds??7200);
-  const scheduledMs=Date.parse(scheduledAt);
-  if(!UUID.test(readyId)
-     ||!Number.isFinite(scheduledMs)
-     ||scheduledMs<=Date.now()
-     ||scheduledMs>Date.now()+6*60*60_000
-     ||!Number.isInteger(expiresRaw)
-     ||expiresRaw<300||expiresRaw>14400){
-    throw new Error('PROVIDER_MEDIA_REQUEST_INVALID');
-  }
-  return {readyId,scheduledAt,expiresInSeconds:expiresRaw};
 }
 
 export async function POST(request:NextRequest){

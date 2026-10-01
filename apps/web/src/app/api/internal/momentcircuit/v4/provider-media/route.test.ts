@@ -1,6 +1,7 @@
 import {afterEach,describe,expect,it} from 'vitest';
 import {NextRequest} from 'next/server';
-import {POST,parseRequest} from './route';
+import {POST} from './route';
+import {parseRequest} from './request';
 
 const endpoint='http://localhost/api/internal/momentcircuit/v4/provider-media';
 const previous=process.env.MOMENTCIRCUIT_RENDER_SECRET;
