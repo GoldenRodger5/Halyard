@@ -121,18 +121,40 @@ describe('v4 source-local moment mining',()=>{
       requireDirectorEvidence:true})).toEqual([]);
   });
 
-  it('admits a high-conviction conflict/reveal candidate with director evidence',()=>{
+  it('admits a high-conviction candidate only when it is bound to candidate-worthy source beats',()=>{
+    const sourceIntelligence={
+      version:'v4-source-intelligence-20261001' as const,
+      source_summary:'An immediate confrontation escalates into a surprising reveal.',
+      selection_directive:'Prefer the direct conflict and reveal over surrounding setup.',
+      frame_observations:[],
+      dead_zones:[],
+      beats:[
+        {beat_id:'conflict',start_seconds:0,end_seconds:5,beat_type:'CONFLICT',
+         hook_potential:90,cold_clarity:82,payoff_potential:78,context_tax:18,
+         social_currency:80,candidate_worthy:true,
+         transcript_reason:'The accusation creates immediate conflict.',
+         visual_reason:'A visible confrontation starts immediately.'},
+        {beat_id:'reveal',start_seconds:5,end_seconds:11.46,beat_type:'SURPRISE_REVEAL',
+         hook_potential:88,cold_clarity:84,payoff_potential:92,context_tax:16,
+         social_currency:82,candidate_worthy:true,
+         transcript_reason:'The final line changes the meaning of the setup.',
+         visual_reason:'The reaction visibly lands the reveal.'}
+      ]
+    };
     const strong={...proposal(0,11.46,'danger_reveal'),
       source_beat_ids:['conflict','reveal'],hook_type:'SURPRISE_REVEAL',
       hook_strength:91,cold_clarity:82,payoff_strength:88,context_tax:18,
       social_currency:80,
       stop_reason:'The opening accusation creates immediate conflict and the reveal changes what the viewer thinks is happening.'};
     const rows=normalizeMinerProposals({...base,proposals:[strong],
-      requireDirectorEvidence:true});
+      requireDirectorEvidence:true,sourceIntelligence});
     expect(rows).toHaveLength(2);
     expect(rows[0]?.transcript_evidence).toMatchObject({
       source_intelligence_selection:{pass:true,hook_strength:91,context_tax:18}
     });
+    expect(normalizeMinerProposals({...base,proposals:[
+      {...strong,source_beat_ids:['invented_beat']}
+    ],requireDirectorEvidence:true,sourceIntelligence})).toEqual([]);
   });
 
   it('states the exact candidate JSON contract upstream',()=>{
