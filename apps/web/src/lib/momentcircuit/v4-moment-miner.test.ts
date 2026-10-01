@@ -96,12 +96,14 @@ describe('v4 source-local moment mining',()=>{
            hook_potential:20,cold_clarity:75,payoff_potential:20,context_tax:30,
            social_currency:15,candidate_worthy:false,
            transcript_reason:'Routine setup explains where they are.',
-           visual_reason:'Both characters remain seated without visible escalation.'},
+           visual_reason:'Both characters remain seated without visible escalation.',
+           audio_reason:'Speech pacing is steady with no supporting intensity spike.'},
           {beat_id:'reveal',start_seconds:5,end_seconds:18,beat_type:'SURPRISE_REVEAL',
            hook_potential:88,cold_clarity:82,payoff_potential:84,context_tax:20,
            social_currency:79,candidate_worthy:true,
            transcript_reason:'A direct accusation immediately creates conflict and leads to a reveal.',
-           visual_reason:'The pointing gesture and shocked reaction visibly escalate the scene.'}
+           visual_reason:'The pointing gesture and shocked reaction visibly escalate the scene.',
+           audio_reason:'The timed dialogue accelerates into the reveal and supports the escalation.'}
         ],
         dead_zones:[{start_seconds:0,end_seconds:5,reason:'Routine low-stakes setup'}]
       }
@@ -133,12 +135,14 @@ describe('v4 source-local moment mining',()=>{
          hook_potential:90,cold_clarity:82,payoff_potential:78,context_tax:18,
          social_currency:80,candidate_worthy:true,
          transcript_reason:'The accusation creates immediate conflict.',
-         visual_reason:'A visible confrontation starts immediately.'},
+         visual_reason:'A visible confrontation starts immediately.',
+         audio_reason:'Fast direct dialogue supports the immediate confrontation.'},
         {beat_id:'reveal',start_seconds:5,end_seconds:11.46,beat_type:'SURPRISE_REVEAL',
          hook_potential:88,cold_clarity:84,payoff_potential:92,context_tax:16,
          social_currency:82,candidate_worthy:true,
          transcript_reason:'The final line changes the meaning of the setup.',
-         visual_reason:'The reaction visibly lands the reveal.'}
+         visual_reason:'The reaction visibly lands the reveal.',
+         audio_reason:'A brief pause before the final line supports the reveal beat.'}
       ]
     };
     const strong={...proposal(0,11.46,'danger_reveal'),
