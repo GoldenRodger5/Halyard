@@ -2,8 +2,9 @@ import {describe,expect,it} from 'vitest';
 import {
   applyBoundaryRecovery,mergeMinerFrameObservations,
   normalizeMinerFrameObservations,normalizeMinerProposals,parseMinerSourceProbe,
-  recoverableShortMinerProposals,selectMinerFrameEvidenceRepairTargets,stableMomentId,
-  v4MinerCandidateSchemaPrompt
+  normalizeSourceIntelligence,recoverableShortMinerProposals,
+  selectMinerFrameEvidenceRepairTargets,stableMomentId,v4MinerCandidateSchemaPrompt,
+  v4SourceIntelligencePrompt
 } from './v4-moment-miner';
 import {deriveV4DurationPolicy} from './v4-duration-policy';
 
@@ -73,6 +74,93 @@ describe('v4 source-local moment mining',()=>{
     ]);
   });
 
+  it('requires a whole-source intelligence map before final clip direction',()=>{
+    const prompt=v4SourceIntelligencePrompt();
+    expect(prompt).toContain('WHOLE source');
+    expect(prompt).toContain('candidate_worthy');
+    expect(prompt).toContain('dead_zones');
+    const intelligence=normalizeSourceIntelligence({
+      durationSeconds:20,
+      frames:[{at:0.5},{at:5.5},{at:10.5},{at:15.5}],
+      raw:{
+        source_summary:'A quiet setup turns into a sudden confrontation and reveal.',
+        selection_directive:'Skip the routine setup and consider only the conflict/reveal.',
+        frame_observations:[
+          {at_seconds:0.5,observation:'Two characters sit calmly in a room'},
+          {at_seconds:5.5,observation:'One character stands and points'},
+          {at_seconds:10.5,observation:'The second character reacts with visible shock'},
+          {at_seconds:15.5,observation:'Both characters remain in the confrontation'}
+        ],
+        beats:[
+          {beat_id:'setup',start_seconds:0,end_seconds:5,beat_type:'EXPOSITION',
+           hook_potential:20,cold_clarity:75,payoff_potential:20,context_tax:30,
+           social_currency:15,candidate_worthy:false,
+           transcript_reason:'Routine setup explains where they are.',
+           visual_reason:'Both characters remain seated without visible escalation.',
+           audio_reason:'Speech pacing is steady with no supporting intensity spike.'},
+          {beat_id:'reveal',start_seconds:5,end_seconds:18,beat_type:'SURPRISE_REVEAL',
+           hook_potential:88,cold_clarity:82,payoff_potential:84,context_tax:20,
+           social_currency:79,candidate_worthy:true,
+           transcript_reason:'A direct accusation immediately creates conflict and leads to a reveal.',
+           visual_reason:'The pointing gesture and shocked reaction visibly escalate the scene.',
+           audio_reason:'The timed dialogue accelerates into the reveal and supports the escalation.'}
+        ],
+        dead_zones:[{start_seconds:0,end_seconds:5,reason:'Routine low-stakes setup'}]
+      }
+    });
+    expect(intelligence.beats).toHaveLength(2);
+    expect(intelligence.beats[0]?.candidate_worthy).toBe(false);
+    expect(intelligence.beats[1]?.beat_type).toBe('SURPRISE_REVEAL');
+  });
+
+  it('rejects a coherent but low-stop-power affectionate goodbye before render',()=>{
+    const weak={...proposal(0,11.46,'quiet_goodbye'),
+      source_beat_ids:['goodbye'],hook_type:'EMOTIONAL_TURN',
+      hook_strength:42,cold_clarity:78,payoff_strength:68,context_tax:35,
+      social_currency:28,
+      stop_reason:'A parent and child share a sincere goodbye without an immediate twist.'};
+    expect(normalizeMinerProposals({...base,proposals:[weak],
+      requireDirectorEvidence:true})).toEqual([]);
+  });
+
+  it('admits a high-conviction candidate only when it is bound to candidate-worthy source beats',()=>{
+    const sourceIntelligence={
+      version:'v4-source-intelligence-20261001' as const,
+      source_summary:'An immediate confrontation escalates into a surprising reveal.',
+      selection_directive:'Prefer the direct conflict and reveal over surrounding setup.',
+      frame_observations:[],
+      dead_zones:[],
+      beats:[
+        {beat_id:'conflict',start_seconds:0,end_seconds:5,beat_type:'CONFLICT',
+         hook_potential:90,cold_clarity:82,payoff_potential:78,context_tax:18,
+         social_currency:80,candidate_worthy:true,
+         transcript_reason:'The accusation creates immediate conflict.',
+         visual_reason:'A visible confrontation starts immediately.',
+         audio_reason:'Fast direct dialogue supports the immediate confrontation.'},
+        {beat_id:'reveal',start_seconds:5,end_seconds:11.46,beat_type:'SURPRISE_REVEAL',
+         hook_potential:88,cold_clarity:84,payoff_potential:92,context_tax:16,
+         social_currency:82,candidate_worthy:true,
+         transcript_reason:'The final line changes the meaning of the setup.',
+         visual_reason:'The reaction visibly lands the reveal.',
+         audio_reason:'A brief pause before the final line supports the reveal beat.'}
+      ]
+    };
+    const strong={...proposal(0,11.46,'danger_reveal'),
+      source_beat_ids:['conflict','reveal'],hook_type:'SURPRISE_REVEAL',
+      hook_strength:91,cold_clarity:82,payoff_strength:88,context_tax:18,
+      social_currency:80,
+      stop_reason:'The opening accusation creates immediate conflict and the reveal changes what the viewer thinks is happening.'};
+    const rows=normalizeMinerProposals({...base,proposals:[strong],
+      requireDirectorEvidence:true,sourceIntelligence});
+    expect(rows).toHaveLength(2);
+    expect(rows[0]?.transcript_evidence).toMatchObject({
+      source_intelligence_selection:{pass:true,hook_strength:91,context_tax:18}
+    });
+    expect(normalizeMinerProposals({...base,proposals:[
+      {...strong,source_beat_ids:['invented_beat']}
+    ],requireDirectorEvidence:true,sourceIntelligence})).toEqual([]);
+  });
+
   it('states the exact candidate JSON contract upstream',()=>{
     const prompt=v4MinerCandidateSchemaPrompt(['tiktok','youtube']);
     expect(prompt).toContain('story_family');
@@ -82,7 +170,12 @@ describe('v4 source-local moment mining',()=>{
     expect(prompt).toContain('start_seconds');
     expect(prompt).toContain('end_seconds');
     expect(prompt).toContain('platforms');
-    expect(prompt).toContain('JSON numbers, never strings');
+    expect(prompt).toContain('source_beat_ids');
+    expect(prompt).toContain('hook_strength');
+    expect(prompt).toContain('cold_clarity');
+    expect(prompt).toContain('context_tax');
+    expect(prompt).toContain('stop_reason');
+    expect(prompt).toContain('JSON numbers 0-100, never strings');
     expect(prompt).toContain('tiktok, youtube');
     expect(prompt).toContain('preferred minimum');
   });
