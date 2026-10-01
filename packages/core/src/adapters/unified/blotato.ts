@@ -97,18 +97,19 @@ export function buildTarget(
 
   switch (platform) {
     case 'tiktok': {
-      // Blotato's current public API example posts videos directly with
-      // PUBLIC_TO_EVERYONE. The earlier adapter forced SELF_ONLY + isDraft,
-      // which turned a working publishing transport back into a manual handoff.
-      // Halyard already burns licensed music/voice into video, so public posting
-      // does not require TikTok's native music picker. Photo slideshows may ask
-      // Blotato to add TikTok's recommended music.
-      target.privacyLevel = 'PUBLIC_TO_EVERYONE';
-      target.disabledComments = false;
-      target.disabledDuet = false;
-      target.disabledStitch = false;
-      target.isBrandedContent = false;
-      target.isYourBrand = true;
+      // When the caller supplies TikTok choices, preserve them all the way
+      // through the unified provider. This is especially important for
+      // sponsored MomentCircuit posts: paid-partnership disclosure must become
+      // Blotato's isBrandedContent=true while isYourBrand stays false.
+      const options = item.tiktokOptions;
+      target.privacyLevel = options?.privacyLevel ?? 'PUBLIC_TO_EVERYONE';
+      target.disabledComments = options ? !options.allowComment : false;
+      target.disabledDuet = options ? !options.allowDuet : false;
+      target.disabledStitch = options ? !options.allowStitch : false;
+      target.isBrandedContent =
+        options?.commercialContent === true ? options.brandedContent : false;
+      target.isYourBrand =
+        options?.commercialContent === true ? options.brandOrganic : false;
       target.isAiGenerated = item.requiresAiLabel ?? false;
       if (item.format === 'carousel') target.autoAddMusic = true;
       if (item.title) target.title = item.title.slice(0, 90);

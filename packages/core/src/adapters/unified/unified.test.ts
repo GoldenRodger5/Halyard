@@ -231,6 +231,34 @@ describe('buildTarget', () => {
     expect(target.isAiGenerated).toBe(true);
   });
 
+  it('maps paid-partnership TikTok choices to Blotato native disclosure fields', () => {
+    const target = buildTarget(
+      'tiktok',
+      item({
+        platform: 'tiktok',
+        format: 'video',
+        tiktokOptions: {
+          privacyLevel: 'PUBLIC_TO_EVERYONE',
+          allowComment: true,
+          allowDuet: true,
+          allowStitch: true,
+          commercialContent: true,
+          brandOrganic: false,
+          brandedContent: true,
+          musicConfirmedAt: '2026-10-01T00:00:00Z',
+          creatorInfoFetchedAt: '2026-10-01T00:00:00Z',
+        },
+      }),
+      account(),
+    );
+    expect(target.privacyLevel).toBe('PUBLIC_TO_EVERYONE');
+    expect(target.disabledComments).toBe(false);
+    expect(target.disabledDuet).toBe(false);
+    expect(target.disabledStitch).toBe(false);
+    expect(target.isBrandedContent).toBe(true);
+    expect(target.isYourBrand).toBe(false);
+  });
+
   it('refuses a Pinterest post with no board rather than guessing one', () => {
     expect(() => buildTarget('pinterest', item({ platform: 'pinterest' }), account())).toThrow(
       PublishError,
