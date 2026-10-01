@@ -5,6 +5,63 @@ const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const SHA=/^[0-9a-f]{64}$/;
 const SOURCE_HOSTS=['amazonaws.com','cloudfront.net','supabase.co'];
 export const V4_SOURCE_MAX_BYTES=150_000_000;
+export const V4_PRIVATE_STORAGE_PASSTHROUGH_BYTES=52_000_000;
+export const V4_PRIVATE_STORAGE_TARGET_BYTES=44_000_000;
+export const V4_NORMALIZED_AUDIO_KBPS=160;
+
+export function v4SourceStoragePlan(sizeBytes:number,durationSeconds:number){
+  if(!Number.isFinite(sizeBytes)||sizeBytes<1000
+    ||!Number.isFinite(durationSeconds)||durationSeconds<=0){
+    throw new Error('SOURCE_STORAGE_PLAN_INVALID');
+  }
+  if(sizeBytes<=V4_PRIVATE_STORAGE_PASSTHROUGH_BYTES){
+    return {normalize:false,targetBytes:sizeBytes,videoKbps:null,
+      audioKbps:null as number|null};
+  }
+  const totalKbps=Math.floor(
+    (V4_PRIVATE_STORAGE_TARGET_BYTES*8)/(durationSeconds*1000)
+  );
+  const videoKbps=Math.min(12_000,Math.max(2_500,
+    totalKbps-V4_NORMALIZED_AUDIO_KBPS));
+  return {normalize:true,targetBytes:V4_PRIVATE_STORAGE_TARGET_BYTES,
+    videoKbps,audioKbps:V4_NORMALIZED_AUDIO_KBPS};
+}
+
+export const V4_SOURCE_NORMALIZATION_VERSION='v1-private-storage-50mib';
+
+export function v4SourceNormalizationArgs(input:{
+  videoKbps:number;audioKbps:number;inputPath:string;outputPath:string;
+}){
+  if(!Number.isFinite(input.videoKbps)||input.videoKbps<2_500
+    ||!Number.isFinite(input.audioKbps)||input.audioKbps<64
+    ||!input.inputPath||!input.outputPath){
+    throw new Error('SOURCE_NORMALIZATION_PLAN_INVALID');
+  }
+  return ['-hide_banner','-loglevel','error','-y','-i',input.inputPath,
+    '-map','0:v:0','-map','0:a?','-c:v','libx264','-preset','veryfast',
+    '-profile:v','high','-pix_fmt','yuv420p',
+    '-b:v',`${Math.round(input.videoKbps)}k`,
+    '-maxrate',`${Math.round(input.videoKbps*1.12)}k`,
+    '-bufsize',`${Math.round(input.videoKbps*2)}k`,
+    '-c:a','aac','-b:a',`${Math.round(input.audioKbps)}k`,
+    '-movflags','+faststart','-map_metadata','-1','-map_chapters','-1',
+    input.outputPath];
+}
+
+export function assertNormalizedSourceFitsStorage(input:{
+  sizeBytes:number;originalDurationSeconds:number;normalizedDurationSeconds:number;
+}){
+  if(!Number.isFinite(input.sizeBytes)
+    ||input.sizeBytes<1000
+    ||input.sizeBytes>V4_PRIVATE_STORAGE_PASSTHROUGH_BYTES){
+    throw new Error('SOURCE_NORMALIZED_SIZE_INVALID');
+  }
+  if(!Number.isFinite(input.originalDurationSeconds)
+    ||!Number.isFinite(input.normalizedDurationSeconds)
+    ||Math.abs(input.originalDurationSeconds-input.normalizedDurationSeconds)>0.25){
+    throw new Error('SOURCE_NORMALIZED_DURATION_DRIFT');
+  }
+}
 
 export function parseV4SourceRequest(value:unknown){
   if(!value||typeof value!=='object'||Array.isArray(value)) throw new Error('SOURCE_REQUEST_INVALID');

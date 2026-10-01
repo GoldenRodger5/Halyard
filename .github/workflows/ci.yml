@@ -1,9 +1,10 @@
 # ═══════════════════════════════════════════════════════════════════════════
-# CI from the first commit.
+# Manual deep-verification workflow.
 #
-# The product this markets has no CI, and it cost sixteen days of silent
-# production drift. Typecheck, lint and test on PRs and main pushes;
-# block merge on failure without running push and PR copies of the same change.
+# Routine Halyard delivery does not depend on GitHub Actions: deterministic
+# checks run before merge, Vercel performs the cloud production build, and
+# Supabase cron owns unattended runtime verification. Keep this workflow for
+# explicit deep audits without consuming Actions quota on every change.
 #
 # The database job is the important one: publish idempotency, SKIP LOCKED, RLS
 # and the AI-disclosure constraint only exist in Postgres, so CI runs a real one.
@@ -11,10 +12,6 @@
 name: CI
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
   workflow_dispatch:
 
 concurrency:
