@@ -77,6 +77,7 @@ describe('v4 visual verdict boundary',()=>{
     expect(verdict.event).toBe('MOMENT_REJECTED');
     if(verdict.event!=='MOMENT_REJECTED') throw new Error('expected rejection');
     expect(verdict.evidence.failure_stage).toBe('ATTENTION_GATE');
+    if(!('attention' in verdict.evidence)) throw new Error('attention evidence missing');
     expect(verdict.evidence.attention.gate.pass).toBe(false);
     expect(verdict.evidence.attention.gate.reasons).toContain('HOOK_STRENGTH_LT_65');
   });
