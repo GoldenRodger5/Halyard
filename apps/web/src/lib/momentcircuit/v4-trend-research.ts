@@ -67,7 +67,7 @@ export function normalizeCitationUrl(value:string){
   url.search='';
   const host=url.hostname.toLowerCase().replace(/^www\./,'');
   let pathname=url.pathname;
-  try{pathname=decodeURIComponent(pathname);}catch{}
+  try{pathname=decodeURIComponent(pathname);}catch{pathname=url.pathname;}
   pathname=pathname.replace(/\/+$/,'')||'/';
   pathname=pathname.replace(/\/amp$/i,'').replace(/\.html?$/i,'')||'/';
   return `${host}${pathname}`;
@@ -162,7 +162,7 @@ export function validateTrendResearch(raw:unknown,citations:WebCitation[]):Trend
     if(title.length<2||date.length<4||finding.length<10) throw new Error('TREND_SOURCE_INVALID');
 
     let citation:WebCitation|null=null;
-    try{citation=matchCitation(proposedUrl,title,citations);}catch{}
+    try{citation=matchCitation(proposedUrl,title,citations);}catch{citation=null;}
     if(!citation) continue;
 
     sources.push({

@@ -119,10 +119,8 @@ export async function POST(request:NextRequest){
     return NextResponse.json({error:'TREND_ACTION_STALE_RUN'},{status:409});
   }
 
-  const priorAttempts=Number(action.attempt_count??0);
   await client.from('momentcircuit_horizon_actions').update({
     state:'IN_PROGRESS',
-    attempt_count:priorAttempts+1,
     last_attempt_at:new Date().toISOString(),
     last_error:null,
     updated_at:new Date().toISOString()
@@ -138,7 +136,6 @@ export async function POST(request:NextRequest){
       const retryAt=new Date(Date.now()+20*60_000).toISOString();
       await client.from('momentcircuit_horizon_actions').update({
         state:'PENDING',
-        attempt_count:priorAttempts,
         not_before:retryAt,
         last_error:'TREND_CURRENT_EVIDENCE_INSUFFICIENT',
         payload:{
