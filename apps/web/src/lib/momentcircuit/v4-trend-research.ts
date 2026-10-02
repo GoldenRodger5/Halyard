@@ -161,7 +161,7 @@ export function validateTrendResearch(raw:unknown,citations:WebCitation[]):Trend
     const finding=String(s.finding??'').trim();
     if(title.length<2||date.length<4||finding.length<10) throw new Error('TREND_SOURCE_INVALID');
 
-    let citation:WebCitation|null=null;
+    let citation:WebCitation|null;
     try{citation=matchCitation(proposedUrl,title,citations);}catch{continue;}
     if(!citation) continue;
 
