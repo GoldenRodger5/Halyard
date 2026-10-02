@@ -88,12 +88,15 @@ describe('v4 campaign deep read',()=>{
     }).outcome).toBe('BLOCKED');
   });
 
-  it('rejects a non-executable decision that tries to leave publish enabled',()=>{
-    expect(()=>validateCampaignDeepRead({
-      raw:{...executable,outcome:'SKIP',source_work_allowed:false,publish_allowed:true},
+  it('forces non-executable decisions fail-closed even when model flags disagree',()=>{
+    const result=validateCampaignDeepRead({
+      raw:{...executable,outcome:'SKIP',source_work_allowed:true,publish_allowed:true},
       citations,
       providerStates:{authorized_youtube_twitch:'READY_AUTONOMOUS'}
-    })).toThrow('CAMPAIGN_BLOCKED_FLAGS_INVALID');
+    });
+    expect(result.outcome).toBe('SKIP');
+    expect(result.source_work_allowed).toBe(false);
+    expect(result.publish_allowed).toBe(false);
   });
 
   it('rejects regulated categories from executable status',()=>{
