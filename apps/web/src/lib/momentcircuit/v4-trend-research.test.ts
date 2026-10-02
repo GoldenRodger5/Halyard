@@ -21,14 +21,28 @@ describe('v4 trend research',()=>{
   };
 
   it('accepts only citation-backed trend evidence',()=>{
-    expect(validateTrendResearch(raw,[cited])).toMatchObject({
-      should_record:true,topic_key:'example_topic',heat:.8
+    expect(validateTrendResearch(raw,[{url:cited,title:'Example Story'}])).toMatchObject({
+      should_record:true,topic_key:'example_topic',heat:.8,
+      sources:[{url:cited}]
     });
   });
 
-  it('rejects a source URL the web response did not cite',()=>{
-    expect(()=>validateTrendResearch(raw,['https://other.example/news']))
-      .toThrow('TREND_SOURCE_NOT_CITATION_BACKED');
+  it('fails closed when no model source can be matched to a web citation',()=>{
+    expect(()=>validateTrendResearch(raw,[{
+      url:'https://other.example/news',
+      title:'Different Article'
+    }])).toThrow('TREND_CITATION_REQUIRED');
+  });
+
+  it('discards an uncited source instead of persisting it',()=>{
+    const mixed={...raw,sources:[
+      ...raw.sources,
+      {url:'https://fake.example/invented',title:'Invented',date:'2026-10-02',
+        finding:'This unsupported source must never be persisted as evidence.'}
+    ]};
+    const result=validateTrendResearch(mixed,[{url:cited,title:'Example Story'}]);
+    expect(result.sources).toHaveLength(1);
+    expect(result.sources[0]?.url).toBe(cited);
   });
 
   it('allows bounded no-record results without fabricated sources',()=>{
@@ -52,6 +66,8 @@ describe('v4 trend research',()=>{
       }]
     });
     expect(result.text).toBe('{"ok":true}');
-    expect(result.citations).toEqual([normalizeCitationUrl(cited)]);
+    expect(result.citations).toEqual([{url:cited,title:'Example'}]);
+    expect(normalizeCitationUrl('https://www.example.com/story?x=1'))
+      .toBe('example.com/story');
   });
 });

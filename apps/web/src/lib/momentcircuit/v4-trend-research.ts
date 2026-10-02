@@ -57,17 +57,47 @@ function score(value:unknown,name:string){
   return Number(n.toFixed(4));
 }
 
+export type WebCitation={url:string;title:string};
+
 export function normalizeCitationUrl(value:string){
   let url:URL;
   try{url=new URL(value);}catch{throw new Error('TREND_SOURCE_URL_INVALID');}
   if(url.protocol!=='https:'&&url.protocol!=='http:') throw new Error('TREND_SOURCE_URL_INVALID');
   url.hash='';
-  for(const key of [...url.searchParams.keys()]){
-    if(key.toLowerCase().startsWith('utm_')) url.searchParams.delete(key);
-  }
-  const path=url.pathname.replace(/\/+$/,'')||'/';
-  return `${url.protocol}//${url.host}${path}${url.search}`;
+  url.search='';
+  const host=url.hostname.toLowerCase().replace(/^www\./,'');
+  let pathname=url.pathname;
+  try{pathname=decodeURIComponent(pathname);}catch{}
+  pathname=pathname.replace(/\/+$/,'')||'/';
+  pathname=pathname.replace(/\/amp$/i,'').replace(/\.html?$/i,'')||'/';
+  return `${host}${pathname}`;
 }
+
+function titleTokens(value:string){
+  return new Set(value.toLowerCase().replace(/[^a-z0-9 ]+/g,' ')
+    .split(/\s+/).filter(token=>token.length>=4));
+}
+
+function titleOverlap(a:string,b:string){
+  const aa=titleTokens(a),bb=titleTokens(b);
+  if(!aa.size||!bb.size) return 0;
+  let shared=0;
+  for(const token of aa) if(bb.has(token)) shared++;
+  return shared/Math.min(aa.size,bb.size);
+}
+
+function matchCitation(url:string,title:string,citations:WebCitation[]){
+  const canonical=normalizeCitationUrl(url);
+  const exact=citations.find(c=>normalizeCitationUrl(c.url)===canonical);
+  if(exact) return exact;
+
+  const host=canonical.split('/')[0];
+  return citations.find(c=>{
+    const cited=normalizeCitationUrl(c.url);
+    return cited.split('/')[0]===host&&titleOverlap(title,c.title)>=0.5;
+  })??null;
+}
+
 export function extractResponseTextAndCitations(body:unknown){
   if(!body||typeof body!=='object'||Array.isArray(body)){
     throw new Error('TREND_RESPONSE_INVALID');
@@ -76,7 +106,7 @@ export function extractResponseTextAndCitations(body:unknown){
   if(!Array.isArray(output)) throw new Error('TREND_RESPONSE_OUTPUT_INVALID');
 
   const texts:string[]=[];
-  const citations:string[]=[];
+  const citations:WebCitation[]=[];
   for(const item of output){
     if(!item||typeof item!=='object'||Array.isArray(item)) continue;
     const content=(item as {content?:unknown}).content;
@@ -88,20 +118,30 @@ export function extractResponseTextAndCitations(body:unknown){
       if(Array.isArray(p.annotations)){
         for(const annotation of p.annotations){
           if(!annotation||typeof annotation!=='object'||Array.isArray(annotation)) continue;
-          const a=annotation as {type?:unknown;url?:unknown};
-          if(a.type==='url_citation'&&typeof a.url==='string') citations.push(a.url);
+          const a=annotation as {type?:unknown;url?:unknown;title?:unknown};
+          if(a.type==='url_citation'&&typeof a.url==='string'){
+            citations.push({
+              url:a.url,
+              title:typeof a.title==='string'?a.title.trim():''
+            });
+          }
         }
       }
     }
   }
   if(!texts.length) throw new Error('TREND_RESPONSE_TEXT_MISSING');
+  const unique=new Map<string,WebCitation>();
+  for(const citation of citations){
+    const key=normalizeCitationUrl(citation.url);
+    if(!unique.has(key)) unique.set(key,citation);
+  }
   return {
     text:texts.join('\n'),
-    citations:[...new Set(citations.map(normalizeCitationUrl))]
+    citations:[...unique.values()]
   };
 }
 
-export function validateTrendResearch(raw:unknown,citationUrls:string[]):TrendResearch{
+export function validateTrendResearch(raw:unknown,citations:WebCitation[]):TrendResearch{
   if(!raw||typeof raw!=='object'||Array.isArray(raw)) throw new Error('TREND_JSON_INVALID');
   const row=raw as Record<string,unknown>;
   const shouldRecord=row.should_record===true;
@@ -111,18 +151,26 @@ export function validateTrendResearch(raw:unknown,citationUrls:string[]):TrendRe
   if(rationale.length<20) throw new Error('TREND_RATIONALE_INVALID');
 
   const sourceRows=Array.isArray(row.sources)?row.sources:[];
-  const allowed=new Set(citationUrls.map(normalizeCitationUrl));
   const sources:TrendSource[]=[];
   for(const value of sourceRows){
     if(!value||typeof value!=='object'||Array.isArray(value)) throw new Error('TREND_SOURCE_INVALID');
     const s=value as Record<string,unknown>;
-    const url=normalizeCitationUrl(String(s.url??''));
+    const proposedUrl=String(s.url??'');
     const title=String(s.title??'').trim();
     const date=String(s.date??'').trim();
     const finding=String(s.finding??'').trim();
     if(title.length<2||date.length<4||finding.length<10) throw new Error('TREND_SOURCE_INVALID');
-    if(!allowed.has(url)) throw new Error('TREND_SOURCE_NOT_CITATION_BACKED');
-    sources.push({url,title,date,finding});
+
+    let citation:WebCitation|null=null;
+    try{citation=matchCitation(proposedUrl,title,citations);}catch{}
+    if(!citation) continue;
+
+    sources.push({
+      url:citation.url,
+      title:citation.title||title,
+      date,
+      finding
+    });
   }
 
   if(shouldRecord&&sources.length<1) throw new Error('TREND_CITATION_REQUIRED');
