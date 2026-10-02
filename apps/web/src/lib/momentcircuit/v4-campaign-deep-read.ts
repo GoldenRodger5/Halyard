@@ -214,8 +214,8 @@ export function validateCampaignDeepRead(args:{
     source_provider:sourceProvider,
     source_references:sourceReferences,
     source_authorization:sourceAuthorization,
-    source_work_allowed:row.source_work_allowed===true,
-    publish_allowed:row.publish_allowed===true,
+    source_work_allowed:outcome==='EXECUTABLE'&&row.source_work_allowed===true,
+    publish_allowed:outcome==='EXECUTABLE'&&row.publish_allowed===true,
     disclosure_required:row.disclosure_required===true,
     min_video_seconds:Number(minVideoSeconds.toFixed(3)),
     blockers,
@@ -245,8 +245,6 @@ export function validateCampaignDeepRead(args:{
     if(!result.platforms.some(p=>p==='tiktok'||p==='youtube')){
       throw new Error('CAMPAIGN_EXECUTABLE_PLATFORM_INVALID');
     }
-  }else if(result.source_work_allowed||result.publish_allowed){
-    throw new Error('CAMPAIGN_BLOCKED_FLAGS_INVALID');
   }
 
   return result;
