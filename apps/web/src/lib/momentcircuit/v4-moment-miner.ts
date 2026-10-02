@@ -171,6 +171,40 @@ export function normalizeSourceIntelligence(args:{
     selection_directive:selectionDirective,beats,dead_zones:deadZones,frame_observations:frameObservations};
 }
 
+export function selectDirectedBeatFrameTimes(args:{
+  intelligence:SourceIntelligence;durationSeconds:number;maxFrames?:number;
+}){
+  const maxFrames=Math.max(1,Math.min(args.maxFrames??12,20));
+  const duration=Math.max(0,args.durationSeconds);
+  const ranked=args.intelligence.beats
+    .filter(beat=>beat.candidate_worthy)
+    .map(beat=>({beat,priority:0.34*beat.hook_potential+0.22*beat.payoff_potential+
+      0.16*beat.social_currency+0.13*beat.cold_clarity+0.15*(100-beat.context_tax)}))
+    .sort((a,b)=>b.priority-a.priority);
+  const candidates:Array<{at:number;rank:number}>=[];
+  for(const [rank,{beat}] of ranked.entries()){
+    const span=Math.max(0,beat.end_seconds-beat.start_seconds);
+    if(span<=0) continue;
+    const points=[
+      beat.start_seconds+Math.min(0.25,Math.max(0.08,span*0.08)),
+      beat.start_seconds+Math.min(1.15,Math.max(0.35,span*0.24)),
+      beat.start_seconds+span*0.55,
+      beat.end_seconds-Math.min(0.25,Math.max(0.08,span*0.08))
+    ];
+    points.forEach((at,offset)=>candidates.push({
+      at:Math.min(Math.max(0.05,at),Math.max(0.05,duration-0.05)),
+      rank:rank*10+offset
+    }));
+  }
+  const deduped:Array<{at:number;rank:number}>=[];
+  for(const candidate of candidates.sort((a,b)=>a.rank-b.rank)){
+    if(deduped.some(row=>Math.abs(row.at-candidate.at)<0.18)) continue;
+    deduped.push(candidate);
+    if(deduped.length>=maxFrames) break;
+  }
+  return deduped.map(row=>Number(row.at.toFixed(3))).sort((a,b)=>a-b);
+}
+
 function directorEvidence(row:MinerProposal){
   const hookType=safeText(row.hook_type,40).toUpperCase();
   const hook=score100(row.hook_strength),cold=score100(row.cold_clarity);

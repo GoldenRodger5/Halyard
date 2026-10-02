@@ -12,7 +12,7 @@ import {V4_PRIVATE_BUCKET} from '@/lib/momentcircuit/v4-segment-stage';
 import {applyBoundaryRecovery,mergeMinerFrameObservations,
   normalizeMinerFrameObservations,normalizeMinerProposals,normalizeSourceIntelligence,
   parseMinerSourceProbe,recoverableShortMinerProposals,
-  selectMinerFrameEvidenceRepairTargets,v4MinerCandidateSchemaPrompt,
+  selectDirectedBeatFrameTimes,selectMinerFrameEvidenceRepairTargets,v4MinerCandidateSchemaPrompt,
   v4SourceIntelligencePrompt,type FrameObservation,type SourceIntelligence,
   type TimedSpeech}
   from '@/lib/momentcircuit/v4-moment-miner';
@@ -114,6 +114,28 @@ async function sampleFrames(file:string,seconds:number,dir:string){
     frames.push({at:Math.round(at*1000)/1000,bytes});
   }
   return frames;
+}
+
+async function sampleFramesAt(file:string,times:number[],dir:string,label:string){
+  const frames:Array<{at:number;bytes:Buffer}>=[];
+  for(const [i,at] of times.entries()){
+    const output=path.join(dir,`${label}-frame-${i}.jpg`);
+    await ffmpeg(['-y','-ss',String(at),'-i',file,'-frames:v','1',
+      '-vf','scale=720:-2','-q:v','4',output]);
+    const bytes=await fsp.readFile(output);
+    if(bytes.length<1000) throw new Error('MINER_DIRECTED_FRAME_EMPTY');
+    frames.push({at:Math.round(at*1000)/1000,bytes});
+  }
+  return frames;
+}
+
+function mergeFrames(...groups:Array<Array<{at:number;bytes:Buffer}>>){
+  const merged:Array<{at:number;bytes:Buffer}>=[];
+  for(const frame of groups.flat().sort((a,b)=>a.at-b.at)){
+    if(merged.some(row=>Math.abs(row.at-frame.at)<0.12)) continue;
+    merged.push(frame);
+  }
+  return merged;
 }
 
 async function sourceAudioWaveform(file:string,dir:string,audioPresent:boolean){
@@ -420,6 +442,12 @@ async function processJob(body:unknown){
         duration:probe.durationSeconds,transcript:transcript.segments,frames,audioWaveform
       });
       const observations=sourceIntelligence.frame_observations;
+      const directedFrameTimes=selectDirectedBeatFrameTimes({
+        intelligence:sourceIntelligence,durationSeconds:probe.durationSeconds,maxFrames:12
+      });
+      const directedFrames=directedFrameTimes.length
+        ?await sampleFramesAt(file,directedFrameTimes,dir,'directed'):[];
+      const directorFrames=mergeFrames(frames,directedFrames);
       if(effectiveMin===null){
         reason='Exact '+probe.durationSeconds+'s source cannot meet '
           +durationPolicy.renderSafeMinSeconds+'s renderer-safe minimum without padding';
@@ -427,7 +455,7 @@ async function processJob(body:unknown){
         const judged=await proposeMoments({
           campaignName:String(contract.campaign_name??''),requirements,
           duration:probe.durationSeconds,min,max,platforms,durationPolicy,
-          sourceIntelligence,transcript:transcript.segments,frames
+          sourceIntelligence,transcript:transcript.segments,frames:directorFrames
         });
         initialProposals=judged.proposals;
         proposals=[...initialProposals];reason=judged.reason;

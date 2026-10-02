@@ -3,7 +3,7 @@ import {
   applyBoundaryRecovery,mergeMinerFrameObservations,
   normalizeMinerFrameObservations,normalizeMinerProposals,parseMinerSourceProbe,
   normalizeSourceIntelligence,recoverableShortMinerProposals,
-  selectMinerFrameEvidenceRepairTargets,stableMomentId,v4MinerCandidateSchemaPrompt,
+  selectDirectedBeatFrameTimes,selectMinerFrameEvidenceRepairTargets,stableMomentId,v4MinerCandidateSchemaPrompt,
   v4SourceIntelligencePrompt
 } from './v4-moment-miner';
 import {deriveV4DurationPolicy} from './v4-duration-policy';
@@ -359,5 +359,37 @@ describe('v4 source-local moment mining',()=>{
       {...first,story_family:'different_platform',platforms:['instagram']},
       {...first,story_family:'past_source',end_seconds:12}];
     expect(normalizeMinerProposals({...base,proposals})).toHaveLength(1);
+  });
+
+  it('targets extra visual samples inside the strongest candidate-worthy beats',()=>{
+    const intelligence=normalizeSourceIntelligence({durationSeconds:60,
+      frames:[{at:2},{at:12},{at:22},{at:32},{at:42},{at:52}],raw:{
+        source_summary:'A source with a weak setup and two stronger attention beats.',
+        selection_directive:'Favor the immediate conflict and the later surprise payoff.',
+        frame_observations:[
+          {at_seconds:2,observation:'A calm setup is visible.'},
+          {at_seconds:22,observation:'Two characters visibly confront each other.'},
+          {at_seconds:42,observation:'A visible reaction follows a surprise.'},
+          {at_seconds:52,observation:'The reaction resolves.'}],
+        beats:[
+          {beat_id:'setup',start_seconds:0,end_seconds:10,beat_type:'EXPOSITION',
+            hook_potential:20,cold_clarity:80,payoff_potential:20,context_tax:20,
+            social_currency:10,candidate_worthy:false,transcript_reason:'Routine setup.',
+            visual_reason:'Calm room setup.',audio_reason:'Low energy.'},
+          {beat_id:'conflict',start_seconds:18,end_seconds:27,beat_type:'CONFLICT',
+            hook_potential:92,cold_clarity:84,payoff_potential:78,context_tax:18,
+            social_currency:82,candidate_worthy:true,transcript_reason:'Direct accusation.',
+            visual_reason:'Visible confrontation.',audio_reason:'Sharp intensity rise.'},
+          {beat_id:'reveal',start_seconds:39,end_seconds:47,beat_type:'SURPRISE_REVEAL',
+            hook_potential:88,cold_clarity:82,payoff_potential:94,context_tax:16,
+            social_currency:86,candidate_worthy:true,transcript_reason:'Meaning flips.',
+            visual_reason:'Strong visible reaction.',audio_reason:'Pause then reaction.'}]}});
+    const times=selectDirectedBeatFrameTimes({intelligence,durationSeconds:60,maxFrames:8});
+    expect(times).toHaveLength(8);
+    expect(times.some(t=>t>18&&t<20)).toBe(true);
+    expect(times.some(t=>t>25&&t<27)).toBe(true);
+    expect(times.some(t=>t>39&&t<41)).toBe(true);
+    expect(times.some(t=>t>45&&t<47)).toBe(true);
+    expect(times.every(t=>t>=0.05&&t<=59.95)).toBe(true);
   });
 });
