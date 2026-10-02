@@ -54,6 +54,30 @@ describe('v4 trend research',()=>{
     },[]).should_record).toBe(false);
   });
 
+  it('extracts authoritative web-search action sources without inline annotations',()=>{
+    const result=extractResponseTextAndCitations({
+      output:[
+        {
+          type:'web_search_call',
+          action:{
+            type:'search',
+            sources:[{url:cited,title:'Example Story'}]
+          }
+        },
+        {
+          type:'message',
+          content:[{
+            type:'output_text',
+            text:'{"ok":true}',
+            annotations:[]
+          }]
+        }
+      ]
+    });
+    expect(result.text).toBe('{"ok":true}');
+    expect(result.citations).toEqual([{url:cited,title:'Example Story'}]);
+  });
+
   it('extracts response output text and url citations',()=>{
     const result=extractResponseTextAndCitations({
       output:[{

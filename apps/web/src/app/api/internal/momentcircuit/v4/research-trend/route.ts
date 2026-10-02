@@ -48,6 +48,7 @@ async function research(args:{
     body:JSON.stringify({
       model:MODEL,
       tools:[{type:'web_search'}],
+      include:['web_search_call.action.sources'],
       instructions:trendResearchInstructions(),
       input:trendResearchInput(args),
       text:{

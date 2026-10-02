@@ -109,7 +109,28 @@ export function extractResponseTextAndCitations(body:unknown){
   const citations:WebCitation[]=[];
   for(const item of output){
     if(!item||typeof item!=='object'||Array.isArray(item)) continue;
-    const content=(item as {content?:unknown}).content;
+    const outputItem=item as {type?:unknown;action?:unknown;content?:unknown};
+
+    if(outputItem.type==='web_search_call'
+       &&outputItem.action
+       &&typeof outputItem.action==='object'
+       &&!Array.isArray(outputItem.action)){
+      const searchSources=(outputItem.action as {sources?:unknown}).sources;
+      if(Array.isArray(searchSources)){
+        for(const source of searchSources){
+          if(!source||typeof source!=='object'||Array.isArray(source)) continue;
+          const s=source as {url?:unknown;title?:unknown};
+          if(typeof s.url==='string'){
+            citations.push({
+              url:s.url,
+              title:typeof s.title==='string'?s.title.trim():''
+            });
+          }
+        }
+      }
+    }
+
+    const content=outputItem.content;
     if(!Array.isArray(content)) continue;
     for(const part of content){
       if(!part||typeof part!=='object'||Array.isArray(part)) continue;
