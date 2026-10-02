@@ -43,7 +43,7 @@ export const CAMPAIGN_DEEP_READ_SCHEMA={
     category_fit:{type:'string',enum:['CORE','OFF_LANE','REGULATED','ADULT','POLITICAL']},
     language:{type:'string',minLength:2,maxLength:80},
     platforms:{
-      type:'array',minItems:1,maxItems:3,uniqueItems:true,
+      type:'array',minItems:1,maxItems:3,
       items:{type:'string',enum:['tiktok','youtube','instagram']}
     },
     account_fit:{type:'boolean'},
@@ -53,7 +53,7 @@ export const CAMPAIGN_DEEP_READ_SCHEMA={
     rights_summary:{type:'string',minLength:5,maxLength:1200},
     source_provider:{type:'string',maxLength:160},
     source_references:{
-      type:'array',maxItems:12,uniqueItems:true,
+      type:'array',maxItems:12,
       items:{type:'string',maxLength:1500}
     },
     source_authorization:{type:'string',maxLength:1200},
@@ -62,7 +62,7 @@ export const CAMPAIGN_DEEP_READ_SCHEMA={
     disclosure_required:{type:'boolean'},
     min_video_seconds:{type:'number',minimum:0,maximum:300},
     blockers:{
-      type:'array',maxItems:12,uniqueItems:true,
+      type:'array',maxItems:12,
       items:{type:'string',minLength:2,maxLength:300}
     },
     rationale:{type:'string',minLength:20,maxLength:1800},
@@ -194,7 +194,7 @@ export function validateCampaignDeepRead(args:{
   const sourceReferences=groundedReferences(row.source_references,args.citations);
   const sourceAuthorization=String(row.source_authorization??'').trim();
   const blockers=Array.isArray(row.blockers)
-    ?row.blockers.map(String).map(x=>x.trim()).filter(Boolean).slice(0,12):[];
+    ?[...new Set(row.blockers.map(String).map(x=>x.trim()).filter(Boolean))].slice(0,12):[];
   const minVideoSeconds=Number(row.min_video_seconds);
   if(!Number.isFinite(minVideoSeconds)||minVideoSeconds<0||minVideoSeconds>300){
     throw new Error('CAMPAIGN_DEEP_READ_DURATION_INVALID');
