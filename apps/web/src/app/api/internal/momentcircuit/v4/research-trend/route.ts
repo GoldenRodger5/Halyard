@@ -8,12 +8,14 @@ import {
   trendResearchInstructions,
   validateTrendResearch
 } from '@/lib/momentcircuit/v4-trend-research';
+import {reserveHalyardSpend,settleHalyardSpend} from '@/lib/halyard-spend-guard';
 
 export const dynamic='force-dynamic';
 export const runtime='nodejs';
 export const maxDuration=300;
 
-const MODEL='gpt-5.6';
+const MODEL='gpt-5.6-luna';
+const MAX_CALL_RESERVATION_USD=0.25;
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ACTION_TYPES=new Set(['REFRESH_MARKET_TREND_SIGNAL','REFRESH_TREND_SIGNAL']);
 
@@ -31,7 +33,7 @@ function database(){
   return createClient(url,key,{auth:{persistSession:false}});
 }
 
-async function research(args:{
+async function research(client:ReturnType<typeof database>,args:{
   actionType:string;
   platform:string;
   payload:unknown;
@@ -39,6 +41,11 @@ async function research(args:{
   const key=process.env.OPENAI_API_KEY?.trim();
   if(!key) throw new Error('OPENAI_API_KEY_MISSING');
 
+  const reservation=await reserveHalyardSpend(client,{
+    provider:'openai',purpose:'momentcircuit_trend_web_search',
+    maxUsd:MAX_CALL_RESERVATION_USD,
+    metadata:{model:MODEL,action_type:args.actionType,platform:args.platform},
+  });
   const response=await fetch('https://api.openai.com/v1/responses',{
     method:'POST',
     headers:{
@@ -47,7 +54,9 @@ async function research(args:{
     },
     body:JSON.stringify({
       model:MODEL,
-      tools:[{type:'web_search'}],
+      tools:[{type:'web_search',context_size:'low'}],
+      max_tool_calls:2,
+      reasoning:{effort:'low'},
       include:['web_search_call.action.sources'],
       instructions:trendResearchInstructions(),
       input:trendResearchInput(args),
@@ -59,12 +68,13 @@ async function research(args:{
           schema:TREND_RESEARCH_SCHEMA
         }
       },
-      max_output_tokens:2600,
+      max_output_tokens:1600,
       store:false
     }),
     signal:AbortSignal.timeout(180_000)
   });
 
+  await settleHalyardSpend(client,reservation,{http_status:response.status});
   if(!response.ok) throw new Error(`TREND_OPENAI_HTTP_${response.status}`);
   const body=await response.json() as unknown;
   const extracted=extractResponseTextAndCitations(body);
@@ -128,7 +138,7 @@ export async function POST(request:NextRequest){
   }).eq('id',actionId);
 
   try{
-    const result=await research({
+    const result=await research(client,{
       actionType:String(action.action_type),
       platform:String(action.platform??'cross_platform'),
       payload:action.payload
