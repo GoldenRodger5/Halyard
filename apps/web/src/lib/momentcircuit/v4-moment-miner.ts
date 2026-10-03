@@ -150,11 +150,22 @@ export function normalizeSourceIntelligence(args:{
       ||!SOURCE_BEAT_TYPES.has(beatType)||hook===null||cold===null||payoff===null
       ||context===null||social===null||typeof b.candidate_worthy!=='boolean'
       ||transcriptReason.length<8||visualReason.length<8||audioReason.length<8) return [];
+    const inherentlyLowEvent=beatType==='EXPOSITION'||beatType==='TRANSITION';
+    const emotionalExceptional=beatType!=='EMOTIONAL_TURN'
+      ||(hook>=82&&social>=60&&payoff>=72);
+    const candidateWorthy=b.candidate_worthy===true
+      &&!inherentlyLowEvent
+      &&hook>=72
+      &&cold>=68
+      &&payoff>=65
+      &&context<=55
+      &&social>=50
+      &&emotionalExceptional;
     return [{
       beat_id:storySlug(b.beat_id)||`beat_${index+1}`,
       start_seconds:start,end_seconds:end,beat_type:beatType,
       hook_potential:hook,cold_clarity:cold,payoff_potential:payoff,
-      context_tax:context,social_currency:social,candidate_worthy:b.candidate_worthy,
+      context_tax:context,social_currency:social,candidate_worthy:candidateWorthy,
       transcript_reason:transcriptReason,visual_reason:visualReason,audio_reason:audioReason
     }];
   }).slice(0,30);
@@ -215,13 +226,17 @@ function directorEvidence(row:MinerProposal){
     .map(x=>storySlug(x)).filter(Boolean).slice(0,6);
   if(!DIRECTOR_HOOK_TYPES.has(hookType)||hook===null||cold===null||payoff===null
     ||context===null||social===null||stopReason.length<12||beatIds.length===0) return null;
-  const score=Number((0.30*hook+0.20*cold+0.20*payoff+0.15*social+0.15*(100-context)).toFixed(2));
+  const score=Number((0.32*hook+0.20*cold+0.19*payoff+0.16*social+0.13*(100-context)).toFixed(2));
   const reasons:string[]=[];
-  if(hook<70) reasons.push('HOOK_LT_70');
-  if(cold<65) reasons.push('COLD_CLARITY_LT_65');
-  if(payoff<65) reasons.push('PAYOFF_LT_65');
-  if(context>60) reasons.push('CONTEXT_TAX_GT_60');
-  if(score<70) reasons.push('DIRECTOR_SCORE_LT_70');
+  if(hook<75) reasons.push('HOOK_LT_75');
+  if(cold<70) reasons.push('COLD_CLARITY_LT_70');
+  if(payoff<68) reasons.push('PAYOFF_LT_68');
+  if(context>55) reasons.push('CONTEXT_TAX_GT_55');
+  if(social<50) reasons.push('SOCIAL_CURRENCY_LT_50');
+  if(score<72) reasons.push('DIRECTOR_SCORE_LT_72');
+  if(hookType==='EMOTIONAL_TURN'&&(hook<82||social<60||payoff<72)){
+    reasons.push('EMOTIONAL_TURN_NOT_EXCEPTIONAL');
+  }
   return {pass:reasons.length===0,score,hook_type:hookType,hook_strength:hook,
     cold_clarity:cold,payoff_strength:payoff,context_tax:context,
     social_currency:social,stop_reason:stopReason,source_beat_ids:beatIds,reasons};
@@ -243,7 +258,10 @@ export function v4MinerCandidateSchemaPrompt(allowedPlatforms:string[]){
     +'Select ONLY high-conviction windows anchored to source_beat_ids from the supplied source-intelligence map. '
     +'Every candidate must already satisfy the supplied preferred minimum and campaign maximum. '
     +'If the semantic core is shorter, widen to meaningful source-native setup, action, reaction or payoff before returning it; otherwise omit it. '
-    +'A merely coherent or emotional scene is not enough: routine exposition, logistics, greetings, generic affection/goodbyes and fandom-only lore should be omitted unless the opening itself has immediate conflict, surprise, stakes, action/reaction, humor or another strong stop reason.';
+    +'A merely coherent or emotional scene is not enough: routine exposition, logistics, greetings, generic affection/goodbyes and fandom-only lore should be omitted unless the opening itself has immediate conflict, surprise, stakes, action/reaction, humor or another strong stop reason. '
+    +'Start as close as possible to the first undeniable impact line, visible action, reaction, confrontation, reveal, danger or punchline setup. Do not spend the opening explaining the scene. '
+    +'Prefer windows where a cold viewer understands the premise in roughly the first 1-1.5 seconds and where the payoff is not buried behind removable setup. '
+    +'Optimize for choose-to-view, continued watching, rewatch/share/comment energy, and a complete payoff; never return a merely acceptable scene when a stronger event-driven beat exists.';
 }
 
 export function normalizeMinerFrameObservations(raw:unknown,frames:MinerFrameRef[]){
