@@ -6,6 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import {parseV4StageRequest,V4_PRIVATE_BUCKET} from '@/lib/momentcircuit/v4-segment-stage';
 import {runV4Ffmpeg} from '@/lib/momentcircuit/v4-stage-worker';
+import {reserveHalyardSpend,settleHalyardSpend} from '@/lib/halyard-spend-guard';
 import {visualFrameTimes} from '@/lib/momentcircuit/v4-visual-verdict';
 import {buildVerifiedEditPlan} from '@/lib/momentcircuit/edit-planner';
 import {captionCuesFromSourceSpeech,normalizeEditorialCaption,
@@ -246,6 +247,10 @@ async function processJob(body:unknown){
     try{
       const file=path.join(dir,'segment.mp4');
       await fsp.writeFile(file,bytes);
+      const spendReservation=await reserveHalyardSpend(client,{
+        provider:'openai',purpose:'momentcircuit_v4_editorial_planner',maxUsd:3.00,
+        metadata:{model:MODEL,job_id:jobId,work_id:work.id},
+      });
       const probe=await runV4Ffmpeg(['-i',file],true,20_000);
       const speech=await transcribeExactSegment(file,dir,/Audio:\s*[a-zA-Z0-9_.-]+/.test(probe));
       const cues=captionCuesFromSourceSpeech(speech,0,duration,captionRequired);
@@ -257,6 +262,7 @@ async function processJob(body:unknown){
         campaignName:String(contract.campaign_name??''),requirements,
         visualEvidence:visual.evidence,storyFamily:String(moment.story_family),
         captionCues:cues});
+      await settleHalyardSpend(client,spendReservation,{result:'editorial_paid_stages_completed'});
       const decision=normalizeEditorialDecision(raw,cues.length>0);
       const postCaption=normalizeEditorialCaption(decision.post_caption,
         requirements,work.platform);

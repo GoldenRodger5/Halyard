@@ -16,6 +16,7 @@ import {applyBoundaryRecovery,mergeMinerFrameObservations,
   v4SourceIntelligencePrompt,type FrameObservation,type SourceIntelligence,
   type TimedSpeech}
   from '@/lib/momentcircuit/v4-moment-miner';
+import {reserveHalyardSpend,settleHalyardSpend} from '@/lib/halyard-spend-guard';
 import {deriveV4DurationPolicy,effectiveV4CandidateMin,v4DurationPrompt,
   type V4DurationPolicy} from '@/lib/momentcircuit/v4-duration-policy';
 
@@ -434,6 +435,10 @@ async function processJob(body:unknown){
       const effectiveMin=effectiveV4CandidateMin(durationPolicy,probe.durationSeconds);
       let initialProposals:unknown[]=[];
       let shortCount=0,recoveredCount=0;
+      const spendReservation=await reserveHalyardSpend(client,{
+        provider:'openai',purpose:'momentcircuit_v4_moment_miner',maxUsd:5.00,
+        metadata:{model:MODEL,transcriber:TRANSCRIBER,job_id:jobId,work_id:work.id},
+      });
       if(effectiveMin!==null){
         transcript=await timedTranscript(file,dir,probe.audioPresent);
       }
@@ -478,6 +483,7 @@ async function processJob(body:unknown){
           }
         }
       }
+      await settleHalyardSpend(client,spendReservation,{result:'miner_paid_stages_completed'});
       const candidates=normalizeMinerProposals({proposals,sourceWorkId:work.id,
         sourceSha256:sha,durationSeconds:probe.durationSeconds,
         minVideoSeconds:min,maxVideoSeconds:max,allowedPlatforms:platforms,

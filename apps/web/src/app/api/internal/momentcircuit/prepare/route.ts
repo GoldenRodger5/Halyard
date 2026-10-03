@@ -4,6 +4,7 @@ import crypto from 'node:crypto';
 import { buildVerifiedEditPlan, verifiedSourceLayout, verifiedShotsFromShotMap, type AiEditDecision } from '@/lib/momentcircuit/edit-planner';
 import { assessPackageQuality, packageRevisionFeedback } from '@/lib/momentcircuit/package-quality';
 import { prepareSourceWindow } from '@/lib/momentcircuit/source-window';
+import {reserveHalyardSpend,settleHalyardSpend} from '@/lib/halyard-spend-guard';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -295,6 +296,10 @@ async function prepareWorkOrder(id:string) {
     trendTopics,
     firstSecondEvidence:String(semanticEvidence.first_second_evidence ?? ''),
   };
+  const spendReservation=await reserveHalyardSpend(client,{
+    provider:'openai',purpose:'momentcircuit_prepare_packaging',maxUsd:2.00,
+    metadata:{model:MODEL,work_order_id:wo.id,platform:wo.platform},
+  });
   const firstGenerated = await generatePackage(packageArgs);
   const firstQuality = assessPackageQuality(firstGenerated);
   let generated=firstGenerated;
@@ -303,6 +308,7 @@ async function prepareWorkOrder(id:string) {
     generated=await generatePackage({...packageArgs,revision:{previous:firstGenerated,feedback:packageRevisionFeedback(firstQuality)}});
     packageRevisionCount=1;
   }
+  await settleHalyardSpend(client,spendReservation,{provider_calls:1+packageRevisionCount});
 
   const unsupported = Array.isArray(generated.unsupported_claims) ? generated.unsupported_claims.filter(Boolean) : [];
   if (unsupported.length) throw new Error(`UNSUPPORTED_PACKAGING_CLAIMS: ${unsupported.join(' | ').slice(0,600)}`);
