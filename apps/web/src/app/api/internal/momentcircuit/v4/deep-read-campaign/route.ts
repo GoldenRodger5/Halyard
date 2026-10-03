@@ -14,8 +14,8 @@ export const dynamic='force-dynamic';
 export const runtime='nodejs';
 export const maxDuration=300;
 
-const MODEL='gpt-5.6-luna';
-const MAX_CALL_RESERVATION_USD=0.35;
+const MODEL='gpt-6-luna';
+const MAX_CALL_RESERVATION_USD=0.06;
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function authorize(request:NextRequest){
@@ -41,6 +41,7 @@ function rpcMessage(error:unknown,fallback:string){
 }
 
 async function research(client:ReturnType<typeof database>,args:{
+  actionId:string;
   candidate:unknown;
   actionPayload:unknown;
   currentTrend:unknown;
@@ -53,6 +54,7 @@ async function research(client:ReturnType<typeof database>,args:{
   const reservation=await reserveHalyardSpend(client,{
     provider:'openai',purpose:'momentcircuit_campaign_deep_read',
     maxUsd:MAX_CALL_RESERVATION_USD,
+    idempotencyKey:`mc-deep-read:${args.actionId}:v1`,
     metadata:{model:MODEL},
   });
   const response=await fetch('https://api.openai.com/v1/responses',{
@@ -65,7 +67,9 @@ async function research(client:ReturnType<typeof database>,args:{
       model:MODEL,
       tools:[{type:'web_search',search_context_size:'low'}],
       max_tool_calls:2,
-      reasoning:{effort:'low'},
+      parallel_tool_calls:false,
+      tool_choice:'required',
+      reasoning:{effort:'medium'},
       include:['web_search_call.action.sources'],
       instructions:campaignDeepReadInstructions(args.providerKeys),
       input:campaignDeepReadInput(args),
@@ -77,7 +81,7 @@ async function research(client:ReturnType<typeof database>,args:{
           schema:CAMPAIGN_DEEP_READ_SCHEMA
         }
       },
-      max_output_tokens:2400,
+      max_output_tokens:1800,
       store:false
     }),
     signal:AbortSignal.timeout(210_000)
@@ -230,6 +234,7 @@ export async function POST(request:NextRequest){
     };
 
     const researched=await research(client,{
+      actionId,
       candidate:currentCandidate,
       actionPayload:action.payload,
       currentTrend:trend??null,
