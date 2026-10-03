@@ -5,12 +5,14 @@ import fsp from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import {runV4Ffmpeg} from '@/lib/momentcircuit/v4-stage-worker';
+import {reserveHalyardSpend,settleHalyardSpend} from '@/lib/halyard-spend-guard';
 
 export const dynamic='force-dynamic';
 export const runtime='nodejs';
 export const maxDuration=300;
 
 const MODEL='gpt-5.5';
+const MAX_VISUAL_CALL_RESERVATION_USD=1.50;
 const SOURCE_HOST='aleiahgcxhglnsvaajzn.supabase.co';
 const SOURCE_PREFIX='/storage/v1/object/public/halyard-assets/momentcircuit/source-segments/';
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -230,9 +232,15 @@ export async function POST(request:NextRequest){
       await fsp.writeFile(file,bytes);
       const duration=Number(candidate.end_seconds)-Number(candidate.start_seconds);
       const sampled=await frames(file,duration,Number(candidate.start_seconds),dir);
+      const spendReservation=await reserveHalyardSpend(client,{
+        provider:'openai',purpose:'momentcircuit_candidate_visual_verifier',
+        maxUsd:MAX_VISUAL_CALL_RESERVATION_USD,
+        metadata:{model:MODEL,action_id:actionId,candidate_moment_id:candidateId},
+      });
       const verdict=await judge({frames:sampled,
         campaignName:String(contract.campaign_name??''),
         requirements:contract.requirements,candidate});
+      await settleHalyardSpend(client,spendReservation,{result:'provider_call_completed'});
 
       const reviewedAt=new Date().toISOString();
       const scores={...(candidate.scores??{}),
