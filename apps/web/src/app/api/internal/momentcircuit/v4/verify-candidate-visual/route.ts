@@ -12,7 +12,7 @@ export const runtime='nodejs';
 export const maxDuration=300;
 
 const MODEL='gpt-5.5';
-const MAX_VISUAL_CALL_RESERVATION_USD=1.50;
+const MAX_VISUAL_CALL_RESERVATION_USD=0.20;
 const SOURCE_HOST='aleiahgcxhglnsvaajzn.supabase.co';
 const SOURCE_PREFIX='/storage/v1/object/public/halyard-assets/momentcircuit/source-segments/';
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -235,6 +235,7 @@ export async function POST(request:NextRequest){
       const spendReservation=await reserveHalyardSpend(client,{
         provider:'openai',purpose:'momentcircuit_candidate_visual_verifier',
         maxUsd:MAX_VISUAL_CALL_RESERVATION_USD,
+        idempotencyKey:`mc-candidate-visual:${actionId}:v1`,
         metadata:{model:MODEL,action_id:actionId,candidate_moment_id:candidateId},
       });
       const verdict=await judge({frames:sampled,
