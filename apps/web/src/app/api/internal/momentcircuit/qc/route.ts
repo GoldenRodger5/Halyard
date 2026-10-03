@@ -17,7 +17,7 @@ export const maxDuration = 300;
 
 const MODEL = 'gpt-5.5';
 const OPENAI = 'https://api.openai.com/v1/chat/completions';
-const MAX_QC_CALLS_RESERVATION_USD = 2.50;
+const MAX_QC_CALLS_RESERVATION_USD = 0.35;
 
 type Defect = {
   class: string;
@@ -377,6 +377,7 @@ async function processRender(renderId: string) {
     const spendReservation=await reserveHalyardSpend(client,{
       provider:'openai',purpose:'momentcircuit_exact_final_qc',
       maxUsd:MAX_QC_CALLS_RESERVATION_USD,
+      idempotencyKey:`mc-exact-final-qc:${rj.id}:v1`,
       metadata:{model:MODEL,render_job_id:rj.id,work_order_id:wo.id},
     });
     const finalTranscript=await transcribeFinalAudio(audioFile);

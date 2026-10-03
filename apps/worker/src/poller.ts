@@ -11,7 +11,6 @@
  */
 import { writeFile } from 'node:fs/promises';
 import {
-  budgetDecision,
   isProviderExhausted,
   PAID_JOB_KINDS,
   releaseIdentity,
@@ -29,7 +28,11 @@ import {
  */
 const PROVIDER_PARK_SECONDS = 20 * 60;
 const PROVIDER_PARK_MAX_AGE_MS = 24 * 60 * 60 * 1000;
-import { spentTodayUsd } from './paidCalls.js';
+import {
+  finalizeWorkerSpend,
+  reserveWorkerSpend,
+  type WorkerSpendReservation,
+} from './paidCalls.js';
 import type pg from 'pg';
 import { JOB_POLICY, type JobKind } from '@halyard/db';
 import { scrubString } from '@halyard/core';
@@ -308,55 +311,63 @@ export class Poller {
     }
 
     /*
-     * §494. Paid work waits when the day's budget is spent. Paused, not
-     * failed: the job goes back to the queue for a few minutes past midnight,
-     * and nothing needs re-sending. Publishing and collection are never paid
-     * kinds and never wait.
+     * Global paid-work ceiling.
+     *
+     * The old guard read the ledger and then spent, so two workers could both
+     * see room and overshoot together. Paid jobs now atomically reserve against
+     * the same Postgres pool as MomentCircuit cloud routes before any handler
+     * can reach a provider. Unknown estimates reserve the full $1 daily ceiling.
      */
+    const startedAt = Date.now();
+    let spendReservation: WorkerSpendReservation | null = null;
     if (PAID_JOB_KINDS.includes(job.kind)) {
-      const [spent, budgetRow] = await Promise.all([
-        spentTodayUsd(this.pool),
-        this.pool.query<{ daily_budget_usd: string }>('select daily_budget_usd from settings where id = true'),
-      ]);
       const rawEstimate = job.payload.estimatedCostUsd ?? job.payload.maxCostUsd;
       const estimatedJobCostUsd =
         typeof rawEstimate === 'number' && Number.isFinite(rawEstimate) && rawEstimate > 0
           ? rawEstimate
-          : null;
-      const decision = budgetDecision({
+          : 1;
+      const { reservation, reason } = await reserveWorkerSpend(this.pool, {
+        jobId: job.id,
         kind: job.kind,
-        spentTodayUsd: spent,
-        dailyBudgetUsd: Number(budgetRow.rows[0]?.daily_budget_usd ?? 5),
-        estimatedJobCostUsd,
+        maxUsd: estimatedJobCostUsd,
       });
-      if (!decision.proceed) {
+      if (!reservation) {
         await this.pool.query(
           `update jobs
               set status = 'queued', locked_at = null, locked_by = null,
                   attempts = greatest(attempts - 1, 0),
-                  run_after = date_trunc('day', now()) + interval '1 day 5 minutes',
+                  run_after = (
+                    date_trunc('day', now() at time zone 'America/New_York')
+                    + interval '1 day 5 minutes'
+                  ) at time zone 'America/New_York',
                   last_error = $2
             where id = $1`,
-          [job.id, decision.because ?? 'daily budget reached'],
+          [job.id, reason ?? 'global daily spend cap reached'],
         );
-        this.log('budget paused', {
+        this.log('global spend paused', {
           kind: job.kind,
           jobId: job.id,
-          spentUsd: decision.spentUsd,
-          budgetUsd: decision.budgetUsd,
-          because: decision.because,
+          estimatedJobCostUsd,
+          because: reason,
         });
         return true;
       }
+      spendReservation = reservation;
     }
 
-    const startedAt = Date.now();
     try {
       await withTimeout(
         handler(job, this.contextFor(job)),
         policy.timeoutMs,
         `${job.kind} exceeded its ${policy.timeoutMs / 1000}s timeout`,
       );
+
+      if (spendReservation) {
+        await finalizeWorkerSpend(this.pool, spendReservation, job.id, startedAt)
+          .catch((error) => this.log('global spend finalize failed', {
+            kind: job.kind, jobId: job.id, error: String(error),
+          }));
+      }
 
       await this.pool.query(
         `update jobs set status='done', finished_at=now(), last_error=null where id=$1`,
@@ -374,6 +385,12 @@ export class Poller {
 
       this.log('job done', { kind: job.kind, id: job.id, ms: Date.now() - startedAt });
     } catch (err) {
+      if (spendReservation) {
+        await finalizeWorkerSpend(this.pool, spendReservation, job.id, startedAt)
+          .catch((error) => this.log('global spend finalize failed after job error', {
+            kind: job.kind, jobId: job.id, error: String(error),
+          }));
+      }
       await this.fail(job, err as Error, policy.backoffSeconds);
     }
     return true;

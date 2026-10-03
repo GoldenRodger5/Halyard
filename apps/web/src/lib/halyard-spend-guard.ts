@@ -4,6 +4,7 @@ import crypto from 'node:crypto';
 export type HalyardSpendReservation={
   id:string;
   reservedUsd:number;
+  idempotencyKey:string;
 };
 
 type ReserveResult={
@@ -13,6 +14,8 @@ type ReserveResult={
   remaining_usd?:number|string;
   effective_limit_usd?:number|string;
   reason?:string|null;
+  idempotent?:boolean;
+  reservation_state?:string|null;
 };
 
 export async function reserveHalyardSpend(
@@ -21,10 +24,12 @@ export async function reserveHalyardSpend(
     provider:string;
     purpose:string;
     maxUsd:number;
+    idempotencyKey?:string;
     metadata?:Record<string,unknown>;
   },
 ):Promise<HalyardSpendReservation>{
-  const idempotencyKey=`${args.provider}:${args.purpose}:${crypto.randomUUID()}`;
+  const idempotencyKey=args.idempotencyKey?.trim()
+    ||`${args.provider}:${args.purpose}:${crypto.randomUUID()}`;
   const {data,error}=await client.rpc('halyard_reserve_spend',{
     p_provider:args.provider,
     p_purpose:args.purpose,
@@ -38,12 +43,19 @@ export async function reserveHalyardSpend(
     throw new Error(
       `GLOBAL_DAILY_SPEND_CAP:${result.reason??'DENIED'}:`+
       `remaining=${String(result.remaining_usd??'unknown')}:`+
-      `limit=${String(result.effective_limit_usd??'10')}`,
+      `limit=${String(result.effective_limit_usd??'1')}`,
+    );
+  }
+  if(result.idempotent===true){
+    throw new Error(
+      `GLOBAL_SPEND_DUPLICATE_PAID_CALL_BLOCKED:${result.reservation_state??'UNKNOWN'}:`+
+      idempotencyKey,
     );
   }
   return {
     id:String(result.reservation_id),
     reservedUsd:Number(result.reserved_usd??args.maxUsd),
+    idempotencyKey,
   };
 }
 

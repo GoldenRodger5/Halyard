@@ -248,7 +248,8 @@ async function processJob(body:unknown){
       const file=path.join(dir,'segment.mp4');
       await fsp.writeFile(file,bytes);
       const spendReservation=await reserveHalyardSpend(client,{
-        provider:'openai',purpose:'momentcircuit_v4_editorial_planner',maxUsd:3.00,
+        provider:'openai',purpose:'momentcircuit_v4_editorial_planner',maxUsd:0.15,
+        idempotencyKey:`mc-v4-editorial:${jobId}:v1`,
         metadata:{model:MODEL,job_id:jobId,work_id:work.id},
       });
       const probe=await runV4Ffmpeg(['-i',file],true,20_000);

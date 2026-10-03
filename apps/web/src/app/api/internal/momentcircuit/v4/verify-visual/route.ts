@@ -16,7 +16,7 @@ export const maxDuration=300;
 
 const WORKER='halyard-v4-visual';
 const MODEL='gpt-5.5';
-const MAX_VISUAL_CALL_RESERVATION_USD=1.50;
+const MAX_VISUAL_CALL_RESERVATION_USD=0.20;
 
 function authorize(request:NextRequest){
   const expected=process.env.MOMENTCIRCUIT_RENDER_SECRET??'';
@@ -133,6 +133,7 @@ async function processJob(body:unknown){
       const spendReservation=await reserveHalyardSpend(client,{
         provider:'openai',purpose:'momentcircuit_v4_visual_verifier',
         maxUsd:MAX_VISUAL_CALL_RESERVATION_USD,
+        idempotencyKey:`mc-v4-visual:${jobId}:v1`,
         metadata:{model:MODEL,job_id:jobId,work_id:String(work.id)},
       });
       const raw=await judge({frames,campaignName:String(contract.campaign_name??''),

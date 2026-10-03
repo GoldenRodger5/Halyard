@@ -436,7 +436,8 @@ async function processJob(body:unknown){
       let initialProposals:unknown[]=[];
       let shortCount=0,recoveredCount=0;
       const spendReservation=await reserveHalyardSpend(client,{
-        provider:'openai',purpose:'momentcircuit_v4_moment_miner',maxUsd:5.00,
+        provider:'openai',purpose:'momentcircuit_v4_moment_miner',maxUsd:0.35,
+        idempotencyKey:`mc-v4-miner:${jobId}:v1`,
         metadata:{model:MODEL,transcriber:TRANSCRIBER,job_id:jobId,work_id:work.id},
       });
       if(effectiveMin!==null){

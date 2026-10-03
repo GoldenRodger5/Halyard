@@ -10,6 +10,7 @@ import {parseFfmpegDuration,parseV4StageRequest,V4_PRIVATE_BUCKET}
 import {runV4Ffmpeg} from '@/lib/momentcircuit/v4-stage-worker';
 import {critiqueV4Final,evaluateV4Final,type FinalFrame}
   from '@/lib/momentcircuit/v4-exact-final-qc';
+import {reserveHalyardSpend,settleHalyardSpend} from '@/lib/halyard-spend-guard';
 
 export const dynamic='force-dynamic';
 export const runtime='nodejs';
@@ -181,7 +182,8 @@ async function processJob(body:unknown){
           ||duration<=Number(contract.max_video_seconds));
       if(!technicalPass) throw new Error('QC_TECHNICAL_METADATA_MISMATCH');
       const spendReservation=await reserveHalyardSpend(client,{
-        provider:'openai',purpose:'momentcircuit_v4_exact_final_qc',maxUsd:3.00,
+        provider:'openai',purpose:'momentcircuit_v4_exact_final_qc',maxUsd:0.35,
+        idempotencyKey:`mc-v4-exact-final-qc:${jobId}:v1`,
         metadata:{critic_model:'gpt-5.5',transcriber:'gpt-transcribe',job_id:jobId,work_id:work.id},
       });
       const {transcript,frames}=await inspectMedia(video,dir,duration,cues);

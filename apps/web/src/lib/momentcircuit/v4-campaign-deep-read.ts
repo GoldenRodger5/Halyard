@@ -47,27 +47,27 @@ export const CAMPAIGN_DEEP_READ_SCHEMA={
       items:{type:'string',enum:['tiktok','youtube','instagram']}
     },
     account_fit:{type:'boolean'},
-    account_fit_reason:{type:'string',minLength:5,maxLength:1000},
+    account_fit_reason:{type:'string',minLength:5,maxLength:600},
     dedicated_page_required:{type:'boolean'},
     rights_clear:{type:'boolean'},
-    rights_summary:{type:'string',minLength:5,maxLength:1200},
+    rights_summary:{type:'string',minLength:5,maxLength:700},
     source_provider:{type:'string',maxLength:160},
     source_references:{
-      type:'array',maxItems:12,
+      type:'array',maxItems:6,
       items:{type:'string',maxLength:1500}
     },
-    source_authorization:{type:'string',maxLength:1200},
+    source_authorization:{type:'string',maxLength:700},
     source_work_allowed:{type:'boolean'},
     publish_allowed:{type:'boolean'},
     disclosure_required:{type:'boolean'},
     min_video_seconds:{type:'number',minimum:0,maximum:300},
     blockers:{
-      type:'array',maxItems:12,
-      items:{type:'string',minLength:2,maxLength:300}
+      type:'array',maxItems:6,
+      items:{type:'string',minLength:2,maxLength:260}
     },
-    rationale:{type:'string',minLength:20,maxLength:1800},
+    rationale:{type:'string',minLength:20,maxLength:900},
     sources:{
-      type:'array',maxItems:8,
+      type:'array',maxItems:5,
       items:{
         type:'object',
         additionalProperties:false,
@@ -75,7 +75,7 @@ export const CAMPAIGN_DEEP_READ_SCHEMA={
           url:{type:'string',minLength:8,maxLength:1200},
           title:{type:'string',minLength:2,maxLength:300},
           date:{type:'string',minLength:4,maxLength:80},
-          finding:{type:'string',minLength:10,maxLength:900}
+          finding:{type:'string',minLength:10,maxLength:500}
         },
         required:['url','title','date','finding']
       }
@@ -135,7 +135,7 @@ function groundedSources(raw:unknown,citations:WebCitation[]){
       finding
     });
   }
-  return out.slice(0,8);
+  return out.slice(0,5);
 }
 
 function groundedReferences(raw:unknown,citations:WebCitation[]){
@@ -152,7 +152,7 @@ function groundedReferences(raw:unknown,citations:WebCitation[]){
       if(grounded&&!out.includes(grounded)) out.push(grounded);
     }catch{continue;}
   }
-  return out.slice(0,12);
+  return out.slice(0,6);
 }
 export function validateCampaignDeepRead(args:{
   raw:unknown;
@@ -194,7 +194,7 @@ export function validateCampaignDeepRead(args:{
   const sourceReferences=groundedReferences(row.source_references,args.citations);
   const sourceAuthorization=String(row.source_authorization??'').trim();
   const blockers=Array.isArray(row.blockers)
-    ?[...new Set(row.blockers.map(String).map(x=>x.trim()).filter(Boolean))].slice(0,12):[];
+    ?[...new Set(row.blockers.map(String).map(x=>x.trim()).filter(Boolean))].slice(0,6):[];
   const minVideoSeconds=Number(row.min_video_seconds);
   if(!Number.isFinite(minVideoSeconds)||minVideoSeconds<0||minVideoSeconds>300){
     throw new Error('CAMPAIGN_DEEP_READ_DURATION_INVALID');
@@ -253,16 +253,15 @@ export function campaignDeepReadInstructions(providerKeys:string[]){
   return [
     'You are the strict campaign eligibility and source-rights analyst for MomentCircuit.',
     'MomentCircuit main account is English-language entertainment, gaming, streamers, creator culture, and sports-adjacent viral moments.',
-    'Use current web search evidence and the exact current campaign identity supplied in context.',
-    'Do not let payout or trend strength override eligibility.',
-    'SKIP campaigns that are regulated gambling/financial trading, adult/sexual, political/political-advocacy, or clearly off-lane.',
-    'BLOCK when the main account cannot prove a required dedicated profile, niche warmup, region/audience threshold, or source authorization.',
-    'EXECUTABLE requires English main-account fit, current rights, publish eligibility, and at least one exact source reference.',
+    'Cost discipline is part of correctness: use at most two web tool calls. First inspect the exact current campaign/brief identity. Use a second call only when needed to verify a specific rights, source, account, or platform requirement. Never do generic background research.',
+    'Campaign payout and trend strength never override eligibility. Decide eligibility from current brief terms, account requirements, rights, source authorization, disclosure, language, and platform rules.',
+    'SKIP regulated gambling/financial trading, adult/sexual, political/political-advocacy, or clearly off-lane campaigns.',
+    'BLOCK when a required dedicated profile, niche warmup, audience/region threshold, rights grant, exact source reference, or other requirement is not currently proven.',
+    'EXECUTABLE requires English main-account fit, current rights, publish eligibility, and at least one exact source reference grounded in this response.',
     `source_provider must be one of these registry keys or empty when unknown: ${providerKeys.join(', ')}.`,
-    'EXECUTABLE additionally requires a provider whose supplied registry state is READY_AUTONOMOUS.',
-    'For every source reference you return, search/open that exact URL so it appears in the web-search source list.',
-    'For every evidence source you return, use only URLs from this response web search.',
-    'When evidence is incomplete, choose BLOCKED rather than guessing.',
+    'EXECUTABLE also requires that provider to be READY_AUTONOMOUS in the supplied registry.',
+    'Use only web-search URLs actually present in this response. Prefer the campaign/brief itself plus one authoritative corroborating source; do not pad the source list.',
+    'Keep decision, blockers, rights summary, and rationale concise and operational. When evidence is incomplete, choose BLOCKED rather than guessing. Do not request a retry.',
     'Return JSON only in the required schema.'
   ].join(' ');
 }
