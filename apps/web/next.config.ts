@@ -10,6 +10,7 @@ const config: NextConfig = {
     '/api/internal/momentcircuit/render': ['./bin/**/*'],
     '/api/internal/momentcircuit/qc': ['./bin/**/*'],
     '/api/internal/momentcircuit/v4/render': ['./bin/**/*'],
+    '/api/internal/momentcircuit/v4/source-resolver': ['./bin/**/*'],
   },
   typedRoutes: false,
 
