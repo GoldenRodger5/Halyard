@@ -180,12 +180,17 @@ async function processJob(body:unknown){
         &&(contract.max_video_seconds===null
           ||duration<=Number(contract.max_video_seconds));
       if(!technicalPass) throw new Error('QC_TECHNICAL_METADATA_MISMATCH');
+      const spendReservation=await reserveHalyardSpend(client,{
+        provider:'openai',purpose:'momentcircuit_v4_exact_final_qc',maxUsd:3.00,
+        metadata:{critic_model:'gpt-5.5',transcriber:'gpt-transcribe',job_id:jobId,work_id:work.id},
+      });
       const {transcript,frames}=await inspectMedia(video,dir,duration,cues);
       const review=await critiqueV4Final({frames,platform:String(work.platform),
         story_claim:String(visual.evidence?.story_claim??''),
         payoff:String(visual.evidence?.payoff??''),
         expected_captions:cues.map((cue:{text:string})=>cue.text),
         presentation_mode:String(editPlan.presentation_mode??'')});
+      await settleHalyardSpend(client,spendReservation,{result:'v4_exact_final_paid_stages_completed'});
       const evaluated=evaluateV4Final({review,
         captions:cues.map((cue:{text:string})=>cue.text),transcript,
         technicalPass});
