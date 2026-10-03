@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
 
   const spendClient=halyardSpendClient();
   const spendReservation=await reserveHalyardSpend(spendClient,{
-    provider:'openai',purpose:'operator_take_transcription',maxUsd:0.25,
+    provider:'openai',purpose:'operator_take_transcription',maxUsd:0.05,
     metadata:{model:'whisper-1'},
   });
 
