@@ -8,6 +8,7 @@ import {parseV4StageRequest,V4_PRIVATE_BUCKET} from '@/lib/momentcircuit/v4-segm
 import {runV4Ffmpeg,stageV4Segment} from '@/lib/momentcircuit/v4-stage-worker';
 import {classifyVisualFailure,normalizeVisualVerdict,visualFrameTimes}
   from '@/lib/momentcircuit/v4-visual-verdict';
+import {reserveHalyardSpend,settleHalyardSpend} from '@/lib/halyard-spend-guard';
 
 export const dynamic='force-dynamic';
 export const runtime='nodejs';
@@ -15,6 +16,7 @@ export const maxDuration=300;
 
 const WORKER='halyard-v4-visual';
 const MODEL='gpt-5.5';
+const MAX_VISUAL_CALL_RESERVATION_USD=1.50;
 
 function authorize(request:NextRequest){
   const expected=process.env.MOMENTCIRCUIT_RENDER_SECRET??'';
@@ -128,8 +130,14 @@ async function processJob(body:unknown){
       await fsp.writeFile(file,bytes);
       const start=Number(moment.start_seconds),end=Number(moment.end_seconds);
       const frames=await sampleFrames(file,start,end,dir);
+      const spendReservation=await reserveHalyardSpend(client,{
+        provider:'openai',purpose:'momentcircuit_v4_visual_verifier',
+        maxUsd:MAX_VISUAL_CALL_RESERVATION_USD,
+        metadata:{model:MODEL,job_id:jobId,work_id:String(work.id)},
+      });
       const raw=await judge({frames,campaignName:String(contract.campaign_name??''),
         requirements:contract.requirements,moment});
+      await settleHalyardSpend(client,spendReservation,{result:'provider_call_completed'});
       const verdict=normalizeVisualVerdict({raw,frames,start,end,
         candidateId:String(work.candidate_moment_id),
         segmentSha:staged.segment_sha256,model:MODEL});
