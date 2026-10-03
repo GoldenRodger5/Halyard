@@ -55,9 +55,9 @@ describe('v4 visual verdict boundary',()=>{
     if(verdict.event!=='CANDIDATE_VERIFIED') throw new Error('expected pass');
     expect(verdict.evidence.attention.hook_visual).toBe(85);
     expect(verdict.evidence.attention.context_tax).toBe(12);
-    expect(verdict.evidence.attention.version).toBe('v4-attention-director-20261001');
+    expect(verdict.evidence.attention.version).toBe('v4-breakout-gate-20261003');
     expect(verdict.evidence.attention.gate.pass).toBe(true);
-    expect(verdict.evidence.attention.gate.score).toBeGreaterThanOrEqual(65);
+    expect(verdict.evidence.attention.gate.score).toBeGreaterThanOrEqual(72);
   });
 
   it('rejects a technically coherent but scroll-stopping-weak opener',()=>{
@@ -79,7 +79,29 @@ describe('v4 visual verdict boundary',()=>{
     expect(verdict.evidence.failure_stage).toBe('ATTENTION_GATE');
     if(!('attention' in verdict.evidence)) throw new Error('attention evidence missing');
     expect(verdict.evidence.attention.gate.pass).toBe(false);
-    expect(verdict.evidence.attention.gate.reasons).toContain('HOOK_STRENGTH_LT_65');
+    expect(verdict.evidence.attention.gate.reasons).toContain('HOOK_STRENGTH_LT_75');
+  });
+
+
+  it('rejects a coherent relationship beat unless its opening is exceptional',()=>{
+    const relationshipAttention={...attention,
+      hook_visual:78,hook_spoken:76,cold_comprehension:84,
+      motion_reaction_density:58,surprise_tension_humor:61,
+      payoff_strength:78,commentability:54,rewatchability:52,
+      context_tax:18,hook_latency_seconds:0.7,
+      archetype:'RELATIONSHIP_MOMENT',
+      attention_reason:'The relationship beat is understandable but lacks exceptional visible escalation.'};
+    const verdict=normalizeVisualVerdict({...base,raw:{visual_verdict:'PASS',
+      story_claim:'A parent supports a departure',payoff:'They hug before leaving',
+      first_second_reason:'The trip is mentioned immediately',
+      content_class:'ANIMATION_SCENE',
+      content_class_evidence:'Animated family members talk and embrace',
+      attention:relationshipAttention,observations}});
+    expect(verdict.event).toBe('MOMENT_REJECTED');
+    if(verdict.event!=='MOMENT_REJECTED') throw new Error('expected rejection');
+    if(!('attention' in verdict.evidence)) throw new Error('attention evidence missing');
+    expect(verdict.evidence.attention.gate.reasons)
+      .toContain('LOW_EVENT_ARCHETYPE_NOT_EXCEPTIONAL');
   });
 
   it('rejects a PASS with an unbounded attention estimate',()=>{
