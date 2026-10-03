@@ -11,6 +11,7 @@ import {runV4Ffmpeg} from '@/lib/momentcircuit/v4-stage-worker';
 import {critiqueV4Final,evaluateV4Final,type FinalFrame}
   from '@/lib/momentcircuit/v4-exact-final-qc';
 import {reserveHalyardSpend,settleHalyardSpend} from '@/lib/halyard-spend-guard';
+import {transcriptionCostUsd} from '@/lib/openai-cost';
 
 export const dynamic='force-dynamic';
 export const runtime='nodejs';
@@ -192,7 +193,13 @@ async function processJob(body:unknown){
         payoff:String(visual.evidence?.payoff??''),
         expected_captions:cues.map((cue:{text:string})=>cue.text),
         presentation_mode:String(editPlan.presentation_mode??'')});
-      await settleHalyardSpend(client,spendReservation,{result:'v4_exact_final_paid_stages_completed'});
+      const transcriptionUsd=transcriptionCostUsd('gpt-transcribe',duration)??0;
+      const measuredUsd=review.usageCostUsd===null
+        ?null:review.usageCostUsd+transcriptionUsd;
+      await settleHalyardSpend(client,spendReservation,{
+        result:'v4_exact_final_paid_stages_completed',
+        critic_model:'gpt-5.5',transcriber:'gpt-transcribe'
+      },measuredUsd);
       const evaluated=evaluateV4Final({review,
         captions:cues.map((cue:{text:string})=>cue.text),transcript,
         technicalPass});
