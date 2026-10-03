@@ -63,12 +63,18 @@ export async function settleHalyardSpend(
   client:SupabaseClient,
   reservation:HalyardSpendReservation,
   metadata?:Record<string,unknown>,
+  actualUsd?:number|null,
 ):Promise<void>{
+  const measured=typeof actualUsd==='number'&&Number.isFinite(actualUsd)&&actualUsd>=0
+    ?Math.min(reservation.reservedUsd,Math.max(0,actualUsd))
+    :reservation.reservedUsd;
   const {error}=await client.rpc('halyard_settle_spend',{
     p_reservation_id:reservation.id,
-    p_actual_usd:reservation.reservedUsd,
+    p_actual_usd:Number(measured.toFixed(6)),
     p_metadata:{
-      accounting_mode:'CONSERVATIVE_MAX_RESERVATION',
+      accounting_mode:actualUsd===undefined||actualUsd===null
+        ?'CONSERVATIVE_MAX_RESERVATION':'MEASURED_PROVIDER_USAGE',
+      reserved_usd:reservation.reservedUsd,
       ...(metadata??{}),
     },
   });
