@@ -14,8 +14,8 @@ export const dynamic='force-dynamic';
 export const runtime='nodejs';
 export const maxDuration=300;
 
-const MODEL='gpt-5.6-luna';
-const MAX_CALL_RESERVATION_USD=0.25;
+const MODEL='gpt-6-luna';
+const MAX_CALL_RESERVATION_USD=0.04;
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ACTION_TYPES=new Set(['REFRESH_MARKET_TREND_SIGNAL','REFRESH_TREND_SIGNAL']);
 
@@ -34,6 +34,7 @@ function database(){
 }
 
 async function research(client:ReturnType<typeof database>,args:{
+  actionId:string;
   actionType:string;
   platform:string;
   payload:unknown;
@@ -44,6 +45,7 @@ async function research(client:ReturnType<typeof database>,args:{
   const reservation=await reserveHalyardSpend(client,{
     provider:'openai',purpose:'momentcircuit_trend_web_search',
     maxUsd:MAX_CALL_RESERVATION_USD,
+    idempotencyKey:`mc-trend:${args.actionId}:v1`,
     metadata:{model:MODEL,action_type:args.actionType,platform:args.platform},
   });
   const response=await fetch('https://api.openai.com/v1/responses',{
@@ -55,7 +57,9 @@ async function research(client:ReturnType<typeof database>,args:{
     body:JSON.stringify({
       model:MODEL,
       tools:[{type:'web_search',search_context_size:'low'}],
-      max_tool_calls:2,
+      max_tool_calls:1,
+      parallel_tool_calls:false,
+      tool_choice:'required',
       reasoning:{effort:'low'},
       include:['web_search_call.action.sources'],
       instructions:trendResearchInstructions(),
@@ -68,7 +72,7 @@ async function research(client:ReturnType<typeof database>,args:{
           schema:TREND_RESEARCH_SCHEMA
         }
       },
-      max_output_tokens:1600,
+      max_output_tokens:1200,
       store:false
     }),
     signal:AbortSignal.timeout(180_000)
@@ -139,16 +143,15 @@ export async function POST(request:NextRequest){
 
   try{
     const result=await research(client,{
+      actionId,
       actionType:String(action.action_type),
       platform:String(action.platform??'cross_platform'),
       payload:action.payload
     });
     if(!result.should_record){
-      const retryAt=new Date(Date.now()+20*60_000).toISOString();
       await client.from('momentcircuit_horizon_actions').update({
-        state:'PENDING',
-        not_before:retryAt,
-        last_error:'TREND_CURRENT_EVIDENCE_INSUFFICIENT',
+        state:'SUPERSEDED',
+        last_error:'TREND_CURRENT_EVIDENCE_INSUFFICIENT_NO_RETRY',
         payload:{
           ...(action.payload??{}),
           cloud_trend_last_research_at:new Date().toISOString(),
@@ -159,7 +162,7 @@ export async function POST(request:NextRequest){
       }).eq('id',actionId);
       return NextResponse.json({
         ok:true,recorded:false,action_id:actionId,
-        reason:'TREND_CURRENT_EVIDENCE_INSUFFICIENT'
+        reason:'TREND_CURRENT_EVIDENCE_INSUFFICIENT_NO_RETRY'
       });
     }
 
