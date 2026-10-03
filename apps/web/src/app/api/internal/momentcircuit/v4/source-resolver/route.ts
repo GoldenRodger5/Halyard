@@ -41,7 +41,8 @@ async function bridge(payload:Record<string,unknown>,timeoutMs=60_000){
   });
   const text=await response.text();
   let body:Record<string,unknown>={};
-  try{body=JSON.parse(text) as Record<string,unknown>;}catch{}
+  try{body=JSON.parse(text) as Record<string,unknown>;}
+  catch{body={raw_response:text.slice(0,500)};}
   if(!response.ok){
     throw new Error(`SOURCE_BRIDGE_${response.status}:${String(body.error??'UNKNOWN')}`);
   }
@@ -104,7 +105,7 @@ async function processJob(job:SourceBridgeJob){
       await bridge({action:'fail',id:job.id,error:message.slice(-3500),retryable:true},30_000);
     }catch(reportError){
       const reportMessage=reportError instanceof Error?reportError.message:'FAIL_REPORT_UNKNOWN';
-      throw new Error(`${message};FAIL_REPORT:${reportMessage}`);
+      throw new Error(`${message};FAIL_REPORT:${reportMessage}`,{cause:error});
     }
     return {job_id:job.id,status:'retry_or_failed',mode:job.mode,
       provider:job.provider,error:message.slice(0,500)};
