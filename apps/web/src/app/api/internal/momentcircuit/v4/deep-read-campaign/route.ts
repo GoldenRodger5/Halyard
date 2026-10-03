@@ -8,12 +8,14 @@ import {
   validateCampaignDeepRead
 } from '@/lib/momentcircuit/v4-campaign-deep-read';
 import {extractResponseTextAndCitations} from '@/lib/momentcircuit/v4-trend-research';
+import {reserveHalyardSpend,settleHalyardSpend} from '@/lib/halyard-spend-guard';
 
 export const dynamic='force-dynamic';
 export const runtime='nodejs';
 export const maxDuration=300;
 
-const MODEL='gpt-5.6';
+const MODEL='gpt-5.6-luna';
+const MAX_CALL_RESERVATION_USD=0.35;
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function authorize(request:NextRequest){
@@ -38,7 +40,7 @@ function rpcMessage(error:unknown,fallback:string){
   return fallback;
 }
 
-async function research(args:{
+async function research(client:ReturnType<typeof database>,args:{
   candidate:unknown;
   actionPayload:unknown;
   currentTrend:unknown;
@@ -48,6 +50,11 @@ async function research(args:{
   const key=process.env.OPENAI_API_KEY?.trim();
   if(!key) throw new Error('OPENAI_API_KEY_MISSING');
 
+  const reservation=await reserveHalyardSpend(client,{
+    provider:'openai',purpose:'momentcircuit_campaign_deep_read',
+    maxUsd:MAX_CALL_RESERVATION_USD,
+    metadata:{model:MODEL},
+  });
   const response=await fetch('https://api.openai.com/v1/responses',{
     method:'POST',
     headers:{
@@ -56,7 +63,9 @@ async function research(args:{
     },
     body:JSON.stringify({
       model:MODEL,
-      tools:[{type:'web_search'}],
+      tools:[{type:'web_search',context_size:'low'}],
+      max_tool_calls:2,
+      reasoning:{effort:'low'},
       include:['web_search_call.action.sources'],
       instructions:campaignDeepReadInstructions(args.providerKeys),
       input:campaignDeepReadInput(args),
@@ -68,12 +77,13 @@ async function research(args:{
           schema:CAMPAIGN_DEEP_READ_SCHEMA
         }
       },
-      max_output_tokens:4200,
+      max_output_tokens:2400,
       store:false
     }),
     signal:AbortSignal.timeout(210_000)
   });
 
+  await settleHalyardSpend(client,reservation,{http_status:response.status});
   if(!response.ok) throw new Error(`CAMPAIGN_DEEP_READ_OPENAI_HTTP_${response.status}`);
   const body=await response.json() as unknown;
   const extracted=extractResponseTextAndCitations(body);
@@ -219,7 +229,7 @@ export async function POST(request:NextRequest){
       campaign_url:campaignUrl
     };
 
-    const researched=await research({
+    const researched=await research(client,{
       candidate:currentCandidate,
       actionPayload:action.payload,
       currentTrend:trend??null,
