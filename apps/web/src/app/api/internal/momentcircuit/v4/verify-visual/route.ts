@@ -9,6 +9,7 @@ import {runV4Ffmpeg,stageV4Segment} from '@/lib/momentcircuit/v4-stage-worker';
 import {classifyVisualFailure,normalizeVisualVerdict,visualFrameTimes}
   from '@/lib/momentcircuit/v4-visual-verdict';
 import {reserveHalyardSpend,settleHalyardSpend} from '@/lib/halyard-spend-guard';
+import {openAiTokenCostUsd} from '@/lib/openai-cost';
 
 export const dynamic='force-dynamic';
 export const runtime='nodejs';
@@ -94,11 +95,16 @@ Describe every labeled frame at its exact supplied source-local timestamp; obser
       {role:'user',content}],max_completion_tokens:3000,
       response_format:{type:'json_object'}}),signal:AbortSignal.timeout(100_000)});
   if(!response.ok) throw new Error(`VISUAL_AI_HTTP_${response.status}`);
-  const body=await response.json() as {choices?:Array<{message?:{content?:string|null}}>};
+  const body=await response.json() as {
+    choices?:Array<{message?:{content?:string|null}}>;
+    usage?:{prompt_tokens?:number;completion_tokens?:number};
+  };
   const responseText=body.choices?.[0]?.message?.content;
   if(!responseText) throw new Error('VISUAL_AI_EMPTY');
-  try{return JSON.parse(responseText) as unknown;}
+  let raw:unknown;
+  try{raw=JSON.parse(responseText) as unknown;}
   catch{throw new Error('VISUAL_AI_JSON_INVALID');}
+  return {raw,usageCostUsd:openAiTokenCostUsd(MODEL,body.usage)};
 }
 
 async function processJob(body:unknown){
@@ -145,10 +151,12 @@ async function processJob(body:unknown){
         idempotencyKey:`mc-v4-visual:${jobId}:v1`,
         metadata:{model:MODEL,job_id:jobId,work_id:String(work.id)},
       });
-      const raw=await judge({frames,campaignName:String(contract.campaign_name??''),
+      const judged=await judge({frames,campaignName:String(contract.campaign_name??''),
         requirements:contract.requirements,moment});
-      await settleHalyardSpend(client,spendReservation,{result:'provider_call_completed'});
-      const verdict=normalizeVisualVerdict({raw,frames,start,end,
+      await settleHalyardSpend(client,spendReservation,{
+        result:'provider_call_completed',model:MODEL
+      },judged.usageCostUsd);
+      const verdict=normalizeVisualVerdict({raw:judged.raw,frames,start,end,
         candidateId:String(work.candidate_moment_id),
         segmentSha:staged.segment_sha256,model:MODEL});
       const {data:completed,error:completeError}=await client.rpc(
