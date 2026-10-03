@@ -9,6 +9,7 @@ import { spawn } from 'node:child_process';
 import { applyRepair, sampleTimesWithCues, type QcCaptionCue, type RepairPlan } from '@/lib/momentcircuit/quality-repair';
 import { assessCaptionAlignment } from '@/lib/momentcircuit/av-qc';
 import { audiovisualLayer, coldViewerLayer, exactFinalPass, technicalLayer } from '@/lib/momentcircuit/quality-gates';
+import {reserveHalyardSpend,settleHalyardSpend} from '@/lib/halyard-spend-guard';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -16,6 +17,7 @@ export const maxDuration = 300;
 
 const MODEL = 'gpt-5.5';
 const OPENAI = 'https://api.openai.com/v1/chat/completions';
+const MAX_QC_CALLS_RESERVATION_USD = 2.50;
 
 type Defect = {
   class: string;
@@ -372,6 +374,11 @@ async function processRender(renderId: string) {
     const frames = await extractFrames(video,duration,work,captionCues);
     const expectedCaptions = captionCues.map((cue)=>String(cue.text??'')).filter(Boolean);
     const audioFile=await extractFinalAudio(video,work);
+    const spendReservation=await reserveHalyardSpend(client,{
+      provider:'openai',purpose:'momentcircuit_exact_final_qc',
+      maxUsd:MAX_QC_CALLS_RESERVATION_USD,
+      metadata:{model:MODEL,render_job_id:rj.id,work_order_id:wo.id},
+    });
     const finalTranscript=await transcribeFinalAudio(audioFile);
     const audioAlignment=assessCaptionAlignment(expectedCaptions,finalTranscript.text);
 
@@ -383,6 +390,7 @@ async function processRender(renderId: string) {
       payoff:String(cm?.verified_payoff ?? ''),
       expectedCaptions,
     });
+    await settleHalyardSpend(client,spendReservation,{result:'transcription_and_critic_completed'});
 
     const qualityLayers={
       technical:technicalLayer({technical_qc:variant?.technical_qc,duration,size:variant?.size_bytes,audio_present:true}),
