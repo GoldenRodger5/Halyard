@@ -10,6 +10,7 @@ import {parseFfmpegDuration,parseV4StageRequest,V4_PRIVATE_BUCKET}
 import {runV4Ffmpeg} from '@/lib/momentcircuit/v4-stage-worker';
 import {critiqueV4Final,evaluateV4Final,type FinalFrame}
   from '@/lib/momentcircuit/v4-exact-final-qc';
+import {reserveHalyardSpend,settleHalyardSpend} from '@/lib/halyard-spend-guard';
 
 export const dynamic='force-dynamic';
 export const runtime='nodejs';
