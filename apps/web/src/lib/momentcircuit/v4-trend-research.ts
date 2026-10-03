@@ -28,10 +28,10 @@ export const TREND_RESEARCH_SCHEMA={
     saturation:{type:'number',minimum:0,maximum:1},
     novelty:{type:'number',minimum:0,maximum:1},
     audience_adjacent_fit:{type:'number',minimum:0,maximum:1},
-    rationale:{type:'string',minLength:20,maxLength:1200},
+    rationale:{type:'string',minLength:20,maxLength:600},
     sources:{
       type:'array',
-      maxItems:6,
+      maxItems:4,
       items:{
         type:'object',
         additionalProperties:false,
@@ -39,7 +39,7 @@ export const TREND_RESEARCH_SCHEMA={
           url:{type:'string',minLength:8,maxLength:1200},
           title:{type:'string',minLength:2,maxLength:300},
           date:{type:'string',minLength:4,maxLength:80},
-          finding:{type:'string',minLength:10,maxLength:700}
+          finding:{type:'string',minLength:10,maxLength:420}
         },
         required:['url','title','date','finding']
       }
@@ -205,22 +205,22 @@ export function validateTrendResearch(raw:unknown,citations:WebCitation[]):Trend
     novelty:score(row.novelty,'NOVELTY'),
     audience_adjacent_fit:score(row.audience_adjacent_fit,'AUDIENCE_FIT'),
     rationale,
-    sources:sources.slice(0,6)
+    sources:sources.slice(0,4)
   };
 }
 
 export function trendResearchInstructions(){
   return [
-    'You are MomentCircuit trend intelligence for a short-form entertainment/gaming/streamer account.',
-    'Use current web evidence. Research the subject itself; do not treat payout or source convenience as trend evidence.',
-    'Estimate heat, velocity, saturation, novelty, and audience adjacency from 0 to 1.',
-    'Prefer primary/official evidence plus an independent current source when possible.',
-    'Penalize stale release cycles and oversaturated subjects.',
-    'Do not claim TikTok or YouTube virality unless the evidence actually supports it.',
-    'Every source URL you return must come from web search evidence in this response.',
-    'Set should_record=false only when bounded current research cannot establish even a conservative signal.',
-    'When evidence shows activity but not breakout demand, record conservative scores rather than inventing momentum.',
-    'MomentCircuit audience identity: gaming, streamers, creator culture, entertainment, sports-adjacent viral moments.'
+    'You are MomentCircuit trend intelligence for a short-form entertainment, gaming, streamer, creator-culture, and sports-adjacent account.',
+    'Cost discipline is part of correctness: you have one bounded web-search call. Search the exact subject/campaign plus the strongest current signal terms; do not wander into generic background research.',
+    'Use current external evidence only. Campaign payout, budget runway, source availability, and campaign copy are NOT evidence that a topic is trending.',
+    'Prefer one authoritative or primary source plus independent corroboration when the single search returns both. Two strong sources beat many weak sources.',
+    'Score heat, velocity, saturation, novelty, and audience_adjacent_fit from 0 to 1. Distinguish current activity from true acceleration.',
+    'Heat = current attention; velocity = evidence attention is increasing now; saturation = how crowded/repetitive the topic already is; novelty = freshness of the angle; audience fit = fit to MomentCircuit viewers.',
+    'Penalize stale release cycles, old viral moments, repost-heavy subjects, and high saturation. Do not infer platform virality from generic press coverage.',
+    'Every returned URL must be grounded in this response web-search source list. Keep rationale and findings compact and evidence-specific.',
+    'If the one bounded search cannot establish a defensible current signal, set should_record=false instead of guessing. Never request a retry.',
+    'When evidence supports activity but not breakout momentum, record conservative scores rather than inventing velocity.'
   ].join(' ');
 }
 
