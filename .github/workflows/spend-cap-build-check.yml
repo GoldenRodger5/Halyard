@@ -1,0 +1,19 @@
+name: Spend Cap Build Check
+on:
+  push:
+    branches:
+      - fix/spend-cap-one-dollar-20261002
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @halyard/web typecheck
+      - run: pnpm --filter @halyard/web build
