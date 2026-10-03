@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { requireOperator } from '@/lib/auth';
+import {halyardSpendClient,reserveHalyardSpend,settleHalyardSpend} from '@/lib/halyard-spend-guard';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -39,11 +40,19 @@ export async function POST(request: NextRequest) {
   // exactly the phrasing that makes it sound like them.
   upstream.set('temperature', '0');
 
+  const spendClient=halyardSpendClient();
+  const spendReservation=await reserveHalyardSpend(spendClient,{
+    provider:'openai',purpose:'operator_take_transcription',maxUsd:0.25,
+    metadata:{model:'whisper-1'},
+  });
+
   const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
     method: 'POST',
     headers: { authorization: `Bearer ${apiKey}` },
     body: upstream,
   });
+
+  await settleHalyardSpend(spendClient,spendReservation,{http_status:response.status});
 
   if (!response.ok) {
     return NextResponse.json(
