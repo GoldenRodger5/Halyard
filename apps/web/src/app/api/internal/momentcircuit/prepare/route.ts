@@ -297,7 +297,8 @@ async function prepareWorkOrder(id:string) {
     firstSecondEvidence:String(semanticEvidence.first_second_evidence ?? ''),
   };
   const spendReservation=await reserveHalyardSpend(client,{
-    provider:'openai',purpose:'momentcircuit_prepare_packaging',maxUsd:2.00,
+    provider:'openai',purpose:'momentcircuit_prepare_packaging',maxUsd:0.10,
+    idempotencyKey:`mc-prepare:${wo.id}:v1`,
     metadata:{model:MODEL,work_order_id:wo.id,platform:wo.platform},
   });
   const firstGenerated = await generatePackage(packageArgs);
