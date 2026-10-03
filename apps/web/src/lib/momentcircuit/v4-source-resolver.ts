@@ -68,7 +68,8 @@ export function v4YtDlpBinaryPath(){
 export async function runYtDlp(args:string[],heartbeat?:()=>Promise<void>,
   timeoutMs=220_000){
   return await new Promise<{stdout:string;stderr:string}>((resolve,reject)=>{
-    const child=spawn(v4YtDlpBinaryPath(),args,{stdio:['ignore','pipe','pipe']});
+    const child=spawn(v4YtDlpBinaryPath(),
+      ['--impersonate','chrome',...args],{stdio:['ignore','pipe','pipe']});
     let stdout='',stderr='',timedOut=false,settled=false;
     const timer=setTimeout(()=>{timedOut=true;child.kill('SIGKILL');},timeoutMs);
     const heartbeatTimer=heartbeat?setInterval(()=>{
