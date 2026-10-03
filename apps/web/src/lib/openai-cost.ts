@@ -32,3 +32,18 @@ export function webSearchCostUsd(calls:number){
   if(!Number.isInteger(calls)||calls<0) return null;
   return Number((calls*.01).toFixed(6));
 }
+
+export function responseWebSearchCallCount(body:unknown){
+  if(!body||typeof body!=='object'||Array.isArray(body)) return 0;
+  const output=(body as {output?:unknown}).output;
+  if(!Array.isArray(output)) return 0;
+  return output.filter(item=>item&&typeof item==='object'&&!Array.isArray(item)
+    &&(item as {type?:unknown}).type==='web_search_call').length;
+}
+
+export function responsesUsage(body:unknown):OpenAiTokenUsage|null{
+  if(!body||typeof body!=='object'||Array.isArray(body)) return null;
+  const usage=(body as {usage?:unknown}).usage;
+  return usage&&typeof usage==='object'&&!Array.isArray(usage)
+    ?usage as OpenAiTokenUsage:null;
+}
