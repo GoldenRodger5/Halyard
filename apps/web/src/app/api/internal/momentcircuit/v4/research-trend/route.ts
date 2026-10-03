@@ -9,6 +9,7 @@ import {
   validateTrendResearch
 } from '@/lib/momentcircuit/v4-trend-research';
 import {reserveHalyardSpend,settleHalyardSpend} from '@/lib/halyard-spend-guard';
+import {openAiTokenCostUsd,responseWebSearchCallCount,responsesUsage,webSearchCostUsd} from '@/lib/openai-cost';
 
 export const dynamic='force-dynamic';
 export const runtime='nodejs';
@@ -78,9 +79,18 @@ async function research(client:ReturnType<typeof database>,args:{
     signal:AbortSignal.timeout(180_000)
   });
 
-  await settleHalyardSpend(client,reservation,{http_status:response.status});
-  if(!response.ok) throw new Error(`TREND_OPENAI_HTTP_${response.status}`);
+  if(!response.ok){
+    await settleHalyardSpend(client,reservation,{http_status:response.status});
+    throw new Error(`TREND_OPENAI_HTTP_${response.status}`);
+  }
   const body=await response.json() as unknown;
+  const tokenUsd=openAiTokenCostUsd(MODEL,responsesUsage(body));
+  const searchCalls=responseWebSearchCallCount(body);
+  const searchUsd=webSearchCostUsd(searchCalls);
+  const measuredUsd=tokenUsd===null||searchUsd===null?null:tokenUsd+searchUsd;
+  await settleHalyardSpend(client,reservation,{
+    http_status:response.status,model:MODEL,web_search_calls:searchCalls
+  },measuredUsd);
   const extracted=extractResponseTextAndCitations(body);
 
   let parsed:unknown;
