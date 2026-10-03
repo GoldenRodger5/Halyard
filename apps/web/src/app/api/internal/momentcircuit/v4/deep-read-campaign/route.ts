@@ -63,7 +63,7 @@ async function research(client:ReturnType<typeof database>,args:{
     },
     body:JSON.stringify({
       model:MODEL,
-      tools:[{type:'web_search',context_size:'low'}],
+      tools:[{type:'web_search',search_context_size:'low'}],
       max_tool_calls:2,
       reasoning:{effort:'low'},
       include:['web_search_call.action.sources'],
