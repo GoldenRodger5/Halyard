@@ -9,6 +9,7 @@ import {runV4Ffmpeg,stageV4Segment} from '@/lib/momentcircuit/v4-stage-worker';
 import {classifyVisualFailure,normalizeVisualVerdict,visualFrameTimes}
   from '@/lib/momentcircuit/v4-visual-verdict';
 import {reserveHalyardSpend,settleHalyardSpend} from '@/lib/halyard-spend-guard';
+import {openAiTokenCostUsd} from '@/lib/openai-cost';
 
 export const dynamic='force-dynamic';
 export const runtime='nodejs';
@@ -55,7 +56,16 @@ async function judge(args:{frames:Array<{at:number;bytes:Buffer}>;
 
 FIRST decide source quality: PASS only if the opening communicates context quickly enough to follow, the story is complete, the payoff is visible or clearly supported, and the content complies with the campaign. Prefer FAIL for weak, ambiguous, incomplete, or context-incomprehensible footage. A headline, padding, freeze, slow-down, or forced treatment cannot rescue a weak source-native story.
 
-SECOND, for every PASS, estimate cold-feed attention potential separately from correctness. These are editorial estimates, NOT measured retention. Score each bounded field from 0 to 100 using only the supplied exact frames/transcript:
+SECOND, for every PASS, judge it as if it must beat competing TikTok/Shorts clips in a cold feed. Correctness and narrative coherence are necessary but NOT sufficient. A quiet scene that becomes meaningful only after patient setup is a weak short-form candidate even if it is a good scene in the full episode. Penalize:
+- static or visually empty stretches, blank/transition frames, repeated near-identical framing, and low movement/reaction density;
+- openings that merely establish a conversation instead of immediately creating conflict, surprise, danger, humor, curiosity, physical action, a strong reaction, or a striking reveal;
+- premises that need fandom/lore before a stranger understands why the moment matters;
+- removable setup before the first compelling line/action;
+- payoffs buried near the end after low-value setup;
+- generic affection, reassurance, goodbyes, exposition, or lore unless the opening itself is unusually arresting.
+Reward source-native moments with an undeniable event, reaction, confrontation, punchline, reversal, danger, spectacle, or highly specific emotional turn visible/audible immediately.
+
+Estimate cold-feed attention potential separately from correctness. These are editorial estimates, NOT measured retention. Score each bounded field from 0 to 100 using only the supplied exact frames/transcript:
 - hook_visual: immediate visual anomaly, action, danger, facial reaction, movement, or novelty in roughly the first 1.5 seconds.
 - hook_spoken: immediate conflict, question, surprising statement, joke, stakes, or curiosity in roughly the first 2 seconds.
 - cold_comprehension: how well a stranger can understand why this matters without knowing the creator/show/lore.
@@ -71,7 +81,7 @@ Classify observed content as exactly one of STREAMER_REACTION, ANIMATION_SCENE, 
 
 Return JSON only: {"visual_verdict":"PASS"|"FAIL","reason":"string","story_claim":"string","payoff":"string","first_second_reason":"string","content_class":"enum","content_class_evidence":"string","attention":{"hook_visual":0,"hook_spoken":0,"cold_comprehension":0,"motion_reaction_density":0,"surprise_tension_humor":0,"payoff_strength":0,"commentability":0,"rewatchability":0,"context_tax":0,"hook_latency_seconds":0,"payoff_latency_seconds":0,"archetype":"enum","requires_fandom_context":false,"attention_reason":"string"},"observations":[{"at_seconds":number,"observation":"string"}]}.
 
-Describe every labeled frame at its exact supplied source-local timestamp; observations must span the first and last two seconds. Never invent objects, actions, timestamps, dialogue, or audience response.`;
+Describe every labeled frame at its exact supplied source-local timestamp; observations must span the first and last two seconds. Explicitly mention static/blank/transition frames and repeated compositions instead of treating them as neutral. Score hook_latency_seconds from the first genuinely compelling event/line, not merely the first comprehensible sentence. Never invent objects, actions, timestamps, dialogue, or audience response.`;
   const content:Array<Record<string,unknown>>=[{type:'text',text:
     `Campaign: ${args.campaignName}\nCampaign requirements: ${JSON.stringify(args.requirements)}\nRegistered candidate: ${JSON.stringify({start_seconds:args.moment.start_seconds,end_seconds:args.moment.end_seconds,proposed_story_claim:args.moment.proposed_story_claim,transcript_evidence:args.moment.transcript_evidence})}\nThese are frames from the exact staged segment. Each label is a source-local time.`}];
   for(const frame of args.frames){
@@ -85,11 +95,16 @@ Describe every labeled frame at its exact supplied source-local timestamp; obser
       {role:'user',content}],max_completion_tokens:3000,
       response_format:{type:'json_object'}}),signal:AbortSignal.timeout(100_000)});
   if(!response.ok) throw new Error(`VISUAL_AI_HTTP_${response.status}`);
-  const body=await response.json() as {choices?:Array<{message?:{content?:string|null}}>};
+  const body=await response.json() as {
+    choices?:Array<{message?:{content?:string|null}}>;
+    usage?:{prompt_tokens?:number;completion_tokens?:number};
+  };
   const responseText=body.choices?.[0]?.message?.content;
   if(!responseText) throw new Error('VISUAL_AI_EMPTY');
-  try{return JSON.parse(responseText) as unknown;}
+  let raw:unknown;
+  try{raw=JSON.parse(responseText) as unknown;}
   catch{throw new Error('VISUAL_AI_JSON_INVALID');}
+  return {raw,usageCostUsd:openAiTokenCostUsd(MODEL,body.usage)};
 }
 
 async function processJob(body:unknown){
@@ -136,10 +151,12 @@ async function processJob(body:unknown){
         idempotencyKey:`mc-v4-visual:${jobId}:v1`,
         metadata:{model:MODEL,job_id:jobId,work_id:String(work.id)},
       });
-      const raw=await judge({frames,campaignName:String(contract.campaign_name??''),
+      const judged=await judge({frames,campaignName:String(contract.campaign_name??''),
         requirements:contract.requirements,moment});
-      await settleHalyardSpend(client,spendReservation,{result:'provider_call_completed'});
-      const verdict=normalizeVisualVerdict({raw,frames,start,end,
+      await settleHalyardSpend(client,spendReservation,{
+        result:'provider_call_completed',model:MODEL
+      },judged.usageCostUsd);
+      const verdict=normalizeVisualVerdict({raw:judged.raw,frames,start,end,
         candidateId:String(work.candidate_moment_id),
         segmentSha:staged.segment_sha256,model:MODEL});
       const {data:completed,error:completeError}=await client.rpc(

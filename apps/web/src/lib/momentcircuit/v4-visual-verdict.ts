@@ -27,27 +27,43 @@ export function attentionGate(attention:{
   motion_reaction_density:number;surprise_tension_humor:number;
   payoff_strength:number;commentability:number;rewatchability:number;
   context_tax:number;hook_latency_seconds:number;requires_fandom_context:boolean;
+  archetype?:string;
 }){
   const hook=Math.max(attention.hook_visual,attention.hook_spoken);
+  const eventness=Math.max(attention.motion_reaction_density,
+    attention.surprise_tension_humor);
+  const socialEnergy=Math.max(attention.commentability,attention.rewatchability);
   const score=Number(Math.max(0,Math.min(100,
-    0.25*hook
+    0.27*hook
     +0.15*attention.cold_comprehension
-    +0.10*attention.motion_reaction_density
+    +0.12*attention.motion_reaction_density
     +0.15*attention.surprise_tension_humor
-    +0.15*attention.payoff_strength
-    +0.08*attention.commentability
-    +0.07*attention.rewatchability
-    +0.05*(100-attention.context_tax)
-    -(attention.requires_fandom_context?8:0)
+    +0.14*attention.payoff_strength
+    +0.07*attention.commentability
+    +0.06*attention.rewatchability
+    +0.04*(100-attention.context_tax)
+    -(attention.requires_fandom_context?10:0)
   )).toFixed(2));
   const reasons:string[]=[];
-  if(hook<65) reasons.push('HOOK_STRENGTH_LT_65');
-  if(attention.cold_comprehension<62) reasons.push('COLD_COMPREHENSION_LT_62');
-  if(attention.payoff_strength<60) reasons.push('PAYOFF_STRENGTH_LT_60');
-  if(attention.context_tax>65) reasons.push('CONTEXT_TAX_GT_65');
-  if(attention.hook_latency_seconds>2) reasons.push('HOOK_LATENCY_GT_2S');
-  if(score<65) reasons.push('STOP_POWER_LT_65');
-  return {pass:reasons.length===0,score,hook,reasons};
+  if(hook<75) reasons.push('HOOK_STRENGTH_LT_75');
+  if(attention.cold_comprehension<70) reasons.push('COLD_COMPREHENSION_LT_70');
+  if(attention.payoff_strength<68) reasons.push('PAYOFF_STRENGTH_LT_68');
+  if(attention.context_tax>55) reasons.push('CONTEXT_TAX_GT_55');
+  if(attention.hook_latency_seconds>1.5) reasons.push('HOOK_LATENCY_GT_1_5S');
+  if(eventness<60) reasons.push('EVENT_REACTION_ENERGY_LT_60');
+  if(socialEnergy<50) reasons.push('SOCIAL_REWATCH_ENERGY_LT_50');
+  if(score<72) reasons.push('STOP_POWER_LT_72');
+
+  // Historical production data showed that coherent relationship/lore scenes
+  // were over-admitted while immediate reaction clips performed better. These
+  // archetypes are still allowed, but only when the opening itself is
+  // exceptional rather than relying on pre-existing fandom or patient setup.
+  if((attention.archetype==='RELATIONSHIP_MOMENT'
+      ||attention.archetype==='LORE_EXPOSITION')
+     &&(hook<82||eventness<70||socialEnergy<60)){
+    reasons.push('LOW_EVENT_ARCHETYPE_NOT_EXCEPTIONAL');
+  }
+  return {pass:reasons.length===0,score,hook,eventness,socialEnergy,reasons};
 }
 
 function normalizeAttention(value:unknown,duration:number){
@@ -62,7 +78,7 @@ function normalizeAttention(value:unknown,duration:number){
     throw new Error('ATTENTION_PROFILE_INCOMPLETE');
   }
   return {
-    version:'v4-attention-director-20261001',
+    version:'v4-breakout-gate-20261003',
     hook_visual:boundedScore(row.hook_visual,'HOOK_VISUAL'),
     hook_spoken:boundedScore(row.hook_spoken,'HOOK_SPOKEN'),
     cold_comprehension:boundedScore(row.cold_comprehension,'COLD_COMPREHENSION'),

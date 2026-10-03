@@ -7,6 +7,7 @@ import path from 'node:path';
 import {parseV4StageRequest,V4_PRIVATE_BUCKET} from '@/lib/momentcircuit/v4-segment-stage';
 import {runV4Ffmpeg} from '@/lib/momentcircuit/v4-stage-worker';
 import {reserveHalyardSpend,settleHalyardSpend} from '@/lib/halyard-spend-guard';
+import {openAiTokenCostUsd,transcriptionCostUsd} from '@/lib/openai-cost';
 import {visualFrameTimes} from '@/lib/momentcircuit/v4-visual-verdict';
 import {buildVerifiedEditPlan} from '@/lib/momentcircuit/edit-planner';
 import {captionCuesFromSourceSpeech,normalizeEditorialCaption,
@@ -104,11 +105,16 @@ async function decide(args:{frames:Array<{at:number;bytes:Buffer}>;
       response_format:{type:'json_object'}}),
     signal:AbortSignal.timeout(100_000)});
   if(!response.ok) throw new Error(`EDITORIAL_AI_HTTP_${response.status}`);
-  const body=await response.json() as {choices?:Array<{message?:{content?:string|null}}>};
+  const body=await response.json() as {
+    choices?:Array<{message?:{content?:string|null}}>;
+    usage?:{prompt_tokens?:number;completion_tokens?:number};
+  };
   const result=body.choices?.[0]?.message?.content;
   if(!result) throw new Error('EDITORIAL_AI_EMPTY');
-  try{return JSON.parse(result) as unknown;}
+  let raw:unknown;
+  try{raw=JSON.parse(result) as unknown;}
   catch{throw new Error('EDITORIAL_AI_JSON_INVALID');}
+  return {raw,usageCostUsd:openAiTokenCostUsd(MODEL,body.usage)};
 }
 
 function classifyFailure(message:string){
@@ -259,12 +265,18 @@ async function processJob(body:unknown){
         throw new Error('EDITORIAL_CAPTIONS_MISSING');
       }
       const frames=await sampleFrames(file,duration,dir);
-      const raw=await decide({frames,platform:work.platform,
+      const planned=await decide({frames,platform:work.platform,
         campaignName:String(contract.campaign_name??''),requirements,
         visualEvidence:visual.evidence,storyFamily:String(moment.story_family),
         captionCues:cues});
-      await settleHalyardSpend(client,spendReservation,{result:'editorial_paid_stages_completed'});
-      const decision=normalizeEditorialDecision(raw,cues.length>0);
+      const transcriptionUsd=transcriptionCostUsd('whisper-1',duration)??0;
+      const measuredUsd=planned.usageCostUsd===null
+        ?null:planned.usageCostUsd+transcriptionUsd;
+      await settleHalyardSpend(client,spendReservation,{
+        result:'editorial_paid_stages_completed',model:MODEL,
+        transcription_model:'whisper-1'
+      },measuredUsd);
+      const decision=normalizeEditorialDecision(planned.raw,cues.length>0);
       const postCaption=normalizeEditorialCaption(decision.post_caption,
         requirements,work.platform);
       const plan=buildVerifiedEditPlan({decision,start:0,duration,
