@@ -1,4 +1,5 @@
-import type {SupabaseClient} from '@supabase/supabase-js';
+import {createClient,type SupabaseClient} from '@supabase/supabase-js';
+import crypto from 'node:crypto';
 
 export type HalyardSpendReservation={
   id:string;
@@ -72,4 +73,11 @@ export async function releaseHalyardSpend(
     p_reason:reason,
   });
   if(error) throw new Error(`GLOBAL_SPEND_RELEASE_FAILED:${error.message}`);
+}
+
+export function halyardSpendClient():SupabaseClient{
+  const url=process.env.SUPABASE_URL;
+  const key=process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if(!url||!key) throw new Error('GLOBAL_SPEND_GUARD_DATABASE_NOT_CONFIGURED');
+  return createClient(url,key,{auth:{persistSession:false}});
 }
