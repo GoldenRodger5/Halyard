@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import {assessCaptionAlignment} from './av-qc';
+import {openAiTokenCostUsd} from '../openai-cost';
 
 export type FinalFrame={at_seconds:number;bytes:Buffer};
 export type QcDefect={
@@ -120,10 +121,14 @@ export async function critiqueV4Final(args:{
   const body=await response.json() as {
     choices?:Array<{message?:{content?:string|null}}>;
     error?:{message?:string};
+    usage?:{prompt_tokens?:number;completion_tokens?:number};
   };
   if(!response.ok) throw new Error(`AI_QC_${response.status}: ${body.error?.message??'unknown'}`);
   const raw=body.choices?.[0]?.message?.content;
   if(!raw) throw new Error('AI_QC_EMPTY');
-  return normalizeV4FinalReview(JSON.parse(raw) as FinalReview,
-    args.frames.map((f)=>f.at_seconds));
+  return {
+    ...normalizeV4FinalReview(JSON.parse(raw) as FinalReview,
+      args.frames.map((f)=>f.at_seconds)),
+    usageCostUsd:openAiTokenCostUsd('gpt-5.5',body.usage)
+  };
 }
