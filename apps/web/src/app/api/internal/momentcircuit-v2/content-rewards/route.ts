@@ -100,18 +100,37 @@ async function saveCookieBundle(bundle: CookieBundle) {
 }
 
 async function fetchWithCookies(url: string, bundle: CookieBundle, init: RequestInit = {}) {
-  if (!url.startsWith(`${CR_ORIGIN}/`)) throw new Error('CONTENT_REWARDS_HOST_REFUSED');
-  const headers = new Headers(init.headers);
-  headers.set('cookie', cookieHeader(bundle));
-  headers.set('user-agent', 'MomentCircuitV2Bridge/1.0');
-  const response = await fetch(url, {
-    ...init,
-    headers,
-    redirect: 'error',
-    cache: 'no-store',
-  });
-  if (parseSetCookies(response.headers, bundle)) await saveCookieBundle(bundle);
-  return response;
+  const origin = new URL(CR_ORIGIN).origin;
+  const start = new URL(url);
+  if (start.origin !== origin) throw new Error('CONTENT_REWARDS_HOST_REFUSED');
+
+  const method = (init.method ?? 'GET').toUpperCase();
+  let current = start;
+  for (let hop = 0; hop <= 3; hop++) {
+    const headers = new Headers(init.headers);
+    headers.set('cookie', cookieHeader(bundle));
+    headers.set('user-agent', 'MomentCircuitV2Bridge/1.0');
+    const response = await fetch(current, {
+      ...init,
+      headers,
+      redirect: 'manual',
+      cache: 'no-store',
+    });
+    if (parseSetCookies(response.headers, bundle)) await saveCookieBundle(bundle);
+
+    const redirect =
+      response.status >= 300 && response.status < 400 ? response.headers.get('location') : null;
+    if (redirect === null) return response;
+
+    // Mutating calls are never replayed across redirects. The read performed before submit refreshes the session first.
+    if (method !== 'GET' && method !== 'HEAD') return response;
+    if (hop === 3) throw new Error('CONTENT_REWARDS_REDIRECT_LIMIT');
+
+    const next = new URL(redirect, current);
+    if (next.origin !== origin) throw new Error('CONTENT_REWARDS_REDIRECT_HOST_REFUSED');
+    current = next;
+  }
+  throw new Error('CONTENT_REWARDS_REDIRECT_LIMIT');
 }
 
 async function boundedText(response: Response, maxBytes: number) {
