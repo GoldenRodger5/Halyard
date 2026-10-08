@@ -1,3 +1,4 @@
+import { enrollmentEvidence } from "./enrollment-evidence";
 import crypto from "node:crypto";
 import { submissionEvidence } from "./submission-evidence";
 import { NextResponse, type NextRequest } from "next/server";
@@ -181,18 +182,6 @@ async function boundedText(response: Response, maxBytes: number) {
   return new TextDecoder().decode(bytes);
 }
 
-function visibleText(html: string) {
-  return html
-    .replace(/<script[\s\S]*?<\/script>/gi, " ")
-    .replace(/<style[\s\S]*?<\/style>/gi, " ")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&#39;|&#x27;/g, "'")
-    .replace(/&quot;/g, '"')
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
 function extractApiError(text: string) {
   try {
     const parsed = JSON.parse(text) as {
@@ -296,7 +285,12 @@ async function submit(
       };
 }
 
-async function probe(campaignId: string, bundle: CookieBundle) {
+async function probe(
+  campaignId: string,
+  accountKey: string,
+  platform: string,
+  bundle: CookieBundle,
+) {
   const response = await fetchWithCookies(
     campaignPreviewUrl(campaignId),
     bundle,
@@ -320,35 +314,12 @@ async function probe(campaignId: string, bundle: CookieBundle) {
       application_state: "UNKNOWN" as const,
       facts: { http_status: response.status },
     };
-  const text = visibleText(await boundedText(response, MAX_HTML_BYTES));
-  const submitAvailable = /\bSubmit clip\b/i.test(text);
-  const disconnected = /account is not linked|Link your accounts/i.test(text);
-  const pending = /application pending|pending application/i.test(text);
-  const rejected = /application rejected|application denied|not approved/i.test(
-    text,
+  return enrollmentEvidence(
+    await boundedText(response, MAX_HTML_BYTES),
+    campaignId,
+    accountKey,
+    platform,
   );
-  const applicationState = rejected
-    ? "REJECTED"
-    : pending
-      ? "PENDING"
-      : submitAvailable
-        ? "ACCEPTED"
-        : "UNKNOWN";
-  return {
-    status:
-      submitAvailable && !disconnected
-        ? ("READY" as const)
-        : ("NOT_READY" as const),
-    submit_available: submitAvailable,
-    account_connected: !disconnected,
-    application_state: applicationState,
-    facts: {
-      http_status: response.status,
-      submit_available: submitAvailable,
-      disconnected,
-      application_state: applicationState,
-    },
-  };
 }
 
 function validHttps(value: unknown): value is string {
@@ -368,6 +339,8 @@ export async function POST(request: NextRequest) {
       action?: unknown;
       campaign_id?: unknown;
       public_url?: unknown;
+      account_key?: unknown;
+      platform?: unknown;
     } | null;
     if (!body || typeof body.action !== "string")
       return NextResponse.json({ error: "INVALID_REQUEST" }, { status: 400 });
@@ -375,6 +348,15 @@ export async function POST(request: NextRequest) {
     const bundle = await loadCookieBundle();
 
     if (body.action === "probe") {
+      if (
+        typeof body.account_key !== "string" ||
+        !body.account_key.trim() ||
+        !["tiktok", "youtube", "instagram"].includes(String(body.platform))
+      )
+        return NextResponse.json(
+          { error: "INVALID_ACCOUNT_SCOPE" },
+          { status: 400 },
+        );
       if (
         typeof body.campaign_id !== "string" ||
         !CAMPAIGN_ID.test(body.campaign_id)
@@ -385,7 +367,12 @@ export async function POST(request: NextRequest) {
         );
       return NextResponse.json({
         ok: true,
-        result: await probe(body.campaign_id, bundle),
+        result: await probe(
+          body.campaign_id,
+          String(body.account_key ?? ""),
+          String(body.platform ?? ""),
+          bundle,
+        ),
       });
     }
 
