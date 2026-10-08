@@ -15,13 +15,17 @@ export function enrollmentEvidence(
   const roots: unknown[] = [];
   try {
     roots.push(JSON.parse(raw));
-  } catch {}
+  } catch {
+    // HTML is expected; only independently parseable structured records can prove enrollment.
+  }
   for (const m of raw.matchAll(
     /<script\b[^>]*type=["']application\/json["'][^>]*>([\s\S]*?)<\/script>/gi,
   )) {
     try {
       roots.push(JSON.parse(m[1] ?? ""));
-    } catch {}
+    } catch {
+      // A malformed record supplies no enrollment evidence.
+    }
   }
   const pending = roots.map((value) => ({ value, depth: 0 }));
   for (let i = 0; i < pending.length && i < 10000; i++) {
