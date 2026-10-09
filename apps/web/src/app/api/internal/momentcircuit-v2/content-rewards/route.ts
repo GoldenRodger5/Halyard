@@ -354,6 +354,7 @@ async function inspectContract(
     campaign: `/api/campaign/campaigns/${campaignId}`,
     applications: "/api/campaign/campaigns/applications/me",
     features: `/api/campaign/campaigns/${campaignId}/feature-flags`,
+    submissions: "/api/submission/submissions",
   };
   const evidence: Record<string, unknown> = {};
   let userId: string | null = null;
@@ -399,6 +400,33 @@ async function inspectContract(
               ? (data.access as { canSubmit: boolean }).canSubmit
               : null,
         };
+      if (name === "accounts" && Array.isArray(data?.socialMediaAccounts)) {
+        const matches = data.socialMediaAccounts.filter((value: unknown) => {
+          const row = value as { username?: unknown; userId?: unknown };
+          return row?.username === accountKey && row.userId === userId;
+        }) as {
+          status?: unknown;
+          verificationSource?: unknown;
+          revokedAt?: unknown;
+        }[];
+        observed = {
+          exact_target_matches: matches.length,
+          target_status:
+            matches.length === 1 &&
+            typeof matches[0]?.status === "string" &&
+            /^[A-Z_]{1,30}$/i.test(matches[0].status)
+              ? matches[0].status
+              : null,
+          verification_source:
+            matches.length === 1 &&
+            typeof matches[0]?.verificationSource === "string" &&
+            /^[A-Z_]{1,30}$/i.test(matches[0].verificationSource)
+              ? matches[0].verificationSource
+              : null,
+          target_revoked:
+            matches.length === 1 ? Boolean(matches[0]?.revokedAt) : null,
+        };
+      }
       if (name === "applications")
         observed = {
           partial_failure: data?.partialFailure === true,

@@ -233,7 +233,7 @@ it("inspects only fixed read-only first-party contracts without exposing respons
   );
   const body = await r.json();
   expect(body.result.status).toBe("UNKNOWN");
-  expect(fetcher).toHaveBeenCalledTimes(5);
+  expect(fetcher).toHaveBeenCalledTimes(6);
   expect(JSON.stringify(body)).not.toContain("never-return-this-token");
   expect(JSON.stringify(body)).not.toContain("private-account");
   expect(fetcher.mock.calls.map((c) => String(c[0]))).toContain(
