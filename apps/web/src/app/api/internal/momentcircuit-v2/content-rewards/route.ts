@@ -333,7 +333,9 @@ async function probe(
       auth_path: /\/(?:login|sign-in|auth|session-refresh)(?:\/|$)/i.test(
         new URL(response.url || campaignPreviewUrl(campaignId)).pathname,
       ),
-      response_shape: responseShape(raw, campaignId, accountKey),
+      response_shape: JSON.stringify(
+        responseShape(raw, campaignId, accountKey),
+      ),
     },
   };
 }
