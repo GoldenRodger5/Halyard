@@ -9,14 +9,23 @@ const credential = "fixture-bridge-authentication";
 const listing = (rows: unknown[], complete = true) =>
   new Response(
     JSON.stringify({
-      submissions: rows,
+      success: true,
+      data: rows.map((v) => {
+        const r = v as { id?: unknown; campaignId?: unknown; url?: unknown };
+        return {
+          ...r,
+          id: r.id ?? "s-fixture",
+          isDeleted: false,
+          socialMediaPost: { postUrl: r.url },
+        };
+      }),
       pagination: {
-        hasNextPage: !complete,
+        count: rows.length,
+        limit: 20,
         nextCursor: complete ? null : "next",
-        total: complete ? rows.length : 200,
       },
     }),
-    { headers: { "content-type": "text/html" } },
+    { headers: { "content-type": "application/json" } },
   );
 const request = (action: string) =>
   new NextRequest(
@@ -32,6 +41,7 @@ const request = (action: string) =>
   );
 beforeEach(() => {
   vi.stubEnv("MOMENTCIRCUIT_V2_CR_BRIDGE_SECRET", credential);
+  vi.stubEnv("MOMENTCIRCUIT_V2_CR_MUTATIONS_ENABLED", "true");
   vi.stubEnv("SUPABASE_URL", "https://fixture.supabase.co");
   vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "fixture-service-role");
   rpc.mockReset();
@@ -82,7 +92,9 @@ describe("private CR bridge protocol", () => {
       ok: true,
       result: { status: "UNKNOWN", submit_available: false },
     });
-    expect(typeof body.result.facts.response_shape).toBe("string");
+    expect(body.result.facts.reason).toBe(
+      "CAMPAIGN_ACCOUNT_ENROLLMENT_EVIDENCE_UNPROVEN",
+    );
     expect(
       Object.values(body.result.facts).every(
         (value) =>
@@ -90,9 +102,6 @@ describe("private CR bridge protocol", () => {
           ["string", "number", "boolean"].includes(typeof value),
       ),
     ).toBe(true);
-    expect(JSON.parse(body.result.facts.response_shape)).toMatchObject({
-      truncated: false,
-    });
   });
   it("binds lookup to exact campaign and URL", async () => {
     vi.stubGlobal(
@@ -123,7 +132,7 @@ describe("private CR bridge protocol", () => {
     expect(await (await POST(request("submit"))).json()).toMatchObject({
       result: { status: "UNKNOWN" },
     });
-    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(fetcher).toHaveBeenCalledTimes(2);
   });
   it("verifies the exact submission after a successful POST", async () => {
     const fetcher = vi
@@ -239,4 +248,118 @@ it("inspects only fixed read-only first-party contracts without exposing respons
   expect(fetcher.mock.calls.map((c) => String(c[0]))).toContain(
     `https://b4e0vdqv6zgqeqj4pfgm.apps.whop.com/api/campaign/campaigns/${campaign}`,
   );
+});
+
+const probeRequest = (action = "probe") =>
+  new NextRequest(
+    "https://halyard.example/api/internal/momentcircuit-v2/content-rewards",
+    {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-momentcircuit-v2-secret": credential,
+      },
+      body: JSON.stringify({
+        action,
+        campaign_id: campaign,
+        account_key: "creator",
+        platform: "tiktok",
+        attempt_id: "22222222-2222-4222-8222-222222222222",
+      }),
+    },
+  );
+function nativeFetcher(joinReadback = false) {
+  let sent = false;
+  return vi.fn(async (value: unknown, init?: RequestInit) => {
+    const path = new URL(String(value)).pathname;
+    let data: unknown;
+    if (path.endsWith("/join")) {
+      expect(init?.method).toBe("POST");
+      expect(init?.body).toBeUndefined();
+      sent = true;
+      data = {};
+    } else if (path.endsWith("/users/me")) data = { id: "self" };
+    else if (path.endsWith("/social-media-accounts")) {
+      expect(new URL(String(value)).searchParams.get("userId")).toBe("self");
+      data = {
+        socialMediaAccounts: [
+          {
+            id: "account",
+            userId: "self",
+            platform: "tiktok",
+            username: "creator",
+            status: "active",
+            verificationSource: "bio",
+          },
+        ],
+      };
+    } else if (path.endsWith("/applications/me"))
+      data = { applications: [], partialFailure: false };
+    else
+      data = {
+        id: campaign,
+        private: false,
+        joined: sent && joinReadback,
+        requiresApplication: false,
+        access: { canSubmit: true },
+      };
+    return new Response(JSON.stringify({ success: true, data }), {
+      headers: { "content-type": "application/json" },
+    });
+  });
+}
+it("native probe proves account but never equates canSubmit with joined", async () => {
+  vi.stubGlobal("fetch", nativeFetcher());
+  const body = await (await POST(probeRequest())).json();
+  expect(body.result).toMatchObject({
+    status: "NOT_READY",
+    account_connected: true,
+    application_state: "NOT_REQUIRED",
+    facts: {
+      joined: false,
+      reason: "JOIN_REQUIRED",
+      brand_approval: "UNPROVEN",
+    },
+  });
+});
+it("keeps all mutations killed unless explicitly enabled server-side", async () => {
+  vi.stubEnv("MOMENTCIRCUIT_V2_CR_MUTATIONS_ENABLED", "false");
+  const fetcher = nativeFetcher();
+  vi.stubGlobal("fetch", fetcher);
+  expect(
+    (await (await POST(probeRequest("join"))).json()).result.facts.reason,
+  ).toBe("ENROLLMENT_MUTATIONS_KILLED");
+  expect((await (await POST(request("submit"))).json()).result.reason).toBe(
+    "REWARD_MUTATIONS_KILLED",
+  );
+  expect(
+    fetcher.mock.calls.every((c) => (c[1]?.method ?? "GET") === "GET"),
+  ).toBe(true);
+});
+it.each([false, true])(
+  "join ignores HTTP200 and requires fresh exact joined=%s readback",
+  async (joined) => {
+    const fetcher = nativeFetcher(joined);
+    vi.stubGlobal("fetch", fetcher);
+    const b = await (await POST(probeRequest("join"))).json();
+    expect(b.result.status).toBe(joined ? "READY" : "UNKNOWN");
+    expect(
+      fetcher.mock.calls.filter((c) => c[1]?.method === "POST"),
+    ).toHaveLength(1);
+    expect(b.result.facts.brand_approval).toBe("UNPROVEN");
+  },
+);
+it("reads a second exact submission page and does not trust a nonterminal first page", async () => {
+  const fetcher = vi
+    .fn()
+    .mockResolvedValueOnce(listing([], false))
+    .mockResolvedValueOnce(
+      listing([{ id: "second", campaignId: campaign, url }]),
+    );
+  vi.stubGlobal("fetch", fetcher);
+  expect((await (await POST(request("lookup"))).json()).result).toEqual({
+    status: "FOUND",
+    remote_id: "second",
+  });
+  expect(String(fetcher.mock.calls[1]?.[0])).toContain("?cursor=next");
 });
