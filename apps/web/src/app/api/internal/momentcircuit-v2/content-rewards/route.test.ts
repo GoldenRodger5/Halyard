@@ -197,3 +197,46 @@ describe("private CR bridge protocol", () => {
     ).toContain("__Host-cr-session=rotated-fixture");
   });
 });
+
+it("inspects only fixed read-only first-party contracts without exposing response values or claiming readiness", async () => {
+  const fetcher = vi.fn(async (_url: unknown, init?: RequestInit) => {
+    expect(init?.method ?? "GET").toBe("GET");
+    return new Response(
+      JSON.stringify({
+        data: {
+          campaignId: campaign,
+          token: "never-return-this-token",
+          account: "private-account",
+        },
+      }),
+      { headers: { "content-type": "application/json" } },
+    );
+  });
+  vi.stubGlobal("fetch", fetcher);
+  const r = await POST(
+    new NextRequest(
+      "https://halyard.example/api/internal/momentcircuit-v2/content-rewards",
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-momentcircuit-v2-secret": credential,
+        },
+        body: JSON.stringify({
+          action: "inspect_contract",
+          campaign_id: campaign,
+          account_key: "account",
+          platform: "tiktok",
+        }),
+      },
+    ),
+  );
+  const body = await r.json();
+  expect(body.result.status).toBe("UNKNOWN");
+  expect(fetcher).toHaveBeenCalledTimes(5);
+  expect(JSON.stringify(body)).not.toContain("never-return-this-token");
+  expect(JSON.stringify(body)).not.toContain("private-account");
+  expect(fetcher.mock.calls.map((c) => String(c[0]))).toContain(
+    `https://b4e0vdqv6zgqeqj4pfgm.apps.whop.com/api/campaign/campaigns/${campaign}`,
+  );
+});

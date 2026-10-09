@@ -340,6 +340,42 @@ async function probe(
   };
 }
 
+/** Read-only contract inspection. Fixed first-party routes from the current public client bundle;
+ * response field names/types are diagnostics, never enrollment or authentication proof. */
+async function inspectContract(
+  campaignId: string,
+  accountKey: string,
+  bundle: CookieBundle,
+) {
+  const started = Date.now();
+  const routes = {
+    identity: "/api/user/users/me",
+    accounts: "/api/user/social-media-accounts",
+    campaign: `/api/campaign/campaigns/${campaignId}`,
+    applications: "/api/campaign/campaigns/applications/me",
+    features: `/api/campaign/campaigns/${campaignId}/feature-flags`,
+  };
+  const evidence: Record<string, unknown> = {};
+  for (const [name, path] of Object.entries(routes)) {
+    if (Date.now() - started > 30_000) {
+      evidence[name] = { incomplete: true };
+      break;
+    }
+    const response = await fetchWithCookies(`${CR_ORIGIN}${path}`, bundle, {
+      headers: { accept: "application/json" },
+    });
+    const raw = await boundedText(response, MAX_JSON_BYTES);
+    evidence[name] = {
+      http_status: response.status,
+      json:
+        response.headers.get("content-type")?.includes("application/json") ??
+        false,
+      shape: responseShape(raw, campaignId, accountKey),
+    };
+  }
+  return { status: "UNKNOWN", reason: "CONTRACT_INSPECTION_ONLY", evidence };
+}
+
 function validHttps(value: unknown): value is string {
   if (typeof value !== "string") return false;
   try {
@@ -365,7 +401,7 @@ export async function POST(request: NextRequest) {
 
     const bundle = await loadCookieBundle();
 
-    if (body.action === "probe") {
+    if (body.action === "probe" || body.action === "inspect_contract") {
       if (
         typeof body.account_key !== "string" ||
         !body.account_key.trim() ||
@@ -385,12 +421,19 @@ export async function POST(request: NextRequest) {
         );
       return NextResponse.json({
         ok: true,
-        result: await probe(
-          body.campaign_id,
-          String(body.account_key ?? ""),
-          String(body.platform ?? ""),
-          bundle,
-        ),
+        result:
+          body.action === "inspect_contract"
+            ? await inspectContract(
+                body.campaign_id,
+                String(body.account_key),
+                bundle,
+              )
+            : await probe(
+                body.campaign_id,
+                String(body.account_key ?? ""),
+                String(body.platform ?? ""),
+                bundle,
+              ),
       });
     }
 
