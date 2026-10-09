@@ -356,21 +356,66 @@ async function inspectContract(
     features: `/api/campaign/campaigns/${campaignId}/feature-flags`,
   };
   const evidence: Record<string, unknown> = {};
+  let userId: string | null = null;
   for (const [name, path] of Object.entries(routes)) {
     if (Date.now() - started > 30_000) {
       evidence[name] = { incomplete: true };
       break;
     }
-    const response = await fetchWithCookies(`${CR_ORIGIN}${path}`, bundle, {
-      headers: { accept: "application/json" },
-    });
+    const response = await fetchWithCookies(
+      `${CR_ORIGIN}${path}${name === "accounts" && userId !== null ? "?userId=" + encodeURIComponent(userId) : ""}`,
+      bundle,
+      {
+        headers: { accept: "application/json" },
+      },
+    );
     const raw = await boundedText(response, MAX_JSON_BYTES);
+    let observed: Record<string, unknown> = {};
+    try {
+      const envelope = JSON.parse(raw) as {
+        success?: unknown;
+        data?: Record<string, unknown>;
+      };
+      const data = envelope.success === true ? envelope.data : undefined;
+      if (
+        name === "identity" &&
+        typeof data?.id === "string" &&
+        /^[a-zA-Z0-9_-]{1,128}$/.test(data.id)
+      ) {
+        userId = data.id;
+        observed = { identity_record_present: true };
+      }
+      if (name === "campaign" && data?.id === campaignId)
+        observed = {
+          campaign_bound: true,
+          joined: typeof data.joined === "boolean" ? data.joined : null,
+          requires_application:
+            typeof data.requiresApplication === "boolean"
+              ? data.requiresApplication
+              : null,
+          can_submit:
+            typeof (data.access as { canSubmit?: unknown } | undefined)
+              ?.canSubmit === "boolean"
+              ? (data.access as { canSubmit: boolean }).canSubmit
+              : null,
+        };
+      if (name === "applications")
+        observed = {
+          partial_failure: data?.partialFailure === true,
+          applications: Array.isArray(data?.applications)
+            ? data.applications.length
+            : null,
+        };
+    } catch {
+      /* Unparseable data provides no record evidence. */
+    }
     evidence[name] = {
       http_status: response.status,
       json:
         response.headers.get("content-type")?.includes("application/json") ??
         false,
       shape: responseShape(raw, campaignId, accountKey),
+      observed,
     };
   }
   return { status: "UNKNOWN", reason: "CONTRACT_INSPECTION_ONLY", evidence };
