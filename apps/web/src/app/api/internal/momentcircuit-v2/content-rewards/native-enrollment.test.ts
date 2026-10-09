@@ -157,3 +157,23 @@ describe("current authenticated enrollment contracts", () => {
     expect(nativeEnrollmentEvidence(x).status).toBe("UNKNOWN");
   });
 });
+
+it("unknown account contract values stay UNKNOWN rather than disconnected", () => {
+  const x = base();
+  x.accounts = envelope({
+    socialMediaAccounts: [
+      {
+        id: "account-1",
+        userId: "self",
+        platform: "tiktok",
+        username: "creator",
+        status: "active",
+        verificationSource: "new-provider-mechanism",
+      },
+    ],
+  });
+  expect(nativeEnrollmentEvidence(x)).toMatchObject({
+    status: "UNKNOWN",
+    account_connected: null,
+  });
+});

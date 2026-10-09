@@ -73,6 +73,11 @@ export function nativeEnrollmentEvidence(input: {
     typeof account.verificationSource !== "string"
   )
     return unknown();
+  if (
+    account.status !== "active" ||
+    !["oauth", "bio"].includes(account.verificationSource)
+  )
+    return unknown();
   const connected =
     account.status === "active" &&
     ["oauth", "bio"].includes(account.verificationSource) &&
