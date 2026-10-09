@@ -56,11 +56,18 @@ export function nativeEnrollmentEvidence(input: {
     accounts.socialMediaAccounts.length > 1000
   )
     return unknown();
+  // Product handles use one @ prefix; the provider's username field omits it.
+  // Do not normalize display names, case, substrings or multiple prefixes.
+  const username =
+    ["tiktok", "instagram"].includes(input.platform) &&
+    /^@[^@]+$/.test(input.accountKey)
+      ? input.accountKey.slice(1)
+      : input.accountKey;
   const matches = accounts.socialMediaAccounts
     .map(record)
     .filter(
       (r) =>
-        r?.username === input.accountKey &&
+        r?.username === username &&
         r?.platform === input.platform &&
         r?.userId === me.id,
     );
