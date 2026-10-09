@@ -177,3 +177,21 @@ it("unknown account contract values stay UNKNOWN rather than disconnected", () =
     account_connected: null,
   });
 });
+
+it("matches one display-handle prefix while preserving the exact caller identity", () => {
+  const x = base();
+  x.accountKey = "@creator";
+  expect(nativeEnrollmentEvidence(x)).toMatchObject({
+    status: "READY",
+    account_connected: true,
+    facts: { account_key: "@creator" },
+  });
+});
+it.each(["@@creator", "creator-other"])(
+  "does not broaden username ownership for %s",
+  (accountKey) => {
+    const x = base();
+    x.accountKey = accountKey;
+    expect(nativeEnrollmentEvidence(x).status).toBe("UNKNOWN");
+  },
+);
