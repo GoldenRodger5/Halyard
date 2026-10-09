@@ -1,3 +1,4 @@
+import { responseShape } from "./response-shape";
 import { enrollmentEvidence } from "./enrollment-evidence";
 import crypto from "node:crypto";
 import { submissionEvidence } from "./submission-evidence";
@@ -314,12 +315,27 @@ async function probe(
       application_state: "UNKNOWN" as const,
       facts: { http_status: response.status },
     };
-  return enrollmentEvidence(
-    await boundedText(response, MAX_HTML_BYTES),
-    campaignId,
-    accountKey,
-    platform,
-  );
+  const raw = await boundedText(response, MAX_HTML_BYTES);
+  const result = enrollmentEvidence(raw, campaignId, accountKey, platform);
+  if (result.status !== "UNKNOWN") return result;
+  return {
+    ...result,
+    facts: {
+      ...result.facts,
+      http_status: response.status,
+      content_type: [
+        "text/html",
+        "application/json",
+        "application/xhtml+xml",
+      ].includes(response.headers.get("content-type")?.split(";")[0] ?? "")
+        ? response.headers.get("content-type")!.split(";")[0]
+        : "other",
+      auth_path: /\/(?:login|sign-in|auth|session-refresh)(?:\/|$)/i.test(
+        new URL(response.url || campaignPreviewUrl(campaignId)).pathname,
+      ),
+      response_shape: responseShape(raw, campaignId, accountKey),
+    },
+  };
 }
 
 function validHttps(value: unknown): value is string {

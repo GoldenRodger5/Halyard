@@ -13,41 +13,7 @@ export function submissionEvidence(
   campaignId: string,
   publicUrl: string,
 ): SubmissionEvidence {
-  const roots: unknown[] = [];
-  try {
-    roots.push(JSON.parse(raw));
-  } catch {
-    /* HTML below, never substring proof. */
-  }
-  for (const m of raw.matchAll(
-    /<script\b[^>]*type=["']application\/json["'][^>]*>([\s\S]*?)<\/script>/gi,
-  )) {
-    try {
-      roots.push(JSON.parse(m[1] ?? ""));
-    } catch {
-      /* partial evidence */
-    }
-  }
-  // Next Flight text chunks are data literals. Never execute scripts or resolve arbitrary code.
-  for (const m of raw.matchAll(
-    /self\.__next_f\.push\(\[1,("(?:[^"\\]|\\.)*")\]\)/g,
-  )) {
-    try {
-      const chunk: unknown = JSON.parse(m[1] ?? "");
-      if (typeof chunk !== "string") continue;
-      for (const line of chunk.split("\n")) {
-        const colon = line.indexOf(":");
-        if (colon < 0) continue;
-        try {
-          roots.push(JSON.parse(line.slice(colon + 1)));
-        } catch {
-          /* unresolved row */
-        }
-      }
-    } catch {
-      /* malformed chunk */
-    }
-  }
+  const roots = structuredDocuments(raw);
   const queue = roots.map((value) => ({ value, depth: 0 }));
   let visited = 0;
   let complete = false;
@@ -119,4 +85,44 @@ export function submissionEvidence(
       reason: "CONTENT_REWARDS_LISTING_INCOMPLETE_OR_UNPARSEABLE",
     };
   return { status: "NOT_FOUND" };
+}
+
+/** Parse bounded caller-supplied data literals only; never evaluate JavaScript. */
+export function structuredDocuments(raw: string): unknown[] {
+  const roots: unknown[] = [];
+  try {
+    roots.push(JSON.parse(raw));
+  } catch {
+    /* HTML below, never substring proof. */
+  }
+  for (const m of raw.matchAll(
+    /<script\b[^>]*type=["']application\/json["'][^>]*>([\s\S]*?)<\/script>/gi,
+  )) {
+    try {
+      roots.push(JSON.parse(m[1] ?? ""));
+    } catch {
+      /* partial evidence */
+    }
+  }
+  // Next Flight text chunks are data literals. Never execute scripts or resolve arbitrary code.
+  for (const m of raw.matchAll(
+    /self\.__next_f\.push\(\[1,("(?:[^"\\]|\\.)*")\]\)/g,
+  )) {
+    try {
+      const chunk: unknown = JSON.parse(m[1] ?? "");
+      if (typeof chunk !== "string") continue;
+      for (const line of chunk.split("\n")) {
+        const colon = line.indexOf(":");
+        if (colon < 0) continue;
+        try {
+          roots.push(JSON.parse(line.slice(colon + 1)));
+        } catch {
+          /* unresolved row */
+        }
+      }
+    } catch {
+      /* malformed chunk */
+    }
+  }
+  return roots;
 }
