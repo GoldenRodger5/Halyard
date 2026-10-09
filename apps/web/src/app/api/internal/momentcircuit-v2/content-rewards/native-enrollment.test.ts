@@ -47,7 +47,7 @@ describe("current authenticated enrollment contracts", () => {
     });
     expect(nativeEnrollmentEvidence(x)).toMatchObject({
       status: "NOT_READY",
-      facts: { reason: "JOIN_REQUIRED" },
+      facts: { reason: "NOT_JOINED" },
     });
   });
   it.each(["identity", "accounts", "campaign"])(

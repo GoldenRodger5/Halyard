@@ -123,7 +123,7 @@ export function nativeEnrollmentEvidence(input: {
       reason: !connected
         ? "POSTING_ACCOUNT_NOT_VERIFIED"
         : !c.joined
-          ? "JOIN_REQUIRED"
+          ? "NOT_JOINED"
           : application === "PENDING"
             ? "APPLICATION_PENDING"
             : application === "UNKNOWN"

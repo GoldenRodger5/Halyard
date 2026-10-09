@@ -317,7 +317,7 @@ it("native probe proves account but never equates canSubmit with joined", async 
     application_state: "NOT_REQUIRED",
     facts: {
       joined: false,
-      reason: "JOIN_REQUIRED",
+      reason: "NOT_JOINED",
       brand_approval: "UNPROVEN",
     },
   });
