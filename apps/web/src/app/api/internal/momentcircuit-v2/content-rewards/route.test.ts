@@ -56,6 +56,44 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 describe("private CR bridge protocol", () => {
+  it("keeps unknown probe diagnostics inside the primitive-only V2 facts contract", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => listing([])),
+    );
+    const probeRequest = new NextRequest(
+      "https://halyard.example/api/internal/momentcircuit-v2/content-rewards",
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-momentcircuit-v2-secret": credential,
+        },
+        body: JSON.stringify({
+          action: "probe",
+          campaign_id: campaign,
+          account_key: "momentcircuit0",
+          platform: "tiktok",
+        }),
+      },
+    );
+    const body = await (await POST(probeRequest)).json();
+    expect(body).toMatchObject({
+      ok: true,
+      result: { status: "UNKNOWN", submit_available: false },
+    });
+    expect(typeof body.result.facts.response_shape).toBe("string");
+    expect(
+      Object.values(body.result.facts).every(
+        (value) =>
+          value === null ||
+          ["string", "number", "boolean"].includes(typeof value),
+      ),
+    ).toBe(true);
+    expect(JSON.parse(body.result.facts.response_shape)).toMatchObject({
+      truncated: false,
+    });
+  });
   it("binds lookup to exact campaign and URL", async () => {
     vi.stubGlobal(
       "fetch",
