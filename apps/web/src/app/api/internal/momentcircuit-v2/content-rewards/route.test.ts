@@ -326,6 +326,16 @@ it("keeps all mutations killed unless explicitly enabled server-side", async () 
   vi.stubEnv("MOMENTCIRCUIT_V2_CR_MUTATIONS_ENABLED", "false");
   const fetcher = nativeFetcher();
   vi.stubGlobal("fetch", fetcher);
+  const probe = await (await POST(probeRequest())).json();
+  expect(probe.result).toMatchObject({
+    status: "NOT_READY",
+    facts: {
+      joined: false,
+      join_contract_supported: true,
+      join_action_supported: false,
+      brand_approval: "UNPROVEN",
+    },
+  });
   expect(
     (await (await POST(probeRequest("join"))).json()).result.facts.reason,
   ).toBe("ENROLLMENT_MUTATIONS_KILLED");

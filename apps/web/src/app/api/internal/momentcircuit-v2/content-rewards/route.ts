@@ -366,11 +366,15 @@ async function probe(
     campaign,
     applications,
   });
-  result.facts.join_action_supported =
-    process.env.MOMENTCIRCUIT_V2_CR_MUTATIONS_ENABLED === "true" &&
+  // Contract capability is distinct from permission to execute it now. A killed action never proves enrollment.
+  result.facts.join_contract_supported =
     result.facts.public_campaign === true &&
     result.facts.requires_application === false &&
-    result.account_connected === true;
+    result.account_connected === true &&
+    result.submit_available === true;
+  result.facts.join_action_supported =
+    process.env.MOMENTCIRCUIT_V2_CR_MUTATIONS_ENABLED === "true" &&
+    result.facts.join_contract_supported === true;
   return result;
 }
 
