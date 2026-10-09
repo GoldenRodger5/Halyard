@@ -1,7 +1,7 @@
 import { responseShape } from "./response-shape";
-import { enrollmentEvidence } from "./enrollment-evidence";
+import { nativeEnrollmentEvidence } from "./native-enrollment";
 import crypto from "node:crypto";
-import { submissionEvidence } from "./submission-evidence";
+import { nativeSubmissionPage } from "./native-submission";
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
@@ -11,7 +11,7 @@ export const maxDuration = 60;
 
 const CR_ORIGIN = "https://b4e0vdqv6zgqeqj4pfgm.apps.whop.com";
 const CR_EXPERIENCE = "exp_KZckYGtrnbujDg";
-const CR_SUBMISSIONS = `${CR_ORIGIN}/c/${CR_EXPERIENCE}/submissions`;
+
 const CR_SUBMISSION_API = `${CR_ORIGIN}/api/submission/submissions`;
 const COOKIE_NAMES = [
   "__Host-cr-session",
@@ -27,7 +27,6 @@ interface CookieBundle {
   updated_at?: string;
 }
 
-const MAX_HTML_BYTES = 6_000_000;
 const MAX_JSON_BYTES = 1_000_000;
 const CAMPAIGN_ID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -123,7 +122,9 @@ async function fetchWithCookies(
 
   const method = (init.method ?? "GET").toUpperCase();
   let current = start;
-  const requestSignal = AbortSignal.timeout(20_000);
+  const requestSignal = init.signal
+    ? AbortSignal.any([init.signal, AbortSignal.timeout(20_000)])
+    : AbortSignal.timeout(20_000);
   for (let hop = 0; hop <= 3; hop++) {
     const headers = new Headers(init.headers);
     headers.set("cookie", cookieHeader(bundle));
@@ -209,21 +210,29 @@ async function lookup(
   publicUrl: string,
   bundle: CookieBundle,
 ) {
-  const response = await fetchWithCookies(CR_SUBMISSIONS, bundle, {
-    headers: { accept: "text/html" },
-  });
-  if (response.status === 401 || response.status === 403)
-    return {
-      status: "UNKNOWN" as const,
-      reason: "CONTENT_REWARDS_AUTH_REQUIRED",
-    };
-  if (!response.ok)
-    return {
-      status: "UNKNOWN" as const,
-      reason: `CONTENT_REWARDS_HTTP_${response.status}`,
-    };
-  const body = await boundedText(response, MAX_HTML_BYTES);
-  return submissionEvidence(body, campaignId, publicUrl);
+  const signal = AbortSignal.timeout(16_000);
+  const seen = new Set<string>();
+  let cursor: string | null = null;
+  for (let page = 0; page < 5; page++) {
+    const raw = await nativeGet(
+      `/api/submission/submissions${cursor === null ? "" : "?cursor=" + encodeURIComponent(cursor)}`,
+      bundle,
+      signal,
+    );
+    const result = nativeSubmissionPage(raw, campaignId, publicUrl);
+    if (result.status !== "NEXT_PAGE") return result;
+    if (seen.has(result.cursor))
+      return {
+        status: "UNKNOWN" as const,
+        reason: "CONTENT_REWARDS_PAGINATION_REPEATED",
+      };
+    seen.add(result.cursor);
+    cursor = result.cursor;
+  }
+  return {
+    status: "UNKNOWN" as const,
+    reason: "CONTENT_REWARDS_PAGINATION_LIMIT",
+  };
 }
 
 async function submit(
@@ -286,58 +295,246 @@ async function submit(
       };
 }
 
+async function nativeGet(
+  path: string,
+  bundle: CookieBundle,
+  signal: AbortSignal,
+): Promise<unknown> {
+  const response = await fetchWithCookies(`${CR_ORIGIN}${path}`, bundle, {
+    headers: { accept: "application/json" },
+    signal,
+  });
+  if (
+    !response.ok ||
+    !response.headers.get("content-type")?.includes("application/json")
+  ) {
+    await response.body?.cancel();
+    return null;
+  }
+  try {
+    return JSON.parse(await boundedText(response, MAX_JSON_BYTES));
+  } catch {
+    return null;
+  }
+}
 async function probe(
   campaignId: string,
   accountKey: string,
   platform: string,
   bundle: CookieBundle,
+  signal: AbortSignal = AbortSignal.timeout(16_000),
 ) {
+  const identity = await nativeGet("/api/user/users/me", bundle, signal);
+  const me = identity as { success?: unknown; data?: { id?: unknown } } | null;
+  const userId =
+    me?.success === true &&
+    typeof me.data?.id === "string" &&
+    /^[a-zA-Z0-9_-]{1,128}$/.test(me.data.id)
+      ? me.data.id
+      : null;
+  if (userId === null)
+    return nativeEnrollmentEvidence({
+      campaignId,
+      accountKey,
+      platform,
+      identity,
+      accounts: null,
+      campaign: null,
+      applications: null,
+    });
+  const accounts = await nativeGet(
+    `/api/user/social-media-accounts?userId=${encodeURIComponent(userId)}`,
+    bundle,
+    signal,
+  );
+  const campaign = await nativeGet(
+    `/api/campaign/campaigns/${campaignId}`,
+    bundle,
+    signal,
+  );
+  const applications = await nativeGet(
+    "/api/campaign/campaigns/applications/me",
+    bundle,
+    signal,
+  );
+  const result = nativeEnrollmentEvidence({
+    campaignId,
+    accountKey,
+    platform,
+    identity,
+    accounts,
+    campaign,
+    applications,
+  });
+  result.facts.join_action_supported =
+    process.env.MOMENTCIRCUIT_V2_CR_MUTATIONS_ENABLED === "true" &&
+    result.facts.public_campaign === true &&
+    result.facts.requires_application === false &&
+    result.account_connected === true;
+  return result;
+}
+
+/** V2's durable reward_join_attempt owns at-most-once sending. The bridge always re-reads exact current scope. */
+async function join(
+  campaignId: string,
+  accountKey: string,
+  platform: string,
+  bundle: CookieBundle,
+) {
+  const signal = AbortSignal.timeout(16_000);
+  const before = await probe(campaignId, accountKey, platform, bundle, signal);
+  if (before.facts.joined === true) return before;
+  if (process.env.MOMENTCIRCUIT_V2_CR_MUTATIONS_ENABLED !== "true")
+    return {
+      ...before,
+      facts: { ...before.facts, reason: "ENROLLMENT_MUTATIONS_KILLED" },
+    };
+  if (
+    before.facts.join_action_supported !== true ||
+    before.facts.joined !== false ||
+    !before.submit_available
+  )
+    return {
+      ...before,
+      facts: { ...before.facts, reason: "AUTONOMOUS_JOIN_NOT_SUPPORTED" },
+    };
   const response = await fetchWithCookies(
-    campaignPreviewUrl(campaignId),
+    `${CR_ORIGIN}/api/campaign/campaigns/${campaignId}/join`,
     bundle,
     {
-      headers: { accept: "text/html,application/xhtml+xml" },
+      method: "POST",
+      headers: { accept: "application/json", origin: CR_ORIGIN },
+      signal,
     },
   );
-  if (response.status === 401 || response.status === 403)
-    return {
-      status: "UNKNOWN" as const,
-      submit_available: false,
-      account_connected: null,
-      application_state: "UNKNOWN" as const,
-      facts: { http_status: response.status },
-    };
-  if (!response.ok)
-    return {
-      status: "UNKNOWN" as const,
-      submit_available: false,
-      account_connected: null,
-      application_state: "UNKNOWN" as const,
-      facts: { http_status: response.status },
-    };
-  const raw = await boundedText(response, MAX_HTML_BYTES);
-  const result = enrollmentEvidence(raw, campaignId, accountKey, platform);
-  if (result.status !== "UNKNOWN") return result;
-  return {
-    ...result,
-    facts: {
-      ...result.facts,
-      http_status: response.status,
-      content_type: [
-        "text/html",
-        "application/json",
-        "application/xhtml+xml",
-      ].includes(response.headers.get("content-type")?.split(";")[0] ?? "")
-        ? response.headers.get("content-type")!.split(";")[0]
-        : "other",
-      auth_path: /\/(?:login|sign-in|auth|session-refresh)(?:\/|$)/i.test(
-        new URL(response.url || campaignPreviewUrl(campaignId)).pathname,
-      ),
-      response_shape: JSON.stringify(
-        responseShape(raw, campaignId, accountKey),
-      ),
-    },
+  await response.body?.cancel(); // Neither 200 nor any response body proves enrollment.
+  const after = await probe(campaignId, accountKey, platform, bundle, signal);
+  return after.facts.joined === true
+    ? after
+    : {
+        ...after,
+        status: "UNKNOWN",
+        facts: { ...after.facts, reason: "JOIN_OUTCOME_UNCERTAIN" },
+      };
+}
+
+/** Read-only contract inspection. Fixed first-party routes from the current public client bundle;
+ * response field names/types are diagnostics, never enrollment or authentication proof. */
+async function inspectContract(
+  campaignId: string,
+  accountKey: string,
+  platform: string,
+  bundle: CookieBundle,
+) {
+  const started = Date.now();
+  const routes = {
+    identity: "/api/user/users/me",
+    accounts: "/api/user/social-media-accounts",
+    campaign: `/api/campaign/campaigns/${campaignId}`,
+    applications: "/api/campaign/campaigns/applications/me",
+    features: `/api/campaign/campaigns/${campaignId}/feature-flags`,
+    submissions: "/api/submission/submissions",
   };
+  const evidence: Record<string, unknown> = {};
+  let userId: string | null = null;
+  for (const [name, path] of Object.entries(routes)) {
+    if (Date.now() - started > 30_000) {
+      evidence[name] = { incomplete: true };
+      break;
+    }
+    const response = await fetchWithCookies(
+      `${CR_ORIGIN}${path}${name === "accounts" && userId !== null ? "?userId=" + encodeURIComponent(userId) : ""}`,
+      bundle,
+      {
+        headers: { accept: "application/json" },
+      },
+    );
+    const raw = await boundedText(response, MAX_JSON_BYTES);
+    let observed: Record<string, unknown> = {};
+    try {
+      const envelope = JSON.parse(raw) as {
+        success?: unknown;
+        data?: Record<string, unknown>;
+      };
+      const data = envelope.success === true ? envelope.data : undefined;
+      if (
+        name === "identity" &&
+        typeof data?.id === "string" &&
+        /^[a-zA-Z0-9_-]{1,128}$/.test(data.id)
+      ) {
+        userId = data.id;
+        observed = { identity_record_present: true };
+      }
+      if (name === "campaign" && data?.id === campaignId)
+        observed = {
+          campaign_bound: true,
+          joined: typeof data.joined === "boolean" ? data.joined : null,
+          requires_application:
+            typeof data.requiresApplication === "boolean"
+              ? data.requiresApplication
+              : null,
+          can_submit:
+            typeof (data.access as { canSubmit?: unknown } | undefined)
+              ?.canSubmit === "boolean"
+              ? (data.access as { canSubmit: boolean }).canSubmit
+              : null,
+        };
+      if (name === "accounts" && Array.isArray(data?.socialMediaAccounts)) {
+        const matches = data.socialMediaAccounts.filter((value: unknown) => {
+          const row = value as {
+            username?: unknown;
+            userId?: unknown;
+            platform?: unknown;
+            attempt_id?: unknown;
+          };
+          return (
+            row?.username === accountKey &&
+            row.userId === userId &&
+            row.platform === platform
+          );
+        }) as {
+          status?: unknown;
+          verificationSource?: unknown;
+          revokedAt?: unknown;
+        }[];
+        observed = {
+          exact_target_matches: matches.length,
+          target_status:
+            matches.length === 1 &&
+            typeof matches[0]?.status === "string" &&
+            /^[A-Z_]{1,30}$/i.test(matches[0].status)
+              ? matches[0].status
+              : null,
+          verification_source:
+            matches.length === 1 &&
+            typeof matches[0]?.verificationSource === "string" &&
+            /^[A-Z_]{1,30}$/i.test(matches[0].verificationSource)
+              ? matches[0].verificationSource
+              : null,
+          target_revoked:
+            matches.length === 1 ? Boolean(matches[0]?.revokedAt) : null,
+        };
+      }
+      if (name === "applications")
+        observed = {
+          partial_failure: data?.partialFailure === true,
+          applications: Array.isArray(data?.applications)
+            ? data.applications.length
+            : null,
+        };
+    } catch {
+      /* Unparseable data provides no record evidence. */
+    }
+    evidence[name] = {
+      http_status: response.status,
+      json:
+        response.headers.get("content-type")?.includes("application/json") ??
+        false,
+      shape: responseShape(raw, campaignId, accountKey),
+      observed,
+    };
+  }
+  return { status: "UNKNOWN", reason: "CONTRACT_INSPECTION_ONLY", evidence };
 }
 
 function validHttps(value: unknown): value is string {
@@ -359,13 +556,18 @@ export async function POST(request: NextRequest) {
       public_url?: unknown;
       account_key?: unknown;
       platform?: unknown;
+      attempt_id?: unknown;
     } | null;
     if (!body || typeof body.action !== "string")
       return NextResponse.json({ error: "INVALID_REQUEST" }, { status: 400 });
 
     const bundle = await loadCookieBundle();
 
-    if (body.action === "probe") {
+    if (
+      body.action === "probe" ||
+      body.action === "inspect_contract" ||
+      body.action === "join"
+    ) {
       if (
         typeof body.account_key !== "string" ||
         !body.account_key.trim() ||
@@ -383,14 +585,41 @@ export async function POST(request: NextRequest) {
           { error: "INVALID_CAMPAIGN_ID" },
           { status: 400 },
         );
+      if (body.action === "join") {
+        if (
+          typeof body.attempt_id !== "string" ||
+          !CAMPAIGN_ID.test(body.attempt_id)
+        )
+          return NextResponse.json(
+            { error: "DURABLE_JOIN_ATTEMPT_REQUIRED" },
+            { status: 400 },
+          );
+        return NextResponse.json({
+          ok: true,
+          result: await join(
+            body.campaign_id,
+            String(body.account_key),
+            String(body.platform),
+            bundle,
+          ),
+        });
+      }
       return NextResponse.json({
         ok: true,
-        result: await probe(
-          body.campaign_id,
-          String(body.account_key ?? ""),
-          String(body.platform ?? ""),
-          bundle,
-        ),
+        result:
+          body.action === "inspect_contract"
+            ? await inspectContract(
+                body.campaign_id,
+                String(body.account_key),
+                String(body.platform),
+                bundle,
+              )
+            : await probe(
+                body.campaign_id,
+                String(body.account_key ?? ""),
+                String(body.platform ?? ""),
+                bundle,
+              ),
       });
     }
 
@@ -415,6 +644,11 @@ export async function POST(request: NextRequest) {
     }
 
     if (body.action === "submit") {
+      if (process.env.MOMENTCIRCUIT_V2_CR_MUTATIONS_ENABLED !== "true")
+        return NextResponse.json({
+          ok: true,
+          result: { status: "REJECTED", reason: "REWARD_MUTATIONS_KILLED" },
+        });
       if (
         typeof body.campaign_id !== "string" ||
         !CAMPAIGN_ID.test(body.campaign_id)
