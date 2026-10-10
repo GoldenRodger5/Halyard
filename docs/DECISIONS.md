@@ -14350,3 +14350,8 @@ was sitting in production behind a wall of failures nobody read.
 ## §578 · V2 API reads refresh the existing session once
 
 A native API 401 may omit the session rotation previously provided by campaign-page redirects. Use one same-origin, campaign-bound preview GET followed by one fresh API read, under the original shared time bound. Retain the existing encrypted vault rotation and exact evidence contracts. Do not replay a mutation, widen redirects, export cookies, treat a page as authentication proof or repeatedly retry expired grants. Persistent 401 remains unproven and requires genuine session renewal. Halyard's unrelated product/worker is unchanged.
+
+
+## §579 · Native campaign evidence uses the existing private bridge
+
+After actual session recovery, the authenticated campaign endpoint supplies full first-party configuration for a verified account even before joining. Expose one bounded read-only exact-campaign action through the existing V2 bridge instead of adopting stale public guide links or moving CR cookies to V2. Preserve original JSON bytes and reject duplicate keys, secret fields, locked counters and bounds. V2's canonical parser/rights/terms guards own interpretation; account read access does not prove joining, application acceptance or brand approval.

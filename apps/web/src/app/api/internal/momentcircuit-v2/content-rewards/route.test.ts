@@ -449,3 +449,41 @@ it("contract inspection refreshes API 401 but retains diagnostics-only status", 
   );
   expect(calls).toBe(2);
 });
+
+it("authenticated campaign read requires an exact active account and sends no mutation", async () => {
+  const native = nativeFetcher();
+  const f = vi.fn(async (value: unknown, init?: RequestInit) => {
+    const path = new URL(String(value)).pathname;
+    if (path.endsWith("/" + campaign))
+      return new Response(
+        JSON.stringify({
+          success: true,
+          data: {
+            id: campaign,
+            joined: false,
+            private: false,
+            requiresApplication: false,
+            access: { canSubmit: true },
+            configuration: {
+              content: { guidelines: "Use the supplied media." },
+              referenceMaterial: [],
+            },
+          },
+        }),
+        { headers: { "content-type": "application/json" } },
+      );
+    return native(value, init);
+  });
+  vi.stubGlobal("fetch", f);
+  const b = await (await POST(probeRequest("read_campaign"))).json();
+  expect(b.result).toMatchObject({
+    status: "COMPLETE",
+    campaign_id: campaign,
+    account_key: "creator",
+    platform: "tiktok",
+  });
+  expect(JSON.parse(b.result.raw).data.id).toBe(campaign);
+  expect(f.mock.calls.every((c) => (c[1]?.method ?? "GET") === "GET")).toBe(
+    true,
+  );
+});

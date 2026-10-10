@@ -1,3 +1,4 @@
+import { campaignCapture } from "./campaign-capture";
 import { responseShape } from "./response-shape";
 import { nativeEnrollmentEvidence } from "./native-enrollment";
 import crypto from "node:crypto";
@@ -401,6 +402,42 @@ async function probe(
   return result;
 }
 
+/** Read only; enrollment and submission mutations remain separate. */
+async function readCampaign(
+  campaignId: string,
+  accountKey: string,
+  platform: string,
+  bundle: CookieBundle,
+) {
+  const signal = AbortSignal.timeout(16_000);
+  const scope = await probe(campaignId, accountKey, platform, bundle, signal);
+  const unknown = (reason: string) => ({ status: "UNKNOWN", reason });
+  if (scope.account_connected !== true)
+    return unknown("CAMPAIGN_ACCOUNT_READ_UNPROVEN");
+  const response = await fetchWithCookies(
+    `${CR_ORIGIN}/api/campaign/campaigns/${campaignId}`,
+    bundle,
+    { headers: { accept: "application/json" }, signal },
+  );
+  if (
+    !response.ok ||
+    !response.headers.get("content-type")?.includes("application/json")
+  ) {
+    await response.body?.cancel();
+    return unknown("CAMPAIGN_READ_UNAVAILABLE");
+  }
+  const raw = campaignCapture(await boundedText(response, 200_000), campaignId);
+  if (raw === null) return unknown("CAMPAIGN_CAPTURE_INCOMPLETE_OR_AMBIGUOUS");
+  return {
+    status: "COMPLETE",
+    campaign_id: campaignId,
+    account_key: accountKey,
+    platform,
+    captured_at: new Date().toISOString(),
+    raw,
+  };
+}
+
 /** V2's durable reward_join_attempt owns at-most-once sending. The bridge always re-reads exact current scope. */
 async function join(
   campaignId: string,
@@ -605,6 +642,7 @@ export async function POST(request: NextRequest) {
     if (
       body.action === "probe" ||
       body.action === "inspect_contract" ||
+      body.action === "read_campaign" ||
       body.action === "join"
     ) {
       if (
@@ -624,6 +662,16 @@ export async function POST(request: NextRequest) {
           { error: "INVALID_CAMPAIGN_ID" },
           { status: 400 },
         );
+      if (body.action === "read_campaign")
+        return NextResponse.json({
+          ok: true,
+          result: await readCampaign(
+            body.campaign_id,
+            String(body.account_key),
+            String(body.platform),
+            bundle,
+          ),
+        });
       if (body.action === "join") {
         if (
           typeof body.attempt_id !== "string" ||
