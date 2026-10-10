@@ -487,3 +487,134 @@ it("authenticated campaign read requires an exact active account and sends no mu
     true,
   );
 });
+
+const reviewUrl = "https://www.tiktok.com/@creator/video/123";
+const reviewRow = {
+  id: "s-review",
+  campaignId: campaign,
+  userId: "self",
+  isDeleted: false,
+  socialMediaPost: { postUrl: reviewUrl },
+  reviewStatus: "approved",
+  flagged: false,
+};
+const reviewRequest = (publicUrl = reviewUrl, accountKey = "@creator") =>
+  new NextRequest(
+    "https://halyard.example/api/internal/momentcircuit-v2/content-rewards",
+    {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-momentcircuit-v2-secret": credential,
+      },
+      body: JSON.stringify({
+        action: "read_review",
+        campaign_id: campaign,
+        account_key: accountKey,
+        platform: "tiktok",
+        public_url: publicUrl,
+      }),
+    },
+  );
+function reviewFetcher(pages: Response[]) {
+  const native = nativeFetcher();
+  return vi.fn(async (value: unknown, init?: RequestInit) => {
+    expect(init?.method ?? "GET").toBe("GET");
+    return new URL(String(value)).pathname.endsWith("/submission/submissions")
+      ? (pages.shift() ?? listing([], false))
+      : native(value, init);
+  });
+}
+it("reads exact authenticated reward review with mutations killed, without claiming cash or enrollment", async () => {
+  vi.stubEnv("MOMENTCIRCUIT_V2_CR_MUTATIONS_ENABLED", "false");
+  const f = reviewFetcher([listing([{ ...reviewRow, url: reviewUrl }])]);
+  vi.stubGlobal("fetch", f);
+  const b = await (await POST(reviewRequest())).json();
+  expect(b.result).toEqual({
+    status: "COMPLETE",
+    campaign_id: campaign,
+    account_key: "@creator",
+    platform: "tiktok",
+    public_url: reviewUrl,
+    remote_id: "s-review",
+    review_status: "approved",
+    flagged: false,
+    captured_at: expect.any(String),
+  });
+  expect(f).toHaveBeenCalledTimes(5);
+});
+it.each([
+  "https://www.tiktok.com/@foreign/video/123",
+  "https://evil.example/@creator/video/123",
+  "https://creator:pass@www.tiktok.com/@creator/video/123",
+])(
+  "does not send any provider request for foreign review URL %s",
+  async (publicUrl) => {
+    const f = reviewFetcher([]);
+    vi.stubGlobal("fetch", f);
+    expect(
+      (await (await POST(reviewRequest(publicUrl))).json()).result.status,
+    ).toBe("UNKNOWN");
+    expect(f).not.toHaveBeenCalled();
+  },
+);
+it("does not trust a matching review until all pages complete", async () => {
+  const f = reviewFetcher([
+    listing([{ ...reviewRow, url: reviewUrl }], false),
+    new Response("<html>partial</html>"),
+  ]);
+  vi.stubGlobal("fetch", f);
+  expect((await (await POST(reviewRequest())).json()).result.status).toBe(
+    "UNKNOWN",
+  );
+  expect(f).toHaveBeenCalledTimes(6);
+});
+it("rejects competing exact submission records across pages", async () => {
+  const f = reviewFetcher([
+    listing([{ ...reviewRow, url: reviewUrl }], false),
+    listing([{ ...reviewRow, id: "another", url: reviewUrl }]),
+  ]);
+  vi.stubGlobal("fetch", f);
+  expect((await (await POST(reviewRequest())).json()).result.reason).toBe(
+    "CONTENT_REWARDS_REVIEW_MULTIPLE_RECORDS",
+  );
+});
+it("rejects a duplicate review key before JSON parsing can hide it", async () => {
+  const f = reviewFetcher([
+    new Response(
+      JSON.stringify({
+        success: true,
+        data: [reviewRow],
+        pagination: { count: 1, limit: 20, nextCursor: null },
+      }).replace(
+        '"reviewStatus":"approved"',
+        '"reviewStatus":"approved","reviewStatus":"rejected"',
+      ),
+      { headers: { "content-type": "application/json" } },
+    ),
+  ]);
+  vi.stubGlobal("fetch", f);
+  expect((await (await POST(reviewRequest())).json()).result.status).toBe(
+    "UNKNOWN",
+  );
+});
+it("trusts NOT_FOUND only from a completed listing and binds the row to the authenticated user", async () => {
+  vi.stubGlobal(
+    "fetch",
+    reviewFetcher([
+      listing([{ ...reviewRow, campaignId: "foreign", url: reviewUrl }]),
+    ]),
+  );
+  expect((await (await POST(reviewRequest())).json()).result.status).toBe(
+    "NOT_FOUND",
+  );
+  vi.stubGlobal(
+    "fetch",
+    reviewFetcher([
+      listing([{ ...reviewRow, userId: "foreign", url: reviewUrl }]),
+    ]),
+  );
+  expect((await (await POST(reviewRequest())).json()).result.status).toBe(
+    "UNKNOWN",
+  );
+});
