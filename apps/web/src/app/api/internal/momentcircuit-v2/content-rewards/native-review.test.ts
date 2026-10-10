@@ -21,7 +21,7 @@ const page = (rows: unknown[], cursor: string | null = null) => ({
 });
 describe("exact native reward review", () => {
   it.each(["pending", "approved", "rejected", "flagged"])(
-    "reads only the review field %s without inferring payment",
+    "captures separate native fields %s without inferring approval or payment",
     (reviewStatus) => {
       expect(
         nativeReviewPage(
@@ -35,7 +35,8 @@ describe("exact native reward review", () => {
         matched: [
           {
             remote_id: "submission",
-            review_status: reviewStatus,
+            native_review_status: reviewStatus,
+            native_status: row.status,
             flagged: false,
           },
         ],
@@ -57,7 +58,7 @@ describe("exact native reward review", () => {
   );
   it.each([
     { userId: "foreign" },
-    { reviewStatus: "paid" },
+    { status: null },
     { reviewStatus: null },
     { flagged: undefined },
     { socialMediaPost: null },
