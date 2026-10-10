@@ -14355,3 +14355,8 @@ A native API 401 may omit the session rotation previously provided by campaign-p
 ## §579 · Native campaign evidence uses the existing private bridge
 
 After actual session recovery, the authenticated campaign endpoint supplies full first-party configuration for a verified account even before joining. Expose one bounded read-only exact-campaign action through the existing V2 bridge instead of adopting stale public guide links or moving CR cookies to V2. Preserve original JSON bytes and reject duplicate keys, secret fields, locked counters and bounds. V2's canonical parser/rights/terms guards own interpretation; account read access does not prove joining, application acceptance or brand approval.
+
+
+## §580 · Reward review is a scoped read, distinct from enrollment and cash
+
+Use the observed native submission envelope, same-row authenticated user/campaign/URL and complete bounded pagination for a unique postpublication review. Refuse partial pages, foreign accounts, conflicting records, duplicate original JSON keys and unknown statuses. Return only the closed review vocabulary and fraud flag; no estimated earnings, settlement, application acceptance or brand preapproval. Read-only diagnostics expose counts of known review words, never private submission URLs or user identifiers. Mutations remain killed and the separate Halyard product/worker stays unchanged.

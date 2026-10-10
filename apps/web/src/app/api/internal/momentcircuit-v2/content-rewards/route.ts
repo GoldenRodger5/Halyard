@@ -3,6 +3,8 @@ import { responseShape } from "./response-shape";
 import { nativeEnrollmentEvidence } from "./native-enrollment";
 import crypto from "node:crypto";
 import { nativeSubmissionPage } from "./native-submission";
+import { nativeReviewPage, type NativeReview } from "./native-review";
+import { nativeJson } from "./native-json";
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
@@ -302,6 +304,7 @@ async function nativeGet(
   bundle: CookieBundle,
   signal: AbortSignal,
   refreshCampaignId?: string,
+  strictJson = false,
 ): Promise<unknown> {
   let response = await fetchWithCookies(`${CR_ORIGIN}${path}`, bundle, {
     headers: { accept: "application/json" },
@@ -331,7 +334,8 @@ async function nativeGet(
     return null;
   }
   try {
-    return JSON.parse(await boundedText(response, MAX_JSON_BYTES));
+    const raw = await boundedText(response, MAX_JSON_BYTES);
+    return strictJson ? nativeJson(raw) : JSON.parse(raw);
   } catch {
     return null;
   }
@@ -342,12 +346,14 @@ async function probe(
   platform: string,
   bundle: CookieBundle,
   signal: AbortSignal = AbortSignal.timeout(16_000),
+  scopeOut?: { userId: string | null },
 ) {
   const identity = await nativeGet(
     "/api/user/users/me",
     bundle,
     signal,
     campaignId,
+    scopeOut !== undefined,
   );
   const me = identity as { success?: unknown; data?: { id?: unknown } } | null;
   const userId =
@@ -370,16 +376,22 @@ async function probe(
     `/api/user/social-media-accounts?userId=${encodeURIComponent(userId)}`,
     bundle,
     signal,
+    undefined,
+    scopeOut !== undefined,
   );
   const campaign = await nativeGet(
     `/api/campaign/campaigns/${campaignId}`,
     bundle,
     signal,
+    undefined,
+    scopeOut !== undefined,
   );
   const applications = await nativeGet(
     "/api/campaign/campaigns/applications/me",
     bundle,
     signal,
+    undefined,
+    scopeOut !== undefined,
   );
   const result = nativeEnrollmentEvidence({
     campaignId,
@@ -399,7 +411,86 @@ async function probe(
   result.facts.join_action_supported =
     process.env.MOMENTCIRCUIT_V2_CR_MUTATIONS_ENABLED === "true" &&
     result.facts.join_contract_supported === true;
+  if (scopeOut && result.account_connected === true) scopeOut.userId = userId;
   return result;
+}
+
+/** Read-only postpublication review, never inferred acceptance or cash. No mutation switch is changed. */
+async function readReview(
+  campaignId: string,
+  publicUrl: string,
+  accountKey: string,
+  platform: string,
+  bundle: CookieBundle,
+) {
+  const unknown = (reason: string) => ({ status: "UNKNOWN" as const, reason });
+  const url = new URL(publicUrl);
+  const handle = accountKey.startsWith("@") ? accountKey.slice(1) : accountKey;
+  if (
+    platform !== "tiktok" ||
+    !["www.tiktok.com", "tiktok.com"].includes(url.hostname) ||
+    url.username ||
+    url.password ||
+    url.port ||
+    !/^\/@[A-Za-z0-9_.]+\/video\/\d+$/.test(url.pathname) ||
+    url.pathname.split("/")[1] !== `@${handle}`
+  )
+    return unknown("CONTENT_REWARDS_REVIEW_ACCOUNT_URL_MISMATCH");
+  const signal = AbortSignal.timeout(16_000);
+  const scope = { userId: null as string | null };
+  const current = await probe(
+    campaignId,
+    accountKey,
+    platform,
+    bundle,
+    signal,
+    scope,
+  );
+  if (current.account_connected !== true || scope.userId === null)
+    return unknown("CONTENT_REWARDS_REVIEW_ACCOUNT_UNPROVEN");
+  const seen = new Set<string>(),
+    matched = new Map<string, NativeReview>();
+  let cursor: string | null = null;
+  for (let page = 0; page < 5; page++) {
+    const raw = await nativeGet(
+      `/api/submission/submissions${cursor === null ? "" : "?cursor=" + encodeURIComponent(cursor)}`,
+      bundle,
+      signal,
+      campaignId,
+      true,
+    );
+    const result = nativeReviewPage(raw, campaignId, publicUrl, scope.userId);
+    if (result.status === "UNKNOWN") return result;
+    for (const row of result.matched) {
+      const old = matched.get(row.remote_id);
+      if (
+        old &&
+        (old.review_status !== row.review_status || old.flagged !== row.flagged)
+      )
+        return unknown("CONTENT_REWARDS_REVIEW_CONFLICT");
+      matched.set(row.remote_id, row);
+    }
+    if (matched.size > 1)
+      return unknown("CONTENT_REWARDS_REVIEW_MULTIPLE_RECORDS");
+    if (result.next_cursor === null) {
+      const record = [...matched.values()][0];
+      if (!record) return { status: "NOT_FOUND" as const };
+      return {
+        status: "COMPLETE" as const,
+        campaign_id: campaignId,
+        public_url: publicUrl,
+        account_key: accountKey,
+        platform,
+        captured_at: new Date().toISOString(),
+        ...record,
+      };
+    }
+    if (seen.has(result.next_cursor))
+      return unknown("CONTENT_REWARDS_PAGINATION_REPEATED");
+    seen.add(result.next_cursor);
+    cursor = result.next_cursor;
+  }
+  return unknown("CONTENT_REWARDS_PAGINATION_LIMIT");
 }
 
 /** Read only; enrollment and submission mutations remain separate. */
@@ -598,6 +689,40 @@ async function inspectContract(
             ? data.applications.length
             : null,
         };
+      if (name === "submissions") {
+        const review = nativeJson(raw) as {
+          success?: unknown;
+          data?: unknown;
+        } | null;
+        const counts: Record<string, number> = {
+          pending: 0,
+          approved: 0,
+          rejected: 0,
+          flagged: 0,
+          unknown: 0,
+        };
+        if (
+          review?.success === true &&
+          Array.isArray(review.data) &&
+          review.data.length <= 100
+        ) {
+          for (const value of review.data) {
+            const row = value as {
+              reviewStatus?: unknown;
+              flagged?: unknown;
+            } | null;
+            const key =
+              typeof row?.reviewStatus === "string" &&
+              ["pending", "approved", "rejected", "flagged"].includes(
+                row.reviewStatus,
+              )
+                ? row.reviewStatus
+                : "unknown";
+            counts[key]! += 1;
+          }
+          observed = { ...observed, review_status_counts: counts };
+        }
+      }
     } catch {
       /* Unparseable data provides no record evidence. */
     }
@@ -643,6 +768,7 @@ export async function POST(request: NextRequest) {
       body.action === "probe" ||
       body.action === "inspect_contract" ||
       body.action === "read_campaign" ||
+      body.action === "read_review" ||
       body.action === "join"
     ) {
       if (
@@ -662,6 +788,23 @@ export async function POST(request: NextRequest) {
           { error: "INVALID_CAMPAIGN_ID" },
           { status: 400 },
         );
+      if (body.action === "read_review") {
+        if (!validHttps(body.public_url))
+          return NextResponse.json(
+            { error: "INVALID_PUBLIC_URL" },
+            { status: 400 },
+          );
+        return NextResponse.json({
+          ok: true,
+          result: await readReview(
+            body.campaign_id,
+            body.public_url,
+            body.account_key,
+            String(body.platform),
+            bundle,
+          ),
+        });
+      }
       if (body.action === "read_campaign")
         return NextResponse.json({
           ok: true,
