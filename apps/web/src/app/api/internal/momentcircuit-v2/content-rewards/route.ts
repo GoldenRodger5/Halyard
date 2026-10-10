@@ -720,7 +720,19 @@ async function inspectContract(
                 : "unknown";
             counts[key]! += 1;
           }
-          observed = { ...observed, review_status_counts: counts };
+          const vocabulary: Record<string, number> = {};
+          for (const value of review.data) {
+            const status = (value as { reviewStatus?: unknown } | null)
+              ?.reviewStatus;
+            // Only this provider-owned enum field; never URLs, user identifiers, arbitrary bodies or credentials.
+            if (typeof status === "string" && /^[A-Za-z_]{1,32}$/.test(status))
+              vocabulary[status] = (vocabulary[status] ?? 0) + 1;
+          }
+          observed = {
+            ...observed,
+            review_status_counts: counts,
+            native_review_vocabulary: vocabulary,
+          };
         }
       }
     } catch {

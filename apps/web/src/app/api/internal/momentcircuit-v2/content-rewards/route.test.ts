@@ -268,6 +268,30 @@ const probeRequest = (action = "probe") =>
       }),
     },
   );
+it("native review diagnostics expose bounded enum counts without submission URLs or claiming readiness", async () => {
+  const native = nativeFetcher();
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (value: unknown, init?: RequestInit) =>
+      new URL(String(value)).pathname.endsWith("/submission/submissions")
+        ? listing([
+            {
+              id: "s",
+              campaignId: campaign,
+              url: "https://private.example/do-not-export",
+              reviewStatus: "NATIVE_UNVERIFIED",
+            },
+          ])
+        : native(value, init),
+    ),
+  );
+  const body = await (await POST(probeRequest("inspect_contract"))).json();
+  expect(body.result.status).toBe("UNKNOWN");
+  expect(
+    body.result.evidence.submissions.observed.native_review_vocabulary,
+  ).toEqual({ NATIVE_UNVERIFIED: 1 });
+  expect(JSON.stringify(body)).not.toContain("do-not-export");
+});
 function nativeFetcher(joinReadback = false) {
   let sent = false;
   return vi.fn(async (value: unknown, init?: RequestInit) => {
