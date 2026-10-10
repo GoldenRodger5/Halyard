@@ -373,3 +373,79 @@ it("reads a second exact submission page and does not trust a nonterminal first 
   });
   expect(String(fetcher.mock.calls[1]?.[0])).toContain("?cursor=next");
 });
+
+it.each([true, false])(
+  "bounded API-401 refresh requires actual structured identity recovery=%s",
+  async (recover) => {
+    let identityCalls = 0;
+    const native = nativeFetcher();
+    const fetcher = vi.fn(async (value: unknown, init?: RequestInit) => {
+      const path = new URL(String(value)).pathname;
+      expect(init?.method ?? "GET").toBe("GET");
+      if (path.endsWith("/users/me")) {
+        identityCalls++;
+        if (identityCalls === 1 || !recover)
+          return new Response(null, { status: 401 });
+        expect(new Headers(init?.headers).get("cookie")).toContain(
+          "__Host-cr-session=rotated-fixture",
+        );
+      }
+      if (path.endsWith("/preview"))
+        return new Response(null, {
+          status: 307,
+          headers: {
+            location: "/refresh-fixture",
+            "set-cookie": "__Host-cr-session=rotated-fixture; Secure; HttpOnly",
+          },
+        });
+      if (path === "/refresh-fixture")
+        return new Response("login or campaign page");
+      return native(value, init);
+    });
+    vi.stubGlobal("fetch", fetcher);
+    const b = await (await POST(probeRequest())).json();
+    expect(b.result.account_connected).toBe(recover ? true : null);
+    expect(b.result.status).toBe(recover ? "NOT_READY" : "UNKNOWN");
+    expect(identityCalls).toBe(2);
+    expect(
+      fetcher.mock.calls.filter((c) => String(c[0]).endsWith("/preview")),
+    ).toHaveLength(1);
+    expect(
+      fetcher.mock.calls.every((c) => (c[1]?.method ?? "GET") === "GET"),
+    ).toBe(true);
+  },
+);
+it("refuses external session-refresh destinations after API 401", async () => {
+  const fetcher = vi.fn(async (value: unknown) =>
+    new URL(String(value)).pathname.endsWith("/users/me")
+      ? new Response(null, { status: 401 })
+      : new Response(null, {
+          status: 307,
+          headers: { location: "https://elsewhere.example/login" },
+        }),
+  );
+  vi.stubGlobal("fetch", fetcher);
+  const b = await (await POST(probeRequest())).json();
+  expect(b.result?.status).not.toBe("READY");
+  expect(fetcher).toHaveBeenCalledTimes(2);
+});
+
+it("contract inspection refreshes API 401 but retains diagnostics-only status", async () => {
+  let calls = 0;
+  const native = nativeFetcher();
+  const f = vi.fn(async (value: unknown, init?: RequestInit) => {
+    const path = new URL(String(value)).pathname;
+    if (path.endsWith("/users/me") && ++calls === 1)
+      return new Response(null, { status: 401 });
+    if (path.endsWith("/preview"))
+      return new Response("page alone proves nothing");
+    return native(value, init);
+  });
+  vi.stubGlobal("fetch", f);
+  const b = await (await POST(probeRequest("inspect_contract"))).json();
+  expect(b.result.status).toBe("UNKNOWN");
+  expect(b.result.evidence.identity.observed.identity_record_present).toBe(
+    true,
+  );
+  expect(calls).toBe(2);
+});

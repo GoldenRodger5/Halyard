@@ -14345,3 +14345,8 @@ what the UI redesign has to reconnect.
 **The general lesson, and the argument for the package:** a test suite that has
 been red long enough stops being a signal and becomes scenery. Everything above
 was sitting in production behind a wall of failures nobody read.
+
+
+## §578 · V2 API reads refresh the existing session once
+
+A native API 401 may omit the session rotation previously provided by campaign-page redirects. Use one same-origin, campaign-bound preview GET followed by one fresh API read, under the original shared time bound. Retain the existing encrypted vault rotation and exact evidence contracts. Do not replay a mutation, widen redirects, export cookies, treat a page as authentication proof or repeatedly retry expired grants. Persistent 401 remains unproven and requires genuine session renewal. Halyard's unrelated product/worker is unchanged.

@@ -218,6 +218,7 @@ async function lookup(
       `/api/submission/submissions${cursor === null ? "" : "?cursor=" + encodeURIComponent(cursor)}`,
       bundle,
       signal,
+      campaignId,
     );
     const result = nativeSubmissionPage(raw, campaignId, publicUrl);
     if (result.status !== "NEXT_PAGE") return result;
@@ -299,11 +300,28 @@ async function nativeGet(
   path: string,
   bundle: CookieBundle,
   signal: AbortSignal,
+  refreshCampaignId?: string,
 ): Promise<unknown> {
-  const response = await fetchWithCookies(`${CR_ORIGIN}${path}`, bundle, {
+  let response = await fetchWithCookies(`${CR_ORIGIN}${path}`, bundle, {
     headers: { accept: "application/json" },
     signal,
   });
+  if (response.status === 401 && refreshCampaignId !== undefined) {
+    await response.body?.cancel();
+    // API routes can return 401 without performing the page's session-refresh redirect.
+    // One safe, campaign-bound page read may rotate the existing vault session. It proves nothing;
+    // only a fresh structured API response below can establish identity or submission evidence.
+    const refresh = await fetchWithCookies(
+      campaignPreviewUrl(refreshCampaignId),
+      bundle,
+      { signal },
+    );
+    await refresh.body?.cancel();
+    response = await fetchWithCookies(`${CR_ORIGIN}${path}`, bundle, {
+      headers: { accept: "application/json" },
+      signal,
+    });
+  }
   if (
     !response.ok ||
     !response.headers.get("content-type")?.includes("application/json")
@@ -324,7 +342,12 @@ async function probe(
   bundle: CookieBundle,
   signal: AbortSignal = AbortSignal.timeout(16_000),
 ) {
-  const identity = await nativeGet("/api/user/users/me", bundle, signal);
+  const identity = await nativeGet(
+    "/api/user/users/me",
+    bundle,
+    signal,
+    campaignId,
+  );
   const me = identity as { success?: unknown; data?: { id?: unknown } } | null;
   const userId =
     me?.success === true &&
@@ -431,6 +454,7 @@ async function inspectContract(
   bundle: CookieBundle,
 ) {
   const started = Date.now();
+  const signal = AbortSignal.timeout(30_000);
   const routes = {
     identity: "/api/user/users/me",
     accounts: "/api/user/social-media-accounts",
@@ -446,13 +470,24 @@ async function inspectContract(
       evidence[name] = { incomplete: true };
       break;
     }
-    const response = await fetchWithCookies(
-      `${CR_ORIGIN}${path}${name === "accounts" && userId !== null ? "?userId=" + encodeURIComponent(userId) : ""}`,
-      bundle,
-      {
+    const url = `${CR_ORIGIN}${path}${name === "accounts" && userId !== null ? "?userId=" + encodeURIComponent(userId) : ""}`;
+    let response = await fetchWithCookies(url, bundle, {
+      headers: { accept: "application/json" },
+      signal,
+    });
+    if (name === "identity" && response.status === 401) {
+      await response.body?.cancel();
+      const refresh = await fetchWithCookies(
+        campaignPreviewUrl(campaignId),
+        bundle,
+        { signal },
+      );
+      await refresh.body?.cancel();
+      response = await fetchWithCookies(url, bundle, {
         headers: { accept: "application/json" },
-      },
-    );
+        signal,
+      });
+    }
     const raw = await boundedText(response, MAX_JSON_BYTES);
     let observed: Record<string, unknown> = {};
     try {
