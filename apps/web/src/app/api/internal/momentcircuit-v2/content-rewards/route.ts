@@ -465,7 +465,9 @@ async function readReview(
       const old = matched.get(row.remote_id);
       if (
         old &&
-        (old.review_status !== row.review_status || old.flagged !== row.flagged)
+        (old.native_review_status !== row.native_review_status ||
+          old.native_status !== row.native_status ||
+          old.flagged !== row.flagged)
       )
         return unknown("CONTENT_REWARDS_REVIEW_CONFLICT");
       matched.set(row.remote_id, row);
@@ -721,17 +723,36 @@ async function inspectContract(
             counts[key]! += 1;
           }
           const vocabulary: Record<string, number> = {};
+          const nativeStates: Record<string, number> = {};
+          const statePairs: Record<string, number> = {};
           for (const value of review.data) {
             const status = (value as { reviewStatus?: unknown } | null)
               ?.reviewStatus;
             // Only this provider-owned enum field; never URLs, user identifiers, arbitrary bodies or credentials.
             if (typeof status === "string" && /^[A-Za-z_]{1,32}$/.test(status))
               vocabulary[status] = (vocabulary[status] ?? 0) + 1;
+            const nativeStatus = (value as { status?: unknown } | null)?.status;
+            if (
+              typeof nativeStatus === "string" &&
+              /^[A-Za-z_-]{1,32}$/.test(nativeStatus)
+            ) {
+              nativeStates[nativeStatus] =
+                (nativeStates[nativeStatus] ?? 0) + 1;
+              if (
+                typeof status === "string" &&
+                /^[A-Za-z_-]{1,32}$/.test(status)
+              ) {
+                const pair = nativeStatus + "|" + status;
+                statePairs[pair] = (statePairs[pair] ?? 0) + 1;
+              }
+            }
           }
           observed = {
             ...observed,
             review_status_counts: counts,
             native_review_vocabulary: vocabulary,
+            native_submission_vocabulary: nativeStates,
+            native_submission_review_pairs: statePairs,
           };
         }
       }

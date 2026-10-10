@@ -1,7 +1,8 @@
-/** Observed CR review vocabulary: review is distinct from enrollment, drafts, earnings and settlement. */
+/** Exact native capture. V2 owns interpretation; provider monitoring is distinct from approval and cash. */
 export interface NativeReview {
   readonly remote_id: string;
-  readonly review_status: "pending" | "approved" | "rejected" | "flagged";
+  readonly native_review_status: string;
+  readonly native_status: string;
   readonly flagged: boolean;
 }
 const object = (v: unknown): Record<string, unknown> | null =>
@@ -62,15 +63,16 @@ export function nativeReviewPage(
     if (
       row.userId !== userId ||
       typeof row.reviewStatus !== "string" ||
-      !["pending", "approved", "rejected", "flagged"].includes(
-        row.reviewStatus,
-      ) ||
+      !/^[A-Za-z_-]{1,32}$/.test(row.reviewStatus) ||
+      typeof row.status !== "string" ||
+      !/^[A-Za-z_-]{1,32}$/.test(row.status) ||
       typeof row.flagged !== "boolean"
     )
       return unknown;
     matched.push({
       remote_id: row.id,
-      review_status: row.reviewStatus as NativeReview["review_status"],
+      native_review_status: row.reviewStatus,
+      native_status: row.status,
       flagged: row.flagged,
     });
   }

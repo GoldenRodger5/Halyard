@@ -519,7 +519,8 @@ const reviewRow = {
   userId: "self",
   isDeleted: false,
   socialMediaPost: { postUrl: reviewUrl },
-  reviewStatus: "approved",
+  reviewStatus: "tracking",
+  status: "pending",
   flagged: false,
 };
 const reviewRequest = (publicUrl = reviewUrl, accountKey = "@creator") =>
@@ -561,7 +562,8 @@ it("reads exact authenticated reward review with mutations killed, without claim
     platform: "tiktok",
     public_url: reviewUrl,
     remote_id: "s-review",
-    review_status: "approved",
+    native_review_status: "tracking",
+    native_status: "pending",
     flagged: false,
     captured_at: expect.any(String),
   });
@@ -611,8 +613,8 @@ it("rejects a duplicate review key before JSON parsing can hide it", async () =>
         data: [reviewRow],
         pagination: { count: 1, limit: 20, nextCursor: null },
       }).replace(
-        '"reviewStatus":"approved"',
-        '"reviewStatus":"approved","reviewStatus":"rejected"',
+        '"reviewStatus":"tracking"',
+        '"reviewStatus":"tracking","reviewStatus":"rejected"',
       ),
       { headers: { "content-type": "application/json" } },
     ),
