@@ -512,6 +512,48 @@ it("authenticated campaign read requires an exact active account and sends no mu
   );
 });
 
+it("can read a permitted brief when posting-account enrollment is unavailable", async () => {
+  const native = nativeFetcher();
+  const f = vi.fn(async (value: unknown, init?: RequestInit) => {
+    const path = new URL(String(value)).pathname;
+    if (path.includes("/social-media-accounts") || path.endsWith("/applications/me"))
+      return new Response(null, { status: 503 });
+    if (path.endsWith("/" + campaign))
+      return new Response(
+        JSON.stringify({
+          success: true,
+          data: {
+            id: campaign,
+            configuration: { content: { guidelines: "Use the permitted media." } },
+          },
+        }),
+        { headers: { "content-type": "application/json" } },
+      );
+    return native(value, init);
+  });
+  vi.stubGlobal("fetch", f);
+  const result = (await (await POST(probeRequest("read_campaign"))).json()).result;
+  expect(result.status).toBe("COMPLETE");
+  expect(JSON.parse(result.raw).data.id).toBe(campaign);
+  expect(f.mock.calls.every((c) => (c[1]?.method ?? "GET") === "GET")).toBe(true);
+  expect(f.mock.calls.some((c) => String(c[0]).includes("/social-media-accounts"))).toBe(false);
+});
+
+it("never reads a private brief if signed-in user identity cannot be verified", async () => {
+  const f = vi.fn(async (value: unknown) =>
+    new URL(String(value)).pathname.endsWith("/users/me")
+      ? new Response(null, { status: 401 })
+      : new Response(null, { status: 401 }),
+  );
+  vi.stubGlobal("fetch", f);
+  const result = (await (await POST(probeRequest("read_campaign"))).json()).result;
+  expect(result).toMatchObject({
+    status: "UNKNOWN",
+    reason: "CAMPAIGN_AUTHENTICATED_IDENTITY_UNPROVEN",
+  });
+  expect(f.mock.calls.some((c) => new URL(String(c[0])).pathname.endsWith("/" + campaign))).toBe(false);
+});
+
 const reviewUrl = "https://www.tiktok.com/@creator/video/123";
 const reviewRow = {
   id: "s-review",

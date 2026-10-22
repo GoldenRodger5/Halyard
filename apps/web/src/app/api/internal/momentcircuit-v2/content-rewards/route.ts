@@ -503,10 +503,24 @@ async function readCampaign(
   bundle: CookieBundle,
 ) {
   const signal = AbortSignal.timeout(16_000);
-  const scope = await probe(campaignId, accountKey, platform, bundle, signal);
   const unknown = (reason: string) => ({ status: "UNKNOWN", reason });
-  if (scope.account_connected !== true)
-    return unknown("CAMPAIGN_ACCOUNT_READ_UNPROVEN");
+  // Reading a campaign's rules is not enrollment or approval to publish.
+  // Bind the read to an authenticated first-party user, not to social posting
+  // eligibility. The campaign endpoint still enforces the user's own access.
+  const identity = await nativeGet(
+    "/api/user/users/me",
+    bundle,
+    signal,
+    campaignId,
+    true,
+  );
+  const me = identity as { success?: unknown; data?: { id?: unknown } } | null;
+  if (
+    me?.success !== true ||
+    typeof me.data?.id !== "string" ||
+    !/^[a-zA-Z0-9_-]{1,128}$/.test(me.data.id)
+  )
+    return unknown("CAMPAIGN_AUTHENTICATED_IDENTITY_UNPROVEN");
   const response = await fetchWithCookies(
     `${CR_ORIGIN}/api/campaign/campaigns/${campaignId}`,
     bundle,
