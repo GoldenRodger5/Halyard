@@ -1,0 +1,1042 @@
+{
+  "schema": 1,
+  "post_id": "V1-short",
+  "idea": {
+    "id": "V1",
+    "pillar": "fix_it",
+    "series": "Scale it up #1",
+    "format": "short_video",
+    "platform": "tiktok",
+    "variants": [
+      "tiktok",
+      "instagram_reels"
+    ],
+    "canvas": {
+      "width": 1080,
+      "height": 1920
+    },
+    "target_seconds": [
+      30,
+      45
+    ],
+    "question": "Scaling a recipe up: multiply the ingredients, not the cooking time.",
+    "audience": "Scalers (scaling is the #1 transformation, 23 in 90 days: get_popular_transformations 2026-10-26)",
+    "proof": {
+      "file": "src/data/landingRealResult.ts",
+      "export": "LANDING_REAL_RESULT"
+    },
+    "claim_ids": [
+      "proof.tikka_method_changes",
+      "core.rewrites_steps",
+      "core.scaling"
+    ],
+    "never_show": [
+      "1½ (14.5-oz) can crushed tomatoes"
+    ],
+    "fact_sources": [
+      {
+        "id": "scale",
+        "statement": "4 → 6 servings is ×1.5, i.e. 50% more: 1½ lb chicken becomes 2¼ lb",
+        "source": "stored output ingredients[0] (original 1 1/2 lb, adapted 2¼ lb)"
+      },
+      {
+        "id": "broil_time",
+        "statement": "8 to 10 minutes per sheet",
+        "source": "stored output steps[4].instruction"
+      },
+      {
+        "id": "reduce_time",
+        "statement": "Start checking at 10 minutes",
+        "source": "stored output steps[3].updated_note"
+      }
+    ],
+    "beats": [
+      {
+        "role": "hook",
+        "must": "First frame moves: 4 → 6 servings. Line: multiply the ingredients, not the minutes."
+      },
+      {
+        "role": "amounts",
+        "must": "Amounts do scale: 1½ lb chicken → 2¼ lb (×1.5)."
+      },
+      {
+        "role": "broil",
+        "must": "Broiling 50% more chicken? Not 50% longer. Two batches, same 8 to 10 minutes each."
+      },
+      {
+        "role": "reduce",
+        "must": "Reducing the sauce in a wider pan goes faster. Start checking at 10 minutes, watch the spoon trail."
+      },
+      {
+        "role": "simmer",
+        "must": "Coconut cream instead of dairy cream: gentle simmer."
+      },
+      {
+        "role": "proof",
+        "must": "The real RecipeFix screen showing these step notes. Label: real result, captured Oct 21 2026; app screen, local build of the live UI."
+      },
+      {
+        "role": "close",
+        "must": "Takeaway: batches, not minutes. Cues, not clocks."
+      }
+    ]
+  },
+  "platform": "tiktok",
+  "status": "qa_passed_unpublished",
+  "publish_eligibility": {
+    "eligible": false,
+    "reasons": [
+      "Lean lane never publishes. A separate per-post owner approval and POC 3 transport are required.",
+      "Product post paused: state.json.unreceipted_deploy is set (seen 2026-10-26T19:04:21Z): No release receipt in docs/management names the live tree. Claims were verified by behaviour and source on this date.",
+      "Knowledge pack is on an unmerged docs branch (pending owner review)."
+    ]
+  },
+  "knowledge": {
+    "repo": "/Users/isaacmineo/PROJECT_2025/recipe-fix",
+    "ref": "e756660ef6e26ff0f3a798fb6256934ef1d4ec95",
+    "commit": "e756660ef6e26ff0f3a798fb6256934ef1d4ec95",
+    "path": "docs/marketing/knowledge",
+    "verified_against": {
+      "web_commit": "3f32680f",
+      "live_bundle_entry": "assets/index-DXCTkwFa.js",
+      "origin_main": "619c036a",
+      "mcp_build": "9d0df50d5725",
+      "ios_version": "2.5.5",
+      "verified_at": "2026-10-26T00:00:00.000Z"
+    }
+  },
+  "proof_commit": "3f32680f",
+  "claim_ids": [
+    "proof.tikka_method_changes",
+    "core.rewrites_steps",
+    "core.scaling"
+  ],
+  "claims": [
+    {
+      "id": "proof.tikka_method_changes",
+      "status": "live_receipt",
+      "phrasing": "Real RecipeFix result (captured 2026-10-21): scaling a dairy-free chicken tikka masala from 4 to 6 servings changed the steps — broil in two batches at the same time per batch, use the spoon trail instead of multiplying the reduction time, let excess coconut yogurt drip off so it chars, keep the coconut cream at a gentle simmer."
+    },
+    {
+      "id": "core.rewrites_steps",
+      "status": "live_receipt",
+      "phrasing": "It rewrites the cooking steps, not just the ingredient list."
+    },
+    {
+      "id": "core.scaling",
+      "status": "live",
+      "phrasing": "Scale to any number of servings, in measurements you can actually use."
+    }
+  ],
+  "fact_sources": [
+    {
+      "id": "scale",
+      "statement": "4 → 6 servings is ×1.5, i.e. 50% more: 1½ lb chicken becomes 2¼ lb",
+      "source": "stored output ingredients[0] (original 1 1/2 lb, adapted 2¼ lb)"
+    },
+    {
+      "id": "broil_time",
+      "statement": "8 to 10 minutes per sheet",
+      "source": "stored output steps[4].instruction"
+    },
+    {
+      "id": "reduce_time",
+      "statement": "Start checking at 10 minutes",
+      "source": "stored output steps[3].updated_note"
+    }
+  ],
+  "copy_source": "reviewed copy file runs/2026-10-26/V1-short/copy-reviewed.json",
+  "copy": {
+    "beats": [
+      {
+        "role": "hook",
+        "kicker": "Scale up",
+        "on_screen": "Cooking for 6? Don't add 50% to the time.",
+        "vo": "Scaling a recipe up? Multiply the ingredients. Not the minutes.",
+        "source": "FACT scale",
+        "claim_ids": [],
+        "fact_ids": [
+          "scale"
+        ]
+      },
+      {
+        "role": "amounts",
+        "kicker": "Amounts",
+        "on_screen": "1½ lb chicken → 2¼ lb",
+        "vo": "Amounts do scale. One and a half pounds of chicken becomes two and a quarter pounds.",
+        "source": "ingredients[0], FACT scale",
+        "claim_ids": [],
+        "fact_ids": [
+          "scale"
+        ]
+      },
+      {
+        "role": "broil",
+        "kicker": "Broil",
+        "on_screen": "More chicken needs batches, not time",
+        "vo": "Broiling fifty percent more chicken does not mean fifty percent longer. Use two batches, eight to ten minutes each.",
+        "source": "steps[4].instruction, steps[4].updated_note, explanations[2]",
+        "claim_ids": [],
+        "fact_ids": [
+          "broil_time"
+        ]
+      },
+      {
+        "role": "reduce",
+        "kicker": "Reduce",
+        "on_screen": "Wider pan? Start checking at 10 minutes.",
+        "vo": "A wider pan reduces faster. Start checking at ten minutes. It is done when a spoon dragged through leaves a trail.",
+        "source": "steps[3].instruction, steps[3].updated_note",
+        "claim_ids": [],
+        "fact_ids": [
+          "reduce_time"
+        ]
+      },
+      {
+        "role": "simmer",
+        "kicker": "Simmer",
+        "on_screen": "Coconut cream: gentle simmer",
+        "vo": "Swapped in coconut cream? Whisk it smooth, then keep the sauce at a gentle simmer.",
+        "source": "steps[5].updated_note",
+        "claim_ids": [],
+        "fact_ids": []
+      },
+      {
+        "role": "proof",
+        "kicker": "Proof",
+        "on_screen": "The app rewrote these steps",
+        "vo": "This is a real RecipeFix result. It rewrote these steps, and said why.",
+        "source": "proof.tikka_method_changes",
+        "claim_ids": [
+          "core.reasons",
+          "core.rewrites_steps",
+          "proof.tikka_method_changes"
+        ],
+        "fact_ids": []
+      },
+      {
+        "role": "close",
+        "kicker": "Takeaway",
+        "on_screen": "Batches, not minutes. Cues, not clocks.",
+        "vo": "Scale the food, not the clock. Batches for space. Cues for doneness.",
+        "source": "steps[3].updated_note, steps[4].updated_note, explanations[2]",
+        "claim_ids": [],
+        "fact_ids": []
+      }
+    ],
+    "caption": "Doubling a recipe, or cooking for more people? Multiply the ingredients, not the cook time. Give food room, and go by what you can see, like a spoon leaving a trail in the sauce.",
+    "hashtags": [
+      "recipeScaling",
+      "broiling",
+      "homeCooking",
+      "cookingTips"
+    ],
+    "caption_claim_ids": [],
+    "caption_fact_ids": []
+  },
+  "reviewer_edits": [
+    {
+      "path": "$.beats[0].on_screen",
+      "model": "4 → 6: multiply ingredients, not minutes",
+      "reviewed": "Cooking for 6? Don't add 50% to the time."
+    },
+    {
+      "path": "$.beats[0].vo",
+      "model": "Four to six servings. Multiply the ingredients, not the minutes.",
+      "reviewed": "Scaling a recipe up? Multiply the ingredients. Not the minutes."
+    },
+    {
+      "path": "$.beats[3].on_screen",
+      "model": "Start checking at 10 min. Watch the trail",
+      "reviewed": "Wider pan? Start checking at 10 minutes."
+    },
+    {
+      "path": "$.beats[3].vo",
+      "model": "A wider pan can reduce faster. Start checking at ten minutes. Stop by the spoon trail.",
+      "reviewed": "A wider pan reduces faster. Start checking at ten minutes. It is done when a spoon dragged through leaves a trail."
+    },
+    {
+      "path": "$.beats[4].vo",
+      "model": "For coconut cream, go gentle. Whisk it smooth if separated. Keep a gentle simmer.",
+      "reviewed": "Swapped in coconut cream? Whisk it smooth, then keep the sauce at a gentle simmer."
+    },
+    {
+      "path": "$.beats[5].on_screen",
+      "model": "Real result. Oct 21 2026. Local app UI",
+      "reviewed": "The app rewrote these steps"
+    },
+    {
+      "path": "$.beats[5].vo",
+      "model": "Real RecipeFix result, captured October twenty first. Local build of the live UI. It changed amounts and affected steps.",
+      "reviewed": "This is a real RecipeFix result. It rewrote these steps, and said why."
+    },
+    {
+      "path": "$.beats[5].claim_ids[0]",
+      "model": "proof.tikka_method_changes",
+      "reviewed": "core.reasons"
+    },
+    {
+      "path": "$.beats[6].on_screen",
+      "model": "Batches. Cues. Not clocks.",
+      "reviewed": "Batches, not minutes. Cues, not clocks."
+    },
+    {
+      "path": "$.beats[6].vo",
+      "model": "Scale the food. Do not scale the clock. Use batches for space, and cues for doneness.",
+      "reviewed": "Scale the food, not the clock. Batches for space. Cues for doneness."
+    },
+    {
+      "path": "$.caption",
+      "model": "Scaling up is usually a space problem, not a timer problem. Give food room, and use visible cues like a spoon trail.",
+      "reviewed": "Doubling a recipe, or cooking for more people? Multiply the ingredients, not the cook time. Give food room, and go by what you can see, like a spoon leaving a trail in the sauce."
+    }
+  ],
+  "model_attempts": [
+    {
+      "n": 1,
+      "model": "gpt-5.5",
+      "costUsd": 0.062744,
+      "problems": []
+    }
+  ],
+  "caption": "Doubling a recipe, or cooking for more people? Multiply the ingredients, not the cook time. Give food room, and go by what you can see, like a spoon leaving a trail in the sauce.\n\n#recipeScaling #broiling #homeCooking #cookingTips",
+  "assets": [
+    {
+      "id": "LANDING_REAL_RESULT",
+      "kind": "stored_output",
+      "location": "git:recipe-fix@3f32680f:src/data/landingRealResult.ts#LANDING_REAL_RESULT",
+      "sha256": "0968e762ca3eb6b3a63f3c859034a7749f2e167c681075269370c7e575fcff8b",
+      "provenance": "Verbatim production response stored in the product repo, captured 2026-10-21",
+      "licence": "first-party",
+      "disclosure": "Real RecipeFix result, captured 2026-10-21",
+      "capturedAt": "2026-10-21"
+    },
+    {
+      "id": "vo.mp3",
+      "kind": "audio",
+      "location": "runs/2026-10-26/V1-short/public/vo.mp3",
+      "sha256": "169a409a2f4f26e2ab78bd8142f663a3faa8c13e65edadc24154d1b48df64c26",
+      "provenance": "ElevenLabs TTS (eleven_multilingual_v2, account voice ELEVENLABS_VOICE_ID) of vo-script.txt, generated 2026-10-26",
+      "licence": "ElevenLabs output under the account plan terms; synthetic voice: disclose as AI voice where the platform asks (TikTok is_aigc)",
+      "disclosure": "AI-generated voiceover"
+    },
+    {
+      "id": "recipefix-adapt-b2-broiler-note.png crop {\"left\":175,\"top\":1490,\"width\":960,\"height\":420} → 780 wide (downscale 0.81)",
+      "kind": "product_capture",
+      "location": "/Users/isaacmineo/PROJECT_2025/halyard-marketing-lean-lane/runs/2026-10-26/captures/recipefix-adapt-b2-broiler-note.png",
+      "sha256": "cfbba863b5c27f7f90761464f093983590395988300ac54da9860220006e177b",
+      "provenance": "RecipeFix UI at commit 8c44a5b4 (RecipeOutputCard identical to the live 3f32680f tree), local build driven by scripts/journey.mjs (simulated backend); adaptation payload = verbatim stored production result captured 2026-10-21. runs/2026-10-26/captures/capture.json",
+      "licence": "first-party capture",
+      "disclosure": "Real RecipeFix screen, local build of the live UI; result captured Oct 21 2026"
+    },
+    {
+      "id": "recipefix-adapt-b1-tomato-sauce-note.png crop {\"left\":175,\"top\":1045,\"width\":960,\"height\":410} → 780 wide (downscale 0.81)",
+      "kind": "product_capture",
+      "location": "/Users/isaacmineo/PROJECT_2025/halyard-marketing-lean-lane/runs/2026-10-26/captures/recipefix-adapt-b1-tomato-sauce-note.png",
+      "sha256": "d63721df7ce78f45850a30963c357ffa08d4812382ab5e0bf7eadf5d9899b529",
+      "provenance": "RecipeFix UI at commit 8c44a5b4 (RecipeOutputCard identical to the live 3f32680f tree), local build driven by scripts/journey.mjs (simulated backend); adaptation payload = verbatim stored production result captured 2026-10-21. runs/2026-10-26/captures/capture.json",
+      "licence": "first-party capture",
+      "disclosure": "Real RecipeFix screen, local build of the live UI; result captured Oct 21 2026"
+    },
+    {
+      "id": "chicken-tikka-masala-1x1.webp crop 1080×1600 from 1600×1600 (no upscale; Remotion cover-fits 1080×1920, ×1.2)",
+      "kind": "originals_photo",
+      "location": "git:recipe-fix@3f32680f:public/images/originals/chicken-tikka-masala-1x1.webp",
+      "sha256": "9dc342eb812f38aa369d661853d23f714e328f4a4571bb5dab96dc8e1a7261bd",
+      "provenance": "docs/RECIPEFIX_ORIGINALS.md: | Chicken Tikka Masala | 1585937421612-70a008356fbe |",
+      "licence": "Unsplash License (licensed stock, not owned); RecipeFix docs/RECIPEFIX_ORIGINALS.md",
+      "disclosure": "Photo is the Original recipe's licensed stock photo, not the adapted dish"
+    }
+  ],
+  "files": [
+    "runs/2026-10-26/V1-short/V1-short.mp4"
+  ],
+  "qa": {
+    "passed": true,
+    "checks": [
+      {
+        "id": "claims.correspondence",
+        "passed": true,
+        "detail": "3 lines cite claims",
+        "problems": []
+      },
+      {
+        "id": "claims.forbidden",
+        "passed": true,
+        "detail": "37 forbidden examples checked",
+        "problems": []
+      },
+      {
+        "id": "facts.numbers_traced",
+        "passed": true,
+        "detail": "5 numbers checked",
+        "problems": []
+      },
+      {
+        "id": "claims.narrative",
+        "passed": true,
+        "detail": "first-person / audience claims need learnings.md",
+        "problems": []
+      },
+      {
+        "id": "copy.slop_filter",
+        "passed": true,
+        "detail": "0 errors, 0 warnings",
+        "problems": []
+      },
+      {
+        "id": "copy.on_screen_typography",
+        "passed": true,
+        "detail": "no em dashes, ellipses, or serialisation artefacts on screen",
+        "problems": []
+      },
+      {
+        "id": "copy.shape",
+        "passed": true,
+        "detail": "roles, lengths, speakability, proof support, never-show",
+        "problems": []
+      }
+    ],
+    "media": {
+      "passed": true,
+      "checks": [
+        {
+          "id": "video.spec",
+          "passed": true,
+          "detail": "1080×1920 h264 yuv420p 30/1, audio aac, 47.0 s, 11.0 MB",
+          "problems": []
+        },
+        {
+          "id": "motion.freeze_share",
+          "passed": true,
+          "detail": "3.3% frozen at Halyard's setting (−45 dB, ≥ 1.5 s; < 15%); strict reading (−54 dB, ≥ 0.5 s) 38.5%",
+          "problems": []
+        },
+        {
+          "id": "motion.first_change",
+          "passed": true,
+          "detail": "first visible change at 0.1 s (≤ 1.5 s)",
+          "problems": []
+        },
+        {
+          "id": "motion.avg_shot",
+          "passed": true,
+          "detail": "9 shots, average 5.2 s (each beat also animates within itself; plan target ≤ 3 s is not met by beat cuts alone)",
+          "problems": []
+        },
+        {
+          "id": "audio.loudness",
+          "passed": true,
+          "detail": "integrated -14.66 LUFS (−16 to −13), true peak -1.72 dBTP (≤ −1)",
+          "problems": []
+        },
+        {
+          "id": "image.blur",
+          "passed": true,
+          "detail": "blurdetect mean n/a (lower is sharper; flat graphics read low)",
+          "problems": []
+        },
+        {
+          "id": "text.readback",
+          "passed": true,
+          "detail": "35 keyframes (first, every caption change, last); ≥ 0.90 per line on video frames",
+          "problems": []
+        },
+        {
+          "id": "text.safe_zone",
+          "passed": true,
+          "detail": "all words inside x 120–900, y 270–1250 (TikTok/Reels)",
+          "problems": []
+        },
+        {
+          "id": "text.size",
+          "passed": true,
+          "detail": "every OCR word box ≥ 24 px tall on the 1080-wide frame",
+          "problems": []
+        },
+        {
+          "id": "audio.wer",
+          "passed": true,
+          "detail": "WER 0.0% vs script (≤ 5%; whisper base.en, numbers normalised)",
+          "problems": []
+        },
+        {
+          "id": "captions.sync",
+          "passed": true,
+          "detail": "21 phrase-opening captions vs 22 speech onsets in the final audio; p90 90 ms, max 153 ms (±150 ms)",
+          "problems": [
+            "\"Cues for doneness.\" 153 ms from nearest onset"
+          ]
+        }
+      ],
+      "keyframes": [
+        {
+          "t": 0.05,
+          "intended": [
+            "Scaling a recipe up?"
+          ],
+          "similarity": [
+            1
+          ],
+          "outside": [],
+          "small": []
+        },
+        {
+          "t": 0.2,
+          "intended": [
+            "Scaling a recipe up?"
+          ],
+          "similarity": [
+            1
+          ],
+          "outside": [],
+          "small": []
+        },
+        {
+          "t": 2.37,
+          "intended": [
+            "SCALE UP",
+            "Cooking for 6? Don't add 50% to the time.",
+            "Multiply the ingredients."
+          ],
+          "similarity": [
+            1,
+            1,
+            1
+          ],
+          "outside": [],
+          "small": []
+        },
+        {
+          "t": 3.9,
+          "intended": [
+            "SCALE UP",
+            "Cooking for 6? Don't add 50% to the time.",
+            "Not the minutes."
+          ],
+          "similarity": [
+            1,
+            1,
+            1
+          ],
+          "outside": [],
+          "small": []
+        },
+        {
+          "t": 5.7,
+          "intended": [
+            "Amounts do scale."
+          ],
+          "similarity": [
+            1
+          ],
+          "outside": [],
+          "small": []
+        },
+        {
+          "t": 7.6,
+          "intended": [
+            "AMOUNTS",
+            "1½ lb chicken → 2¼ lb",
+            "One and a half"
+          ],
+          "similarity": [
+            1,
+            1,
+            1
+          ],
+          "outside": [],
+          "small": []
+        },
+        {
+          "t": 8.23,
+          "intended": [
+            "AMOUNTS",
+            "1½ lb chicken → 2¼ lb",
+            "pounds of chicken becomes"
+          ],
+          "similarity": [
+            1,
+            1,
+            1
+          ],
+          "outside": [],
+          "small": []
+        },
+        {
+          "t": 9.6,
+          "intended": [
+            "AMOUNTS",
+            "1½ lb chicken → 2¼ lb",
+            "two and a quarter"
+          ],
+          "similarity": [
+            1,
+            1,
+            1
+          ],
+          "outside": [],
+          "small": []
+        },
+        {
+          "t": 10.23,
+          "intended": [
+            "AMOUNTS",
+            "1½ lb chicken → 2¼ lb",
+            "pounds."
+          ],
+          "similarity": [
+            1,
+            1,
+            1
+          ],
+          "outside": [],
+          "small": []
+        },
+        {
+          "t": 11.4,
+          "intended": [
+            "Broiling fifty percent"
+          ],
+          "similarity": [
+            1
+          ],
+          "outside": [],
+          "small": []
+        },
+        {
+          "t": 12.63,
+          "intended": [
+            "BROIL",
+            "More chicken needs batches, not time",
+            "more chicken does not"
+          ],
+          "similarity": [
+            1,
+            1,
+            1
+          ],
+          "outside": [],
+          "small": []
+        },
+        {
+          "t": 13.93,
+          "intended": [
+            "BROIL",
+            "More chicken needs batches, not time",
+            "mean fifty percent longer."
+          ],
+          "similarity": [
+            1,
+            1,
+            1
+          ],
+          "outside": [],
+          "small": []
+        },
+        {
+          "t": 16.13,
+          "intended": [
+            "BROIL",
+            "More chicken needs batches, not time",
+            "Use two batches,"
+          ],
+          "similarity": [
+            1,
+            1,
+            1
+          ],
+          "outside": [],
+          "small": []
+        },
+        {
+          "t": 17.43,
+          "intended": [
+            "BROIL",
+            "More chicken needs batches, not time",
+            "eight to ten minutes"
+          ],
+          "similarity": [
+            1,
+            1,
+            1
+          ],
+          "outside": [],
+          "small": []
+        },
+        {
+          "t": 18.18,
+          "intended": [
+            "BROIL",
+            "More chicken needs batches, not time",
+            "each."
+          ],
+          "similarity": [
+            1,
+            1,
+            1
+          ],
+          "outside": [],
+          "small": []
+        },
+        {
+          "t": 19.27,
+          "intended": [
+            "A wider pan reduces"
+          ],
+          "similarity": [
+            1
+          ],
+          "outside": [],
+          "small": []
+        },
+        {
+          "t": 20.5,
+          "intended": [
+            "REDUCE",
+            "Wider pan? Start checking at 10 minutes.",
+            "faster."
+          ],
+          "similarity": [
+            1,
+            1,
+            1
+          ],
+          "outside": [],
+          "small": []
+        },
+        {
+          "t": 21.9,
+          "intended": [
+            "REDUCE",
+            "Wider pan? Start checking at 10 minutes.",
+            "Start checking at ten"
+          ],
+          "similarity": [
+            1,
+            1,
+            1
+          ],
+          "outside": [],
+          "small": []
+        },
+        {
+          "t": 22.9,
+          "intended": [
+            "REDUCE",
+            "Wider pan? Start checking at 10 minutes.",
+            "minutes."
+          ],
+          "similarity": [
+            1,
+            1,
+            1
+          ],
+          "outside": [],
+          "small": []
+        },
+        {
+          "t": 24.1,
+          "intended": [
+            "REDUCE",
+            "Wider pan? Start checking at 10 minutes.",
+            "It is done when"
+          ],
+          "similarity": [
+            1,
+            1,
+            1
+          ],
+          "outside": [],
+          "small": []
+        },
+        {
+          "t": 24.77,
+          "intended": [
+            "REDUCE",
+            "Wider pan? Start checking at 10 minutes.",
+            "a spoon dragged through"
+          ],
+          "similarity": [
+            1,
+            1,
+            1
+          ],
+          "outside": [],
+          "small": []
+        },
+        {
+          "t": 25.77,
+          "intended": [
+            "REDUCE",
+            "Wider pan? Start checking at 10 minutes.",
+            "leaves a trail."
+          ],
+          "similarity": [
+            1,
+            1,
+            1
+          ],
+          "outside": [],
+          "small": []
+        },
+        {
+          "t": 27.47,
+          "intended": [
+            "Swapped in coconut cream?"
+          ],
+          "similarity": [
+            1
+          ],
+          "outside": [],
+          "small": []
+        },
+        {
+          "t": 29.7,
+          "intended": [
+            "SIMMER",
+            "Coconut cream: gentle simmer",
+            "Whisk it smooth,"
+          ],
+          "similarity": [
+            1,
+            1,
+            1
+          ],
+          "outside": [],
+          "small": []
+        },
+        {
+          "t": 30.77,
+          "intended": [
+            "SIMMER",
+            "Coconut cream: gentle simmer",
+            "then keep the sauce"
+          ],
+          "similarity": [
+            1,
+            1,
+            1
+          ],
+          "outside": [],
+          "small": []
+        },
+        {
+          "t": 31.73,
+          "intended": [
+            "SIMMER",
+            "Coconut cream: gentle simmer",
+            "at a gentle simmer."
+          ],
+          "similarity": [
+            1,
+            1,
+            1
+          ],
+          "outside": [],
+          "small": []
+        },
+        {
+          "t": 33.77,
+          "intended": [
+            "This is a real"
+          ],
+          "similarity": [
+            1
+          ],
+          "outside": [],
+          "small": []
+        },
+        {
+          "t": 34.67,
+          "intended": [
+            "RecipeFix result."
+          ],
+          "similarity": [
+            1
+          ],
+          "outside": [],
+          "small": []
+        },
+        {
+          "t": 36.63,
+          "intended": [
+            "PROOF",
+            "The app rewrote these steps",
+            "It rewrote these steps,"
+          ],
+          "similarity": [
+            1,
+            1,
+            1
+          ],
+          "outside": [],
+          "small": []
+        },
+        {
+          "t": 37.93,
+          "intended": [
+            "PROOF",
+            "The app rewrote these steps",
+            "and said why."
+          ],
+          "similarity": [
+            1,
+            1,
+            1
+          ],
+          "outside": [],
+          "small": []
+        },
+        {
+          "t": 39.63,
+          "intended": [
+            "Scale the food,"
+          ],
+          "similarity": [
+            1
+          ],
+          "outside": [],
+          "small": []
+        },
+        {
+          "t": 40.7,
+          "intended": [
+            "TAKEAWAY",
+            "Batches, not minutes. Cues, not clocks.",
+            "not the clock."
+          ],
+          "similarity": [
+            1,
+            1,
+            1
+          ],
+          "outside": [],
+          "small": []
+        },
+        {
+          "t": 42.6,
+          "intended": [
+            "TAKEAWAY",
+            "Batches, not minutes. Cues, not clocks.",
+            "Batches for space."
+          ],
+          "similarity": [
+            1,
+            1,
+            1
+          ],
+          "outside": [],
+          "small": []
+        },
+        {
+          "t": 44.63,
+          "intended": [
+            "TAKEAWAY",
+            "Batches, not minutes. Cues, not clocks.",
+            "Cues for doneness."
+          ],
+          "similarity": [
+            1,
+            1,
+            1
+          ],
+          "outside": [],
+          "small": []
+        },
+        {
+          "t": 46.65,
+          "intended": [
+            "TAKEAWAY",
+            "Batches, not minutes. Cues, not clocks."
+          ],
+          "similarity": [
+            1,
+            1
+          ],
+          "outside": [],
+          "small": []
+        }
+      ]
+    }
+  },
+  "cost": {
+    "run_usd": 0.3275,
+    "ledger_total_usd": 0.5388,
+    "cap_usd": 15
+  },
+  "brief_sha256": "07a59a808647ecd24ccddd40101b090dde2b56d211a95fb38e8e1e6940f23670",
+  "made_at": "2026-10-26T20:42:25.555Z",
+  "safe_box": {
+    "x0": 120,
+    "y0": 270,
+    "x1": 900,
+    "y1": 1250
+  },
+  "variants": {
+    "tiktok": {
+      "file": "runs/2026-10-26/V1-short/V1-short.mp4",
+      "caption": "Doubling a recipe, or cooking for more people? Multiply the ingredients, not the cook time. Give food room, and go by what you can see, like a spoon leaving a trail in the sauce.\n\n#recipeScaling #broiling #homeCooking #cookingTips",
+      "notes": "Set \"Your brand\" (brand_organic_toggle) and AI-generated content label (synthetic voice). Trending sound, if any, added by a human in the app."
+    },
+    "instagram_reels": {
+      "file": "runs/2026-10-26/V1-short/V1-short.mp4",
+      "notes": "Same master is valid for Reels (safe box is the intersection of both UIs). Use a Reels-specific caption; do not cross-post the TikTok file with its caption unchanged."
+    }
+  },
+  "timing": {
+    "durationSeconds": 46.93333333333333,
+    "beats": [
+      {
+        "role": "hook",
+        "kicker": "Scale up",
+        "onScreen": "Cooking for 6? Don't add 50% to the time.",
+        "start": 0,
+        "end": 161
+      },
+      {
+        "role": "amounts",
+        "kicker": "Amounts",
+        "onScreen": "1½ lb chicken → 2¼ lb",
+        "start": 161,
+        "end": 333
+      },
+      {
+        "role": "broil",
+        "kicker": "Broil",
+        "onScreen": "More chicken needs batches, not time",
+        "start": 333,
+        "end": 569
+      },
+      {
+        "role": "reduce",
+        "kicker": "Reduce",
+        "onScreen": "Wider pan? Start checking at 10 minutes.",
+        "start": 569,
+        "end": 814
+      },
+      {
+        "role": "simmer",
+        "kicker": "Simmer",
+        "onScreen": "Coconut cream: gentle simmer",
+        "start": 814,
+        "end": 1003
+      },
+      {
+        "role": "proof",
+        "kicker": "Proof",
+        "onScreen": "The app rewrote these steps",
+        "start": 1003,
+        "end": 1179
+      },
+      {
+        "role": "close",
+        "kicker": "Takeaway",
+        "onScreen": "Batches, not minutes. Cues, not clocks.",
+        "start": 1179,
+        "end": 1408
+      }
+    ],
+    "captions": 33
+  }
+}

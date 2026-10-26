@@ -1,0 +1,84 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>V1-short preview</title>
+<style>
+:root{--bg:#F5EDE4;--ink:#27221E;--muted:#60554D;--accent:#A65336;--ok:#2f6b3a;--bad:#a3261b;--card:#fffaf4}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1b1715;--ink:#f3ece6;--muted:#bcae9f;--card:#262019}}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 -apple-system,Inter,system-ui,sans-serif}
+main{max-width:1180px;margin:0 auto;padding:24px 16px}
+h1{font-family:Georgia,serif;font-weight:400;margin:0 0 4px}
+.status{display:inline-block;padding:2px 10px;border-radius:99px;background:var(--ok);color:#fff;font-weight:600}
+.media{display:flex;gap:14px;overflow-x:auto;padding:12px 0}
+figure{margin:0;flex:0 0 auto;width:min(400px,86vw)}
+.frame{position:relative;width:100%;background:#000;border-radius:12px;overflow:hidden}
+.frame img,.frame video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.safe{position:absolute;outline:2px dashed #00e5ff;display:none;pointer-events:none}
+body.showsafe .safe{display:block}
+figcaption{font-size:13px;color:var(--muted)}
+section{background:var(--card);border-radius:12px;padding:16px;margin:16px 0}
+table{border-collapse:collapse;width:100%;font-size:14px}td{border-top:1px solid #0002;padding:6px;vertical-align:top}
+tr.bad td:first-child{color:var(--bad);font-weight:700}tr.ok td:first-child{color:var(--ok);font-weight:700}
+pre{white-space:pre-wrap;font:14px/1.5 ui-monospace,monospace}
+abbr{text-decoration:underline dotted;cursor:help}
+</style></head><body><main>
+<p class="status">QA passed · unpublished</p>
+<h1>V1-short: Scaling a recipe up: multiply the ingredients, not the cooking time.</h1>
+<p>tiktok · pillar fix_it · copy: reviewed copy file runs/2026-10-26/V1-short/copy-reviewed.json · knowledge <code>e756660ef6e26ff0f3a798fb6256934ef1d4ec95</code> · made 2026-10-26T20:42:25.555Z</p>
+<p><label><input type="checkbox" onchange="document.body.classList.toggle('showsafe',this.checked)"> show safe zone</label></p>
+<div class="media"><figure><div class="frame" style="aspect-ratio:1080/1920"><video src="V1-short.mp4" controls playsinline muted loop></video><div class="safe" style="left:11.11111111111111%;top:14.0625%;width:72.22222222222221%;height:51.041666666666664%"></div></div><figcaption>V1-short.mp4 · <a href="V1-short.mp4">full size</a></figcaption></figure></div>
+<section><h2>Caption</h2><pre>Doubling a recipe, or cooking for more people? Multiply the ingredients, not the cook time. Give food room, and go by what you can see, like a spoon leaving a trail in the sauce.
+
+#recipeScaling #broiling #homeCooking #cookingTips</pre></section>
+<section><h2>Independent critique</h2><pre># Independent critique: V1 TikTok / Reels short
+
+Reviewer: fresh-context model (Claude subagent) given only the exported MP4 (frames it extracted itself at ~400 px), a 2-second contact sheet, the voiceover script, caption, brief.md and brand.md. No generation history. 2026-10-26.
+
+## Lead's own pre-critique pass (before the reviewer saw it)
+Found and fixed on my own frames: frame 1 had no real photo (brand rule) → the Original's licensed photo with label; the proof crops cut off the &quot;RecipeFix changed this step&quot; note and clipped the right edge → re-cropped; &quot;chicken thighs&quot; overran the safe box (caught by QA) → &quot;chicken&quot;; the proof beat's headline wrapped into the clip → one line.
+
+## Round 1 — verdict: FIX
+- Hook was a question over a label that gave the payoff away; no stated tension in the first 2 s.
+- Static stretches: amounts (6–11 s), reduce open with no headline (~16–18 s), reduce diagram held (19–24 s), simmer pot (26–33 s), takeaway held 8 s.
+- Photo label competed with the caption; reduce headline broke badly (&quot;Spoon / leaves a trail? Done&quot;).
+- Proof real but text ~30 px at 1080 and starting mid-sentence: readable only on pause.
+- Caption flat; &quot;Scaling a recipe up?&quot; a weaker search phrase than &quot;doubling a recipe&quot;.
+
+Fixes applied (voiceover unchanged, so no re-synthesis):
+1. Hook headline → &quot;Cooking for 6? Don't add 50% to the time.&quot;; photo label moved clear of captions.
+2. Headlines present from frame one of each beat; plates arrive on the amounts beat; reduce level drop + spoon drawing the trail; simmer gets a struck &quot;hard boil → gentle simmer&quot;; takeaway reveals line by line.
+3. Proof → crisp crops of the two note boxes from the 3× captures, step-labelled, ~37 px, starting on their first line.
+4. Reduce headline → &quot;Wider pan? Start checking at 10 minutes.&quot;; caption rewritten around &quot;doubling a recipe / cooking for more people&quot;.
+
+## Round 2 — verdict: SHIP
+No blockers. Hook sets up tension; every beat has something to watch (simmer still the quietest); proof real and readable at 400 px; takeaway hold acceptable. Optional: proof shows step 5 before step 4 (follows the voiceover order).
+
+## Lead's verdict: SHIP as an unpublished draft, with honest caveats
+- The diagrams are clean but plain vector illustration; this would be markedly better with 6–8 s of founder footage (hands broiling two sheets, a spoon dragged through sauce) replacing the broil and reduce diagrams, and the founder's own voice instead of the synthetic one.
+- Motion passes at Halyard's production freeze setting (−45 dB, ≥ 1.5 s) but the strict reading (−54 dB, ≥ 0.5 s) is still high, because flat-colour beats only change at caption changes. Real footage fixes that too.
+- The voice is ElevenLabs (synthetic): set the platform's AI-generated label.
+- The proof screens come from a local build of the live UI with a simulated backend serving the real stored result; that is disclosed on screen.
+</pre></section>
+<section><h2>Claims cited</h2><ul><li><abbr title="Real RecipeFix result (captured 2026-10-21): scaling a dairy-free chicken tikka masala from 4 to 6 servings changed the steps — broil in two batches at the same time per batch, use the spoon trail instead of multiplying the reduction time, let excess coconut yogurt drip off so it chars, keep the coconut cream at a gentle simmer.">proof.tikka_method_changes</abbr> · live_receipt</li><li><abbr title="It rewrites the cooking steps, not just the ingredient list.">core.rewrites_steps</abbr> · live_receipt</li><li><abbr title="Scale to any number of servings, in measurements you can actually use.">core.scaling</abbr> · live</li></ul></section>
+<section><h2>Fact sources</h2><ul><li><b>scale</b>: 4 → 6 servings is ×1.5, i.e. 50% more: 1½ lb chicken becomes 2¼ lb <i>(stored output ingredients[0] (original 1 1/2 lb, adapted 2¼ lb))</i></li><li><b>broil_time</b>: 8 to 10 minutes per sheet <i>(stored output steps[4].instruction)</i></li><li><b>reduce_time</b>: Start checking at 10 minutes <i>(stored output steps[3].updated_note)</i></li></ul></section>
+<section><h2>Assets and rights</h2><ul><li><b>stored_output</b> LANDING_REAL_RESULT<br><small>git:recipe-fix@3f32680f:src/data/landingRealResult.ts#LANDING_REAL_RESULT · sha256 0968e762ca3eb6b3…<br>provenance: Verbatim production response stored in the product repo, captured 2026-10-21<br>licence: first-party<br>disclosure: Real RecipeFix result, captured 2026-10-21</small></li><li><b>audio</b> vo.mp3<br><small>runs/2026-10-26/V1-short/public/vo.mp3 · sha256 169a409a2f4f26e2…<br>provenance: ElevenLabs TTS (eleven_multilingual_v2, account voice ELEVENLABS_VOICE_ID) of vo-script.txt, generated 2026-10-26<br>licence: ElevenLabs output under the account plan terms; synthetic voice: disclose as AI voice where the platform asks (TikTok is_aigc)<br>disclosure: AI-generated voiceover</small></li><li><b>product_capture</b> recipefix-adapt-b2-broiler-note.png crop {&quot;left&quot;:175,&quot;top&quot;:1490,&quot;width&quot;:960,&quot;height&quot;:420} → 780 wide (downscale 0.81)<br><small>/Users/isaacmineo/PROJECT_2025/halyard-marketing-lean-lane/runs/2026-10-26/captures/recipefix-adapt-b2-broiler-note.png · sha256 cfbba863b5c27f7f…<br>provenance: RecipeFix UI at commit 8c44a5b4 (RecipeOutputCard identical to the live 3f32680f tree), local build driven by scripts/journey.mjs (simulated backend); adaptation payload = verbatim stored production result captured 2026-10-21. runs/2026-10-26/captures/capture.json<br>licence: first-party capture<br>disclosure: Real RecipeFix screen, local build of the live UI; result captured Oct 21 2026</small></li><li><b>product_capture</b> recipefix-adapt-b1-tomato-sauce-note.png crop {&quot;left&quot;:175,&quot;top&quot;:1045,&quot;width&quot;:960,&quot;height&quot;:410} → 780 wide (downscale 0.81)<br><small>/Users/isaacmineo/PROJECT_2025/halyard-marketing-lean-lane/runs/2026-10-26/captures/recipefix-adapt-b1-tomato-sauce-note.png · sha256 d63721df7ce78f45…<br>provenance: RecipeFix UI at commit 8c44a5b4 (RecipeOutputCard identical to the live 3f32680f tree), local build driven by scripts/journey.mjs (simulated backend); adaptation payload = verbatim stored production result captured 2026-10-21. runs/2026-10-26/captures/capture.json<br>licence: first-party capture<br>disclosure: Real RecipeFix screen, local build of the live UI; result captured Oct 21 2026</small></li><li><b>originals_photo</b> chicken-tikka-masala-1x1.webp crop 1080×1600 from 1600×1600 (no upscale; Remotion cover-fits 1080×1920, ×1.2)<br><small>git:recipe-fix@3f32680f:public/images/originals/chicken-tikka-masala-1x1.webp · sha256 9dc342eb812f38aa…<br>provenance: docs/RECIPEFIX_ORIGINALS.md: | Chicken Tikka Masala | 1585937421612-70a008356fbe |<br>licence: Unsplash License (licensed stock, not owned); RecipeFix docs/RECIPEFIX_ORIGINALS.md<br>disclosure: Photo is the Original recipe's licensed stock photo, not the adapted dish</small></li></ul></section>
+<section><h2>Automated QA</h2><table><tr class="ok"><td>PASS</td><td>claims.correspondence</td><td>3 lines cite claims</td></tr>
+<tr class="ok"><td>PASS</td><td>claims.forbidden</td><td>37 forbidden examples checked</td></tr>
+<tr class="ok"><td>PASS</td><td>facts.numbers_traced</td><td>5 numbers checked</td></tr>
+<tr class="ok"><td>PASS</td><td>claims.narrative</td><td>first-person / audience claims need learnings.md</td></tr>
+<tr class="ok"><td>PASS</td><td>copy.slop_filter</td><td>0 errors, 0 warnings</td></tr>
+<tr class="ok"><td>PASS</td><td>copy.on_screen_typography</td><td>no em dashes, ellipses, or serialisation artefacts on screen</td></tr>
+<tr class="ok"><td>PASS</td><td>copy.shape</td><td>roles, lengths, speakability, proof support, never-show</td></tr>
+<tr class="ok"><td>PASS</td><td>media · video.spec</td><td>1080×1920 h264 yuv420p 30/1, audio aac, 47.0 s, 11.0 MB</td></tr>
+<tr class="ok"><td>PASS</td><td>media · motion.freeze_share</td><td>3.3% frozen at Halyard's setting (−45 dB, ≥ 1.5 s; &lt; 15%); strict reading (−54 dB, ≥ 0.5 s) 38.5%</td></tr>
+<tr class="ok"><td>PASS</td><td>media · motion.first_change</td><td>first visible change at 0.1 s (≤ 1.5 s)</td></tr>
+<tr class="ok"><td>PASS</td><td>media · motion.avg_shot</td><td>9 shots, average 5.2 s (each beat also animates within itself; plan target ≤ 3 s is not met by beat cuts alone)</td></tr>
+<tr class="ok"><td>PASS</td><td>media · audio.loudness</td><td>integrated -14.66 LUFS (−16 to −13), true peak -1.72 dBTP (≤ −1)</td></tr>
+<tr class="ok"><td>PASS</td><td>media · image.blur</td><td>blurdetect mean n/a (lower is sharper; flat graphics read low)</td></tr>
+<tr class="ok"><td>PASS</td><td>media · text.readback</td><td>35 keyframes (first, every caption change, last); ≥ 0.90 per line on video frames</td></tr>
+<tr class="ok"><td>PASS</td><td>media · text.safe_zone</td><td>all words inside x 120–900, y 270–1250 (TikTok/Reels)</td></tr>
+<tr class="ok"><td>PASS</td><td>media · text.size</td><td>every OCR word box ≥ 24 px tall on the 1080-wide frame</td></tr>
+<tr class="ok"><td>PASS</td><td>media · audio.wer</td><td>WER 0.0% vs script (≤ 5%; whisper base.en, numbers normalised)</td></tr>
+<tr class="ok"><td>PASS</td><td>media · captions.sync</td><td>21 phrase-opening captions vs 22 speech onsets in the final audio; p90 90 ms, max 153 ms (±150 ms)<ul><li>&quot;Cues for doneness.&quot; 153 ms from nearest onset</li></ul></td></tr></table></section>
+<section><h2>Reviewer edits to model copy</h2><ul><li><code>$.beats[0].on_screen</code>: &quot;4 → 6: multiply ingredients, not minutes&quot; → &quot;Cooking for 6? Don't add 50% to the time.&quot;</li><li><code>$.beats[0].vo</code>: &quot;Four to six servings. Multiply the ingredients, not the minutes.&quot; → &quot;Scaling a recipe up? Multiply the ingredients. Not the minutes.&quot;</li><li><code>$.beats[3].on_screen</code>: &quot;Start checking at 10 min. Watch the trail&quot; → &quot;Wider pan? Start checking at 10 minutes.&quot;</li><li><code>$.beats[3].vo</code>: &quot;A wider pan can reduce faster. Start checking at ten minutes. Stop by the spoon trail.&quot; → &quot;A wider pan reduces faster. Start checking at ten minutes. It is done when a spoon dragged through leaves a trail.&quot;</li><li><code>$.beats[4].vo</code>: &quot;For coconut cream, go gentle. Whisk it smooth if separated. Keep a gentle simmer.&quot; → &quot;Swapped in coconut cream? Whisk it smooth, then keep the sauce at a gentle simmer.&quot;</li><li><code>$.beats[5].on_screen</code>: &quot;Real result. Oct 21 2026. Local app UI&quot; → &quot;The app rewrote these steps&quot;</li><li><code>$.beats[5].vo</code>: &quot;Real RecipeFix result, captured October twenty first. Local build of the live UI. It changed amounts and affected steps.&quot; → &quot;This is a real RecipeFix result. It rewrote these steps, and said why.&quot;</li><li><code>$.beats[5].claim_ids[0]</code>: &quot;proof.tikka_method_changes&quot; → &quot;core.reasons&quot;</li><li><code>$.beats[6].on_screen</code>: &quot;Batches. Cues. Not clocks.&quot; → &quot;Batches, not minutes. Cues, not clocks.&quot;</li><li><code>$.beats[6].vo</code>: &quot;Scale the food. Do not scale the clock. Use batches for space, and cues for doneness.&quot; → &quot;Scale the food, not the clock. Batches for space. Cues for doneness.&quot;</li><li><code>$.caption</code>: &quot;Scaling up is usually a space problem, not a timer problem. Give food room, and use visible cues like a spoon trail.&quot; → &quot;Doubling a recipe, or cooking for more people? Multiply the ingredients, not the cook time. Give food room, and go by what you can see, like a spoon leaving a trail in the sauce.&quot;</li></ul></section>
+<section><h2>Publishing</h2><p>Eligible: <b>no</b></p><ul><li>Lean lane never publishes. A separate per-post owner approval and POC 3 transport are required.</li><li>Product post paused: state.json.unreceipted_deploy is set (seen 2026-10-26T19:04:21Z): No release receipt in docs/management names the live tree. Claims were verified by behaviour and source on this date.</li><li>Knowledge pack is on an unmerged docs branch (pending owner review).</li></ul></section>
+<section><h2>Cost</h2><p>This run $0.3275 · ledger total $0.5388 of $15.00 cap</p></section>
+</main></body></html>

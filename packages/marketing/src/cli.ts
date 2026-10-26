@@ -6,6 +6,7 @@
  *   pnpm mk brief                     print the assembled brief and the pack's state
  *   pnpm mk plan                      list ideas, check every cited claim against the pack
  *   pnpm mk make <idea-id> [--copy f] render + QA one idea (model copy, or a reviewed copy file)
+ *   pnpm mk gate <drafts.json>        copy-gate platform variants that reuse a QA-passed asset
  *   pnpm mk ledger                    the spend ledger and the cap
  *
  * Paid calls (copy, voice) go through the ledger and stop before the cap.
@@ -60,6 +61,35 @@ async function main(): Promise<void> {
     return;
   }
 
+  if (cmd === 'gate') {
+    const file = rest[0];
+    if (!file) throw new Error('usage: pnpm mk gate <drafts.json>');
+    const { readFileSync, writeFileSync } = await import('node:fs');
+    const { runCopyGate } = await import('./copyGate.js');
+    const doc = JSON.parse(readFileSync(file, 'utf8')) as {
+      drafts: Array<{ id: string; idea: string; platform: 'x' | 'instagram' | 'tiktok'; text: string; hashtags: string[]; claim_ids: string[]; fact_ids: string[]; media: string }>;
+    };
+    const ideas = loadIdeas();
+    const pack = loadKnowledgePack({ kind: 'git', repo: ideas.product_repo, ref: ideas.knowledge.ref, path: ideas.knowledge.path });
+    const results = doc.drafts.map((d) => {
+      const idea = ideas.ideas.find((i) => i.id === d.idea)!;
+      const ctx = openRun(d.idea);
+      const g = runCopyGate({
+        pack,
+        lines: [],
+        caption: { text: d.text, hashtags: d.hashtags, platform: d.platform, claimIds: d.claim_ids, factIds: d.fact_ids },
+        proofText: JSON.stringify(ctx.proof),
+        factSources: idea.fact_sources,
+        productTerms: ideas.product_terms,
+      });
+      const media = idea ? d.media : null;
+      console.log(`${d.id}: ${g.passed ? 'GATE PASS' : 'GATE FAIL'}${g.checks.filter((c) => c.problems.length).map((c) => `\n  ${c.passed ? 'warn' : 'FAIL'} ${c.id}: ${c.problems.join(' | ')}`).join('')}`);
+      return { id: d.id, media, passed: g.passed, checks: g.checks, knowledge_commit: pack.commit, product_posts_paused: productPostsPaused(pack) };
+    });
+    writeFileSync(file.replace(/\.json$/, '.gate.json'), `${JSON.stringify(results, null, 2)}\n`);
+    return;
+  }
+
   if (cmd === 'ledger') {
     const ledger = new Ledger(LEDGER_FILE, SPEND_CAP_USD);
     for (const e of ledger.entries()) console.log(`${e.at} ${e.run.padEnd(16)} ${e.provider}/${e.model} ${e.purpose} $${e.usd.toFixed(4)}`);
@@ -67,7 +97,7 @@ async function main(): Promise<void> {
     return;
   }
 
-  console.log('usage: pnpm mk <brief|plan|make|ledger>');
+  console.log('usage: pnpm mk <brief|plan|make|gate|ledger>');
   process.exitCode = 1;
 }
 
