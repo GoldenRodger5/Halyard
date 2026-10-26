@@ -6,6 +6,7 @@
     "pillar": "fix_it",
     "series": "Scale it up #1",
     "format": "short_video",
+    "composition": "screen-hero",
     "platform": "tiktok",
     "variants": [
       "tiktok",
@@ -50,34 +51,124 @@
         "source": "stored output steps[3].updated_note"
       }
     ],
+    "captures": "runs/2026-10-26/captures-v2",
     "beats": [
       {
         "role": "hook",
-        "must": "First frame moves: 4 → 6 servings. Line: multiply the ingredients, not the minutes."
+        "must": "First frame moves: 4 → 6 servings. Line: multiply the ingredients, not the minutes.",
+        "shots": [
+          {
+            "kind": "photo-hook",
+            "weight": 2.6
+          },
+          {
+            "src": "recipefix-v2-clip1-result-swapped-yogurt.mp4",
+            "from": 1.6,
+            "y": 600,
+            "weight": 2.8
+          }
+        ]
       },
       {
         "role": "amounts",
-        "must": "Amounts do scale: 1½ lb chicken → 2¼ lb (×1.5)."
+        "must": "Amounts do scale: 1½ lb chicken → 2¼ lb (×1.5).",
+        "shots": [
+          {
+            "src": "recipefix-v2-clip1-result-swapped-yogurt.mp4",
+            "from": 3.15,
+            "y": 640
+          }
+        ]
       },
       {
         "role": "broil",
-        "must": "Broiling 50% more chicken? Not 50% longer. Two batches, same 8 to 10 minutes each."
+        "must": "Broiling 50% more chicken? Not 50% longer. Two batches, same 8 to 10 minutes each.",
+        "shots": [
+          {
+            "src": "recipefix-v2-clip2-method-step-notes.mp4",
+            "from": 2.5,
+            "y": 840
+          },
+          {
+            "src": "recipefix-v2-still-3-step5-broil-marinated-chicken.png",
+            "y": 681
+          },
+          {
+            "src": "recipefix-v2-still-3-step5-broil-marinated-chicken.png",
+            "y": 1063
+          }
+        ]
       },
       {
         "role": "reduce",
-        "must": "Reducing the sauce in a wider pan goes faster. Start checking at 10 minutes, watch the spoon trail."
+        "must": "Reducing the sauce in a wider pan goes faster. Start checking at 10 minutes, watch the spoon trail.",
+        "shots": [
+          {
+            "src": "recipefix-v2-clip2-method-step-notes.mp4",
+            "from": 0,
+            "y": 520
+          },
+          {
+            "src": "recipefix-v2-still-2-step4-reduce-tomato-sauce.png",
+            "y": 905
+          },
+          {
+            "src": "recipefix-v2-still-2-step4-reduce-tomato-sauce.png",
+            "y": 607
+          }
+        ]
       },
       {
         "role": "simmer",
-        "must": "Coconut cream instead of dairy cream: gentle simmer."
+        "must": "Coconut cream instead of dairy cream: gentle simmer.",
+        "shots": [
+          {
+            "src": "recipefix-v2-clip2-method-step-notes.mp4",
+            "from": 6.3,
+            "y": 520,
+            "weight": 3.7
+          },
+          {
+            "src": "recipefix-v2-still-4-step6-finish-creamy-sauce.png",
+            "y": 905,
+            "weight": 2.6
+          }
+        ]
       },
       {
         "role": "proof",
-        "must": "The real RecipeFix screen showing these step notes. Label: real result, captured Oct 21 2026; app screen, local build of the live UI."
+        "must": "The real RecipeFix screen showing these step notes. Label: real result, captured Oct 21 2026; app screen, local build of the live UI.",
+        "shots": [
+          {
+            "src": "recipefix-v2-clip4-cook-mode-timer.mp4",
+            "from": 0.2,
+            "y": 300,
+            "weight": 2.8
+          },
+          {
+            "src": "recipefix-v2-clip4-cook-mode-timer.mp4",
+            "from": 3,
+            "y": 300,
+            "yEnd": 1150,
+            "weight": 3.1
+          }
+        ]
       },
       {
         "role": "close",
-        "must": "Takeaway: batches, not minutes. Cues, not clocks."
+        "must": "Takeaway: batches, not minutes. Cues, not clocks.",
+        "shots": [
+          {
+            "src": "recipefix-v2-clip4-cook-mode-timer.mp4",
+            "from": 6.1,
+            "y": 1150,
+            "weight": 3.6
+          },
+          {
+            "kind": "photo-close",
+            "weight": 4.1
+          }
+        ]
       }
     ]
   },
@@ -157,7 +248,8 @@
         "claim_ids": [],
         "fact_ids": [
           "scale"
-        ]
+        ],
+        "head": "Same dish, now for 6"
       },
       {
         "role": "amounts",
@@ -168,7 +260,8 @@
         "claim_ids": [],
         "fact_ids": [
           "scale"
-        ]
+        ],
+        "head": "Amounts scale: × 1.5"
       },
       {
         "role": "broil",
@@ -179,7 +272,8 @@
         "claim_ids": [],
         "fact_ids": [
           "broil_time"
-        ]
+        ],
+        "head": "Batches, not more time"
       },
       {
         "role": "reduce",
@@ -190,7 +284,8 @@
         "claim_ids": [],
         "fact_ids": [
           "reduce_time"
-        ]
+        ],
+        "head": "Check at 10 minutes"
       },
       {
         "role": "simmer",
@@ -199,7 +294,8 @@
         "vo": "Swapped in coconut cream? Whisk it smooth, then keep the sauce at a gentle simmer.",
         "source": "steps[5].updated_note",
         "claim_ids": [],
-        "fact_ids": []
+        "fact_ids": [],
+        "head": "Keep it a gentle simmer"
       },
       {
         "role": "proof",
@@ -210,9 +306,11 @@
         "claim_ids": [
           "core.reasons",
           "core.rewrites_steps",
+          "loop.cook_mode",
           "proof.tikka_method_changes"
         ],
-        "fact_ids": []
+        "fact_ids": [],
+        "head": "Cook Mode, rewritten too"
       },
       {
         "role": "close",
@@ -221,7 +319,8 @@
         "vo": "Scale the food, not the clock. Batches for space. Cues for doneness.",
         "source": "steps[3].updated_note, steps[4].updated_note, explanations[2]",
         "claim_ids": [],
-        "fact_ids": []
+        "fact_ids": [],
+        "head": "Scale the food, not the clock"
       }
     ],
     "caption": "Doubling a recipe, or cooking for more people? Multiply the ingredients, not the cook time. Give food room, and go by what you can see, like a spoon leaving a trail in the sauce.",
@@ -346,6 +445,60 @@
       "provenance": "docs/RECIPEFIX_ORIGINALS.md: | Chicken Tikka Masala | 1585937421612-70a008356fbe |",
       "licence": "Unsplash License (licensed stock, not owned); RecipeFix docs/RECIPEFIX_ORIGINALS.md",
       "disclosure": "Photo is the Original recipe's licensed stock photo, not the adapted dish"
+    },
+    {
+      "id": "recipefix-v2-clip1-result-swapped-yogurt.mp4",
+      "kind": "product_capture",
+      "location": "/Users/isaacmineo/PROJECT_2025/halyard-marketing-lean-lane/runs/2026-10-26/captures-v2/recipefix-v2-clip1-result-swapped-yogurt.mp4",
+      "sha256": "b547fd11d054f4b7a5f3bdf6c810f9f134910825ab6be29487cc863b31384ee6",
+      "provenance": "RecipeFix UI at commit e68b1404 (the live tree on 2026-10-26), local production build driven by scripts/journey.mjs with a simulated backend; the adaptation shown is the verbatim stored production result captured 2026-10-21. Real taps and transitions; scroll frames rendered one per frame at true page states (capture.json). runs/2026-10-26/captures-v2/capture.json",
+      "licence": "first-party capture",
+      "disclosure": "Real RecipeFix screen, local build of the live UI"
+    },
+    {
+      "id": "recipefix-v2-clip2-method-step-notes.mp4",
+      "kind": "product_capture",
+      "location": "/Users/isaacmineo/PROJECT_2025/halyard-marketing-lean-lane/runs/2026-10-26/captures-v2/recipefix-v2-clip2-method-step-notes.mp4",
+      "sha256": "8d1537cf268a1426dbc1ceadd137dc83f0041aef7a1ba65999312f71e4496c7f",
+      "provenance": "RecipeFix UI at commit e68b1404 (the live tree on 2026-10-26), local production build driven by scripts/journey.mjs with a simulated backend; the adaptation shown is the verbatim stored production result captured 2026-10-21. Real taps and transitions; scroll frames rendered one per frame at true page states (capture.json). runs/2026-10-26/captures-v2/capture.json",
+      "licence": "first-party capture",
+      "disclosure": "Real RecipeFix screen, local build of the live UI"
+    },
+    {
+      "id": "recipefix-v2-still-3-step5-broil-marinated-chicken.png",
+      "kind": "product_capture",
+      "location": "/Users/isaacmineo/PROJECT_2025/halyard-marketing-lean-lane/runs/2026-10-26/captures-v2/recipefix-v2-still-3-step5-broil-marinated-chicken.png",
+      "sha256": "ff18fd6035befe2b5e5ac050101e39df813f287df5ebc1a3a8124b83f33282f0",
+      "provenance": "RecipeFix UI at commit e68b1404 (the live tree on 2026-10-26), local production build driven by scripts/journey.mjs with a simulated backend; the adaptation shown is the verbatim stored production result captured 2026-10-21. Real taps and transitions; scroll frames rendered one per frame at true page states (capture.json). runs/2026-10-26/captures-v2/capture.json",
+      "licence": "first-party capture",
+      "disclosure": "Real RecipeFix screen, local build of the live UI"
+    },
+    {
+      "id": "recipefix-v2-still-2-step4-reduce-tomato-sauce.png",
+      "kind": "product_capture",
+      "location": "/Users/isaacmineo/PROJECT_2025/halyard-marketing-lean-lane/runs/2026-10-26/captures-v2/recipefix-v2-still-2-step4-reduce-tomato-sauce.png",
+      "sha256": "9ac36417f7becbcf6030b3cf91a5740fb280be2936c7101a5923a40c3277fce5",
+      "provenance": "RecipeFix UI at commit e68b1404 (the live tree on 2026-10-26), local production build driven by scripts/journey.mjs with a simulated backend; the adaptation shown is the verbatim stored production result captured 2026-10-21. Real taps and transitions; scroll frames rendered one per frame at true page states (capture.json). runs/2026-10-26/captures-v2/capture.json",
+      "licence": "first-party capture",
+      "disclosure": "Real RecipeFix screen, local build of the live UI"
+    },
+    {
+      "id": "recipefix-v2-still-4-step6-finish-creamy-sauce.png",
+      "kind": "product_capture",
+      "location": "/Users/isaacmineo/PROJECT_2025/halyard-marketing-lean-lane/runs/2026-10-26/captures-v2/recipefix-v2-still-4-step6-finish-creamy-sauce.png",
+      "sha256": "9f2b0c375b5129eaefd5ff2a7a0b094a75590f6e98a3289c3611a3ab6cf8c468",
+      "provenance": "RecipeFix UI at commit e68b1404 (the live tree on 2026-10-26), local production build driven by scripts/journey.mjs with a simulated backend; the adaptation shown is the verbatim stored production result captured 2026-10-21. Real taps and transitions; scroll frames rendered one per frame at true page states (capture.json). runs/2026-10-26/captures-v2/capture.json",
+      "licence": "first-party capture",
+      "disclosure": "Real RecipeFix screen, local build of the live UI"
+    },
+    {
+      "id": "recipefix-v2-clip4-cook-mode-timer.mp4",
+      "kind": "product_capture",
+      "location": "/Users/isaacmineo/PROJECT_2025/halyard-marketing-lean-lane/runs/2026-10-26/captures-v2/recipefix-v2-clip4-cook-mode-timer.mp4",
+      "sha256": "d32cc30d94509c50c6290e826d6c1bbdda80d79891d2a495daa321b23688a980",
+      "provenance": "RecipeFix UI at commit e68b1404 (the live tree on 2026-10-26), local production build driven by scripts/journey.mjs with a simulated backend; the adaptation shown is the verbatim stored production result captured 2026-10-21. Real taps and transitions; scroll frames rendered one per frame at true page states (capture.json). runs/2026-10-26/captures-v2/capture.json",
+      "licence": "first-party capture",
+      "disclosure": "Real RecipeFix screen, local build of the live UI"
     }
   ],
   "files": [
@@ -357,7 +510,7 @@
       {
         "id": "claims.correspondence",
         "passed": true,
-        "detail": "3 lines cite claims",
+        "detail": "4 lines cite claims",
         "problems": []
       },
       {
@@ -369,7 +522,7 @@
       {
         "id": "facts.numbers_traced",
         "passed": true,
-        "detail": "5 numbers checked",
+        "detail": "8 numbers checked",
         "problems": []
       },
       {
@@ -381,8 +534,10 @@
       {
         "id": "copy.slop_filter",
         "passed": true,
-        "detail": "0 errors, 0 warnings",
-        "problems": []
+        "detail": "0 errors, 1 warnings",
+        "problems": [
+          "warning structure.caption_echoes_screen: 67% of this caption is already on screen. (\"Doubling a recipe, or cooking for more people? Multiply the ingredients, not the\")"
+        ]
       },
       {
         "id": "copy.on_screen_typography",
@@ -403,13 +558,13 @@
         {
           "id": "video.spec",
           "passed": true,
-          "detail": "1080×1920 h264 yuv420p 30/1, audio aac, 47.0 s, 11.2 MB",
+          "detail": "1080×1920 h264 yuv420p 30/1, audio aac, 47.0 s, 22.0 MB",
           "problems": []
         },
         {
           "id": "motion.freeze_share",
           "passed": true,
-          "detail": "5.2% frozen at Halyard's setting (−45 dB, ≥ 1.5 s; < 15%); strict reading (−54 dB, ≥ 0.5 s) 49.9%",
+          "detail": "0.0% frozen at Halyard's setting (−45 dB, ≥ 1.5 s; < 15%); strict reading (−54 dB, ≥ 0.5 s) 31.4%",
           "problems": []
         },
         {
@@ -421,7 +576,7 @@
         {
           "id": "motion.avg_shot",
           "passed": true,
-          "detail": "9 shots, average 5.2 s (each beat also animates within itself; plan target ≤ 3 s is not met by beat cuts alone)",
+          "detail": "17 shots, average 2.8 s (each beat also animates within itself; plan target ≤ 3 s is not met by beat cuts alone)",
           "problems": []
         },
         {
@@ -510,13 +665,9 @@
         {
           "t": 3.9,
           "intended": [
-            "SCALE UP",
-            "Cooking for 6? Don't add 50% to the time.",
             "Not the minutes."
           ],
           "similarity": [
-            1,
-            1,
             1
           ],
           "outside": [],
@@ -536,8 +687,8 @@
         {
           "t": 7.6,
           "intended": [
-            "AMOUNTS",
-            "1½ lb chicken → 2¼ lb",
+            "REAL APP SCREEN · LOCAL BUILD",
+            "Amounts scale: × 1.5",
             "One and a half"
           ],
           "similarity": [
@@ -551,8 +702,8 @@
         {
           "t": 8.23,
           "intended": [
-            "AMOUNTS",
-            "1½ lb chicken → 2¼ lb",
+            "REAL APP SCREEN · LOCAL BUILD",
+            "Amounts scale: × 1.5",
             "pounds of chicken becomes"
           ],
           "similarity": [
@@ -566,8 +717,8 @@
         {
           "t": 9.6,
           "intended": [
-            "AMOUNTS",
-            "1½ lb chicken → 2¼ lb",
+            "REAL APP SCREEN · LOCAL BUILD",
+            "Amounts scale: × 1.5",
             "two and a quarter"
           ],
           "similarity": [
@@ -581,8 +732,8 @@
         {
           "t": 10.23,
           "intended": [
-            "AMOUNTS",
-            "1½ lb chicken → 2¼ lb",
+            "REAL APP SCREEN · LOCAL BUILD",
+            "Amounts scale: × 1.5",
             "pounds."
           ],
           "similarity": [
@@ -607,8 +758,8 @@
         {
           "t": 12.63,
           "intended": [
-            "BROIL",
-            "More chicken needs batches, not time",
+            "REAL APP SCREEN · LOCAL BUILD",
+            "Batches, not more time",
             "more chicken does not"
           ],
           "similarity": [
@@ -622,13 +773,9 @@
         {
           "t": 13.93,
           "intended": [
-            "BROIL",
-            "More chicken needs batches, not time",
             "mean fifty percent longer."
           ],
           "similarity": [
-            1,
-            1,
             1
           ],
           "outside": [],
@@ -637,8 +784,8 @@
         {
           "t": 16.13,
           "intended": [
-            "BROIL",
-            "More chicken needs batches, not time",
+            "REAL APP SCREEN · LOCAL BUILD",
+            "Batches, not more time",
             "Use two batches,"
           ],
           "similarity": [
@@ -652,13 +799,9 @@
         {
           "t": 17.43,
           "intended": [
-            "BROIL",
-            "More chicken needs batches, not time",
             "eight to ten minutes"
           ],
           "similarity": [
-            1,
-            1,
             1
           ],
           "outside": [],
@@ -667,8 +810,8 @@
         {
           "t": 18.18,
           "intended": [
-            "BROIL",
-            "More chicken needs batches, not time",
+            "REAL APP SCREEN · LOCAL BUILD",
+            "Batches, not more time",
             "each."
           ],
           "similarity": [
@@ -693,8 +836,8 @@
         {
           "t": 20.5,
           "intended": [
-            "REDUCE",
-            "Wider pan? Start checking at 10 minutes.",
+            "REAL APP SCREEN · LOCAL BUILD",
+            "Check at 10 minutes",
             "faster."
           ],
           "similarity": [
@@ -708,13 +851,9 @@
         {
           "t": 21.9,
           "intended": [
-            "REDUCE",
-            "Wider pan? Start checking at 10 minutes.",
             "Start checking at ten"
           ],
           "similarity": [
-            1,
-            1,
             1
           ],
           "outside": [],
@@ -723,13 +862,9 @@
         {
           "t": 22.9,
           "intended": [
-            "REDUCE",
-            "Wider pan? Start checking at 10 minutes.",
             "minutes."
           ],
           "similarity": [
-            1,
-            1,
             1
           ],
           "outside": [],
@@ -738,8 +873,8 @@
         {
           "t": 24.1,
           "intended": [
-            "REDUCE",
-            "Wider pan? Start checking at 10 minutes.",
+            "REAL APP SCREEN · LOCAL BUILD",
+            "Check at 10 minutes",
             "It is done when"
           ],
           "similarity": [
@@ -753,13 +888,9 @@
         {
           "t": 24.77,
           "intended": [
-            "REDUCE",
-            "Wider pan? Start checking at 10 minutes.",
             "a spoon dragged through"
           ],
           "similarity": [
-            1,
-            1,
             1
           ],
           "outside": [],
@@ -768,13 +899,9 @@
         {
           "t": 25.77,
           "intended": [
-            "REDUCE",
-            "Wider pan? Start checking at 10 minutes.",
             "leaves a trail."
           ],
           "similarity": [
-            1,
-            1,
             1
           ],
           "outside": [],
@@ -794,8 +921,8 @@
         {
           "t": 29.7,
           "intended": [
-            "SIMMER",
-            "Coconut cream: gentle simmer",
+            "REAL APP SCREEN · LOCAL BUILD",
+            "Keep it a gentle simmer",
             "Whisk it smooth,"
           ],
           "similarity": [
@@ -809,8 +936,8 @@
         {
           "t": 30.77,
           "intended": [
-            "SIMMER",
-            "Coconut cream: gentle simmer",
+            "REAL APP SCREEN · LOCAL BUILD",
+            "Keep it a gentle simmer",
             "then keep the sauce"
           ],
           "similarity": [
@@ -824,13 +951,9 @@
         {
           "t": 31.73,
           "intended": [
-            "SIMMER",
-            "Coconut cream: gentle simmer",
             "at a gentle simmer."
           ],
           "similarity": [
-            1,
-            1,
             1
           ],
           "outside": [],
@@ -861,13 +984,9 @@
         {
           "t": 36.63,
           "intended": [
-            "PROOF",
-            "The app rewrote these steps",
             "It rewrote these steps,"
           ],
           "similarity": [
-            1,
-            1,
             1
           ],
           "outside": [],
@@ -876,8 +995,8 @@
         {
           "t": 37.93,
           "intended": [
-            "PROOF",
-            "The app rewrote these steps",
+            "REAL APP SCREEN · LOCAL BUILD",
+            "Cook Mode, rewritten too",
             "and said why."
           ],
           "similarity": [
@@ -902,8 +1021,8 @@
         {
           "t": 40.7,
           "intended": [
-            "TAKEAWAY",
-            "Batches, not minutes. Cues, not clocks.",
+            "REAL APP SCREEN · LOCAL BUILD",
+            "Scale the food, not the clock",
             "not the clock."
           ],
           "similarity": [
@@ -917,8 +1036,8 @@
         {
           "t": 42.6,
           "intended": [
-            "TAKEAWAY",
-            "Batches, not minutes. Cues, not clocks.",
+            "REAL APP SCREEN · LOCAL BUILD",
+            "Scale the food, not the clock",
             "Batches for space."
           ],
           "similarity": [
@@ -966,7 +1085,7 @@
     "cap_usd": 15
   },
   "brief_sha256": "07a59a808647ecd24ccddd40101b090dde2b56d211a95fb38e8e1e6940f23670",
-  "made_at": "2026-10-26T21:23:30.382Z",
+  "made_at": "2026-10-26T23:22:55.887Z",
   "safe_box": {
     "x0": 120,
     "y0": 270,

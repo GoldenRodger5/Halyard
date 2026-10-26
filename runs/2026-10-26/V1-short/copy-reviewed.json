@@ -9,7 +9,8 @@
       "claim_ids": [],
       "fact_ids": [
         "scale"
-      ]
+      ],
+      "head": "Same dish, now for 6"
     },
     {
       "role": "amounts",
@@ -20,7 +21,8 @@
       "claim_ids": [],
       "fact_ids": [
         "scale"
-      ]
+      ],
+      "head": "Amounts scale: \u00d7 1.5"
     },
     {
       "role": "broil",
@@ -31,7 +33,8 @@
       "claim_ids": [],
       "fact_ids": [
         "broil_time"
-      ]
+      ],
+      "head": "Batches, not more time"
     },
     {
       "role": "reduce",
@@ -42,7 +45,8 @@
       "claim_ids": [],
       "fact_ids": [
         "reduce_time"
-      ]
+      ],
+      "head": "Check at 10 minutes"
     },
     {
       "role": "simmer",
@@ -51,7 +55,8 @@
       "vo": "Swapped in coconut cream? Whisk it smooth, then keep the sauce at a gentle simmer.",
       "source": "steps[5].updated_note",
       "claim_ids": [],
-      "fact_ids": []
+      "fact_ids": [],
+      "head": "Keep it a gentle simmer"
     },
     {
       "role": "proof",
@@ -62,9 +67,11 @@
       "claim_ids": [
         "core.reasons",
         "core.rewrites_steps",
+        "loop.cook_mode",
         "proof.tikka_method_changes"
       ],
-      "fact_ids": []
+      "fact_ids": [],
+      "head": "Cook Mode, rewritten too"
     },
     {
       "role": "close",
@@ -73,7 +80,8 @@
       "vo": "Scale the food, not the clock. Batches for space. Cues for doneness.",
       "source": "steps[3].updated_note, steps[4].updated_note, explanations[2]",
       "claim_ids": [],
-      "fact_ids": []
+      "fact_ids": [],
+      "head": "Scale the food, not the clock"
     }
   ],
   "caption": "Doubling a recipe, or cooking for more people? Multiply the ingredients, not the cook time. Give food room, and go by what you can see, like a spoon leaving a trail in the sauce.",

@@ -1,0 +1,654 @@
+{
+ "subject": "RecipeFix /adapt result + Cook Mode, phone: Chicken Tikka Masala (RecipeFix Original), Dairy-Free, 4 -> 6 servings",
+ "captured_at": "2026-10-26",
+ "recipefix_commit": "e68b1404",
+ "worktree": "/Users/isaacmineo/PROJECT_2025/recipe-fix-capture-e68b1404 (detached at e68b1404, unmodified; .env.production is tracked at this commit so nothing was copied in)",
+ "server": "npx vite --mode production --port 8532 --strictPort --host 127.0.0.1 (stopped afterwards)",
+ "what_is_real": [
+  "All UI is the real RecipeFix web app at e68b1404 rendered by Chrome; no DOM injected, restyled or mocked.",
+  "Every interaction is a real Playwright touch tap on the real control: landing composer (paste link, Dairy-Free, + servings x2, Adapt recipe), the coconut-yogurt ingredient row, Cook, Start cooking, Next, Start 20:00 timer.",
+  "The adaptation payload is the stored production adapt-recipe response in src/data/landingRealResult.ts (served by the harness for exactly this request).",
+  "The Cook Mode timer is the app's own countdown running in real time."
+ ],
+ "what_is_simulated": [
+  "Backend: every *.supabase.co request is answered in-process by tooling/journey-capture.mjs (= scripts/journey.mjs @ e68b1404, only import paths/ROOT changed; see journey-capture.diff). Nothing reached Supabase, OpenAI, recipefix.app or any production host.",
+  "Stream timing: the working card's SSE events are re-paced by the harness (~5 s). The 'Usually about 20 seconds' copy is production's; the on-screen duration is not real latency.",
+  "Hero photo: the result arrives without a photo, the client calls preview-recipe (answered by the harness), so a pulsing skeleton shows ~0.9 s before the photo fades in. Real behaviour, harness timing.",
+  "estimate-nutrition is aborted by the harness (panel shows the payload's own estimate). rescale-recipe/refine-recipe return 503.",
+  "Scrolls are scripted (eased cubic). Scroll segments are FRAME-STEPPED (see video_method); holds/taps/transitions are real-time."
+ ],
+ "viewport": {
+  "css": [
+   390,
+   844
+  ],
+  "dpr": 3,
+  "device_px": [
+   1170,
+   2532
+  ],
+  "chrome_flags": [
+   "--window-size=390,844",
+   "--force-device-scale-factor=3",
+   "--host-resolver-rules=MAP *.supabase.co 0.0.0.0, MAP *.openai.com 0.0.0.0, MAP recipefix.app / *.recipefix.app 0.0.0.0, MAP *.posthog.com, *.googleapis.com, *.lovable.app/.dev 0.0.0.0"
+  ],
+  "isMobile": true,
+  "hasTouch": true,
+  "userAgent": "iPhone Safari 18 UA",
+  "colorScheme": "light",
+  "serviceWorkers": "blocked",
+  "browser": "system Google Chrome via playwright-core (from the worktree node_modules)"
+ },
+ "video_method": {
+  "encode": "ffmpeg -framerate 60 -i o%05d.png -vf format=yuv420p -c:v libx264 -preset slow -crf 12 -profile:v high -movflags +faststart (H.264 High, 1170x2532, yuv420p, 60 fps CFR)",
+  "realtime_segments": "CDP Page.startScreencast PNG frames at 1170x2532 (Chromium compositor output), each held until the next frame, sampled at exactly 1/60 s.",
+  "stepped_segments": "Scrolls. Measured: the page itself scrolls at a clean 60 fps (134 rAFs over 2.2 s, no gap > 25 ms) but screencast at this size dropped 50-133 ms of frames mid-scroll (judder). So each scroll is rendered as ms*60/1000 positions on the same easing curve: set scroll position, wait two rAFs, CDP Page.captureScreenshot (device px), one output frame each. The clip therefore shows the true page at each position; only wall-clock pacing of the scroll is synthetic.",
+  "assembly": "tooling/assemble.py (cuts by logged marks; timelines in tooling/run-logs/timeline-*.json)"
+ },
+ "clips": {
+  "recipefix-v2-clip1-result-swapped-yogurt.mp4": {
+   "duration_s": 9.35,
+   "interaction": "REAL",
+   "timeline_s": [
+    [
+     0.0,
+     "working card 'Finalising recipe… 4s' (end of simulated stream)"
+    ],
+    [
+     0.5,
+     "result renders (hard cut, no blank frame); hero is a pulsing skeleton"
+    ],
+    [
+     1.4,
+     "photo fades in (300 ms), fully visible 1.67"
+    ],
+    [
+     3.15,
+     "smooth scroll start (2.2 s, stepped)"
+    ],
+    [
+     5.36,
+     "rest: 'What RecipeFix changed: 3 ingredients swapped, 15 amounts scaled from 4 to 6 servings, 5 steps rewritten' + Ingredients; coconut-yogurt Swapped row ~1/3 down"
+    ],
+    [
+     6.26,
+     "tap on the coconut-yogurt row"
+    ],
+    [
+     6.26,
+     "chevron rotates, 'Was' card expands (grid 0fr->1fr transition ~0.4 s)"
+    ],
+    [
+     6.74,
+     "card open: 'Was ~~3/4 cup plain whole-milk yogurt~~' + 'Coconut yogurt provides an acidic, coating marinade without dairy; choose an unsweetened, unflavored variety.'"
+    ],
+    [
+     9.35,
+     "end (held ~2.6 s open)"
+    ]
+   ],
+   "tap_behaviour_at_e68b1404": "A Swapped row is a <button data-ingredient-row aria-expanded>; tapping toggles an inline card under the row with 'Was <del>original</del>' and the change reason. Verified aria-expanded=true after the tap.",
+   "tomato_line_visible": "never (not on screen in any frame; checked per stepped frame and at every rest)"
+  },
+  "recipefix-v2-clip2-method-step-notes.mp4": {
+   "duration_s": 10.0,
+   "interaction": "REAL (scrolls only)",
+   "timeline_s": [
+    [
+     0.0,
+     "held: step 4 'Reduce the Tomato Sauce' + full instruction + 'RecipeFix changed this step · Start checking at 10 minutes…' (clip opens on this frame, no lead-in)"
+    ],
+    [
+     2.5,
+     "scroll to step 5 (1.3 s, stepped)"
+    ],
+    [
+     3.8,
+     "held: step 5 'Broil the Marinated Chicken' + note 'Allow two broiler batches…'"
+    ],
+    [
+     6.3,
+     "scroll to step 6 (1.3 s)"
+    ],
+    [
+     7.6,
+     "held: step 6 'Finish the Creamy Sauce' + note 'Whisk separated coconut cream smooth…'"
+    ],
+    [
+     10.0,
+     "end"
+    ]
+   ],
+   "held_dom_boxes_css": [
+    {
+     "label": "step4_reduce_tomato_sauce-held",
+     "stepBox_css": {
+      "x": 16,
+      "y": 181.984375,
+      "w": 358,
+      "h": 345.328125,
+      "docY": 3219.317626953125
+     },
+     "noteBox_css": {
+      "x": 60,
+      "y": 393.5625,
+      "w": 314,
+      "h": 133.75,
+      "docY": 3430.895751953125
+     }
+    },
+    {
+     "label": "step5_broil_marinated_chicken-held",
+     "stepBox_css": {
+      "x": 16,
+      "y": 173.9791717529297,
+      "w": 358,
+      "h": 494.109375,
+      "docY": 3588.6459197998047
+     },
+     "noteBox_css": {
+      "x": 60,
+      "y": 534.3385620117188,
+      "w": 314,
+      "h": 133.75,
+      "docY": 3949.0053100585938
+     }
+    },
+    {
+     "label": "step6_finish_creamy_sauce-held",
+     "stepBox_css": {
+      "x": 16,
+      "y": 174.0885467529297,
+      "w": 358,
+      "h": 368.078125,
+      "docY": 4106.755294799805
+     },
+     "noteBox_css": {
+      "x": 60,
+      "y": 385.66668701171875,
+      "w": 314,
+      "h": 156.5,
+      "docY": 4318.333435058594
+     }
+    }
+   ],
+   "tomato_line_visible": "never (the INGREDIENT line is far above the method). Note: step 4's instruction itself says 'Pour in the crushed tomatoes' - that is the step, not the awkward ingredient line."
+  },
+  "recipefix-v2-clip3-servings": {
+   "recorded": false,
+   "why": "Not recorded per brief. The stepper is client-side first (applyClientServingsScale rewrites amounts instantly, verified 6->7: '1⅛ cups plus 2 tablespoons … coconut yogurt', '3½ tablespoons vegan butter', '⅞ cup … coconut cream') but 1.5 s later handleServingsChange calls rescale-recipe, which the harness refuses with 503; the client keeps its own math, logs 'rescale-recipe failed, keeping frontend scale' and shows a 'Scaled to 7 servings · View' toast. In production the AI rescale would replace those lines, so the recorded result would not be what a user sees. Probe screenshots: tooling/run-logs/servings-*.png."
+  },
+  "recipefix-v2-clip4-cook-mode-timer.mp4": {
+   "duration_s": 9.967,
+   "interaction": "REAL (no sign-in needed; guest)",
+   "timeline_s": [
+    [
+     0.0,
+     "result with Save / Cook / Refine row visible (pre-scrolled, off-clip)"
+    ],
+    [
+     0.3,
+     "tap Cook"
+    ],
+    [
+     0.38,
+     "Cook Mode 'Ready to cook' intro (photo, title, 8 steps · Dairy-Free, 6 servings, You'll need list, Start cooking) - opens as a cut"
+    ],
+    [
+     1.78,
+     "tap Start cooking"
+    ],
+    [
+     2.3,
+     "Step 1 of 8 'Gather your ingredients' checklist (no timer on this step)"
+    ],
+    [
+     3.3,
+     "tap Next"
+    ],
+    [
+     4.3,
+     "Step 2 of 8 'Marinate the chicken': 'For this step' list + instruction ('…marinate at room temperature for 20 minutes…')"
+    ],
+    [
+     5.1,
+     "Cook Mode's own scroller scrolls 1.0 s (stepped) to show 'Rewritten for this version' note + timer chip 'Start 20:00 timer'"
+    ],
+    [
+     6.7,
+     "tap Start 20:00 timer; chip turns brand colour (~0.2 s colour transition, one frame reads '20:00 remaining' on grey)"
+    ],
+    [
+     7.0,
+     "19:59 remaining … 19:57 at end, held ~3.2 s running"
+    ],
+    [
+     9.97,
+     "end"
+    ]
+   ],
+   "tomato_line_visible": "never (Cook Mode step 1 checklist shows the first 9 ingredients only; tomato line is below)"
+  }
+ },
+ "stills": {
+  "recipefix-v2-still-1-result-header-what-changed.png": {
+   "scrollY": 235.6666717529297,
+   "chrome": {
+    "top": 114,
+    "bottom": 783
+   },
+   "tomatoVisible": false,
+   "summaryText": "What RecipeFix changed: 3 ingredients swapped, 15 amounts scaled from 4 to 6 servings, 5 steps rewritten",
+   "titleBox_px": {
+    "x": 48,
+    "y": 486,
+    "w": 1074,
+    "h": 220
+   },
+   "summaryBox_px": {
+    "x": 126,
+    "y": 1989,
+    "w": 996,
+    "h": 189
+   }
+  },
+  "recipefix-v2-still-2-step4-reduce-tomato-sauce.png": {
+   "scrollY": 3045.333251953125,
+   "chrome": {
+    "top": 114,
+    "bottom": 783
+   },
+   "tomatoVisible": false,
+   "fitsInView": true,
+   "stepBox_px": {
+    "x": 48,
+    "y": 522,
+    "w": 1074,
+    "h": 1036
+   },
+   "noteBox_px": {
+    "x": 180,
+    "y": 1157,
+    "w": 942,
+    "h": 401
+   },
+   "stepText": "4Reduce the Tomato SauceStep 4. Pour in the crushed tomatoes and scrape up any browned bits from the bottom of the pan, then bring to a gentle simmer, lower the"
+  },
+  "recipefix-v2-still-3-step5-broil-marinated-chicken.png": {
+   "scrollY": 3414.666748046875,
+   "chrome": {
+    "top": 114,
+    "bottom": 783
+   },
+   "tomatoVisible": false,
+   "fitsInView": true,
+   "stepBox_px": {
+    "x": 48,
+    "y": 522,
+    "w": 1074,
+    "h": 1482
+   },
+   "noteBox_px": {
+    "x": 180,
+    "y": 1603,
+    "w": 942,
+    "h": 401
+   },
+   "stepText": "5Broil the Marinated ChickenStep 5. While the sauce simmers, heat the broiler with a rack about 6 inches below the element, then lift the chicken from the marin"
+  },
+  "recipefix-v2-still-4-step6-finish-creamy-sauce.png": {
+   "scrollY": 3932.666748046875,
+   "chrome": {
+    "top": 114,
+    "bottom": 783
+   },
+   "tomatoVisible": false,
+   "fitsInView": true,
+   "stepBox_px": {
+    "x": 48,
+    "y": 522,
+    "w": 1074,
+    "h": 1104
+   },
+   "noteBox_px": {
+    "x": 180,
+    "y": 1157,
+    "w": 942,
+    "h": 470
+   },
+   "stepText": "6Finish the Creamy SauceStep 6. Stir the coconut cream into the sauce with the chicken and any juices from the baking sheets, then simmer gently for about 5 min"
+  },
+  "recipefix-v2-still-5-swapped-coconut-yogurt-row.png": {
+   "scrollY": 767.6666870117188,
+   "chrome": {
+    "top": 114,
+    "bottom": 783
+   },
+   "tomatoVisible": false,
+   "rowBox_px": {
+    "x": 48,
+    "y": 1045,
+    "w": 1074,
+    "h": 298
+   },
+   "ingredientListBox_px": {
+    "x": 48,
+    "y": 821,
+    "w": 1074,
+    "h": 3194
+   }
+  },
+  "recipefix-v2-still-6-swapped-coconut-yogurt-row-opened.png": {
+   "scrollY": 767.6666870117188,
+   "chrome": {
+    "top": 114,
+    "bottom": 783
+   },
+   "tomatoVisible": false,
+   "rowBox_px": {
+    "x": 48,
+    "y": 1045,
+    "w": 1074,
+    "h": 692
+   },
+   "wasCardBox_px": {
+    "x": 48,
+    "y": 1340,
+    "w": 1074,
+    "h": 358
+   },
+   "text": "1 cup plus 2 tablespoons plain unsweetened dairy-free coconut yogurtSwappedWas 3/4 cup plain whole-milk yogurtCoconut yogurt provides an acidic, coating marinade without dairy; choose an unsweetened, unflavored variety."
+  }
+ },
+ "stills_note": "All boxes are getBoundingClientRect() x 3 measured in the same page state the PNG was taken in (viewport-relative device px). Step box = the step <li> (number badge, title, instruction, note); note box = the tinted 'RecipeFix changed this step' panel. Summary box = the 'What RecipeFix changed…' text element (excludes its small icon at left, ~x 48-100). Every still: tomato line NOT on screen. Sticky chrome: header+'Adapt another' bar 0-342 px, bottom tab bar from 2349 px.",
+ "network": {
+  "summary": "No request reached production. *.supabase.co requests were fulfilled or aborted in-process by Playwright routes (never sent); a final catch-all route aborted anything else non-local; and Chrome's host resolver mapped supabase/openai/recipefix/posthog/googleapis/lovable to 0.0.0.0 as a second barrier. Only Google Fonts and 127.0.0.1 were allowed out.",
+  "per_run": {
+   "result": {
+    "console_errors": [
+     {
+      "t": 9.83,
+      "type": "error",
+      "text": "Failed to load resource: net::ERR_FAILED"
+     }
+    ],
+    "pageerrors": [],
+    "requests_to_non_local_hosts": [
+     "POST yyeslynjoqhqcdlzpevq.supabase.co/functions/v1/adapt-recipe",
+     "POST yyeslynjoqhqcdlzpevq.supabase.co/functions/v1/estimate-nutrition",
+     "POST yyeslynjoqhqcdlzpevq.supabase.co/functions/v1/preview-recipe",
+     "POST yyeslynjoqhqcdlzpevq.supabase.co/rest/v1/rpc/get_anon_usage_count",
+     "POST yyeslynjoqhqcdlzpevq.supabase.co/rest/v1/rpc/record_url_outcome"
+    ],
+    "aborted_by_capture_guard": [],
+    "aborted_by_harness": [
+     "https://yyeslynjoqhqcdlzpevq.supabase.co/functions/v1/estimate-nutrition"
+    ],
+    "adapt_request_body": [
+     {
+      "mode": "link",
+      "url": "https://recipefix.app/original-recipes/chicken-tikka-masala",
+      "text": "",
+      "swaps": "",
+      "servings": 6,
+      "dietary": [
+       "Dairy-Free"
+      ],
+      "sessionId": "337a26cc-51a4-4077-96de-3b93517a9cd6",
+      "fingerprint": "337a26cc-51a4-4077-96de-3b93517a9cd6",
+      "stream": true
+     }
+    ]
+   },
+   "method": {
+    "console_errors": [
+     {
+      "t": 9.37,
+      "type": "error",
+      "text": "Failed to load resource: net::ERR_FAILED"
+     },
+     {
+      "t": 18.01,
+      "type": "error",
+      "text": "Failed to load resource: net::ERR_FAILED"
+     },
+     {
+      "t": 18.01,
+      "type": "error",
+      "text": "Failed to load resource: net::ERR_FAILED"
+     },
+     {
+      "t": 18.01,
+      "type": "error",
+      "text": "Failed to load resource: net::ERR_FAILED"
+     }
+    ],
+    "pageerrors": [],
+    "requests_to_non_local_hosts": [
+     "GET cafedelites.com/wp-content/uploads/2015/04/Italian-Chicken-Sundried-Tomato-and-Rice-43.jpg",
+     "GET cdn.loveandlemons.com/wp-content/uploads/opengraph/2020/12/baked-ziti-recipe.jpg",
+     "GET www.recipetineats.com/tachyon/2020/11/Crispy-Salmon-in-skillet.jpg",
+     "POST yyeslynjoqhqcdlzpevq.supabase.co/functions/v1/adapt-recipe",
+     "POST yyeslynjoqhqcdlzpevq.supabase.co/functions/v1/estimate-nutrition",
+     "POST yyeslynjoqhqcdlzpevq.supabase.co/functions/v1/preview-recipe",
+     "POST yyeslynjoqhqcdlzpevq.supabase.co/rest/v1/rpc/get_anon_usage_count",
+     "POST yyeslynjoqhqcdlzpevq.supabase.co/rest/v1/rpc/record_url_outcome"
+    ],
+    "aborted_by_capture_guard": [
+     "https://cdn.loveandlemons.com/wp-content/uploads/opengraph/2020/12/baked-ziti-recipe.jpg",
+     "https://www.recipetineats.com/tachyon/2020/11/Crispy-Salmon-in-skillet.jpg",
+     "https://cafedelites.com/wp-content/uploads/2015/04/Italian-Chicken-Sundried-Tomato-and-Rice-43.jpg"
+    ],
+    "aborted_by_harness": [
+     "https://yyeslynjoqhqcdlzpevq.supabase.co/functions/v1/estimate-nutrition"
+    ],
+    "adapt_request_body": [
+     {
+      "mode": "link",
+      "url": "https://recipefix.app/original-recipes/chicken-tikka-masala",
+      "text": "",
+      "swaps": "",
+      "servings": 6,
+      "dietary": [
+       "Dairy-Free"
+      ],
+      "sessionId": "3dbc7728-1f97-4df0-9090-2e80eac7385d",
+      "fingerprint": "3dbc7728-1f97-4df0-9090-2e80eac7385d",
+      "stream": true
+     }
+    ]
+   },
+   "cook": {
+    "console_errors": [
+     {
+      "t": 10.51,
+      "type": "error",
+      "text": "Failed to load resource: net::ERR_FAILED"
+     }
+    ],
+    "pageerrors": [],
+    "requests_to_non_local_hosts": [
+     "POST yyeslynjoqhqcdlzpevq.supabase.co/functions/v1/adapt-recipe",
+     "POST yyeslynjoqhqcdlzpevq.supabase.co/functions/v1/estimate-nutrition",
+     "POST yyeslynjoqhqcdlzpevq.supabase.co/functions/v1/preview-recipe",
+     "POST yyeslynjoqhqcdlzpevq.supabase.co/rest/v1/rpc/get_anon_usage_count",
+     "POST yyeslynjoqhqcdlzpevq.supabase.co/rest/v1/rpc/log_product_event",
+     "POST yyeslynjoqhqcdlzpevq.supabase.co/rest/v1/rpc/record_url_outcome"
+    ],
+    "aborted_by_capture_guard": [],
+    "aborted_by_harness": [
+     "https://yyeslynjoqhqcdlzpevq.supabase.co/functions/v1/estimate-nutrition"
+    ],
+    "adapt_request_body": [
+     {
+      "mode": "link",
+      "url": "https://recipefix.app/original-recipes/chicken-tikka-masala",
+      "text": "",
+      "swaps": "",
+      "servings": 6,
+      "dietary": [
+       "Dairy-Free"
+      ],
+      "sessionId": "c4e65f1c-a8b5-41bc-94d4-b12f244dc313",
+      "fingerprint": "c4e65f1c-a8b5-41bc-94d4-b12f244dc313",
+      "stream": true
+     }
+    ]
+   },
+   "shots": {
+    "console_errors": [
+     {
+      "t": 9.52,
+      "type": "error",
+      "text": "Failed to load resource: net::ERR_FAILED"
+     },
+     {
+      "t": 12.68,
+      "type": "error",
+      "text": "Failed to load resource: net::ERR_FAILED"
+     },
+     {
+      "t": 12.68,
+      "type": "error",
+      "text": "Failed to load resource: net::ERR_FAILED"
+     },
+     {
+      "t": 12.68,
+      "type": "error",
+      "text": "Failed to load resource: net::ERR_FAILED"
+     }
+    ],
+    "pageerrors": [],
+    "requests_to_non_local_hosts": [
+     "GET cafedelites.com/wp-content/uploads/2015/04/Italian-Chicken-Sundried-Tomato-and-Rice-43.jpg",
+     "GET cdn.loveandlemons.com/wp-content/uploads/opengraph/2020/12/baked-ziti-recipe.jpg",
+     "GET www.recipetineats.com/tachyon/2020/11/Crispy-Salmon-in-skillet.jpg",
+     "POST yyeslynjoqhqcdlzpevq.supabase.co/functions/v1/adapt-recipe",
+     "POST yyeslynjoqhqcdlzpevq.supabase.co/functions/v1/estimate-nutrition",
+     "POST yyeslynjoqhqcdlzpevq.supabase.co/functions/v1/preview-recipe",
+     "POST yyeslynjoqhqcdlzpevq.supabase.co/rest/v1/rpc/get_anon_usage_count",
+     "POST yyeslynjoqhqcdlzpevq.supabase.co/rest/v1/rpc/record_url_outcome"
+    ],
+    "aborted_by_capture_guard": [
+     "https://cdn.loveandlemons.com/wp-content/uploads/opengraph/2020/12/baked-ziti-recipe.jpg",
+     "https://www.recipetineats.com/tachyon/2020/11/Crispy-Salmon-in-skillet.jpg",
+     "https://cafedelites.com/wp-content/uploads/2015/04/Italian-Chicken-Sundried-Tomato-and-Rice-43.jpg"
+    ],
+    "aborted_by_harness": [
+     "https://yyeslynjoqhqcdlzpevq.supabase.co/functions/v1/estimate-nutrition"
+    ],
+    "adapt_request_body": [
+     {
+      "mode": "link",
+      "url": "https://recipefix.app/original-recipes/chicken-tikka-masala",
+      "text": "",
+      "swaps": "",
+      "servings": 6,
+      "dietary": [
+       "Dairy-Free"
+      ],
+      "sessionId": "20ecf822-3278-45bb-9beb-629fc7c788d0",
+      "fingerprint": "20ecf822-3278-45bb-9beb-629fc7c788d0",
+      "stream": true
+     }
+    ]
+   },
+   "servings-probe": {
+    "console_errors": [
+     {
+      "t": 9.54,
+      "type": "error",
+      "text": "Failed to load resource: net::ERR_FAILED"
+     },
+     {
+      "t": 12.45,
+      "type": "error",
+      "text": "Failed to load resource: net::ERR_FAILED"
+     },
+     {
+      "t": 13.04,
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+     }
+    ],
+    "pageerrors": [],
+    "requests_to_non_local_hosts": [
+     "POST yyeslynjoqhqcdlzpevq.supabase.co/functions/v1/adapt-recipe",
+     "POST yyeslynjoqhqcdlzpevq.supabase.co/functions/v1/estimate-nutrition",
+     "POST yyeslynjoqhqcdlzpevq.supabase.co/functions/v1/preview-recipe",
+     "POST yyeslynjoqhqcdlzpevq.supabase.co/functions/v1/rescale-recipe",
+     "POST yyeslynjoqhqcdlzpevq.supabase.co/rest/v1/rpc/get_anon_usage_count",
+     "POST yyeslynjoqhqcdlzpevq.supabase.co/rest/v1/rpc/record_url_outcome"
+    ],
+    "aborted_by_capture_guard": [],
+    "aborted_by_harness": [
+     "https://yyeslynjoqhqcdlzpevq.supabase.co/functions/v1/estimate-nutrition",
+     "https://yyeslynjoqhqcdlzpevq.supabase.co/functions/v1/estimate-nutrition"
+    ],
+    "adapt_request_body": [
+     {
+      "mode": "link",
+      "url": "https://recipefix.app/original-recipes/chicken-tikka-masala",
+      "text": "",
+      "swaps": "",
+      "servings": 6,
+      "dietary": [
+       "Dairy-Free"
+      ],
+      "sessionId": "38d5e562-c303-480c-9749-0d0e2573e3ed",
+      "fingerprint": "38d5e562-c303-480c-9749-0d0e2573e3ed",
+      "stream": true
+     }
+    ]
+   }
+  },
+  "console_errors_explained": "'Failed to load resource: net::ERR_FAILED' ~0.1 s after the result = harness abort of estimate-nutrition. Three more in method/shots runs = publisher photos (loveandlemons, recipetineats, cafedelites) for the 'From the web' section far below, blocked by the guard; that section is never in any frame. The 503 is the servings probe's rescale-recipe. No page errors."
+ },
+ "commands": [
+  "git -C /Users/isaacmineo/PROJECT_2025/recipe-fix worktree add --detach /Users/isaacmineo/PROJECT_2025/recipe-fix-capture-e68b1404 e68b1404",
+  "cd /Users/isaacmineo/PROJECT_2025/recipe-fix-capture-e68b1404 && npm ci --no-audit --no-fund",
+  "npx vite --mode production --port 8532 --strictPort --host 127.0.0.1",
+  "node tooling/capture2.mjs --mode=result|method|cook --out=<scratch>   (video)",
+  "node tooling/capture2.mjs --mode=shots --out=<scratch>   (stills)",
+  "NO_VIDEO=1 node tooling/capture2.mjs --mode=servings-probe --out=<scratch>",
+  "python3 tooling/assemble.py <run> result 'result-in-dom' end <seq> -0.5 0.2",
+  "python3 tooling/assemble.py <run> method step4_reduce end <seq> 0 0",
+  "python3 tooling/assemble.py <run> cook tap-cook timer-running-hold-end <seq> -0.3 -0.02",
+  "ffmpeg -framerate 60 -i <seq>/o%05d.png -vf format=yuv420p -c:v libx264 -preset slow -crf 12 -profile:v high -movflags +faststart <clip>.mp4"
+ ],
+ "known_issues": [
+  "Clip 1: ~0.9 s pulsing grey photo skeleton right after the result renders (real component behaviour; duration is harness timing). Trim the head to ~1.6 s if you want the photo already in.",
+  "Clip 1: after the tap the row keeps its hover/active tint (bg-secondary) - the same sticky-hover a real phone shows.",
+  "Clip 2: opens on a static held frame (no lead-in scroll). Lines of the neighbouring steps are cut by the sticky header and tab bar at the frame edges; the held step itself is always whole.",
+  "Clip 4: Cook Mode and its intro open as hard cuts (the app has no open animation). One ~0.2 s frame shows '20:00 remaining' on grey while the chip's colour transitions.",
+  "Header shows 'Sign in / Sign up' (guest) and the tab bar shows 'Home' active throughout."
+ ],
+ "tooling": "tooling/capture2.mjs (runner), tooling/assemble.py (60 fps assembly), tooling/journey-capture.mjs + .diff (harness), tooling/sheet.sh (review contact sheets), tooling/run-logs/ (raw run JSON incl. full harness log, clip timelines, servings probe screenshots)",
+ "sha256": {
+  "recipefix-v2-clip1-result-swapped-yogurt.mp4": "b547fd11d054f4b7a5f3bdf6c810f9f134910825ab6be29487cc863b31384ee6",
+  "recipefix-v2-clip2-method-step-notes.mp4": "8d1537cf268a1426dbc1ceadd137dc83f0041aef7a1ba65999312f71e4496c7f",
+  "recipefix-v2-clip4-cook-mode-timer.mp4": "d32cc30d94509c50c6290e826d6c1bbdda80d79891d2a495daa321b23688a980",
+  "recipefix-v2-still-1-result-header-what-changed.png": "e27c6207b22a7daaa55f981ebb8b90cecb7999bc8933da2c870ae6f6770657e0",
+  "recipefix-v2-still-2-step4-reduce-tomato-sauce.png": "9ac36417f7becbcf6030b3cf91a5740fb280be2936c7101a5923a40c3277fce5",
+  "recipefix-v2-still-3-step5-broil-marinated-chicken.png": "ff18fd6035befe2b5e5ac050101e39df813f287df5ebc1a3a8124b83f33282f0",
+  "recipefix-v2-still-4-step6-finish-creamy-sauce.png": "9f2b0c375b5129eaefd5ff2a7a0b094a75590f6e98a3289c3611a3ab6cf8c468",
+  "recipefix-v2-still-5-swapped-coconut-yogurt-row.png": "5b8837e07b9be4c40e16b5d4c1192807e52da2c1940885ce83b3e5adf3310da0",
+  "recipefix-v2-still-6-swapped-coconut-yogurt-row-opened.png": "5e89da151d18a04217805f7347e3060ab49699c783ab4b837435d03efe321aff",
+  "tooling/assemble.py": "ba80293c510f96cffd7e3294a8890ea1f67121a932199085051b5bc9b2b93578",
+  "tooling/capture2.mjs": "b17d72ce1e4b7ca39d98fd069e7fe1b5b1a8febdae2276ab873ec102a94bc46f",
+  "tooling/journey-capture.diff": "11bbabb055950467efc2e6e6a7a00e33d00c7ce2b15ad03e4a388077a37f22ed",
+  "tooling/journey-capture.mjs": "d4214edb85d8a218082debaa280179c5b3ba7979cd24262dae32a62671578bb1",
+  "tooling/run-logs/run-cook.json": "45dc3e224a414b2a1d9146d5b5e0ee655d867e0365cde6cd643383bdd664023f",
+  "tooling/run-logs/run-method.json": "41a3a8a7c76b9db73d98e07b288bac67ff763323ca4d641e4d3d3773cb80f756",
+  "tooling/run-logs/run-result.json": "4a33bc76bf4bedbf34bd2047ef926418c525c3f9766b153bfbd4869d8b6ae369",
+  "tooling/run-logs/run-servings-probe.json": "fb25c698e802b2c793169fe72918b28d955bf4e215520ac29e13a673fe5064fa",
+  "tooling/run-logs/run-shots.json": "97ab4f7e41b1ab9d23d28f44f3dd7cc477d378f1712eaef7878324bd2b2f8630",
+  "tooling/run-logs/servings-0.5s.png": "8846ea8a08c54263c117a1b440718dd8a06ddf4b981bac8f0cf1560c8d97320e",
+  "tooling/run-logs/servings-3s.png": "5a31b8129d14993a596fa91f6a29adff5904bfd32c33ebf421edb692235b10d0",
+  "tooling/run-logs/servings-before.png": "3347c8f918955f512e603f53a0ceec63b0c05597302a52293d98965417f1c2c0",
+  "tooling/run-logs/timeline-cook.json": "3957de32df4308304362386b10c38bb254c56896ba1d733d34e2414aed4e930f",
+  "tooling/run-logs/timeline-method.json": "edfe4d00e37da411590cb1a389c437a1500fad91b06e3f2a135a035069bc54f2",
+  "tooling/run-logs/timeline-result.json": "d82497f1c4e317890087e146388b2b21a78e61ae8a60385b0d7d1bd2a5a360e5",
+  "tooling/sheet.sh": "a69cbafaec0e4aed7013909d9e9dcc0f1563c96673b797d555f409dbb0d1fda1"
+ }
+}

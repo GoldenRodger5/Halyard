@@ -3,7 +3,7 @@
  * `mk make <carousel idea>`: brief → copy (≤3 model attempts, or a reviewed
  * copy file) → render → QA on the exported PNGs → preview page → run record.
  */
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
 import path from 'node:path';
 import sharp from 'sharp';
 import { OpenAiLlmClient } from '@halyard/core/generation';
@@ -25,11 +25,7 @@ import { qaStill } from './qa/image.js';
 import { openRun, proofExcerpts, readJsonIfExists, REPO_ROOT, writeJson, type RunContext } from './runContext.js';
 import { writePreview } from './preview.js';
 
-const PROOF_SHOT = {
-  file: path.join(REPO_ROOT, 'runs/2026-10-26/captures/recipefix-adapt-b2-broiler-note.png'),
-  /** The "RecipeFix changed this step" box of step 5, measured by OCR on the capture. */
-  crop: { left: 150, top: 1478, width: 1000, height: 434 },
-};
+const CAPTURES_V2 = path.join(REPO_ROOT, 'runs/2026-10-26/captures-v2');
 
 export async function makeCarousel(ideaId: string, opts: { copyFile?: string; date?: string }): Promise<void> {
   const ctx = openRun(ideaId, opts.date);
@@ -116,32 +112,43 @@ export async function makeCarousel(ideaId: string, opts: { copyFile?: string; da
   );
   const coverCrop = { left: 520, top: 0, width: W, height: H };
   const coverJpeg = await sharp(photo.bytes).extract(coverCrop).jpeg({ quality: 92 }).toBuffer();
-  const shotAsset = loadLocalAsset(
-    PROOF_SHOT.file,
-    'product_capture',
-    'RecipeFix UI at commit 8c44a5b4 (RecipeOutputCard identical to the live 3f32680f tree; light-mode tokens identical), local build driven by scripts/journey.mjs; the adaptation is the verbatim stored production result captured 2026-10-21; backend transport simulated. See runs/2026-10-26/captures/capture.json',
-    'first-party capture',
-    'Real RecipeFix screen, local build of the live UI',
-  );
-  const shotWidth = W - MX * 2;
-  const shotHeight = Math.round((PROOF_SHOT.crop.height / PROOF_SHOT.crop.width) * shotWidth);
-  const shotPng = await sharp(shotAsset.bytes).extract(PROOF_SHOT.crop).resize(shotWidth, shotHeight).png().toBuffer();
   const assets: AssetRecord[] = [
     ctx.proofRecord,
     { ...photo.record, id: `${photo.record.id} crop ${JSON.stringify(coverCrop)} (source 1600×1600: no upscaling)` },
-    { ...shotAsset.record, id: `${shotAsset.record.id} crop ${JSON.stringify(PROOF_SHOT.crop)} → ${shotWidth}×${shotHeight} (downscale)` },
   ];
+  // Real RecipeFix screens (owner: "use real pics of RecipeFix"), cropped from the v2 captures.
+  const shotWidth = W - MX * 2;
+  const shots: Record<number, Array<{ uri: string; width: number; height: number }>> = {};
+  for (const [i, spec] of (idea.slides ?? []).entries()) {
+    for (const shot of [spec.shot, spec.shot2, spec.shot3]) {
+      if (!shot) continue;
+      const asset = loadLocalAsset(
+        path.join(CAPTURES_V2, shot.file),
+        'product_capture',
+        'RecipeFix UI at commit e68b1404 (the live tree on 2026-10-26), local production build driven by scripts/journey.mjs with a simulated backend; the adaptation shown is the verbatim stored production result captured 2026-10-21. runs/2026-10-26/captures-v2/capture.json',
+        'first-party capture',
+        'Real RecipeFix screen, local build of the live UI',
+      );
+      // Exact DOM boxes need no snapping; the old free-height crops did.
+      const crop = shot.crop;
+      const height = Math.round((crop.height / crop.width) * shotWidth);
+      const png = await sharp(asset.bytes).extract(crop).resize(shotWidth, height).png().toBuffer();
+      (shots[i] ??= []).push({ uri: `data:image/png;base64,${png.toString('base64')}`, width: shotWidth, height });
+      assets.push({ ...asset.record, id: `${asset.record.id} crop ${JSON.stringify(crop)} → ${shotWidth}×${height} (downscale ${(shotWidth / shot.crop.width).toFixed(2)})` });
+    }
+  }
 
   // ── Render ───────────────────────────────────────────────────────────────
   const slides = await renderCarousel(
     copy,
     {
       coverPhoto: `data:image/jpeg;base64,${coverJpeg.toString('base64')}`,
-      proofShot: { uri: `data:image/png;base64,${shotPng.toString('base64')}`, width: shotWidth, height: shotHeight },
+      shots,
     },
     provenance,
   );
   const slideDir = path.join(ctx.dir, 'slides');
+  rmSync(slideDir, { recursive: true, force: true }); // a re-render with fewer slides must not leave stale ones
   mkdirSync(slideDir, { recursive: true });
   const files: string[] = [];
   for (const s of slides) {

@@ -75,16 +75,43 @@
           "ingredients[1]",
           "ingredients[5]",
           "ingredients[15]"
-        ]
+        ],
+        "shot": {
+          "file": "recipefix-v2-still-6-swapped-coconut-yogurt-row-opened.png",
+          "crop": {
+            "left": 24,
+            "top": 1021,
+            "width": 1122,
+            "height": 740
+          }
+        }
       },
       {
         "role": "method",
-        "must": "Broiling: the instinct is 50% more chicken → 50% longer under the broiler. The rewrite: two batches, same 8 to 10 minutes each. Why: crowding costs the char.",
+        "must": "Broiling: the Original says one baking sheet, 8 to 10 minutes. The rewrite: two batches, same 8 to 10 minutes each. Why: crowding costs the char.",
         "sources": [
           "steps[4].updated_note",
           "steps[4].instruction",
           "explanations[2]"
-        ]
+        ],
+        "shot": {
+          "file": "recipefix-v2-still-3-step5-broil-marinated-chicken.png",
+          "crop": {
+            "left": 24,
+            "top": 508,
+            "width": 1122,
+            "height": 244
+          }
+        },
+        "shot2": {
+          "file": "recipefix-v2-still-3-step5-broil-marinated-chicken.png",
+          "crop": {
+            "left": 24,
+            "top": 1595,
+            "width": 1122,
+            "height": 425
+          }
+        }
       },
       {
         "role": "method",
@@ -92,15 +119,25 @@
         "sources": [
           "steps[3].updated_note",
           "steps[3].instruction"
-        ]
-      },
-      {
-        "role": "method",
-        "must": "The marinade: let excess coconut yogurt drip off so the coating chars rather than pools.",
-        "sources": [
-          "steps[4].updated_note",
-          "steps[0].updated_note"
-        ]
+        ],
+        "shot": {
+          "file": "recipefix-v2-still-2-step4-reduce-tomato-sauce.png",
+          "crop": {
+            "left": 24,
+            "top": 508,
+            "width": 1122,
+            "height": 244
+          }
+        },
+        "shot2": {
+          "file": "recipefix-v2-still-2-step4-reduce-tomato-sauce.png",
+          "crop": {
+            "left": 24,
+            "top": 1149,
+            "width": 1122,
+            "height": 425
+          }
+        }
       },
       {
         "role": "method",
@@ -108,14 +145,59 @@
         "sources": [
           "steps[5].updated_note",
           "steps[5].instruction"
-        ]
+        ],
+        "shot": {
+          "file": "recipefix-v2-still-4-step6-finish-creamy-sauce.png",
+          "crop": {
+            "left": 24,
+            "top": 508,
+            "width": 1122,
+            "height": 244
+          }
+        },
+        "shot2": {
+          "file": "recipefix-v2-still-4-step6-finish-creamy-sauce.png",
+          "crop": {
+            "left": 24,
+            "top": 1149,
+            "width": 1122,
+            "height": 494
+          }
+        }
       },
       {
         "role": "proof",
-        "must": "This is a real RecipeFix result: show the app's own changed-step note (screenshot). One-line recap a cook can save.",
+        "must": "This is a real RecipeFix result: show the app's own result header and its 'What RecipeFix changed' summary. One-line recap a cook can save.",
         "sources": [
           "steps[4].updated_note"
-        ]
+        ],
+        "shot": {
+          "file": "recipefix-v2-still-1-result-header-what-changed.png",
+          "crop": {
+            "left": 24,
+            "top": 470,
+            "width": 1122,
+            "height": 232
+          }
+        },
+        "shot2": {
+          "file": "recipefix-v2-still-1-result-header-what-changed.png",
+          "crop": {
+            "left": 24,
+            "top": 815,
+            "width": 1122,
+            "height": 130
+          }
+        },
+        "shot3": {
+          "file": "recipefix-v2-still-1-result-header-what-changed.png",
+          "crop": {
+            "left": 24,
+            "top": 1955,
+            "width": 1122,
+            "height": 240
+          }
+        }
       }
     ]
   },
@@ -242,7 +324,7 @@
       {
         "role": "method",
         "kicker": "Broiler space",
-        "headline": "More chicken did not mean longer broiling",
+        "headline": "Twice the sheets, not twice the time",
         "rewrite": "Two batches, 8 to 10 minutes per batch",
         "why": "Uncrowded chicken keeps the char that balances the creamy sauce",
         "source": "steps[4].updated_note, steps[4].instruction, explanations[2]",
@@ -274,23 +356,8 @@
       },
       {
         "role": "method",
-        "kicker": "Marinade",
-        "headline": "Why the drip matters more now",
-        "rewrite": "With coconut yogurt, let the excess drip off",
-        "why": "The coating chars rather than pools",
-        "source": "steps[4].updated_note, steps[0].updated_note",
-        "claim_ids": [
-          "proof.tikka_method_changes"
-        ],
-        "fact_ids": [],
-        "as_written": "Lift the chicken from the marinade, letting the excess drip off.",
-        "as_written_struck": false,
-        "rewrite_label": "What RecipeFix added: the reason"
-      },
-      {
-        "role": "method",
         "kicker": "Coconut cream",
-        "headline": "Simmer gently, then check the chicken",
+        "headline": "Gentle simmer, then check",
         "rewrite": "Whisk smooth, simmer gently, check several pieces",
         "why": "Separated coconut cream smooths out; chicken still has to reach 165°F",
         "source": "steps[5].updated_note, steps[5].instruction",
@@ -334,8 +401,8 @@
       "proof.tikka_method_changes"
     ],
     "caption_fact_ids": [
-      "scale",
       "reduce_time",
+      "scale",
       "temp"
     ]
   },
@@ -344,6 +411,11 @@
       "path": "$.slides[0].photo_label",
       "model": "Original recipe licensed stock photo, not adapted dish",
       "reviewed": "Stock photo of the original dairy recipe, not the adapted dish"
+    },
+    {
+      "path": "$.slides[2].headline",
+      "model": "More chicken did not mean longer broiling",
+      "reviewed": "Twice the sheets, not twice the time"
     },
     {
       "path": "$.slides[2].instinct",
@@ -374,9 +446,14 @@
       "reviewed": "original_reduce"
     },
     {
+      "path": "$.slides[4].kicker",
+      "model": "Marinade",
+      "reviewed": "Coconut cream"
+    },
+    {
       "path": "$.slides[4].headline",
       "model": "Coconut yogurt needs a drip",
-      "reviewed": "Why the drip matters more now"
+      "reviewed": "Gentle simmer, then check"
     },
     {
       "path": "$.slides[4].instinct",
@@ -385,21 +462,71 @@
     {
       "path": "$.slides[4].rewrite",
       "model": "Let excess coconut yogurt drip off first",
-      "reviewed": "With coconut yogurt, let the excess drip off"
+      "reviewed": "Whisk smooth, simmer gently, check several pieces"
+    },
+    {
+      "path": "$.slides[4].why",
+      "model": "The coating chars rather than pools",
+      "reviewed": "Separated coconut cream smooths out; chicken still has to reach 165°F"
+    },
+    {
+      "path": "$.slides[4].source",
+      "model": "steps[4].updated_note, steps[0].updated_note",
+      "reviewed": "steps[5].updated_note, steps[5].instruction"
+    },
+    {
+      "path": "$.slides[5].role",
+      "model": "method",
+      "reviewed": "proof"
+    },
+    {
+      "path": "$.slides[5].kicker",
+      "model": "Coconut cream",
+      "reviewed": "Proof"
+    },
+    {
+      "path": "$.slides[5].headline",
+      "model": "Simmer gently, then check the chicken",
+      "reviewed": "What the app actually said"
     },
     {
       "path": "$.slides[5].instinct",
       "model": "Stretch the final simmer for the larger batch"
     },
     {
-      "path": "$.slides[5].fact_ids[0]",
-      "model": "temp",
-      "reviewed": "original_finish"
+      "path": "$.slides[5].rewrite",
+      "model": "Whisk smooth, simmer gently, check several pieces"
     },
     {
-      "path": "$.slides[6].headline",
-      "model": "Real RecipeFix changed-step note",
-      "reviewed": "What the app actually said"
+      "path": "$.slides[5].why",
+      "model": "Separated coconut cream smooths out; chicken still has to reach 165°F"
+    },
+    {
+      "path": "$.slides[5].source",
+      "model": "steps[5].updated_note, steps[5].instruction"
+    },
+    {
+      "path": "$.slides[5].fact_ids[0]",
+      "model": "temp"
+    },
+    {
+      "path": "$.slides[6]",
+      "model": {
+        "role": "proof",
+        "kicker": "Proof",
+        "headline": "Real RecipeFix changed-step note",
+        "recap": [
+          "More food needs more space",
+          "Watch texture, not math",
+          "Simmer cream gently"
+        ],
+        "claim_ids": [
+          "proof.tikka_method_changes",
+          "core.rewrites_steps",
+          "core.reasons"
+        ],
+        "fact_ids": []
+      }
     },
     {
       "path": "$.caption",
@@ -420,6 +547,16 @@
       "path": "$.caption_claim_ids[2]",
       "model": "core.reasons",
       "reviewed": "core.rewrites_steps"
+    },
+    {
+      "path": "$.caption_fact_ids[0]",
+      "model": "scale",
+      "reviewed": "reduce_time"
+    },
+    {
+      "path": "$.caption_fact_ids[1]",
+      "model": "reduce_time",
+      "reviewed": "scale"
     }
   ],
   "model_attempts": [
@@ -452,11 +589,92 @@
       "disclosure": "Photo is the Original recipe's licensed stock photo, not the adapted dish"
     },
     {
-      "id": "recipefix-adapt-b2-broiler-note.png crop {\"left\":150,\"top\":1478,\"width\":1000,\"height\":434} → 936×406 (downscale)",
+      "id": "recipefix-v2-still-6-swapped-coconut-yogurt-row-opened.png crop {\"left\":24,\"top\":1021,\"width\":1122,\"height\":740} → 936×617 (downscale 0.83)",
       "kind": "product_capture",
-      "location": "/Users/isaacmineo/PROJECT_2025/halyard-marketing-lean-lane/runs/2026-10-26/captures/recipefix-adapt-b2-broiler-note.png",
-      "sha256": "cfbba863b5c27f7f90761464f093983590395988300ac54da9860220006e177b",
-      "provenance": "RecipeFix UI at commit 8c44a5b4 (RecipeOutputCard identical to the live 3f32680f tree; light-mode tokens identical), local build driven by scripts/journey.mjs; the adaptation is the verbatim stored production result captured 2026-10-21; backend transport simulated. See runs/2026-10-26/captures/capture.json",
+      "location": "/Users/isaacmineo/PROJECT_2025/halyard-marketing-lean-lane/runs/2026-10-26/captures-v2/recipefix-v2-still-6-swapped-coconut-yogurt-row-opened.png",
+      "sha256": "5e89da151d18a04217805f7347e3060ab49699c783ab4b837435d03efe321aff",
+      "provenance": "RecipeFix UI at commit e68b1404 (the live tree on 2026-10-26), local production build driven by scripts/journey.mjs with a simulated backend; the adaptation shown is the verbatim stored production result captured 2026-10-21. runs/2026-10-26/captures-v2/capture.json",
+      "licence": "first-party capture",
+      "disclosure": "Real RecipeFix screen, local build of the live UI"
+    },
+    {
+      "id": "recipefix-v2-still-3-step5-broil-marinated-chicken.png crop {\"left\":24,\"top\":508,\"width\":1122,\"height\":244} → 936×204 (downscale 0.83)",
+      "kind": "product_capture",
+      "location": "/Users/isaacmineo/PROJECT_2025/halyard-marketing-lean-lane/runs/2026-10-26/captures-v2/recipefix-v2-still-3-step5-broil-marinated-chicken.png",
+      "sha256": "ff18fd6035befe2b5e5ac050101e39df813f287df5ebc1a3a8124b83f33282f0",
+      "provenance": "RecipeFix UI at commit e68b1404 (the live tree on 2026-10-26), local production build driven by scripts/journey.mjs with a simulated backend; the adaptation shown is the verbatim stored production result captured 2026-10-21. runs/2026-10-26/captures-v2/capture.json",
+      "licence": "first-party capture",
+      "disclosure": "Real RecipeFix screen, local build of the live UI"
+    },
+    {
+      "id": "recipefix-v2-still-3-step5-broil-marinated-chicken.png crop {\"left\":24,\"top\":1595,\"width\":1122,\"height\":425} → 936×355 (downscale 0.83)",
+      "kind": "product_capture",
+      "location": "/Users/isaacmineo/PROJECT_2025/halyard-marketing-lean-lane/runs/2026-10-26/captures-v2/recipefix-v2-still-3-step5-broil-marinated-chicken.png",
+      "sha256": "ff18fd6035befe2b5e5ac050101e39df813f287df5ebc1a3a8124b83f33282f0",
+      "provenance": "RecipeFix UI at commit e68b1404 (the live tree on 2026-10-26), local production build driven by scripts/journey.mjs with a simulated backend; the adaptation shown is the verbatim stored production result captured 2026-10-21. runs/2026-10-26/captures-v2/capture.json",
+      "licence": "first-party capture",
+      "disclosure": "Real RecipeFix screen, local build of the live UI"
+    },
+    {
+      "id": "recipefix-v2-still-2-step4-reduce-tomato-sauce.png crop {\"left\":24,\"top\":508,\"width\":1122,\"height\":244} → 936×204 (downscale 0.83)",
+      "kind": "product_capture",
+      "location": "/Users/isaacmineo/PROJECT_2025/halyard-marketing-lean-lane/runs/2026-10-26/captures-v2/recipefix-v2-still-2-step4-reduce-tomato-sauce.png",
+      "sha256": "9ac36417f7becbcf6030b3cf91a5740fb280be2936c7101a5923a40c3277fce5",
+      "provenance": "RecipeFix UI at commit e68b1404 (the live tree on 2026-10-26), local production build driven by scripts/journey.mjs with a simulated backend; the adaptation shown is the verbatim stored production result captured 2026-10-21. runs/2026-10-26/captures-v2/capture.json",
+      "licence": "first-party capture",
+      "disclosure": "Real RecipeFix screen, local build of the live UI"
+    },
+    {
+      "id": "recipefix-v2-still-2-step4-reduce-tomato-sauce.png crop {\"left\":24,\"top\":1149,\"width\":1122,\"height\":425} → 936×355 (downscale 0.83)",
+      "kind": "product_capture",
+      "location": "/Users/isaacmineo/PROJECT_2025/halyard-marketing-lean-lane/runs/2026-10-26/captures-v2/recipefix-v2-still-2-step4-reduce-tomato-sauce.png",
+      "sha256": "9ac36417f7becbcf6030b3cf91a5740fb280be2936c7101a5923a40c3277fce5",
+      "provenance": "RecipeFix UI at commit e68b1404 (the live tree on 2026-10-26), local production build driven by scripts/journey.mjs with a simulated backend; the adaptation shown is the verbatim stored production result captured 2026-10-21. runs/2026-10-26/captures-v2/capture.json",
+      "licence": "first-party capture",
+      "disclosure": "Real RecipeFix screen, local build of the live UI"
+    },
+    {
+      "id": "recipefix-v2-still-4-step6-finish-creamy-sauce.png crop {\"left\":24,\"top\":508,\"width\":1122,\"height\":244} → 936×204 (downscale 0.83)",
+      "kind": "product_capture",
+      "location": "/Users/isaacmineo/PROJECT_2025/halyard-marketing-lean-lane/runs/2026-10-26/captures-v2/recipefix-v2-still-4-step6-finish-creamy-sauce.png",
+      "sha256": "9f2b0c375b5129eaefd5ff2a7a0b094a75590f6e98a3289c3611a3ab6cf8c468",
+      "provenance": "RecipeFix UI at commit e68b1404 (the live tree on 2026-10-26), local production build driven by scripts/journey.mjs with a simulated backend; the adaptation shown is the verbatim stored production result captured 2026-10-21. runs/2026-10-26/captures-v2/capture.json",
+      "licence": "first-party capture",
+      "disclosure": "Real RecipeFix screen, local build of the live UI"
+    },
+    {
+      "id": "recipefix-v2-still-4-step6-finish-creamy-sauce.png crop {\"left\":24,\"top\":1149,\"width\":1122,\"height\":494} → 936×412 (downscale 0.83)",
+      "kind": "product_capture",
+      "location": "/Users/isaacmineo/PROJECT_2025/halyard-marketing-lean-lane/runs/2026-10-26/captures-v2/recipefix-v2-still-4-step6-finish-creamy-sauce.png",
+      "sha256": "9f2b0c375b5129eaefd5ff2a7a0b094a75590f6e98a3289c3611a3ab6cf8c468",
+      "provenance": "RecipeFix UI at commit e68b1404 (the live tree on 2026-10-26), local production build driven by scripts/journey.mjs with a simulated backend; the adaptation shown is the verbatim stored production result captured 2026-10-21. runs/2026-10-26/captures-v2/capture.json",
+      "licence": "first-party capture",
+      "disclosure": "Real RecipeFix screen, local build of the live UI"
+    },
+    {
+      "id": "recipefix-v2-still-1-result-header-what-changed.png crop {\"left\":24,\"top\":470,\"width\":1122,\"height\":232} → 936×194 (downscale 0.83)",
+      "kind": "product_capture",
+      "location": "/Users/isaacmineo/PROJECT_2025/halyard-marketing-lean-lane/runs/2026-10-26/captures-v2/recipefix-v2-still-1-result-header-what-changed.png",
+      "sha256": "e27c6207b22a7daaa55f981ebb8b90cecb7999bc8933da2c870ae6f6770657e0",
+      "provenance": "RecipeFix UI at commit e68b1404 (the live tree on 2026-10-26), local production build driven by scripts/journey.mjs with a simulated backend; the adaptation shown is the verbatim stored production result captured 2026-10-21. runs/2026-10-26/captures-v2/capture.json",
+      "licence": "first-party capture",
+      "disclosure": "Real RecipeFix screen, local build of the live UI"
+    },
+    {
+      "id": "recipefix-v2-still-1-result-header-what-changed.png crop {\"left\":24,\"top\":815,\"width\":1122,\"height\":130} → 936×108 (downscale 0.83)",
+      "kind": "product_capture",
+      "location": "/Users/isaacmineo/PROJECT_2025/halyard-marketing-lean-lane/runs/2026-10-26/captures-v2/recipefix-v2-still-1-result-header-what-changed.png",
+      "sha256": "e27c6207b22a7daaa55f981ebb8b90cecb7999bc8933da2c870ae6f6770657e0",
+      "provenance": "RecipeFix UI at commit e68b1404 (the live tree on 2026-10-26), local production build driven by scripts/journey.mjs with a simulated backend; the adaptation shown is the verbatim stored production result captured 2026-10-21. runs/2026-10-26/captures-v2/capture.json",
+      "licence": "first-party capture",
+      "disclosure": "Real RecipeFix screen, local build of the live UI"
+    },
+    {
+      "id": "recipefix-v2-still-1-result-header-what-changed.png crop {\"left\":24,\"top\":1955,\"width\":1122,\"height\":240} → 936×200 (downscale 0.83)",
+      "kind": "product_capture",
+      "location": "/Users/isaacmineo/PROJECT_2025/halyard-marketing-lean-lane/runs/2026-10-26/captures-v2/recipefix-v2-still-1-result-header-what-changed.png",
+      "sha256": "e27c6207b22a7daaa55f981ebb8b90cecb7999bc8933da2c870ae6f6770657e0",
+      "provenance": "RecipeFix UI at commit e68b1404 (the live tree on 2026-10-26), local production build driven by scripts/journey.mjs with a simulated backend; the adaptation shown is the verbatim stored production result captured 2026-10-21. runs/2026-10-26/captures-v2/capture.json",
       "licence": "first-party capture",
       "disclosure": "Real RecipeFix screen, local build of the live UI"
     }
@@ -467,8 +685,7 @@
     "runs/2026-10-26/I5-ig-carousel/slides/03-method.png",
     "runs/2026-10-26/I5-ig-carousel/slides/04-method.png",
     "runs/2026-10-26/I5-ig-carousel/slides/05-method.png",
-    "runs/2026-10-26/I5-ig-carousel/slides/06-method.png",
-    "runs/2026-10-26/I5-ig-carousel/slides/07-proof.png"
+    "runs/2026-10-26/I5-ig-carousel/slides/06-proof.png"
   ],
   "qa": {
     "passed": true,
@@ -476,7 +693,7 @@
       {
         "id": "claims.correspondence",
         "passed": true,
-        "detail": "29 lines cite claims",
+        "detail": "24 lines cite claims",
         "problems": []
       },
       {
@@ -522,7 +739,7 @@
       {
         "id": "payload.instagram",
         "passed": true,
-        "detail": "7 slides, 4 hashtags, JPEG exports at 1080×1350",
+        "detail": "6 slides, 4 hashtags, JPEG exports at 1080×1350",
         "problems": []
       }
     ],
@@ -541,7 +758,7 @@
           {
             "id": "still.text_readback",
             "passed": true,
-            "detail": "3 intended lines, min similarity 1.00 (OCR file: 38 words, inverted: 37 words, rules removed: 36 words, white-text mask: 8 words); 0 struck lines held to their recorded lower bar",
+            "detail": "3 intended lines, min similarity 1.00 (OCR file: 37 words, inverted: 37 words, rules removed: 36 words, white-text mask: 8 words); 0 struck lines held to their recorded lower bar",
             "problems": []
           },
           {
@@ -554,6 +771,12 @@
             "id": "still.safe_zone",
             "passed": true,
             "detail": "24 word boxes inside x 60–1020, y 48–1318",
+            "problems": []
+          },
+          {
+            "id": "still.text_overlap",
+            "passed": true,
+            "detail": "no two intended lines overprint each other",
             "problems": []
           },
           {
@@ -584,7 +807,7 @@
           {
             "id": "still.text_readback",
             "passed": true,
-            "detail": "10 intended lines, min similarity 1.00 (OCR file: 38 words, inverted: 38 words, rules removed: 46 words, white-text mask: 0 words); 3 struck lines held to their recorded lower bar",
+            "detail": "8 intended lines, min similarity 1.00 (OCR file: 58 words, inverted: 61 words, rules removed: 62 words, white-text mask: 38 words); 2 struck lines held to their recorded lower bar",
             "problems": []
           },
           {
@@ -596,7 +819,13 @@
           {
             "id": "still.safe_zone",
             "passed": true,
-            "detail": "43 word boxes inside x 60–1020, y 48–1318",
+            "detail": "32 word boxes inside x 60–1020, y 48–1318",
+            "problems": []
+          },
+          {
+            "id": "still.text_overlap",
+            "passed": true,
+            "detail": "no two intended lines overprint each other",
             "problems": []
           },
           {
@@ -608,7 +837,7 @@
           {
             "id": "still.contrast",
             "passed": true,
-            "detail": "min 4.63:1 over 43 word boxes (WCAG AA 4.5:1)",
+            "detail": "min 4.63:1 over 32 word boxes (WCAG AA 4.5:1)",
             "problems": []
           }
         ]
@@ -627,7 +856,7 @@
           {
             "id": "still.text_readback",
             "passed": true,
-            "detail": "9 intended lines, min similarity 1.00 (OCR file: 43 words, inverted: 43 words, rules removed: 57 words, white-text mask: 0 words); 1 struck lines held to their recorded lower bar",
+            "detail": "7 intended lines, min similarity 0.80 (OCR file: 84 words, inverted: 84 words, rules removed: 98 words, white-text mask: 53 words); 1 struck lines held to their recorded lower bar",
             "problems": []
           },
           {
@@ -639,7 +868,13 @@
           {
             "id": "still.safe_zone",
             "passed": true,
-            "detail": "49 word boxes inside x 60–1020, y 48–1318",
+            "detail": "35 word boxes inside x 60–1020, y 48–1318",
+            "problems": []
+          },
+          {
+            "id": "still.text_overlap",
+            "passed": true,
+            "detail": "no two intended lines overprint each other",
             "problems": []
           },
           {
@@ -651,7 +886,7 @@
           {
             "id": "still.contrast",
             "passed": true,
-            "detail": "min 4.63:1 over 49 word boxes (WCAG AA 4.5:1)",
+            "detail": "min 4.63:1 over 35 word boxes (WCAG AA 4.5:1)",
             "problems": []
           }
         ]
@@ -670,7 +905,7 @@
           {
             "id": "still.text_readback",
             "passed": true,
-            "detail": "9 intended lines, min similarity 0.73 (OCR file: 41 words, inverted: 41 words, rules removed: 54 words, white-text mask: 0 words); 1 struck lines held to their recorded lower bar",
+            "detail": "7 intended lines, min similarity 0.73 (OCR file: 81 words, inverted: 81 words, rules removed: 94 words, white-text mask: 35 words); 1 struck lines held to their recorded lower bar",
             "problems": []
           },
           {
@@ -682,7 +917,13 @@
           {
             "id": "still.safe_zone",
             "passed": true,
-            "detail": "40 word boxes inside x 60–1020, y 48–1318",
+            "detail": "33 word boxes inside x 60–1020, y 48–1318",
+            "problems": []
+          },
+          {
+            "id": "still.text_overlap",
+            "passed": true,
+            "detail": "no two intended lines overprint each other",
             "problems": []
           },
           {
@@ -694,7 +935,7 @@
           {
             "id": "still.contrast",
             "passed": true,
-            "detail": "min 4.63:1 over 40 word boxes (WCAG AA 4.5:1)",
+            "detail": "min 4.63:1 over 33 word boxes (WCAG AA 4.5:1)",
             "problems": []
           }
         ]
@@ -713,7 +954,7 @@
           {
             "id": "still.text_readback",
             "passed": true,
-            "detail": "9 intended lines, min similarity 1.00 (OCR file: 51 words, inverted: 51 words, rules removed: 51 words, white-text mask: 0 words); 0 struck lines held to their recorded lower bar",
+            "detail": "7 intended lines, min similarity 1.00 (OCR file: 83 words, inverted: 83 words, rules removed: 94 words, white-text mask: 60 words); 1 struck lines held to their recorded lower bar",
             "problems": []
           },
           {
@@ -725,7 +966,13 @@
           {
             "id": "still.safe_zone",
             "passed": true,
-            "detail": "47 word boxes inside x 60–1020, y 48–1318",
+            "detail": "35 word boxes inside x 60–1020, y 48–1318",
+            "problems": []
+          },
+          {
+            "id": "still.text_overlap",
+            "passed": true,
+            "detail": "no two intended lines overprint each other",
             "problems": []
           },
           {
@@ -737,56 +984,13 @@
           {
             "id": "still.contrast",
             "passed": true,
-            "detail": "min 4.63:1 over 47 word boxes (WCAG AA 4.5:1)",
+            "detail": "min 4.63:1 over 35 word boxes (WCAG AA 4.5:1)",
             "problems": []
           }
         ]
       },
       {
         "slide": 6,
-        "role": "method",
-        "passed": true,
-        "checks": [
-          {
-            "id": "still.canvas",
-            "passed": true,
-            "detail": "1080×1350",
-            "problems": []
-          },
-          {
-            "id": "still.text_readback",
-            "passed": true,
-            "detail": "9 intended lines, min similarity 0.91 (OCR file: 45 words, inverted: 45 words, rules removed: 53 words, white-text mask: 0 words); 1 struck lines held to their recorded lower bar",
-            "problems": []
-          },
-          {
-            "id": "still.no_artefacts",
-            "passed": true,
-            "detail": "no [object Object] / undefined / NaN / braces read on the image",
-            "problems": []
-          },
-          {
-            "id": "still.safe_zone",
-            "passed": true,
-            "detail": "48 word boxes inside x 60–1020, y 48–1318",
-            "problems": []
-          },
-          {
-            "id": "still.text_size",
-            "passed": true,
-            "detail": "every line's median OCR word height ≥ 24px",
-            "problems": []
-          },
-          {
-            "id": "still.contrast",
-            "passed": true,
-            "detail": "min 4.63:1 over 48 word boxes (WCAG AA 4.5:1)",
-            "problems": []
-          }
-        ]
-      },
-      {
-        "slide": 7,
         "role": "proof",
         "passed": true,
         "checks": [
@@ -799,7 +1003,7 @@
           {
             "id": "still.text_readback",
             "passed": true,
-            "detail": "7 intended lines, min similarity 1.00 (OCR file: 59 words, inverted: 59 words, rules removed: 59 words, white-text mask: 37 words); 0 struck lines held to their recorded lower bar",
+            "detail": "7 intended lines, min similarity 1.00 (OCR file: 57 words, inverted: 57 words, rules removed: 57 words, white-text mask: 24 words); 0 struck lines held to their recorded lower bar",
             "problems": []
           },
           {
@@ -812,6 +1016,12 @@
             "id": "still.safe_zone",
             "passed": true,
             "detail": "25 word boxes inside x 60–1020, y 48–1318",
+            "problems": []
+          },
+          {
+            "id": "still.text_overlap",
+            "passed": true,
+            "detail": "no two intended lines overprint each other",
             "problems": []
           },
           {
@@ -836,7 +1046,7 @@
     "cap_usd": 15
   },
   "brief_sha256": "07a59a808647ecd24ccddd40101b090dde2b56d211a95fb38e8e1e6940f23670",
-  "made_at": "2026-10-26T21:19:28.125Z",
+  "made_at": "2026-10-26T22:40:52.451Z",
   "safe_box": {
     "x0": 60,
     "y0": 48,

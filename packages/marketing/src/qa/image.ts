@@ -262,7 +262,8 @@ export async function qaStill(input: StillQaInput): Promise<{ passed: boolean; c
     ],
   });
 
-  const artefacts = ocrWords(input.png).filter((w) => /object|undefined|NaN|\{|\}/.test(w.text));
+  // Serialisation artefacts only: a lone brace is how OCR reads an icon (the app's fork-and-knife), not a bug.
+  const artefacts = ocrWords(input.png).filter((w) => /\[?object|undefined|NaN|\{\{|\}\}|\$\{/.test(w.text));
   checks.push({
     id: 'still.no_artefacts',
     passed: artefacts.length === 0,
@@ -280,6 +281,20 @@ export async function qaStill(input: StillQaInput): Promise<{ passed: boolean; c
     detail: `${boxes.length} word boxes inside x ${input.safeBox.x0}–${input.safeBox.x1}, y ${input.safeBox.y0}–${input.safeBox.y1}`,
     problems: outside.map((b) => `"${b.text}" at x ${b.x}–${b.x + b.w}, y ${b.y}–${b.y + b.h}`),
   });
+
+  // Overlap: a word box of one intended line intersecting a word box of another means the layout
+  // collided (an overflowing flex column shrinks its children until they overprint).
+  const overlaps: string[] = [];
+  for (let a = 0; a < rb.length; a++)
+    for (let b = a + 1; b < rb.length; b++)
+      for (const p of rb[a]!.boxes)
+        for (const q of rb[b]!.boxes) {
+          if (p === q) continue;
+          const ix = Math.min(p.x + p.w, q.x + q.w) - Math.max(p.x, q.x);
+          const iy = Math.min(p.y + p.h, q.y + q.h) - Math.max(p.y, q.y);
+          if (ix > 6 && iy > 6) overlaps.push(`"${p.text}" (${rb[a]!.line.slice(0, 30)}) overlaps "${q.text}" (${rb[b]!.line.slice(0, 30)})`);
+        }
+  checks.push({ id: 'still.text_overlap', passed: overlaps.length === 0, detail: 'no two intended lines overprint each other', problems: [...new Set(overlaps)].slice(0, 8) });
 
   // Size: per line, the median word height must clear the floor for the smallest permitted type.
   const small = rb

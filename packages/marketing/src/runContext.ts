@@ -31,8 +31,28 @@ export interface Idea {
   link?: string;
   never_show: string[];
   fact_sources: FactSource[];
-  slides?: Array<{ role: string; must: string; sources?: string[] }>;
-  beats?: Array<{ role: string; must: string }>;
+  slides?: Array<{
+    role: string;
+    must: string;
+    sources?: string[];
+    /** A real product screen crop for this slide (device px in the capture). */
+    shot?: { file: string; crop: { left: number; top: number; width: number; height: number } };
+    shot2?: { file: string; crop: { left: number; top: number; width: number; height: number } };
+    shot3?: { file: string; crop: { left: number; top: number; width: number; height: number } };
+  }>;
+  /** Video template: `screen-hero` (real app screens) or `explainer` (no-app, typographic diagrams). */
+  composition?: 'screen-hero' | 'explainer';
+  captures?: string;
+  beats?: Array<{ role: string; must: string; shots?: ShotSpec[]; visual?: Record<string, unknown> }>;
+}
+
+export interface ShotSpec {
+  kind?: 'photo-hook' | 'photo-close' | 'clip' | 'still';
+  src?: string;
+  from?: number;
+  y?: number;
+  yEnd?: number;
+  weight?: number;
 }
 
 export interface IdeasFile {

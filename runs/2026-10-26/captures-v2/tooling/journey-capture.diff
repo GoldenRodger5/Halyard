@@ -1,0 +1,10 @@
+38,39c38,39
+< import { chromium } from "playwright-core";
+< import { build } from "esbuild";
+---
+> import { chromium } from "/Users/isaacmineo/PROJECT_2025/recipe-fix-capture-e68b1404/node_modules/playwright-core/index.mjs";
+> import { build } from "/Users/isaacmineo/PROJECT_2025/recipe-fix-capture-e68b1404/node_modules/esbuild/lib/main.js";
+45c45
+< const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+---
+> const ROOT = "/Users/isaacmineo/PROJECT_2025/recipe-fix-capture-e68b1404";

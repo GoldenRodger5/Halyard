@@ -189,8 +189,19 @@ export function supportedBy(claim: string, sources: string, proof: Record<string
 export interface SlideAssets {
   /** JPEG data URI, already cropped to W×H. */
   coverPhoto: string;
-  /** PNG data URI of the real product capture crop, and its pixel size at render width. */
-  proofShot: { uri: string; width: number; height: number };
+  /** Real product screen crops per slide index (0-based), already sized to render width. */
+  shots: Record<number, Array<{ uri: string; width: number; height: number }>>;
+}
+
+/** A real RecipeFix screen crop: rounded, hairline border, soft shadow. Never a drawn device frame. */
+function screen(shot: { uri: string; width: number; height: number }, marginTop = 30): SatoriElement {
+  return box(
+    {
+      marginTop, width: shot.width, height: shot.height, borderRadius: 24, overflow: 'hidden',
+      borderWidth: 2, borderStyle: 'solid', borderColor: PALETTE.rule, boxShadow: '0 18px 40px rgba(39,34,30,0.16)',
+    },
+    { type: 'img', props: { src: shot.uri, style: { width: shot.width, height: shot.height } } } as SatoriElement,
+  );
 }
 
 export interface RenderedSlide {
@@ -272,29 +283,72 @@ export function slideElement(
     };
   }
 
+  const shots = assets.shots[i] ?? [];
+
   if (s.role === 'swaps') {
+    // With a real screen: the app's own swapped row + its "Was" card carries swap 1; the other two are compact rows.
+    const rest = shots.length ? s.rows.slice(1) : s.rows;
     return {
       ground: PALETTE.cream,
-      intended: [s.kicker.toUpperCase(), s.headline, ...s.rows.flatMap((r) => [{ text: r.before, min: STRUCK_MIN }, r.after]), provenance, `${n}/${total}`],
+      intended: [s.kicker.toUpperCase(), s.headline, ...rest.flatMap((r) => [{ text: r.before, min: STRUCK_MIN }, r.after]), provenance, `${n}/${total}`],
       element: cream([
         kickerText(s.kicker, PALETTE.terracotta),
-        headline(s.headline),
+        headline(s.headline, shots.length ? 84 : SIZES.headline),
+        ...(shots[0] ? [screen(shots[0], 30)] : []),
         box(
-          { flexDirection: 'column', marginTop: 44 },
-          ...s.rows.map((r, j) =>
+          { flexDirection: 'column', marginTop: shots.length ? 26 : 44 },
+          ...rest.map((r, j) =>
             box(
               {
-                flexDirection: 'column', paddingTop: 26, paddingBottom: 26,
-                borderTopWidth: j === 0 ? 2 : 0, borderBottomWidth: 2, borderStyle: 'solid', borderColor: PALETTE.rule,
+                flexDirection: 'column', alignItems: 'flex-start',
+                paddingTop: shots.length ? 10 : 26, paddingBottom: shots.length ? 10 : 26,
+                borderTopWidth: j === 0 && !shots.length ? 2 : 0, borderBottomWidth: shots.length ? 0 : 2, borderStyle: 'solid', borderColor: PALETTE.rule,
               },
-              text(r.before, { fontFamily: 'Inter', fontSize: SIZES.struck, color: PALETTE.secondary, textDecoration: 'line-through' }),
+              text(r.before, { fontFamily: 'Inter', fontSize: shots.length ? 40 : SIZES.struck, color: PALETTE.secondary, textDecoration: 'line-through' }),
               box(
-                { alignItems: 'center', marginTop: 10 },
-                box({ marginRight: 16 }, arrowRight(PALETTE.terracotta, 44)),
-                text(r.after, { fontFamily: 'Inter', fontWeight: 600, fontSize: SIZES.body, color: PALETTE.ink }),
+                { alignItems: 'center', marginTop: shots.length ? 4 : 10 },
+                box({ marginRight: 12 }, arrowRight(PALETTE.terracotta, shots.length ? 36 : 44)),
+                text(r.after, { fontFamily: 'Inter', fontWeight: 600, fontSize: shots.length ? 46 : SIZES.body, color: PALETTE.ink }),
               ),
             ),
           ),
+        ),
+      ], footer(n, total, provenance)),
+    };
+  }
+
+  if (s.role === 'method' && shots[0]) {
+    // Dense layout: the Original's words, the rewrite, then the app's own changed step as proof (≥ 40% of the slide).
+    return {
+      ground: PALETTE.cream,
+      intended: [s.kicker.toUpperCase(), s.headline, AS_WRITTEN_LABEL, s.as_written_struck === false ? s.as_written : { text: s.as_written, min: STRUCK_MIN }, `In short: ${s.rewrite}`, provenance, `${n}/${total}`],
+      element: cream([
+        kickerText(s.kicker, PALETTE.terracotta),
+        headline(s.headline, 76),
+        text(AS_WRITTEN_LABEL, { fontFamily: 'Inter', fontWeight: 600, fontSize: SIZES.label, color: PALETTE.secondary, letterSpacing: 1, marginTop: 26 }),
+        text(`“${s.as_written}”`, {
+          fontFamily: 'Inter', fontSize: 40, lineHeight: 1.28, color: s.as_written_struck === false ? PALETTE.ink : PALETTE.secondary,
+          textDecoration: s.as_written_struck === false ? 'none' : 'line-through', marginTop: 6,
+        }),
+        // Critique round 1: our summary must not read as app text, so it is labelled and set lighter.
+        box(
+          { alignItems: 'flex-start', marginTop: 18, flexWrap: 'wrap' },
+          text('In short:', { fontFamily: 'Inter', fontWeight: 600, fontSize: 44, lineHeight: 1.2, color: PALETTE.terracotta, marginRight: 12 }),
+          text(s.rewrite, { fontFamily: 'Inter', fontWeight: 400, fontSize: 44, lineHeight: 1.2, color: PALETTE.ink, flexShrink: 1 }),
+        ),
+        // One card: the step's own title row stacked on its "RecipeFix changed this step" box.
+        box(
+          {
+            flexDirection: 'column', marginTop: 26, width: shots[0].width, borderRadius: 24, overflow: 'hidden',
+            borderWidth: 2, borderStyle: 'solid', borderColor: PALETTE.rule, boxShadow: '0 18px 40px rgba(39,34,30,0.16)',
+          },
+          // Title + the step's first two lines, fading out, then its changed-step note: the cut is shown, not hidden.
+          box(
+            { position: 'relative', width: shots[0].width, height: shots[0].height },
+            { type: 'img', props: { src: shots[0].uri, style: { width: shots[0].width, height: shots[0].height } } } as SatoriElement,
+            box({ position: 'absolute', left: 0, bottom: 0, width: shots[0].width, height: 70, backgroundImage: 'linear-gradient(to bottom, rgba(247,242,236,0), rgba(247,242,236,1))' }),
+          ),
+          ...shots.slice(1).map((sh) => ({ type: 'img', props: { src: sh.uri, style: { width: sh.width, height: sh.height } } }) as SatoriElement),
         ),
       ], footer(n, total, provenance)),
     };
@@ -330,7 +384,7 @@ export function slideElement(
   }
 
   // proof
-  const shot = assets.proofShot;
+  const shot = shots[0]!;
   return {
     ground: PALETTE.cream,
     intended: [s.kicker.toUpperCase(), s.headline, ...s.recap, provenance, `${n}/${total}`],
@@ -338,9 +392,10 @@ export function slideElement(
       kickerText(s.kicker, PALETTE.terracotta),
       headline(s.headline, 84),
       box(
-        { marginTop: 30, borderRadius: 22, overflow: 'hidden', borderWidth: 2, borderStyle: 'solid', borderColor: PALETTE.rule, width: shot.width, height: shot.height },
-        { type: 'img', props: { src: shot.uri, style: { width: shot.width, height: shot.height } } } as SatoriElement,
+        { flexDirection: 'column', marginTop: 26, width: shot.width, borderRadius: 24, overflow: 'hidden', borderWidth: 2, borderStyle: 'solid', borderColor: PALETTE.rule, boxShadow: '0 18px 40px rgba(39,34,30,0.16)' },
+        ...shots.slice(0, shots.length > 2 ? 2 : 1).map((sh) => ({ type: 'img', props: { src: sh.uri, style: { width: sh.width, height: sh.height } } }) as SatoriElement),
       ),
+      ...(shots.length > 1 ? [screen(shots[shots.length - 1]!, 16)] : []),
       // Round-1 critique: filled pills read as tappable buttons. A plain list with a rule reads as takeaways.
       box(
         { flexDirection: 'column', marginTop: 34, borderLeftWidth: 6, borderLeftStyle: 'solid', borderLeftColor: PALETTE.terracotta, paddingLeft: 26 },

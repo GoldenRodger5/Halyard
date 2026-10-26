@@ -1,0 +1,64 @@
+{
+ "frames": 561,
+ "duration_s": 9.35,
+ "timeline": [
+  {
+   "t": 0.501,
+   "label": "result-in-dom (first rAF: working card gone, swapped rows + step notes present)"
+  },
+  {
+   "t": 1.668,
+   "label": "hero-photo-fully-visible",
+   "src": "http://127.0.0.1:8532/images/originals/chicken-tikka-masala-4x3.webp"
+  },
+  {
+   "t": 3.102,
+   "label": "result-held"
+  },
+  {
+   "t": 3.145,
+   "label": "scroll-to-yogurt-start"
+  },
+  {
+   "t": 5.355,
+   "label": "scroll-to-yogurt-end",
+   "tomatoOnScreenAtRest": false
+  },
+  {
+   "t": 6.256,
+   "label": "tap-yogurt-row"
+  },
+  {
+   "t": 6.744,
+   "label": "was-card-open"
+  },
+  {
+   "t": 9.15,
+   "label": "end"
+  }
+ ],
+ "segments": [
+  {
+   "type": "rt",
+   "clip_s": [
+    0.0,
+    3.15
+   ]
+  },
+  {
+   "type": "step",
+   "clip_s": [
+    3.15,
+    5.35
+   ]
+  },
+  {
+   "type": "rt",
+   "clip_s": [
+    5.35,
+    9.35
+   ]
+  }
+ ],
+ "tomato_visible_clip_s": []
+}

@@ -55,6 +55,14 @@ describe.skipIf(!hasTesseract)('still QA on rendered files', () => {
     expect(r.checks.find((c) => c.id === 'still.safe_zone')!.passed).toBe(false);
   });
 
+  it('fails when two intended lines overprint each other', async () => {
+    // A partial collision like the real slide-5 defect: descenders of one line into the next.
+    const r = await qa(await card([{ text: 'Simmer gently, then', top: 400 }, { text: 'As written here', top: 425, left: 300 }]), ['Simmer gently, then', 'As written here']);
+    const failed = r.checks.filter((c) => !c.passed).map((c) => c.id);
+    expect(r.passed).toBe(false);
+    expect(failed.some((id) => id === 'still.text_overlap' || id === 'still.text_readback')).toBe(true);
+  });
+
   it('a sweep over nothing intended is not a pass', async () => {
     const r = await qa(await card([{ text: 'Anything', top: 400 }]), []);
     expect(r.checks.find((c) => c.id === 'still.text_readback')!.passed).toBe(false);

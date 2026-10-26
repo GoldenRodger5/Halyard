@@ -1,55 +1,260 @@
 {
-  "beats": [
+  "shots": [
     {
-      "role": "hook",
-      "kicker": "Scale up",
-      "onScreen": "Cooking for 6? Don't add 50% to the time.",
+      "kind": "photo-hook",
       "start": 0,
-      "end": 161
+      "end": 78
     },
     {
-      "role": "amounts",
-      "kicker": "Amounts",
-      "onScreen": "1½ lb chicken → 2¼ lb",
+      "kind": "clip",
+      "start": 78,
+      "end": 161,
+      "src": "recipefix-v2-clip1-result-swapped-yogurt.mp4",
+      "from": 1.6,
+      "crop": {
+        "x": 24,
+        "w": 1122,
+        "y": 600
+      },
+      "cropYEnd": 760
+    },
+    {
+      "kind": "clip",
       "start": 161,
-      "end": 333
+      "end": 333,
+      "src": "recipefix-v2-clip1-result-swapped-yogurt.mp4",
+      "from": 3.15,
+      "crop": {
+        "x": 24,
+        "w": 1122,
+        "y": 640
+      },
+      "cropYEnd": 800
     },
     {
-      "role": "broil",
-      "kicker": "Broil",
-      "onScreen": "More chicken needs batches, not time",
+      "kind": "clip",
       "start": 333,
-      "end": 569
+      "end": 412,
+      "src": "recipefix-v2-clip2-method-step-notes.mp4",
+      "from": 2.5,
+      "crop": {
+        "x": 24,
+        "w": 1122,
+        "y": 840
+      },
+      "cropYEnd": 1000
     },
     {
-      "role": "reduce",
-      "kicker": "Reduce",
-      "onScreen": "Wider pan? Start checking at 10 minutes.",
+      "kind": "still",
+      "start": 412,
+      "end": 491,
+      "src": "recipefix-v2-still-3-step5-broil-marinated-chicken.png",
+      "from": 0,
+      "crop": {
+        "x": 24,
+        "w": 1122,
+        "y": 681
+      },
+      "cropYEnd": 921
+    },
+    {
+      "kind": "still",
+      "start": 491,
+      "end": 569,
+      "src": "recipefix-v2-still-3-step5-broil-marinated-chicken.png",
+      "from": 0,
+      "crop": {
+        "x": 24,
+        "w": 1122,
+        "y": 1063
+      },
+      "cropYEnd": 1303
+    },
+    {
+      "kind": "clip",
       "start": 569,
-      "end": 814
+      "end": 651,
+      "src": "recipefix-v2-clip2-method-step-notes.mp4",
+      "from": 0,
+      "crop": {
+        "x": 24,
+        "w": 1122,
+        "y": 520
+      },
+      "cropYEnd": 680
     },
     {
-      "role": "simmer",
-      "kicker": "Simmer",
-      "onScreen": "Coconut cream: gentle simmer",
+      "kind": "still",
+      "start": 651,
+      "end": 733,
+      "src": "recipefix-v2-still-2-step4-reduce-tomato-sauce.png",
+      "from": 0,
+      "crop": {
+        "x": 24,
+        "w": 1122,
+        "y": 905
+      },
+      "cropYEnd": 1145
+    },
+    {
+      "kind": "still",
+      "start": 733,
+      "end": 814,
+      "src": "recipefix-v2-still-2-step4-reduce-tomato-sauce.png",
+      "from": 0,
+      "crop": {
+        "x": 24,
+        "w": 1122,
+        "y": 607
+      },
+      "cropYEnd": 847
+    },
+    {
+      "kind": "clip",
       "start": 814,
-      "end": 1003
+      "end": 925,
+      "src": "recipefix-v2-clip2-method-step-notes.mp4",
+      "from": 6.3,
+      "crop": {
+        "x": 24,
+        "w": 1122,
+        "y": 520
+      },
+      "cropYEnd": 680
     },
     {
-      "role": "proof",
-      "kicker": "Proof",
-      "onScreen": "The app rewrote these steps",
+      "kind": "still",
+      "start": 925,
+      "end": 1003,
+      "src": "recipefix-v2-still-4-step6-finish-creamy-sauce.png",
+      "from": 0,
+      "crop": {
+        "x": 24,
+        "w": 1122,
+        "y": 905
+      },
+      "cropYEnd": 1145
+    },
+    {
+      "kind": "clip",
       "start": 1003,
-      "end": 1179
+      "end": 1087,
+      "src": "recipefix-v2-clip4-cook-mode-timer.mp4",
+      "from": 0.2,
+      "crop": {
+        "x": 24,
+        "w": 1122,
+        "y": 300
+      },
+      "cropYEnd": 460
     },
     {
-      "role": "close",
-      "kicker": "Takeaway",
-      "onScreen": "Batches, not minutes. Cues, not clocks.",
+      "kind": "clip",
+      "start": 1087,
+      "end": 1179,
+      "src": "recipefix-v2-clip4-cook-mode-timer.mp4",
+      "from": 3,
+      "crop": {
+        "x": 24,
+        "w": 1122,
+        "y": 300
+      },
+      "cropYEnd": 1150
+    },
+    {
+      "kind": "clip",
       "start": 1179,
+      "end": 1286,
+      "src": "recipefix-v2-clip4-cook-mode-timer.mp4",
+      "from": 6.1,
+      "crop": {
+        "x": 24,
+        "w": 1122,
+        "y": 1150
+      },
+      "cropYEnd": 1310
+    },
+    {
+      "kind": "photo-close",
+      "start": 1286,
       "end": 1408
     }
   ],
+  "heads": [
+    {
+      "start": 78,
+      "end": 161,
+      "text": "Same dish, now for 6"
+    },
+    {
+      "start": 161,
+      "end": 333,
+      "text": "Amounts scale: × 1.5"
+    },
+    {
+      "start": 333,
+      "end": 412,
+      "text": "Batches, not more time"
+    },
+    {
+      "start": 412,
+      "end": 491,
+      "text": "Batches, not more time"
+    },
+    {
+      "start": 491,
+      "end": 569,
+      "text": "Batches, not more time"
+    },
+    {
+      "start": 569,
+      "end": 651,
+      "text": "Check at 10 minutes"
+    },
+    {
+      "start": 651,
+      "end": 733,
+      "text": "Check at 10 minutes"
+    },
+    {
+      "start": 733,
+      "end": 814,
+      "text": "Check at 10 minutes"
+    },
+    {
+      "start": 814,
+      "end": 925,
+      "text": "Keep it a gentle simmer"
+    },
+    {
+      "start": 925,
+      "end": 1003,
+      "text": "Keep it a gentle simmer"
+    },
+    {
+      "start": 1003,
+      "end": 1087,
+      "text": "Cook Mode, rewritten too"
+    },
+    {
+      "start": 1087,
+      "end": 1179,
+      "text": "Cook Mode, rewritten too"
+    },
+    {
+      "start": 1179,
+      "end": 1286,
+      "text": "Scale the food, not the clock"
+    }
+  ],
+  "hook": {
+    "kicker": "Scale up",
+    "text": "Cooking for 6? Don't add 50% to the time."
+  },
+  "close": {
+    "kicker": "Takeaway",
+    "text": "Batches, not minutes. Cues, not clocks."
+  },
   "captions": [
     {
       "start": 0,
@@ -218,32 +423,11 @@
     }
   ],
   "audio": "vo.mp3",
-  "clips": [
-    {
-      "src": "note-1.png",
-      "label": "Step 5: Broil the Marinated Chicken",
-      "frames": 88,
-      "width": 960,
-      "height": 420
-    },
-    {
-      "src": "note-2.png",
-      "label": "Step 4: Reduce the Tomato Sauce",
-      "frames": 88,
-      "width": 960,
-      "height": 410
-    }
-  ],
   "photo": "original.jpg",
   "photoLabel": "Photo: the original recipe, made with dairy (licensed stock)",
-  "provenance": "Real RecipeFix result · captured Oct 21, 2026 · screen from a local build of the live app",
+  "screenLabel": "Real app screen · local build",
   "data": {
     "from": 4,
-    "to": 6,
-    "amountBefore": "1½ lb",
-    "amountAfter": "2¼ lb",
-    "amountLabel": "chicken",
-    "broil": "8 to 10",
-    "checkAt": "10"
+    "to": 6
   }
 }

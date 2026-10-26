@@ -36,7 +36,7 @@
     {
       "role": "method",
       "kicker": "Broiler space",
-      "headline": "More chicken did not mean longer broiling",
+      "headline": "Twice the sheets, not twice the time",
       "rewrite": "Two batches, 8 to 10 minutes per batch",
       "why": "Uncrowded chicken keeps the char that balances the creamy sauce",
       "source": "steps[4].updated_note, steps[4].instruction, explanations[2]",
@@ -68,23 +68,8 @@
     },
     {
       "role": "method",
-      "kicker": "Marinade",
-      "headline": "Why the drip matters more now",
-      "rewrite": "With coconut yogurt, let the excess drip off",
-      "why": "The coating chars rather than pools",
-      "source": "steps[4].updated_note, steps[0].updated_note",
-      "claim_ids": [
-        "proof.tikka_method_changes"
-      ],
-      "fact_ids": [],
-      "as_written": "Lift the chicken from the marinade, letting the excess drip off.",
-      "as_written_struck": false,
-      "rewrite_label": "What RecipeFix added: the reason"
-    },
-    {
-      "role": "method",
       "kicker": "Coconut cream",
-      "headline": "Simmer gently, then check the chicken",
+      "headline": "Gentle simmer, then check",
       "rewrite": "Whisk smooth, simmer gently, check several pieces",
       "why": "Separated coconut cream smooths out; chicken still has to reach 165\u00b0F",
       "source": "steps[5].updated_note, steps[5].instruction",
@@ -128,8 +113,8 @@
     "proof.tikka_method_changes"
   ],
   "caption_fact_ids": [
-    "scale",
     "reduce_time",
+    "scale",
     "temp"
   ]
 }

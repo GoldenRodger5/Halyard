@@ -17,7 +17,7 @@ import { loadLocalAsset, loadProvenancedPhoto, sha256, type AssetRecord } from '
 import sharp from 'sharp';
 import { supportedBy } from './formats/carousel.js';
 import { buildRecord, diffCopy, writeBrief } from './makeCarousel.js';
-import { openRun, proofExcerpts, readJsonIfExists, REPO_ROOT, writeJson } from './runContext.js';
+import { openRun, proofExcerpts, readJsonIfExists, REPO_ROOT, writeJson, type ShotSpec } from './runContext.js';
 import { writePreview } from './preview.js';
 import { qaVideo } from './qa/video.js';
 
@@ -28,7 +28,7 @@ const WHISPER_MODEL = process.env.WHISPER_MODEL || path.join(process.env.HOME ??
 const ELEVENLABS_USD_PER_1K = Number(process.env.ELEVENLABS_USD_PER_1K_CHARS || 0.22);
 
 export interface ShortCopy {
-  beats: Array<{ role: string; kicker: string; on_screen: string; vo: string; source?: string; claim_ids?: string[]; fact_ids?: string[] }>;
+  beats: Array<{ role: string; kicker: string; on_screen: string; vo: string; source?: string; claim_ids?: string[]; fact_ids?: string[]; /** One-line headline over a real-screen beat (V2). */ head?: string }>;
   caption: string;
   hashtags: string[];
   caption_claim_ids?: string[];
@@ -61,6 +61,7 @@ export function shortLines(copy: ShortCopy): CopyLine[] {
       { where: `beat ${i + 1} kicker`, text: b.kicker, ...ids },
       { where: `beat ${i + 1} on-screen`, text: b.on_screen, ...ids },
       { where: `beat ${i + 1} vo`, text: b.vo, ...ids },
+      ...(b.head ? [{ where: `beat ${i + 1} head`, text: b.head, ...ids }] : []),
     ];
   });
 }
@@ -203,6 +204,47 @@ export async function synthWithTimestamps(script: string): Promise<{ audio: Buff
 // ─── make ────────────────────────────────────────────────────────────────────
 
 const CAPTURES = path.join(REPO_ROOT, 'runs/2026-10-26/captures');
+const SCREEN_PROVENANCE =
+  'RecipeFix UI at commit e68b1404 (the live tree on 2026-10-26), local production build driven by scripts/journey.mjs with a simulated backend; the adaptation shown is the verbatim stored production result captured 2026-10-21. Real taps and transitions; scroll frames rendered one per frame at true page states (capture.json). runs/2026-10-26/captures-v2/capture.json';
+
+type PlanShot = {
+  kind: 'photo-hook' | 'photo-close' | 'clip' | 'still';
+  start: number;
+  end: number;
+  src?: string;
+  from?: number;
+  crop?: { x: number; y: number; w: number };
+  cropYEnd?: number;
+};
+
+/** Full-width crop of the 1170-wide captures (page text spans x 48–1122): never cut text horizontally. */
+const FULL_WIDTH = { x: 24, w: 1122 };
+
+/**
+ * screen-hero: turn each beat's `shots` (idea data) into timed shots over the
+ * voice-aligned beat, split by weight. Stills pan 240 px (a slow scroll) unless told otherwise.
+ */
+export function screenShotPlan(beats: Array<{ role: string; start: number; end: number }>, specs: Array<{ role: string; shots?: ShotSpec[] }>): PlanShot[] {
+  const out: PlanShot[] = [];
+  for (const b of beats) {
+    const shots = specs.find((s) => s.role === b.role)?.shots ?? [];
+    if (!shots.length) throw new Error(`beat '${b.role}' has no shots in the idea`);
+    const total = shots.reduce((a, s) => a + (s.weight ?? 1), 0);
+    let t = b.start;
+    shots.forEach((s, i) => {
+      const end = i === shots.length - 1 ? b.end : Math.round(t + ((b.end - b.start) * (s.weight ?? 1)) / total);
+      const kind = s.kind ?? (s.src?.endsWith('.mp4') ? 'clip' : 'still');
+      out.push(
+        kind === 'photo-hook' || kind === 'photo-close'
+          ? { kind, start: t, end }
+          : { kind, start: t, end, src: s.src!, from: s.from ?? 0, crop: { ...FULL_WIDTH, y: s.y ?? 0 }, cropYEnd: s.yEnd ?? (s.y ?? 0) + (kind === 'still' ? 240 : 160) },
+      );
+      t = end;
+    });
+  }
+  return out;
+}
+
 /**
  * The proof beat shows the app's own "RecipeFix changed this step" boxes,
  * cropped from the 3× captures (1170×2532) of the same session as the screen
@@ -402,7 +444,39 @@ export async function makeShort(ideaId: string, opts: { copyFile?: string; date?
     provenance: `Real RecipeFix result · captured ${ctx.proofCapturedOn ? new Date(`${ctx.proofCapturedOn}T12:00:00Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }) : ''} · screen from a local build of the live app`,
     data: { from: 4, to: 6, amountBefore: '1½ lb', amountAfter: '2¼ lb', amountLabel: 'chicken', broil: '8 to 10', checkAt: '10' },
   };
-  writeJson(path.join(ctx.dir, 'render-props.json'), props);
+  const v2 = idea.composition === 'screen-hero';
+  const shotPlan = v2 ? screenShotPlan(beats, idea.beats ?? []) : null;
+  if (v2) {
+    const capDir = path.join(REPO_ROOT, idea.captures ?? 'runs/2026-10-26/captures-v2');
+    const files = [...new Set((shotPlan ?? []).map((x) => x.src).filter((x): x is string => Boolean(x)))];
+    for (const f of files) copyFileSync(path.join(capDir, f), path.join(pub, f));
+    for (const f of files) {
+      const a = loadLocalAsset(path.join(capDir, f), 'product_capture', SCREEN_PROVENANCE, 'first-party capture', 'Real RecipeFix screen, local build of the live UI');
+      assets.push(a.record);
+    }
+  }
+  const compositionId = v2 ? 'ScreenShort' : 'MethodShort';
+  // Each real-screen shot carries its beat's one-line head (hook and close shots included).
+  const headOf = (frame: number) => {
+    const k = beats.findIndex((b) => frame >= b.start && frame < b.end);
+    return copy.beats[k]?.head ?? beats[k]?.onScreen ?? '';
+  };
+  const screenHeads = (shotPlan ?? []).filter((x) => x.kind === 'clip' || x.kind === 'still').map((x) => ({ start: x.start, end: x.end, text: headOf(x.start) }));
+  const renderProps = v2
+    ? {
+        shots: shotPlan,
+        heads: screenHeads,
+        hook: { kicker: beats[0]!.kicker, text: beats[0]!.onScreen },
+        close: { kicker: beats.at(-1)!.kicker, text: beats.at(-1)!.onScreen },
+        captions,
+        audio: props.audio,
+        photo: 'original.jpg',
+        photoLabel: props.photoLabel,
+        screenLabel: 'Real app screen · local build',
+        data: { from: 4, to: 6 },
+      }
+    : props;
+  writeJson(path.join(ctx.dir, 'render-props.json'), renderProps);
   const serveUrl = await bundle({
     entryPoint: path.join(REPO_ROOT, 'packages/marketing/video/entry.tsx'),
     publicDir: pub,
@@ -411,7 +485,7 @@ export async function makeShort(ideaId: string, opts: { copyFile?: string; date?
       resolve: { ...config.resolve, extensionAlias: { ...(config.resolve?.extensionAlias ?? {}), '.js': ['.ts', '.tsx', '.js'] } },
     }),
   });
-  const composition = await selectComposition({ serveUrl, id: 'MethodShort', inputProps: props });
+  const composition = await selectComposition({ serveUrl, id: compositionId, inputProps: renderProps });
   const out = path.join(ctx.dir, `${ctx.runId}.mp4`);
   await renderMedia({
     serveUrl,
@@ -419,7 +493,7 @@ export async function makeShort(ideaId: string, opts: { copyFile?: string; date?
     codec: 'h264',
     crf: 18,
     outputLocation: out,
-    inputProps: props,
+    inputProps: renderProps,
     chromiumOptions: { gl: 'swangle' },
     concurrency: 4,
     timeoutInMilliseconds: 120_000,
@@ -447,11 +521,24 @@ export async function makeShort(ideaId: string, opts: { copyFile?: string; date?
     productTerms: ctx.ideas.product_terms,
   });
   const shape = shortShapeProblems(copy, roles, ctx.proof, idea.never_show);
+  // V2: what is on screen changes per SHOT (photo shots show the beat's kicker+headline; screen shots the label+head).
+  const qaBeats = v2
+    ? (shotPlan ?? []).map((x) => {
+        const k = beats.findIndex((b) => x.start >= b.start && x.start < b.end);
+        const b = beats[k]!;
+        return x.kind === 'clip' || x.kind === 'still'
+          ? { role: b.role, start: x.start, end: x.end, kicker: 'Real app screen · local build', onScreen: headOf(x.start) }
+          : { role: b.role, start: x.start, end: x.end, kicker: b.kicker, onScreen: b.onScreen };
+      })
+    : beats;
+  const screenShots = (shotPlan ?? []).filter((x) => x.kind === 'clip' || x.kind === 'still').map((x) => [x.start, x.end] as [number, number]);
   const media = await qaVideo({
     file: out,
     dir: path.join(ctx.dir, 'qa-frames'),
     fps: FPS,
-    beats,
+    beats: qaBeats,
+    productWindow: v2 ? { x0: 189, y0: 402, x1: 891, y1: 1132, onlyDuring: screenShots } : undefined,
+    captionBand: v2 ? { top: 1136, height: 114 } : { top: 1100, height: 150 },
     captions,
     textBox: TEXT_BOX,
     script: voiced ? script : null,

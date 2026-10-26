@@ -26,6 +26,10 @@ export interface VideoQaInput {
   targetSeconds: [number, number];
   /** Frames where the real product screen is shown: its UI text is not ours and is not held to our box. */
   proofWindow: [number, number] | null;
+  /** V2: the real-screen window rectangle and the frame ranges it is on screen. Words inside it are the app's, not ours. */
+  productWindow?: { x0: number; y0: number; x1: number; y1: number; onlyDuring: Array<[number, number]> };
+  /** Where the template draws the caption pill (it reads that band on its own). */
+  captionBand?: { top: number; height: number };
 }
 
 function ff(args: string[]): string {
@@ -171,11 +175,13 @@ export async function qaVideo(input: VideoQaInput): Promise<{ passed: boolean; c
     const png = await frameAt(input.file, t, path.join(input.dir, `kf-${t.toFixed(2)}.png`));
     const { words: all } = await ocrAllPasses(png);
     // Captions are one line of white type in a fixed band: also read the band as a single line (psm 7).
-    const band = { top: 1100, height: 150 };
+    const band = input.captionBand ?? { top: 1100, height: 150 };
     const bandPng = await sharp(png).extract({ left: 0, top: band.top, width: 1080, height: band.height }).negate({ alpha: false }).greyscale().png().toBuffer();
-    const inProofWindow = input.proofWindow && frame >= input.proofWindow[0] && frame < input.proofWindow[1];
-    // In the proof beat, words inside the product clip (x 120–900, y 470–1030) are the app's UI, not our copy.
-    const clip = { x0: 120, y0: 470, x1: 900, y1: 1030 };
+    const pw = input.productWindow;
+    const inScreen = Boolean(pw && pw.onlyDuring.some(([a, b]) => frame >= a && frame < b));
+    const inProofWindow = inScreen || Boolean(input.proofWindow && frame >= input.proofWindow[0] && frame < input.proofWindow[1]);
+    // Words inside the product window are the app's UI, not our copy.
+    const clip = pw && inScreen ? { x0: pw.x0, y0: pw.y0, x1: pw.x1, y1: pw.y1 } : { x0: 120, y0: 470, x1: 900, y1: 1030 };
     const ours = (w: { x: number; y: number }) => !inProofWindow || !(w.x >= clip.x0 && w.x <= clip.x1 && w.y >= clip.y0 && w.y <= clip.y1);
     // A one- or two-word caption in a 1080-wide band defeats tesseract; crop to the caption pill
     // (its dark ink ground) and read it as a line (psm 7) and as a word (psm 8).
@@ -199,8 +205,14 @@ export async function qaVideo(input: VideoQaInput): Promise<{ passed: boolean; c
         if (w.x < box.x0 || w.y < box.y0 || w.x + w.w > box.x1 || w.y + w.h > box.y1) zoneProblems.push(`t=${t.toFixed(2)} stray text "${w.text}" at ${w.x},${w.y}`);
       }
     }
-    const small = matched.filter((b) => b.h < 24).map((b) => `"${b.text}" ${b.h}px`);
-    small.forEach((s) => sizeProblems.push(`t=${t.toFixed(2)} ${s}`));
+    // Per line, the median word-box height (an x-height-only word like "screen" boxes small at any size).
+    for (const r of rb) {
+      if (!r.boxes.length) continue;
+      const hs = r.boxes.map((b) => b.h).sort((x, y) => x - y);
+      const med = hs[Math.floor(hs.length / 2)]!;
+      if (med < 24) sizeProblems.push(`t=${t.toFixed(2)} "${r.line}" median word height ${med}px`);
+    }
+    const small: string[] = [];
     keyframes.push({ t: Number(t.toFixed(2)), intended, similarity: sims, outside, small });
   }
   checks.push({ id: 'text.readback', passed: readProblems.length === 0 && keyframes.length > 2, detail: `${keyframes.length} keyframes (first, every caption change, last); ≥ 0.90 per line on video frames`, problems: readProblems });
