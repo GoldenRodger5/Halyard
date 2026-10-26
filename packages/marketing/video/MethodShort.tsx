@@ -114,11 +114,17 @@ const PhotoGround: React.FC<{ src: string; label: string }> = ({ src, label }) =
 };
 
 /** Visual stage: the band between the headline and the captions. */
-const Stage: React.FC<{ top?: number; height?: number; children: React.ReactNode }> = ({ top = 640, height = 400, children }) => {
+/**
+ * Diagram band. Director review 2026-10-26: the diagrams left the lower ~45% of
+ * the frame empty, so they are drawn 1.3× and centred lower in the text box,
+ * with a slow push to 1.36 (motion QA). Every label inside a diagram is placed
+ * so that at 1.36× it is still inside x 120–900.
+ */
+const STAGE_SCALE: [number, number] = [1.3, 1.36];
+const Stage: React.FC<{ top?: number; height?: number; children: React.ReactNode }> = ({ top = 700, height = 400, children }) => {
   const f = useCurrentFrame();
   const { durationInFrames } = useVideoConfig();
-  // A slow push through the beat: the diagram keeps moving after its build (motion QA: freeze share).
-  const z = interpolate(f, [0, durationInFrames], [1.0, 1.1]);
+  const z = interpolate(f, [0, durationInFrames], STAGE_SCALE);
   return (
     <div style={{ position: 'absolute', left: 0, top, width: 1080, height, display: 'flex', alignItems: 'center', justifyContent: 'center', transform: `scale(${z})`, transformOrigin: '50% 50%' }}>{children}</div>
   );
@@ -153,25 +159,25 @@ const Amounts: React.FC<{ b: Beat; d: MethodShortProps['data'] }> = ({ b, d }) =
   return (
     <>
       <Head kicker={b.kicker} text={b.onScreen} />
-      <Stage top={640} height={400}>
-        <div style={{ width: 640, display: 'flex', flexDirection: 'column', gap: 18, fontFamily: 'Inter' }}>
-          <div style={{ position: 'relative', alignSelf: 'flex-start', fontSize: 64, color: C.secondary, ...rise(f, 4) }}>
+      <Stage top={690} height={400}>
+        <div style={{ width: 560, display: 'flex', flexDirection: 'column', gap: 14, fontFamily: 'Inter' }}>
+          <div style={{ position: 'relative', alignSelf: 'flex-start', fontSize: 52, color: C.secondary, ...rise(f, 4) }}>
             {d.amountBefore} {d.amountLabel}
             <div style={{ position: 'absolute', left: 0, top: '52%', height: 6, width: `${strike * 100}%`, background: C.secondary }} />
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 22, ...rise(f, 24) }}>
-            <div style={{ fontSize: 76, fontWeight: 600, color: C.ink }}>{d.amountAfter} {d.amountLabel}</div>
+            <div style={{ fontSize: 62, fontWeight: 600, color: C.ink }}>{d.amountAfter} {d.amountLabel}</div>
           </div>
-          <div style={{ alignSelf: 'flex-start', ...rise(f, 34), background: C.terracotta, color: 'white', fontWeight: 600, fontSize: 56, padding: '6px 26px', borderRadius: 16 }}>
+          <div style={{ alignSelf: 'flex-start', ...rise(f, 34), background: C.terracotta, color: 'white', fontWeight: 600, fontSize: 46, padding: '4px 22px', borderRadius: 14 }}>
             ×{(d.to / d.from).toString()}
           </div>
           {/* One plate per serving: the two new plates arrive after the maths, so the beat keeps moving. */}
-          <div style={{ display: 'flex', gap: 22, marginTop: 26 }}>
+          <div style={{ display: 'flex', gap: 16, marginTop: 20 }}>
             {Array.from({ length: d.to }, (_, i) => {
               const at = i < d.from ? 46 + i * 6 : 80 + (i - d.from) * 24;
               const t = interpolate(f, [at, at + 12], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp', easing: ease });
               return (
-                <div key={i} style={{ width: 84, height: 84, borderRadius: 42, border: `8px solid ${i < d.from ? C.rule : C.terracotta}`, background: 'white', opacity: t, transform: `scale(${0.6 + 0.4 * t})` }} />
+                <div key={i} style={{ width: 66, height: 66, borderRadius: 33, border: `7px solid ${i < d.from ? C.rule : C.terracotta}`, background: 'white', opacity: t, transform: `scale(${0.6 + 0.4 * t})` }} />
               );
             })}
           </div>
@@ -216,7 +222,7 @@ const Broil: React.FC<{ b: Beat; d: MethodShortProps['data'] }> = ({ b, d }) => 
     <>
       <Head kicker={b.kicker} text={b.onScreen} />
       <Stage top={600} height={470}>
-        <svg width="1080" height="470" viewBox="0 0 1080 470">
+        <svg width="1080" height="470" viewBox="0 0 1080 470" style={{ overflow: 'visible' }}>
           <g opacity={1 - split}>
             <SheetPan {...one} pieces={18} seed={1} char={0} />
           </g>
@@ -228,8 +234,8 @@ const Broil: React.FC<{ b: Beat; d: MethodShortProps['data'] }> = ({ b, d }) => 
           </g>
           {[0, 1].map((k) => (
             <g key={k} opacity={split}>
-              <rect x={k === 0 ? 235 : 625} y={360} width={220} height={70} rx={35} fill={C.ink} />
-              <text x={k === 0 ? 345 : 735} y={407} textAnchor="middle" fontFamily="Inter" fontWeight={600} fontSize={38} fill="white">{`${d.broil} min`}</text>
+              <rect x={k === 0 ? 290 : 600} y={355} width={190} height={60} rx={30} fill={C.ink} />
+              <text x={k === 0 ? 385 : 695} y={396} textAnchor="middle" fontFamily="Inter" fontWeight={600} fontSize={31} fill="white">{`${d.broil} min`}</text>
             </g>
           ))}
         </svg>
@@ -250,7 +256,7 @@ const Reduce: React.FC<{ b: Beat; d: MethodShortProps['data'] }> = ({ b, d }) =>
     <>
       <Head kicker={b.kicker} text={b.onScreen} />
       <Stage top={610} height={460}>
-        <svg width="1080" height="460" viewBox="0 0 1080 460">
+        <svg width="1080" height="460" viewBox="0 0 1080 460" style={{ overflow: 'visible' }}>
           {/* narrow, deep pot */}
           <rect x={150} y={70} width={230} height={230} rx={14} fill="none" stroke={C.pan} strokeWidth={12} />
           <rect x={156} y={300 - narrowLevel} width={218} height={narrowLevel - 6} fill={C.sauce} />
@@ -272,8 +278,8 @@ const Reduce: React.FC<{ b: Beat; d: MethodShortProps['data'] }> = ({ b, d }) =>
             <ellipse cx={21} cy={160} rx={26} ry={34} fill="#8C8279" />
           </g>
           <g opacity={trail}>
-            <rect x={520} y={350} width={320} height={70} rx={35} fill={C.ink} />
-            <text x={680} y={397} textAnchor="middle" fontFamily="Inter" fontWeight={600} fontSize={36} fill="white">{`check at ${d.checkAt} min`}</text>
+            <rect x={480} y={350} width={290} height={60} rx={30} fill={C.ink} />
+            <text x={625} y={391} textAnchor="middle" fontFamily="Inter" fontWeight={600} fontSize={31} fill="white">{`check at ${d.checkAt} min`}</text>
           </g>
         </svg>
       </Stage>
@@ -291,8 +297,8 @@ const Simmer: React.FC<{ b: Beat }> = ({ b }) => {
   return (
     <>
       <Head kicker={b.kicker} text={b.onScreen} />
-      <Stage top={650} height={440}>
-        <svg width="1080" height="440" viewBox="0 0 1080 440">
+      <Stage top={728} height={440}>
+        <svg width="1080" height="440" viewBox="0 0 1080 440" style={{ overflow: 'visible' }}>
           <path d="M300 110 H780 V360 Q780 410 730 410 H350 Q300 410 300 360 Z" fill="none" stroke={C.pan} strokeWidth={14} />
           <path d="M307 180 H773 V360 Q773 403 730 403 H350 Q307 403 307 360 Z" fill="#E9D6BE" />
           {bubbles.map((p, i) => (p.cy > 190 ? <circle key={i} cx={p.cx} cy={p.cy} r={p.r} fill="none" stroke="#C7AE8E" strokeWidth={3} opacity={p.o} /> : null))}
@@ -300,22 +306,22 @@ const Simmer: React.FC<{ b: Beat }> = ({ b }) => {
           <rect x={780} y={100} width={38} height={22} rx={6} fill={C.pan} />
         </svg>
       </Stage>
-      <SimmerDiff />
+      <SimmerNote />
     </>
   );
 };
 
-/** The diff primitive in motion: "hard boil" struck, "gentle simmer" arrives. */
-const SimmerDiff: React.FC = () => {
+/**
+ * The Original already says "simmer gently"; what changed is the note about the
+ * coconut cream (stored result steps[5].updated_note). Director review: no
+ * strike-through, because nothing in the Original said "hard boil".
+ */
+const SimmerNote: React.FC = () => {
   const f = useCurrentFrame();
-  const strike = interpolate(f, [20, 34], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
   return (
-    <div style={{ position: 'absolute', left: TEXT_BOX.x0, top: 560, width: BW, display: 'flex', gap: 24, alignItems: 'center', fontFamily: 'Inter', fontWeight: 600, fontSize: 44 }}>
-      <div style={{ position: 'relative', color: C.secondary, ...rise(f, 6) }}>
-        hard boil
-        <div style={{ position: 'absolute', left: 0, top: '54%', height: 5, width: `${strike * 100}%`, background: C.secondary }} />
-      </div>
-      <div style={{ color: C.terracotta, ...rise(f, 38) }}>→ gentle simmer</div>
+    <div style={{ position: 'absolute', left: TX, top: 548, width: TW, ...rise(f, 8), borderLeft: `6px solid ${C.terracotta}`, paddingLeft: 22 }}>
+      <div style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: 34, color: C.terracotta }}>RecipeFix's note</div>
+      <div style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: 42, lineHeight: 1.2, color: C.ink, marginTop: 6 }}>Whisk separated coconut cream smooth, keep it at a gentle simmer.</div>
     </div>
   );
 };

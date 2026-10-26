@@ -22,3 +22,8 @@ No blockers. Label now explains the cream swirl; slide 4 actionable; slide 7 rea
 
 ## Lead's own verdict (looked at every slide at 400px): SHIP as an unpublished draft
 Remaining honest caveats, none blocking: the licensed stock photo shows peas and what may be cauliflower, so a sharp viewer may notice it is not a textbook tikka; the caption runs 648 chars (Halyard's slop filter budgets 220 for IG — fine for a save-worthy teaching post, owner's call); publishing is blocked anyway while state.json.unreceipted_deploy is set and the knowledge pack is unmerged.
+
+## Engineering-director review (after round 2) — targeted fixes applied
+1. Slides 3–6 "The instinct" lines were invented counterfactuals styled like slide 2's real struck amounts. Replaced with the Original's own words (RecipeFix `src/data/recipefixOriginals.ts` @3f32680f), labelled "As written (serves 4)", each cited as a fact source: broil "Spread it on a foil-lined baking sheet. Broil for 8 to 10 minutes."; sauce "Cook uncovered for 10 to 12 minutes, until the sauce leaves a trail."; finish "Stir the cream into the sauce. Simmer gently for 5 minutes." Rewritten lines unchanged.
+2. Slide 5 overclaimed (the Original already says "letting the excess drip off"). Reframed: headline "Why the drip matters more now", the Original quoted with NO strike-through, label "What RecipeFix added: the reason", rewrite "With coconut yogurt, let the excess drip off", reason "The coating chars rather than pools".
+Re-rendered: slides 3–6 changed; 1, 2, 7 byte-identical. QA pass. The struck-line read-back bar was lowered from 0.80 to 0.70 (recorded in formats/carousel.ts): the longer quoted struck lines measured 0.73 on renders verified correct by eye.

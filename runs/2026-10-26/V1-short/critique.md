@@ -26,3 +26,9 @@ No blockers. Hook sets up tension; every beat has something to watch (simmer sti
 - Motion passes at Halyard's production freeze setting (−45 dB, ≥ 1.5 s) but the strict reading (−54 dB, ≥ 0.5 s) is still high, because flat-colour beats only change at caption changes. Real footage fixes that too.
 - The voice is ElevenLabs (synthetic): set the platform's AI-generated label.
 - The proof screens come from a local build of the live UI with a simulated backend serving the real stored result; that is disclosed on screen.
+
+## Engineering-director review (after round 2) — targeted fixes applied
+3. Simmer beat implied the Original said "hard boil" (it says "Simmer gently"). Replaced the struck diff with the real note, no strike: "RecipeFix's note — Whisk separated coconut cream smooth, keep it at a gentle simmer." VO unchanged (already consistent).
+4. Diagrams drawn 1.3× (slow push to 1.36) and centred lower; timer/check chips moved so their text stays inside x 120–900 at full push. Text box unchanged (y 270–1250), so the area below 1250 stays image-free by design.
+5. Disclosures recorded in record.json `disclosures`: AI-generated voice (TikTok is_aigc = true, Instagram AI label = true), "Your brand" on, app screens from a local build of the live UI, photo is the Original's licensed stock, diagrams are illustrations.
+Re-rendered with the existing voice (no new spend). QA pass: freeze 5.2% at Halyard's setting (strict reading 49.8%, up from 42%: larger flat diagrams), safe zone pass, WER 0%, −14.7 LUFS. QA gained a caption-pill crop pass: OCR could not read a lone one-word caption ("faster.") in a full-width band.

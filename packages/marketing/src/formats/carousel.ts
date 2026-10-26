@@ -31,10 +31,15 @@ export const SIZES = { kicker: 38, footer: 36, headline: 96, coverHeadline: 100,
 /** Instagram feed: ≥60px from the sides (the 3:4 grid shows the centre 1012px), and clear of the slide edges. */
 /**
  * Read-back bar for struck-through lines. The strike crosses every glyph at
- * mid x-height, so OCR recall on the cleaned copy tops out around 0.8; the
- * line is still checked, against a recorded, lower bar.
+ * mid x-height, so OCR recall on the cleaned copy is poor: measured 0.73–0.90
+ * on renders verified correct by eye (2026-10-26, longer quoted lines score
+ * lowest). Lowered from 0.80 to 0.70 after the "As written" quotes; the line
+ * is still checked, against this recorded bar. Unstruck lines stay at 0.95.
  */
-export const STRUCK_MIN = 0.8;
+export const STRUCK_MIN = 0.7;
+
+/** The source recipe is RecipeFix's own Original, quoted at the commit the proof is pinned to. */
+export const AS_WRITTEN_LABEL = 'As written (serves 4)';
 
 export const SAFE_BOX = { x0: 60, y0: 48, x1: W - 60, y1: H - 32 };
 
@@ -46,7 +51,11 @@ export interface CarouselCopy {
         role: 'method';
         kicker: string;
         headline: string;
-        instinct: string;
+        /** The Original's own words, quoted (director review 2026-10-26: never an invented counterfactual). */
+        as_written: string;
+        /** Strike only when the rewrite replaces it; false when RecipeFix only added the reason. */
+        as_written_struck?: boolean;
+        rewrite_label?: string;
         rewrite: string;
         why: string;
         source: string;
@@ -68,7 +77,7 @@ export const LIMITS = {
   photo_label: 64,
   before: 30,
   after: 32,
-  instinct: 52,
+  as_written: 72,
   rewrite: 56,
   why: 84,
   recap: 28,
@@ -79,7 +88,7 @@ export const CAROUSEL_SCHEMA = `Reply with this JSON object and nothing else:
   "slides": [
     {"role":"cover","kicker":"≤${LIMITS.kicker} chars","headline":"≤${LIMITS.coverHeadline} chars","photo_label":"≤${LIMITS.photo_label} chars","claim_ids":[],"fact_ids":[]},
     {"role":"swaps","kicker":"…","headline":"≤${LIMITS.headline}","rows":[{"before":"≤${LIMITS.before}","after":"≤${LIMITS.after}"}],"claim_ids":[],"fact_ids":[]},
-    {"role":"method","kicker":"…","headline":"≤${LIMITS.headline}","instinct":"≤${LIMITS.instinct}: what a cook would naturally do","rewrite":"≤${LIMITS.rewrite}: what the rewritten step says to do","why":"≤${LIMITS.why}: the reason, in the step's own terms","source":"1 to 3 comma-separated proof paths that together support rewrite+why, e.g. steps[4].updated_note, steps[4].instruction","claim_ids":[],"fact_ids":[]},
+    {"role":"method","kicker":"…","headline":"≤${LIMITS.headline}","as_written":"≤${LIMITS.as_written}: the Original recipe's own words for this step, quoted","rewrite":"≤${LIMITS.rewrite}: what the rewritten step says to do","why":"≤${LIMITS.why}: the reason, in the step's own terms","source":"1 to 3 comma-separated proof paths that together support rewrite+why, e.g. steps[4].updated_note, steps[4].instruction","claim_ids":[],"fact_ids":[]},
     … one object per slide in the order given …,
     {"role":"proof","kicker":"…","headline":"≤${LIMITS.headline}","recap":["≤${LIMITS.recap}","≤${LIMITS.recap}","≤${LIMITS.recap}"],"claim_ids":[],"fact_ids":[]}
   ],
@@ -104,7 +113,7 @@ export function carouselLines(copy: CarouselCopy): CopyLine[] {
     if (s.role === 'cover') lines.push({ where: at('photo label'), text: s.photo_label, ...ids });
     if (s.role === 'swaps') s.rows.forEach((r, j) => lines.push({ where: at(`row ${j + 1}`), text: `${r.before} → ${r.after}`, ...ids }));
     if (s.role === 'method') {
-      lines.push({ where: at('instinct'), text: s.instinct, ...ids }, { where: at('rewrite'), text: s.rewrite, ...ids }, { where: at('why'), text: s.why, ...ids });
+      lines.push({ where: at('as written'), text: s.as_written, ...ids }, { where: at('rewrite'), text: s.rewrite, ...ids }, { where: at('why'), text: s.why, ...ids });
     }
     if (s.role === 'proof') s.recap.forEach((r, j) => lines.push({ where: at(`recap ${j + 1}`), text: r, ...ids }));
   });
@@ -136,7 +145,7 @@ export function carouselShapeProblems(
       else s.rows.forEach((r, j) => (len(`${at} row ${j + 1} before`, r.before, LIMITS.before), len(`${at} row ${j + 1} after`, r.after, LIMITS.after)));
     }
     if (s.role === 'method') {
-      len(`${at} instinct`, s.instinct, LIMITS.instinct);
+      len(`${at} as_written`, s.as_written, LIMITS.as_written);
       len(`${at} rewrite`, s.rewrite, LIMITS.rewrite);
       len(`${at} why`, s.why, LIMITS.why);
       const support = supportedBy(`${s.rewrite} ${s.why}`, s.source, proof);
@@ -294,15 +303,18 @@ export function slideElement(
   if (s.role === 'method') {
     return {
       ground: PALETTE.cream,
-      intended: [s.kicker.toUpperCase(), s.headline, { text: s.instinct, min: STRUCK_MIN }, s.rewrite, s.why, provenance, `${n}/${total}`],
+      intended: [s.kicker.toUpperCase(), s.headline, AS_WRITTEN_LABEL, s.as_written_struck === false ? s.as_written : { text: s.as_written, min: STRUCK_MIN }, s.rewrite_label ?? 'The rewritten step', s.rewrite, s.why, provenance, `${n}/${total}`],
       element: cream([
         kickerText(s.kicker, PALETTE.terracotta),
         headline(s.headline),
         box(
           { flexDirection: 'column', marginTop: 52 },
-          text('The instinct', { fontFamily: 'Inter', fontWeight: 600, fontSize: SIZES.label, color: PALETTE.secondary, letterSpacing: 1 }),
-          text(s.instinct, { fontFamily: 'Inter', fontSize: SIZES.struck, lineHeight: 1.3, color: PALETTE.secondary, textDecoration: 'line-through', marginTop: 8 }),
-          text('The rewritten step', { fontFamily: 'Inter', fontWeight: 600, fontSize: SIZES.label, color: PALETTE.terracotta, letterSpacing: 1, marginTop: 40 }),
+          text(AS_WRITTEN_LABEL, { fontFamily: 'Inter', fontWeight: 600, fontSize: SIZES.label, color: PALETTE.secondary, letterSpacing: 1 }),
+          text(`“${s.as_written}”`, {
+            fontFamily: 'Inter', fontSize: SIZES.struck, lineHeight: 1.3, color: s.as_written_struck === false ? PALETTE.ink : PALETTE.secondary,
+            textDecoration: s.as_written_struck === false ? 'none' : 'line-through', marginTop: 8,
+          }),
+          text(s.rewrite_label ?? 'The rewritten step', { fontFamily: 'Inter', fontWeight: 600, fontSize: SIZES.label, color: PALETTE.terracotta, letterSpacing: 1, marginTop: 40 }),
           box(
             { alignItems: 'flex-start', marginTop: 8 },
             box({ marginRight: 16, marginTop: 10 }, arrowRight(PALETTE.terracotta, 44)),

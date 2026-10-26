@@ -478,6 +478,15 @@ export async function makeShort(ideaId: string, opts: { copyFile?: string; date?
     spent,
     extra: {
       safe_box: TEXT_BOX,
+      disclosures: {
+        ai_generated_voice: voiced,
+        tiktok_is_aigc: voiced,
+        instagram_ai_label: voiced,
+        tiktok_your_brand: true,
+        app_screen: 'Product screens are from a local build of the live RecipeFix UI (journey.mjs harness, simulated backend) displaying the verbatim stored production result captured 2026-10-21; disclosed on screen.',
+        photo: "Original recipe's licensed stock photo (Unsplash), labelled on screen; not the adapted dish.",
+        diagrams: 'Drawn illustrations, not footage.',
+      },
       variants: {
         tiktok: { file: path.relative(REPO_ROOT, out), caption, notes: 'Set "Your brand" (brand_organic_toggle) and AI-generated content label (synthetic voice). Trending sound, if any, added by a human in the app.' },
         instagram_reels: { file: path.relative(REPO_ROOT, out), notes: 'Same master is valid for Reels (safe box is the intersection of both UIs). Use a Reels-specific caption; do not cross-post the TikTok file with its caption unchanged.' },

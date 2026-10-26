@@ -66,6 +66,24 @@ export function wer(ref: string[], hyp: string[]): number {
   return ref.length ? d[ref.length]![hyp.length]! / ref.length : 0;
 }
 
+/** The caption pill's bounding box (pixels darker than the ink ground threshold) inside the band, negated for OCR. */
+async function pillCrop(png: Buffer, band: { top: number; height: number }): Promise<{ png: Buffer; x: number; y: number } | null> {
+  const { data, info } = await sharp(png).extract({ left: 0, top: band.top, width: 1080, height: band.height }).greyscale().raw().toBuffer({ resolveWithObject: true });
+  let x0 = Infinity, x1 = -1, y0 = Infinity, y1 = -1;
+  for (let y = 0; y < info.height; y++)
+    for (let x = 0; x < info.width; x++)
+      if (data[y * info.width + x]! < 45) {
+        x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y);
+      }
+  if (x1 < 0 || x1 - x0 < 40) return null;
+  const left = Math.max(0, x0 - 20);
+  const top = Math.max(0, band.top + y0 - 20);
+  const width = Math.min(1080 - left, x1 - x0 + 40);
+  const height = Math.min(1920 - top, y1 - y0 + 40);
+  const crop = await sharp(png).extract({ left, top, width, height }).negate({ alpha: false }).greyscale().png().toBuffer();
+  return { png: crop, x: left, y: top };
+}
+
 export async function qaVideo(input: VideoQaInput): Promise<{ passed: boolean; checks: GateCheck[]; keyframes: unknown[] }> {
   mkdirSync(input.dir, { recursive: true });
   const checks: GateCheck[] = [];
@@ -159,7 +177,13 @@ export async function qaVideo(input: VideoQaInput): Promise<{ passed: boolean; c
     // In the proof beat, words inside the product clip (x 120–900, y 470–1030) are the app's UI, not our copy.
     const clip = { x0: 120, y0: 470, x1: 900, y1: 1030 };
     const ours = (w: { x: number; y: number }) => !inProofWindow || !(w.x >= clip.x0 && w.x <= clip.x1 && w.y >= clip.y0 && w.y <= clip.y1);
-    const words = [...all, ...ocrWords(bandPng, [], '7').map((w) => ({ ...w, y: w.y + band.top }))].filter(ours);
+    // A one- or two-word caption in a 1080-wide band defeats tesseract; crop to the caption pill
+    // (its dark ink ground) and read it as a line (psm 7) and as a word (psm 8).
+    const pill = await pillCrop(png, band);
+    const pillWords = pill
+      ? [...ocrWords(pill.png, [], '7'), ...ocrWords(pill.png, [], '8')].map((w) => ({ ...w, x: w.x + pill.x, y: w.y + pill.y }))
+      : [];
+    const words = [...all, ...ocrWords(bandPng, [], '7').map((w) => ({ ...w, y: w.y + band.top })), ...pillWords].filter(ours);
     const rb = readBack(intended, words);
     const sims = rb.map((r) => r.similarity);
     rb.forEach((r) => {

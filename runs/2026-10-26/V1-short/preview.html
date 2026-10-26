@@ -22,7 +22,7 @@ abbr{text-decoration:underline dotted;cursor:help}
 </style></head><body><main>
 <p class="status">QA passed · unpublished</p>
 <h1>V1-short: Scaling a recipe up: multiply the ingredients, not the cooking time.</h1>
-<p>tiktok · pillar fix_it · copy: reviewed copy file runs/2026-10-26/V1-short/copy-reviewed.json · knowledge <code>e756660ef6e26ff0f3a798fb6256934ef1d4ec95</code> · made 2026-10-26T20:42:25.555Z</p>
+<p>tiktok · pillar fix_it · copy: reviewed copy file runs/2026-10-26/V1-short/copy-reviewed.json · knowledge <code>e756660ef6e26ff0f3a798fb6256934ef1d4ec95</code> · made 2026-10-26T21:23:30.382Z</p>
 <p><label><input type="checkbox" onchange="document.body.classList.toggle('showsafe',this.checked)"> show safe zone</label></p>
 <div class="media"><figure><div class="frame" style="aspect-ratio:1080/1920"><video src="V1-short.mp4" controls playsinline muted loop></video><div class="safe" style="left:11.11111111111111%;top:14.0625%;width:72.22222222222221%;height:51.041666666666664%"></div></div><figcaption>V1-short.mp4 · <a href="V1-short.mp4">full size</a></figcaption></figure></div>
 <section><h2>Caption</h2><pre>Doubling a recipe, or cooking for more people? Multiply the ingredients, not the cook time. Give food room, and go by what you can see, like a spoon leaving a trail in the sauce.
@@ -56,6 +56,12 @@ No blockers. Hook sets up tension; every beat has something to watch (simmer sti
 - Motion passes at Halyard's production freeze setting (−45 dB, ≥ 1.5 s) but the strict reading (−54 dB, ≥ 0.5 s) is still high, because flat-colour beats only change at caption changes. Real footage fixes that too.
 - The voice is ElevenLabs (synthetic): set the platform's AI-generated label.
 - The proof screens come from a local build of the live UI with a simulated backend serving the real stored result; that is disclosed on screen.
+
+## Engineering-director review (after round 2) — targeted fixes applied
+3. Simmer beat implied the Original said &quot;hard boil&quot; (it says &quot;Simmer gently&quot;). Replaced the struck diff with the real note, no strike: &quot;RecipeFix's note — Whisk separated coconut cream smooth, keep it at a gentle simmer.&quot; VO unchanged (already consistent).
+4. Diagrams drawn 1.3× (slow push to 1.36) and centred lower; timer/check chips moved so their text stays inside x 120–900 at full push. Text box unchanged (y 270–1250), so the area below 1250 stays image-free by design.
+5. Disclosures recorded in record.json `disclosures`: AI-generated voice (TikTok is_aigc = true, Instagram AI label = true), &quot;Your brand&quot; on, app screens from a local build of the live UI, photo is the Original's licensed stock, diagrams are illustrations.
+Re-rendered with the existing voice (no new spend). QA pass: freeze 5.2% at Halyard's setting (strict reading 49.8%, up from 42%: larger flat diagrams), safe zone pass, WER 0%, −14.7 LUFS. QA gained a caption-pill crop pass: OCR could not read a lone one-word caption (&quot;faster.&quot;) in a full-width band.
 </pre></section>
 <section><h2>Claims cited</h2><ul><li><abbr title="Real RecipeFix result (captured 2026-10-21): scaling a dairy-free chicken tikka masala from 4 to 6 servings changed the steps — broil in two batches at the same time per batch, use the spoon trail instead of multiplying the reduction time, let excess coconut yogurt drip off so it chars, keep the coconut cream at a gentle simmer.">proof.tikka_method_changes</abbr> · live_receipt</li><li><abbr title="It rewrites the cooking steps, not just the ingredient list.">core.rewrites_steps</abbr> · live_receipt</li><li><abbr title="Scale to any number of servings, in measurements you can actually use.">core.scaling</abbr> · live</li></ul></section>
 <section><h2>Fact sources</h2><ul><li><b>scale</b>: 4 → 6 servings is ×1.5, i.e. 50% more: 1½ lb chicken becomes 2¼ lb <i>(stored output ingredients[0] (original 1 1/2 lb, adapted 2¼ lb))</i></li><li><b>broil_time</b>: 8 to 10 minutes per sheet <i>(stored output steps[4].instruction)</i></li><li><b>reduce_time</b>: Start checking at 10 minutes <i>(stored output steps[3].updated_note)</i></li></ul></section>
@@ -67,8 +73,8 @@ No blockers. Hook sets up tension; every beat has something to watch (simmer sti
 <tr class="ok"><td>PASS</td><td>copy.slop_filter</td><td>0 errors, 0 warnings</td></tr>
 <tr class="ok"><td>PASS</td><td>copy.on_screen_typography</td><td>no em dashes, ellipses, or serialisation artefacts on screen</td></tr>
 <tr class="ok"><td>PASS</td><td>copy.shape</td><td>roles, lengths, speakability, proof support, never-show</td></tr>
-<tr class="ok"><td>PASS</td><td>media · video.spec</td><td>1080×1920 h264 yuv420p 30/1, audio aac, 47.0 s, 11.0 MB</td></tr>
-<tr class="ok"><td>PASS</td><td>media · motion.freeze_share</td><td>3.3% frozen at Halyard's setting (−45 dB, ≥ 1.5 s; &lt; 15%); strict reading (−54 dB, ≥ 0.5 s) 38.5%</td></tr>
+<tr class="ok"><td>PASS</td><td>media · video.spec</td><td>1080×1920 h264 yuv420p 30/1, audio aac, 47.0 s, 11.2 MB</td></tr>
+<tr class="ok"><td>PASS</td><td>media · motion.freeze_share</td><td>5.2% frozen at Halyard's setting (−45 dB, ≥ 1.5 s; &lt; 15%); strict reading (−54 dB, ≥ 0.5 s) 49.9%</td></tr>
 <tr class="ok"><td>PASS</td><td>media · motion.first_change</td><td>first visible change at 0.1 s (≤ 1.5 s)</td></tr>
 <tr class="ok"><td>PASS</td><td>media · motion.avg_shot</td><td>9 shots, average 5.2 s (each beat also animates within itself; plan target ≤ 3 s is not met by beat cuts alone)</td></tr>
 <tr class="ok"><td>PASS</td><td>media · audio.loudness</td><td>integrated -14.66 LUFS (−16 to −13), true peak -1.72 dBTP (≤ −1)</td></tr>

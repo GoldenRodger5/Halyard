@@ -46,6 +46,21 @@
         "id": "temp",
         "statement": "165°F (74°C) internal",
         "source": "stored output steps[4].instruction, steps[5].instruction (USDA FSIS poultry minimum)"
+      },
+      {
+        "id": "original_broil",
+        "statement": "As written: spread it on a foil-lined baking sheet. Broil for 8 to 10 minutes",
+        "source": "RecipeFix src/data/recipefixOriginals.ts @3f32680f, chicken-tikka-masala, 'Char the chicken'"
+      },
+      {
+        "id": "original_reduce",
+        "statement": "As written: cook uncovered for 10 to 12 minutes, until the sauce leaves a trail",
+        "source": "RecipeFix src/data/recipefixOriginals.ts @3f32680f, chicken-tikka-masala, 'Make the sauce' step 3"
+      },
+      {
+        "id": "original_finish",
+        "statement": "As written: stir the cream into the sauce. Simmer gently for 5 minutes",
+        "source": "RecipeFix src/data/recipefixOriginals.ts @3f32680f, chicken-tikka-masala, 'Finish' step 1"
       }
     ],
     "slides": [
@@ -171,6 +186,21 @@
       "id": "temp",
       "statement": "165°F (74°C) internal",
       "source": "stored output steps[4].instruction, steps[5].instruction (USDA FSIS poultry minimum)"
+    },
+    {
+      "id": "original_broil",
+      "statement": "As written: spread it on a foil-lined baking sheet. Broil for 8 to 10 minutes",
+      "source": "RecipeFix src/data/recipefixOriginals.ts @3f32680f, chicken-tikka-masala, 'Char the chicken'"
+    },
+    {
+      "id": "original_reduce",
+      "statement": "As written: cook uncovered for 10 to 12 minutes, until the sauce leaves a trail",
+      "source": "RecipeFix src/data/recipefixOriginals.ts @3f32680f, chicken-tikka-masala, 'Make the sauce' step 3"
+    },
+    {
+      "id": "original_finish",
+      "statement": "As written: stir the cream into the sauce. Simmer gently for 5 minutes",
+      "source": "RecipeFix src/data/recipefixOriginals.ts @3f32680f, chicken-tikka-masala, 'Finish' step 1"
     }
   ],
   "copy_source": "reviewed copy file runs/2026-10-26/I5-ig-carousel/copy-reviewed.json",
@@ -213,7 +243,6 @@
         "role": "method",
         "kicker": "Broiler space",
         "headline": "More chicken did not mean longer broiling",
-        "instinct": "50% more chicken, so 50% longer broil",
         "rewrite": "Two batches, 8 to 10 minutes per batch",
         "why": "Uncrowded chicken keeps the char that balances the creamy sauce",
         "source": "steps[4].updated_note, steps[4].instruction, explanations[2]",
@@ -221,15 +250,16 @@
           "proof.tikka_method_changes"
         ],
         "fact_ids": [
-          "scale",
-          "broil_time"
-        ]
+          "broil_time",
+          "original_broil",
+          "scale"
+        ],
+        "as_written": "Spread it on a foil-lined baking sheet. Broil for 8 to 10 minutes."
       },
       {
         "role": "method",
         "kicker": "Sauce reduction",
         "headline": "Do not multiply the simmer",
-        "instinct": "Scale 10 to 15 minutes by the batch size",
         "rewrite": "Check at 10 minutes. Done when a spoon leaves a trail",
         "why": "A wider pan evaporates liquid faster",
         "source": "steps[3].updated_note, steps[3].instruction",
@@ -237,27 +267,30 @@
           "proof.tikka_method_changes"
         ],
         "fact_ids": [
+          "original_reduce",
           "reduce_time"
-        ]
+        ],
+        "as_written": "Cook uncovered for 10 to 12 minutes, until the sauce leaves a trail."
       },
       {
         "role": "method",
         "kicker": "Marinade",
-        "headline": "Coconut yogurt needs a drip",
-        "instinct": "Move coated chicken straight to the tray",
-        "rewrite": "Let excess coconut yogurt drip off first",
+        "headline": "Why the drip matters more now",
+        "rewrite": "With coconut yogurt, let the excess drip off",
         "why": "The coating chars rather than pools",
         "source": "steps[4].updated_note, steps[0].updated_note",
         "claim_ids": [
           "proof.tikka_method_changes"
         ],
-        "fact_ids": []
+        "fact_ids": [],
+        "as_written": "Lift the chicken from the marinade, letting the excess drip off.",
+        "as_written_struck": false,
+        "rewrite_label": "What RecipeFix added: the reason"
       },
       {
         "role": "method",
         "kicker": "Coconut cream",
         "headline": "Simmer gently, then check the chicken",
-        "instinct": "Stretch the final simmer for the larger batch",
         "rewrite": "Whisk smooth, simmer gently, check several pieces",
         "why": "Separated coconut cream smooths out; chicken still has to reach 165°F",
         "source": "steps[5].updated_note, steps[5].instruction",
@@ -265,8 +298,10 @@
           "proof.tikka_method_changes"
         ],
         "fact_ids": [
+          "original_finish",
           "temp"
-        ]
+        ],
+        "as_written": "Stir the cream into the sauce. Simmer gently for 5 minutes."
       },
       {
         "role": "proof",
@@ -311,9 +346,55 @@
       "reviewed": "Stock photo of the original dairy recipe, not the adapted dish"
     },
     {
+      "path": "$.slides[2].instinct",
+      "model": "50% more chicken, so 50% longer broil"
+    },
+    {
+      "path": "$.slides[2].fact_ids[0]",
+      "model": "scale",
+      "reviewed": "broil_time"
+    },
+    {
+      "path": "$.slides[2].fact_ids[1]",
+      "model": "broil_time",
+      "reviewed": "original_broil"
+    },
+    {
+      "path": "$.slides[3].instinct",
+      "model": "Scale 10 to 15 minutes by the batch size"
+    },
+    {
       "path": "$.slides[3].rewrite",
       "model": "Start checking at 10 minutes, then use the spoon trail",
       "reviewed": "Check at 10 minutes. Done when a spoon leaves a trail"
+    },
+    {
+      "path": "$.slides[3].fact_ids[0]",
+      "model": "reduce_time",
+      "reviewed": "original_reduce"
+    },
+    {
+      "path": "$.slides[4].headline",
+      "model": "Coconut yogurt needs a drip",
+      "reviewed": "Why the drip matters more now"
+    },
+    {
+      "path": "$.slides[4].instinct",
+      "model": "Move coated chicken straight to the tray"
+    },
+    {
+      "path": "$.slides[4].rewrite",
+      "model": "Let excess coconut yogurt drip off first",
+      "reviewed": "With coconut yogurt, let the excess drip off"
+    },
+    {
+      "path": "$.slides[5].instinct",
+      "model": "Stretch the final simmer for the larger batch"
+    },
+    {
+      "path": "$.slides[5].fact_ids[0]",
+      "model": "temp",
+      "reviewed": "original_finish"
     },
     {
       "path": "$.slides[6].headline",
@@ -407,7 +488,7 @@
       {
         "id": "facts.numbers_traced",
         "passed": true,
-        "detail": "21 numbers checked",
+        "detail": "22 numbers checked",
         "problems": []
       },
       {
@@ -546,7 +627,7 @@
           {
             "id": "still.text_readback",
             "passed": true,
-            "detail": "7 intended lines, min similarity 0.88 (OCR file: 43 words, inverted: 44 words, rules removed: 48 words, white-text mask: 0 words); 1 struck lines held to their recorded lower bar",
+            "detail": "9 intended lines, min similarity 1.00 (OCR file: 43 words, inverted: 43 words, rules removed: 57 words, white-text mask: 0 words); 1 struck lines held to their recorded lower bar",
             "problems": []
           },
           {
@@ -558,7 +639,7 @@
           {
             "id": "still.safe_zone",
             "passed": true,
-            "detail": "40 word boxes inside x 60–1020, y 48–1318",
+            "detail": "49 word boxes inside x 60–1020, y 48–1318",
             "problems": []
           },
           {
@@ -570,7 +651,7 @@
           {
             "id": "still.contrast",
             "passed": true,
-            "detail": "min 4.63:1 over 40 word boxes (WCAG AA 4.5:1)",
+            "detail": "min 4.63:1 over 49 word boxes (WCAG AA 4.5:1)",
             "problems": []
           }
         ]
@@ -589,93 +670,7 @@
           {
             "id": "still.text_readback",
             "passed": true,
-            "detail": "7 intended lines, min similarity 1.00 (OCR file: 44 words, inverted: 44 words, rules removed: 48 words, white-text mask: 0 words); 1 struck lines held to their recorded lower bar",
-            "problems": []
-          },
-          {
-            "id": "still.no_artefacts",
-            "passed": true,
-            "detail": "no [object Object] / undefined / NaN / braces read on the image",
-            "problems": []
-          },
-          {
-            "id": "still.safe_zone",
-            "passed": true,
-            "detail": "33 word boxes inside x 60–1020, y 48–1318",
-            "problems": []
-          },
-          {
-            "id": "still.text_size",
-            "passed": true,
-            "detail": "every line's median OCR word height ≥ 24px",
-            "problems": []
-          },
-          {
-            "id": "still.contrast",
-            "passed": true,
-            "detail": "min 4.63:1 over 33 word boxes (WCAG AA 4.5:1)",
-            "problems": []
-          }
-        ]
-      },
-      {
-        "slide": 5,
-        "role": "method",
-        "passed": true,
-        "checks": [
-          {
-            "id": "still.canvas",
-            "passed": true,
-            "detail": "1080×1350",
-            "problems": []
-          },
-          {
-            "id": "still.text_readback",
-            "passed": true,
-            "detail": "7 intended lines, min similarity 0.83 (OCR file: 38 words, inverted: 38 words, rules removed: 41 words, white-text mask: 0 words); 1 struck lines held to their recorded lower bar",
-            "problems": []
-          },
-          {
-            "id": "still.no_artefacts",
-            "passed": true,
-            "detail": "no [object Object] / undefined / NaN / braces read on the image",
-            "problems": []
-          },
-          {
-            "id": "still.safe_zone",
-            "passed": true,
-            "detail": "30 word boxes inside x 60–1020, y 48–1318",
-            "problems": []
-          },
-          {
-            "id": "still.text_size",
-            "passed": true,
-            "detail": "every line's median OCR word height ≥ 24px",
-            "problems": []
-          },
-          {
-            "id": "still.contrast",
-            "passed": true,
-            "detail": "min 4.63:1 over 30 word boxes (WCAG AA 4.5:1)",
-            "problems": []
-          }
-        ]
-      },
-      {
-        "slide": 6,
-        "role": "method",
-        "passed": true,
-        "checks": [
-          {
-            "id": "still.canvas",
-            "passed": true,
-            "detail": "1080×1350",
-            "problems": []
-          },
-          {
-            "id": "still.text_readback",
-            "passed": true,
-            "detail": "7 intended lines, min similarity 1.00 (OCR file: 44 words, inverted: 44 words, rules removed: 48 words, white-text mask: 0 words); 1 struck lines held to their recorded lower bar",
+            "detail": "9 intended lines, min similarity 0.73 (OCR file: 41 words, inverted: 41 words, rules removed: 54 words, white-text mask: 0 words); 1 struck lines held to their recorded lower bar",
             "problems": []
           },
           {
@@ -700,6 +695,92 @@
             "id": "still.contrast",
             "passed": true,
             "detail": "min 4.63:1 over 40 word boxes (WCAG AA 4.5:1)",
+            "problems": []
+          }
+        ]
+      },
+      {
+        "slide": 5,
+        "role": "method",
+        "passed": true,
+        "checks": [
+          {
+            "id": "still.canvas",
+            "passed": true,
+            "detail": "1080×1350",
+            "problems": []
+          },
+          {
+            "id": "still.text_readback",
+            "passed": true,
+            "detail": "9 intended lines, min similarity 1.00 (OCR file: 51 words, inverted: 51 words, rules removed: 51 words, white-text mask: 0 words); 0 struck lines held to their recorded lower bar",
+            "problems": []
+          },
+          {
+            "id": "still.no_artefacts",
+            "passed": true,
+            "detail": "no [object Object] / undefined / NaN / braces read on the image",
+            "problems": []
+          },
+          {
+            "id": "still.safe_zone",
+            "passed": true,
+            "detail": "47 word boxes inside x 60–1020, y 48–1318",
+            "problems": []
+          },
+          {
+            "id": "still.text_size",
+            "passed": true,
+            "detail": "every line's median OCR word height ≥ 24px",
+            "problems": []
+          },
+          {
+            "id": "still.contrast",
+            "passed": true,
+            "detail": "min 4.63:1 over 47 word boxes (WCAG AA 4.5:1)",
+            "problems": []
+          }
+        ]
+      },
+      {
+        "slide": 6,
+        "role": "method",
+        "passed": true,
+        "checks": [
+          {
+            "id": "still.canvas",
+            "passed": true,
+            "detail": "1080×1350",
+            "problems": []
+          },
+          {
+            "id": "still.text_readback",
+            "passed": true,
+            "detail": "9 intended lines, min similarity 0.91 (OCR file: 45 words, inverted: 45 words, rules removed: 53 words, white-text mask: 0 words); 1 struck lines held to their recorded lower bar",
+            "problems": []
+          },
+          {
+            "id": "still.no_artefacts",
+            "passed": true,
+            "detail": "no [object Object] / undefined / NaN / braces read on the image",
+            "problems": []
+          },
+          {
+            "id": "still.safe_zone",
+            "passed": true,
+            "detail": "48 word boxes inside x 60–1020, y 48–1318",
+            "problems": []
+          },
+          {
+            "id": "still.text_size",
+            "passed": true,
+            "detail": "every line's median OCR word height ≥ 24px",
+            "problems": []
+          },
+          {
+            "id": "still.contrast",
+            "passed": true,
+            "detail": "min 4.63:1 over 48 word boxes (WCAG AA 4.5:1)",
             "problems": []
           }
         ]
@@ -755,7 +836,7 @@
     "cap_usd": 15
   },
   "brief_sha256": "07a59a808647ecd24ccddd40101b090dde2b56d211a95fb38e8e1e6940f23670",
-  "made_at": "2026-10-26T20:42:48.963Z",
+  "made_at": "2026-10-26T21:19:28.125Z",
   "safe_box": {
     "x0": 60,
     "y0": 48,

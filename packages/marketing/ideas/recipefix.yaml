@@ -48,6 +48,15 @@ ideas:
       - id: temp
         statement: "165°F (74°C) internal"
         source: "stored output steps[4].instruction, steps[5].instruction (USDA FSIS poultry minimum)"
+      - id: original_broil
+        statement: "As written: spread it on a foil-lined baking sheet. Broil for 8 to 10 minutes"
+        source: "RecipeFix src/data/recipefixOriginals.ts @3f32680f, chicken-tikka-masala, 'Char the chicken'"
+      - id: original_reduce
+        statement: "As written: cook uncovered for 10 to 12 minutes, until the sauce leaves a trail"
+        source: "RecipeFix src/data/recipefixOriginals.ts @3f32680f, chicken-tikka-masala, 'Make the sauce' step 3"
+      - id: original_finish
+        statement: "As written: stir the cream into the sauce. Simmer gently for 5 minutes"
+        source: "RecipeFix src/data/recipefixOriginals.ts @3f32680f, chicken-tikka-masala, 'Finish' step 1"
     slides:
       - role: cover
         must: "Hook in ≤10 words that names the tension: the dairy swap was easy, the steps changed. Kicker names the dish, the diet and 4 → 6. The photo label must say it is the Original recipe's licensed stock photo, not the adapted dish."
