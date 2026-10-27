@@ -70,7 +70,9 @@ function frames(dir: string, record: StudioRecord): Frame[] {
       files.push({ file: f, label: i === 0 ? 'cover (0.0 s)' : `${t.toFixed(1)} s` });
     }
   }
-  for (const s of [...(record.outputs.slides ?? []), ...(record.outputs.tiktok_slides ?? [])].slice(0, 10)) {
+  // One deck: the feed and tall decks are the same slides in two sizes, and showing both read as
+  // "the quiz restarts at slide 7" (2026-10-27).
+  for (const s of (record.outputs.slides?.length ? record.outputs.slides : record.outputs.tiktok_slides ?? []).slice(0, 10)) {
     const f = path.join(out, `s-${path.basename(s)}`);
     execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', path.resolve(REPO_ROOT, s), '-vf', 'scale=540:-1', '-q:v', '4', f]);
     files.push({ file: f, label: `slide ${files.length + 1}` });

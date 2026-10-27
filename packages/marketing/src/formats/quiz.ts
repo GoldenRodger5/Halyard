@@ -283,7 +283,7 @@ export async function makeQuiz(args: string[], opts: { voice: boolean; date?: st
     assets: s.assets,
     qa: { passed: checks.every((c) => c.passed), checks },
     cost_usd: runCost(s),
-    disclosures: { ai_voice: opts.voice, tiktok_is_aigc: opts.voice, photos: 'licensed stock behind the card; not the dish discussed', knowledge_commit: pack.commit },
+    disclosures: { ai_voice: opts.voice, tiktok_is_aigc: s.assets.some((a) => a.provenance.startsWith('OpenAI ')) || opts.voice, photos: 'licensed stock behind the card; not the dish discussed', knowledge_commit: pack.commit },
   };
   writeJson(`${s.dir}/record.json`, record);
   writeStudioPreview(s, record);

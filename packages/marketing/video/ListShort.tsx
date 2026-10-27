@@ -240,7 +240,7 @@ const Item: React.FC<{ it: ListItem; total: number }> = ({ it, total }) => {
         )}
         {look === 'editorial' && it.showQuote ? <QuoteCard it={it} at={it.start + 12 + GUESS} /> : null}
         <div style={{ alignSelf: 'flex-start', ...cardChrome(look, 22), padding: '16px 22px', maxWidth: W - 2 * INSET, boxSizing: 'border-box', opacity: c, transform: `translateY(${(1 - c) * 24}px)` }}>
-          <div style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: it.line.length > 60 ? 38 : 42, lineHeight: 1.22, color: INK, ...BALANCE }}>{it.line}</div>
+          <div style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: it.line.length > 48 ? 44 : 50, lineHeight: 1.2, color: INK, ...BALANCE }}>{it.line}</div>
           {look === 'editorial' && !it.showQuote ? <div style={{ marginTop: 10, fontFamily: 'Inter', fontWeight: 600, fontSize: 28, lineHeight: 1.25, color: '#6A5D50' }}>{`Source: ${it.source}`}</div> : null}
         </div>
       </div>

@@ -238,7 +238,7 @@ export async function makeRecipe(originalId: string, opts: { voice: boolean; dat
     assets: s.assets,
     qa: { passed: checks.every((c) => c.passed), checks },
     cost_usd: runCost(s),
-    disclosures: { ai_voice: opts.voice, tiktok_is_aigc: opts.voice, photo: 'licensed stock, labelled on screen', originals: 'written by RecipeFix, not kitchen-tested; never say tested', knowledge_commit: pack.commit },
+    disclosures: { ai_voice: opts.voice, tiktok_is_aigc: s.assets.some((a) => a.provenance.startsWith('OpenAI ')) || opts.voice, photo: 'licensed stock, labelled on screen', originals: 'written by RecipeFix, not kitchen-tested; never say tested', knowledge_commit: pack.commit },
   };
   writeJson(path.join(s.dir, 'record.json'), record);
   writeStudioPreview(s, record);

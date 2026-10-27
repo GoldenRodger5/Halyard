@@ -66,9 +66,9 @@ swap_guides:
     cover_sub: "4 swaps from one real tikka masala, and what to do differently with each"
     photo: chicken-tikka-masala
     photo_focus: { left: 520, top: 0 }
-    photo_label: "Stock photo of the original dairy recipe, not the adapted dish"
+    photo_label: "Photo: the original recipe, before the swaps"
     dish: "Chicken tikka masala, dairy-free, 4 to 6 servings"
-    starting_recipe: "Starting recipe: a RecipeFix Original, an AI-written home recipe"
+    starting_recipe: "Starting recipe: a RecipeFix Original (AI-written)"
     proof_shots:
       - file: recipefix-v2-still-1-result-header-what-changed.png
         crop: { left: 24, top: 1955, width: 1122, height: 240 }

@@ -21,6 +21,7 @@ import { claimById, forbiddenClaims, isQuotable, loadKnowledgePack, productPosts
 import { loadIdeas, REPO_ROOT, RUNS_DIR } from '../runContext.js';
 import {
   check,
+  generatedPhoto,
   gitBytes,
   humanTextProblems,
   openStudio,
@@ -45,7 +46,7 @@ const CAPTURES = path.join(RUNS_DIR, '2026-10-26/captures-v2');
 const LETTERS = ['A', 'B', 'C', 'D'];
 const QUESTION_GROUNDS = ['#2A9D8F', '#C8553D', '#5B8E3E', '#3B6EA8'];
 const COVER_GROUND = '#C1714F';
-const CLOSE_GROUND = '#A65336';
+
 const TOPIC: Record<string, { label: string; color: string }> = {
   'gluten-free': { label: 'Gluten-free quiz', color: '#E07A3F' },
   allergies: { label: 'Food label quiz', color: '#2A9D8F' },
@@ -265,6 +266,9 @@ async function quizPlan(s: Studio, deck: QuizDeckCopy, facts: Fact[], tie: strin
     photoChecks.push(p.check);
     return p.file;
   };
+  // A question's picture should match its claim (reviews: "a roast chicken for the flambé
+  // question"), so a fact's own answer-neutral generated image wins over a mood photo.
+  const factPhoto = async (f: Fact, b: { w: number; h: number }) => (f.image ? await generatedPhoto(s, f.image, f.id, b.w >= b.h ? 'wide' : 'tall') : await card(f.photo, b));
   if (facts.some((f) => f.photo === deck.photo)) throw new Error(`cover photo ${deck.photo} repeats a question photo`);
   const plan: Array<Planned<QuizSlide>> = [];
   const count = facts.length;
@@ -278,12 +282,12 @@ async function quizPlan(s: Studio, deck: QuizDeckCopy, facts: Fact[], tie: strin
     const banner = `${deck.kicker}: ${i + 1} of ${count}`;
     plan.push({
       name: `q${i + 1}`,
-      slide: { kind: 'question', n: i + 1, total: count, kicker: deck.kicker, question: f.question, options: f.options, myth, photo: await card(f.photo, L.qPhoto), color: QUESTION_GROUNDS[i % QUESTION_GROUNDS.length]! },
+      slide: { kind: 'question', n: i + 1, total: count, kicker: deck.kicker, question: f.question, options: f.options, myth, photo: await factPhoto(f, L.qPhoto), color: QUESTION_GROUNDS[i % QUESTION_GROUNDS.length]! },
       // A one-character option ("3") is checked by eye: OCR cannot read a lone glyph and would steal it from "5 and 1/3".
       intended: [banner, f.question, ...(myth ? ['MYTH', 'FACT'] : f.options.filter((o) => o.replace(/\W/g, '').length > 2)), i + 1 === count ? 'Lock it in, then swipe for the answers' : 'Lock it in, then swipe'],
     });
   }
-  const band = async (id: string) => (canvas === 'tall' ? await card(id, { w: 820, h: 520 }) : undefined);
+  const band = async (f: Fact) => (canvas === 'tall' ? await factPhoto(f, { w: 820, h: 520 }) : undefined);
   const pages = answerPages(facts, canvas);
   for (const [p, page] of pages.entries()) {
     const title = pages.length > 1 ? `Answers ${p + 1}/${pages.length}` : 'Answers';
@@ -292,12 +296,14 @@ async function quizPlan(s: Studio, deck: QuizDeckCopy, facts: Fact[], tie: strin
       slide: {
         kind: 'answers',
         title,
-        items: await Promise.all(page.map(async (f) => ({ n: facts.indexOf(f) + 1, question: f.question, photo: await band(f.photo), answer: answerLabel(f), myth: f.format === 'myth', correctIsMyth: /myth/i.test(f.options[f.correct]!), why: f.why, source: f.source.short }))),
+        items: await Promise.all(page.map(async (f) => ({ n: facts.indexOf(f) + 1, question: f.question, photo: await band(f), answer: answerLabel(f), myth: f.format === 'myth', correctIsMyth: /myth/i.test(f.options[f.correct]!), why: f.why, source: f.source.short }))),
       },
       intended: [title.replace(/\d\/\d/, '').trim(), ...page.flatMap((f) => [...(page.length === 1 ? [f.question] : []), answerLabel(f), f.why, `Source: ${f.source.short}`])],
     });
   }
-  plan.push({ name: 'close', slide: { kind: 'close', tie, save: deck.save, color: CLOSE_GROUND, photo: await band(deck.photo) }, intended: [deck.save, tie, 'recipefix.app'] });
+  // No closing pitch slide: a RecipeFix slide after the answers read as "the post turns into an
+  // ad" in every review (2026-10-27). The deck ends on the answers; the tie is in the caption.
+  void tie;
   return plan;
 }
 

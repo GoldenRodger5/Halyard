@@ -55,7 +55,18 @@ export function accountFor(platform: PlatformKey): string | undefined {
   return process.env[`BLOTATO_ACCOUNT_${platform.toUpperCase()}`] ?? DEFAULT_ACCOUNTS[platform];
 }
 
-export function buildTarget(post: PlatformPost): Record<string, unknown> {
+/**
+ * Whether a record must carry the platforms' AI label. TikTok requires it for AI-generated
+ * content showing realistic-looking scenes, YouTube for a realistic scene that didn't occur,
+ * and Meta for photoreal video and realistic AI voice (CREATIVE_STRATEGY.md §1). Our candid
+ * kitchen stills are exactly that, so ANY generated image or synthetic voice sets it, read from
+ * the record's own asset provenance so no format can forget it.
+ */
+export function needsAiLabel(record: Pick<StudioRecord, 'assets' | 'posts'>): boolean {
+  return (record.assets ?? []).some((a) => /^OpenAI /.test(a.provenance)) || Object.values(record.posts).some((p) => p.ai_voice);
+}
+
+export function buildTarget(post: PlatformPost, aiLabel = Boolean(post.ai_voice)): Record<string, unknown> {
   const t: Record<string, unknown> = { targetType: TARGET[post.platform] };
   if (post.platform === 'tiktok') {
     Object.assign(t, {
@@ -65,13 +76,13 @@ export function buildTarget(post: PlatformPost): Record<string, unknown> {
       disabledStitch: false,
       isBrandedContent: false,
       isYourBrand: true,
-      isAiGenerated: Boolean(post.ai_voice),
+      isAiGenerated: aiLabel,
     });
     if (post.kind === 'carousel') Object.assign(t, { autoAddMusic: true, imageCoverIndex: 0, ...(post.title ? { title: post.title.slice(0, 90) } : {}) });
     if (post.kind === 'video' && post.cover_ms !== undefined) t.videoCoverTimestamp = post.cover_ms;
   }
   if (post.platform === 'instagram' && post.kind === 'video') t.mediaType = 'reel';
-  if (post.platform === 'youtube') Object.assign(t, { title: (post.title ?? post.text.split('\n')[0]!).slice(0, 100), privacyStatus: 'public', shouldNotifySubscribers: false, containsSyntheticMedia: Boolean(post.ai_voice) });
+  if (post.platform === 'youtube') Object.assign(t, { title: (post.title ?? post.text.split('\n')[0]!).slice(0, 100), privacyStatus: 'public', shouldNotifySubscribers: false, containsSyntheticMedia: aiLabel });
   if (post.platform === 'facebook') {
     const pageId = process.env.BLOTATO_FACEBOOK_PAGE_ID;
     if (!pageId) throw new Error('facebook needs BLOTATO_FACEBOOK_PAGE_ID');
@@ -142,7 +153,7 @@ export async function publishRun(runDir: string, opts: { live: boolean; only?: s
     if (accounts && !accounts.some((a) => a.id === accountId && a.platform === TARGET[post.platform])) {
       throw new Error(`${k}: account ${accountId} is not a connected ${TARGET[post.platform]} account (mk accounts)`);
     }
-    const target = buildTarget(post);
+    const target = buildTarget(post, needsAiLabel(record));
     const sizes = post.media.map((m) => `${path.basename(m)} ${(statSync(path.resolve(REPO_ROOT, m)).size / 1e6).toFixed(1)} MB`);
     if (!opts.live) {
       console.log(`\n  ── ${k} → ${post.platform} (account ${accountId}) ──`);
