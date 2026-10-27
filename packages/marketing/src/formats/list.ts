@@ -56,7 +56,7 @@ interface ListSpec {
  */
 /** On-screen reading pace (words a second) and the time a beat's text takes to arrive. */
 /** CREATIVE_STRATEGY.md §2: 2.5 words/s for sentences, 0.3 s a word for short display text, 0.8 s per new photo. */
-export const READ_WPS = Number(process.env.MK_READ_WPS || 2.8);
+export const READ_WPS = Number(process.env.MK_READ_WPS || 2.5);
 const DISPLAY_S_PER_WORD = 0.3;
 const ENTRANCE_S = 0.8;
 
@@ -100,12 +100,12 @@ export async function makeList(id: string, opts: { voice: boolean; date?: string
   const hookVo = opts.voice ? await voice(s, spec.hook, 'hook') : null;
   const hookEnd = Math.max(sec(readFor(`${spec.hook} ${spec.hook_sub ?? ''}`, 2.2, 2.6)), sec((hookVo?.seconds ?? 0) + 0.3));
   let t = hookEnd;
-  const items: Array<{ n: number; name: string; stamp: string; line: string; source: string; photo: string; start: number; end: number; [k: string]: unknown }> = [];
+  const items: Array<{ n: number; name: string; stamp: string; line: string; quote: string; source: string; photo: string; start: number; end: number; [k: string]: unknown }> = [];
   for (const [i, it] of all.entries()) {
     const twist = spec.twist === it || spec.kind === 'swaps';
     const vo = opts.voice ? await voice(s, `${it.name}. ${it.stamp}. ${it.line}`, `item${i + 1}`) : null;
     const start = t;
-    t += Math.max(sec(readFor(it.line, 3.5, 6.0, `${it.name} ${it.stamp}`) + (i === 0 && guessText ? 0.4 : 0)), sec((vo?.seconds ?? 0) + 0.5));
+    t += Math.max(sec(1.9 + readFor(it.line, 3.6, 4.6) + 0.9 + (i === 0 && guessText ? 0.4 : 0)), sec((vo?.seconds ?? 0) + 0.5));
     const src = facts.get(it.fact)!.source;
     const q = quoteExcerpt(src.quote, it.highlight ?? it.stamp);
     items.push({ n: i + 1, name: it.name, guess: i === 0 ? guessText || undefined : undefined, stamp: it.stamp, line: it.line, quote: q.text, hlAt: q.at, hlLen: q.len, source: src.short.split(',')[0]!.trim(), photo: await generatedPhoto(s, it.image, `${id}-${i + 1}`, 'tall'), start, end: t, twist, audio: vo?.file ?? null });
@@ -120,7 +120,9 @@ export async function makeList(id: string, opts: { voice: boolean; date?: string
     hook: { text: spec.hook, sub: spec.hook_sub, photo: await generatedPhoto(s, spec.hook_image, `${id}-hook`, 'tall'), start: 0, end: hookEnd, audio: hookVo?.file ?? null },
     items,
     close: { start: closeStart, title: closeTitle, tips: all.map((it) => ({ name: it.name, stamp: it.stamp, ok: spec.twist === it || spec.kind === 'swaps', photo: items[all.indexOf(it)]!.photo })), save: spec.ask ?? '', note: spec.note ?? '', photo: items[items.length - 1]!.photo },
-    sfx: { whoosh: fx.whoosh, reveal: fx.reveal },
+    // No whoosh/stamp effects: the owner found them grating (2026-10-27). Music beds come next.
+    sfx: null as null | { whoosh: string; reveal: string },
+    _fx: fx.whoosh,
   };
   writeJson(path.join(s.dir, 'render-props.json'), props);
   const video = await renderVideo(s, 'ListShort', props, total, s.id);
@@ -164,10 +166,10 @@ export async function makeList(id: string, opts: { voice: boolean; date?: string
   // ── QA ──
   const checks: GateCheck[] = [];
   const d = duration(video);
-  checks.push(check('video.duration', d >= 22 && d <= 40, `${d.toFixed(1)} s (target 22–40 s: readable, CREATIVE_STRATEGY §2.3–2.4)`));
+  checks.push(check('video.duration', d >= 22 && d <= 46, `${d.toFixed(1)} s (target 22–46 s: calm and readable, owner 2026-10-27)`));
   if (opts.voice) checks.push(transcriptCheck(s, video, [spec.hook, ...all.map((it) => `${it.name}. ${it.stamp}. ${it.line}`)].join(' ')));
   checks.push(...(await qaFrame(s, video, 1.2, 'hook', [spec.hook, ...(spec.hook_sub ? [spec.hook_sub] : [])])));
-  for (const it of items) checks.push(...(await qaFrame(s, video, (it.end - 4) / FPS, `item${it.n}`, [it.name, it.stamp, it.line, `Source: ${it.source}`])));
+  for (const it of items) checks.push(...(await qaFrame(s, video, (it.end - 4) / FPS, `item${it.n}`, [it.name, it.stamp, it.line, `From ${it.source}`, { text: it.quote.replace(/…/g, ''), min: 0.8 }])));
   checks.push(...(await qaFrame(s, video, (total - 1.2 * FPS) / FPS, 'close', [closeTitle, ...all.map((it) => it.name.replace(/^"|"$/g, '')), ...(spec.ask ? [spec.ask] : []), ...(spec.note ? [spec.note] : [])])));
   const everything = [spec.hook, spec.hook_sub ?? '', spec.ask ?? '', spec.note ?? '', spec.caption, spec.save, spec.tie, ...all.flatMap((it) => [it.name, it.stamp, it.line]), ...Object.values(posts).flatMap((p) => [p.text, ...(p.thread ?? []), p.title ?? '', p.pinned_comment ?? ''])];
   const problems = humanTextProblems(everything);

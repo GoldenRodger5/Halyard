@@ -57,7 +57,8 @@ const INSET = 44;
 const useSpring = (at: number, damping = 13) => {
   const f = useCurrentFrame();
   const { fps } = useVideoConfig();
-  return spring({ frame: f - at, fps, config: { damping, stiffness: 190, mass: 0.85 } });
+  // Calm motion (owner, 2026-10-27: "still moving too fast"): soft springs, short travel.
+  return spring({ frame: f - at, fps, config: { damping: damping + 6, stiffness: 110, mass: 1 } });
 };
 
 /**
@@ -115,7 +116,7 @@ const Photo: React.FC<{ src: string; from: number; to: number; dim?: number; pun
   // so a readable hold never reads as a static slide (review 2026-10-27).
   const punch = punchAt === undefined ? 0 : interpolate(f, [punchAt, punchAt + 5], [0, 0.16], { ...clamp, easing: (t) => 1 - (1 - t) ** 3 });
   const z = interpolate(f, [from, to], [1.04, 1.12], clamp) + punch;
-  const slide = interpolate(f, [from, from + 7], [140, 0], clamp);
+  const slide = interpolate(f, [from, from + 14], [50, 0], clamp);
   return (
     <AbsoluteFill style={{ overflow: 'hidden', background: INK }}>
       <Img src={staticFile(src)} style={{ width: '100%', height: '100%', objectFit: 'cover', transform: `translateX(${slide}px) scale(${z})` }} />
@@ -210,6 +211,46 @@ const MagazineItem: React.FC<{ it: ListItem; total: number }> = ({ it, total }) 
   );
 };
 
+/**
+ * The proof shot: the source's own words on paper, a slow scan, the key words marked, and the
+ * one-line takeaway under it. Each list item is two shots (the food, then this), so a readable
+ * hold never sits on one static frame and the proof is a moment, not a footnote.
+ */
+const LabelShot: React.FC<{ it: ListItem; total: number; from: number }> = ({ it, total, from }) => {
+  const f = useCurrentFrame();
+  const inn = useSpring(from - 2, 14);
+  const scan = interpolate(f, [from + 4, from + 34], [0, 1], clamp);
+  const mark = interpolate(f, [from + 30, from + 44], [0, 100], clamp);
+  const box = interpolate(f, [from + 40, from + 48], [0, 1], clamp);
+  const take = interpolate(f, [from + 46, from + 58], [0, 1], clamp);
+  const tone = it.twist ? STAMP_GREEN : STAMP_RED;
+  const pre = it.quote.slice(0, it.hlAt);
+  const hl = it.quote.slice(it.hlAt, it.hlAt + it.hlLen);
+  const post = it.quote.slice(it.hlAt + it.hlLen);
+  return (
+    <>
+      <AbsoluteFill style={{ background: '#F2EBE1' }} />
+      <div style={{ position: 'absolute', left: SAFE.x0 + INSET, top: SAFE.y0 + 4, width: W - 2 * INSET, display: 'flex', flexDirection: 'column', gap: 18 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div style={{ width: 64, height: 64, borderRadius: 32, background: tone, color: '#FFFFFF', fontFamily: 'Inter', fontWeight: 600, fontSize: 34, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{it.twist && it.n > total ? '✓' : it.n}</div>
+          <div style={{ fontFamily: 'Instrument Serif', fontSize: it.name.length > 20 ? 64 : 76, lineHeight: 1, color: INK, ...BALANCE }}>{it.name}</div>
+        </div>
+        <div style={{ position: 'relative', background: '#FFFFFF', borderRadius: 16, padding: '22px 26px 26px', boxShadow: '0 12px 36px rgba(40,25,15,0.18)', borderLeft: `10px solid ${tone}`, overflow: 'hidden', opacity: Math.min(1, inn * 1.4), transform: `translateY(${(1 - Math.min(1, inn)) * 24}px)` }}>
+          <div style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: 28, letterSpacing: 2, textTransform: 'uppercase', color: '#6A5D50', marginBottom: 10 }}>{`From ${it.source}`}</div>
+          <div style={{ fontFamily: 'Inter', fontWeight: 400, fontSize: 44, lineHeight: 1.32, color: INK }}>
+            {pre}
+            <span style={{ fontWeight: 600, backgroundImage: 'linear-gradient(transparent 10%, #FFD84D 10%, #FFD84D 92%, transparent 92%)', backgroundRepeat: 'no-repeat', backgroundSize: `${mark}% 100%`, outline: `${box * 4}px solid ${tone}`, outlineOffset: 4, borderRadius: 4 }}>{hl}</span>
+            {post}
+          </div>
+          {scan > 0 && scan < 1 ? <div style={{ position: 'absolute', left: 0, right: 0, top: `${scan * 100}%`, height: 6, background: tone, opacity: 0.35, boxShadow: `0 0 24px ${tone}` }} /> : null}
+        </div>
+        <div style={{ alignSelf: 'flex-start', ...stampStyle('editorial', it.twist ? GREEN : RED, it.stamp, 1) }}>{it.stamp}</div>
+        <div style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: 50, lineHeight: 1.2, color: INK, opacity: take, transform: `translateY(${(1 - take) * 16}px)`, ...BALANCE }}>{it.line}</div>
+      </div>
+    </>
+  );
+};
+
 const Item: React.FC<{ it: ListItem; total: number }> = ({ it, total }) => {
   const f = useCurrentFrame();
   const a = useSpring(it.start - 5);
@@ -222,9 +263,12 @@ const Item: React.FC<{ it: ListItem; total: number }> = ({ it, total }) => {
   const tone = it.twist ? GREEN : RED;
   const look = useLook();
   const display = useDisplay();
+  // Two shots: the food, then the proof. The split sits after the name and stamp have landed.
+  const split = it.start + Math.round(Math.min(2.0 * 30, (it.end - it.start) * 0.32));
+  if (look === 'editorial' && f >= split) return <LabelShot it={it} total={total} from={split} />;
   return (
     <>
-      <Photo src={it.photo} from={it.start} to={it.end} punchAt={Math.round(it.start + (it.end - it.start) * 0.55)} />
+      <Photo src={it.photo} from={it.start} to={it.end} />
       {/* Odd items sit high, even items sit low, so five beats are not one layout five times. */}
       <div style={{ position: 'absolute', left: SAFE.x0 + INSET, top: SAFE.y0 + 10, width: W - 2 * INSET, height: SAFE.y1 - SAFE.y0 - 110, display: 'flex', flexDirection: 'column', justifyContent: it.n % 2 ? 'flex-start' : 'flex-end', gap: 18 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 18, transform: `translateX(${(1 - Math.min(1, a)) * -120}px)`, opacity: Math.min(1, a * 1.5) }}>
@@ -242,10 +286,10 @@ const Item: React.FC<{ it: ListItem; total: number }> = ({ it, total }) => {
           <div style={stampStyle(look, tone, it.stamp, st)}>{it.stamp}</div>
         )}
         {look === 'editorial' && it.showQuote ? <QuoteCard it={it} at={it.start + 12 + GUESS} /> : null}
-        <div style={{ alignSelf: 'flex-start', ...cardChrome(look, 22), padding: '16px 22px', maxWidth: W - 2 * INSET, boxSizing: 'border-box', opacity: c, transform: `translateY(${(1 - c) * 24}px)` }}>
+        {look === 'editorial' ? null : <div style={{ alignSelf: 'flex-start', ...cardChrome(look, 22), padding: '16px 22px', maxWidth: W - 2 * INSET, boxSizing: 'border-box', opacity: c, transform: `translateY(${(1 - c) * 24}px)` }}>
           <div style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: it.line.length > 48 ? 44 : 50, lineHeight: 1.2, color: INK, ...BALANCE }}>{it.line}</div>
-          {look === 'editorial' && !it.showQuote ? <div style={{ marginTop: 10, fontFamily: 'Inter', fontWeight: 600, fontSize: 28, lineHeight: 1.25, color: '#6A5D50' }}>{`Source: ${it.source}`}</div> : null}
-        </div>
+          
+        </div>}
       </div>
       {look === 'editorial' ? null : <div style={{ position: 'absolute', left: SAFE.x0 + 6, bottom: 1920 - SAFE.y1 + 24, width: W - 12, opacity: c }}>
         <span style={{ display: 'inline-block', maxWidth: W - 12, background: 'rgba(17,17,17,0.92)', color: '#FFFFFF', fontFamily: 'Inter', fontWeight: 600, fontSize: 36, lineHeight: 1.3, padding: '10px 18px', borderRadius: 10 }}>{`Source: ${it.source}`}</span>
