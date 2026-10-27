@@ -1,0 +1,86 @@
+# Before/after transformation videos ("Recipe Fixed" series), P3.
+#
+# A transform is a STORED, REAL RecipeFix adaptation result plus the editorial
+# choices about what to show from it. Nothing here is an adaptation: every
+# string shown on screen is either read from the stored result / the Original,
+# or is a pointer into it that the builder checks (src/formats/transform.ts):
+#   - swaps[].why must be a substring of that ingredient's changeReason
+#   - step.before / step.after excerpts must be substrings of the Original's
+#     step and the result's step instruction
+#   - step.why must be a substring of the result step's updated_note
+#   - tips[].from must contain every number its tip shows
+#   - every number on screen must occur in the result or the Original
+#
+# Provenance search (2026-10-27, recipe-fix @ a82f8bb9): the only stored
+# verbatim production result is src/data/landingRealResult.ts. The
+# dietBeforeAfter.ts and recipeTransformations.ts examples are hand-authored /
+# editorial, not engine output, so they are NOT used here.
+
+transforms:
+  - id: tikka-dairy-free
+    number: 1
+    result:
+      repo: /Users/isaacmineo/PROJECT_2025/recipe-fix
+      commit: a82f8bb9aff1cea7d5539156c807faa2602c9e29
+      file: src/data/landingRealResult.ts
+      export: LANDING_REAL_RESULT
+    # data/originals.json id (snapshot of recipefixOriginals.ts @ a82f8bb9); also the photo id.
+    original: chicken-tikka-masala
+    diet: Dairy-Free
+    keyword: dairy-free tikka masala
+    hook:
+      title: Dairy-free tikka masala
+      line1: The swaps are easy.
+      line2: Don't crowd the broiler.
+      # The open loop: answered by the step beat. Each option's words must be in its source.
+      question: "Cooking it for 6: what changes in the broiler step?"
+      options: [Broil it longer, Use two sheets]
+      answer: 1
+      # explanations[2]: "needs more broiler space, not longer broiling per piece" (why A is wrong)
+      options_from: ["explanations[2]", "steps[4].instruction"]
+    # `short` is the cheat-sheet name of each side; both must occur in the stored lines.
+    swaps:
+      - ingredient: 1
+        why: an acidic, coating marinade without dairy
+        short: [whole-milk yogurt, coconut yogurt]
+      - ingredient: 5
+        why: supplies the fat needed to soften the onion
+        short: [butter, vegan butter]
+      - ingredient: 15
+        why: restores the sauce's richness without dairy
+        short: [heavy cream, coconut cream]
+    step:
+      result: 4
+      original: { section: Char the chicken, step: 0 }
+      before:
+        - spread it on a foil-lined baking sheet
+        - Broil for 8 to 10 minutes
+      after:
+        - spread in a single uncrowded layer on two foil-lined baking sheets
+        - broil one sheet at a time for 8 to 10 minutes
+      keep: 8 to 10 minutes
+      why: Allow two broiler batches at this size, keeping the cooking time per batch unchanged
+      # Shown while the step is "as written" (no numbers), then the takeaway replaces it.
+      before_headline: "As written: one sheet."
+      # The one-line takeaway stamped on the step; its numbers must be in `from`.
+      takeaway: { text: "Two sheets, one at a time. Same 8 to 10 minutes.", from: "steps[4].instruction" }
+    save: "Save this: 3 dairy-free swaps + 1 step"
+    # Close: the swaps (from `short`), then these.
+    tips:
+      - text: "For 6: two sheets, broil one at a time, 8 to 10 minutes each."
+        from: "steps[4].instruction"
+    tie: RecipeFix rewrites the cooking steps, not just the ingredient list.
+    # Only spoken with --voice.
+    voice:
+      hook: Dairy-free tikka masala, for six instead of four. What changes in the broiler step?
+      swaps: Whole-milk yogurt becomes coconut yogurt. Butter becomes vegan butter. Heavy cream becomes coconut cream.
+      step: Now the broiler step. Two sheets, one at a time, and the same eight to ten minutes each.
+      result: Same dish, for six.
+      close: Save this for your next tikka masala.
+    caption:
+      lead: "Dairy-free tikka masala, scaled from 4 to 6 servings. Swapping the yogurt, butter and cream is the easy part. What changes in the broiler step? Guess before the answer."
+      youtube_title: "Dairy-free tikka masala: the step that changes | Recipe Fixed #1"
+    tags: [dairyfree, tikkamasala, dairyfreerecipes, recipefix]
+    claims: [proof.tikka_method_changes, core.rewrites_steps, core.reasons, core.diets, core.scaling]
+    # From the knowledge pack's proof.tikka_method_changes notes.
+    never_show: ["1½ (14.5-oz) can crushed tomatoes"]

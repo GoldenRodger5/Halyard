@@ -1,0 +1,33 @@
+{
+  "verdict": "revise",
+  "scores": {
+    "stop": 6,
+    "stay": 6,
+    "engage": 5,
+    "human": 6
+  },
+  "would_leave_at": "frame 2, when the cover repeats with no new information",
+  "first_impression": "Useful niche recipe-fix idea, but it feels over-designed and a bit like an educational template rather than an appetizing human-made food post.",
+  "problems": [
+    "The first frame has a decent quiz hook, but it is text-heavy and the food image is secondary, so it does not immediately feel delicious or urgent.",
+    "Frame 2 appears identical to frame 1, which wastes the opening seconds and makes the post feel slow.",
+    "Several frames use dense, small recipe text that is hard to read quickly on a phone.",
+    "The visual style relies heavily on boxes, badges, outlines and stock imagery, which makes it feel templated rather than personal.",
+    "The answer is useful, but the post takes a while to get there and the payoff is not very emotional or surprising.",
+    "The final source/disclaimer text is tiny and adds to the slightly institutional/ad-like feeling.",
+    "The food photography is labeled as licensed stock, which reduces trust and human warmth for a recipe post."
+  ],
+  "fixes": [
+    "Remove the duplicate opening frame and get to the swap/answer faster.",
+    "Make the cover simpler: big food close-up, one headline, and larger A/B choices. Example: “Scaling tikka masala to 6? Don’t crowd the broiler.”",
+    "Use a real-looking broiler tray visual or quick before/after: crowded tray = steams, two uncrowded trays = chars properly.",
+    "Increase font size on recipe cards and cut copy to only the changed amounts and changed action.",
+    "Reduce the number of outlined boxes and badges; keep one consistent card style and let the food image breathe.",
+    "Move the key answer earlier: “Answer: use 2 sheets, one at a time — same 8–10 min.” Then explain why.",
+    "Replace stock imagery with an actual cooked dish/process shot if possible, even if imperfect; it will feel more trustworthy.",
+    "Make the save slide cleaner and more useful: one compact checklist with the 3 swaps plus the broiler rule, no tiny legal-looking block unless required."
+  ],
+  "model": "gpt-5.5",
+  "cost_usd": 0.01696,
+  "at": "2026-10-27T09:19:03.090Z"
+}
