@@ -14,7 +14,7 @@
  *   282–340 header   360–500 question + basis   520–1010 tiles   1030–1245 why card
  */
 import React from 'react';
-import { AbsoluteFill, Audio, Img, Sequence, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
+import { AbsoluteFill, Audio, Sequence, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
 import { FONTS, SAFE, clamp } from './kit.js';
 
 export interface VersusSide {
@@ -100,7 +100,7 @@ const Tile: React.FC<{ side: VersusSide; x: number; w: number; textX0: number; t
   const name = side.name.toUpperCase();
   const longest = Math.max(...name.split(' ').map((p) => p.length));
   const size = Math.max(40, Math.min(78, Math.floor(tw / (longest * 0.72))));
-  const count = interpolate(f, [r.revealAt + 4, r.revealAt + 28], [0, 1], { ...clamp, easing: (t) => 1 - Math.pow(1 - t, 3) });
+  // Round-3 reviews read a count-up caught at 1 fps as "the numbers change between frames": the real number lands at once, with a pop.
   const numIn = useSpr(r.revealAt + 2, { damping: 11, stiffness: 220 });
   const win = state === 'win';
   const numSize = win ? 104 : Math.min(64, Math.floor(tw / (String(side.value).length * 0.62 + 1.2)));
@@ -121,7 +121,7 @@ const Tile: React.FC<{ side: VersusSide; x: number; w: number; textX0: number; t
       </div>
       {f >= r.revealAt ? (
         <div style={{ position: 'absolute', left: textX0 - x, top: NUM_TOP - TILE_TOP, width: tw, height: 130, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter', fontWeight: 600, fontSize: numSize, lineHeight: 1, color: ink, transform: `scale(${numIn})`, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
-          {fmt(side.value * count, side.value)}
+          {fmt(side.value, side.value)}
           <span style={{ fontSize: numSize * 0.42, marginLeft: 8 }}>{r.unit}</span>
         </div>
       ) : null}
@@ -159,15 +159,17 @@ const Round: React.FC<{ r: VersusRound; index: number; total: number; label: str
   const f = useCurrentFrame();
   const first = r.start === 0;
   // The next pair starts sliding in 5 frames before the cut: never an empty frame between rounds.
-  const enterS = useSpr(r.start - 5, { damping: 15, stiffness: 150 });
+  const enterS = useSpr(r.start, { damping: 15, stiffness: 190 });
   const enter = first ? 1 : enterS;
-  const exit = interpolate(f, [r.end - 5, r.end], [0, 1], clamp);
+  // Hard cut, no crossfade: two rounds' text half-visible at once read as a broken export (round-3 review).
+  const exit = 0;
   const revealed = f >= r.revealAt;
   const grow = useSpr(r.revealAt, { damping: 12, stiffness: 150 });
   const shift = revealed ? interpolate(grow, [0, 1], [0, 140]) * (r.winner === 0 ? 1 : -1) : 0;
   const split = 540 + shift;
   const q = useSpr(r.start + 2, { damping: 14 });
-  const qIn = first ? 1 : q;
+  // The question is there at the cut (scale only), so a cut never shows an empty header.
+  const qIn = first ? 1 : Math.max(0.6, q);
   const why = useSpr(r.whyAt, { damping: 15 });
   const ratio = useSpr(r.revealAt + 22, { damping: 8, stiffness: 260 });
   const state = (i: 0 | 1) => (!revealed ? 'idle' : i === r.winner ? 'win' : 'lose') as 'idle' | 'win' | 'lose';
@@ -211,7 +213,7 @@ export interface VersusRecap {
 const Recap: React.FC<{ c: VersusRecap }> = ({ c }) => {
   const f = useCurrentFrame();
   // Enters a few frames before the last round's cut, so there is never an empty frame.
-  const t = useSpr(c.start - 6, { damping: 15 });
+  const t = useSpr(c.start - 4, { damping: 15 });
   return (
     <AbsoluteFill>
       <div style={{ position: 'absolute', left: SAFE.x0 + 10, top: 330, width: W - 20, textAlign: 'center', fontFamily: 'Instrument Serif', fontSize: 92, lineHeight: 1.02, color: CREAM, textShadow: '0 4px 18px rgba(0,0,0,0.35)', opacity: Math.min(1, t), transform: `translateY(${(1 - t) * 30}px)` }}>{c.title}</div>
@@ -239,8 +241,8 @@ export const VersusShort: React.FC<VersusShortProps> = (p) => {
     <AbsoluteFill style={{ background: BG }}>
       <style>{FONTS}</style>
       <Ground />
-      {p.rounds.map((r, i) => (f >= (r.start === 0 ? 0 : r.start - 5) && f < r.end ? <Round key={i} r={r} index={i} total={p.rounds.length} label={p.label} /> : null))}
-      {f >= p.recap.start - 6 ? <Recap c={p.recap} /> : null}
+      {p.rounds.map((r, i) => (f >= r.start && f < r.end ? <Round key={i} r={r} index={i} total={p.rounds.length} label={p.label} /> : null))}
+      {f >= p.recap.start ? <Recap c={p.recap} /> : null}
       {p.rounds.map((r, i) => {
         // One tick per digit on the badge (3, 2, 1), however long the countdown is.
         const secs = 3;

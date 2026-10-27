@@ -31,8 +31,8 @@ stories:
     focus: "62% 38%"
     beats:
       - kind: hook
-        say: "1893. The Supreme Court had to decide what a tomato is."
-        screen: "The Supreme Court had to decide what a tomato is."
+        say: "1893. A tomato went to the Supreme Court, over a ten percent tax."
+        screen: "A tomato went to the Supreme Court over a 10% tax."
       - kind: ledger
         say: "Imported vegetables were taxed. Fruit came in free."
         title: "Tariff act of 1883"
