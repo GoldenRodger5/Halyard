@@ -143,15 +143,19 @@ export async function makeList(id: string, opts: { voice: boolean; date?: string
     threads: { platform: 'threads', kind: 'video', media, text: `${spec.hook}. ${spec.caption}`, thread: [sourcesText] },
   };
 
+  // The bridge (CREATIVE_STRATEGY §4): a pinned comment, never a pitch inside the video.
+  const utm = (p: string) => `recipefix.app/?utm_source=${p}&utm_medium=social&utm_campaign=list-${id}`;
+  for (const [k, p] of Object.entries(posts)) p.pinned_comment = `${spec.tie} ${utm(k.split('_')[0]!)}`;
+
   // ── QA ──
   const checks: GateCheck[] = [];
   const d = duration(video);
-  checks.push(check('video.duration', d >= 12 && d <= 35, `${d.toFixed(1)} s (target 12–35 s)`));
+  checks.push(check('video.duration', d >= 22 && d <= 40, `${d.toFixed(1)} s (target 22–40 s: readable, CREATIVE_STRATEGY §2.3–2.4)`));
   if (opts.voice) checks.push(transcriptCheck(s, video, [spec.hook, ...all.map((it) => `${it.name}. ${it.stamp}. ${it.line}`)].join(' ')));
   checks.push(...(await qaFrame(s, video, 1.2, 'hook', [spec.hook, ...(spec.hook_sub ? [spec.hook_sub] : [])])));
   for (const it of items) checks.push(...(await qaFrame(s, video, (it.end - 4) / FPS, `item${it.n}`, [it.name, it.stamp, it.line, `Source: ${it.source}`])));
   checks.push(...(await qaFrame(s, video, (total - 1.2 * FPS) / FPS, 'close', [closeTitle, ...all.map((it) => it.name.replace(/^"|"$/g, '')), ...(spec.ask ? [spec.ask] : []), ...(spec.note ? [spec.note] : [])])));
-  const everything = [spec.hook, spec.hook_sub ?? '', spec.ask ?? '', spec.note ?? '', spec.caption, spec.save, spec.tie, ...all.flatMap((it) => [it.name, it.stamp, it.line]), ...Object.values(posts).flatMap((p) => [p.text, ...(p.thread ?? []), p.title ?? ''])];
+  const everything = [spec.hook, spec.hook_sub ?? '', spec.ask ?? '', spec.note ?? '', spec.caption, spec.save, spec.tie, ...all.flatMap((it) => [it.name, it.stamp, it.line]), ...Object.values(posts).flatMap((p) => [p.text, ...(p.thread ?? []), p.title ?? '', p.pinned_comment ?? ''])];
   const problems = humanTextProblems(everything);
   for (const c of forbiddenClaims(pack)) for (const ex of c.examples ?? []) for (const txt of everything) if (forbiddenMatches(txt, ex)) problems.push(`forbidden (${c.id}) "${ex}"`);
   const limits: Record<string, number> = { tiktok: 2200, instagram: 2200, x: 280, threads: 500, youtube: 5000 };

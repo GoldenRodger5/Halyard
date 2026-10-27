@@ -298,6 +298,19 @@ const Close: React.FC<{ c: ListShortProps['close'] }> = ({ c }) => {
   );
 };
 
+/** The last 0.4 s fades back to the cover photo, so a replay reads as one continuous loop. */
+const LoopSeam: React.FC<{ photo: string }> = ({ photo }) => {
+  const f = useCurrentFrame();
+  const { durationInFrames } = useVideoConfig();
+  const o = interpolate(f, [durationInFrames - 12, durationInFrames - 1], [0, 1], clamp);
+  if (o <= 0) return null;
+  return (
+    <AbsoluteFill style={{ opacity: o, overflow: 'hidden' }}>
+      <Img src={staticFile(photo)} style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scale(1.04)' }} />
+    </AbsoluteFill>
+  );
+};
+
 const Visible: React.FC<{ from: number; to: number; children: React.ReactNode }> = ({ from, to, children }) => {
   const f = useCurrentFrame();
   return f >= from && f < to ? <>{children}</> : null;
@@ -320,6 +333,7 @@ export const ListShort: React.FC<ListShortProps> = (p) => {
       <Visible from={p.close.start} to={Number.MAX_SAFE_INTEGER}>
         <Close c={p.close} />
       </Visible>
+      <LoopSeam photo={p.hook.photo} />
       {p.sfx
         ? p.items.map((it) => (
             <React.Fragment key={`s${it.n}`}>

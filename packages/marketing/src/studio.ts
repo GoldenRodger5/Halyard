@@ -370,6 +370,8 @@ export interface PlatformPost {
   /** Follow-up posts in a thread (X, Threads). */
   thread?: string[];
   ai_voice?: boolean;
+  /** A comment to pin after posting: the helpful bridge to RecipeFix, with a per-platform UTM link. */
+  pinned_comment?: string;
 }
 
 export interface StudioRecord {
