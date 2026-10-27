@@ -45,7 +45,7 @@ export interface VersusRound {
 export interface VersusShortProps {
   label: string;
   rounds: VersusRound[];
-  close: { start: number; tie: string; photo: string; source: string; audio: string | null };
+  recap: VersusRecap;
   sfx: { tick: string; reveal: string; whoosh: string; thud: string } | null;
   [key: string]: unknown;
 }
@@ -158,9 +158,10 @@ const Badge: React.FC<{ r: VersusRound; x: number }> = ({ r, x }) => {
 const Round: React.FC<{ r: VersusRound; index: number; total: number; label: string }> = ({ r, index, total, label }) => {
   const f = useCurrentFrame();
   const first = r.start === 0;
-  const enterS = useSpr(r.start, { damping: 15, stiffness: 150 });
+  // The next pair starts sliding in 5 frames before the cut: never an empty frame between rounds.
+  const enterS = useSpr(r.start - 5, { damping: 15, stiffness: 150 });
   const enter = first ? 1 : enterS;
-  const exit = interpolate(f, [r.end - 8, r.end], [0, 1], clamp);
+  const exit = interpolate(f, [r.end - 5, r.end], [0, 1], clamp);
   const revealed = f >= r.revealAt;
   const grow = useSpr(r.revealAt, { damping: 12, stiffness: 150 });
   const shift = revealed ? interpolate(grow, [0, 1], [0, 140]) * (r.winner === 0 ? 1 : -1) : 0;
@@ -199,27 +200,35 @@ const Round: React.FC<{ r: VersusRound; index: number; total: number; label: str
   );
 };
 
-const Close: React.FC<{ c: VersusShortProps['close'] }> = ({ c }) => {
+export interface VersusRecap {
+  start: number;
+  title: string;
+  rows: Array<{ winner: string; loser: string; metric: string; wv: number; lv: number; unit: string; color: string }>;
+  source: string;
+}
+
+/** The last frame is for the viewer: the three answers in one screenshot, no brand card. */
+const Recap: React.FC<{ c: VersusRecap }> = ({ c }) => {
   const f = useCurrentFrame();
-  const z = interpolate(f, [c.start, c.start + 150], [1.06, 1.2], clamp);
-  const wipe = interpolate(f, [c.start, c.start + 12], [0, 100], clamp);
-  const t = useSpr(c.start + 8, { damping: 15 });
-  const b = useSpr(c.start + 24, { damping: 12 });
+  // Enters a few frames before the last round's cut, so there is never an empty frame.
+  const t = useSpr(c.start - 6, { damping: 15 });
   return (
-    <AbsoluteFill style={{ clipPath: `circle(${wipe * 1.2}% at 50% 40%)` }}>
-      <AbsoluteFill style={{ overflow: 'hidden', background: BG }}>
-        <Img src={staticFile(c.photo)} style={{ width: '100%', height: '100%', objectFit: 'cover', transform: `scale(${z})` }} />
-        <AbsoluteFill style={{ background: 'linear-gradient(to bottom, rgba(20,16,22,0.9) 0%, rgba(20,16,22,0.84) 48%, rgba(20,16,22,0.5) 72%, rgba(20,16,22,0.78) 100%)' }} />
-      </AbsoluteFill>
-      <div style={{ position: 'absolute', left: SAFE.x0 + 16, top: 380, width: W - 32, fontFamily: 'Instrument Serif', fontSize: 80, lineHeight: 1.06, color: CREAM, opacity: Math.min(1, t), transform: `translateY(${(1 - t) * 40}px)` }}>{c.tie}</div>
-      <div style={{ position: 'absolute', left: SAFE.x0 + 16, top: 840, display: 'flex', alignItems: 'center', gap: 22, opacity: Math.min(1, b), transform: `translateY(${(1 - b) * 30}px)` }}>
-        <Img src={staticFile('brand/recipefix-mark-512.png')} style={{ width: 92, height: 92, borderRadius: 20 }} />
-        <div>
-          <div style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: 52, color: '#FFFFFF' }}>RecipeFix</div>
-          <div style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: 38, color: '#F2C9B4' }}>recipefix.app</div>
-        </div>
-      </div>
-      <div style={{ position: 'absolute', left: SAFE.x0 + 16, top: 1176, width: W - 32, fontFamily: 'Inter', fontWeight: 600, fontSize: 26, color: 'rgba(255,246,234,0.9)', opacity: Math.min(1, b) }}>{`Numbers: ${c.source}, per 100 g`}</div>
+    <AbsoluteFill>
+      <div style={{ position: 'absolute', left: SAFE.x0 + 10, top: 330, width: W - 20, textAlign: 'center', fontFamily: 'Instrument Serif', fontSize: 92, lineHeight: 1.02, color: CREAM, textShadow: '0 4px 18px rgba(0,0,0,0.35)', opacity: Math.min(1, t), transform: `translateY(${(1 - t) * 30}px)` }}>{c.title}</div>
+      {c.rows.map((r, i) => {
+        const k = spring({ frame: f - (c.start + i * 6), fps: 30, config: { damping: 13, stiffness: 190 } });
+        return (
+          <div key={i} style={{ position: 'absolute', left: SAFE.x0 + 6, top: 500 + i * 228, width: W - 12, height: 200, borderRadius: 22, background: '#FFFFFF', boxShadow: '0 16px 40px rgba(0,0,0,0.35)', display: 'flex', alignItems: 'center', overflow: 'hidden', opacity: Math.min(1, k), transform: `translateX(${(1 - k) * 120}px)` }}>
+            <div style={{ width: 22, alignSelf: 'stretch', background: r.color }} />
+            <div style={{ padding: '0 30px', flex: 1 }}>
+              <div style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: 26, letterSpacing: 3, textTransform: 'uppercase', color: '#6A5D53' }}>{r.metric}</div>
+              <div style={{ marginTop: 6, fontFamily: 'Inter', fontWeight: 600, fontSize: r.winner.length > 12 ? 48 : 56, lineHeight: 1.05, color: INK }}>{r.winner}</div>
+              <div style={{ marginTop: 8, fontFamily: 'Inter', fontWeight: 600, fontSize: 30, color: '#4A4038' }}>{`${r.wv} ${r.unit} vs ${r.lv} ${r.unit}, ${r.loser.toLowerCase()}`}</div>
+            </div>
+          </div>
+        );
+      })}
+      <div style={{ position: 'absolute', left: SAFE.x0 + 10, top: 1186, width: W - 20, textAlign: 'center', fontFamily: 'Inter', fontWeight: 600, fontSize: 28, color: 'rgba(255,246,234,0.9)', opacity: Math.min(1, t) }}>{`Source: ${c.source}, per 100 g`}</div>
     </AbsoluteFill>
   );
 };
@@ -230,8 +239,8 @@ export const VersusShort: React.FC<VersusShortProps> = (p) => {
     <AbsoluteFill style={{ background: BG }}>
       <style>{FONTS}</style>
       <Ground />
-      {p.rounds.map((r, i) => (f >= r.start && f < r.end ? <Round key={i} r={r} index={i} total={p.rounds.length} label={p.label} /> : null))}
-      {f >= p.close.start ? <Close c={p.close} /> : null}
+      {p.rounds.map((r, i) => (f >= (r.start === 0 ? 0 : r.start - 5) && f < r.end ? <Round key={i} r={r} index={i} total={p.rounds.length} label={p.label} /> : null))}
+      {f >= p.recap.start - 6 ? <Recap c={p.recap} /> : null}
       {p.rounds.map((r, i) => {
         const secs = Math.round((r.revealAt - r.countdownAt) / 30);
         return (
@@ -267,13 +276,8 @@ export const VersusShort: React.FC<VersusShortProps> = (p) => {
         );
       })}
       {p.sfx ? (
-        <Sequence from={Math.max(0, p.close.start - 4)} durationInFrames={14} layout="none">
+        <Sequence from={Math.max(0, p.recap.start - 4)} durationInFrames={14} layout="none">
           <Audio src={staticFile(p.sfx.whoosh)} volume={0.4} />
-        </Sequence>
-      ) : null}
-      {p.close.audio ? (
-        <Sequence from={p.close.start + 6} layout="none">
-          <Audio src={staticFile(p.close.audio)} />
         </Sequence>
       ) : null}
     </AbsoluteFill>

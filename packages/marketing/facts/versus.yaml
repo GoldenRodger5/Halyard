@@ -17,7 +17,7 @@ rounds:
     right: { name: "Red bell pepper", sub: "raw", value: 128, color: "#C8322B", fdc: 170108, fdc_name: "Peppers, sweet, red, raw", quote: "Vitamin C, total ascorbic acid 128 MG" }
     say_q: "Vitamin C. Orange, or red bell pepper?"
     say_a: "Red bell pepper. More than twice as much."
-    why: "Gram for gram, a raw red bell pepper has about 2.4 times the vitamin C of an orange."
+    why: "Gram for gram, about 2.4 times the vitamin C of an orange."
 
   - id: potassium-banana-potato
     question: "More potassium?"
@@ -27,7 +27,7 @@ rounds:
     right: { name: "Baked potato", sub: "with skin", value: 535, color: "#86592F", fdc: 170093, fdc_name: "Potatoes, baked, flesh and skin, without salt", quote: "Potassium, K 535 MG" }
     say_q: "Potassium. Banana, or baked potato?"
     say_a: "The potato. 535 to 358."
-    why: "The banana has the reputation. A baked potato, skin on, has about 50% more per 100 g."
+    why: "A baked potato, skin on, has about 50% more per 100 g."
 
   - id: sugar-ketchup-cola
     question: "More sugar?"
@@ -75,7 +75,8 @@ sets:
     rounds: [vitc-orange-pepper, potassium-banana-potato, sugar-ketchup-cola]
     tie: "Tell RecipeFix how you eat. It rewrites the cooking steps, not just the ingredient list."
     claims: [core.rewrites_steps]
-    caption: "Three food matchups where the famous one loses. Pick before the timer runs out."
+    search: "Which has more vitamin C, an orange or a bell pepper?"
+    caption: "Orange or red bell pepper, banana or baked potato, ketchup or cola. Three seconds each, numbers per 100 g from USDA FoodData Central."
     tags: [foodfacts, nutrition, thisorthat, recipefix]
     photo: sweet-potato-black-bean-tacos
   pantry:
@@ -83,7 +84,8 @@ sets:
     rounds: [kcal-olive-oil-butter, protein-lentils-quinoa, sugar-orange-banana]
     tie: "Cooking High-Protein? RecipeFix rewrites the cooking steps, not just the ingredient list."
     claims: [core.rewrites_steps, core.diets]
-    caption: "Olive oil or butter, lentils or quinoa, banana or orange. Three seconds each."
+    search: "Does olive oil have more calories than butter?"
+    caption: "Olive oil or butter, lentils or quinoa, banana or orange. Three seconds each, numbers per 100 g from USDA FoodData Central."
     tags: [foodfacts, nutrition, thisorthat, recipefix]
     photo: weeknight-vegetable-fried-rice
 

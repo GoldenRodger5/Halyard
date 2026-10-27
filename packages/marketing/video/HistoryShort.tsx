@@ -144,7 +144,7 @@ const Hook: React.FC<{ b: HistoryBeat; year: number; fromYear: number }> = ({ b,
     <div style={{ position: 'absolute', left: SAFE.x0 + 30, top: 400, width: W - 60, opacity: 1 - out, transform: `scale(${push}) translateY(${-out * 80}px)`, transformOrigin: '50% 30%' }}>
       <Year from={fromYear} to={year} at={b.start} size={400} />
       <div style={{ margin: '10px auto 0', height: 6, width: 560 * line, background: INK }} />
-      <div style={{ marginTop: 40, textAlign: 'center', fontFamily: 'Instrument Serif', fontSize: 92, lineHeight: 1.03, color: INK }}>{b.screen}</div>
+      <div style={{ marginTop: 40, textAlign: 'center', fontFamily: 'Instrument Serif', fontSize: 92, lineHeight: 1.03, color: INK, textShadow: '0 4px 18px rgba(70,45,20,0.18)' }}>{b.screen}</div>
     </div>
   );
 };
@@ -202,7 +202,7 @@ const QuoteCard: React.FC<{ b: HistoryBeat; small?: boolean }> = ({ b, small }) 
   const ql = (b.quote ?? '').length;
   const size = small ? (ql > 44 ? 72 : 88) : ql > 44 ? 88 : ql > 32 ? 112 : 120;
   return (
-    <div style={{ background: '#F8F1E1', border: `3px solid ${INK}`, padding: small ? '30px 40px 40px' : '40px 44px 52px', boxSizing: 'border-box', boxShadow: '10px 12px 0 rgba(34,26,20,0.85)', transform: 'rotate(0.8deg)' }}>
+    <div style={{ background: '#FFFDF8', borderRadius: 18, padding: small ? '30px 40px 40px' : '40px 44px 52px', boxSizing: 'border-box', boxShadow: '0 18px 44px rgba(70,45,20,0.20)', transform: 'rotate(0.6deg)' }}>
       <div style={{ fontFamily: 'Instrument Serif', fontSize: small ? 150 : 190, lineHeight: 0.6, height: small ? 60 : 80, color: RED }}>“</div>
       <div style={{ fontFamily: 'Instrument Serif', fontSize: size, lineHeight: 1.1, color: INK }}>
         {words.map((w, i) => {
@@ -289,15 +289,15 @@ const ListBeat: React.FC<{ b: HistoryBeat }> = ({ b }) => {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  border: `4px solid ${INK}`,
-                  background: '#F8F1E1',
+                  borderRadius: 16,
+                  background: '#FFFDF8',
                   fontFamily: 'Inter',
                   fontWeight: 600,
                   fontSize: it.text.length > 11 ? 44 : 54,
                   color: INK,
                   opacity: f < it.at - 1 ? 0.0 : Math.min(1, k),
                   transform: `scale(${interpolate(k, [0, 1], [1.6, 1])}) rotate(${(i % 2 ? 1 : -1) * 1.5}deg)`,
-                  boxShadow: '6px 7px 0 rgba(34,26,20,0.8)',
+                  boxShadow: '0 12px 28px rgba(70,45,20,0.18)',
                 }}
               >
                 {it.text}
@@ -364,7 +364,8 @@ const Stamp: React.FC<{ b: HistoryBeat; photo: string; focus: string; usePhoto: 
         <div style={{ position: 'absolute', left: 0, top: b.quote ? 420 : 0, width: W, height: b.quote ? 230 : 620, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div
             style={{
-              border: `12px double ${RED}`,
+              border: `8px solid ${RED}`,
+              borderRadius: 10,
               padding: '14px 30px',
               fontFamily: 'Inter',
               fontWeight: 600,
@@ -373,9 +374,8 @@ const Stamp: React.FC<{ b: HistoryBeat; photo: string; focus: string; usePhoto: 
               lineHeight: 1,
               color: RED,
               background: 'rgba(248,241,225,0.82)',
-              transform: `rotate(-7deg) scale(${interpolate(s, [0, 1], [2.6, 1])})`,
+              transform: `rotate(-5deg) scale(${interpolate(s, [0, 1], [2.4, 1])})`,
               opacity: Math.min(1, s * 1.6),
-              WebkitMaskImage: 'radial-gradient(circle at 30% 40%, #000 60%, rgba(0,0,0,0.82) 100%)',
             }}
           >
             {text}

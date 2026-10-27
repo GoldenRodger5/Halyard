@@ -71,6 +71,8 @@ export interface Story {
   claims: string[];
   caption: string;
   tags: string[];
+  /** Caption lead: a real question people search, hand-picked (keywords.ts rule). */
+  search?: string;
 }
 
 export function loadStories(file = path.join(REPO_ROOT, 'packages/marketing/facts/history.yaml')): Story[] {
@@ -121,7 +123,11 @@ export async function paperTexture(pub: string): Promise<void> {
 const AUDIO_AT = 6;
 const LEAD = 6;
 /** Silence between the stamp and the RecipeFix line, so the payoff lands before anything is sold. */
-const PAUSE = 20;
+/**
+ * The video ends on the payoff (stamp + source), held this long, not on a brand card: reviews
+ * of every format on 2026-10-27 scored a closing RecipeFix row as an ad. The tie goes in the caption.
+ */
+const HOLD = Math.round(1.6 * 30);
 
 export async function makeHistory(id: string, opts: { date?: string } = {}): Promise<StudioRecord> {
   const story = loadStories().find((x) => x.id === id);
@@ -139,7 +145,7 @@ export async function makeHistory(id: string, opts: { date?: string } = {}): Pro
   const tall = await originalPhoto(s, story.photo, 'tall');
 
   // ── One take: the whole story, then the RecipeFix line ──
-  const script = [...story.beats.map((b) => b.say), story.tie].join(' ');
+  const script = story.beats.map((b) => b.say).join(' ');
   const vo = await voice(s, script, 'story');
   const timed = timedScript(script, vo.words, vo.seconds);
   const fr = (t: number) => AUDIO_AT + Math.round(t * FPS);
@@ -147,15 +153,15 @@ export async function makeHistory(id: string, opts: { date?: string } = {}): Pro
   // Which script words belong to which beat (and the tie).
   const spans: Array<{ from: number; to: number }> = [];
   let k = 0;
-  for (const part of [...story.beats.map((b) => b.say), story.tie]) {
+  for (const part of story.beats.map((b) => b.say)) {
     const n = part.split(/\s+/).filter(Boolean).length;
     spans.push({ from: k, to: k + n });
     k += n;
   }
-  const tieSpan = spans.at(-1)!;
-  // The payoff gets a breath: the one take is cut just before the RecipeFix line and resumed PAUSE frames later.
-  const splitAt = Math.round((fr(timed[tieSpan.from - 1]!.end) + fr(timed[tieSpan.from]!.t)) / 2);
-  const closeStart = splitAt + PAUSE - 4;
+  // No close card: the last beat (the stamp) holds HOLD frames past the last word, then the video ends.
+  const total = fr(timed.at(-1)!.end) + HOLD;
+  const closeStart = total;
+  const splitAt = total;
   const starts = story.beats.map((_, i) => (i === 0 ? 0 : fr(timed[spans[i]!.from]!.t) - LEAD));
   const ends = starts.map((_, i) => starts[i + 1] ?? closeStart);
   const onScreen = new Set<number>();
@@ -260,7 +266,6 @@ export async function makeHistory(id: string, opts: { date?: string } = {}): Pro
     if (b) c.end = Math.min(c.end, b.end - 1);
   }
 
-  const total = Math.max(closeStart + 3.4 * FPS, fr(timed.at(-1)!.end) + PAUSE + Math.round(1.3 * FPS));
   const thisYear = new Date().getFullYear();
   const props = {
     kicker: story.kicker,
@@ -272,8 +277,8 @@ export async function makeHistory(id: string, opts: { date?: string } = {}): Pro
     beats,
     cues,
     source: story.source.short,
-    close: { start: closeStart, tie: story.tie, words: timed.slice(tieSpan.from).map((w) => fr(w.t) + PAUSE) },
-    audio: { file: vo.file, at: AUDIO_AT, splitAt, pause: PAUSE },
+    close: { start: closeStart, tie: story.tie, words: [] },
+    audio: { file: vo.file, at: AUDIO_AT, splitAt, pause: 0 },
     sfx: { whoosh: fx.whoosh, stamp: stampSfx, tick: fx.tick },
   };
   writeJson(`${s.dir}/render-props.json`, props);
@@ -283,22 +288,25 @@ export async function makeHistory(id: string, opts: { date?: string } = {}): Pro
   // ── Posts ──
   const hook = story.beats[0]!;
   const tags = story.tags.map((t) => `#${t}`).join(' ');
+  // Search lead: a real question people type, hand-picked per story (keywords.ts rule), then the caption, then the tie.
+  const lead = story.search ? `${story.search} ` : '';
+  const body = `${lead}${story.caption}`;
   const media = [relRepo(video)];
   const srcNames = [...new Set(story.sources.map((x) => x.name.split(',')[0]!))];
   const srcUrls = [...new Set(story.sources.map((x) => x.url))];
   const posts: Record<string, PlatformPost> = {
-    tiktok: { platform: 'tiktok', kind: 'video', media, text: `${story.caption}\n\n${tags}`, ai_voice: true, cover_ms: 1500 },
-    instagram_reel: { platform: 'instagram', kind: 'video', media, text: `${story.caption}\n\nSource: ${story.source.short}\n\n${tags}`, ai_voice: true },
+    tiktok: { platform: 'tiktok', kind: 'video', media, text: `${body}\n\n${story.tie}\n\n${tags}`, ai_voice: true, cover_ms: 1500 },
+    instagram_reel: { platform: 'instagram', kind: 'video', media, text: `${body}\n\nSource: ${story.source.short}\n\n${story.tie}\n\n${tags}`, ai_voice: true },
     youtube: {
       platform: 'youtube',
       kind: 'video',
       media,
       title: `${story.year}: ${hook.screen!.replace(/\.$/, '')} #shorts`.slice(0, 100),
-      text: `${story.caption}\n\nSources:\n${srcUrls.join('\n')}\n\n${story.tie} https://recipefix.app`,
+      text: `${body}\n\nSources:\n${srcUrls.join('\n')}\n\n${story.tie} https://recipefix.app`,
       ai_voice: true,
     },
-    x: { platform: 'x', kind: 'video', media, text: story.caption, thread: [`Source: ${srcNames.join('; ')}`] },
-    threads: { platform: 'threads', kind: 'video', media, text: story.caption, thread: [`Source: ${srcNames.join('; ')}`] },
+    x: { platform: 'x', kind: 'video', media, text: body, thread: [`Source: ${srcNames.join('; ')}\n\n${story.tie}`] },
+    threads: { platform: 'threads', kind: 'video', media, text: body, thread: [`Source: ${srcNames.join('; ')}\n\n${story.tie}`] },
   };
 
   // ── QA ──
@@ -307,7 +315,7 @@ export async function makeHistory(id: string, opts: { date?: string } = {}): Pro
   // Paper grain that changed every frame once made a 40 s cut 95 MB; platforms and the repo want it small.
   const mb = statSync(video).size / 1e6;
   checks.push(check('video.size', mb <= 40, `${mb.toFixed(1)} MB (≤ 40 MB)`));
-  checks.push(check('video.duration', d >= 25 && d <= 42, `${d.toFixed(1)} s (target 25–40 s)`));
+  checks.push(check('video.duration', d >= 18 && d <= 32, `${d.toFixed(1)} s (target 18–30 s: short holds read as a story, long ones as a lecture)`));
   const loud = loudnessChecked(video);
   checks.push(check('audio.loudness', Math.abs(loud.lufs + 14) <= 1.5 && loud.peak <= -0.5, `${loud.lufs} LUFS, peak ${loud.peak} dBFS`));
   checks.push(transcriptCheck(s, video, script));
@@ -332,7 +340,6 @@ export async function makeHistory(id: string, opts: { date?: string } = {}): Pro
     if (cue && cue.words.every((w) => w.at <= at)) lines.push(cue.words.map((w) => w.text).join(' '));
     checks.push(...(await qaFrame(s, video, at / FPS, `b${i + 1}-${b.kind}`, lines.filter((l) => (typeof l === 'string' ? l : l.text)))));
   }
-  checks.push(...(await qaFrame(s, video, (total - 4) / FPS, 'close', [story.tie, 'RecipeFix', 'recipefix.app', `Source: ${story.source.short}`])));
   const screenText = [hook.screen!, ...story.beats.flatMap((b) => [b.chip, b.title, b.quote, b.place, b.sub, b.left, b.right, b.stamp, ...(b.items ?? []), ...(b.rows ?? []).flat()]).filter((x): x is string => !!x), story.tie, script];
   checks.push(copyRules(pack, posts, screenText));
   checks.push(check('knowledge.product_posts', !paused, paused ? `product posts paused: ${paused}` : `pack ${(pack.commit ?? '?').slice(0, 8)} has a release receipt`));

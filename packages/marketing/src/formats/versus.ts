@@ -21,7 +21,6 @@ import {
   duration,
   loudnessChecked,
   openStudio,
-  originalPhoto,
   qaFrame,
   relRepo,
   renderVideo,
@@ -66,7 +65,9 @@ export interface VsSet {
   claims: string[];
   caption: string;
   tags: string[];
-  photo: string;
+  photo?: string;
+  /** Caption lead: a real question people search, hand-picked (keywords.ts rule). */
+  search?: string;
 }
 
 interface VsFile {
@@ -117,9 +118,8 @@ export async function makeVersus(setName: string, opts: { date?: string; voice?:
   const s = openStudio('versus', setName, opts.date);
   const fx = sfx(s);
   const fxThud = thud(s);
-  const photo = await originalPhoto(s, set.photo, 'tall');
   const sec = (x: number) => Math.ceil(x * FPS);
-  const readSecs = (t: string) => Math.max(2.8, t.split(/\s+/).length / 4.5);
+  const readSecs = (t: string) => Math.max(2.2, t.split(/\s+/).length / 4.8);
 
   const rounds: VersusRound[] = [];
   const spoken: string[] = [];
@@ -129,11 +129,11 @@ export async function makeVersus(setName: string, opts: { date?: string; voice?:
     const av = useVoice ? await voice(s, r.say_a, `a${i + 1}`) : null;
     if (useVoice) spoken.push(r.say_q, r.say_a);
     const start = t;
-    const countdownAt = start + Math.max(sec(1.4), 6 + sec(qv?.seconds ?? 1.6) + 3);
+    const countdownAt = start + Math.max(sec(1.3), 6 + sec(qv?.seconds ?? 1.6));
     const revealAt = countdownAt + TIMER;
     // The why card rises while the answer is still being said: the reader is already reading.
-    const whyAt = revealAt + sec(1.1);
-    const end = Math.max(whyAt + sec(readSecs(r.why)), revealAt + 8 + sec(av?.seconds ?? 0) + 16);
+    const whyAt = revealAt + sec(0.6);
+    const end = Math.max(whyAt + sec(readSecs(r.why)), revealAt + 8 + sec(av?.seconds ?? 0) + 6);
     rounds.push({
       question: r.question,
       unit: r.unit,
@@ -153,11 +153,20 @@ export async function makeVersus(setName: string, opts: { date?: string; voice?:
     });
     t = end;
   }
-  const cv = useVoice ? await voice(s, set.tie, 'close') : null;
-  if (cv) spoken.push(set.tie);
-  const closeStart = t;
-  const total = closeStart + Math.max(sec(3.6), 6 + sec(cv?.seconds ?? 0) + 24);
-  const props = { label: set.label, rounds, close: { start: closeStart, tie: set.tie, photo, source: doc.source.short, audio: cv?.file ?? null }, sfx: { ...fx, thud: fxThud } };
+  // No brand close: the video ends on a recap the viewer can screenshot. The tie goes in the caption.
+  const recapStart = t;
+  const total = recapStart + sec(2.8);
+  const recap = {
+    start: recapStart,
+    title: 'Per 100 g, the winners',
+    rows: chosen.map((r, i) => {
+      const w = rounds[i]!.winner === 0 ? r.left : r.right;
+      const l = rounds[i]!.winner === 0 ? r.right : r.left;
+      return { winner: w.name, loser: l.name, metric: r.question.replace(/^More /, '').replace(/\?$/, ''), wv: w.value, lv: l.value, unit: r.unit, color: w.color };
+    }),
+    source: doc.source.short,
+  };
+  const props = { label: set.label, rounds, recap, sfx: { ...fx, thud: fxThud } };
   writeJson(`${s.dir}/render-props.json`, props);
   const video = await renderVideo(s, 'VersusShort', props, total, s.id);
   contactSheet(video, `${s.dir}/contact.png`, 1.0);
@@ -171,10 +180,12 @@ export async function makeVersus(setName: string, opts: { date?: string; voice?:
     return `${r.question.replace(/\?$/, '')}: ${w.name} (${w.value} ${r.unit} vs ${l.value} ${r.unit} per 100 g)`;
   };
   const answers = chosen.map(answer).join('\n');
+  // Search lead: a real question people type, hand-picked (keywords.ts rule).
+  const body = set.search ? `${set.search} ${set.caption}` : set.caption;
   const urls = [...new Set(chosen.flatMap((r) => [r.left.fdc, r.right.fdc]))].map((id) => doc.source.url_template.replace('{fdc}', String(id)));
   const posts: Record<string, PlatformPost> = {
-    tiktok: { platform: 'tiktok', kind: 'video', media, text: `${set.caption}\n\n${tags}`, ai_voice: useVoice, cover_ms: Math.round(((rounds[0]!.countdownAt - 6) / FPS) * 1000) },
-    instagram_reel: { platform: 'instagram', kind: 'video', media, text: `${set.caption}\n\n${answers}\n\nNumbers: ${doc.source.name}.\n\n${tags}`, ai_voice: useVoice },
+    tiktok: { platform: 'tiktok', kind: 'video', media, text: `${body}\n\n${set.tie}\n\n${tags}`, ai_voice: useVoice, cover_ms: Math.round(((rounds[0]!.countdownAt - 6) / FPS) * 1000) },
+    instagram_reel: { platform: 'instagram', kind: 'video', media, text: `${body}\n\nNumbers per 100 g: ${doc.source.name}.\n\n${set.tie}\n\n${tags}`, ai_voice: useVoice },
     youtube: {
       platform: 'youtube',
       kind: 'video',
@@ -183,11 +194,11 @@ export async function makeVersus(setName: string, opts: { date?: string; voice?:
         const t = chosen.map((r) => `${r.left.name} or ${r.right.name}`).join(', ').toLowerCase();
         return `${t[0]!.toUpperCase()}${t.slice(1)}? #shorts`.slice(0, 100);
       })(),
-      text: `${set.caption}\n\n${answers}\n\nNumbers per 100 g, ${doc.source.name}:\n${urls.join('\n')}\n\n${set.tie} https://recipefix.app`,
+      text: `${body}\n\n${answers}\n\nNumbers per 100 g, ${doc.source.name}:\n${urls.join('\n')}\n\n${set.tie} https://recipefix.app`,
       ai_voice: useVoice,
     },
-    x: { platform: 'x', kind: 'video', media, text: set.caption, thread: [`${answers}\n\nPer 100 g, ${doc.source.name}.`] },
-    threads: { platform: 'threads', kind: 'video', media, text: set.caption, thread: [`${answers}\n\nPer 100 g, ${doc.source.name}.`] },
+    x: { platform: 'x', kind: 'video', media, text: body, thread: [`${answers}\n\nPer 100 g, ${doc.source.name}.`] },
+    threads: { platform: 'threads', kind: 'video', media, text: body, thread: [`${answers}\n\nPer 100 g, ${doc.source.name}.`, set.tie] },
   };
 
   // ── QA ──
@@ -196,7 +207,7 @@ export async function makeVersus(setName: string, opts: { date?: string; voice?:
   // Paper grain that changed every frame once made a 40 s cut 95 MB; platforms and the repo want it small.
   const mb = statSync(video).size / 1e6;
   checks.push(check('video.size', mb <= 40, `${mb.toFixed(1)} MB (≤ 40 MB)`));
-  checks.push(check('video.duration', d >= 25 && d <= 45, `${d.toFixed(1)} s (target 25–45 s for three rounds)`));
+  checks.push(check('video.duration', d >= 18 && d <= 30, `${d.toFixed(1)} s (target 18–28 s for three rounds with a 3 s timer each)`));
   const loud = loudnessChecked(video);
   checks.push(check('audio.loudness', !useVoice || (Math.abs(loud.lufs + 14) <= 1.5 && loud.peak <= -0.5), `${loud.lufs} LUFS, peak ${loud.peak} dBFS`));
   if (useVoice) checks.push(transcriptCheck(s, video, spoken.join(' ')));
@@ -220,7 +231,7 @@ export async function makeVersus(setName: string, opts: { date?: string; voice?:
     const l = r.winner === 0 ? r.right : r.left;
     checks.push(...(await qaFrame(s, video, (r.end - 12) / FPS, `r${i + 1}-answer`, [String(w.value), String(l.value), r.ratio, r.why, `Source: ${r.source}`])));
   }
-  checks.push(...(await qaFrame(s, video, (total - 4) / FPS, 'close', [set.tie, 'RecipeFix', 'recipefix.app'])));
+  checks.push(...(await qaFrame(s, video, (total - 4) / FPS, 'recap', [recap.title, ...recap.rows.map((x) => x.winner)])));
   const screen = [set.label, set.tie, ...chosen.flatMap((r) => [r.question, r.basis, r.why, r.left.name, r.right.name, r.say_q, r.say_a])];
   checks.push(copyRules(pack, posts, screen));
   checks.push(check('knowledge.product_posts', !paused, paused ? `product posts paused: ${paused}` : `pack ${(pack.commit ?? '?').slice(0, 8)} has a release receipt`));
@@ -238,7 +249,7 @@ export async function makeVersus(setName: string, opts: { date?: string; voice?:
     assets: s.assets,
     qa: { passed: checks.every((c) => c.passed), checks },
     cost_usd: runCost(s),
-    disclosures: { ai_voice: useVoice, tiktok_is_aigc: useVoice, photos: 'tiles are type and colour; one licensed Originals photo behind the close', knowledge_commit: pack.commit, verified: doc.verified },
+    disclosures: { ai_voice: useVoice, tiktok_is_aigc: useVoice, photos: 'none: tiles are type and colour', knowledge_commit: pack.commit, verified: doc.verified },
   };
   writeJson(`${s.dir}/record.json`, record);
   writeStudioPreview(s, record);
