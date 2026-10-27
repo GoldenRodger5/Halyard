@@ -18,6 +18,8 @@
  *   pnpm mk slides quiz <set>         quiz as an Instagram carousel + TikTok photo slideshow + X/Threads posts
  *   pnpm mk slides swaps <topic>      ingredient swap guide carousel from a stored real RecipeFix result
  *   pnpm mk image <fact-id>           one 4:5 question image (X/Threads/Instagram) + an X text-only variant
+ *   pnpm mk history [story-id]        list stories, or make a narrated food-history video + posts
+ *   pnpm mk versus [set] [--no-voice] list this-or-that sets, or make a 3-round split-screen video + posts
  *   pnpm mk accounts                  Blotato accounts the lane posts to (read-only)
  *   pnpm mk publish <run> [--only a,b] [--live] [--at ISO]  dry run by default; --live posts via Blotato
  *   pnpm mk status <run>              re-check submitted posts
@@ -134,6 +136,26 @@ async function main(): Promise<void> {
       return;
     }
     report(await makeList(id, { voice: rest.includes('--voice'), date: flag('--date'), look: flag('--look') as 'sticker' | 'editorial' | undefined }));
+  if (cmd === 'history') {
+    const id = rest.find((r) => !r.startsWith('--') && r !== flag('--date'));
+    const { makeHistory, loadStories } = await import('./formats/history.js');
+    if (!id) {
+      for (const st of loadStories()) console.log(`${st.id.padEnd(18)} ${st.year} ${st.beats[0]!.screen}`);
+      return;
+    }
+    report(await makeHistory(id, { date: flag('--date') }));
+    return;
+  }
+
+  if (cmd === 'versus') {
+    const id = rest.find((r) => !r.startsWith('--') && r !== flag('--date'));
+    const { makeVersus, loadVersus } = await import('./formats/versus.js');
+    if (!id) {
+      const doc = loadVersus();
+      for (const [k, v] of Object.entries(doc.sets)) console.log(`${k.padEnd(12)} ${v.rounds.join(', ')}`);
+      return;
+    }
+    report(await makeVersus(id, { date: flag('--date'), voice: !rest.includes('--no-voice') }));
     return;
   }
 
