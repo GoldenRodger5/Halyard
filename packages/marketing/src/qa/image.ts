@@ -317,9 +317,23 @@ export async function qaStill(input: StillQaInput): Promise<{ passed: boolean; c
   });
 
   const boxes = rb.flatMap((r) => r.boxes);
-  const outside = boxes.filter(
+  const crossing = boxes.filter(
     (b) => b.x < input.safeBox.x0 || b.y < input.safeBox.y0 || b.x + b.w > input.safeBox.x1 || b.y + b.h > input.safeBox.y1,
   );
+  // An OCR box can run ~100 px wider than the ink (large serif type over a striped towel read
+  // "Egg whites" from x 71 when the glyphs start at 165). So a crossing box is re-checked: crop
+  // the frame to the safe box and read again. A word that still reads whole inside the crop is
+  // inside the safe zone; text that really crosses the edge is cut by the crop and still fails.
+  let outside = crossing;
+  if (crossing.length) {
+    const { x0, y0, x1, y1 } = input.safeBox;
+    const crop = await sharp(input.png).extract({ left: x0, top: y0, width: x1 - x0, height: y1 - y0 }).png().toBuffer();
+    const inner = (await ocrAllPasses(crop)).words.map((w) => tokens(w.text).join(''));
+    outside = crossing.filter((b) => {
+      const t = tokens(b.text).join('');
+      return t.length < 3 || !inner.some((w) => w === t || (t.length >= 5 && w.includes(t)));
+    });
+  }
   checks.push({
     id: 'still.safe_zone',
     passed: outside.length === 0 && boxes.length > 0,

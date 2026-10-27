@@ -140,7 +140,7 @@ export async function makeList(id: string, opts: { voice: boolean; date?: string
   if (opts.voice) checks.push(transcriptCheck(s, video, [spec.hook, ...all.map((it) => `${it.name}. ${it.stamp}. ${it.line}`)].join(' ')));
   checks.push(...(await qaFrame(s, video, 1.2, 'hook', [spec.hook, ...(spec.hook_sub ? [spec.hook_sub] : [])])));
   for (const it of items) checks.push(...(await qaFrame(s, video, (it.end - 4) / FPS, `item${it.n}`, [it.name, it.stamp, it.line, `Source: ${it.source}`])));
-  checks.push(...(await qaFrame(s, video, (total - 1.2 * FPS) / FPS, 'close', [closeTitle, ...all.map((it) => it.name), ...(spec.ask ? [spec.ask] : []), ...(spec.note ? [spec.note] : [])])));
+  checks.push(...(await qaFrame(s, video, (total - 1.2 * FPS) / FPS, 'close', [closeTitle, ...all.map((it) => it.name.replace(/^"|"$/g, '')), ...(spec.ask ? [spec.ask] : []), ...(spec.note ? [spec.note] : [])])));
   const everything = [spec.hook, spec.hook_sub ?? '', spec.ask ?? '', spec.note ?? '', spec.caption, spec.save, spec.tie, ...all.flatMap((it) => [it.name, it.stamp, it.line]), ...Object.values(posts).flatMap((p) => [p.text, ...(p.thread ?? []), p.title ?? ''])];
   const problems = humanTextProblems(everything);
   for (const c of forbiddenClaims(pack)) for (const ex of c.examples ?? []) for (const txt of everything) if (forbiddenMatches(txt, ex)) problems.push(`forbidden (${c.id}) "${ex}"`);

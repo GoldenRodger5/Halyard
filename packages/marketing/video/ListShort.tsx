@@ -70,7 +70,11 @@ export type ListLook = 'sticker' | 'editorial' | 'magazine';
 const LookCtx = React.createContext<ListLook>('editorial');
 const useLook = () => React.useContext(LookCtx);
 
+/** Balanced wrapping: no orphaned last word ("…5 swaps that / work"). */
+const BALANCE = { textWrap: 'balance' } as unknown as React.CSSProperties;
+
 const serif = (size: number): React.CSSProperties => ({
+  ...BALANCE,
   fontFamily: 'Instrument Serif',
   fontSize: size * 1.18,
   lineHeight: 1.0,
@@ -236,7 +240,7 @@ const Item: React.FC<{ it: ListItem; total: number }> = ({ it, total }) => {
         )}
         {look === 'editorial' && it.showQuote ? <QuoteCard it={it} at={it.start + 12 + GUESS} /> : null}
         <div style={{ alignSelf: 'flex-start', ...cardChrome(look, 22), padding: '16px 22px', maxWidth: W - 2 * INSET, boxSizing: 'border-box', opacity: c, transform: `translateY(${(1 - c) * 24}px)` }}>
-          <div style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: it.line.length > 60 ? 38 : 42, lineHeight: 1.22, color: INK }}>{it.line}</div>
+          <div style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: it.line.length > 60 ? 38 : 42, lineHeight: 1.22, color: INK, ...BALANCE }}>{it.line}</div>
           {look === 'editorial' && !it.showQuote ? <div style={{ marginTop: 10, fontFamily: 'Inter', fontWeight: 600, fontSize: 28, lineHeight: 1.25, color: '#6A5D50' }}>{`Source: ${it.source}`}</div> : null}
         </div>
       </div>
@@ -280,7 +284,7 @@ const Close: React.FC<{ c: ListShortProps['close'] }> = ({ c }) => {
                   <div style={{ width: 48, height: 48, flex: '0 0 48px', borderRadius: 24, background: t.ok ? GREEN : RED, color: '#FFFFFF', fontFamily: 'Lilita One', fontSize: 26, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{t.ok ? '✓' : '✕'}</div>
                 )}
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <div style={{ fontFamily: 'Inter', fontWeight: 700, fontSize: rows > 5 ? 44 : 50, lineHeight: 1.12, color: INK }}>{t.name}</div>
+                  <div style={{ fontFamily: 'Inter', fontWeight: 700, fontSize: rows > 5 ? 44 : 50, lineHeight: 1.12, color: INK, ...BALANCE }}>{t.name.replace(/^"|"$/g, '')}</div>
                   <div style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: rows > 5 ? 36 : 40, lineHeight: 1.15, color: t.ok ? STAMP_GREEN : STAMP_RED }}>{t.stamp}</div>
                 </div>
               </div>
