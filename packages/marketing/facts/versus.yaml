@@ -1,0 +1,96 @@
+# This-or-that rounds: the ONLY source of what VersusShort shows and says.
+#
+# Every number is per 100 g, read from USDA FoodData Central (SR Legacy) on
+# `verified` through the FDC API (api.nal.usda.gov/fdc/v1/food/<fdcId>, the
+# same record the fdc.nal.usda.gov page shows). `quote` is the nutrient row as
+# FDC returned it. A round whose number could not be read is not here.
+#
+# Rules: compare amounts only. No "healthier", no health or medical claims,
+# no advice. "Gram for gram" is said wherever the per-100 g basis matters.
+
+rounds:
+  - id: vitc-orange-pepper
+    question: "More vitamin C?"
+    unit: "mg"
+    basis: "per 100 g, raw"
+    left: { name: "Orange", sub: "raw", value: 53.2, color: "#F28C28", fdc: 169097, fdc_name: "Oranges, raw, all commercial varieties", quote: "Vitamin C, total ascorbic acid 53.2 MG" }
+    right: { name: "Red bell pepper", sub: "raw", value: 128, color: "#C8322B", fdc: 170108, fdc_name: "Peppers, sweet, red, raw", quote: "Vitamin C, total ascorbic acid 128 MG" }
+    say_q: "Vitamin C. Orange, or red bell pepper?"
+    say_a: "Red bell pepper. More than twice as much."
+    why: "Gram for gram, about 2.4 times the vitamin C of an orange."
+
+  - id: potassium-banana-potato
+    question: "More potassium?"
+    unit: "mg"
+    basis: "per 100 g"
+    left: { name: "Banana", sub: "raw", value: 358, color: "#E8B923", fdc: 173944, fdc_name: "Bananas, raw", quote: "Potassium, K 358 MG" }
+    right: { name: "Baked potato", sub: "with skin", value: 535, color: "#86592F", fdc: 170093, fdc_name: "Potatoes, baked, flesh and skin, without salt", quote: "Potassium, K 535 MG" }
+    say_q: "Potassium. Banana, or baked potato?"
+    say_a: "The potato. 535 to 358."
+    why: "A baked potato, skin on, has about 50% more per 100 g."
+
+  - id: sugar-ketchup-cola
+    question: "More sugar?"
+    unit: "g"
+    basis: "per 100 g"
+    left: { name: "Ketchup", sub: "", value: 21.3, color: "#B3261E", fdc: 168556, fdc_name: "Catsup", quote: "Total Sugars 21.3 G" }
+    right: { name: "Cola", sub: "regular", value: 9.94, color: "#3B2418", fdc: 174852, fdc_name: "Beverages, carbonated, cola, regular", quote: "Total Sugars 9.94 G" }
+    say_q: "Sugar. Ketchup, or cola?"
+    say_a: "Ketchup. About twice as much."
+    why: "Gram for gram, ketchup has about twice the sugar of regular cola."
+
+  - id: kcal-olive-oil-butter
+    question: "More calories?"
+    unit: "kcal"
+    basis: "per 100 g"
+    left: { name: "Butter", sub: "salted", value: 717, color: "#E9C46A", fdc: 173410, fdc_name: "Butter, salted", quote: "Energy 717 KCAL" }
+    right: { name: "Olive oil", sub: "", value: 884, color: "#6B7F2A", fdc: 171413, fdc_name: "Oil, olive, salad or cooking", quote: "Energy 884 KCAL" }
+    say_q: "Calories. Butter, or olive oil?"
+    say_a: "Olive oil. 884 to 717."
+    why: "Gram for gram, olive oil has more calories than butter: 884 to 717 per 100 g."
+
+  - id: protein-lentils-quinoa
+    question: "More protein?"
+    unit: "g"
+    basis: "per 100 g, cooked"
+    left: { name: "Quinoa", sub: "cooked", value: 4.4, color: "#C9A66B", fdc: 168917, fdc_name: "Quinoa, cooked", quote: "Protein 4.4 G" }
+    right: { name: "Lentils", sub: "cooked", value: 9.02, color: "#8C4A2F", fdc: 172421, fdc_name: "Lentils, mature seeds, cooked, boiled, without salt", quote: "Protein 9.02 G" }
+    say_q: "Protein. Quinoa, or lentils?"
+    say_a: "Lentils. About twice as much."
+    why: "Cooked, gram for gram, lentils have about twice the protein of quinoa."
+
+  - id: sugar-orange-banana
+    question: "More sugar?"
+    unit: "g"
+    basis: "per 100 g, raw"
+    left: { name: "Banana", sub: "raw", value: 12.2, color: "#E8B923", fdc: 173944, fdc_name: "Bananas, raw", quote: "Total Sugars 12.2 G" }
+    right: { name: "Orange", sub: "raw", value: 9.35, color: "#F28C28", fdc: 169097, fdc_name: "Oranges, raw, all commercial varieties", quote: "Total Sugars 9.35 G" }
+    say_q: "Sugar. Banana, or orange?"
+    say_a: "The banana, by about 3 grams."
+    why: "Per 100 g, a raw banana has 12.2 g of sugars and an orange 9.35 g."
+
+sets:
+  surprises:
+    label: "This or that"
+    rounds: [vitc-orange-pepper, potassium-banana-potato, sugar-ketchup-cola]
+    tie: "Tell RecipeFix how you eat. It rewrites the cooking steps, not just the ingredient list."
+    claims: [core.rewrites_steps]
+    search: "Which has more vitamin C, an orange or a bell pepper?"
+    caption: "Orange or red bell pepper, banana or baked potato, ketchup or cola. Three seconds each, numbers per 100 g from USDA FoodData Central."
+    tags: [foodfacts, nutrition, thisorthat, recipefix]
+    photo: sweet-potato-black-bean-tacos
+  pantry:
+    label: "This or that"
+    rounds: [kcal-olive-oil-butter, protein-lentils-quinoa, sugar-orange-banana]
+    tie: "Cooking High-Protein? RecipeFix rewrites the cooking steps, not just the ingredient list."
+    claims: [core.rewrites_steps, core.diets]
+    search: "Does olive oil have more calories than butter?"
+    caption: "Olive oil or butter, lentils or quinoa, banana or orange. Three seconds each, numbers per 100 g from USDA FoodData Central."
+    tags: [foodfacts, nutrition, thisorthat, recipefix]
+    photo: weeknight-vegetable-fried-rice
+
+source:
+  name: "USDA FoodData Central, SR Legacy"
+  short: "USDA FoodData Central"
+  url_template: "https://fdc.nal.usda.gov/food-details/{fdc}/nutrients"
+verified: 2026-10-26
