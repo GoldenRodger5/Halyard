@@ -19,6 +19,7 @@ import path from 'node:path';
 import { Ledger } from './ledger.js';
 import { LEDGER_FILE, REPO_ROOT, SPEND_CAP_USD } from './runContext.js';
 import { duration, type StudioRecord } from './studio.js';
+import { marketingOpenAIKey } from './openaiKey.js';
 
 const MODEL = process.env.MK_CRITIC_MODEL || 'gpt-5.5';
 const PRICE = { input: 1.75, output: 14 }; // $/Mtok, Halyard PRICING_PER_MTOK['gpt-5.5'] (estimate)
@@ -94,8 +95,7 @@ export async function critique(runDir: string, opts: { samples?: number } = {}):
   const record = JSON.parse(readFileSync(path.join(dir, 'record.json'), 'utf8')) as StudioRecord;
   const imgs = frames(dir, record);
   if (!imgs.length) throw new Error(`${record.id}: no video or slides to review`);
-  const key = process.env.OPENAI_API_KEY;
-  if (!key) throw new Error('OPENAI_API_KEY not set');
+  const key = marketingOpenAIKey();
   const ledger = new Ledger(LEDGER_FILE, SPEND_CAP_USD);
   const caption = Object.values(record.posts)[0]?.text ?? '';
   const content = [

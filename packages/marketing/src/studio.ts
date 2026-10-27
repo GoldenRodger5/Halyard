@@ -22,6 +22,7 @@ import { synthWithTimestamps, type TimedWord } from './makeShort.js';
 import { qaStill, tokens } from './qa/image.js';
 import { wer } from './qa/video.js';
 import type { GateCheck } from './copyGate.js';
+import { marketingOpenAIKey } from './openaiKey.js';
 
 export const FPS = 30;
 export const SAFE = { x0: 120, y0: 270, x1: 900, y1: 1250 };
@@ -117,8 +118,7 @@ export async function generatedPhoto(s: Studio, prompt: string, name: string, sh
   const key = sha256(`${IMAGE_MODEL}|${size}|candid-v2|${prompt}`).slice(0, 24);
   const cached = path.join(IMG_CACHE, `${key}.jpg`);
   if (!existsSync(cached)) {
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) throw new Error('OPENAI_API_KEY not set');
+    const apiKey = marketingOpenAIKey();
     s.ledger.assertCanSpend(IMAGE_USD);
     // Candid, not catalogue: viewer reviews flagged glossy generated food as "stock/AI" (2026-10-27).
     const full = `${prompt}. Candid photo taken on a phone in a real home kitchen, slightly imperfect framing, everyday light, a little mess, natural colours, not a styled food shoot, no text, no readable brand names, no people, no hands.`;

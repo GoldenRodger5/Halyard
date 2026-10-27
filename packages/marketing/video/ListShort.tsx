@@ -30,7 +30,7 @@ export interface ListItem {
 export interface ListShortProps {
   hook: { text: string; sub?: string; photo: string; start: number; end: number; audio?: string | null };
   items: ListItem[];
-  close: { start: number; tips: Array<{ name: string; stamp: string; ok: boolean }>; save: string; photo: string };
+  close: { start: number; title: string; tips: Array<{ name: string; stamp: string; ok: boolean }>; save: string; photo: string };
   label: string;
   sfx: { whoosh: string; reveal: string } | null;
   [key: string]: unknown;
@@ -140,8 +140,8 @@ const Item: React.FC<{ it: ListItem; total: number }> = ({ it, total }) => {
       {/* Odd items sit high, even items sit low, so five beats are not one layout five times. */}
       <div style={{ position: 'absolute', left: SAFE.x0 + INSET, top: SAFE.y0 + 10, width: W - 2 * INSET, height: SAFE.y1 - SAFE.y0 - 110, display: 'flex', flexDirection: 'column', justifyContent: it.n % 2 ? 'flex-start' : 'flex-end', gap: 18 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 18, transform: `translateX(${(1 - Math.min(1, a)) * -120}px)`, opacity: Math.min(1, a * 1.5) }}>
-          <div style={{ width: 104, height: 104, flex: '0 0 104px', borderRadius: 52, background: tone, border: look === 'editorial' ? 'none' : '6px solid #FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', ...(look === 'editorial' ? { fontFamily: 'Inter', fontWeight: 600, fontSize: it.twist ? 50 : 54, color: '#FFFFFF' } : display(it.twist ? 52 : 62)) }}>{it.twist ? '✓' : it.n}</div>
-          <div style={{ fontFamily: 'Inter', fontWeight: 700, fontSize: it.twist ? 40 : 30, color: '#FFFFFF', textShadow: '0 2px 8px rgba(0,0,0,0.7)' }}>{it.twist ? "And one that's fine" : `${it.n} of ${total}`}</div>
+          <div style={{ width: 104, height: 104, flex: '0 0 104px', borderRadius: 52, background: tone, border: look === 'editorial' ? 'none' : '6px solid #FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', ...(look === 'editorial' ? { fontFamily: 'Inter', fontWeight: 600, fontSize: it.twist ? 50 : 54, color: '#FFFFFF' } : display(it.twist ? 52 : 62)) }}>{it.twist && it.n > total ? '✓' : it.n}</div>
+          <div style={{ fontFamily: 'Inter', fontWeight: 700, fontSize: it.twist && it.n > total ? 40 : 30, color: '#FFFFFF', textShadow: '0 2px 8px rgba(0,0,0,0.7)' }}>{it.twist && it.n > total ? "And one that's fine" : `${it.n} of ${total}`}</div>
         </div>
         <div style={{ ...display(it.name.length > 22 ? 70 : it.name.length > 14 ? 82 : 96), transform: `scale(${interpolate(b, [0, 1], [0.8, 1])})`, transformOrigin: 'left center', opacity: Math.min(1, b * 1.5) }}>{it.name}</div>
         {/* The reveal: what is hidden in it, slammed in like a stamp. */}
@@ -172,7 +172,7 @@ const Close: React.FC<{ c: ListShortProps['close'] }> = ({ c }) => {
     <>
       <Photo src={c.photo} from={c.start} to={c.start + 150} dim={0.62} />
       <div style={{ position: 'absolute', left: SAFE.x0 + INSET, top: SAFE.y0 + 10, width: W - 2 * INSET, height: SAFE.y1 - SAFE.y0 - 20, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 20 }}>
-        <div style={{ ...display(72), opacity: Math.min(1, a), transform: `scale(${interpolate(a, [0, 1], [0.8, 1])})`, transformOrigin: 'left center' }}>Check the label</div>
+        <div style={{ ...display(72), opacity: Math.min(1, a), transform: `scale(${interpolate(a, [0, 1], [0.8, 1])})`, transformOrigin: 'left center' }}>{c.title}</div>
         <div style={{ ...cardChrome(look, 26), padding: '22px 26px', display: 'flex', flexDirection: 'column', gap: rows > 5 ? 12 : 18, opacity: card, transform: `translateY(${(1 - card) * 30}px)` }}>
           {c.tips.map((t, i) => {
             const tt = interpolate(f, [c.start + 2 + i * 3, c.start + 7 + i * 3], [0, 1], clamp);
@@ -199,7 +199,7 @@ const Visible: React.FC<{ from: number; to: number; children: React.ReactNode }>
 };
 
 export const ListShort: React.FC<ListShortProps> = (p) => {
-  const total = p.items.filter((i) => !i.twist).length;
+  const total = p.kind === 'swaps' ? p.items.length : p.items.filter((i) => !i.twist).length;
   return (
     <LookCtx.Provider value={(p.look as ListLook) ?? 'editorial'}>
     <AbsoluteFill style={{ background: INK }}>

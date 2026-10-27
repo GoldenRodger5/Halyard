@@ -23,6 +23,9 @@ interface ListItemSpec {
 }
 interface ListSpec {
   series: string;
+  kind?: 'warnings' | 'swaps';
+  /** Heading of the closing checklist; defaults to "Check the label" (warnings) or "The swaps". */
+  close_title?: string;
   topic: string;
   hook: string;
   hook_sub?: string;
@@ -62,20 +65,22 @@ export async function makeList(id: string, opts: { voice: boolean; date?: string
   let t = hookEnd;
   const items = [];
   for (const [i, it] of all.entries()) {
-    const twist = spec.twist === it;
+    const twist = spec.twist === it || spec.kind === 'swaps';
     const vo = opts.voice ? await voice(s, `${it.name}. ${it.stamp}. ${it.line}`, `item${i + 1}`) : null;
     const start = t;
     t += Math.max(sec(2.2), sec((vo?.seconds ?? 0) + 0.5));
     items.push({ n: i + 1, name: it.name, stamp: it.stamp, line: it.line, source: facts.get(it.fact)!.source.short.split(',')[0]!.trim(), photo: await generatedPhoto(s, it.image, `${id}-${i + 1}`, 'tall'), start, end: t, twist, audio: vo?.file ?? null });
   }
   const closeStart = t;
+  const closeTitle = spec.close_title ?? (spec.kind === 'swaps' ? 'The swaps' : 'Check the label');
   const total = closeStart + sec(3.2);
   const props = {
+    kind: spec.kind ?? 'warnings',
     look: opts.look ?? 'editorial',
     label: spec.series,
     hook: { text: spec.hook, sub: spec.hook_sub, photo: await generatedPhoto(s, spec.hook_image, `${id}-hook`, 'tall'), start: 0, end: hookEnd, audio: hookVo?.file ?? null },
     items,
-    close: { start: closeStart, tips: all.map((it) => ({ name: it.name, stamp: it.stamp, ok: spec.twist === it })), save: spec.save, photo: items[items.length - 1]!.photo },
+    close: { start: closeStart, title: closeTitle, tips: all.map((it) => ({ name: it.name, stamp: it.stamp, ok: spec.twist === it || spec.kind === 'swaps' })), save: spec.save, photo: items[items.length - 1]!.photo },
     sfx: { whoosh: fx.whoosh, reveal: fx.reveal },
   };
   writeJson(path.join(s.dir, 'render-props.json'), props);
@@ -107,7 +112,7 @@ export async function makeList(id: string, opts: { voice: boolean; date?: string
   if (opts.voice) checks.push(transcriptCheck(s, video, [spec.hook, ...all.map((it) => `${it.name}. ${it.stamp}. ${it.line}`)].join(' ')));
   checks.push(...(await qaFrame(s, video, 1.2, 'hook', [spec.hook, ...(spec.hook_sub ? [spec.hook_sub] : [])])));
   for (const it of items) checks.push(...(await qaFrame(s, video, (it.end - 4) / FPS, `item${it.n}`, [it.name, it.stamp, it.line, `Source: ${it.source}`])));
-  checks.push(...(await qaFrame(s, video, (total - 3) / FPS, 'close', ['Check the label', ...all.map((it) => it.name), spec.save])));
+  checks.push(...(await qaFrame(s, video, (total - 1.2 * FPS) / FPS, 'close', [closeTitle, ...all.map((it) => it.name), spec.save])));
   const everything = [spec.hook, spec.hook_sub ?? '', spec.caption, spec.save, spec.tie, ...all.flatMap((it) => [it.name, it.stamp, it.line]), ...Object.values(posts).flatMap((p) => [p.text, ...(p.thread ?? []), p.title ?? ''])];
   const problems = humanTextProblems(everything);
   for (const c of forbiddenClaims(pack)) for (const ex of c.examples ?? []) for (const txt of everything) if (forbiddenMatches(txt, ex)) problems.push(`forbidden (${c.id}) "${ex}"`);

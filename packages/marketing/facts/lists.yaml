@@ -6,6 +6,7 @@
 # fact's source. `stamp` and `line` must say nothing the fact's `why` does not.
 # The closing checklist shows each item with its stamp. A line names the swap
 # when the source gives one: a warning alone is not worth saving.
+# `kind: swaps` makes every stamp a good thing (green, ticked) rather than a warning.
 # `image` shows the item itself (a list has no answer to spoil), and must suit
 # the audience: no meat on a vegan list.
 
@@ -130,3 +131,121 @@ lists:
         stamp: "Butter"
         line: "Many kitchens finish it with butter, and it melts out of sight. Ask for none."
         image: "a sliced grilled steak on a wooden board in a restaurant kitchen"
+
+  check-halal:
+    series: "Halal kitchen"
+    topic: halal
+    hook: "Cooking halal? Check these 5"
+    hook_sub: "#4 is in this pot"
+    hook_image: "a pot of creamy pasta sauce simmering on a stove with an open bottle of white wine beside it, warm kitchen light"
+    save: "Screenshot this for the store."
+    tie: "Cooking halal? RecipeFix swaps these and rewrites the steps."
+    search: ["is vanilla extract halal", "does alcohol cook off"]
+    caption: "Send this to someone who cooks halal."
+    tags: [halal, halalfood, foodtok, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+    items:
+      - fact: halal-lard
+        name: "Pie crust"
+        stamp: "Lard"
+        line: "Some recipes use it, and US rules define lard as pork fat."
+        image: "a homemade pie with a flaky golden crust on a kitchen counter"
+      - fact: halal-gelatin
+        name: "Gummy candy"
+        stamp: "Gelatin"
+        line: "US rules define it as made from cattle and pig parts. Agar-agar is the swap."
+        image: "a bowl of colorful gummy bears on a kitchen table"
+      - fact: halal-vanilla
+        name: "Vanilla extract"
+        stamp: "35% alcohol"
+        line: "That's the US minimum. Vanilla flavoring has less, which is not none."
+        image: "a small brown bottle of vanilla extract with vanilla beans on a baking counter"
+      - fact: alcohol-cooks-off
+        name: "Wine in the sauce"
+        stamp: "25% stays"
+        line: "USDA measured about a quarter of the alcohol left after an hour of simmering."
+        image: "white wine being poured into a pan of sauce on a stove"
+      - fact: flambe-alcohol
+        name: "Flambé"
+        stamp: "75% stays"
+        line: "USDA found only about a quarter burns off in the flames."
+        image: "a pan of shrimp flaming on a gas stove in a home kitchen"
+
+  kitchen-rules-wrong:
+    series: "Kitchen myths"
+    close_title: "The real numbers"
+    topic: cooking-myths
+    hook: "5 kitchen rules that are wrong"
+    hook_sub: "Measured, not guessed"
+    hook_image: "a home cook stirring a pot of sauce on a stove with measuring cups and a bag of flour on the counter"
+    save: "Screenshot this for later."
+    tie: "Cooking it your way tonight? RecipeFix rewrites the recipe, steps included."
+    search: ["does alcohol cook off", "cooking myths debunked"]
+    caption: "Which one did you grow up with? Sources in the video."
+    tags: [cookingtips, kitchenmyths, foodtok, recipefix]
+    claims: [core.rewrites_steps]
+    items:
+      - fact: alcohol-cooks-off
+        name: "\"The alcohol cooks off\""
+        stamp: "25% after 1 hr"
+        line: "USDA measured about a quarter still there after an hour of simmering."
+        image: "red wine being poured into a pot of stew on a stove"
+      - fact: flambe-alcohol
+        name: "\"Flambé burns it off\""
+        stamp: "75% stays"
+        line: "USDA found only about a quarter burns off in the flames."
+        image: "a pan flaming on a gas stove in a home kitchen"
+      - fact: myth-flour-sugar
+        name: "\"A cup is a cup\""
+        stamp: "120 g vs 198 g"
+        line: "King Arthur's chart: a cup of flour against a cup of sugar."
+        image: "a cup of flour and a cup of sugar side by side on a kitchen scale"
+      - fact: myth-altitude
+        name: "\"Water boils at 212°F\""
+        stamp: "202°F at 5,000 ft"
+        line: "About 10° lower up high, so boiled food takes longer."
+        image: "a pot of water at a rolling boil on a stove with mountains through the kitchen window"
+      - fact: myth-wheat-free
+        name: "\"Wheat-free is gluten-free\""
+        stamp: "Rye, barley"
+        line: "Wheat-free can still mean rye or barley. Look for the words gluten-free."
+        image: "bowls of whole rye grains and pearl barley on a wooden kitchen table"
+
+  swaps-that-work:
+    series: "Swaps that work"
+    kind: swaps
+    topic: baking
+    hook: "Out of eggs or milk? 5 swaps that work"
+    hook_image: "a baking counter with a bowl of batter, a can of chickpeas, a jar of flax meal and a carton of soy milk, bright daylight"
+    save: "Screenshot this for your next bake."
+    tie: "Baking around eggs or dairy? RecipeFix rewrites the recipe, steps included."
+    search: ["egg substitute for baking", "dairy free buttermilk substitute"]
+    caption: "Which one are you trying first? Sources in the video."
+    tags: [bakingtips, bakinghacks, foodtok, recipefix]
+    claims: [core.rewrites_steps]
+    items:
+      - fact: bake-aquafaba
+        name: "Egg whites"
+        stamp: "Aquafaba"
+        line: "The chickpea liquid whips like whites. 1/4 cup per egg."
+        image: "a glass bowl of glossy whipped aquafaba with a whisk next to an open can of chickpeas"
+      - fact: bake-flax-egg
+        name: "One egg, for binding"
+        stamp: "Flax egg"
+        line: "1 tbsp flax meal plus 3 tbsp water, 5 to 10 minutes. It binds, it won't fluff."
+        image: "a small bowl of flax meal mixed with water and a spoon on a baking counter"
+      - fact: km-buttermilk-df
+        name: "Buttermilk"
+        stamp: "Lemon + milk"
+        line: "1 tbsp lemon juice or vinegar in 1 cup non-dairy milk. Rest 5 minutes."
+        image: "a measuring cup of plant milk with a halved lemon beside it"
+      - fact: protein-soy-milk
+        name: "Milk in a bake"
+        stamp: "Soy milk"
+        line: "Same 8 g protein per cup as dairy milk, King Arthur's top pick."
+        image: "a carton of soy milk being poured into a mixing bowl of batter"
+      - fact: vegan-nooch
+        name: "Cheesy flavor"
+        stamp: "Nutritional yeast"
+        line: "The Vegan Society's pick for a cheesy taste without cheese."
+        image: "a bowl of nutritional yeast flakes next to a bowl of pasta"
