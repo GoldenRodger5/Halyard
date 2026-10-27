@@ -242,7 +242,9 @@ export const VersusShort: React.FC<VersusShortProps> = (p) => {
       {p.rounds.map((r, i) => (f >= (r.start === 0 ? 0 : r.start - 5) && f < r.end ? <Round key={i} r={r} index={i} total={p.rounds.length} label={p.label} /> : null))}
       {f >= p.recap.start - 6 ? <Recap c={p.recap} /> : null}
       {p.rounds.map((r, i) => {
-        const secs = Math.round((r.revealAt - r.countdownAt) / 30);
+        // One tick per digit on the badge (3, 2, 1), however long the countdown is.
+        const secs = 3;
+        const step = Math.round((r.revealAt - r.countdownAt) / 3);
         return (
           <React.Fragment key={`a${i}`}>
             {p.sfx && r.start > 0 ? (
@@ -257,7 +259,7 @@ export const VersusShort: React.FC<VersusShortProps> = (p) => {
             ) : null}
             {p.sfx
               ? Array.from({ length: secs }, (_, k) => (
-                  <Sequence key={k} from={r.countdownAt + k * 30} durationInFrames={12} layout="none">
+                  <Sequence key={k} from={r.countdownAt + k * step} durationInFrames={12} layout="none">
                     <Audio src={staticFile(p.sfx!.tick)} volume={k === secs - 1 ? 0.8 : 0.55} />
                   </Sequence>
                 ))

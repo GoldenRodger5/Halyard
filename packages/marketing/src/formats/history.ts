@@ -121,13 +121,18 @@ export async function paperTexture(pub: string): Promise<void> {
 
 /** Narration starts a few frames in, after the year has begun to roll. */
 const AUDIO_AT = 6;
+/**
+ * Narration plays faster than it was voiced (pitch kept): round-1 reviews (2026-10-27) left at
+ * 7 s because "each phrase is stretched over too many seconds". Every beat time scales with it.
+ */
+const RATE = 1.2;
 const LEAD = 6;
 /** Silence between the stamp and the RecipeFix line, so the payoff lands before anything is sold. */
 /**
  * The video ends on the payoff (stamp + source), held this long, not on a brand card: reviews
  * of every format on 2026-10-27 scored a closing RecipeFix row as an ad. The tie goes in the caption.
  */
-const HOLD = Math.round(1.6 * 30);
+const HOLD = Math.round(1.3 * 30);
 
 export async function makeHistory(id: string, opts: { date?: string } = {}): Promise<StudioRecord> {
   const story = loadStories().find((x) => x.id === id);
@@ -148,7 +153,7 @@ export async function makeHistory(id: string, opts: { date?: string } = {}): Pro
   const script = story.beats.map((b) => b.say).join(' ');
   const vo = await voice(s, script, 'story');
   const timed = timedScript(script, vo.words, vo.seconds);
-  const fr = (t: number) => AUDIO_AT + Math.round(t * FPS);
+  const fr = (t: number) => AUDIO_AT + Math.round((t / RATE) * FPS);
 
   // Which script words belong to which beat (and the tie).
   const spans: Array<{ from: number; to: number }> = [];
@@ -278,7 +283,7 @@ export async function makeHistory(id: string, opts: { date?: string } = {}): Pro
     cues,
     source: story.source.short,
     close: { start: closeStart, tie: story.tie, words: [] },
-    audio: { file: vo.file, at: AUDIO_AT, splitAt, pause: 0 },
+    audio: { file: vo.file, at: AUDIO_AT, splitAt, pause: 0, rate: RATE },
     sfx: { whoosh: fx.whoosh, stamp: stampSfx, tick: fx.tick },
   };
   writeJson(`${s.dir}/render-props.json`, props);

@@ -63,7 +63,7 @@ export interface HistoryShortProps {
   /** `words`: the frame each word of the tie is said, so the line inks in with the voice. */
   close: { start: number; tie: string; words?: number[] };
   /** One take, cut at `splitAt` (timeline frame) and resumed `pause` frames later for the close. */
-  audio: { file: string; at: number; splitAt: number; pause: number } | null;
+  audio: { file: string; at: number; splitAt: number; pause: number; rate?: number } | null;
   sfx: { whoosh: string; stamp: string; tick: string } | null;
   [key: string]: unknown;
 }
@@ -524,7 +524,7 @@ export const HistoryShort: React.FC<HistoryShortProps> = (p) => {
       {p.audio ? (
         <>
           <Sequence from={p.audio.at} durationInFrames={p.audio.splitAt - p.audio.at} layout="none">
-            <Audio src={staticFile(p.audio.file)} />
+            <Audio src={staticFile(p.audio.file)} playbackRate={p.audio.rate ?? 1} />
           </Sequence>
           <Sequence from={p.audio.splitAt + p.audio.pause} layout="none">
             <Audio src={staticFile(p.audio.file)} startFrom={p.audio.splitAt - p.audio.at} />

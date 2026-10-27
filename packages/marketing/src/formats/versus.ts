@@ -96,7 +96,8 @@ export function loadVersus(file = path.join(REPO_ROOT, 'packages/marketing/facts
   return doc;
 }
 
-const TIMER = 3 * FPS;
+/** Round-1 reviews (2026-10-27): a 3 s countdown per round read as dead time. A 1.5 s beat keeps the pick. */
+const TIMER = Math.round(1.5 * FPS);
 
 /** "2.4×" from the two numbers; one decimal under 3×, whole numbers above. */
 export function ratioLabel(a: number, b: number): string {
@@ -132,7 +133,7 @@ export async function makeVersus(setName: string, opts: { date?: string; voice?:
     const countdownAt = start + Math.max(sec(1.3), 6 + sec(qv?.seconds ?? 1.6));
     const revealAt = countdownAt + TIMER;
     // The why card rises while the answer is still being said: the reader is already reading.
-    const whyAt = revealAt + sec(0.6);
+    const whyAt = revealAt + sec(0.4);
     const end = Math.max(whyAt + sec(readSecs(r.why)), revealAt + 8 + sec(av?.seconds ?? 0) + 6);
     rounds.push({
       question: r.question,
@@ -207,7 +208,7 @@ export async function makeVersus(setName: string, opts: { date?: string; voice?:
   // Paper grain that changed every frame once made a 40 s cut 95 MB; platforms and the repo want it small.
   const mb = statSync(video).size / 1e6;
   checks.push(check('video.size', mb <= 40, `${mb.toFixed(1)} MB (≤ 40 MB)`));
-  checks.push(check('video.duration', d >= 18 && d <= 30, `${d.toFixed(1)} s (target 18–28 s for three rounds with a 3 s timer each)`));
+  checks.push(check('video.duration', d >= 15 && d <= 26, `${d.toFixed(1)} s (target 15–26 s for three rounds)`));
   const loud = loudnessChecked(video);
   checks.push(check('audio.loudness', !useVoice || (Math.abs(loud.lufs + 14) <= 1.5 && loud.peak <= -0.5), `${loud.lufs} LUFS, peak ${loud.peak} dBFS`));
   if (useVoice) checks.push(transcriptCheck(s, video, spoken.join(' ')));
