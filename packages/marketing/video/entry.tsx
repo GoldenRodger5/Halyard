@@ -5,6 +5,8 @@ import { ScreenShort } from './ScreenShort.js';
 import { QuizShort } from './QuizShort.js';
 import { RecipeShort } from './RecipeShort.js';
 import { AppShort } from './AppShort.js';
+import { HistoryShort } from './HistoryShort.js';
+import { VersusShort } from './VersusShort.js';
 
 const Root: React.FC = () => (
   <>
@@ -28,6 +30,8 @@ const Root: React.FC = () => (
   />
   <Composition id="QuizShort" component={QuizShort as unknown as React.FC<Record<string, unknown>>} width={1080} height={1920} fps={30} durationInFrames={30 * 20} defaultProps={{ label: '', questions: [], close: { start: 0, headline: '', product: '', audio: null, photo: '' }, sfx: null }} />
   <Composition id="RecipeShort" component={RecipeShort as unknown as React.FC<Record<string, unknown>>} width={1080} height={1920} fps={30} durationInFrames={30 * 30} defaultProps={{}} />
+  <Composition id="HistoryShort" component={HistoryShort as unknown as React.FC<Record<string, unknown>>} width={1080} height={1920} fps={30} durationInFrames={30 * 35} defaultProps={{}} />
+  <Composition id="VersusShort" component={VersusShort as unknown as React.FC<Record<string, unknown>>} width={1080} height={1920} fps={30} durationInFrames={30 * 35} defaultProps={{}} />
   <Composition id="AppShort" component={AppShort as unknown as React.FC<Record<string, unknown>>} width={1080} height={1920} fps={30} durationInFrames={30 * 20} defaultProps={{}} />
   </>
 );

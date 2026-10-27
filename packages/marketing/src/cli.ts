@@ -10,6 +10,8 @@
  *   pnpm mk quiz [fact-id…] [--voice]  list facts, or make a quiz video + posts (silent unless --voice)
  *   pnpm mk recipe [original-id] [--voice]  list Originals, or make a recipe video + posts
  *   pnpm mk app                       RecipeFix intro video from real screen recordings
+ *   pnpm mk history [story-id]        list stories, or make a narrated food-history video + posts
+ *   pnpm mk versus [set] [--no-voice] list this-or-that sets, or make a 3-round split-screen video + posts
  *   pnpm mk accounts                  Blotato accounts the lane posts to (read-only)
  *   pnpm mk publish <run> [--only a,b] [--live] [--at ISO]  dry run by default; --live posts via Blotato
  *   pnpm mk status <run>              re-check submitted posts
@@ -94,6 +96,29 @@ async function main(): Promise<void> {
       return;
     }
     report(await makeRecipe(id, { voice: rest.includes('--voice'), date: flag('--date') }));
+    return;
+  }
+
+  if (cmd === 'history') {
+    const id = rest.find((r) => !r.startsWith('--') && r !== flag('--date'));
+    const { makeHistory, loadStories } = await import('./formats/history.js');
+    if (!id) {
+      for (const st of loadStories()) console.log(`${st.id.padEnd(18)} ${st.year} ${st.beats[0]!.screen}`);
+      return;
+    }
+    report(await makeHistory(id, { date: flag('--date') }));
+    return;
+  }
+
+  if (cmd === 'versus') {
+    const id = rest.find((r) => !r.startsWith('--') && r !== flag('--date'));
+    const { makeVersus, loadVersus } = await import('./formats/versus.js');
+    if (!id) {
+      const doc = loadVersus();
+      for (const [k, v] of Object.entries(doc.sets)) console.log(`${k.padEnd(12)} ${v.rounds.join(', ')}`);
+      return;
+    }
+    report(await makeVersus(id, { date: flag('--date'), voice: !rest.includes('--no-voice') }));
     return;
   }
 

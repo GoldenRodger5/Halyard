@@ -187,7 +187,7 @@ export async function renderVideo(s: Studio, compositionId: string, props: Recor
     outputLocation: raw,
     inputProps: props,
     chromiumOptions: { gl: 'swangle' },
-    concurrency: 4,
+    concurrency: Number(process.env.MK_RENDER_CONCURRENCY || 4),
     timeoutInMilliseconds: 120_000,
   });
   const file = path.join(s.dir, `${out}.mp4`);
