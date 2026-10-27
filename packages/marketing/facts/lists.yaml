@@ -13,9 +13,8 @@ lists:
   not-vegan:
     series: "Not vegan"
     topic: vegan
-    hook: "Looks vegan? Check these 5 first"
-    hook_sub: "#5 is on this pasta"
-    hook_image: "a bowl of spaghetti in tomato sauce with a generous snowfall of grated parmesan and a basil leaf, bright daylight on a kitchen table"
+    hook: "Looks vegan? Check these 5."
+    hook_image: "a cozy mug of hot chocolate topped with toasted marshmallows on a wooden table, warm daylight"
     save: "Screenshot this for the store."
     tie: "Making it vegan? RecipeFix swaps these and rewrites the steps."
     search: ["what foods are not vegan", "surprising non vegan foods"]
@@ -46,14 +45,13 @@ lists:
       - fact: parmigiano-rennet
         name: "Parmigiano Reggiano"
         stamp: "Calf rennet"
-        line: "Its rules require it. Look for microbial rennet instead."
+        line: "Its official rules call for it. Look for microbial rennet instead."
         image: "a chunk of aged parmesan cheese with a small cheese knife on a board"
 
   hidden-gluten:
     series: "Hidden gluten"
     topic: gluten-free
-    hook: "Gluten-free? Watch for these 5"
-    hook_sub: "Plus 1 you can keep"
+    hook: "Gluten-free? Check these 5"
     hook_image: "a pantry shelf with a bottle of soy sauce, a bottle of malt vinegar, a jar of gravy granules and a rustic loaf of bread, bright daylight"
     save: "Screenshot this for the store."
     tie: "Cooking gluten-free? RecipeFix rewrites your recipe, steps included."
@@ -83,52 +81,52 @@ lists:
         stamp: "Wheat flour"
         line: "Many gravies are thickened with it."
         image: "a gravy boat of brown gravy pouring over mashed potatoes"
-      - fact: gf-spelt
-        name: "Spelt"
-        stamp: "Wheat"
-        line: "An ancient grain, and still a variety of wheat."
-        image: "a loaf of rustic spelt bread with a scattering of grains on a board"
-      - fact: myth-seitan-gf
-        name: "Seitan"
-        stamp: "Wheat gluten"
-        line: "It's made from it. Vegan, not gluten-free."
-        image: "sliced seitan in a skillet with vegetables"
+      - fact: myth-wheat-free
+        name: "\"Wheat-free\" labels"
+        stamp: "Rye, barley"
+        line: "Wheat-free can still mean rye or barley. Look for the words gluten-free."
+        image: "bowls of whole rye grains and pearl barley on a wooden kitchen table"
+      - fact: label-cream-mushroom
+        name: "Canned cream of mushroom"
+        stamp: "Wheat flour"
+        line: "Campbell's classic condensed can lists it."
+        image: "a green bean casserole in a baking dish with crispy onions on top"
 
   hidden-dairy:
     series: "Hidden dairy"
     topic: allergies
-    hook: "Dairy-free? These 5 can still hide milk"
-    hook_sub: "#3 says nondairy on the front"
-    hook_image: "a kitchen counter with a carton of coffee creamer, a small jar of ghee, a tub of margarine and a can of soup, bright morning light"
+    hook: "Dairy-free? Milk hides in these 5"
+    hook_sub: "#5 is at the steakhouse"
+    hook_image: "grilled hot dogs in buns and a bowl of tuna salad on a sunny picnic table"
     save: "Screenshot this for the store."
     tie: "Cooking dairy-free? RecipeFix swaps the dairy and rewrites the steps."
     search: ["hidden dairy ingredients", "foods with hidden dairy"]
-    caption: "Send this to someone who cooks dairy-free."
-    tags: [dairyfree, foodlabels, foodtok, recipefix]
+    caption: "None of these say milk on the front. Send this to someone who cooks dairy-free."
+    tags: [dairyfree, foodallergies, foodtok, recipefix]
     claims: [core.diets, core.rewrites_steps]
     items:
-      - fact: allergen-whey
-        name: "Whey"
-        stamp: "Milk protein"
-        line: "Allergen lists name it with casein as a milk ingredient."
-        image: "a scoop of protein powder next to a shaker bottle on a kitchen counter"
-      - fact: myth-ghee
-        name: "Ghee"
-        stamp: "Milk protein"
-        line: "Made from milk, and some milk protein is often left in it."
-        image: "a small glass jar of golden ghee with a spoon"
       - fact: myth-nondairy
         name: "\"Nondairy\" creamer"
         stamp: "Caseinate"
         line: "US rules let a nondairy label contain this milk protein."
         image: "coffee creamer being poured into a mug of black coffee"
-      - fact: myth-margarine
-        name: "Some margarine"
-        stamp: "Some have milk"
-        line: "Not all of it is dairy-free. Look for one labeled vegan."
-        image: "a tub of margarine spread on toast on a breakfast table"
-      - fact: label-cream-mushroom
-        name: "Canned cream of mushroom"
-        stamp: "Milk + whey"
-        line: "Campbell's classic condensed can lists cream and whey."
-        image: "a green bean casserole in a baking dish with crispy onions on top"
+      - fact: allergen-hotdog-casein
+        name: "Hot dogs and sausages"
+        stamp: "Casein"
+        line: "Some use this milk protein as a binder. Check the package."
+        image: "grilled hot dogs and sausages on a grill with tongs"
+      - fact: allergen-tuna-casein
+        name: "Canned tuna"
+        stamp: "Some brands"
+        line: "A few add casein, a milk protein. Check the can."
+        image: "an open can of tuna next to a bowl of tuna salad on a kitchen counter"
+      - fact: allergen-shellfish-milk
+        name: "Shellfish"
+        stamp: "Milk dip"
+        line: "Sometimes dipped in milk to cut the fishy smell. Ask when you buy."
+        image: "raw shrimp on ice at a seafood counter"
+      - fact: allergen-steak-butter
+        name: "Restaurant steak"
+        stamp: "Butter"
+        line: "Many kitchens finish it with butter, and it melts out of sight. Ask for none."
+        image: "a sliced grilled steak on a wooden board in a restaurant kitchen"

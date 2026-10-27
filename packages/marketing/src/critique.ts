@@ -36,6 +36,8 @@ export interface Critique {
   model: string;
   cost_usd: number;
   at: string;
+  /** Every individual review behind the verdict (median of several; one review moves ±1). */
+  samples?: Array<Pick<Critique, 'scores' | 'cringe' | 'pro_team_would_post'>>;
 }
 
 interface Frame {
@@ -87,7 +89,7 @@ Then: the exact moment you would leave (or "never"), your first impression in on
 verdict: "post" only if stop>=7, stay>=7, engage>=6, human>=7, cringe is empty and pro_team_would_post is true; "reject" if the concept itself is weak; otherwise "revise".
 Reply with JSON only: {"verdict":"post|revise|reject","scores":{"stop":n,"stay":n,"engage":n,"human":n},"cringe":["..."],"pro_team_would_post":true|false,"would_leave_at":"...","first_impression":"...","problems":["..."],"fixes":["..."]}`;
 
-export async function critique(runDir: string): Promise<Critique> {
+export async function critique(runDir: string, opts: { samples?: number } = {}): Promise<Critique> {
   const dir = path.resolve(runDir);
   const record = JSON.parse(readFileSync(path.join(dir, 'record.json'), 'utf8')) as StudioRecord;
   const imgs = frames(dir, record);
@@ -95,7 +97,6 @@ export async function critique(runDir: string): Promise<Critique> {
   const key = process.env.OPENAI_API_KEY;
   if (!key) throw new Error('OPENAI_API_KEY not set');
   const ledger = new Ledger(LEDGER_FILE, SPEND_CAP_USD);
-  ledger.assertCanSpend(0.08);
   const caption = Object.values(record.posts)[0]?.text ?? '';
   const content = [
     { type: 'input_text', text: `${RUBRIC}\n\nFormat: ${record.format}. Summary: ${record.summary}.\nCaption that ships with it:\n${caption}\n\nFrames (${imgs.length}) follow in order, each after its label.` },
@@ -104,24 +105,67 @@ export async function critique(runDir: string): Promise<Critique> {
       { type: 'input_image', image_url: `data:image/jpeg;base64,${readFileSync(f.file).toString('base64')}`, detail: 'low' },
     ]),
   ];
-  const r = await fetch('https://api.openai.com/v1/responses', {
-    method: 'POST',
-    headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json' },
-    // Reasoning tokens count against max_output_tokens: a small budget truncated the JSON once (2026-10-27).
-    body: JSON.stringify({ model: MODEL, input: [{ role: 'user', content }], max_output_tokens: 8000, reasoning: { effort: 'low' }, text: { format: { type: 'json_object' } } }),
-  });
-  if (!r.ok) throw new Error(`OpenAI ${r.status}: ${(await r.text()).slice(0, 300)}`);
-  const j = (await r.json()) as { output?: Array<{ content?: Array<{ type: string; text?: string }> }>; usage?: { input_tokens: number; output_tokens: number } };
-  const text = (j.output ?? []).flatMap((o) => o.content ?? []).filter((c) => c.type === 'output_text').map((c) => c.text ?? '').join('');
-  const usd = Number((((j.usage?.input_tokens ?? 0) / 1e6) * PRICE.input + ((j.usage?.output_tokens ?? 0) / 1e6) * PRICE.output).toFixed(5));
-  ledger.record({ run: record.id, provider: 'openai', model: MODEL, purpose: 'viewer critique (vision)', units: { inputTokens: j.usage?.input_tokens ?? 0, outputTokens: j.usage?.output_tokens ?? 0 }, usd, basis: 'Halyard price table estimate' });
-  const parsed = JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1)) as Omit<Critique, 'model' | 'cost_usd' | 'at'>;
-  const s = parsed.scores;
-  // The bar is enforced here, not trusted from the model's own verdict.
-  const meets = s.stop >= POST_BAR.stop && s.stay >= POST_BAR.stay && s.engage >= POST_BAR.engage && s.human >= POST_BAR.human && (parsed.cringe ?? []).length === 0 && parsed.pro_team_would_post === true;
-  const out: Critique = { ...parsed, verdict: meets ? 'post' : parsed.verdict === 'reject' ? 'reject' : 'revise', model: MODEL, cost_usd: usd, at: new Date().toISOString() };
+  type One = Omit<Critique, 'verdict' | 'samples'> & { verdict: Critique['verdict'] };
+  const once = async (): Promise<{ parsed: One; usd: number }> => {
+    const r = await fetch('https://api.openai.com/v1/responses', {
+      method: 'POST',
+      headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json' },
+      // Reasoning tokens count against max_output_tokens: a small budget truncated the JSON once (2026-10-27).
+      body: JSON.stringify({ model: MODEL, input: [{ role: 'user', content }], max_output_tokens: 8000, reasoning: { effort: 'low' }, text: { format: { type: 'json_object' } } }),
+    });
+    if (!r.ok) throw new Error(`OpenAI ${r.status}: ${(await r.text()).slice(0, 300)}`);
+    const j = (await r.json()) as { output?: Array<{ content?: Array<{ type: string; text?: string }> }>; usage?: { input_tokens: number; output_tokens: number } };
+    const text = (j.output ?? []).flatMap((o) => o.content ?? []).filter((c) => c.type === 'output_text').map((c) => c.text ?? '').join('');
+    const usd = Number((((j.usage?.input_tokens ?? 0) / 1e6) * PRICE.input + ((j.usage?.output_tokens ?? 0) / 1e6) * PRICE.output).toFixed(5));
+    ledger.record({ run: record.id, provider: 'openai', model: MODEL, purpose: 'viewer critique (vision)', units: { inputTokens: j.usage?.input_tokens ?? 0, outputTokens: j.usage?.output_tokens ?? 0 }, usd, basis: 'Halyard price table estimate' });
+    return { parsed: JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1)) as One, usd };
+  };
+  // One review moves a point either way on the same video (2026-10-27), so the gate reads the
+  // median of several, and the pro-team and cringe calls by majority.
+  const n = Math.max(1, opts.samples ?? Number(process.env.MK_CRITIC_SAMPLES ?? 3));
+  ledger.assertCanSpend(0.03 * n);
+  const runs = await Promise.all(Array.from({ length: n }, () => once()));
+  const out = aggregate(runs.map((x) => x.parsed));
+  out.cost_usd = Number(runs.reduce((a, x) => a + x.usd, 0).toFixed(5));
+  out.model = MODEL;
+  out.at = new Date().toISOString();
   writeFileSync(path.join(dir, 'critique.json'), `${JSON.stringify(out, null, 2)}\n`);
   return out;
+}
+
+const median = (xs: number[]) => {
+  const a = [...xs].sort((x, y) => x - y);
+  return a.length % 2 ? a[(a.length - 1) / 2]! : (a[a.length / 2 - 1]! + a[a.length / 2]!) / 2;
+};
+
+/**
+ * Several reviews of one video into one verdict: median scores, majority for "a pro team would
+ * post it" and for "nothing cringe". The words (impression, problems, fixes) come from the review
+ * whose total is closest to the median total. The bar is enforced here, never trusted from a
+ * model's own verdict.
+ */
+export function aggregate(reviews: Array<Omit<Critique, 'samples'>>): Critique {
+  if (!reviews.length) throw new Error('no reviews to aggregate');
+  const keys = ['stop', 'stay', 'engage', 'human'] as const;
+  const scores = Object.fromEntries(keys.map((k) => [k, median(reviews.map((r) => r.scores[k]))])) as Critique['scores'];
+  const majority = (f: (r: Omit<Critique, 'samples'>) => boolean) => reviews.filter(f).length * 2 > reviews.length;
+  const proTeam = majority((r) => r.pro_team_would_post === true);
+  const clean = majority((r) => (r.cringe ?? []).length === 0);
+  const total = (r: Omit<Critique, 'samples'>) => keys.reduce((a, k) => a + r.scores[k], 0);
+  const mid = median(reviews.map(total));
+  const rep = [...reviews].sort((a, b) => Math.abs(total(a) - mid) - Math.abs(total(b) - mid))[0]!;
+  const meets = keys.every((k) => scores[k] >= POST_BAR[k]) && clean && proTeam;
+  return {
+    ...rep,
+    scores,
+    cringe: clean ? [] : rep.cringe ?? [],
+    pro_team_would_post: proTeam,
+    verdict: meets ? 'post' : majority((r) => r.verdict === 'reject') ? 'reject' : 'revise',
+    samples: reviews.map((r) => ({ scores: r.scores, cringe: r.cringe ?? [], pro_team_would_post: r.pro_team_would_post })),
+    model: '',
+    cost_usd: 0,
+    at: '',
+  };
 }
 
 export function readCritique(runDir: string): Critique | null {

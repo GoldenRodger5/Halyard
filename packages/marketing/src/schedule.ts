@@ -115,7 +115,10 @@ export function planWeek(opts: { start: string; perDay: number; extraFormats?: s
   };
   for (const f of opts.extraFormats ?? []) pools[f] ??= [];
   // PLAYBOOK §2 phase 1 mix: mostly diet-niche games, some recipes, a little product.
-  const order = ['list', 'quiz-set', 'recipe', 'myth', 'carousel', 'transform', 'list', 'history', 'versus', 'quiz-set', 'image', 'recipe', 'quiz', 'app'];
+  // Weighted by viewer-review evidence (2026-10-27): list videos reach the score bar; quiz VIDEOS
+  // (single, set, myth) stall at stay 4-6 / engage 3-5 in every theme, so they are out of the
+  // rotation until redesigned. The same facts still ship as carousels and image posts.
+  const order = ['list', 'carousel', 'transform', 'recipe', 'list', 'image', 'history', 'versus', 'list', 'carousel', 'recipe', 'app'];
   const items: PlanItem[] = [];
   const takenFacts = new Set<string>();
   let lastFormat = '';

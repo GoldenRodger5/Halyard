@@ -683,6 +683,90 @@ facts:
     tags: [dairyfree, foodlabels, foodtok, recipefix]
     claims: [core.diets, core.rewrites_steps]
 
+  - id: allergen-hotdog-casein
+    topic: allergies
+    question: "Which of these can contain a milk protein?"
+    options: ["Hot dogs", "Plain rice", "Black coffee", "Fresh apples"]
+    correct: 0
+    why: "FARE lists luncheon meat, hot dogs and sausages as possible sources of milk, because some use the milk protein casein as a binder."
+    source:
+      name: "FARE (Food Allergy Research & Education), Milk Allergy"
+      short: "FARE, Milk"
+      url: "https://www.foodallergy.org/living-food-allergies/food-allergy-essentials/common-allergens/milk"
+      quote: "Luncheon meat, hot dogs and sausages, which may use the milk protein casein as a binder."
+    verified: 2026-10-27
+    photo: fluffy-buttermilk-pancakes
+    search: ["do hot dogs have dairy", "does sausage have dairy"]
+    tip: "Some hot dogs and sausages use casein, a milk protein."
+    image: "grilled hot dogs in buns on a picnic table with mustard"
+    caption: "Dairy-free? This one is on FARE's list of surprise milk sources."
+    tie: "Cooking dairy-free? RecipeFix finds the hidden dairy and rewrites the steps."
+    tags: [dairyfree, foodallergies, foodtok, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+
+  - id: allergen-tuna-casein
+    topic: allergies
+    question: "Some brands of which food add casein, a milk protein?"
+    options: ["Canned tuna", "Dried pasta", "Olive oil", "Table salt"]
+    correct: 0
+    why: "FARE lists tuna as a possible source of milk because some brands contain casein. Check the can."
+    source:
+      name: "FARE (Food Allergy Research & Education), Milk Allergy"
+      short: "FARE, Milk"
+      url: "https://www.foodallergy.org/living-food-allergies/food-allergy-essentials/common-allergens/milk"
+      quote: "Tuna fish, as some brands contain casein"
+    verified: 2026-10-27
+    photo: fluffy-buttermilk-pancakes
+    search: ["does canned tuna have dairy", "is tuna dairy free"]
+    tip: "Some canned tuna brands add casein."
+    image: "an open can of tuna next to a bowl of tuna salad on a kitchen counter"
+    caption: "Dairy-free? Check the tuna can."
+    tie: "Cooking dairy-free? RecipeFix finds the hidden dairy and rewrites the steps."
+    tags: [dairyfree, foodallergies, foodtok, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+
+  - id: allergen-shellfish-milk
+    topic: allergies
+    question: "Why is shellfish sometimes dipped in milk?"
+    options: ["To cut the fishy smell", "To keep it cold", "To make it pink", "To salt it"]
+    correct: 0
+    why: "FARE says shellfish is sometimes dipped in milk to reduce the fishy odor, so ask when you buy it."
+    source:
+      name: "FARE (Food Allergy Research & Education), Milk Allergy"
+      short: "FARE, Milk"
+      url: "https://www.foodallergy.org/living-food-allergies/food-allergy-essentials/common-allergens/milk"
+      quote: "Shellfish is sometimes dipped in milk to reduce the fishy odor. Ask questions when buying shellfish."
+    verified: 2026-10-27
+    photo: fluffy-buttermilk-pancakes
+    search: ["why soak shrimp in milk", "soaking seafood in milk"]
+    tip: "Shellfish is sometimes dipped in milk. Ask when you buy."
+    image: "raw shrimp on ice at a seafood counter"
+    caption: "Dairy-free and buying seafood? Ask this."
+    tie: "Cooking dairy-free? RecipeFix finds the hidden dairy and rewrites the steps."
+    tags: [dairyfree, foodallergies, foodtok, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+
+  - id: allergen-steak-butter
+    topic: allergies
+    question: "Ordering a grilled steak dairy-free, what should you ask about?"
+    options: ["Butter on top", "The salt", "The grill marks", "The plate"]
+    correct: 0
+    why: "FARE says many restaurants put butter on grilled steaks for flavor, and you can't see it once it melts."
+    source:
+      name: "FARE (Food Allergy Research & Education), Milk Allergy"
+      short: "FARE, Milk"
+      url: "https://www.foodallergy.org/living-food-allergies/food-allergy-essentials/common-allergens/milk"
+      quote: "Many restaurants put butter on grilled steaks to add extra flavor. You can’t see the butter after it melts."
+    verified: 2026-10-27
+    photo: fluffy-buttermilk-pancakes
+    search: ["do restaurants put butter on steak", "restaurant steak butter"]
+    tip: "Ask for no butter on a restaurant steak."
+    image: "a sliced grilled steak on a wooden board in a restaurant kitchen"
+    caption: "Dairy-free at a steakhouse? Ask this first."
+    tie: "Cooking dairy-free? RecipeFix finds the hidden dairy and rewrites the steps."
+    tags: [dairyfree, foodallergies, foodtok, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+
   - id: label-cream-mushroom
     topic: labels
     question: "Canned cream of mushroom soup, the base of green bean casserole, contains…"

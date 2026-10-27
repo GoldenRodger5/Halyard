@@ -41,7 +41,7 @@ export function loadLists(): Record<string, ListSpec> {
   return (yaml.load(readFileSync(path.join(REPO_ROOT, 'packages/marketing/facts/lists.yaml'), 'utf8')) as { lists: Record<string, ListSpec> }).lists;
 }
 
-export async function makeList(id: string, opts: { voice: boolean; date?: string }): Promise<StudioRecord> {
+export async function makeList(id: string, opts: { voice: boolean; date?: string; look?: 'sticker' | 'editorial' }): Promise<StudioRecord> {
   const spec = loadLists()[id];
   if (!spec) throw new Error(`unknown list ${id}; known: ${Object.keys(loadLists()).join(', ')}`);
   const facts = new Map(loadFacts().map((f) => [f.id, f]));
@@ -52,7 +52,7 @@ export async function makeList(id: string, opts: { voice: boolean; date?: string
   const pack = loadKnowledgePack({ kind: 'git', repo: ideas.product_repo, ref: ideas.knowledge.ref, path: ideas.knowledge.path });
   for (const c of spec.claims) if (!isQuotable(claimById(pack, c))) throw new Error(`${c} not quotable at ${pack.commit}`);
   const paused = productPostsPaused(pack);
-  const s = openStudio('list', id, opts.date);
+  const s = openStudio('list', opts.look && opts.look !== 'editorial' ? `${id}-${opts.look}` : id, opts.date);
   const fx = sfx(s);
 
   // ── Timeline: ~2.6 s an item, or the narrator's clock when voiced ──
@@ -71,6 +71,7 @@ export async function makeList(id: string, opts: { voice: boolean; date?: string
   const closeStart = t;
   const total = closeStart + sec(3.2);
   const props = {
+    look: opts.look ?? 'editorial',
     label: spec.series,
     hook: { text: spec.hook, sub: spec.hook_sub, photo: await generatedPhoto(s, spec.hook_image, `${id}-hook`, 'tall'), start: 0, end: hookEnd, audio: hookVo?.file ?? null },
     items,
