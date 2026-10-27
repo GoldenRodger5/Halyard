@@ -56,7 +56,7 @@ interface ListSpec {
  */
 /** On-screen reading pace (words a second) and the time a beat's text takes to arrive. */
 /** CREATIVE_STRATEGY.md §2: 2.5 words/s for sentences, 0.3 s a word for short display text, 0.8 s per new photo. */
-export const READ_WPS = Number(process.env.MK_READ_WPS || 2.5);
+export const READ_WPS = Number(process.env.MK_READ_WPS || 2.8);
 const DISPLAY_S_PER_WORD = 0.3;
 const ENTRANCE_S = 0.8;
 
@@ -112,7 +112,7 @@ export async function makeList(id: string, opts: { voice: boolean; date?: string
   }
   const closeStart = t;
   const closeTitle = spec.close_title ?? (spec.kind === 'swaps' ? 'The swaps' : 'Check the label');
-  const total = closeStart + sec(readFor('', 4.0, 6.0, all.map((it) => `${it.name} ${it.stamp}`).join(' ')));
+  const total = closeStart + sec(readFor('', 4.0, 5.0, all.map((it) => `${it.name} ${it.stamp}`).join(' ')));
   const props = {
     kind: spec.kind ?? 'warnings',
     look: opts.look ?? 'editorial',
