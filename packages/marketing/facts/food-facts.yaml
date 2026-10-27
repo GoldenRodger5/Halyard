@@ -43,6 +43,7 @@ facts:
       quote: "any unavoidable presence of gluten in the food must be less than 20 ppm"
     verified: 2026-10-26
     photo: garlic-shrimp-spaghetti
+    search: ["gluten free label", "gluten free ppm"]
     tip: "Gluten-free on a US label means under 20 ppm, not zero."
     image: "a pantry shelf of packaged pasta, crackers and cereal boxes, labels blurred and unreadable"
     tie: "Cooking gluten-free? RecipeFix rewrites your recipe, steps included."
@@ -63,6 +64,7 @@ facts:
       quote: "The major food allergens are milk, eggs, fish, Crustacean shellfish, tree nuts, peanuts, wheat, soybeans, and sesame."
     verified: 2026-10-26
     photo: classic-banana-bread
+    search: ["major food allergens", "9 major allergens"]
     tip: "The nine: milk, eggs, fish, shellfish, tree nuts, peanuts, wheat, soy, sesame."
     image: "an overhead view of a busy family dinner table with many different dishes"
     tie: "Swapping an ingredient? RecipeFix rewrites the steps to match."
@@ -123,6 +125,7 @@ facts:
       quote: "ALC BEV,STIRRED,BKD/SIMMRD 1 HR … 25; ALC BEV,STIRRED,BKD/SIMMRD 2.5 HR … 5"
     verified: 2026-10-26
     photo: creamy-tuscan-chicken
+    search: ["does alcohol cook off", "how long to cook off alcohol"]
     tip: "An hour of simmering still leaves about 25% of the alcohol."
     image: "a heavy pot of beef stew simmering on a stove with steam rising"
     tie: "Cooking halal or without wine? RecipeFix swaps it out and rewrites the steps."
@@ -143,6 +146,7 @@ facts:
       quote: "ALC BEV,FLAMED … 75"
     verified: 2026-10-26
     photo: lemon-herb-roast-chicken
+    search: ["does flambe burn off alcohol", "flambe alcohol"]
     tip: "Flaming leaves about 75% of the alcohol in the food."
     image: "a steel skillet on a stove with tall orange flames rising from a flambé"
     tie: "Cooking halal or without wine? RecipeFix swaps it out and rewrites the steps."
@@ -185,6 +189,7 @@ facts:
       quote: "ALC BEV,STIRRED,BKD/SIMMRD 1 HR … 25; ALC BEV,STIRRED,BKD/SIMMRD 2.5 HR … 5"
     verified: 2026-10-26
     photo: creamy-tuscan-chicken
+    search: ["does alcohol cook off", "how long to cook off alcohol"]
     tip: "An hour of simmering still leaves about 25% of the alcohol."
     image: "a heavy pot of beef stew simmering on a stove with steam rising"
     tie: "Cooking halal or without wine? RecipeFix swaps it out and rewrites the steps."
@@ -206,6 +211,7 @@ facts:
       quote: "ALC BEV,FLAMED … 75"
     verified: 2026-10-26
     photo: lemon-herb-roast-chicken
+    search: ["does flambe burn off alcohol", "flambe alcohol"]
     tip: "Flaming leaves about 75% of the alcohol in the food."
     image: "a steel skillet on a stove with tall orange flames rising from a flambé"
     tie: "Cooking halal or without wine? RecipeFix swaps it out and rewrites the steps."
@@ -301,6 +307,7 @@ facts:
       quote: "usually served at dinner in, with, or after the soup, fish, or meats which constitute the principal part of the repast, and not, like fruits generally, as dessert"
     verified: 2026-10-26
     photo: creamy-tuscan-chicken
+    search: ["is a tomato a fruit or vegetable", "tomato supreme court"]
     tip: "Botanically a fruit. Legally a vegetable since 1893."
     image: "ripe red tomatoes on the vine on an old wooden table in warm light"
     tie: &histtie "Cooking it your way tonight? RecipeFix rewrites the recipe, steps included."
@@ -321,6 +328,7 @@ facts:
       quote: "Caesar salad origins: Iconic dish, invented in Mexico, turns 100"
     verified: 2026-10-26
     photo: salmon-cucumber-salsa
+    search: ["where was caesar salad invented", "caesar salad history"]
     tip: "Caesar salad: Tijuana, Mexico, 1924."
     image: "a classic caesar salad with whole romaine leaves, croutons and shaved parmesan on a white plate"
     tie: *histtie
@@ -341,6 +349,7 @@ facts:
       quote: "Bennett declared that tomatoes could treat diarrhea, bilious attacks, and indigestion … In 1835, doctor A.J. Holcombe introduced the first tomato pills"
     verified: 2026-10-26
     photo: crispy-chicken-parmesan
+    search: ["ketchup medicine", "ketchup history"]
     tip: "1830s: tomato pills sold as medicine."
     image: "an old-fashioned glass bottle of tomato ketchup beside fresh tomatoes on a rustic table"
     tie: *histtie
@@ -361,6 +370,7 @@ facts:
       quote: "The chocolate chip cookie shall be the official cookie of the commonwealth."
     verified: 2026-10-26
     photo: classic-banana-bread
+    search: ["chocolate chip cookie history", "state cookie"]
     tip: "Massachusetts made it the state cookie in 1997."
     image: "a stack of freshly baked chocolate chip cookies on a cooling rack"
     tie: *histtie
@@ -402,6 +412,7 @@ facts:
       quote: "Peanuts grow underground and are part of a different plant family, the legumes."
     verified: 2026-10-26
     photo: sweet-potato-black-bean-tacos
+    search: ["is a peanut a nut", "is peanut a legume"]
     tip: "Peanuts are legumes, not tree nuts."
     image: "peanuts in their shells on a wooden board, some cracked open showing the peanuts inside"
     tie: *labeltie

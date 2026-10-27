@@ -87,7 +87,8 @@ export async function critique(runDir: string): Promise<Critique> {
   const r = await fetch('https://api.openai.com/v1/responses', {
     method: 'POST',
     headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json' },
-    body: JSON.stringify({ model: MODEL, input: [{ role: 'user', content }], max_output_tokens: 2500 }),
+    // Reasoning tokens count against max_output_tokens: a small budget truncated the JSON once (2026-10-27).
+    body: JSON.stringify({ model: MODEL, input: [{ role: 'user', content }], max_output_tokens: 8000, reasoning: { effort: 'low' }, text: { format: { type: 'json_object' } } }),
   });
   if (!r.ok) throw new Error(`OpenAI ${r.status}: ${(await r.text()).slice(0, 300)}`);
   const j = (await r.json()) as { output?: Array<{ content?: Array<{ type: string; text?: string }> }>; usage?: { input_tokens: number; output_tokens: number } };

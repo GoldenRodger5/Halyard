@@ -372,6 +372,10 @@ export interface StudioRecord {
   schema: 1;
   id: string;
   format: string;
+  /** Named, numbered series this post belongs to (keywords.ts). */
+  series?: { name: string; n: number };
+  /** The real search phrase the caption and title lead with. */
+  search_phrase?: string;
   summary: string;
   made_at: string;
   outputs: { video?: string; slides?: string[]; tiktok_slides?: string[] };

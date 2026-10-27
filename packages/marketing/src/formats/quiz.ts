@@ -12,6 +12,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import yaml from 'js-yaml';
 import { forbiddenMatches, type GateCheck } from '../copyGate.js';
+import { hashtags, searchPhrase, seriesNumber } from '../keywords.js';
 import { claimById, forbiddenClaims, isQuotable, loadKnowledgePack, productPostsPaused } from '../knowledge.js';
 import { loadIdeas, REPO_ROOT } from '../runContext.js';
 import {
@@ -53,6 +54,8 @@ export interface Fact {
   image?: string;
   /** The one-line takeaway the close shows (a cheat sheet across a set). */
   tip?: string;
+  /** Hand-picked autocomplete seeds when the automatic ones miss (keywords.ts). */
+  search?: string[];
   /** The RecipeFix line, tied to this fact; product claims it relies on. */
   tie: string;
   claims: string[];
@@ -173,11 +176,17 @@ export async function makeQuiz(args: string[], opts: { voice: boolean; date?: st
   contactSheet(video, `${s.dir}/contact.png`, 1.0);
 
   // ── Posts: the video everywhere; captions are templates over the fact ──
-  const tags = (set?.tags ?? [...new Set(chosen.flatMap((f) => f.tags))].slice(0, 5)).map((x) => `#${x}`).join(' ');
+  // Search + labels + series (PLAYBOOK §7): one real search phrase leads every caption and title;
+  // 3–5 tiered, rotated hashtags; a numbered series gives a reason to follow.
+  const phrase = await searchPhrase(chosen[0]!);
+  const searchLead = `${phrase.charAt(0).toUpperCase()}${phrase.slice(1)}${/^(is|are|does|do|how|can|why|what|which)\b/i.test(phrase) ? '?' : ''}`;
+  const seriesName = set?.label ?? label;
+  const series = { name: seriesName, n: seriesNumber(seriesName, s.id) };
+  const tags = hashtags(chosen[0]!.topic).map((x) => `#${x}`).join(' ');
   const f0 = chosen[0]!;
   const answerLine = (f: Fact) => (f.format === 'myth' ? f.options[f.correct]! : `${LETTERS[f.correct]}) ${f.options[f.correct]}`);
   const sourceLine = (f: Fact) => `Source: ${f.source.short}`;
-  const hook = `${set?.caption ?? (one ? f0.caption : `${chosen.length} questions, ${TIMER_SECONDS} seconds each. Keep score.`)}${one ? ' Did you know this one?' : ' How many did you get?'}`;
+  const hook = `${searchLead} ${series.name} #${series.n}. ${set?.caption ?? (one ? f0.caption : `${chosen.length} questions, ${TIMER_SECONDS} seconds each. Keep score.`)}${one ? ' Did you know this one?' : ' How many did you get?'}`;
   const media = [relRepo(video)];
   const posts: Record<string, PlatformPost> = {
     tiktok: { platform: 'tiktok', kind: 'video', media, text: `${hook}\n\n${tags}`, ai_voice: opts.voice, cover_ms: Math.round(((questions[0]!.countdownAt + 10) / FPS) * 1000) },
@@ -192,7 +201,7 @@ export async function makeQuiz(args: string[], opts: { voice: boolean; date?: st
       platform: 'youtube',
       kind: 'video',
       media,
-      title: `${f0.question} #shorts`.slice(0, 100),
+      title: `${searchLead} | ${series.name} #${series.n} #shorts`.slice(0, 100),
       text: `${chosen.map((f) => `Answer: ${f.options[f.correct]}. ${f.why}\n${sourceLine(f)} (${f.source.url})`).join('\n\n')}\n\n${tie} https://recipefix.app`,
       ai_voice: opts.voice,
     },
@@ -237,6 +246,8 @@ export async function makeQuiz(args: string[], opts: { voice: boolean; date?: st
     schema: 1,
     id: s.id,
     format: 'quiz',
+    series,
+    search_phrase: phrase,
     summary: chosen.map((f) => f.question).join(' / '),
     made_at: new Date().toISOString(),
     outputs: { video: relRepo(video) },
