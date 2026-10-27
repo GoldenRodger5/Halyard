@@ -53,6 +53,10 @@ interface ListSpec {
  * cut at word boundaries. Throws when the words are not in the quote, so a marker can
  * never land on text the source does not say.
  */
+/** On-screen reading pace (words a second) and the time a beat's text takes to arrive. */
+export const READ_WPS = Number(process.env.MK_READ_WPS || 3.5);
+const ENTRANCE_S = 0.9;
+
 export function quoteExcerpt(quote: string, hl: string, before = 22, after = 28): { text: string; at: number; len: number } {
   const i = quote.toLowerCase().indexOf(hl.toLowerCase());
   if (i < 0) throw new Error(`highlight "${hl}" is not in the source quote "${quote.slice(0, 80)}…"`);
@@ -84,24 +88,28 @@ export async function makeList(id: string, opts: { voice: boolean; date?: string
   const fx = sfx(s);
 
   const guessText = spec.guess ?? (spec.kind === 'swaps' ? 'Swap it for…' : "What's hiding in it?");
-  // ── Timeline: ~2.6 s an item, or the narrator's clock when voiced ──
+  // ── Timeline: reading pace, or the narrator's clock when voiced ──
+  // The owner found ~2.2 s an item too fast to read (2026-10-27): each beat now holds for its
+  // entrance plus the line at READ_WPS words a second.
   const sec = (x: number) => Math.ceil(x * FPS);
+  const words = (x: string) => x.split(/\s+/).filter(Boolean).length;
+  const readFor = (x: string, min: number, max: number) => Math.min(max, Math.max(min, ENTRANCE_S + words(x) / READ_WPS));
   const hookVo = opts.voice ? await voice(s, spec.hook, 'hook') : null;
-  const hookEnd = Math.max(sec(1.5), sec((hookVo?.seconds ?? 0) + 0.3));
+  const hookEnd = Math.max(sec(readFor(`${spec.hook} ${spec.hook_sub ?? ''}`, 2.0, 3.0)), sec((hookVo?.seconds ?? 0) + 0.3));
   let t = hookEnd;
   const items: Array<{ n: number; name: string; stamp: string; line: string; source: string; photo: string; start: number; end: number; [k: string]: unknown }> = [];
   for (const [i, it] of all.entries()) {
     const twist = spec.twist === it || spec.kind === 'swaps';
     const vo = opts.voice ? await voice(s, `${it.name}. ${it.stamp}. ${it.line}`, `item${i + 1}`) : null;
     const start = t;
-    t += Math.max(sec(i === 0 && guessText ? 2.6 : 2.2), sec((vo?.seconds ?? 0) + 0.5));
+    t += Math.max(sec(readFor(it.line, 3.0, 4.6) + (i === 0 && guessText ? 0.4 : 0)), sec((vo?.seconds ?? 0) + 0.5));
     const src = facts.get(it.fact)!.source;
     const q = quoteExcerpt(src.quote, it.highlight ?? it.stamp);
     items.push({ n: i + 1, name: it.name, guess: i === 0 ? guessText || undefined : undefined, stamp: it.stamp, line: it.line, quote: q.text, hlAt: q.at, hlLen: q.len, source: src.short.split(',')[0]!.trim(), photo: await generatedPhoto(s, it.image, `${id}-${i + 1}`, 'tall'), start, end: t, twist, audio: vo?.file ?? null });
   }
   const closeStart = t;
   const closeTitle = spec.close_title ?? (spec.kind === 'swaps' ? 'The swaps' : 'Check the label');
-  const total = closeStart + sec(2.6);
+  const total = closeStart + sec(readFor(all.map((it) => `${it.name} ${it.stamp}`).join(' '), 3.5, 5.0) - 2.0);
   const props = {
     kind: spec.kind ?? 'warnings',
     look: opts.look ?? 'editorial',

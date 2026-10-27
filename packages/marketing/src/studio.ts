@@ -11,6 +11,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { bundle } from '@remotion/bundler';
 import { renderMedia, renderStill, selectComposition } from '@remotion/renderer';
@@ -225,7 +226,8 @@ export async function renderVideo(s: Studio, compositionId: string, props: Recor
     outputLocation: raw,
     inputProps: props,
     chromiumOptions: { gl: 'swangle' },
-    concurrency: Number(process.env.MK_RENDER_CONCURRENCY || 4),
+    // Half the cores by default: faster than a fixed 4 on this machine, and leaves room for OCR QA.
+    concurrency: Number(process.env.MK_RENDER_CONCURRENCY || Math.max(2, Math.floor(os.cpus().length / 2))),
     timeoutInMilliseconds: 120_000,
   });
   const file = path.join(s.dir, `${out}.mp4`);

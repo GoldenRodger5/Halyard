@@ -28,7 +28,8 @@
  * Paid calls (copy, voice) go through the ledger and stop before the cap.
  */
 import path from 'node:path';
-import { loadIdeas, LEDGER_FILE, openRun, SPEND_CAP_USD } from './runContext.js';
+import { loadIdeas, LEDGER_FILE, openRun, REPO_ROOT, SPEND_CAP_USD } from './runContext.js';
+import { localDate, relRepo } from './studio.js';
 import { claimById, isQuotable, loadKnowledgePack, productPostsPaused } from './knowledge.js';
 import { Ledger } from './ledger.js';
 
@@ -136,6 +137,31 @@ async function main(): Promise<void> {
       return;
     }
     report(await makeList(id, { voice: rest.includes('--voice'), date: flag('--date'), look: flag('--look') as 'sticker' | 'editorial' | 'magazine' | undefined }));
+    return;
+  }
+
+  if (cmd === 'batch') {
+    // mk batch list [id…|all] [--look …] : render, review (median of 3), then build the review page.
+    const kind = rest[0];
+    if (kind !== 'list') throw new Error('usage: pnpm mk batch list [id… | all]');
+    const { makeList, loadLists } = await import('./formats/list.js');
+    const { critique } = await import('./critique.js');
+    const { buildReviewPage } = await import('./reviewPage.js');
+    const named = rest.slice(1).filter((r) => !r.startsWith('--') && r !== flag('--date') && r !== flag('--look'));
+    const ids = !named.length || named.includes('all') ? Object.keys(loadLists()) : named;
+    const dirs: string[] = [];
+    const rows: string[] = [];
+    for (const id of ids) {
+      const rec = await makeList(id, { voice: rest.includes('--voice'), date: flag('--date'), look: flag('--look') as 'sticker' | 'editorial' | 'magazine' | undefined });
+      const dir = path.dirname(path.resolve(REPO_ROOT, rec.outputs.video!));
+      dirs.push(dir);
+      const c = rec.qa.passed ? await critique(dir) : null;
+      const s = c?.scores;
+      rows.push(`${id.padEnd(22)} QA ${rec.qa.passed ? 'pass' : 'FAIL'}  ${s ? `${s.stop}/${s.stay}/${s.engage}/${s.human}  ${c!.verdict}` : '(not reviewed: fix QA first)'}`);
+      console.log(rows[rows.length - 1]);
+    }
+    const page = buildReviewPage(dirs, { title: 'RecipeFix List Reels', outDir: path.join(REPO_ROOT, 'runs', flag('--date') ?? localDate(), 'review') });
+    console.log(`\n${rows.join('\n')}\n→ ${relRepo(page)}`);
     return;
   }
 

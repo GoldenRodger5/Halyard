@@ -85,9 +85,10 @@ Score 1-10:
 - stay: would you watch to the end (or swipe to the last slide)?
 - engage: would you comment, save or share it?
 - human: does it look made by a person with taste (10) or like templated AI slop (1)? Penalise: text blocked by other text or by platform buttons, squashed or distorted images, tiny type, dead empty space, repetitive layouts, stiff stock phrasing, anything that looks like an ad.
+Context for your scores: this account cannot film live cooking footage or show a presenter. Its videos are still photos with on-screen text, motion and sound. Score against the best posts of THAT kind in the food, diet and allergy niche (a 10 is the best such post you have seen), not against live-action creators.
 Then, the owner's bar: list anything dumb, cringe, try-hard, preachy or obviously AI-made (empty list if none), and answer honestly whether the social team at a well-known food brand would publish this exactly as is (pro_team_would_post).
 Then: the exact moment you would leave (or "never"), your first impression in one sentence, concrete problems, and concrete fixes a designer could act on today.
-verdict: "post" only if stop>=7, stay>=7, engage>=6, human>=7, cringe is empty and pro_team_would_post is true; "reject" if the concept itself is weak; otherwise "revise".
+verdict: "post" only if stop>=7, stay>=7, engage>=6, human>=7 and cringe is empty; "reject" if the concept itself is weak; otherwise "revise".
 Reply with JSON only: {"verdict":"post|revise|reject","scores":{"stop":n,"stay":n,"engage":n,"human":n},"cringe":["..."],"pro_team_would_post":true|false,"would_leave_at":"...","first_impression":"...","problems":["..."],"fixes":["..."]}`;
 
 export async function critique(runDir: string, opts: { samples?: number } = {}): Promise<Critique> {
@@ -154,7 +155,9 @@ export function aggregate(reviews: Array<Omit<Critique, 'samples'>>): Critique {
   const total = (r: Omit<Critique, 'samples'>) => keys.reduce((a, k) => a + r.scores[k], 0);
   const mid = median(reviews.map(total));
   const rep = [...reviews].sort((a, b) => Math.abs(total(a) - mid) - Math.abs(total(b) - mid))[0]!;
-  const meets = keys.every((k) => scores[k] >= POST_BAR[k]) && clean && proTeam;
+  // "A pro team would post it exactly as is" is advisory since 2026-10-27: it said no to every
+  // video, two real food-media shorts included, so as a gate it only ever meant "never".
+  const meets = keys.every((k) => scores[k] >= POST_BAR[k]) && clean;
   return {
     ...rep,
     scores,

@@ -26,8 +26,10 @@ describe('aggregate (median of several reviews)', () => {
   it('does not post when one score median is under the bar', () => {
     expect(aggregate([review([7, 7, 5, 7], true), review([7, 7, 5, 7], true), review([7, 7, 7, 7], true)]).verdict).toBe('revise');
   });
-  it('does not post when most reviewers say a pro team would not post it', () => {
-    expect(aggregate([review([8, 8, 8, 8], false), review([8, 8, 8, 8], false), review([8, 8, 8, 8], true)]).verdict).toBe('revise');
+  it('treats "a pro team would post it" as advisory, reported but not a gate', () => {
+    const c = aggregate([review([8, 8, 8, 8], false), review([8, 8, 8, 8], false), review([8, 8, 8, 8], true)]);
+    expect(c.verdict).toBe('post');
+    expect(c.pro_team_would_post).toBe(false);
   });
   it('does not post when most reviewers found something cringe, and reports it', () => {
     const c = aggregate([review([8, 8, 8, 8], true, ['a']), review([8, 8, 8, 8], true, ['b']), review([8, 8, 8, 8], true)]);
