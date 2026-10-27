@@ -9,6 +9,7 @@
  *   pnpm mk gate <drafts.json>        copy-gate platform variants that reuse a QA-passed asset
  *   pnpm mk quiz [fact-id…] [--voice]  list facts, or make a quiz video + posts (silent unless --voice)
  *   pnpm mk recipe [original-id] [--voice]  list Originals, or make a recipe video + posts
+ *   pnpm mk list [id] [--voice]       list video: a claim, then one sourced item every ~2.5 s
  *   pnpm mk app                       RecipeFix intro video from real screen recordings
  *   pnpm mk critique <run>            viewer review (vision model): stop/stay/engage/human scores; publish needs "post"
  *   pnpm mk plan-week [--start D] [--per-day N]  7-day varied slate → runs/schedule/D.json
@@ -121,6 +122,17 @@ async function main(): Promise<void> {
     const { makeFactImage } = await import('./formats/slides.js');
     if (!id) throw new Error('usage: pnpm mk image <fact-id> (pnpm mk quiz lists them)');
     report(await makeFactImage(id, { date: flag('--date') }));
+    return;
+  }
+
+  if (cmd === 'list') {
+    const id = rest.find((r) => !r.startsWith('--') && r !== flag('--date'));
+    const { makeList, loadLists } = await import('./formats/list.js');
+    if (!id) {
+      for (const [k, v] of Object.entries(loadLists())) console.log(`${k.padEnd(16)} ${v.hook}`);
+      return;
+    }
+    report(await makeList(id, { voice: rest.includes('--voice'), date: flag('--date') }));
     return;
   }
 

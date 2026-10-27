@@ -228,6 +228,7 @@ const Burst: React.FC<{ at: number; x: number; y: number }> = ({ at, x, y }) => 
 
 const Button: React.FC<{ text: string; size: number; i: number; state: 'idle' | 'right' | 'wrong'; at: number; revealAt: number }> = ({ text, size, i, state, at, revealAt }) => {
   const f = useCurrentFrame();
+  const theme = useTheme();
   const s = useSpring(at + i * 4, { damping: 11 });
   const pop = useSpring(revealAt, { damping: 8, stiffness: 260 });
   const right = state === 'right';
@@ -250,7 +251,7 @@ const Button: React.FC<{ text: string; size: number; i: number; state: 'idle' | 
         opacity: wrong ? 0.75 : 1,
       }}
     >
-      <div style={{ width: 62, height: 62, flex: '0 0 62px', borderRadius: 31, background: right ? '#FFFFFF' : wrong ? GREY : BADGE[i], border: `4px solid ${INK}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Lilita One', fontSize: 38, color: right ? GREEN : '#FFFFFF' }}>
+      <div style={{ width: 62, height: 62, flex: '0 0 62px', borderRadius: 31, background: right ? '#FFFFFF' : wrong ? GREY : theme.name === 'pop' ? BADGE[i] : theme.badge, border: `4px solid ${INK}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Lilita One', fontSize: 38, color: right ? GREEN : '#FFFFFF' }}>
         {right ? '✓' : wrong ? '✕' : LETTERS[i]}
       </div>
       <div style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: size, lineHeight: 1.05, whiteSpace: 'nowrap', color: right ? '#FFFFFF' : wrong ? '#6E645D' : INK }}>{text}</div>

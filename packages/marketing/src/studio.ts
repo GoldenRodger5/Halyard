@@ -111,9 +111,10 @@ const IMG_CACHE = path.join(RUNS_DIR, '_cache', 'img');
 const IMAGE_USD = Number(process.env.MK_IMAGE_USD || 0.05);
 /** The model RecipeFix's own recipe-image function uses (supabase/functions/recipe-image). */
 const IMAGE_MODEL = process.env.MK_IMAGE_MODEL || 'gpt-image-2.5-sunburst';
-export async function generatedPhoto(s: Studio, prompt: string, name: string): Promise<string> {
+export async function generatedPhoto(s: Studio, prompt: string, name: string, shape: 'wide' | 'tall' = 'wide'): Promise<string> {
+  const size = shape === 'tall' ? '1024x1536' : '1536x1024';
   mkdirSync(IMG_CACHE, { recursive: true });
-  const key = sha256(`${IMAGE_MODEL}|1536x1024|candid-v2|${prompt}`).slice(0, 24);
+  const key = sha256(`${IMAGE_MODEL}|${size}|candid-v2|${prompt}`).slice(0, 24);
   const cached = path.join(IMG_CACHE, `${key}.jpg`);
   if (!existsSync(cached)) {
     const apiKey = process.env.OPENAI_API_KEY;
@@ -124,14 +125,14 @@ export async function generatedPhoto(s: Studio, prompt: string, name: string): P
     const r = await fetch('https://api.openai.com/v1/images/generations', {
       method: 'POST',
       headers: { authorization: `Bearer ${apiKey}`, 'content-type': 'application/json' },
-      body: JSON.stringify({ model: IMAGE_MODEL, prompt: full, size: '1536x1024', quality: 'medium', n: 1 }),
+      body: JSON.stringify({ model: IMAGE_MODEL, prompt: full, size, quality: 'medium', n: 1 }),
     });
     if (!r.ok) throw new Error(`OpenAI images ${r.status}: ${(await r.text()).slice(0, 300)}`);
     const j = (await r.json()) as { data: Array<{ b64_json: string }> };
     await sharp(Buffer.from(j.data[0]!.b64_json, 'base64')).jpeg({ quality: 90 }).toFile(cached);
     s.ledger.record({ run: s.id, provider: 'openai', model: IMAGE_MODEL, purpose: `image: ${name}`, units: { images: 1 }, usd: IMAGE_USD, basis: 'image medium 1536x1024 estimate' });
   }
-  const out = `gen-${name}.jpg`;
+  const out = `gen-${name}${shape === 'tall' ? '-tall' : ''}.jpg`;
   copyFileSync(cached, path.join(s.pub, out));
   s.assets.push({ id: out, provenance: `OpenAI ${IMAGE_MODEL}, prompt: ${prompt}`, licence: 'generated illustration (OpenAI terms); an ingredient still, not a photo of a cooked dish', sha256: sha256(readFileSync(cached)) });
   return out;

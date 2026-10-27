@@ -1,0 +1,108 @@
+# List videos: a bold claim, then one sourced item every ~2.5 s, then the save card.
+#
+# "Things you didn't know contain X" is one of the most proven food formats on
+# TikTok. Every item points at a fact in food-facts.yaml; its source is that
+# fact's source. `line` must say nothing the fact's `why` does not.
+# `image` shows the item itself (a list has no answer to spoil).
+
+lists:
+  not-vegan:
+    series: "Not vegan"
+    topic: vegan
+    hook: "5 foods that look vegan and aren't"
+    save: "Save this for your next grocery run."
+    tie: "Making it vegan? RecipeFix swaps these and rewrites the steps."
+    search: ["what foods are not vegan", "surprising non vegan foods"]
+    caption: "Number 4 gets a lot of people. Sources in the video."
+    tags: [vegan, veganswaps, vegantok, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+    items:
+      - fact: honey-vegan
+        name: "Honey"
+        line: "Bees make it, so vegans skip it."
+        image: "a glass jar of golden honey with a wooden dipper on a kitchen counter"
+      - fact: vegan-carmine
+        name: "Red food dye E120"
+        line: "Carmine is made from crushed insects."
+        image: "a plate of bright red frosted cupcakes and candy on a kitchen table"
+      - fact: veg-marshmallow
+        name: "Marshmallows"
+        line: "Classic ones are set with gelatin, an animal protein."
+        image: "a bowl of white marshmallows next to a mug of hot chocolate"
+      - fact: veg-isinglass
+        name: "Some beer and wine"
+        line: "Clarified with isinglass, from fish bladders."
+        image: "a glass of beer and a glass of white wine on a wooden bar counter"
+      - fact: parmigiano-rennet
+        name: "Parmigiano Reggiano"
+        line: "Its rules allow only calf rennet."
+        image: "a chunk of aged parmesan cheese with a small cheese knife on a board"
+
+  hidden-gluten:
+    series: "Hidden gluten"
+    topic: gluten-free
+    hook: "Gluten-free? These 5 have wheat in them"
+    save: "Save this before your next grocery run."
+    tie: "Cooking gluten-free? RecipeFix rewrites your recipe, steps included."
+    search: ["hidden gluten foods", "foods with hidden gluten"]
+    caption: "The last one is the one people argue about. Sources in the video."
+    tags: [glutenfree, glutenfreetips, foodtok, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+    twist:
+      fact: myth-quinoa-gf
+      name: "And one that's fine: quinoa"
+      line: "Naturally gluten-free. Still check the label for cross-contact."
+      image: "a bowl of cooked quinoa salad with vegetables on a kitchen counter"
+    items:
+      - fact: soy-sauce-wheat
+        name: "Soy sauce"
+        line: "Traditionally brewed with wheat. Tamari made without wheat is the swap."
+        image: "a bottle of dark soy sauce being poured into a small dish beside a stir fry"
+      - fact: gf-malt-vinegar
+        name: "Malt vinegar"
+        line: "Malt is a gluten source, and that includes malt vinegar."
+        image: "a bottle of malt vinegar next to a basket of fish and chips"
+      - fact: gf-gravy
+        name: "Gravy"
+        line: "Many are thickened with wheat flour."
+        image: "a gravy boat of brown gravy pouring over mashed potatoes"
+      - fact: gf-spelt
+        name: "Spelt"
+        line: "An ancient grain, and still wheat."
+        image: "a loaf of rustic spelt bread with a scattering of grains on a board"
+      - fact: myth-seitan-gf
+        name: "Seitan"
+        line: "Made from vital wheat gluten. Vegan, not gluten-free."
+        image: "sliced seitan in a skillet with vegetables"
+
+  hidden-dairy:
+    series: "Hidden dairy"
+    topic: allergies
+    hook: "Dairy-free? Read the label for these 5"
+    save: "Save this for your next grocery run."
+    tie: "Cooking dairy-free? RecipeFix swaps the dairy and rewrites the steps."
+    search: ["hidden dairy ingredients", "foods with hidden dairy"]
+    caption: "A \"nondairy\" label can still mean milk protein. Sources in the video."
+    tags: [dairyfree, foodlabels, foodtok, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+    items:
+      - fact: allergen-whey
+        name: "Whey"
+        line: "A milk protein, like casein."
+        image: "a scoop of protein powder next to a shaker bottle on a kitchen counter"
+      - fact: myth-ghee
+        name: "Ghee"
+        line: "Made from milk. Milk protein is often left in it."
+        image: "a small glass jar of golden ghee with a spoon"
+      - fact: myth-nondairy
+        name: "\"Nondairy\" creamer"
+        line: "Can legally contain caseinate, a milk protein."
+        image: "coffee creamer being poured into a mug of black coffee"
+      - fact: myth-margarine
+        name: "Some margarine"
+        line: "Not all of it is dairy-free. Check for one labelled vegan."
+        image: "a tub of margarine spread on toast on a breakfast table"
+      - fact: label-cream-mushroom
+        name: "Cream of mushroom soup"
+        line: "The classic can lists wheat, milk and soy."
+        image: "a green bean casserole in a baking dish with crispy onions on top"

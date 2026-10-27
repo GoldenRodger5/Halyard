@@ -74,6 +74,7 @@ const POSTS_BY_FORMAT: Record<string, string[]> = {
   transform: VIDEO_POSTS,
   history: VIDEO_POSTS,
   versus: VIDEO_POSTS,
+  list: VIDEO_POSTS,
   carousel: ['instagram_carousel', 'tiktok_photos'],
   image: ['x', 'threads'],
 };
@@ -108,12 +109,13 @@ export function planWeek(opts: { start: string; perDay: number; extraFormats?: s
     transform: idsFrom('data/transforms.yaml', 'transforms').map((id) => ({ command: `transform ${id}`, topic: 'transform', facts: [] })),
     history: idsFrom('facts/history.yaml', 'stories').map((id) => ({ command: `history ${id} --voice`, topic: 'food-history', facts: [] })),
     versus: idsFrom('facts/versus.yaml', 'games').map((id) => ({ command: `versus ${id}`, topic: 'versus', facts: [] })),
+    list: idsFrom('facts/lists.yaml', 'lists').map((id) => ({ command: `list ${id}`, topic: `list-${id}`, facts: [] })),
     carousel: setNames.map((k) => ({ command: `slides quiz ${k}`, topic: k, facts: [] })),
     image: facts.filter((f) => !used.has(f.id)).map((f) => ({ command: `image ${f.id}`, topic: f.topic, facts: [f.id] })),
   };
   for (const f of opts.extraFormats ?? []) pools[f] ??= [];
   // PLAYBOOK §2 phase 1 mix: mostly diet-niche games, some recipes, a little product.
-  const order = ['quiz-set', 'recipe', 'myth', 'carousel', 'transform', 'quiz', 'history', 'versus', 'quiz-set', 'image', 'recipe', 'app'];
+  const order = ['list', 'quiz-set', 'recipe', 'myth', 'carousel', 'transform', 'list', 'history', 'versus', 'quiz-set', 'image', 'recipe', 'quiz', 'app'];
   const items: PlanItem[] = [];
   const takenFacts = new Set<string>();
   let lastFormat = '';
