@@ -20,6 +20,23 @@ Branch `feat/marketing-lean-lane-poc-20261026`, draft PR #100. Everything below 
 | Weekly plan | `pnpm mk plan-week --start YYYY-MM-DD` | Lists lead, then list-photos, quiz carousels, transform, recipes, at most 1 app intro. |
 | Publisher | `pnpm mk publish <run-dir> [--live]` | Blotato. Live posting requires a "post" critique. AI labels (TikTok AIGC, YouTube synthetic) come from asset provenance. **Never posted anything.** |
 
+## Latest round (2026-10-27, evening)
+
+- **List look is now `native`** (the default): a full-frame moving photo, captions that build
+  in three beats (name, "Hidden: X", takeaway), a band behind the captions for contrast, and
+  no cards, boxes or sound effects. The owner called the card looks "clip art and Canva".
+  The old looks are still reachable with `--look editorial|magazine|sticker`.
+- **The 7 lists** pass QA. Medians run 6–7/6–7/5–7/7. The review page is the same URL
+  (v2), and it now includes the 14-day queue.
+- **14-day queue:** `planWeek({ days: 14 })` builds it from an explicit weekly template
+  following the PLAYBOOK mix and per-platform cadence.
+- **Real motion is the next step**, and needs one of:
+  - a Pexels API key (https://www.pexels.com/api/);
+  - OpenAI organization verification so Sora works. `sora-2` is listed, but
+    `POST /v1/videos` returns 404 on this account.
+- **Data bug found:** in `food-facts.yaml`, `bake-soda-acid`'s source quote is the
+  soda-to-powder quote and does not support its claim. Fix it before any post uses it.
+
 ## Where it stopped
 
 - The last batch (commit `33d0f3f`: punch-in, shorter cover, "Swap: X" copy) re-rendered all

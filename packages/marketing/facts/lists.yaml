@@ -182,7 +182,6 @@ lists:
     close_title: "The real numbers"
     topic: cooking-myths
     hook: "5 kitchen rules that are wrong"
-    hook_sub: "Measured, not guessed"
     hook_image: "a home cook stirring a pot of sauce on a stove with measuring cups and a bag of flour on the counter"
     save: "Screenshot this for later."
     tie: "Cooking it your way tonight? RecipeFix rewrites the recipe, steps included."
