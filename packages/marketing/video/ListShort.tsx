@@ -38,7 +38,7 @@ export interface ListItem {
 export interface ListShortProps {
   hook: { text: string; sub?: string; photo: string; start: number; end: number; audio?: string | null };
   items: ListItem[];
-  close: { start: number; title: string; tips: Array<{ name: string; stamp: string; ok: boolean; photo?: string }>; save: string; photo: string };
+  close: { start: number; title: string; tips: Array<{ name: string; stamp: string; ok: boolean; photo?: string }>; save: string; note?: string; photo: string };
   label: string;
   sfx: { whoosh: string; reveal: string } | null;
   [key: string]: unknown;
@@ -287,6 +287,7 @@ const Close: React.FC<{ c: ListShortProps['close'] }> = ({ c }) => {
             );
           })}
         </div>
+        {c.note ? <div style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: 32, lineHeight: 1.3, color: '#FFFFFF', opacity: sv, textShadow: '0 2px 8px rgba(0,0,0,0.6)' }}>{c.note}</div> : null}
         {c.save ? <div style={{ alignSelf: 'flex-start', background: look === 'editorial' ? STAMP_RED : INK, color: '#FFFFFF', fontFamily: 'Inter', fontWeight: 600, fontSize: 42, padding: '14px 26px', borderRadius: 14, opacity: sv, transform: `scale(${interpolate(sv, [0, 1], [0.9, 1])})`, transformOrigin: 'left center' }}>{c.save}</div> : null}
       </div>
     </>

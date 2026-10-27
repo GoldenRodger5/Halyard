@@ -51,6 +51,7 @@ lists:
 
   hidden-gluten:
     series: "Hidden gluten"
+    note: "Recipes and brands vary. Check labels for the words gluten-free."
     topic: gluten-free
     hook: "5 foods that can secretly contain gluten"
     hook_image: "a pantry shelf with a bottle of soy sauce, a bottle of malt vinegar, a jar of gravy granules and a rustic loaf of bread, bright daylight"
@@ -95,11 +96,12 @@ lists:
         image: "a green bean casserole in a baking dish with crispy onions on top"
 
   hidden-dairy:
-    series: "Hidden dairy"
+    series: "Dairy allergy check"
+    note: "Ingredients vary by brand and kitchen. Check labels and ask staff."
     topic: allergies
     hook: "Dairy-free? Milk can hide in these 5"
     hook_sub: "#5 is at the steakhouse"
-    hook_image: "grilled hot dogs in buns and a bowl of tuna salad on a sunny picnic table"
+    hook_image: "a close-up of one grilled hot dog in a bun with mustard, shallow depth of field, bright daylight"
     save: "Save this for your next grocery run."
     tie: "Cooking dairy-free? RecipeFix swaps the dairy and rewrites the steps."
     search: ["hidden dairy ingredients", "foods with hidden dairy"]

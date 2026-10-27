@@ -223,6 +223,32 @@ Each line was a reviewer complaint that held up when checked against the frames.
   ~40 px wide, so display text sits further in rather than the check shrinking;
   a duplicate word matched to two lines is attribution, not an overlap.
 
+### P5 round 2 (2026-10-27): what moved the score and what did not
+
+The reviewer is now the median of three reviews, one labelled frame per second.
+
+| Change (one per round, not-vegan list unless noted) | stop/stay/engage/human |
+|---|---|
+| Sticker look, full sentences | 7/7/6/6 |
+| Editorial look (brand serif, flat stamps) | 7/7/6/7 |
+| + source quote card with highlighted label words | 7/7/5/7 (read as "homework") |
+| + guess beat ("What's hiding in it?") | 7/6/6/7 (longer, so stay fell) |
+| Quote card off, guess on item 1 only, ~14 s | 7/7/6/7 |
+| Magazine look (photo + paper band, big ink type) | 7/7/6/6 |
+| **Content: surprising items** (hidden dairy: hot dogs, tuna, shellfish, steak; FARE) | **7/8/6/7**, "would leave at: never" |
+
+- **Design has stopped moving the score; content still does.** Four layouts land within a
+  point of each other. The one jump came from items the audience does not already know.
+  Write lists from surprising, sourced facts first.
+- **Calibration:** two real food-media shorts through the same reviewer scored
+  2/4/2/5 (Tasty, re-cut horizontal) and 7/5/4/6 (Business Insider). Ours beat both. The
+  reviewer is not harsh across the board; 8–9 is reserved for native, high-engagement posts.
+  "A pro team would post it exactly as is" has been no for everything, the benchmarks
+  included, so the owner's own approval stays the real gate.
+- **The ceiling for stills plus text is about 7/8/6/7.** The remaining notes are about the
+  format ("same template with swapped footage"). The next step up is moving footage
+  (real cooking clips, or the owner on camera), not another layout.
+
 ## 9. What the machine never does
 
 No auto-following, auto-liking or auto-replying (platform policy; human
