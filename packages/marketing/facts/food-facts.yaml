@@ -420,6 +420,963 @@ facts:
     tags: [foodfacts, foodscience, foodtok, recipefix]
     claims: [core.diets, core.rewrites_steps]
 
+  # ══ P4 expansion (2026-10-27): 45 facts, each read on its source page that day. ══
+  # Method and source rules: facts/SOURCING.md.
+
+  # ── Gluten-free ──
+  - id: gf-spelt
+    topic: gluten-free
+    question: "Which of these grains is a type of wheat?"
+    options: ["Quinoa", "Spelt", "Millet", "Sorghum"]
+    correct: 1
+    why: "Spelt is a variety of wheat, so it contains gluten. An ancient grain is not automatically a gluten-free one."
+    source:
+      name: "Celiac Disease Foundation"
+      short: "Celiac Disease Foundation, Sources of Gluten"
+      url: "https://celiac.org/gluten-free-living/what-is-gluten/sources-of-gluten/"
+      quote: "Varieties and derivatives of wheat such as: wheatberries, durum, emmer, semolina, spelt, farina, farro, graham, KAMUT® khorasan wheat, einkorn wheat"
+    verified: 2026-10-27
+    photo: roasted-butternut-squash-soup
+    search: ["is spelt gluten free", "is spelt wheat"]
+    tip: "Spelt, farro, durum and semolina are all wheat."
+    image: "a rustic loaf of whole grain bread on a wooden board beside small bowls of mixed raw grains"
+    tie: "Cooking gluten-free? RecipeFix rewrites your recipe, steps included."
+    caption: "Is spelt gluten-free? It sounds like it could be. 3 seconds."
+    tags: [glutenfree, glutenfreebaking, foodtok, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+
+  - id: gf-malt-vinegar
+    topic: gluten-free
+    question: "Which of these vinegars usually contains gluten?"
+    options: ["Rice vinegar", "Apple cider vinegar", "Malt vinegar", "Red wine vinegar"]
+    correct: 2
+    why: "Malt, including malt vinegar, malt extract and malt syrup, is on the Celiac Disease Foundation's list of gluten sources."
+    source:
+      name: "Celiac Disease Foundation"
+      short: "Celiac Disease Foundation, Sources of Gluten"
+      url: "https://celiac.org/gluten-free-living/what-is-gluten/sources-of-gluten/"
+      quote: "Malt in various forms including: malted barley flour, malted milk or milkshakes, malt extract, malt syrup, malt flavoring, malt vinegar"
+    verified: 2026-10-27
+    photo: salmon-cucumber-salsa
+    search: ["is malt vinegar gluten free", "which vinegar has gluten"]
+    tip: "Malt vinegar, malt extract and malt syrup all count as gluten sources."
+    image: "a bowl of crisp salad greens being dressed from a small glass jug on a kitchen table"
+    tie: "Cooking gluten-free? RecipeFix rewrites your recipe, steps included."
+    caption: "Gluten-free dressing check: one of these vinegars is not like the others."
+    tags: [glutenfree, celiacfriendly, foodtok, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+
+  - id: myth-wheat-free
+    format: myth
+    topic: gluten-free
+    question: "A wheat-free label means the food is gluten-free."
+    options: []
+    correct: 0
+    why: "Wheat-free products can still contain rye, barley or spelt, which is a form of wheat. Look for the words gluten-free."
+    source:
+      name: "Celiac Disease Foundation"
+      short: "Celiac Disease Foundation, Sources of Gluten"
+      url: "https://celiac.org/gluten-free-living/what-is-gluten/sources-of-gluten/"
+      quote: "Products labeled wheat-free are not necessarily gluten-free. They may still contain spelt (a form of wheat), rye, or barley-based ingredients that are not gluten-free."
+    verified: 2026-10-27
+    photo: fluffy-buttermilk-pancakes
+    search: ["wheat free vs gluten free", "is wheat free gluten free"]
+    tip: "Wheat-free is not the same as gluten-free."
+    image: "a grocery shelf of crackers and snack boxes, labels blurred and unreadable"
+    tie: "Cooking gluten-free? RecipeFix rewrites your recipe, steps included."
+    caption: "Wheat-free vs gluten-free: same thing or not? Myth or fact."
+    tags: [glutenfree, foodlabels, kitchenmyths, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+
+  - id: myth-quinoa-gf
+    format: myth
+    topic: gluten-free
+    question: "Quinoa is naturally gluten-free."
+    options: []
+    correct: 1
+    why: "Quinoa is on the Celiac Disease Foundation's list of naturally gluten-free foods. It still flags cross-contact in processing, so check the label."
+    source:
+      name: "Celiac Disease Foundation"
+      short: "Celiac Disease Foundation, Gluten-Free Foods"
+      url: "https://celiac.org/gluten-free-living/gluten-free-foods/"
+      quote: "The following grains, legumes, seeds, and other starchy foods are naturally gluten-free: … Millet … Quinoa … Rice … Sorghum … Teff"
+    verified: 2026-10-27
+    photo: roasted-butternut-squash-soup
+    search: ["is quinoa gluten free"]
+    tip: "Quinoa, rice, millet, sorghum and teff are naturally gluten-free."
+    image: "a bowl of cooked grains with roasted vegetables on a sunny kitchen table"
+    tie: "Cooking gluten-free? RecipeFix rewrites your recipe, steps included."
+    caption: "Is quinoa gluten-free? Myth or fact, 3 seconds."
+    tags: [glutenfree, glutenfreecooking, kitchenmyths, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+
+  - id: myth-seitan-gf
+    format: myth
+    topic: gluten-free
+    question: "Seitan is a gluten-free meat swap."
+    options: []
+    correct: 0
+    why: "Seitan is made from vital wheat gluten. It works in a vegan kitchen, but it is not gluten-free."
+    source:
+      name: "The Vegan Society, A Guide to Vegan Food Alternatives"
+      short: "The Vegan Society, Guide to Vegan Food Alternatives"
+      url: "https://www.vegansociety.com/sites/default/files/uploads/downloads/Vegan_Guide_for_Childcare_Providers.pdf"
+      quote: "Plant-Based Meats – options made from soy or pea protein, mycoprotein (vegan Quorn™), vital wheat gluten (seitan), tofu or tempeh"
+    verified: 2026-10-27
+    photo: sweet-potato-black-bean-tacos
+    search: ["is seitan gluten free", "what is seitan made of"]
+    tip: "Seitan is vital wheat gluten: vegan, not gluten-free."
+    image: "a skillet of browned plant-based strips sizzling with peppers and onions"
+    tie: "Cooking vegan and gluten-free? RecipeFix rewrites your recipe for both, steps included."
+    caption: "Is seitan gluten-free? Vegan and gluten-free cooks mix this one up."
+    tags: [glutenfree, vegan, kitchenmyths, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+
+  - id: gf-gravy
+    topic: gluten-free
+    question: "Which Thanksgiving side most often has wheat flour in it?"
+    options: ["Cranberry sauce", "Roasted carrots", "Gravy"]
+    correct: 2
+    why: "Many gravies are thickened with wheat flour, which is why the Celiac Disease Foundation lists sauces and gravies as a common gluten source."
+    source:
+      name: "Celiac Disease Foundation"
+      short: "Celiac Disease Foundation, Sources of Gluten"
+      url: "https://celiac.org/gluten-free-living/what-is-gluten/sources-of-gluten/"
+      quote: "Sauces & Gravies (many use wheat flour as a thickener)"
+    verified: 2026-10-27
+    photo: lemon-herb-roast-chicken
+    search: ["is gravy gluten free", "gluten free thanksgiving sides"]
+    tip: "Many gravies are thickened with wheat flour. Ask, or make your own."
+    image: "a Thanksgiving table with a roast turkey, side dishes in bowls and lit candles"
+    tie: "Gluten-free Thanksgiving? RecipeFix rewrites each side, steps included."
+    caption: "Gluten-free Thanksgiving: which side is the sneaky one?"
+    tags: [glutenfree, thanksgiving, foodtok, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+
+  - id: gf-xanthan
+    topic: gluten-free
+    question: "Gluten-free cake: what usually stands in for the structure gluten gave?"
+    options: ["Extra sugar", "More baking soda", "Extra salt", "Xanthan gum and eggs"]
+    correct: 3
+    why: "King Arthur's bakers add xanthan gum, plus eggs whose protein steps in for the protein in wheat flour. Swapping only the flour is not enough."
+    source:
+      name: "King Arthur Baking, Making a recipe gluten-free"
+      short: "King Arthur Baking, Making a recipe gluten-free"
+      url: "https://www.kingarthurbaking.com/blog/2015/02/20/making-recipe-gluten-free"
+      quote: "we need something to provide the structure that gluten-free flour isn't able to offer. And that usually means two key ingredients: xanthan gum, a thickener/emulsifier/stabilizer; and eggs, whose protein steps in for the protein in wheat flour."
+    verified: 2026-10-27
+    photo: classic-banana-bread
+    search: ["what does xanthan gum do in gluten free baking", "gluten free baking xanthan gum"]
+    tip: "Going gluten-free? The flour swap usually brings xanthan gum and eggs with it."
+    image: "a round chocolate cake cooling on a wire rack in a home kitchen"
+    tie: "Baking gluten-free? RecipeFix rewrites the steps, not just the flour."
+    caption: "Gluten-free baking is more than a flour swap. What carries the structure?"
+    tags: [glutenfree, glutenfreebaking, bakingtips, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+
+  # ── Allergen and dairy-free labels ──
+  - id: allergen-molluscs
+    topic: allergies
+    question: "Under US allergen labeling law, which one is NOT a major allergen?"
+    options: ["Shrimp", "Crab", "Lobster", "Clams"]
+    correct: 3
+    why: "The law names crustacean shellfish like crab, lobster and shrimp. Molluscs such as clams, oysters, mussels and scallops are not major allergens under it."
+    source:
+      name: "U.S. FDA, Questions and Answers Regarding Food Allergens (Edition 5), Guidance for Industry"
+      short: "FDA, Food Allergen Q&A Guidance (Edition 5)"
+      url: "https://www.fda.gov/media/117410/download"
+      quote: "crustacean shellfish (such as crab, lobster, or shrimp) and ingredients that contain protein derived from crustacean shellfish are major food allergens, but molluscan shellfish (such as oysters, clams, mussels, or scallops) are not."
+    verified: 2026-10-27
+    photo: garlic-shrimp-spaghetti
+    search: ["are clams a major allergen", "shellfish allergen labeling"]
+    tip: "On US allergen labels, shellfish means crustaceans: crab, lobster, shrimp."
+    image: "a seafood platter on crushed ice at a restaurant table"
+    tie: "Cooking around an allergy? RecipeFix swaps the ingredient and rewrites the steps."
+    caption: "Shellfish on a US allergen label means something narrower than you think."
+    tags: [foodallergies, foodlabels, foodtok, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+
+  - id: myth-may-contain
+    format: myth
+    topic: allergies
+    question: "\"May contain\" warnings are required by US law."
+    options: []
+    correct: 0
+    why: "FDA says statements like \"may contain\" or \"produced in a facility that also uses\" are not required by law."
+    source:
+      name: "U.S. FDA"
+      short: "FDA, Food Allergies"
+      url: "https://www.fda.gov/food/nutrition-food-labeling-and-critical-foods/food-allergies"
+      quote: "Consumers may also see advisory statements such as “may contain [allergen] or “produced in a facility that also uses [allergen].” Such statements are not required by law"
+    verified: 2026-10-27
+    photo: classic-banana-bread
+    search: ["are may contain labels required", "may contain allergen label"]
+    tip: "\"May contain\" lines are not required by US law."
+    image: "a hand turning over a packaged snack box in a grocery aisle, text unreadable"
+    tie: "Cooking around an allergy? RecipeFix swaps the ingredient and rewrites the steps."
+    caption: "May contain labels: required by law or not? Myth or fact."
+    tags: [foodallergies, foodlabels, kitchenmyths, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+
+  - id: myth-coconut
+    format: myth
+    topic: allergies
+    question: "Coconut counts as a tree nut on US allergen labels."
+    options: []
+    correct: 0
+    why: "FDA's 5th edition allergen guidance took coconut off its list of tree nuts that count as major food allergens."
+    source:
+      name: "U.S. FDA, Frequently Asked Questions: Food Allergen Labeling Guidance for Industry"
+      short: "FDA, Food Allergen Labeling FAQ"
+      url: "https://www.fda.gov/food/food-allergensgluten-free-guidance-documents-regulatory-information/frequently-asked-questions-food-allergen-labeling-guidance-industry"
+      quote: "No, coconut is no longer listed in the Tree Nut List (Table 1) in the 5th edition of the Food Allergen Q&A Guidance."
+    verified: 2026-10-27
+    photo: chicken-tikka-masala
+    search: ["is coconut a tree nut", "coconut tree nut allergy label"]
+    tip: "Coconut is no longer on FDA's tree nut allergen list."
+    image: "halved coconuts and a bowl of coconut flakes on a kitchen counter"
+    tie: "Cooking around an allergy? RecipeFix swaps the ingredient and rewrites the steps."
+    caption: "Is coconut a tree nut on US labels? The answer changed recently."
+    tags: [foodallergies, foodlabels, kitchenmyths, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+
+  - id: myth-ghee
+    format: myth
+    topic: allergies
+    question: "Ghee is dairy-free."
+    options: []
+    correct: 0
+    why: "Ghee is a fat made from milk, and FDA says milk protein is often left in it, so it gets labeled as milk."
+    source:
+      name: "U.S. FDA, Questions and Answers Regarding Food Allergens (Edition 5), Guidance for Industry"
+      short: "FDA, Food Allergen Q&A Guidance (Edition 5)"
+      url: "https://www.fda.gov/media/117410/download"
+      quote: "Because lactose is a milk sugar and ghee is a milk-derived fat, residual protein from milk is often present in these ingredients. When that is the case, lactose and ghee must be labeled in accordance with section 403(w)(1) of the FD&C Act."
+    verified: 2026-10-27
+    photo: chicken-tikka-masala
+    search: ["is ghee dairy free", "does ghee have milk"]
+    tip: "Ghee is made from milk, so it isn't dairy-free."
+    image: "a pan of golden curry simmering with whole spices on a stove"
+    tie: "Cooking dairy-free? RecipeFix swaps the fat and rewrites the steps."
+    caption: "Is ghee dairy-free? Lots of curry recipes depend on the answer."
+    tags: [dairyfree, foodlabels, kitchenmyths, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+
+  - id: allergen-whey
+    topic: allergies
+    question: "Which ingredient on a label means it's made from milk?"
+    options: ["Cocoa butter", "Cream of tartar", "Whey", "Coconut cream"]
+    correct: 2
+    why: "Whey is a protein from milk, and FARE lists it with casein among milk ingredients. The other three only sound dairy."
+    source:
+      name: "FARE (Food Allergy Research & Education), Milk Allergy"
+      short: "FARE, Milk"
+      url: "https://www.foodallergy.org/living-food-allergies/food-allergy-essentials/common-allergens/milk"
+      quote: "Avoid foods that contain milk or any of these ingredients: … Casein … Whey (in all forms)"
+    verified: 2026-10-27
+    photo: fluffy-buttermilk-pancakes
+    search: ["is whey dairy", "does whey have milk"]
+    tip: "Whey and casein both come from milk."
+    image: "a kitchen counter with several packaged snacks and a handwritten shopping list"
+    tie: "Cooking dairy-free? RecipeFix finds the hidden dairy and rewrites the steps."
+    caption: "Dairy-free label reading: one of these ingredients is milk in disguise."
+    tags: [dairyfree, foodlabels, foodtok, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+
+  - id: label-cream-mushroom
+    topic: labels
+    question: "Canned cream of mushroom soup, the base of green bean casserole, contains…"
+    options: ["Milk only", "Wheat only", "Wheat, milk and soy", "None of these"]
+    correct: 2
+    why: "Campbell's condensed cream of mushroom lists wheat flour, cream, whey and soy protein, and its label says contains wheat, milk, soy."
+    source:
+      name: "Campbell's Condensed Cream of Mushroom Soup, 10.5 oz can, ingredient label"
+      short: "Campbell's cream of mushroom label"
+      url: "https://www.campbellsfoodservice.com/product/cream-of-mushroom-soup/"
+      quote: "WATER, MUSHROOMS, VEGETABLE OIL (CORN, CANOLA, AND/OR SOYBEAN), MODIFIED CORNSTARCH, WHEAT FLOUR, SALT, CREAM, WHEY, SOY PROTEIN CONCENTRATE, MONOSODIUM GLUTAMATE, YEAST EXTRACT, DRIED GARLIC, NATURAL FLAVORING. CONTAINS: WHEAT, MILK, SOY"
+    verified: 2026-10-27
+    photo: roasted-butternut-squash-soup
+    search: ["is green bean casserole gluten free", "dairy free green bean casserole"]
+    tip: "Classic green bean casserole: the soup brings wheat, milk and soy."
+    image: "a baking dish of green bean casserole topped with crispy fried onions on a holiday table"
+    tie: "Making it gluten-free or dairy-free? RecipeFix swaps the soup and rewrites the steps."
+    caption: "Green bean casserole, gluten-free or dairy-free? Start with the can."
+    tags: [thanksgiving, glutenfree, dairyfree, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+
+  - id: myth-nondairy
+    format: myth
+    topic: labels
+    question: "A \"nondairy\" creamer can contain milk protein."
+    options: []
+    correct: 1
+    why: "US rules let a \"nondairy\" food contain caseinate, a milk protein, as long as the label adds a note like \"a milk derivative\"."
+    source:
+      name: "21 CFR 101.4(d), Food; designation of ingredients"
+      short: "21 CFR 101.4(d)"
+      url: "https://www.ecfr.gov/current/title-21/section-101.4"
+      quote: "When foods characterized on the label as “nondairy” contain a caseinate ingredient, the caseinate ingredient shall be followed by a parenthetical statement identifying its source. For example, if the manufacturer uses the term “nondairy” on a creamer that contains sodium caseinate, it shall include a parenthetical term such as “a milk derivative”"
+    verified: 2026-10-27
+    photo: blueberry-banana-french-toast
+    search: ["does non dairy creamer have milk", "is non dairy creamer dairy free"]
+    tip: "\"Nondairy\" can still mean milk protein. Look for caseinate."
+    image: "a mug of coffee with creamer swirling in, on a breakfast table"
+    tie: "Cooking dairy-free? RecipeFix finds the hidden dairy and rewrites the steps."
+    caption: "Nondairy creamer: can it contain milk? Myth or fact, 3 seconds."
+    tags: [dairyfree, foodlabels, kitchenmyths, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+
+  - id: myth-natural-flavor
+    format: myth
+    topic: vegan
+    question: "\"Natural flavor\" on a US label can come from meat or dairy."
+    options: []
+    correct: 1
+    why: "The legal definition of natural flavor includes meat, seafood, poultry, eggs and dairy products, not only plants."
+    source:
+      name: "21 CFR 101.22(a)(3), Foods; labeling of spices, flavorings, colorings and chemical preservatives"
+      short: "21 CFR 101.22(a)(3)"
+      url: "https://www.ecfr.gov/current/title-21/section-101.22"
+      quote: "The term natural flavor or natural flavoring means the essential oil, oleoresin, essence or extractive, protein hydrolysate, distillate, or any product of roasting, heating or enzymolysis, which contains the flavoring constituents derived from a spice, fruit or fruit juice, vegetable or vegetable juice, edible yeast, herb, bark, bud, root, leaf or similar plant material, meat, seafood, poultry, eggs, dairy products, or fermentation products thereof"
+    verified: 2026-10-27
+    photo: weeknight-vegetable-fried-rice
+    search: ["is natural flavor vegan", "what is natural flavor made from"]
+    tip: "Natural flavor isn't always plant-based. Ask the maker when it matters."
+    image: "a hand holding a bag of chips in a grocery aisle, packaging text unreadable"
+    tie: "Making it vegan? RecipeFix swaps the hidden stuff and rewrites the steps."
+    caption: "Natural flavor on a vegan shopping list: myth or fact?"
+    tags: [vegan, foodlabels, kitchenmyths, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+
+  # ── Vegan ──
+  - id: vegan-nooch
+    topic: vegan
+    question: "Is nutritional yeast vegan?"
+    options: ["Yes", "No"]
+    correct: 0
+    why: "The Vegan Society lists nutritional yeast as a vegan way to get a cheesy flavor."
+    source:
+      name: "The Vegan Society, A Guide to Vegan Food Alternatives"
+      short: "The Vegan Society, Guide to Vegan Food Alternatives"
+      url: "https://www.vegansociety.com/sites/default/files/uploads/downloads/Vegan_Guide_for_Childcare_Providers.pdf"
+      quote: "Cheese – cashew*, almond or coconut-based cheeses and nutritional yeast for a cheesy flavour"
+    verified: 2026-10-27
+    photo: roasted-butternut-squash-soup
+    search: ["is nutritional yeast vegan"]
+    tip: "Nutritional yeast: the vegan way to a cheesy flavor."
+    image: "a bowl of creamy pasta on a kitchen table with a wooden spoon"
+    tie: "Making it vegan? RecipeFix swaps the cheese and rewrites the steps."
+    caption: "Is nutritional yeast vegan? It says yeast, it tastes like cheese."
+    tags: [vegan, vegantok, foodtok, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+
+  - id: vegan-carmine
+    topic: vegan
+    question: "Carmine, a red food color (E120), is made from…"
+    options: ["Beets", "Insects", "Red cabbage", "Tomatoes"]
+    correct: 1
+    why: "Carmine, also called cochineal, is a red dye made from crushed cochineal insects. The Vegan Society suggests beet juice powder or paprika extract instead."
+    source:
+      name: "The Vegan Society, A Guide to Vegan Food Alternatives"
+      short: "The Vegan Society, Guide to Vegan Food Alternatives"
+      url: "https://www.vegansociety.com/sites/default/files/uploads/downloads/Vegan_Guide_for_Childcare_Providers.pdf"
+      quote: "Carmine (E120) or cochineal – a red dye made from crushed cochineal insects"
+    verified: 2026-10-27
+    photo: fluffy-buttermilk-pancakes
+    search: ["is carmine vegan", "what is carmine made from"]
+    tip: "Carmine and cochineal come from insects. Swap: beet juice powder."
+    image: "a row of bright pink frosted cupcakes on a bakery counter"
+    tie: "Making it vegan? RecipeFix swaps the hidden stuff and rewrites the steps."
+    caption: "Is carmine vegan? That red color has a surprising source."
+    tags: [vegan, foodlabels, foodtok, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+
+  - id: vegan-l-cysteine
+    topic: vegan
+    question: "L-cysteine, used in some bread products, is sometimes sourced from…"
+    options: ["Feathers or hair", "Seaweed", "Eggshells"]
+    correct: 0
+    why: "The Vegan Society notes this amino acid is sometimes sourced from animal feathers or hair. Synthetic versions exist."
+    source:
+      name: "The Vegan Society, A Guide to Vegan Food Alternatives"
+      short: "The Vegan Society, Guide to Vegan Food Alternatives"
+      url: "https://www.vegansociety.com/sites/default/files/uploads/downloads/Vegan_Guide_for_Childcare_Providers.pdf"
+      quote: "L-cysteine – an amino acid sometimes sourced from animal feathers or hair and used in bread products"
+    verified: 2026-10-27
+    photo: classic-banana-bread
+    search: ["is l-cysteine vegan", "is bread vegan"]
+    tip: "L-cysteine in bread can be animal-derived. Synthetic versions exist."
+    image: "a basket of soft dinner rolls on a kitchen table"
+    tie: "Making it vegan? RecipeFix swaps the hidden stuff and rewrites the steps."
+    caption: "Is bread always vegan? One additive on some labels says maybe not."
+    tags: [vegan, foodlabels, foodtok, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+
+  - id: myth-margarine
+    format: myth
+    topic: vegan
+    question: "Some margarines contain milk."
+    options: []
+    correct: 1
+    why: "The Vegan Society flags margarines that contain milk or animal-derived vitamin D3. Check for one labeled vegan."
+    source:
+      name: "The Vegan Society, A Guide to Vegan Food Alternatives"
+      short: "The Vegan Society, Guide to Vegan Food Alternatives"
+      url: "https://www.vegansociety.com/sites/default/files/uploads/downloads/Vegan_Guide_for_Childcare_Providers.pdf"
+      quote: "like lard (pork fat), suet (beef or mutton fat) and some margarines containing milk and/or animal-derived vitamin D3"
+    verified: 2026-10-27
+    photo: fluffy-buttermilk-pancakes
+    search: ["is margarine dairy free", "is margarine vegan"]
+    tip: "Not all margarine is dairy-free. Check the label."
+    image: "a block of yellow spread on a butter dish beside a plate of toast"
+    tie: "Cooking dairy-free? RecipeFix swaps the fat and rewrites the steps."
+    caption: "Is margarine dairy-free? Myth or fact, 3 seconds."
+    tags: [dairyfree, vegan, kitchenmyths, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+
+  # ── Vegetarian ──
+  - id: veg-rennet
+    topic: vegetarian
+    question: "Traditional animal rennet, used to make cheese, comes from…"
+    options: ["Pig skin", "Calf stomachs", "Fish bones", "Egg whites"]
+    correct: 1
+    why: "US rules define rennet as an extract from the fourth stomach of calves, kids or lambs. Look for cheese made with microbial or vegetable rennet."
+    source:
+      name: "21 CFR 184.1685, Rennet (animal-derived) and chymosin preparation"
+      short: "21 CFR 184.1685"
+      url: "https://www.ecfr.gov/current/title-21/section-184.1685"
+      quote: "Rennet is the aqueous extract prepared from cleaned, frozen, salted, or dried fourth stomachs (abomasa) of calves, kids, or lambs."
+    verified: 2026-10-27
+    photo: crispy-chicken-parmesan
+    search: ["what is rennet made from", "is cheese vegetarian"]
+    tip: "Look for microbial or vegetable rennet on the cheese label."
+    image: "a wheel of aged cheese being cut on a wooden board"
+    tie: "Cooking vegetarian? RecipeFix swaps the cheese and tells you why."
+    caption: "Vegetarian and cheese: where traditional rennet comes from."
+    tags: [vegetarian, cheese, foodtok, recipefix]
+    claims: [core.diets, core.reasons]
+
+  - id: veg-marshmallow
+    topic: vegetarian
+    question: "What keeps classic marshmallows from being vegetarian?"
+    options: ["Corn syrup", "Dextrose", "Cornstarch", "Gelatin"]
+    correct: 3
+    why: "The Jet-Puffed label lists gelatin, an animal protein. Vegan marshmallows use plant-based gelling agents."
+    source:
+      name: "Jet-Puffed Marshmallows, US ingredient label"
+      short: "Jet-Puffed marshmallow label"
+      url: "https://foodlion.com/groceries/product/jet-puffed-marshmallows-12-oz-bag/1869"
+      quote: "Corn Syrup, Sugar, Dextrose, Modified Cornstarch, Water, Contains Less Than 2% Gelatin, Tetrasodium Pyrophosphate (Whipping Aid), Natural And Artificial Flavor, Blue 1."
+    verified: 2026-10-27
+    photo: roasted-butternut-squash-soup
+    search: ["are marshmallows vegetarian", "do marshmallows have gelatin"]
+    tip: "Classic marshmallows contain gelatin. Look for vegan ones."
+    image: "a casserole of mashed sweet potatoes topped with toasted golden marshmallows"
+    tie: "Vegetarian Thanksgiving? RecipeFix swaps the topping and tells you why."
+    caption: "Vegetarian Thanksgiving check: the sweet potato topping."
+    tags: [vegetarian, thanksgiving, foodtok, recipefix]
+    claims: [core.diets, core.reasons]
+
+  - id: veg-isinglass
+    topic: vegetarian
+    question: "Isinglass, used to clarify some beers and wines, comes from…"
+    options: ["Fish bladders", "Eggshells", "Clay", "Seaweed"]
+    correct: 0
+    why: "Isinglass is a fish bladder-derived substance used to clarify some beers and wines. Vegan-certified labels skip it."
+    source:
+      name: "The Vegan Society, A Guide to Vegan Food Alternatives"
+      short: "The Vegan Society, Guide to Vegan Food Alternatives"
+      url: "https://www.vegansociety.com/sites/default/files/uploads/downloads/Vegan_Guide_for_Childcare_Providers.pdf"
+      quote: "Isinglass – a fish bladder-derived substance used in clarifying some beers and wines"
+    verified: 2026-10-27
+    photo: salmon-cucumber-salsa
+    search: ["is wine vegetarian", "what is isinglass"]
+    tip: "Some beers and wines are clarified with fish. Look for vegan-certified."
+    image: "two glasses of white wine on a candlelit dinner table"
+    tie: "Cooking vegetarian? RecipeFix swaps it and tells you why."
+    caption: "Is wine vegetarian? Most people never ask how it's clarified."
+    tags: [vegetarian, vegan, foodtok, recipefix]
+    claims: [core.diets, core.reasons]
+
+  # ── Halal kitchen ──
+  - id: halal-lard
+    topic: halal
+    question: "Lard is the fat from which animal?"
+    options: ["Cows", "Ducks", "Sheep", "Pigs"]
+    correct: 3
+    why: "US meat rules define lard as fat rendered from swine. Check pastry and pie crust recipes for it."
+    source:
+      name: "9 CFR 319.702, Lard, leaf lard"
+      short: "9 CFR 319.702"
+      url: "https://www.ecfr.gov/current/title-9/section-319.702"
+      quote: "Lard is the fat rendered from clean and sound edible tissues from swine."
+    verified: 2026-10-27
+    photo: classic-banana-bread
+    search: ["what is lard made of", "is lard halal"]
+    tip: "Lard is pork fat."
+    image: "a flaky pie crust being crimped by hand on a floured counter"
+    tie: "Cooking halal? RecipeFix swaps it out and rewrites the steps."
+    caption: "Halal baking check: what lard actually is."
+    tags: [halal, halalfood, bakingtips, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+
+  - id: halal-gelatin
+    topic: halal
+    question: "Under US rules, gelatin is made from collagen in…"
+    options: ["Seaweed", "Fish only", "Cattle and pigs", "Corn"]
+    correct: 2
+    why: "A US federal rule defines gelatin as made from the hides, connective tissue and bones of cattle and swine. Agar-agar is a plant-based gelling swap."
+    source:
+      name: "21 CFR 189.5(a)(8), Prohibited cattle materials (definition of gelatin)"
+      short: "21 CFR 189.5"
+      url: "https://www.ecfr.gov/current/title-21/section-189.5"
+      quote: "Gelatin means a product that has been obtained by the partial hydrolysis of collagen derived from hides, connective tissue, and/or bone bones of cattle and swine."
+    verified: 2026-10-27
+    photo: blueberry-banana-french-toast
+    search: ["is gelatin halal", "where does gelatin come from"]
+    tip: "Gelatin can come from pigs. Agar-agar is the plant-based swap."
+    image: "a wobbly molded jelly dessert on a glass plate at a party table"
+    tie: "Cooking halal? RecipeFix swaps it out and rewrites the steps."
+    caption: "Halal desserts: where does gelatin come from?"
+    tags: [halal, halalfood, foodtok, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+
+  - id: halal-vanilla
+    topic: halal
+    question: "In the US, pure vanilla extract must be at least how much alcohol?"
+    options: ["0%", "5%", "20%", "35%"]
+    correct: 3
+    why: "The US standard requires vanilla extract to be at least 35% alcohol by volume. Vanilla flavoring has less than 35%, which is not the same as none."
+    source:
+      name: "21 CFR 169.175, Vanilla extract"
+      short: "21 CFR 169.175"
+      url: "https://www.ecfr.gov/current/title-21/section-169.175"
+      quote: "In vanilla extract the content of ethyl alcohol is not less than 35 percent by volume"
+    verified: 2026-10-27
+    photo: classic-banana-bread
+    search: ["how much alcohol is in vanilla extract", "is vanilla extract halal"]
+    tip: "Vanilla extract is at least 35% alcohol. Look for alcohol-free vanilla."
+    image: "a mixing bowl of cake batter on a counter beside a small dark glass bottle"
+    tie: "Cooking halal? RecipeFix swaps it out and rewrites the steps."
+    caption: "Halal baking: vanilla extract and alcohol, the actual number."
+    tags: [halal, halalfood, bakingtips, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+
+  # ── Protein math ──
+  - id: protein-dv
+    topic: protein
+    question: "On a US Nutrition Facts label, the Daily Value for protein is…"
+    options: ["25 g", "50 g", "100 g", "150 g"]
+    correct: 1
+    why: "FDA's Daily Value for protein is 50 g. Labels work out the %DV from that number."
+    source:
+      name: "U.S. FDA, Daily Value on the Nutrition and Supplement Facts Labels"
+      short: "FDA, Daily Value on the Nutrition Facts Label"
+      url: "https://www.fda.gov/food/nutrition-facts-label/daily-value-nutrition-and-supplement-facts-labels"
+      quote: "Protein 50g"
+    verified: 2026-10-27
+    photo: blueberry-banana-french-toast
+    search: ["protein daily value", "protein daily value grams"]
+    tip: "Protein Daily Value on US labels: 50 g."
+    image: "a breakfast table with eggs, yogurt and toast in morning light"
+    tie: "Cooking high-protein? RecipeFix rewrites your recipe, steps included."
+    caption: "Protein daily value on a US label: what's the number? 3 seconds."
+    tags: [highprotein, foodlabels, foodtok, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+
+  - id: protein-lentils-quinoa
+    topic: protein
+    question: "Per 100 g cooked, which has more protein?"
+    options: ["Quinoa", "Lentils", "About the same"]
+    correct: 1
+    why: "USDA lists cooked lentils at 9.02 g protein per 100 g and cooked quinoa at 4.4 g. Lentils carry about twice the protein."
+    source:
+      name: "USDA FoodData Central, SR Legacy (FDC 172421 and 168917)"
+      short: "USDA FoodData Central"
+      url: "https://fdc.nal.usda.gov/food-details/172421/nutrients"
+      quote: "Lentils, mature seeds, cooked, boiled, without salt (FDC 172421): Protein 9.02 g per 100 g; Quinoa, cooked (FDC 168917): Protein 4.4 g per 100 g"
+    verified: 2026-10-27
+    photo: sweet-potato-black-bean-tacos
+    search: ["lentils vs quinoa protein", "does quinoa have more protein than lentils"]
+    tip: "Per 100 g cooked: lentils 9.02 g protein, quinoa 4.4 g."
+    image: "two bowls of cooked grains and legumes side by side on a wooden table"
+    tie: "Cooking high-protein vegetarian? RecipeFix rewrites your recipe, steps included."
+    caption: "High-protein vegetarian swap: lentils or quinoa? Guess first."
+    tags: [highprotein, vegetarian, foodtok, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+
+  - id: protein-high-claim
+    topic: protein
+    question: "To say \"high protein\" on a US label, a serving needs at least what % of the Daily Value?"
+    options: ["5%", "10%", "20%", "50%"]
+    correct: 2
+    why: "FDA rules allow \"high\", \"rich in\" or \"excellent source\" at 20% of the Daily Value or more per reference serving. 10 to 19% is a \"good source\"."
+    source:
+      name: "21 CFR 101.54, Nutrient content claims for \"good source,\" \"high,\" \"more,\" and \"high potency\""
+      short: "21 CFR 101.54"
+      url: "https://www.ecfr.gov/current/title-21/section-101.54"
+      quote: "The terms “high,” “rich in,” or “excellent source of” may be used … provided that the food contains 20 percent or more of the RDI or the DRV per reference amount customarily consumed. … The terms “good source,” “contains,” or “provides” may be used … provided that the food contains 10 to 19 percent of the RDI or the DRV per reference amount customarily consumed."
+    verified: 2026-10-27
+    photo: crispy-chicken-parmesan
+    search: ["what does high protein mean on a label", "high protein claim fda"]
+    tip: "\"High protein\" on a US label: 20% DV or more. \"Good source\": 10 to 19%."
+    image: "a grocery shelf of snack bars, wrappers blurred and unreadable"
+    tie: "Cooking high-protein? RecipeFix rewrites your recipe, steps included."
+    caption: "High protein on a label has a legal floor. Know it?"
+    tags: [highprotein, foodlabels, foodtok, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+
+  - id: protein-almond-milk
+    topic: protein
+    question: "Whole milk has 3.15 g protein per 100 g. Unsweetened almond milk has…"
+    options: ["0.4 g", "1.5 g", "3 g", "5 g"]
+    correct: 0
+    why: "USDA lists shelf-stable unsweetened almond milk at 0.4 g protein per 100 g, against 3.15 g for whole milk. The swap drops most of the protein."
+    source:
+      name: "USDA FoodData Central, SR Legacy (FDC 174832 and 171265)"
+      short: "USDA FoodData Central"
+      url: "https://fdc.nal.usda.gov/food-details/174832/nutrients"
+      quote: "Beverages, almond milk, unsweetened, shelf stable (FDC 174832): Protein 0.4 g per 100 g; Milk, whole, 3.25% milkfat, with added vitamin D (FDC 171265): Protein 3.15 g per 100 g"
+    verified: 2026-10-27
+    photo: blueberry-banana-french-toast
+    search: ["almond milk protein", "almond milk vs milk protein"]
+    tip: "Almond milk swaps the milk, not the protein: 0.4 g vs 3.15 g per 100 g."
+    image: "plant milk being poured over a bowl of oats on a breakfast table"
+    tie: "Dairy-free and high-protein? RecipeFix rewrites your recipe for both, steps included."
+    caption: "Dairy-free milk and protein: how much does almond milk keep?"
+    tags: [highprotein, dairyfree, foodtok, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+
+  - id: protein-soy-milk
+    topic: protein
+    question: "Which plant milk matches cow's milk on protein?"
+    options: ["Almond", "Soy", "Rice", "Coconut"]
+    correct: 1
+    why: "King Arthur found soy milk equals dairy milk at 8 g protein per 8-ounce serving, which also makes it their top non-dairy pick for baking."
+    source:
+      name: "King Arthur Baking, Non-dairy milk for baking"
+      short: "King Arthur Baking, Non-dairy milk for baking"
+      url: "https://www.kingarthurbaking.com/blog/2024/08/12/best-non-dairy-milk-for-baking"
+      quote: "Soy milk equals dairy milk in protein level (8 grams protein per 8-ounce serving)"
+    verified: 2026-10-27
+    photo: fluffy-buttermilk-pancakes
+    search: ["which plant milk has the most protein", "best non dairy milk for baking"]
+    tip: "Soy milk matches dairy milk: 8 g protein per 8 oz."
+    image: "four glasses of different plant milks lined up on a kitchen counter"
+    tie: "Cooking dairy-free? RecipeFix swaps the milk and rewrites the steps."
+    caption: "Dairy-free baking: which plant milk keeps the protein?"
+    tags: [dairyfree, highprotein, bakingtips, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+
+  # ── Kitchen math ──
+  - id: km-flour-120g
+    topic: kitchen-math
+    question: "A cup of all-purpose flour weighs about…"
+    options: ["90 g", "120 g", "200 g", "250 g"]
+    correct: 1
+    why: "King Arthur weighs a cup of all-purpose flour at 120 grams, or 4 1/4 ounces. A scale beats a scoop."
+    source: &kaweights
+      name: "King Arthur Baking, Ingredient Weight Chart"
+      short: "King Arthur Baking, Ingredient Weight Chart"
+      url: "https://www.kingarthurbaking.com/learn/ingredient-weight-chart"
+      quote: "A cup of all-purpose flour weighs 120 grams or 4 1/4 ounces. … All-Purpose Flour 1 cup 4 1/4 120 … Sugar (granulated white) 1 cup 7 198"
+    verified: 2026-10-27
+    photo: fluffy-buttermilk-pancakes
+    search: ["how many grams in a cup of flour", "1 cup flour in grams"]
+    tip: "1 cup all-purpose flour = 120 g."
+    image: "a bowl of flour on a digital kitchen scale on a floured counter, display unreadable"
+    tie: "Scaling a recipe? RecipeFix does the math in measurements you can actually use."
+    caption: "Cups to grams for flour: the number bakers use. 3 seconds."
+    tags: [bakingtips, cookingtips, foodtok, recipefix]
+    claims: [core.scaling]
+
+  - id: myth-flour-sugar
+    format: myth
+    topic: kitchen-math
+    question: "A cup of flour and a cup of sugar weigh the same."
+    options: []
+    correct: 0
+    why: "King Arthur's chart: 1 cup all-purpose flour is 120 g, 1 cup granulated sugar is 198 g. Same cup, very different weight."
+    source: *kaweights
+    verified: 2026-10-27
+    photo: classic-banana-bread
+    search: ["does a cup of sugar weigh the same as flour", "cup of sugar in grams"]
+    tip: "1 cup flour = 120 g. 1 cup sugar = 198 g."
+    image: "two measuring cups, one of flour and one of sugar, on a baking counter"
+    tie: "Scaling a recipe? RecipeFix does the math in measurements you can actually use."
+    caption: "Cup of flour vs cup of sugar by weight. Myth or fact?"
+    tags: [bakingtips, kitchenmyths, foodtok, recipefix]
+    claims: [core.scaling]
+
+  - id: km-soda-to-powder
+    topic: kitchen-math
+    question: "Out of baking soda. How much baking powder replaces 1 teaspoon?"
+    options: ["1 teaspoon", "2 teaspoons", "3 teaspoons"]
+    correct: 2
+    why: "Baking powder is weaker, so King Arthur uses three times as much: 3 teaspoons for 1 teaspoon of soda. Expect a slightly bitter taste."
+    source: &kasoda
+      name: "King Arthur Baking, What's the difference between baking soda and baking powder?"
+      short: "King Arthur Baking, Baking soda vs. baking powder"
+      url: "https://www.kingarthurbaking.com/blog/2021/09/10/difference-between-baking-soda-and-baking-powder-substitutions"
+      quote: "it’s important to use three times the amount of baking powder as baking soda. Be aware, a slightly bitter, off-putting taste might result from using that much baking powder. Sub for 1 teaspoon baking soda: 3 teaspoons baking powder"
+    verified: 2026-10-27
+    photo: classic-banana-bread
+    search: ["baking powder instead of baking soda", "baking soda substitute"]
+    tip: "No baking soda? Use 3 times the baking powder."
+    image: "small bowls of white leavening powders and measuring spoons on a baking counter"
+    tie: "Scaling a recipe? RecipeFix does the math in measurements you can actually use."
+    caption: "Baking soda substitute: how much baking powder? 3 seconds."
+    tags: [bakingtips, kitchenhacks, foodtok, recipefix]
+    claims: [core.scaling]
+
+  - id: km-buttermilk-df
+    topic: kitchen-math
+    question: "Dairy-free buttermilk: 1 cup non-dairy milk plus…"
+    options: ["1 tsp baking soda", "1/4 cup sugar", "1 tbsp lemon juice", "1 egg"]
+    correct: 2
+    why: "King Arthur stirs 1 tablespoon lemon juice or vinegar into 1 cup non-dairy milk and lets it rest about 5 minutes."
+    source:
+      name: "King Arthur Baking, How to bake dairy-free"
+      short: "King Arthur Baking, How to bake dairy-free"
+      url: "https://www.kingarthurbaking.com/blog/2018/05/10/how-to-bake-dairy-free"
+      quote: "Buttermilk : Make your own buttermilk by adding 1 tablespoon lemon juice or vinegar to 1 cup non-dairy milk. Let it rest for about 5 minutes before using in your recipe."
+    verified: 2026-10-27
+    photo: fluffy-buttermilk-pancakes
+    search: ["dairy free buttermilk substitute", "vegan buttermilk"]
+    tip: "Dairy-free buttermilk: 1 cup plant milk + 1 tbsp lemon juice or vinegar, rest 5 minutes."
+    image: "a stack of fluffy pancakes on a plate beside a jug of plant milk"
+    tie: "Cooking dairy-free? RecipeFix swaps the buttermilk and rewrites the steps."
+    caption: "Dairy-free buttermilk substitute in one step. Know it?"
+    tags: [dairyfree, bakingtips, kitchenhacks, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+
+  - id: km-turkey-thaw
+    topic: kitchen-math
+    question: "A 16 to 20 pound frozen turkey thawing in the fridge needs about…"
+    options: ["1 day", "2 days", "4 to 5 days"]
+    correct: 2
+    why: "Allow about 24 hours for every 4 to 5 pounds. UF/IFAS Extension puts a 16 to 20 pound bird at four to five days."
+    source:
+      name: "UF/IFAS Extension Sarasota County, Turkey Talk: Three Tips to Thaw the Turkey"
+      short: "UF/IFAS Extension, Thawing the turkey"
+      url: "https://blogs.ifas.ufl.edu/sarasotaco/2023/11/15/turkey-talk-three-tips-to-thaw-the-turkey/"
+      quote: "Allow approximately 24 hours of thawing time for every 4 to 5 pounds of turkey. … 16-20 pounds: four to five days."
+    verified: 2026-10-27
+    photo: lemon-herb-roast-chicken
+    search: ["how long to thaw a turkey in the fridge", "how long to thaw a 20 lb turkey"]
+    tip: "Fridge thawing: 1 day per 4 to 5 pounds of turkey."
+    image: "a golden roast turkey on a platter at a Thanksgiving table"
+    tie: "Cooking for a crowd? RecipeFix scales the recipe in measurements you can actually use."
+    caption: "How long to thaw a turkey in the fridge? Start counting now."
+    tags: [thanksgiving, cookingtips, kitchenhacks, recipefix]
+    claims: [core.scaling]
+
+  - id: myth-altitude
+    format: myth
+    topic: cooking-myths
+    question: "Water boils at 212°F no matter where you cook."
+    options: []
+    correct: 0
+    why: "At 5,000 ft water usually boils at 202°F, about 10° lower, so boiled and simmered food takes longer."
+    source:
+      name: "New Mexico State University Extension, High-Altitude Cooking (Guide E-215)"
+      short: "NMSU Extension, High-Altitude Cooking"
+      url: "https://pubs.nmsu.edu/_e/E215/"
+      quote: "At sea level, it boils at 212°F, while each 500-ft increase in altitude causes a drop of about 1°F in the boiling point of water. … At 5,000 ft, water usually boils at 202°F (10° below normal)"
+    verified: 2026-10-27
+    photo: garlic-shrimp-spaghetti
+    search: ["boiling point of water at high altitude", "what temperature does water boil at 5000 feet"]
+    tip: "At 5,000 ft water boils at about 202°F. Simmering takes longer."
+    image: "a pot of pasta water at a rolling boil on a stove in a mountain cabin kitchen"
+    tie: "Cooking it your way? RecipeFix rewrites the cooking steps, not just the ingredient list."
+    caption: "Does water always boil at 212°F? Myth or fact for high-altitude cooks."
+    tags: [cookingtips, foodscience, kitchenmyths, recipefix]
+    claims: [core.rewrites_steps]
+
+  # ── Baking science ──
+  - id: bake-soda-acid
+    topic: baking
+    question: "Baking soda needs what to make a cake rise?"
+    options: ["Yeast", "Cold butter", "Extra eggs", "An acid"]
+    correct: 3
+    why: "Baking soda is a base. It needs an acidic partner like buttermilk, yogurt, lemon juice, brown sugar or natural cocoa to make the gas that lifts the cake."
+    source: *kasoda
+    verified: 2026-10-27
+    photo: classic-banana-bread
+    search: ["what does baking soda need to activate", "baking soda vs baking powder"]
+    tip: "Swapping out buttermilk or yogurt? Keep an acid, or the baking soda won't lift."
+    image: "a bowl of cake batter being whisked on a sunny kitchen counter"
+    tie: "Swapping the buttermilk for a dairy-free one? RecipeFix rewrites the steps and tells you why."
+    caption: "Baking soda vs baking powder starts here. What does soda need?"
+    tags: [bakingtips, foodscience, foodtok, recipefix]
+    claims: [core.diets, core.rewrites_steps, core.reasons]
+
+  - id: bake-chill-dough
+    format: myth
+    topic: baking
+    question: "Chilling cookie dough for 30 minutes makes cookies spread less."
+    options: []
+    correct: 1
+    why: "In King Arthur's test, dough chilled for just 30 minutes spread less than dough baked straight away. Longer chilling adds color and flavor."
+    source:
+      name: "King Arthur Baking, Chilling cookie dough: Does it make a difference?"
+      short: "King Arthur Baking, Chilling cookie dough"
+      url: "https://www.kingarthurbaking.com/blog/2015/05/17/chilling-cookie-dough"
+      quote: "Chilling cookie dough for just 30 minutes makes a big difference. … the cookie dough that was refrigerated spread less. … Over time, chilling cookie dough produces cookies with darker color and more pronounced flavor."
+    verified: 2026-10-27
+    photo: classic-banana-bread
+    search: ["does chilling cookie dough make a difference", "why chill cookie dough"]
+    tip: "Chill cookie dough 30 minutes for less spread."
+    image: "a tray of chocolate chip cookies cooling on a wire rack"
+    tie: "Changing the butter or flour? RecipeFix rewrites the steps too, like when to chill the dough."
+    caption: "Chilling cookie dough: does 30 minutes matter? Myth or fact."
+    tags: [bakingtips, foodscience, kitchenmyths, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+
+  - id: bake-aquafaba
+    topic: baking
+    question: "Which egg substitute whips up into meringue?"
+    options: ["Flax egg", "Aquafaba", "Applesauce", "Mashed banana"]
+    correct: 1
+    why: "Aquafaba, the liquid from canned chickpeas, is pretty much the only egg swap that whips like egg whites. Use 1/4 cup (57 g) per egg."
+    source: &kaeggs
+      name: "King Arthur Baking, No eggs? Here's your guide for substituting"
+      short: "King Arthur Baking, Guide to egg substitutes"
+      url: "https://www.kingarthurbaking.com/blog/2021/01/21/guide-for-substituting-eggs-best-egg-replacers"
+      quote: "Aquafaba (liquid from canned chickpeas) Sub for 1 egg : 1/4 cup (57g) aquafaba … Pretty much the only egg substitute that whips up to a meringue like egg whites (!) … Combine 1 tablespoon flax meal or whole chia seeds with 3 tablespoons (42g) water and let sit for 5 to 10 minutes, until gelatinous"
+    verified: 2026-10-27
+    photo: blueberry-banana-french-toast
+    search: ["vegan egg substitute that whips", "aquafaba meringue"]
+    tip: "Aquafaba: 1/4 cup replaces 1 egg, and it whips."
+    image: "a glass bowl of glossy white meringue with a whisk on a kitchen counter"
+    tie: "Baking egg-free? RecipeFix swaps the eggs and rewrites the steps."
+    caption: "Vegan meringue: which egg substitute actually whips?"
+    tags: [vegan, eggfree, bakingtips, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+
+  - id: bake-flax-egg
+    topic: baking
+    question: "One flax egg is 1 tablespoon flax meal plus how much water?"
+    options: ["1 tablespoon", "3 tablespoons", "1/2 cup"]
+    correct: 1
+    why: "King Arthur mixes 1 tablespoon flax meal with 3 tablespoons (42 g) water and lets it sit 5 to 10 minutes. It binds, but won't build a fluffy cake."
+    source: *kaeggs
+    verified: 2026-10-27
+    photo: classic-banana-bread
+    search: ["flax egg ratio", "how to make a flax egg"]
+    tip: "Flax egg: 1 tbsp flax meal + 3 tbsp water, rest 5 to 10 minutes."
+    image: "a bowl of muffin batter with a wooden spoon on a kitchen counter"
+    tie: "Baking egg-free? RecipeFix swaps the eggs and rewrites the steps."
+    caption: "Flax egg ratio for egg-free baking. Do you know it?"
+    tags: [vegan, eggfree, bakingtips, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+
+  # ── Food history with a cooking takeaway ──
+  - id: hist-1621
+    topic: food-history
+    question: "Edward Winslow's 1621 account of the harvest feast names which foods?"
+    options: ["Turkey and pumpkin pie", "Fowl and deer", "Ham and potatoes"]
+    correct: 1
+    why: "Winslow wrote that four men went fowling, and Massasoit's men killed five deer and brought them to the feast."
+    source:
+      name: "Pilgrim Hall Museum, The \"First Thanksgiving\" (Edward Winslow, Mourt's Relation, 1622)"
+      short: "Pilgrim Hall Museum, Winslow's 1621 letter"
+      url: "https://www.pilgrimhall.org/thanksgiving-national-day-of-mourning/the-first-thanksgiving/"
+      quote: "our governor sent four men on fowling … they four in one day killed as much fowl, as with a little help beside, served the Company almost a week … they went out and killed five Deer"
+    verified: 2026-10-27
+    photo: lemon-herb-roast-chicken
+    search: ["what did they eat at the first thanksgiving", "first thanksgiving menu"]
+    tip: "The 1621 feast: fowl and venison. Your menu can bend too."
+    image: "a long rustic wooden table set for a harvest feast in autumn light"
+    tie: "Making Thanksgiving gluten-free or dairy-free? RecipeFix rewrites the recipes, steps included."
+    caption: "First Thanksgiving menu: what the 1621 account actually says."
+    tags: [foodhistory, thanksgiving, foodtok, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+
+  - id: hist-pound-cake
+    topic: food-history
+    question: "In a 1796 American pound cake recipe, \"one pound\" of eggs meant how many?"
+    options: ["4", "6", "10", "12"]
+    correct: 2
+    why: "Amelia Simmons's American Cookery called for a pound each of sugar, butter and flour, and one pound or ten eggs. A ratio is easy to scale."
+    source:
+      name: "Amelia Simmons, American Cookery (Hartford, 1796), Project Gutenberg"
+      short: "Amelia Simmons, American Cookery (1796)"
+      url: "https://www.gutenberg.org/ebooks/12815"
+      quote: "One pound sugar, one pound butter, one pound flour, one pound or ten eggs"
+    verified: 2026-10-27
+    photo: classic-banana-bread
+    search: ["why is it called pound cake", "pound cake ratio"]
+    tip: "Pound cake: equal weights of sugar, butter, flour and eggs."
+    image: "a golden loaf cake on a cutting board with one slice cut"
+    tie: "Scaling a recipe? RecipeFix does the math in measurements you can actually use."
+    caption: "Pound cake history: why it's called that, in one number."
+    tags: [foodhistory, baking, foodtok, recipefix]
+    claims: [core.scaling]
+
+  - id: hist-fannie-level
+    topic: food-history
+    question: "Fannie Farmer's famous cookbook told cooks to measure a cupful how?"
+    options: ["Heaped", "Level", "Shaken down"]
+    correct: 1
+    why: "The Boston Cooking-School Cook Book (first published 1896) says a cupful is measured level, scraped with a knife, without shaking the cup."
+    source:
+      name: "Fannie Merritt Farmer, The Boston Cooking-School Cook Book (1910 edition, copyright 1896), Project Gutenberg"
+      short: "Fannie Farmer, Boston Cooking-School Cook Book"
+      url: "https://www.gutenberg.org/ebooks/65061"
+      quote: "A cupful is measured level. To measure a cupful, put in the ingredient by spoonfuls or from a scoop, round slightly, and level with a case knife, care being taken not to shake the cup."
+    verified: 2026-10-27
+    photo: fluffy-buttermilk-pancakes
+    search: ["how to measure flour correctly", "fannie farmer level measurements"]
+    tip: "Level your cup with a knife. Don't shake it."
+    image: "an old cookbook open on a kitchen table beside a measuring cup of flour"
+    tie: "Scaling a recipe? RecipeFix does the math in measurements you can actually use."
+    caption: "Measuring flour the Fannie Farmer way, from an 1896 cookbook."
+    tags: [foodhistory, bakingtips, foodtok, recipefix]
+    claims: [core.scaling]
+
+  - id: hist-vegan-word
+    topic: food-history
+    question: "In 1944, the word \"vegan\" was made from the start and end of which word?"
+    options: ["Vegetable", "Vegetarian", "Vegetation"]
+    correct: 1
+    why: "The Vegan Society's founders took the first three and last two letters of vegetarian. Rejected names included dairyban, vitan and benevore."
+    source:
+      name: "The Vegan Society, History"
+      short: "The Vegan Society, History"
+      url: "https://www.vegansociety.com/about-us/history"
+      quote: "Rejected words included ‘dairyban’, ‘vitan’, and ‘benevore’. They settled on ‘vegan’, a word that Donald Watson later described as containing the first three and last two letters of ‘vegetarian’."
+    verified: 2026-10-27
+    photo: sweet-potato-black-bean-tacos
+    search: ["where does the word vegan come from", "who invented the word vegan"]
+    tip: "Vegan: the first three and last two letters of vegetarian."
+    image: "a bright table of vegetable dishes, grain bowls and salads seen from above"
+    tie: "Cooking vegan? RecipeFix rewrites your recipe, steps included."
+    caption: "Where the word vegan comes from. It's hiding in plain sight."
+    tags: [foodhistory, vegan, foodtok, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+
+  - id: hist-gf-2013
+    topic: food-history
+    question: "When did FDA issue its rule defining \"gluten-free\" on food labels?"
+    options: ["1990", "2004", "2013", "2020"]
+    correct: 2
+    why: "FDA issued its final rule defining gluten-free for voluntary use on food labels on August 5, 2013."
+    source:
+      name: "U.S. FDA"
+      short: "FDA, Gluten-Free Labeling Q&A"
+      url: "https://www.fda.gov/food/nutrition-food-labeling-and-critical-foods/questions-and-answers-gluten-free-food-labeling-final-rule"
+      quote: "On August 5, 2013, FDA issued a final rule defining the term \"gluten-free\" for voluntary use in the labeling of foods"
+    verified: 2026-10-27
+    photo: garlic-shrimp-spaghetti
+    search: ["when did fda define gluten free", "gluten free labeling rule"]
+    tip: "FDA's gluten-free labeling rule dates to 2013."
+    image: "a grocery aisle shelf of packaged breads, labels unreadable"
+    tie: "Cooking gluten-free? RecipeFix rewrites your recipe, steps included."
+    caption: "Gluten-free label history: when did the rule arrive?"
+    tags: [foodhistory, glutenfree, foodlabels, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+
 # Themed sets: one video, several questions, easiest first.
 sets:
   kitchen-math:
@@ -454,3 +1411,68 @@ sets:
     tie: "Cooking without wine? RecipeFix swaps it out and rewrites the steps."
     tags: [kitchenmyths, cookingtips, foodscience, foodtok, recipefix]
     claims: [core.diets, core.rewrites_steps]
+  # ── P4 sets (2026-10-27): easiest first, hardest last ──
+  protein-math:
+    save: "Save this for your next high-protein grocery run."
+    label: "Protein math"
+    facts: [protein-dv, protein-lentils-quinoa, protein-high-claim]
+    caption: "Protein math quiz: 3 questions, 3 seconds each. The label one is the hard one."
+    tie: "Cooking high-protein? RecipeFix rewrites your recipe, steps included."
+    tags: [highprotein, foodlabels, cookingtips, foodtok, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+  is-it-vegan:
+    save: "Save this for your next vegan grocery run."
+    label: "Is it vegan?"
+    facts: [vegan-nooch, vegan-carmine, vegan-l-cysteine]
+    caption: "Is it vegan? 3 ingredients, 3 seconds each. Not every answer is no."
+    tie: "Making it vegan? RecipeFix swaps the hidden stuff and rewrites the steps."
+    tags: [vegan, vegantok, foodlabels, foodtok, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+  allergen-labels:
+    save: "Save this for the next time you shop for someone with an allergy."
+    label: "Allergen labels"
+    facts: [myth-may-contain, myth-coconut, allergen-molluscs]
+    caption: "Allergen label quiz: 3 rules most shoppers get wrong. 3 seconds each."
+    tie: "Cooking around an allergy? RecipeFix swaps the ingredient and rewrites the steps."
+    tags: [foodallergies, foodlabels, cookingtips, foodtok, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+  dairy-free-detective:
+    save: "Save this for your next dairy-free grocery run."
+    label: "Dairy-free detective"
+    facts: [allergen-whey, myth-ghee, myth-nondairy]
+    caption: "Dairy-free label reading: 3 places milk hides. 3 seconds each."
+    tie: "Cooking dairy-free? RecipeFix finds the hidden dairy and rewrites the steps."
+    tags: [dairyfree, foodlabels, cookingtips, foodtok, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+  baking-science:
+    save: "Save this for your next bake."
+    label: "Baking science"
+    facts: [bake-soda-acid, bake-chill-dough, bake-aquafaba]
+    caption: "Baking science quiz: 3 questions that change how your cookies turn out."
+    tie: "Changing an ingredient? RecipeFix rewrites the steps too, and tells you why."
+    tags: [bakingtips, foodscience, cookingtips, foodtok, recipefix]
+    claims: [core.diets, core.rewrites_steps, core.reasons]
+  thanksgiving-swaps:
+    save: "Save this for Thanksgiving."
+    label: "Thanksgiving swaps"
+    facts: [gf-gravy, veg-marshmallow, label-cream-mushroom]
+    caption: "Gluten-free and dairy-free Thanksgiving sides: 3 dishes to check before the day."
+    tie: "Cooking Thanksgiving gluten-free, dairy-free or vegetarian? RecipeFix rewrites each side, steps included."
+    tags: [thanksgiving, glutenfree, dairyfree, foodtok, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+  halal-kitchen:
+    save: "Save this for your next halal bake."
+    label: "Halal kitchen"
+    facts: [halal-lard, halal-gelatin, halal-vanilla]
+    caption: "Halal cooking quiz: 3 ingredients to check in baking and desserts. 3 seconds each."
+    tie: "Cooking halal? RecipeFix swaps it out and rewrites the steps."
+    tags: [halal, halalfood, bakingtips, foodtok, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+  kitchen-math-2:
+    save: "Save this for the next time you're out of something."
+    label: "Kitchen math"
+    facts: [km-flour-120g, km-buttermilk-df, km-soda-to-powder]
+    caption: "Kitchen math, round two: 3 swaps and weights, 3 seconds each."
+    tie: "Scaling a recipe? RecipeFix does the math in measurements you can actually use."
+    tags: [cookingtips, bakingtips, kitchenhacks, foodtok, recipefix]
+    claims: [core.diets, core.scaling, core.rewrites_steps]
