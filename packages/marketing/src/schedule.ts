@@ -1,0 +1,114 @@
+/**
+ * The posting schedule: what to make each day, so the feed stays varied.
+ *
+ *   pnpm mk plan-week [--start 2026-10-28] [--per-day 2]   write runs/schedule/<start>.json
+ *   pnpm mk run-plan <plan.json> [--live]                  make → QA → viewer review → queue
+ *
+ * Rules (owner, 2026-10-26: "it makes what it should and stays interesting"):
+ * - never the same format twice in a row; rotate through every format that exists
+ * - never a fact (or a set containing it) posted in the last 30 days
+ * - topics rotate so two days never share one
+ * - one RecipeFix intro (real app) a week, at most; the rest earn attention first
+ * - every item must pass QA AND the viewer review before it is queued; a "revise"
+ *   verdict is re-made once with the reviewer's fixes noted, then skipped
+ * - queuing is a Blotato scheduledTime, only with --live and connected accounts
+ *
+ * Deterministic: no model picks topics. The fact bank and history decide.
+ */
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
+import yaml from 'js-yaml';
+import { REPO_ROOT, RUNS_DIR } from './runContext.js';
+
+export interface PlanItem {
+  day: string;
+  slot: string;
+  /** e.g. "quiz set:kitchen-math", "quiz honey-vegan", "recipe creamy-tuscan-chicken", "app" */
+  command: string;
+  format: string;
+  topic: string;
+  facts: string[];
+  /** Posts from the record to queue (record.posts keys). */
+  posts: string[];
+}
+
+interface FactRow {
+  id: string;
+  topic: string;
+  format?: string;
+}
+
+function factBank(): { facts: FactRow[]; sets: Record<string, { facts: string[]; label: string }> } {
+  return yaml.load(readFileSync(path.join(REPO_ROOT, 'packages/marketing/facts/food-facts.yaml'), 'utf8')) as never;
+}
+
+/** Facts that went out (or were queued) in the last `days`, from every run's publish.json. */
+export function recentlyPosted(days = 30, now = new Date()): Set<string> {
+  const out = new Set<string>();
+  if (!existsSync(RUNS_DIR)) return out;
+  const cutoff = now.getTime() - days * 86400_000;
+  for (const date of readdirSync(RUNS_DIR).filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d))) {
+    for (const run of readdirSync(path.join(RUNS_DIR, date))) {
+      const pub = path.join(RUNS_DIR, date, run, 'publish.json');
+      const rec = path.join(RUNS_DIR, date, run, 'record.json');
+      if (!existsSync(pub) || !existsSync(rec)) continue;
+      const subs = JSON.parse(readFileSync(pub, 'utf8')) as Array<{ status: string; submittedAt: string }>;
+      if (!subs.some((x) => x.status !== 'failed' && new Date(x.submittedAt).getTime() >= cutoff)) continue;
+      const record = JSON.parse(readFileSync(rec, 'utf8')) as { sources?: unknown; id: string; facts?: string[] };
+      for (const f of record.facts ?? run.replace(/^quiz-/, '').split('+')) out.add(f);
+    }
+  }
+  return out;
+}
+
+const SLOTS = ['12:30', '17:00'];
+const VIDEO_POSTS = ['tiktok', 'instagram_reel', 'youtube', 'x', 'threads'];
+
+export function planWeek(opts: { start: string; perDay: number; extraFormats?: string[] }): PlanItem[] {
+  const { facts, sets } = factBank();
+  const used = recentlyPosted();
+  const freshSet = (name: string) => sets[name]!.facts.every((f) => !used.has(f));
+  // Candidate pool per format, in a stable order.
+  const pools: Record<string, Array<{ command: string; topic: string; facts: string[] }>> = {
+    'quiz-set': Object.keys(sets).filter(freshSet).map((k) => ({ command: `quiz set:${k}`, topic: k, facts: sets[k]!.facts })),
+    myth: facts.filter((f) => f.format === 'myth' && !used.has(f.id)).map((f) => ({ command: `quiz ${f.id}`, topic: f.topic, facts: [f.id] })),
+    quiz: facts.filter((f) => f.format !== 'myth' && !used.has(f.id)).map((f) => ({ command: `quiz ${f.id}`, topic: f.topic, facts: [f.id] })),
+    recipe: ['creamy-tuscan-chicken', 'lemon-herb-roast-chicken', 'garlic-shrimp-spaghetti', 'salmon-cucumber-salsa', 'sweet-potato-black-bean-tacos', 'roasted-butternut-squash-soup'].map((id) => ({ command: `recipe ${id}`, topic: 'recipe', facts: [] })),
+    app: [{ command: 'app --voice', topic: 'product', facts: [] }],
+  };
+  for (const f of opts.extraFormats ?? []) pools[f] ??= [];
+  const order = ['quiz-set', 'recipe', 'myth', 'quiz', 'quiz-set', 'recipe', 'app'];
+  const items: PlanItem[] = [];
+  const takenFacts = new Set<string>();
+  let lastFormat = '';
+  let lastTopic = '';
+  let appUsed = false;
+  let k = 0;
+  // UTC noon: adding whole days never lands twice on one date across a DST change.
+  const start = new Date(`${opts.start}T12:00:00Z`);
+  for (let d = 0; d < 7; d++) {
+    const day = new Date(start.getTime() + d * 86400_000).toISOString().slice(0, 10);
+    for (let slot = 0; slot < opts.perDay; slot++) {
+      let picked: PlanItem | null = null;
+      for (let tries = 0; tries < order.length && !picked; tries++) {
+        const format = order[(k + tries) % order.length]!;
+        if (format === lastFormat || (format === 'app' && appUsed)) continue;
+        const cand = (pools[format] ?? []).find((c) => c.topic !== lastTopic && c.facts.every((f) => !takenFacts.has(f)));
+        if (!cand) continue;
+        pools[format] = pools[format]!.filter((c) => c !== cand);
+        picked = { day, slot: SLOTS[slot % SLOTS.length]!, command: cand.command, format, topic: cand.topic, facts: cand.facts, posts: VIDEO_POSTS };
+        for (const f of cand.facts) takenFacts.add(f);
+        if (format === 'app') appUsed = true;
+      }
+      k++;
+      if (!picked) continue;
+      items.push(picked);
+      lastFormat = picked.format;
+      lastTopic = picked.topic;
+    }
+  }
+  const dir = path.join(RUNS_DIR, 'schedule');
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(path.join(dir, `${opts.start}.json`), `${JSON.stringify(items, null, 2)}\n`);
+  return items;
+}

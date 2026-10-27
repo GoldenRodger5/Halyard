@@ -112,6 +112,13 @@ export async function publishRun(runDir: string, opts: { live: boolean; only?: s
   const dir = path.resolve(runDir);
   const record = JSON.parse(readFileSync(path.join(dir, 'record.json'), 'utf8')) as StudioRecord;
   if (!record.qa.passed) throw new Error(`${record.id}: QA did not pass; nothing is published. See ${path.join(dir, 'preview.html')}`);
+  // A live post also needs the viewer review to say it earns attention (critique.ts).
+  if (opts.live) {
+    const { readCritique } = await import('./critique.js');
+    const c = readCritique(dir);
+    if (!c) throw new Error(`${record.id}: no viewer review yet; run \`pnpm mk critique ${dir}\` first`);
+    if (c.verdict !== 'post') throw new Error(`${record.id}: viewer review says ${c.verdict} (${JSON.stringify(c.scores)}); fix: ${c.fixes.slice(0, 2).join('; ')}`);
+  }
   const ledgerFile = path.join(dir, 'publish.json');
   const done: Submission[] = existsSync(ledgerFile) ? (JSON.parse(readFileSync(ledgerFile, 'utf8')) as Submission[]) : [];
   const wanted = (opts.only ?? DEFAULT_POSTS).filter((k) => record.posts[k]);

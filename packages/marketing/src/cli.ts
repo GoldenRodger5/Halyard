@@ -10,6 +10,9 @@
  *   pnpm mk quiz [fact-id…] [--voice]  list facts, or make a quiz video + posts (silent unless --voice)
  *   pnpm mk recipe [original-id] [--voice]  list Originals, or make a recipe video + posts
  *   pnpm mk app                       RecipeFix intro video from real screen recordings
+ *   pnpm mk critique <run>            viewer review (vision model): stop/stay/engage/human scores; publish needs "post"
+ *   pnpm mk plan-week [--start D] [--per-day N]  7-day varied slate → runs/schedule/D.json
+ *   pnpm mk run-plan <plan> [--live]  make, QA, review, queue (scheduled) the items that pass
  *   pnpm mk accounts                  Blotato accounts the lane posts to (read-only)
  *   pnpm mk publish <run> [--only a,b] [--live] [--at ISO]  dry run by default; --live posts via Blotato
  *   pnpm mk status <run>              re-check submitted posts
@@ -99,7 +102,54 @@ async function main(): Promise<void> {
 
   if (cmd === 'app') {
     const { makeApp } = await import('./formats/app.js');
-    report(await makeApp({ date: flag('--date') }));
+    report(await makeApp({ date: flag('--date'), voice: rest.includes('--voice') }));
+    return;
+  }
+
+  if (cmd === 'critique') {
+    const dir = rest[0];
+    if (!dir) throw new Error('usage: pnpm mk critique <run-dir>');
+    const { critique } = await import('./critique.js');
+    const c = await critique(dir);
+    console.log(`${c.verdict.toUpperCase()}  stop ${c.scores.stop} · stay ${c.scores.stay} · engage ${c.scores.engage} · human ${c.scores.human}  ($${c.cost_usd})`);
+    console.log(`first impression: ${c.first_impression}\nwould leave at: ${c.would_leave_at}`);
+    for (const p of c.problems) console.log(`  - ${p}`);
+    for (const f of c.fixes) console.log(`  → ${f}`);
+    return;
+  }
+
+  if (cmd === 'plan-week') {
+    const { planWeek } = await import('./schedule.js');
+    const start = flag('--start') ?? new Date(Date.now() + 86400_000).toLocaleDateString('en-CA');
+    const items = planWeek({ start, perDay: Number(flag('--per-day') ?? 2) });
+    for (const it of items) console.log(`${it.day} ${it.slot}  ${it.format.padEnd(9)} ${it.command}`);
+    console.log(`→ runs/schedule/${start}.json`);
+    return;
+  }
+
+  if (cmd === 'run-plan') {
+    // make → QA → viewer review → (with --live) queue in Blotato at the planned time.
+    const file = rest.find((r) => !r.startsWith('--'));
+    if (!file) throw new Error('usage: pnpm mk run-plan <runs/schedule/DATE.json> [--live] [--tz -04:00]');
+    const { readFileSync, existsSync } = await import('node:fs');
+    const { execFileSync } = await import('node:child_process');
+    const { critique } = await import('./critique.js');
+    const { publishRun } = await import('./publish.js');
+    const items = JSON.parse(readFileSync(file, 'utf8')) as Array<{ day: string; slot: string; command: string; posts: string[] }>;
+    const tz = flag('--tz') ?? '-04:00';
+    for (const it of items) {
+      const args = it.command.split(' ');
+      const out = execFileSync('npx', ['tsx', path.join(path.dirname(new URL(import.meta.url).pathname), 'cli.ts'), ...args], { encoding: 'utf8' });
+      const m = /^(\S+): QA (PASS|FAIL)/m.exec(out);
+      if (!m) throw new Error(`could not read the result of "${it.command}":\n${out.slice(-400)}`);
+      const today = new Date().toLocaleDateString('en-CA');
+      const dir = path.join(path.dirname(new URL(import.meta.url).pathname), '../../../runs', today, m[1]!);
+      if (m[2] !== 'PASS' || !existsSync(dir)) { console.log(`${it.day} ${it.command}: QA FAIL, skipped`); continue; }
+      const c = await critique(dir);
+      console.log(`${it.day} ${it.slot} ${it.command}: ${c.verdict} ${JSON.stringify(c.scores)}`);
+      if (c.verdict !== 'post') continue;
+      await publishRun(dir, { live: rest.includes('--live'), only: it.posts, at: `${it.day}T${it.slot}:00${tz}` });
+    }
     return;
   }
 

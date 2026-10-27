@@ -28,6 +28,7 @@ import {
   renderVideo,
   runCost,
   sfx,
+  generatedPhoto,
   transcriptCheck,
   voice,
   writeJson,
@@ -48,6 +49,10 @@ export interface Fact {
   source: { name: string; short: string; url: string; quote: string };
   verified: string;
   photo: string;
+  /** A photoreal ingredient still to generate when no Original photo fits the fact. */
+  image?: string;
+  /** The one-line takeaway the close shows (a cheat sheet across a set). */
+  tip?: string;
   /** The RecipeFix line, tied to this fact; product claims it relies on. */
   tie: string;
   claims: string[];
@@ -73,16 +78,21 @@ const TOPIC: Record<string, { label: string; tags: string[]; close: string }> = 
   allergies: { label: 'Food label quiz', tags: ['foodallergies', 'foodlabels', 'foodfacts'], close: 'Save this for your next grocery run.' },
   vegan: { label: 'Vegan quiz', tags: ['vegan', 'veganfood', 'foodfacts'], close: 'Save this for your next grocery run.' },
   vegetarian: { label: 'Vegetarian quiz', tags: ['vegetarian', 'cheese', 'foodfacts'], close: 'Save this for your next cheese run.' },
+  'kitchen-math': { label: 'Kitchen math', tags: ['cookingtips', 'bakingtips', 'foodtok'], close: 'Save this for the next time you double a recipe.' },
+  'food-history': { label: 'Food history', tags: ['foodhistory', 'foodfacts', 'foodtok'], close: 'Save this for your next dinner-table fact.' },
+  labels: { label: 'Label detective', tags: ['foodlabels', 'foodfacts', 'foodtok'], close: 'Save this for your next grocery run.' },
   'cooking-myths': { label: 'Myth or fact', tags: ['cookingtips', 'foodscience', 'kitchenmyths'], close: 'Save this before you cook with wine again.' },
 };
 
 /** Long enough to commit to an answer (research: 3–7 s is the norm). */
-const TIMER_SECONDS = 5;
+const TIMER_SECONDS = 3;
 const LETTERS = ['A', 'B', 'C', 'D'];
 const spokenAnswer = (opt: string) => (/^(yes|no|myth|fact)$/i.test(opt) ? `${opt}.` : `It's ${opt.replace(/^About/, 'about').replace(/^Under/, 'under')}.`);
 
 export interface QuizSet {
   label: string;
+  /** The save-worthy line the close leads with. */
+  save?: string;
   facts: string[];
   caption: string;
   tie: string;
@@ -130,14 +140,14 @@ export async function makeQuiz(args: string[], opts: { voice: boolean; date?: st
     const countdownAt = start + Math.max(sec(1.6), 6 + sec(qv?.seconds ?? read(`${f.question} ${f.options.join(' ')}`, 3.2, 2.2)) + 8);
     const revealAt = countdownAt + TIMER_SECONDS * FPS;
     const whyAt = revealAt + Math.max(sec(1.1), 6 + sec(av?.seconds ?? 0) + 4);
-    const end = whyAt + sec(wv?.seconds ?? read(f.why, 3.4, 2.8)) + sec(1.0);
+    const end = whyAt + sec(wv?.seconds ?? read(f.why, 3.8, 2.4)) + sec(0.6);
     questions.push({
       question: f.question,
       options: f.options,
       correct: f.correct,
       why: f.why,
       source: f.source.short,
-      photo: await originalPhoto(s, f.photo, 'wide'),
+      photo: f.image ? await generatedPhoto(s, f.image, f.id) : await originalPhoto(s, f.photo, 'wide'),
       start,
       countdownAt,
       revealAt,
@@ -150,11 +160,11 @@ export async function makeQuiz(args: string[], opts: { voice: boolean; date?: st
   const tie = set?.tie ?? chosen[0]!.tie;
   const cv = opts.voice ? await voice(s, tie, 'close') : null;
   const closeStart = t;
-  const total = closeStart + Math.max(sec(3.4), 4 + sec(cv?.seconds ?? 0) + 30);
+  const total = closeStart + Math.max(sec(2.6 + chosen.length * 1.1), 4 + sec(cv?.seconds ?? 0) + 30);
   const props = {
     label,
     questions,
-    close: { start: closeStart, tie, audio: cv?.file ?? null, photo: questions[0]!.photo },
+    close: { start: closeStart, tie, save: set?.save ?? topic.close, tips: chosen.map((f) => f.tip ?? f.why), audio: cv?.file ?? null, photo: questions[0]!.photo },
     sfx: fx,
   };
   writeJson(`${s.dir}/render-props.json`, props);
@@ -167,7 +177,7 @@ export async function makeQuiz(args: string[], opts: { voice: boolean; date?: st
   const f0 = chosen[0]!;
   const answerLine = (f: Fact) => (f.format === 'myth' ? f.options[f.correct]! : `${LETTERS[f.correct]}) ${f.options[f.correct]}`);
   const sourceLine = (f: Fact) => `Source: ${f.source.short}`;
-  const hook = set?.caption ?? (one ? f0.caption : `${chosen.length} questions, 5 seconds each. Keep score.`);
+  const hook = `${set?.caption ?? (one ? f0.caption : `${chosen.length} questions, ${TIMER_SECONDS} seconds each. Keep score.`)}${one ? ' Did you know this one?' : ' How many did you get?'}`;
   const media = [relRepo(video)];
   const posts: Record<string, PlatformPost> = {
     tiktok: { platform: 'tiktok', kind: 'video', media, text: `${hook}\n\n${tags}`, ai_voice: opts.voice, cover_ms: Math.round(((questions[0]!.countdownAt + 10) / FPS) * 1000) },
@@ -207,7 +217,7 @@ export async function makeQuiz(args: string[], opts: { voice: boolean; date?: st
     if (f.format !== 'myth' && !f.why.toLowerCase().includes(f.options[f.correct]!.toLowerCase())) answerLines.splice(1, 0, f.options[f.correct]!);
     checks.push(...(await qaFrame(s, video, (q.end - 3) / FPS, `q${i + 1}-answer`, answerLines)));
   }
-  checks.push(...(await qaFrame(s, video, (total - 3) / FPS, 'close', [tie, 'recipefix.app'])));
+  checks.push(...(await qaFrame(s, video, (total - 3) / FPS, 'close', ['Save this', ...chosen.map((f) => f.tip ?? f.why), tie])));
 
   const limits: Record<string, number> = { tiktok: 2200, instagram: 2200, x: 280, threads: 500, youtube: 5000 };
   const problems: string[] = [];

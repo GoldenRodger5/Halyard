@@ -38,7 +38,7 @@ export interface QuizQuestionProps {
 export interface QuizShortProps {
   label: string;
   questions: QuizQuestionProps[];
-  close: { start: number; tie: string; audio: string | null; photo: string };
+  close: { start: number; tie: string; save: string; tips: string[]; audio: string | null; photo: string };
   sfx: { tick: string; reveal: string } | null;
   [key: string]: unknown;
 }
@@ -114,7 +114,10 @@ const PhotoCard: React.FC<{ src: string; at: number; top: number; height: number
         <Img src={staticFile(src)} style={{ width: '100%', height: '100%', objectFit: 'cover', transform: `scale(${interpolate(f, [at, at + 300], [1.0, 1.12], clamp)})` }} />
       </div>
       {answer && f >= answerAt ? (
-        <div style={{ position: 'absolute', left: -40, right: -40, top: -46, display: 'flex', justifyContent: 'center', transform: `scale(${interpolate(a, [0, 1], [2.2, 1])}) rotate(-3deg)`, opacity: Math.min(1, a * 2) }}>
+        <div style={{ position: 'absolute', inset: 0, borderRadius: 34, background: 'rgba(15,10,8,0.42)', opacity: Math.min(1, a) }} />
+      ) : null}
+      {answer && f >= answerAt ? (
+        <div style={{ position: 'absolute', left: -40, right: -40, top: 70, display: 'flex', justifyContent: 'center', transform: `scale(${interpolate(a, [0, 1], [2.2, 1])}) rotate(-3deg)`, opacity: Math.min(1, a * 2) }}>
           <span style={{ ...display(answer.length > 14 ? 70 : 88), background: tone, padding: '6px 34px 10px', borderRadius: 26, border: `6px solid ${INK}`, boxShadow: `0 8px 0 ${INK}` }}>{answer}</span>
         </div>
       ) : null}
@@ -286,8 +289,8 @@ const Question: React.FC<{ q: QuizQuestionProps; label: string; index: number; t
             transform: `translateY(${(1 - Math.min(1, whyIn)) * 60}px)`,
           }}
         >
-          <div style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: q.why.length > 100 ? 34 : 38, lineHeight: 1.26, color: INK }}>{q.why}</div>
-          <div style={{ marginTop: 10, fontFamily: 'Inter', fontWeight: 600, fontSize: 27, color: '#6E645D' }}>{`Source: ${q.source}`}</div>
+          <div style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: q.why.length > 100 ? 37 : 42, lineHeight: 1.24, color: INK }}>{q.why}</div>
+          <div style={{ marginTop: 10, fontFamily: 'Inter', fontWeight: 600, fontSize: 30, color: '#6E645D' }}>{`Source: ${q.source}`}</div>
         </div>
       ) : null}
     </>
@@ -295,19 +298,42 @@ const Question: React.FC<{ q: QuizQuestionProps; label: string; index: number; t
 };
 
 /** RecipeFix, once, tied to the fact. */
+/**
+ * The close (viewer review 2026-10-27: a hard app-promo ending reads as an ad and
+ * lowers trust). The save-worthy line leads, big; RecipeFix follows, small,
+ * tied to what was just learned.
+ */
+/**
+ * The close is the takeaway (viewer review 2026-10-27): a cheat sheet worth
+ * saving, then RecipeFix as one small line. Not an ad slab.
+ */
 const Close: React.FC<{ c: QuizShortProps['close']; color: string }> = ({ c, color }) => {
+  const f = useCurrentFrame();
   const a = useSpring(c.start + 2, { damping: 12 });
-  const b = useSpring(c.start + 14, { damping: 10 });
+  const b = useSpring(c.start + 10 + c.tips.length * 8, { damping: 12 });
+  const size = c.tips.length > 1 ? 38 : 46;
   return (
     <>
       <Ground color={color} />
-      <div style={{ position: 'absolute', left: CX - 140, top: SAFE.y0 + 30, width: 280, height: 280, transform: `scale(${b}) rotate(${interpolate(b, [0, 1], [-20, -4])}deg)` }}>
-        <Img src={staticFile('brand/recipefix-mark-512.png')} style={{ width: 280, height: 280, borderRadius: 64, border: '10px solid #FFFFFF', boxShadow: `0 12px 0 ${INK}`, boxSizing: 'border-box' }} />
+      <div style={{ position: 'absolute', left: SAFE.x0 + 6, top: SAFE.y0 + 10, width: W - 12, display: 'flex', flexDirection: 'column', gap: 24 }}>
+        <div style={{ textAlign: 'center', ...display(84), opacity: Math.min(1, a), transform: `scale(${interpolate(a, [0, 1], [0.7, 1])})` }}>Save this</div>
+        <div style={{ background: '#FFFFFF', borderRadius: 28, border: `5px solid ${INK}`, boxShadow: `0 9px 0 ${INK}`, padding: '24px 26px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 18 }}>
+          {c.tips.map((t, i) => {
+            const tt = interpolate(f, [c.start + 8 + i * 8, c.start + 16 + i * 8], [0, 1], clamp);
+            return (
+              <div key={i} style={{ display: 'flex', gap: 16, alignItems: 'flex-start', opacity: tt, transform: `translateX(${(1 - tt) * 40}px)` }}>
+                <div style={{ width: 46, height: 46, flex: '0 0 46px', borderRadius: 23, background: GREEN, color: '#FFFFFF', fontFamily: 'Lilita One', fontSize: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 2 }}>✓</div>
+                <div style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: size, lineHeight: 1.25, color: INK }}>{t}</div>
+              </div>
+            );
+          })}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 18, opacity: Math.min(1, b), background: 'rgba(27,20,16,0.82)', borderRadius: 22, padding: '14px 18px' }}>
+          <Img src={staticFile('brand/recipefix-mark-512.png')} style={{ width: 60, height: 60, flex: '0 0 60px', borderRadius: 14 }} />
+          <div style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: 30, lineHeight: 1.25, color: '#FFFFFF' }}>{c.tie}</div>
+        </div>
       </div>
-      <div style={{ position: 'absolute', left: SAFE.x0 + 6, top: SAFE.y0 + 370, width: W - 12, background: '#FFFFFF', borderRadius: 30, border: `5px solid ${INK}`, boxShadow: `0 9px 0 ${INK}`, padding: '26px 30px', boxSizing: 'border-box', opacity: Math.min(1, a), transform: `translateY(${(1 - Math.min(1, a)) * 60}px)` }}>
-        <div style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: 46, lineHeight: 1.22, color: INK }}>{c.tie}</div>
-      </div>
-      <div style={{ position: 'absolute', left: SAFE.x0, top: SAFE.y0 + 720, width: W, textAlign: 'center', ...display(78), opacity: Math.min(1, b) }}>recipefix.app</div>
+      <PhotoCard src={c.photo} at={c.start + 4} top={1010} height={480} width={880} answer={null} answerAt={0} />
     </>
   );
 };
