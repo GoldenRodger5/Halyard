@@ -177,7 +177,7 @@ const QuizQuestion: React.FC<{ s: Extract<QuizSlide, { kind: 'question' }>; canv
       <Photo src={s.photo} box={L.qPhoto} card tilt={-0.8} radius={28} />
       <div style={{ ...abs(L.qFoot), display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 14, background: INK, color: '#FFFFFF', fontFamily: 'Inter', fontWeight: 600, fontSize: canvas === 'feed' ? 32 : 30, padding: '12px 24px', borderRadius: 18 }}>
-          {s.n === s.total ? 'Lock it in, then swipe for the answers' : 'Lock it in, then swipe'}
+          {swipePrompt(s.n, s.total)}
           <Arrow size={34} color="#FFFFFF" />
         </div>
       </div>
@@ -242,6 +242,9 @@ const QuizClose: React.FC<{ s: Extract<QuizSlide, { kind: 'close' }>; canvas: Ca
     </>
   );
 };
+
+/** Calm, specific footer prompts ("Lock it in" on every slide read as try-hard, 2026-10-27). */
+export const swipePrompt = (n: number, total: number) => (n === 1 ? 'Guess, then swipe' : n === total ? 'Answers next' : 'Next');
 
 export const QuizDeck: React.FC<QuizDeckProps> = ({ canvas, slides }) => {
   const s = slides[useCurrentFrame()];

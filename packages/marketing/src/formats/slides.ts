@@ -284,7 +284,7 @@ async function quizPlan(s: Studio, deck: QuizDeckCopy, facts: Fact[], tie: strin
       name: `q${i + 1}`,
       slide: { kind: 'question', n: i + 1, total: count, kicker: deck.kicker, question: f.question, options: f.options, myth, photo: await factPhoto(f, L.qPhoto), color: QUESTION_GROUNDS[i % QUESTION_GROUNDS.length]! },
       // A one-character option ("3") is checked by eye: OCR cannot read a lone glyph and would steal it from "5 and 1/3".
-      intended: [banner, f.question, ...(myth ? ['MYTH', 'FACT'] : f.options.filter((o) => o.replace(/\W/g, '').length > 2)), i + 1 === count ? 'Lock it in, then swipe for the answers' : 'Lock it in, then swipe'],
+      intended: [banner, f.question, ...(myth ? ['MYTH', 'FACT'] : f.options.filter((o) => o.replace(/\W/g, '').length > 2)), i === 0 ? 'Guess, then swipe' : i + 1 === count ? 'Answers next' : 'Next'],
     });
   }
   const band = async (f: Fact) => (canvas === 'tall' ? await factPhoto(f, { w: 820, h: 520 }) : undefined);
@@ -335,7 +335,7 @@ export async function makeQuizSlides(setName: string, opts: { date?: string } = 
   const xText = `${deck.cover}\n\n${facts.length} questions. Answers in the reply, no peeking.\n\n${shortTags}`;
   const replies = [...facts.map((f, i) => answerReply(f).replace(/^Answer:/, `${i + 1}. Answer:`)), set.tie];
   const posts: Record<string, PlatformPost> = {
-    instagram_carousel: { platform: 'instagram', kind: 'carousel', media: ig.files.map(relRepo), text: `${deck.caption}\n\n${set.tie}\n\n${igTags}` },
+    instagram_carousel: { platform: 'instagram', kind: 'carousel', media: ig.files.map(relRepo), text: `${deck.caption}\n\n${igTags}`, pinned_comment: `${set.tie} recipefix.app/?utm_source=instagram&utm_medium=social&utm_campaign=quiz-${setName}` },
     tiktok_photos: { platform: 'tiktok', kind: 'carousel', media: tt.files.map(relRepo), title: deck.title, text: `${deck.caption}\n\n${ttTags}` },
     x: { platform: 'x', kind: 'image', media: questionSlides, text: xText, thread: replies },
     threads: { platform: 'threads', kind: 'image', media: questionSlides, text: xText, thread: replies },

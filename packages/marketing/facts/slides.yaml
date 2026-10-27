@@ -13,12 +13,12 @@ quiz_decks:
     kicker: "Kitchen math quiz"
     cover: "Could you scale a recipe without a calculator?"
     photo: lemon-herb-roast-chicken
-    caption: "3 kitchen math questions. The last one is harder than it looks. Answers and the USDA source are on the last slides. Save it for the next time you halve a recipe."
+    caption: "3 kitchen math questions. The last one is about a third of a cup. Answers and the USDA source are on the last slides. Save it for the next time you halve a recipe."
     title: "Kitchen math quiz: 3 questions, answers at the end"
     save: "Save this for the next time you halve a recipe."
   food-history:
     kicker: "Food history quiz"
-    cover: "Was ketchup ever sold as medicine?"
+    cover: "Were tomatoes ever sold as medicine?"
     photo: garlic-shrimp-spaghetti
     caption: "3 food history questions, from a Supreme Court tomato to a state cookie. Keep score, answers and sources at the end."
     title: "Food history quiz: 3 questions, answers at the end"
