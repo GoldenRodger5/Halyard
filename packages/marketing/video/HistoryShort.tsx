@@ -13,7 +13,7 @@
  */
 import React from 'react';
 import { AbsoluteFill, Audio, Img, Sequence, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
-import { C, FONTS, SAFE, clamp } from './kit.js';
+import { FONTS, SAFE, clamp } from './kit.js';
 
 export interface HistoryWord {
   text: string;
