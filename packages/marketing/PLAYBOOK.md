@@ -117,9 +117,98 @@ customers: a distinct UTM per platform on the profile link, and
 9. Weeks 1–4 the owner approves each weekly slate; then auto-approve anything
    that passes QA and review, with a daily digest.
 
-## 7. What the machine never does
+## 7. Organic growth from zero: the tactics we use
+
+Research 2026-10-27 (sources at the end). Most published numbers are vendor
+blogs; the tactics below are the ones every source agrees on. Each one is
+marked **machine** (the pipeline does it), **assist** (the pipeline prepares
+it, a person does it) or **human**.
+
+**Search is the discovery engine now, hashtags are labels.**
+- *machine*: one target search phrase per post, chosen from real autocomplete
+  suggestions (Google, YouTube, Pinterest), placed in the first ~50 caption
+  characters, in the on-screen hook in the first 3 seconds, and spoken when
+  voiced. TikTok indexes burned-in text, so the quiz question is the keyword.
+- *machine*: 3–5 hashtags, never more (Instagram caps at 5): one niche
+  (#glutenfree), one specific (#glutenfreetips), one community (#foodtok), and
+  #recipefix. No made-up "trending" tags, no repeating the same set every post.
+- *machine*: YouTube titles lead with the search phrase; the first description
+  line repeats it.
+
+**Series beat one-offs.** A named, numbered series ("Label Detective #4",
+"Kitchen Math #2") gives a reason to follow for the next one. *machine*: every
+quiz set and format is a series with a running number; captions say "#4".
+
+**Profile = landing page.** Bio states the niche in search words ("gluten-free,
+dairy-free & scaled recipes, fixed"), one UTM'd link, three pinned posts (the
+best-reviewed quiz, one transformation, one recipe). *human, once*.
+
+**Early engagement.** Reply to every comment in the first hour; on TikTok,
+reply to good questions *with a video* (each one is a new post). *assist*: the
+pipeline renders a "you asked" answer card from a comment's text; a person
+picks the comment and posts.
+
+**X grows by replies.** Small accounts grow mostly by useful replies under
+bigger accounts in the niche (dietitians, gluten-free and vegan cooks, recipe
+creators). Automated replies break X's rules. *assist*: a daily list of 10
+fresh posts worth answering, with the fact from our bank that answers them.
+
+**Stitch/duet the niche.** React to a trending kitchen myth with the sourced
+answer. *assist*: watchlist of trending myths; the answer card is our myth
+format.
+
+**Pinterest is search with a long tail.** Every RecipeFix Original page is a
+2:3 recipe pin linking to recipefix.app/original-recipes/<id> (a real site
+visit, not just a view); 2–3 pin variants per recipe on keyword-named boards
+("Gluten-Free Dinner Recipes"); recipe Rich Pins from the page's Recipe schema.
+*machine* once the Pinterest account exists.
+
+**Seasonality.** Diet-swap demand spikes around holidays (Thanksgiving sides,
+holiday baking, January high-protein). The planner pulls seasonal facts and
+recipes 2–4 weeks early (60–90 days for Pinterest). *machine*.
+
+**Cross-post, never copy-paste.** One video, platform-specific captions and
+titles (already how `record.posts` works).
+
+**Later, once there is an audience:** Instagram trial reels (need 1k
+followers), collaborations with small diet creators (the `collaborators`
+field), founder on camera, Spark Ads on proven organic winners.
+
+## 8. POC build plan (in order; nothing final is made until the pipeline passes)
+
+The two-week buffer is made only after the templates themselves pass the
+viewer review. Until then every render is a pipeline test.
+
+| # | Deliverable | Acceptance | Owner |
+|---|---|---|---|
+| P1 | Merge carousel/image/X formats; finish history + this-or-that | each format renders, passes QA, and has a viewer critique on file | lead + agents |
+| P2 | Search-keyword + hashtag module (autocomplete-sourced, tiered tags, series numbers) wired into every format's captions | every post has a target phrase in caption head + on-screen hook; 3–5 tags; no repeated tag set within a week | lead |
+| P3 | Before/after transformation video from stored real RecipeFix results | renders the real ingredient + step changes; QA + critique | agent |
+| P4 | Fact bank to ~60, all with primary-source quotes, diet-niche weighted | `loadFacts` validates every entry; owner spot-checks 10 | agent |
+| P5 | Template perfection loop: make → critique → fix until the median critique is "post" for quiz sets, transformations and carousels | 3 consecutive "post" verdicts per format | lead |
+| P6 | Pinterest pin format (2:3, recipe pins → Originals pages) | renders, QA, link + board in record | lead |
+| P7 | Analytics loop: Blotato post analytics at 48 h / 7 d into records; weekly report; format × topic weights fed to `plan-week` | report runs on real data | lead (needs accounts) |
+| P8 | Attribution: UTM per platform; RecipeFix `source()` separates social | a test visit from each UTM lands as its platform | lead (RecipeFix PR) |
+| P9 | Assist kit: daily X reply targets, "you asked" comment-reply card, myth watchlist | one daily digest file | lead |
+| P10 | Runner: nightly launchd job (plan → make → review → digest; queue when approved) | a full dry-run week on disk | lead |
+| P11 | Bank the two-week buffer (~30 posts) from the perfected templates; queue in Blotato once RecipeFix accounts are connected | 30 approved posts scheduled | lead + owner |
+
+Owner-only: create the RecipeFix accounts and connect them in Blotato; write
+the bio; pin posts; approve the first weekly slates; be on camera sometimes.
+
+## 9. What the machine never does
 
 No auto-following, auto-liking or auto-replying (platform policy; human
 only). No engagement bait ("comment A or B", "follow for part 2"). No health
 or allergy-safety claims. No counts that drift. No publisher photos. No post
 without QA and a "post" review.
+
+## Sources (2026-10-27 research)
+
+Cadence: JoinBrands (TikTok frequency), Socialinsider 2026 Instagram
+benchmarks, Metricool YouTube Trends 2026, Commeta X frequency study. Growth:
+Sprout Social and Metricool TikTok SEO guides; Creator Lane (Instagram
+5-hashtag cap) and Phable (Mosseri on hashtags vs captions); Lilach Bullock
+and Graham Mann on X growth by replies; SEO Sherpa and Postiz on Pinterest SEO;
+vidIQ on YouTube SEO; TikTok newsroom (reply to comments with video); SocialKit
+on duets and stitches. Format evidence: QUIZ_FORMAT_RESEARCH.md.
