@@ -135,7 +135,7 @@ async function main(): Promise<void> {
       for (const [k, v] of Object.entries(loadLists())) console.log(`${k.padEnd(16)} ${v.hook}`);
       return;
     }
-    report(await makeList(id, { voice: rest.includes('--voice'), date: flag('--date'), look: flag('--look') as 'sticker' | 'editorial' | undefined }));
+    report(await makeList(id, { voice: rest.includes('--voice'), date: flag('--date'), look: flag('--look') as 'sticker' | 'editorial' | 'magazine' | undefined }));
     return;
   }
 

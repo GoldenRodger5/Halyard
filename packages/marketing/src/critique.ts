@@ -158,7 +158,7 @@ export function aggregate(reviews: Array<Omit<Critique, 'samples'>>): Critique {
   return {
     ...rep,
     scores,
-    cringe: clean ? [] : rep.cringe ?? [],
+    cringe: clean ? [] : (rep.cringe?.length ? rep.cringe : reviews.find((r) => (r.cringe ?? []).length)?.cringe ?? []),
     pro_team_would_post: proTeam,
     verdict: meets ? 'post' : majority((r) => r.verdict === 'reject') ? 'reject' : 'revise',
     samples: reviews.map((r) => ({ scores: r.scores, cringe: r.cringe ?? [], pro_team_would_post: r.pro_team_would_post })),

@@ -296,6 +296,13 @@ export async function qaStill(input: StillQaInput): Promise<{ passed: boolean; c
   const held = rb.filter((_, i) => lines[i]!.min > 0);
   rb.forEach((r, i) => {
     if (lines[i]!.min === 0) r.boxes = [];
+    // A one-character box inside a longer line ("3" in "plus 3 tbsp water") is the weakest match
+    // OCR makes: it was credited from wood grain at x 924 once (2026-10-27). With the line's other
+    // words present it proves nothing about position or contrast, so it is dropped from those checks.
+    else if (r.boxes.length > 1) {
+      const longer = r.boxes.filter((b) => tokens(b.text).join('').length > 1);
+      if (longer.length) r.boxes = longer;
+    }
   });
   checks.push({
     id: 'still.text_readback',
@@ -317,9 +324,23 @@ export async function qaStill(input: StillQaInput): Promise<{ passed: boolean; c
   });
 
   const boxes = rb.flatMap((r) => r.boxes);
-  const outside = boxes.filter(
+  const crossing = boxes.filter(
     (b) => b.x < input.safeBox.x0 || b.y < input.safeBox.y0 || b.x + b.w > input.safeBox.x1 || b.y + b.h > input.safeBox.y1,
   );
+  // An OCR box can run ~100 px wider than the ink (large serif type over a striped towel read
+  // "Egg whites" from x 71 when the glyphs start at 165). So a crossing box is re-checked: crop
+  // the frame to the safe box and read again. A word that still reads whole inside the crop is
+  // inside the safe zone; text that really crosses the edge is cut by the crop and still fails.
+  let outside = crossing;
+  if (crossing.length) {
+    const { x0, y0, x1, y1 } = input.safeBox;
+    const crop = await sharp(input.png).extract({ left: x0, top: y0, width: x1 - x0, height: y1 - y0 }).png().toBuffer();
+    const inner = (await ocrAllPasses(crop)).words.map((w) => tokens(w.text).join(''));
+    outside = crossing.filter((b) => {
+      const t = tokens(b.text).join('');
+      return t.length < 3 || !inner.some((w) => w === t || (t.length >= 5 && w.includes(t)));
+    });
+  }
   checks.push({
     id: 'still.safe_zone',
     passed: outside.length === 0 && boxes.length > 0,
@@ -341,7 +362,14 @@ export async function qaStill(input: StillQaInput): Promise<{ passed: boolean; c
           // word: "Vegan Society" in the why and the source) is attribution, not a collision.
           // OCR also clips a word's first letters ("rmigiano" for "Parmigiano"), so a fragment of
           // five or more letters inside the other word counts as the same word.
-          const sameWord = (t: string, u: string) => (t.length > 3 && u.startsWith(t.slice(0, 4))) || (Math.min(t.length, u.length) >= 5 && (u.includes(t) || t.includes(u)));
+          const oneEdit = (a: string, b: string) => {
+            if (Math.abs(a.length - b.length) > 1) return false;
+            let i = 0;
+            while (i < a.length && a[i] === b[i]) i++;
+            return a.slice(i + 1) === b.slice(i + 1) || a.slice(i) === b.slice(i + 1) || a.slice(i + 1) === b.slice(i);
+          };
+          // ...and misreads one letter ("Reqgiano"), so two long words one edit apart are the same word too.
+          const sameWord = (t: string, u: string) => (t.length > 3 && u.startsWith(t.slice(0, 4))) || (Math.min(t.length, u.length) >= 5 && (u.includes(t) || t.includes(u))) || (Math.min(t.length, u.length) >= 6 && oneEdit(t, u));
           const same = tokens(p.text).join(' ') === tokens(q.text).join(' ') || tokens(p.text).some((t) => tokens(q.text).some((u) => sameWord(t, u)));
           const share = ix > 0 && iy > 0 ? (ix * iy) / Math.min(p.w * p.h, q.w * q.h) : 0;
           if (!same && ix > 6 && iy > 6 && share > 0.3) overlaps.push(`"${p.text}" (${rb[a]!.line.slice(0, 30)}) overlaps "${q.text}" (${rb[b]!.line.slice(0, 30)})`);
