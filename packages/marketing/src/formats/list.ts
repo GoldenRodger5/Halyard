@@ -17,6 +17,7 @@ import { loadFacts } from './quiz.js';
 interface ListItemSpec {
   fact: string;
   name: string;
+  stamp: string;
   line: string;
   image: string;
 }
@@ -24,6 +25,8 @@ interface ListSpec {
   series: string;
   topic: string;
   hook: string;
+  hook_sub?: string;
+  hook_image: string;
   save: string;
   tie: string;
   search?: string[];
@@ -60,18 +63,18 @@ export async function makeList(id: string, opts: { voice: boolean; date?: string
   const items = [];
   for (const [i, it] of all.entries()) {
     const twist = spec.twist === it;
-    const vo = opts.voice ? await voice(s, `${it.name}. ${it.line}`, `item${i + 1}`) : null;
+    const vo = opts.voice ? await voice(s, `${it.name}. ${it.stamp}. ${it.line}`, `item${i + 1}`) : null;
     const start = t;
-    t += Math.max(sec(2.6), sec((vo?.seconds ?? 0) + 0.5));
-    items.push({ n: i + 1, name: it.name, line: it.line, source: facts.get(it.fact)!.source.short, photo: await generatedPhoto(s, it.image, `${id}-${i + 1}`, 'tall'), start, end: t, twist, audio: vo?.file ?? null });
+    t += Math.max(sec(2.2), sec((vo?.seconds ?? 0) + 0.5));
+    items.push({ n: i + 1, name: it.name, stamp: it.stamp, line: it.line, source: facts.get(it.fact)!.source.short.split(',')[0]!.trim(), photo: await generatedPhoto(s, it.image, `${id}-${i + 1}`, 'tall'), start, end: t, twist, audio: vo?.file ?? null });
   }
   const closeStart = t;
-  const total = closeStart + sec(3.6);
+  const total = closeStart + sec(3.2);
   const props = {
     label: spec.series,
-    hook: { text: spec.hook, photo: items[0]!.photo, start: 0, end: hookEnd, audio: hookVo?.file ?? null },
+    hook: { text: spec.hook, sub: spec.hook_sub, photo: await generatedPhoto(s, spec.hook_image, `${id}-hook`, 'tall'), start: 0, end: hookEnd, audio: hookVo?.file ?? null },
     items,
-    close: { start: closeStart, tips: all.map((it) => ({ name: it.name.replace(/^And one that's fine: /i, ''), ok: spec.twist === it })), tie: spec.tie, save: spec.save, photo: items[items.length - 1]!.photo },
+    close: { start: closeStart, tips: all.map((it) => ({ name: it.name, stamp: it.stamp, ok: spec.twist === it })), save: spec.save, photo: items[items.length - 1]!.photo },
     sfx: { whoosh: fx.whoosh, reveal: fx.reveal },
   };
   writeJson(path.join(s.dir, 'render-props.json'), props);
@@ -83,12 +86,12 @@ export async function makeList(id: string, opts: { voice: boolean; date?: string
   const lead = `${phrase.charAt(0).toUpperCase()}${phrase.slice(1)}${/^(is|are|does|do|how|can|why|what|which)\b/i.test(phrase) ? '?' : ':'}`;
   const series = { name: spec.series, n: seriesNumber(spec.series, s.id) };
   const tags = hashtags(spec.topic).map((x) => `#${x}`).join(' ');
-  const body = `${lead} ${spec.hook}. ${spec.caption} ${series.name} #${series.n}.`;
-  const sourcesText = all.map((it) => `${it.name.replace(/^And one that's fine: /i, '')}: ${facts.get(it.fact)!.source.short}`).join('\n');
+  const body = `${lead} ${spec.caption}`;
+  const sourcesText = all.map((it) => `${it.name}: ${facts.get(it.fact)!.source.short}`).join('\n');
   const media = [relRepo(video)];
   const posts: Record<string, PlatformPost> = {
-    tiktok: { platform: 'tiktok', kind: 'video', media, text: `${body}\n\n${tags}`, ai_voice: opts.voice, cover_ms: 400 },
-    instagram_reel: { platform: 'instagram', kind: 'video', media, text: `${body}\n\n${sourcesText}\n\n${spec.save}\n\n${tags}`, ai_voice: opts.voice },
+    tiktok: { platform: 'tiktok', kind: 'video', media, text: `${body}\n\nSources:\n${sourcesText}\n\n${tags}`, ai_voice: opts.voice, cover_ms: 400 },
+    instagram_reel: { platform: 'instagram', kind: 'video', media, text: `${body}\n\n${sourcesText}\n\n${spec.tie} ${spec.save}\n\n${tags}`, ai_voice: opts.voice },
     youtube: { platform: 'youtube', kind: 'video', media, title: `${lead.replace(/:$/, '')} | ${series.name} #${series.n} #shorts`.slice(0, 100), text: `${spec.hook}.\n\n${sourcesText}\n\n${spec.tie} https://recipefix.app`, ai_voice: opts.voice },
     x: { platform: 'x', kind: 'video', media, text: `${spec.hook}. ${spec.caption}`.slice(0, 270), thread: [sourcesText.slice(0, 275)] },
     threads: { platform: 'threads', kind: 'video', media, text: `${spec.hook}. ${spec.caption}`, thread: [sourcesText] },
@@ -98,11 +101,11 @@ export async function makeList(id: string, opts: { voice: boolean; date?: string
   const checks: GateCheck[] = [];
   const d = duration(video);
   checks.push(check('video.duration', d >= 12 && d <= 35, `${d.toFixed(1)} s (target 12–35 s)`));
-  if (opts.voice) checks.push(transcriptCheck(s, video, [spec.hook, ...all.map((it) => `${it.name}. ${it.line}`)].join(' ')));
-  checks.push(...(await qaFrame(s, video, 0.3, 'hook', [spec.hook])));
-  for (const it of items) checks.push(...(await qaFrame(s, video, (it.end - 4) / FPS, `item${it.n}`, [it.name, it.line, `Source: ${it.source}`])));
-  checks.push(...(await qaFrame(s, video, (total - 3) / FPS, 'close', ['Save this', spec.tie])));
-  const everything = [spec.hook, spec.caption, spec.save, spec.tie, ...all.flatMap((it) => [it.name, it.line]), ...Object.values(posts).flatMap((p) => [p.text, ...(p.thread ?? []), p.title ?? ''])];
+  if (opts.voice) checks.push(transcriptCheck(s, video, [spec.hook, ...all.map((it) => `${it.name}. ${it.stamp}. ${it.line}`)].join(' ')));
+  checks.push(...(await qaFrame(s, video, 1.2, 'hook', [spec.hook, ...(spec.hook_sub ? [spec.hook_sub] : [])])));
+  for (const it of items) checks.push(...(await qaFrame(s, video, (it.end - 4) / FPS, `item${it.n}`, [it.name, it.stamp, it.line, `Source: ${it.source}`])));
+  checks.push(...(await qaFrame(s, video, (total - 3) / FPS, 'close', ['Check the label', ...all.map((it) => it.name), spec.save])));
+  const everything = [spec.hook, spec.hook_sub ?? '', spec.caption, spec.save, spec.tie, ...all.flatMap((it) => [it.name, it.stamp, it.line]), ...Object.values(posts).flatMap((p) => [p.text, ...(p.thread ?? []), p.title ?? ''])];
   const problems = humanTextProblems(everything);
   for (const c of forbiddenClaims(pack)) for (const ex of c.examples ?? []) for (const txt of everything) if (forbiddenMatches(txt, ex)) problems.push(`forbidden (${c.id}) "${ex}"`);
   const limits: Record<string, number> = { tiktok: 2200, instagram: 2200, x: 280, threads: 500, youtube: 5000 };

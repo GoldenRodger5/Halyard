@@ -14,7 +14,7 @@
  * person would watch, and whether anything looks cheap, blocked or squashed.
  */
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { Ledger } from './ledger.js';
 import { LEDGER_FILE, REPO_ROOT, SPEND_CAP_USD } from './runContext.js';
@@ -38,31 +38,45 @@ export interface Critique {
   at: string;
 }
 
-function frames(dir: string, record: StudioRecord): string[] {
+interface Frame {
+  file: string;
+  label: string;
+}
+
+/**
+ * One frame a second, each labelled with its time. Ten evenly spaced stills
+ * with no timestamps made the reviewer read a long shot as "a duplicate slide"
+ * and a frame between two items as "a blank frame" (2026-10-27).
+ */
+function frames(dir: string, record: StudioRecord): Frame[] {
   const out = path.join(dir, 'critique-frames');
+  rmSync(out, { recursive: true, force: true });
   mkdirSync(out, { recursive: true });
-  const files: string[] = [];
+  const files: Frame[] = [];
   if (record.outputs.video) {
     const video = path.resolve(REPO_ROOT, record.outputs.video);
     const d = duration(video);
-    // The first frame (the cover), then evenly through the video.
-    const times = [0.05, ...Array.from({ length: 9 }, (_, i) => ((i + 1) * d) / 10)].map((t) => Math.min(t, d - 0.1));
+    // The cover, then one a second (at most 40).
+    const step = Math.max(1, d / 40);
+    const times = [0.05];
+    for (let t = 1; t < d - 0.6; t += step) times.push(t);
+    times.push(d - 0.3);
     for (const [i, t] of times.entries()) {
       const f = path.join(out, `f${String(i).padStart(2, '0')}.jpg`);
       execFileSync('ffmpeg', ['-v', 'error', '-y', '-ss', t.toFixed(2), '-i', video, '-frames:v', '1', '-vf', 'scale=540:-1', '-q:v', '4', f]);
-      files.push(f);
+      files.push({ file: f, label: i === 0 ? 'cover (0.0 s)' : `${t.toFixed(1)} s` });
     }
   }
   for (const s of [...(record.outputs.slides ?? []), ...(record.outputs.tiktok_slides ?? [])].slice(0, 10)) {
     const f = path.join(out, `s-${path.basename(s)}`);
     execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', path.resolve(REPO_ROOT, s), '-vf', 'scale=540:-1', '-q:v', '4', f]);
-    files.push(f);
+    files.push({ file: f, label: `slide ${files.length + 1}` });
   }
   return files;
 }
 
 const RUBRIC = `You are reviewing a short social post BEFORE it is published, as a sharp, honest viewer scrolling TikTok / Reels / Shorts, not as its maker.
-Look at the frames in order (frame 1 is the cover / first second). Judge only what a viewer sees and feels.
+Look at the frames in order. Each is labelled: the cover, then one frame per second of video, so consecutive frames of the same shot are that shot continuing (not a duplicate), and a frame caught mid-transition is motion (not a blank slide). Judge only what a viewer watching the whole video sees and feels.
 Score 1-10:
 - stop: would you stop scrolling on the first frame?
 - stay: would you watch to the end (or swipe to the last slide)?
@@ -84,8 +98,11 @@ export async function critique(runDir: string): Promise<Critique> {
   ledger.assertCanSpend(0.08);
   const caption = Object.values(record.posts)[0]?.text ?? '';
   const content = [
-    { type: 'input_text', text: `${RUBRIC}\n\nFormat: ${record.format}. Summary: ${record.summary}.\nCaption that ships with it:\n${caption}\n\nFrames (${imgs.length}) follow in order.` },
-    ...imgs.map((f) => ({ type: 'input_image', image_url: `data:image/jpeg;base64,${readFileSync(f).toString('base64')}`, detail: 'low' })),
+    { type: 'input_text', text: `${RUBRIC}\n\nFormat: ${record.format}. Summary: ${record.summary}.\nCaption that ships with it:\n${caption}\n\nFrames (${imgs.length}) follow in order, each after its label.` },
+    ...imgs.flatMap((f) => [
+      { type: 'input_text', text: f.label },
+      { type: 'input_image', image_url: `data:image/jpeg;base64,${readFileSync(f.file).toString('base64')}`, detail: 'low' },
+    ]),
   ];
   const r = await fetch('https://api.openai.com/v1/responses', {
     method: 'POST',

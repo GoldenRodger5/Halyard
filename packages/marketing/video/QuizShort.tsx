@@ -38,7 +38,7 @@ export interface QuizQuestionProps {
 export interface QuizShortProps {
   label: string;
   questions: QuizQuestionProps[];
-  close: { start: number; tie: string; save: string; tips: string[]; audio: string | null; photo: string };
+  close: { start: number; prompt: string; save: string; tips: string[]; audio: string | null; photo: string };
   sfx: { tick: string; reveal: string } | null;
   /** Series look (THEMES). */
   theme?: string;
@@ -369,12 +369,13 @@ const Question: React.FC<{ q: QuizQuestionProps; label: string; index: number; t
  */
 /**
  * The close is the takeaway (viewer review 2026-10-27): a cheat sheet worth
- * saving, then RecipeFix as one small line. Not an ad slab.
+ * saving, then a prompt back to the viewer. No brand row: the account is
+ * RecipeFix, and the tie is in the caption.
  */
 const Close: React.FC<{ c: QuizShortProps['close']; color: string }> = ({ c, color }) => {
   const f = useCurrentFrame();
   const a = useSpring(c.start + 2, { damping: 12 });
-  const b = useSpring(c.start + 10 + c.tips.length * 8, { damping: 12 });
+  const b = useSpring(c.start + 8 + c.tips.length * 6, { damping: 12 });
   const size = c.tips.length > 1 ? 38 : 46;
   return (
     <>
@@ -383,7 +384,7 @@ const Close: React.FC<{ c: QuizShortProps['close']; color: string }> = ({ c, col
         <div style={{ textAlign: 'center', ...useTheme().headline(84), opacity: Math.min(1, a), transform: `scale(${interpolate(a, [0, 1], [0.7, 1])})` }}>Save this</div>
         <div style={{ background: '#FFFFFF', borderRadius: 28, border: `5px solid ${INK}`, boxShadow: `0 9px 0 ${INK}`, padding: '24px 26px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 18 }}>
           {c.tips.map((t, i) => {
-            const tt = interpolate(f, [c.start + 8 + i * 8, c.start + 16 + i * 8], [0, 1], clamp);
+            const tt = interpolate(f, [c.start + 4 + i * 6, c.start + 10 + i * 6], [0, 1], clamp);
             return (
               <div key={i} style={{ display: 'flex', gap: 16, alignItems: 'flex-start', opacity: tt, transform: `translateX(${(1 - tt) * 40}px)` }}>
                 <div style={{ width: 46, height: 46, flex: '0 0 46px', borderRadius: 23, background: GREEN, color: '#FFFFFF', fontFamily: 'Lilita One', fontSize: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 2 }}>✓</div>
@@ -392,10 +393,7 @@ const Close: React.FC<{ c: QuizShortProps['close']; color: string }> = ({ c, col
             );
           })}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 18, opacity: Math.min(1, b), background: 'rgba(27,20,16,0.82)', borderRadius: 22, padding: '14px 18px' }}>
-          <Img src={staticFile('brand/recipefix-mark-512.png')} style={{ width: 60, height: 60, flex: '0 0 60px', borderRadius: 14 }} />
-          <div style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: 30, lineHeight: 1.25, color: '#FFFFFF' }}>{c.tie}</div>
-        </div>
+        <div style={{ alignSelf: 'center', opacity: Math.min(1, b), transform: `scale(${interpolate(Math.min(1, b), [0, 1], [0.85, 1])})`, background: INK, color: '#FFFFFF', fontFamily: 'Inter', fontWeight: 700, fontSize: 38, borderRadius: 18, padding: '14px 24px' }}>{c.prompt}</div>
       </div>
       <PhotoCard src={c.photo} at={c.start + 4} top={1010} height={480} width={880} answer={null} answerAt={0} />
     </>

@@ -17,6 +17,7 @@ import { FONTS, SAFE, clamp } from './kit.js';
 export interface ListItem {
   n: number;
   name: string;
+  stamp: string;
   line: string;
   source: string;
   photo: string;
@@ -27,9 +28,9 @@ export interface ListItem {
 }
 
 export interface ListShortProps {
-  hook: { text: string; photo: string; start: number; end: number; audio?: string | null };
+  hook: { text: string; sub?: string; photo: string; start: number; end: number; audio?: string | null };
   items: ListItem[];
-  close: { start: number; tips: Array<{ name: string; ok: boolean }>; tie: string; save: string; photo: string };
+  close: { start: number; tips: Array<{ name: string; stamp: string; ok: boolean }>; save: string; photo: string };
   label: string;
   sfx: { whoosh: string; reveal: string } | null;
   [key: string]: unknown;
@@ -39,6 +40,8 @@ const INK = '#1B1410';
 const RED = '#E0483E';
 const GREEN = '#1E9E57';
 const W = SAFE.x1 - SAFE.x0;
+/** OCR boxes around the outlined display font run ~40 px wide, so display text sits further in. */
+const INSET = 44;
 
 const useSpring = (at: number, damping = 13) => {
   const f = useCurrentFrame();
@@ -74,10 +77,11 @@ const Hook: React.FC<{ h: ListShortProps['hook']; label: string }> = ({ h, label
   const b = useSpring(h.start + 10);
   return (
     <>
-      <Photo src={h.photo} from={h.start} to={h.end} dim={0.32} />
-      <div style={{ position: 'absolute', left: SAFE.x0 + 10, top: SAFE.y0 + 20, width: W - 20 }}>
+      <Photo src={h.photo} from={h.start} to={h.end} dim={0.12} />
+      <div style={{ position: 'absolute', left: SAFE.x0 + INSET, top: SAFE.y0 + 60, width: W - 2 * INSET }}>
         <div style={{ display: 'inline-block', background: INK, color: '#FFFFFF', fontFamily: 'Inter', fontWeight: 600, fontSize: 32, letterSpacing: 3, textTransform: 'uppercase', padding: '10px 18px', borderRadius: 10, transform: `scale(${b})`, transformOrigin: 'left center' }}>{label}</div>
-        <div style={{ marginTop: 26, ...display(h.text.length > 32 ? 92 : 104), opacity: Math.min(1, a) }}>{h.text}</div>
+        <div style={{ marginTop: 26, ...display(h.text.length > 32 ? 90 : 102), opacity: Math.min(1, a) }}>{h.text}</div>
+        {h.sub ? <div style={{ marginTop: 26, display: 'inline-block', background: '#FFFFFF', color: INK, fontFamily: 'Inter', fontWeight: 700, fontSize: 40, padding: '12px 20px', borderRadius: 14, border: `5px solid ${INK}`, opacity: Math.min(1, b) }}>{h.sub}</div> : null}
       </div>
     </>
   );
@@ -85,54 +89,62 @@ const Hook: React.FC<{ h: ListShortProps['hook']; label: string }> = ({ h, label
 
 const Item: React.FC<{ it: ListItem; total: number }> = ({ it, total }) => {
   const f = useCurrentFrame();
-  const a = useSpring(it.start + 3);
-  const b = useSpring(it.start + 10);
-  const c = interpolate(f, [it.start + 18, it.start + 26], [0, 1], clamp);
+  const a = useSpring(it.start);
+  const b = useSpring(it.start + 3);
+  const st = useSpring(it.start + 10, 10);
+  const c = interpolate(f, [it.start + 18, it.start + 24], [0, 1], clamp);
   const tone = it.twist ? GREEN : RED;
   return (
     <>
       <Photo src={it.photo} from={it.start} to={it.end} />
-      <div style={{ position: 'absolute', left: SAFE.x0 + 6, top: SAFE.y0 + 10, width: W - 12, display: 'flex', flexDirection: 'column', gap: 18 }}>
+      {/* Odd items sit high, even items sit low, so five beats are not one layout five times. */}
+      <div style={{ position: 'absolute', left: SAFE.x0 + INSET, top: SAFE.y0 + 10, width: W - 2 * INSET, height: SAFE.y1 - SAFE.y0 - 110, display: 'flex', flexDirection: 'column', justifyContent: it.n % 2 ? 'flex-start' : 'flex-end', gap: 18 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 18, transform: `translateX(${(1 - Math.min(1, a)) * -120}px)`, opacity: Math.min(1, a * 1.5) }}>
           <div style={{ width: 104, height: 104, flex: '0 0 104px', borderRadius: 52, background: tone, border: '6px solid #FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', ...display(it.twist ? 52 : 62) }}>{it.twist ? '✓' : it.n}</div>
-          <div style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: 30, color: '#FFFFFF', textShadow: '0 2px 8px rgba(0,0,0,0.6)' }}>{it.twist ? 'Bonus' : `${it.n} of ${total}`}</div>
+          <div style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: 30, color: '#FFFFFF', textShadow: '0 2px 8px rgba(0,0,0,0.6)' }}>{it.twist ? "And one that's fine" : `${it.n} of ${total}`}</div>
         </div>
         <div style={{ ...display(it.name.length > 22 ? 70 : it.name.length > 14 ? 82 : 96), transform: `scale(${interpolate(b, [0, 1], [0.8, 1])})`, transformOrigin: 'left center', opacity: Math.min(1, b * 1.5) }}>{it.name}</div>
-        <div style={{ alignSelf: 'flex-start', background: '#FFFFFF', border: `5px solid ${INK}`, boxShadow: `0 8px 0 ${INK}`, borderRadius: 22, padding: '16px 22px', maxWidth: W - 12, boxSizing: 'border-box', opacity: c, transform: `translateY(${(1 - c) * 24}px)` }}>
+        {/* The reveal: what is hidden in it, slammed in like a stamp. */}
+        <div style={{ alignSelf: 'flex-start', background: tone, border: '6px solid #FFFFFF', borderRadius: 16, padding: '6px 22px 10px', ...display(it.stamp.length > 10 ? 64 : 74), transform: `rotate(-3deg) scale(${interpolate(st, [0, 1], [1.8, 1])})`, transformOrigin: 'left center', opacity: Math.min(1, st * 2), boxShadow: `0 8px 0 ${INK}` }}>{it.stamp}</div>
+        <div style={{ alignSelf: 'flex-start', background: '#FFFFFF', border: `5px solid ${INK}`, boxShadow: `0 8px 0 ${INK}`, borderRadius: 22, padding: '16px 22px', maxWidth: W - 2 * INSET, boxSizing: 'border-box', opacity: c, transform: `translateY(${(1 - c) * 24}px)` }}>
           <div style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: it.line.length > 60 ? 38 : 44, lineHeight: 1.22, color: INK }}>{it.line}</div>
         </div>
       </div>
-      <div style={{ position: 'absolute', left: SAFE.x0 + 6, top: SAFE.y1 - 64, width: W - 12, opacity: c }}>
-        <span style={{ background: 'rgba(17,17,17,0.82)', color: '#FFFFFF', fontFamily: 'Inter', fontWeight: 600, fontSize: 26, padding: '8px 14px', borderRadius: 10 }}>{`Source: ${it.source}`}</span>
+      <div style={{ position: 'absolute', left: SAFE.x0 + 6, bottom: 1920 - SAFE.y1 + 6, width: W - 12, opacity: c }}>
+        <span style={{ display: 'inline-block', maxWidth: W - 12, background: 'rgba(17,17,17,0.78)', color: '#FFFFFF', fontFamily: 'Inter', fontWeight: 600, fontSize: 34, lineHeight: 1.3, padding: '10px 18px', borderRadius: 10 }}>{`Source: ${it.source}`}</span>
       </div>
     </>
   );
 };
 
+/** The end card is something to keep: each item and what is hidden in it. */
 const Close: React.FC<{ c: ListShortProps['close'] }> = ({ c }) => {
   const f = useCurrentFrame();
-  const a = useSpring(c.start + 2, 12);
-  const b = useSpring(c.start + 12 + c.tips.length * 5);
+  const a = useSpring(c.start, 12);
+  // The card arrives with its first row, so it is never an empty box.
+  const card = interpolate(f, [c.start + 2, c.start + 7], [0, 1], clamp);
+  const sv = interpolate(f, [c.start + 8 + c.tips.length * 3, c.start + 14 + c.tips.length * 3], [0, 1], clamp);
+  const rows = c.tips.length;
   return (
     <>
       <Photo src={c.photo} from={c.start} to={c.start + 150} dim={0.5} />
-      <div style={{ position: 'absolute', left: SAFE.x0 + 6, top: SAFE.y0 + 10, width: W - 12, display: 'flex', flexDirection: 'column', gap: 22 }}>
-        <div style={{ textAlign: 'center', ...display(80), opacity: Math.min(1, a), transform: `scale(${interpolate(a, [0, 1], [0.7, 1])})` }}>Save this</div>
-        <div style={{ background: '#FFFFFF', border: `5px solid ${INK}`, boxShadow: `0 9px 0 ${INK}`, borderRadius: 26, padding: '22px 26px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={{ position: 'absolute', left: SAFE.x0 + INSET, top: SAFE.y0 + 10, width: W - 2 * INSET, height: SAFE.y1 - SAFE.y0 - 20, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 20 }}>
+        <div style={{ ...display(72), opacity: Math.min(1, a), transform: `scale(${interpolate(a, [0, 1], [0.8, 1])})`, transformOrigin: 'left center' }}>Check the label</div>
+        <div style={{ background: '#FFFFFF', border: `5px solid ${INK}`, boxShadow: `0 9px 0 ${INK}`, borderRadius: 26, padding: '22px 26px', display: 'flex', flexDirection: 'column', gap: rows > 5 ? 12 : 18, opacity: card, transform: `translateY(${(1 - card) * 30}px)` }}>
           {c.tips.map((t, i) => {
-            const tt = interpolate(f, [c.start + 8 + i * 5, c.start + 14 + i * 5], [0, 1], clamp);
+            const tt = interpolate(f, [c.start + 2 + i * 3, c.start + 7 + i * 3], [0, 1], clamp);
             return (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 16, opacity: tt, transform: `translateX(${(1 - tt) * 40}px)` }}>
-                <div style={{ width: 44, height: 44, flex: '0 0 44px', borderRadius: 22, background: t.ok ? GREEN : RED, color: '#FFFFFF', fontFamily: 'Lilita One', fontSize: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{t.ok ? '✓' : '✕'}</div>
-                <div style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: 40, color: INK }}>{t.name}</div>
+                <div style={{ width: 48, height: 48, flex: '0 0 48px', borderRadius: 24, background: t.ok ? GREEN : RED, color: '#FFFFFF', fontFamily: 'Lilita One', fontSize: 26, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{t.ok ? '✓' : '✕'}</div>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ fontFamily: 'Inter', fontWeight: 700, fontSize: rows > 5 ? 38 : 42, lineHeight: 1.12, color: INK }}>{t.name}</div>
+                  <div style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: rows > 5 ? 31 : 34, lineHeight: 1.15, color: t.ok ? GREEN : '#B3362D' }}>{t.stamp}</div>
+                </div>
               </div>
             );
           })}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, background: 'rgba(27,20,16,0.85)', borderRadius: 20, padding: '14px 18px', opacity: Math.min(1, b) }}>
-          <Img src={staticFile('brand/recipefix-mark-512.png')} style={{ width: 58, height: 58, flex: '0 0 58px', borderRadius: 13 }} />
-          <div style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: 30, lineHeight: 1.25, color: '#FFFFFF' }}>{c.tie}</div>
-        </div>
+        <div style={{ alignSelf: 'flex-start', background: 'rgba(17,17,17,0.82)', color: '#FFFFFF', fontFamily: 'Inter', fontWeight: 600, fontSize: 32, padding: '10px 18px', borderRadius: 12, opacity: sv }}>{c.save}</div>
       </div>
     </>
   );
@@ -161,9 +173,14 @@ export const ListShort: React.FC<ListShortProps> = (p) => {
       </Visible>
       {p.sfx
         ? p.items.map((it) => (
-            <Sequence key={`w${it.n}`} from={it.start} durationInFrames={15} layout="none">
-              <Audio src={staticFile(it.twist ? p.sfx!.reveal : p.sfx!.whoosh)} volume={0.4} />
-            </Sequence>
+            <React.Fragment key={`s${it.n}`}>
+              <Sequence from={it.start} durationInFrames={15} layout="none">
+                <Audio src={staticFile(p.sfx!.whoosh)} volume={0.35} />
+              </Sequence>
+              <Sequence from={it.start + 10} durationInFrames={20} layout="none">
+                <Audio src={staticFile(p.sfx!.reveal)} volume={0.4} />
+              </Sequence>
+            </React.Fragment>
           ))
         : null}
       {p.hook.audio ? (

@@ -71,8 +71,9 @@ a week. Formats available, by status:
 | This or that (3 rounds) | same | agent finishing |
 | Recipe video (Originals) | same + Pinterest | built (`mk recipe`), restyle per review pending |
 | App intro (real screens, voice) | same | built (`mk app --voice`) |
-| Quiz carousel / swap guide carousel | IG, TikTok photo mode | built on `feat/mk-formats-slides`, to merge |
-| Single image + answer thread, X text | X, Threads, IG feed | built on `feat/mk-formats-slides` |
+| Quiz carousel / swap guide carousel | IG, TikTok photo mode | built (`mk slides`) |
+| Single image + answer thread, X text | X, Threads, IG feed | built (`mk image`) |
+| List video ("Looks vegan? Check these 5") | TikTok, Reels, Shorts, X, Threads | built (`mk list`): 3 lists, stamp reveal per item, label checklist close |
 | Before/after transformation video | all | **not built**: the bridge format; next to build |
 | Founder on camera | all | human only; highest-trust format per research |
 
@@ -197,6 +198,30 @@ viewer review. Until then every render is a pipeline test.
 
 Owner-only: create the RecipeFix accounts and connect them in Blotato; write
 the bio; pin posts; approve the first weekly slates; be on camera sometimes.
+
+### What the viewer review taught us (2026-10-27, P5 round 1)
+
+Each line was a reviewer complaint that held up when checked against the frames.
+
+- **Ten evenly spaced stills lie.** A long shot read as "a duplicate slide" and a
+  transition as "a blank frame". The reviewer now sees one labelled frame a second.
+- **Pacing is the first thing that kills a quiz.** 47 s for three questions scored
+  stay 4. The timer starts ~1 s in (people read during it), and only the core
+  sentence of an explanation is on screen; the full one is in the caption.
+- **End on the viewer, not the brand.** A RecipeFix row on the last frame read as
+  "a hidden ad" every time. The account is RecipeFix and the tie is in the
+  caption; the video ends on a score prompt or a checklist worth saving.
+- **A warning alone is not worth saving.** Each list item names the swap when the
+  source gives one, and the close is a checklist of what to look for.
+- **Every reveal needs a beat.** A list item is name, then a stamp slammed in with
+  what is hidden in it, then the line: something changes every half second.
+- **The picture must suit the audience** (no steak on a vegan list), and the
+  title must fit every item ("things", not "foods", when beer is on it).
+- **Qualify the claim on screen** ("often", "some", "classic ones"); a reviewer
+  docks credibility for an absolute.
+- **QA must not be loosened to pass.** OCR boxes around outlined display type run
+  ~40 px wide, so display text sits further in rather than the check shrinking;
+  a duplicate word matched to two lines is attribution, not an overlap.
 
 ## 9. What the machine never does
 

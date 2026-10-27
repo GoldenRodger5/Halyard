@@ -92,6 +92,12 @@ const TOPIC: Record<string, { label: string; tags: string[]; close: string }> = 
 
 /** Long enough to commit to an answer (research: 3–7 s is the norm). */
 const TIMER_SECONDS = 3;
+
+/** The on-screen explanation: the whole "why" when short, else its first sentence. */
+export function shortWhy(why: string): string {
+  if (why.split(/\s+/).length <= 22) return why;
+  return why.split(/(?<=[.!?])\s+/)[0]!;
+}
 const LETTERS = ['A', 'B', 'C', 'D'];
 const spokenAnswer = (opt: string) => (/^(yes|no|myth|fact)$/i.test(opt) ? `${opt}.` : `It's ${opt.replace(/^About/, 'about').replace(/^Under/, 'under')}.`);
 
@@ -143,15 +149,19 @@ export async function makeQuiz(args: string[], opts: { voice: boolean; date?: st
     const av = opts.voice ? await voice(s, spokenAnswer(f.options[f.correct]!), `a${i + 1}`) : null;
     const wv = opts.voice ? await voice(s, f.why, `why${i + 1}`) : null;
     const start = t;
-    const countdownAt = start + Math.max(sec(1.6), 6 + sec(qv?.seconds ?? read(`${f.question} ${f.options.join(' ')}`, 3.2, 2.2)) + 8);
+    // Silent pacing (viewer review 2026-10-27: 47 s for three questions "drags"): the timer starts
+    // about a second in, because people read the options while it runs, and only the core sentence
+    // of a long explanation is on screen (the full one is in the caption and the reply).
+    const why = opts.voice ? f.why : shortWhy(f.why);
+    const countdownAt = start + (qv ? Math.max(sec(1.6), 6 + sec(qv.seconds) + 8) : sec(Math.min(2.2, read(f.question, 4.5, 1.3))));
     const revealAt = countdownAt + TIMER_SECONDS * FPS;
-    const whyAt = revealAt + Math.max(sec(1.1), 6 + sec(av?.seconds ?? 0) + 4);
-    const end = whyAt + sec(wv?.seconds ?? read(f.why, 3.8, 2.4)) + sec(0.6);
+    const whyAt = revealAt + (av ? Math.max(sec(1.1), 6 + sec(av.seconds) + 4) : sec(0.8));
+    const end = whyAt + (wv ? sec(wv.seconds) + sec(0.6) : sec(Math.min(3.4, read(why, 4.5, 1.8)) + 0.4));
     questions.push({
       question: f.question,
       options: f.options,
       correct: f.correct,
-      why: f.why,
+      why,
       source: f.source.short,
       photo: f.image ? await generatedPhoto(s, f.image, f.id) : await originalPhoto(s, f.photo, 'wide'),
       start,
@@ -164,9 +174,11 @@ export async function makeQuiz(args: string[], opts: { voice: boolean; date?: st
     t = end;
   }
   const tie = set?.tie ?? chosen[0]!.tie;
-  const cv = opts.voice ? await voice(s, tie, 'close') : null;
+  // The video ends on the viewer, not an ad: the account is already RecipeFix, and the tie is in the caption.
+  const prompt = one ? 'Did you get it?' : `Comment your score out of ${chosen.length}`;
+  const cv = opts.voice ? await voice(s, prompt, 'close') : null;
   const closeStart = t;
-  const total = closeStart + Math.max(sec(2.6 + chosen.length * 1.1), 4 + sec(cv?.seconds ?? 0) + 30);
+  const total = closeStart + Math.max(sec(2.2 + chosen.length * 0.9), 4 + sec(cv?.seconds ?? 0) + 30);
   // Series identity: each recurring series has its own look (QuizShort THEMES).
   const THEME_BY: Record<string, string> = {
     'label-detective': 'label', labels: 'label', 'gluten-free': 'label', allergies: 'label', vegan: 'label', vegetarian: 'label',
@@ -179,7 +191,7 @@ export async function makeQuiz(args: string[], opts: { voice: boolean; date?: st
     theme,
     label,
     questions,
-    close: { start: closeStart, tie, save: set?.save ?? topic.close, tips: chosen.map((f) => f.tip ?? f.why), audio: cv?.file ?? null, photo: questions[0]!.photo },
+    close: { start: closeStart, prompt, save: set?.save ?? topic.close, tips: chosen.map((f) => f.tip ?? f.why), audio: cv?.file ?? null, photo: questions[0]!.photo },
     sfx: fx,
   };
   writeJson(`${s.dir}/render-props.json`, props);
@@ -230,7 +242,7 @@ export async function makeQuiz(args: string[], opts: { voice: boolean; date?: st
   checks.push(check('video.duration', d >= target[0]! && d <= target[1]!, `${d.toFixed(1)} s (target ${target.join('–')} s)`));
   const loud = loudnessChecked(video);
   checks.push(check('audio.loudness', !opts.voice || (Math.abs(loud.lufs + 14) <= 1.5 && loud.peak <= -0.5), `${loud.lufs} LUFS, peak ${loud.peak} dBFS${opts.voice ? '' : ' (silent cut: ticks and chime only, not held to −14)'}`));
-  if (opts.voice) checks.push(transcriptCheck(s, video, [...chosen.flatMap((f) => [f.question, spokenAnswer(f.options[f.correct]!), f.why]), tie].join(' ')));
+  if (opts.voice) checks.push(transcriptCheck(s, video, [...chosen.flatMap((f) => [f.question, spokenAnswer(f.options[f.correct]!), f.why]), prompt].join(' ')));
   for (const [i, q] of questions.entries()) {
     const f = chosen[i]!;
     checks.push(...(await qaFrame(s, video, (q.countdownAt + 20) / FPS, `q${i + 1}-question`, [...(f.question.toLowerCase().includes(label.toLowerCase().split(' ')[0]!) ? [] : [label]), f.question, ...(f.format === 'myth' ? [] : f.options)])));
@@ -240,7 +252,7 @@ export async function makeQuiz(args: string[], opts: { voice: boolean; date?: st
     if (f.format !== 'myth' && !f.why.toLowerCase().includes(f.options[f.correct]!.toLowerCase())) answerLines.splice(1, 0, f.options[f.correct]!);
     checks.push(...(await qaFrame(s, video, (q.end - 3) / FPS, `q${i + 1}-answer`, answerLines)));
   }
-  checks.push(...(await qaFrame(s, video, (total - 3) / FPS, 'close', ['Save this', ...chosen.map((f) => f.tip ?? f.why), tie])));
+  checks.push(...(await qaFrame(s, video, (total - 3) / FPS, 'close', ['Save this', ...chosen.map((f) => f.tip ?? f.why), prompt])));
 
   const limits: Record<string, number> = { tiktok: 2200, instagram: 2200, x: 280, threads: 500, youtube: 5000 };
   const problems: string[] = [];

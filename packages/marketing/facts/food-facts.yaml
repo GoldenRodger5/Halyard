@@ -338,10 +338,10 @@ facts:
 
   - id: hist-ketchup
     topic: food-history
-    question: "In the 1830s, tomato ketchup was sold as…"
-    options: ["Medicine", "Hair dye", "Paint", "Soap"]
+    question: "In the 1830s, tomatoes were sold in pill form as…"
+    options: ["Medicine", "Hair dye", "Vitamins", "Diet pills"]
     correct: 0
-    why: "An Ohio doctor claimed tomatoes could treat indigestion, and by 1835 tomato pills were on sale."
+    why: "A doctor claimed tomatoes treated indigestion, and in 1835 the first tomato pills went on sale."
     source:
       name: "Popular Science, Ketchup was once a diarrhea cure"
       short: "Popular Science, ketchup history"
@@ -351,9 +351,9 @@ facts:
     photo: crispy-chicken-parmesan
     search: ["ketchup medicine", "ketchup history"]
     tip: "1830s: tomato pills sold as medicine."
-    image: "an old-fashioned glass bottle of tomato ketchup beside fresh tomatoes on a rustic table"
+    image: "fresh ripe tomatoes in an old apothecary-style wooden box on a rustic table"
     tie: *histtie
-    caption: "Ketchup had a strange first career."
+    caption: "Tomatoes had a strange first career."
     tags: [foodhistory, foodfacts, foodtok, recipefix]
     claims: [core.rewrites_steps]
 

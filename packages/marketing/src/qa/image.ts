@@ -339,7 +339,10 @@ export async function qaStill(input: StillQaInput): Promise<{ passed: boolean; c
           const iy = Math.min(p.y + p.h, q.y + q.h) - Math.max(p.y, q.y);
           // The same physical word read by two OCR passes and credited to two lines (a repeated
           // word: "Vegan Society" in the why and the source) is attribution, not a collision.
-          const same = tokens(p.text).join(' ') === tokens(q.text).join(' ') || tokens(p.text).some((t) => t.length > 3 && tokens(q.text).some((u) => u.startsWith(t.slice(0, 4))));
+          // OCR also clips a word's first letters ("rmigiano" for "Parmigiano"), so a fragment of
+          // five or more letters inside the other word counts as the same word.
+          const sameWord = (t: string, u: string) => (t.length > 3 && u.startsWith(t.slice(0, 4))) || (Math.min(t.length, u.length) >= 5 && (u.includes(t) || t.includes(u)));
+          const same = tokens(p.text).join(' ') === tokens(q.text).join(' ') || tokens(p.text).some((t) => tokens(q.text).some((u) => sameWord(t, u)));
           const share = ix > 0 && iy > 0 ? (ix * iy) / Math.min(p.w * p.h, q.w * q.h) : 0;
           if (!same && ix > 6 && iy > 6 && share > 0.3) overlaps.push(`"${p.text}" (${rb[a]!.line.slice(0, 30)}) overlaps "${q.text}" (${rb[b]!.line.slice(0, 30)})`);
         }
