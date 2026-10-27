@@ -11,6 +11,7 @@
  *   pnpm mk recipe [original-id] [--voice]  list Originals, or make a recipe video + posts
  *   pnpm mk list [id] [--voice]       list video: a claim, then one sourced item every ~2.5 s
  *   pnpm mk app                       RecipeFix intro video from real screen recordings
+ *   pnpm mk transform [id] [--voice]  list transforms, or make a before/after video from a stored real result
  *   pnpm mk critique <run>            viewer review (vision model): stop/stay/engage/human scores; publish needs "post"
  *   pnpm mk plan-week [--start D] [--per-day N]  7-day varied slate → runs/schedule/D.json
  *   pnpm mk run-plan <plan> [--live]  make, QA, review, queue (scheduled) the items that pass
@@ -139,6 +140,17 @@ async function main(): Promise<void> {
   if (cmd === 'app') {
     const { makeApp } = await import('./formats/app.js');
     report(await makeApp({ date: flag('--date'), voice: rest.includes('--voice') }));
+    return;
+  }
+
+  if (cmd === 'transform') {
+    const id = rest.find((r) => !r.startsWith('--') && r !== flag('--date'));
+    const { makeTransform, loadTransforms } = await import('./formats/transform.js');
+    if (!id) {
+      for (const t of loadTransforms()) console.log(`${t.id.padEnd(24)} Recipe Fixed #${t.number}  ${t.keyword}`);
+      return;
+    }
+    report(await makeTransform(id, { voice: rest.includes('--voice'), date: flag('--date') }));
     return;
   }
 

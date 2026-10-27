@@ -7,6 +7,7 @@ import { RecipeShort } from './RecipeShort.js';
 import { AppShort } from './AppShort.js';
 import { ListShort } from './ListShort.js';
 import { FactCard, QuizDeck, SwapDeck } from './Slides.js';
+import { TransformShort } from './TransformShort.js';
 
 const Root: React.FC = () => (
   <>
@@ -38,6 +39,7 @@ const Root: React.FC = () => (
   <Composition id="SwapDeckFeed" component={SwapDeck as unknown as React.FC<Record<string, unknown>>} width={1080} height={1350} fps={30} durationInFrames={30} defaultProps={{ canvas: 'feed', slides: [], footer: '' }} />
   <Composition id="SwapDeckTall" component={SwapDeck as unknown as React.FC<Record<string, unknown>>} width={1080} height={1920} fps={30} durationInFrames={30} defaultProps={{ canvas: 'tall', slides: [], footer: '' }} />
   <Composition id="FactCard" component={FactCard as unknown as React.FC<Record<string, unknown>>} width={1080} height={1350} fps={30} durationInFrames={1} defaultProps={{ kicker: '', question: '', options: [], myth: false, photo: '', color: '#C1714F', foot: '' }} />
+  <Composition id="TransformShort" component={TransformShort as unknown as React.FC<Record<string, unknown>>} width={1080} height={1920} fps={30} durationInFrames={30 * 30} defaultProps={{}} />
   </>
 );
 
