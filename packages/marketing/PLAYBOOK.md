@@ -67,8 +67,8 @@ a week. Formats available, by status:
 |---|---|---|
 | Quiz, 1 question / 3-question set | TikTok, Reels, Shorts, X, Threads | built (`mk quiz`), 20 facts, 4 sets |
 | Myth or fact | same | built |
-| Food history story (narrated) | same | agent finishing (`feat/mk-formats-history-versus`) |
-| This or that (3 rounds) | same | agent finishing |
+| Food history story (narrated) | same | built (`mk history`); out of rotation, 6/5/3/7 after 5 rounds |
+| This or that (3 rounds) | same | built (`mk versus`); out of rotation, 6/4/3/6 after 5 rounds |
 | Recipe video (Originals) | same + Pinterest | built (`mk recipe`), restyle per review pending |
 | App intro (real screens, voice) | same | built (`mk app --voice`) |
 | Quiz carousel / swap guide carousel | IG, TikTok photo mode | built (`mk slides`) |
