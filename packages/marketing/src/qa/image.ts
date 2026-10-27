@@ -290,10 +290,17 @@ export async function qaStill(input: StillQaInput): Promise<{ passed: boolean; c
   const lines = input.intended.map((l) => (typeof l === 'string' ? { text: l, min: 0.95 } : { text: l.text, min: l.min ?? 0.95 }));
   const rb = readBack(lines.map((l) => l.text), words);
   const low = rb.filter((r, i) => r.similarity < lines[i]!.min);
+  // Lines not held to read-back (a lone glyph OCR cannot see reliably) prove nothing about
+  // position, size or contrast either: OCR "finds" them in photo texture. Their boxes are dropped,
+  // and the reported minimum is over the held lines only, so 0.00 can never read as a pass.
+  const held = rb.filter((_, i) => lines[i]!.min > 0);
+  rb.forEach((r, i) => {
+    if (lines[i]!.min === 0) r.boxes = [];
+  });
   checks.push({
     id: 'still.text_readback',
-    passed: low.length === 0 && rb.length > 0,
-    detail: `${rb.length} intended lines, min similarity ${Math.min(...rb.map((r) => r.similarity)).toFixed(2)} (OCR ${passes.join(', ')}); ${lines.filter((l) => l.min < 0.95).length} struck lines held to their recorded lower bar`,
+    passed: low.length === 0 && held.length > 0,
+    detail: `${held.length} lines held to read-back, min similarity ${held.length ? Math.min(...held.map((r) => r.similarity)).toFixed(2) : 'n/a'}; ${rb.length - held.length} single-glyph lines checked by eye only (OCR ${passes.join(', ')})`,
     problems: [
       ...(rb.length === 0 ? ['nothing intended to read back: a sweep over nothing is not a pass'] : []),
       ...low.map((r) => `"${r.line}" read back at ${r.similarity.toFixed(2)}; missing: ${r.missing.join(', ')}`),

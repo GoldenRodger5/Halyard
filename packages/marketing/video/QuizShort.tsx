@@ -234,7 +234,7 @@ const Question: React.FC<{ q: QuizQuestionProps; label: string; index: number; t
   // Largest size whose wrapped lines fit the 196 px question box (Lilita ≈ 0.5 em per character).
   const qText = twoWay ? `“${q.question}”` : q.question;
   let qSize = 84;
-  while (qSize > 48 && Math.ceil((qText.length * 0.5 * qSize) / (W - 30)) * qSize * 1.1 > 196) qSize -= 2;
+  while (qSize > 46 && Math.ceil((qText.length * 0.6 * qSize) / (W - 40)) * qSize * 1.12 > 196) qSize -= 2;
   // Buttons never wrap: one size for all four, from the longest label.
   const longest = Math.max(...q.options.map((o) => o.length));
   const optSize = Math.min(44, Math.floor((q.options.length > 2 ? 262 : 560) / (longest * 0.55)));
