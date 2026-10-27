@@ -1,0 +1,119 @@
+# Copy for the non-video post types (`mk slides`, `mk image`). Written by a person.
+#
+# Quiz questions, answers, whys and sources are NOT here: they come from
+# food-facts.yaml unchanged. This file only holds what a swipe post needs that
+# a video does not: the cover hook, the caption, the closing save line.
+#
+# Swap guides quote a stored real RecipeFix result. Every `quote` and every
+# `path` is checked against the proof at build time (verbatim substring of the
+# field it names), so a paraphrase cannot reach a slide.
+
+quiz_decks:
+  kitchen-math:
+    kicker: "Kitchen math quiz"
+    cover: "Could you scale a recipe without a calculator?"
+    photo: lemon-herb-roast-chicken
+    caption: "3 kitchen math questions. The last one is harder than it looks. Answers and the USDA source are on the last slides. Save it for the next time you halve a recipe."
+    title: "Kitchen math quiz: 3 questions, answers at the end"
+    save: "Save this for the next time you halve a recipe."
+  food-history:
+    kicker: "Food history quiz"
+    cover: "Was ketchup ever sold as medicine?"
+    photo: garlic-shrimp-spaghetti
+    caption: "3 food history questions, from a Supreme Court tomato to a state cookie. Keep score, answers and sources at the end."
+    title: "Food history quiz: 3 questions, answers at the end"
+    save: "Send this to the person who always wins trivia night."
+  label-detective:
+    kicker: "Label detective"
+    cover: "What's hiding in your soy sauce?"
+    photo: sweet-potato-black-bean-tacos
+    caption: "3 ingredients hiding where you don't expect them. Guess each one, then check the answers and sources at the end."
+    title: "Label detective: 3 hidden ingredients, answers at the end"
+    save: "Save this for your next grocery run."
+  kitchen-myths:
+    kicker: "Myth or fact"
+    cover: "Does the alcohol really cook off?"
+    photo: garlic-shrimp-spaghetti
+    caption: "3 kitchen myths. Call each one myth or fact before you swipe. The answers come from USDA and the Celiac Disease Foundation."
+    title: "Myth or fact: 3 kitchen myths, answers at the end"
+    save: "Save this before you cook with wine again."
+
+# Single-image posts: the caption hook when the fact's own caption talks about the video.
+image_hooks:
+  soy-sauce-wheat: "Check the bottle before your next stir fry."
+  gluten-free-20ppm: "Gluten-free on a US label doesn't mean zero. Do you know the number?"
+  nine-allergens: "The list changed in 2023 and a lot of people missed it."
+  honey-vegan: "Quick one for anyone new to vegan cooking."
+  parmigiano-rennet: "This one surprises a lot of vegetarians."
+  alcohol-cooks-off: "Wine in the sauce, simmered for an hour. How much is left?"
+  flambe-alcohol: "The flames look like they take it all."
+  buckwheat-gluten: "The name is doing a lot of damage here."
+  myth-alcohol-simmer: "Most recipes imply one answer. USDA measured another."
+  myth-flambe: "The flames look like they take it all."
+  myth-buckwheat: "The name is doing a lot of damage here."
+  km-tsp-tbsp: "Kitchen math, round one."
+  km-quarter-cup: "Lost your quarter cup? You only need a tablespoon."
+  km-third-cup: "The hard one. Most people say 5."
+
+swap_guides:
+  dairy-free:
+    proof:
+      file: src/data/landingRealResult.ts
+      export: LANDING_REAL_RESULT
+      captured: "2026-10-21"
+    kicker: "Dairy-free swap guide"
+    cover: "Dairy-free swaps that keep the dish working"
+    cover_sub: "4 swaps from one real tikka masala, and what to do differently with each"
+    photo: chicken-tikka-masala
+    photo_focus: { left: 520, top: 0 }
+    photo_label: "Stock photo of the original dairy recipe, not the adapted dish"
+    dish: "Chicken tikka masala, dairy-free, 4 to 6 servings"
+    starting_recipe: "Starting recipe: a RecipeFix Original, an AI-written home recipe"
+    proof_shots:
+      - file: recipefix-v2-still-1-result-header-what-changed.png
+        crop: { left: 24, top: 1955, width: 1122, height: 240 }
+      - file: recipefix-v2-still-6-swapped-coconut-yogurt-row-opened.png
+        crop: { left: 24, top: 1021, width: 1122, height: 740 }
+    swaps:
+      - from: "Whole-milk yogurt"
+        to: "Coconut yogurt"
+        as_written: { path: "ingredients[1].original" }
+        adapted: { path: "ingredients[1].adapted" }
+        why: { path: "ingredients[1].changeReason" }
+        steps:
+          - { path: "steps[0].updated_note" }
+          - { path: "steps[4].updated_note", quote: "let excess coconut yogurt drip off so the coating chars rather than pools." }
+      - from: "Butter"
+        to: "Vegan butter"
+        steps_label: "What to check"
+        as_written: { path: "ingredients[5].original" }
+        adapted: { path: "ingredients[5].adapted" }
+        why: { path: "ingredients[5].changeReason" }
+        steps:
+          - { path: "explanations[1]", quote: "check that the vegan butter contains no milk derivatives." }
+      - from: "Heavy cream"
+        to: "Coconut cream"
+        as_written: { path: "ingredients[15].original" }
+        adapted: { path: "ingredients[15].adapted" }
+        why: { path: "ingredients[15].changeReason", quote: "Coconut cream restores the sauce's richness without dairy" }
+        steps:
+          - { path: "steps[5].updated_note", quote: "Whisk separated coconut cream smooth before adding and keep the sauce at a gentle simmer" }
+          - { path: "explanations[1]", quote: "Choose plain unsweetened coconut cream, not sweetened cream of coconut" }
+      - from: "Heavy cream"
+        to: "Soy cooking cream"
+        label: "Or, if you don't want coconut"
+        as_written: { path: "ingredients[15].original" }
+        adapted: { path: "ingredients[15].alternative.adapted" }
+        why: { path: "ingredients[15].alternative.tradeoff" }
+        steps:
+          - { path: "ingredients[15].alternative.stepNote" }
+    expect:
+      title: "What to expect"
+      lines:
+        - { path: "explanations[0]", quote: "the finished dish will have a gentle coconut flavor rather than dairy's more neutral richness." }
+        - { path: "explanations[2]", quote: "The larger batch needs more broiler space, not longer broiling per piece" }
+    tie: "Swapping an ingredient? RecipeFix rewrites the steps to match, and every change comes with its reason."
+    claims: [proof.tikka_method_changes, core.rewrites_steps, core.reasons]
+    caption: "The ingredient swaps were the easy part of making this tikka masala dairy-free. What matters is what each swap changes in the steps: stir the coconut yogurt smooth, let it drip so the chicken chars, whisk the coconut cream and keep it at a gentle simmer. Real RecipeFix result (captured 2026-10-21), scaled 4 to 6 servings. The starting recipe is a RecipeFix Original, an AI-written home recipe. Save this for your next dairy-free curry."
+    title: "4 dairy-free swaps and what each one changes in the steps"
+    tags: [dairyfree, dairyfreerecipes, tikkamasala, cookingtips, recipefix]

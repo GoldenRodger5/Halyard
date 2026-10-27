@@ -10,6 +10,9 @@
  *   pnpm mk quiz [fact-id…] [--voice]  list facts, or make a quiz video + posts (silent unless --voice)
  *   pnpm mk recipe [original-id] [--voice]  list Originals, or make a recipe video + posts
  *   pnpm mk app                       RecipeFix intro video from real screen recordings
+ *   pnpm mk slides quiz <set>         quiz as an Instagram carousel + TikTok photo slideshow + X/Threads posts
+ *   pnpm mk slides swaps <topic>      ingredient swap guide carousel from a stored real RecipeFix result
+ *   pnpm mk image <fact-id>           one 4:5 question image (X/Threads/Instagram) + an X text-only variant
  *   pnpm mk accounts                  Blotato accounts the lane posts to (read-only)
  *   pnpm mk publish <run> [--only a,b] [--live] [--at ISO]  dry run by default; --live posts via Blotato
  *   pnpm mk status <run>              re-check submitted posts
@@ -94,6 +97,27 @@ async function main(): Promise<void> {
       return;
     }
     report(await makeRecipe(id, { voice: rest.includes('--voice'), date: flag('--date') }));
+    return;
+  }
+
+  if (cmd === 'slides') {
+    const [kind, name] = rest.filter((r) => !r.startsWith('--') && r !== flag('--date'));
+    const { makeQuizSlides, makeSwapSlides, loadSlidesFile } = await import('./formats/slides.js');
+    if (kind === 'quiz' && name) report(await makeQuizSlides(name, { date: flag('--date') }));
+    else if (kind === 'swaps' && name) report(await makeSwapSlides(name, { date: flag('--date') }));
+    else {
+      const f = loadSlidesFile();
+      console.log(`usage: pnpm mk slides quiz <${Object.keys(f.quiz_decks).join('|')}> | slides swaps <${Object.keys(f.swap_guides).join('|')}>`);
+      process.exitCode = 1;
+    }
+    return;
+  }
+
+  if (cmd === 'image') {
+    const id = rest.find((r) => !r.startsWith('--') && r !== flag('--date'));
+    const { makeFactImage } = await import('./formats/slides.js');
+    if (!id) throw new Error('usage: pnpm mk image <fact-id> (pnpm mk quiz lists them)');
+    report(await makeFactImage(id, { date: flag('--date') }));
     return;
   }
 
