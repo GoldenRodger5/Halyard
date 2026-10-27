@@ -49,6 +49,9 @@ const TOPIC_WORDS: Record<string, string> = {
   'kitchen-math': 'how many tablespoons',
   'food-history': 'history',
   labels: 'ingredients',
+  protein: 'protein',
+  halal: 'halal',
+  baking: 'baking',
 };
 
 /**
@@ -96,6 +99,9 @@ const TAGS: Record<string, { niche: string; specific: string[]; community: strin
   'cooking-myths': { niche: 'cookingtips', specific: ['kitchenmyths', 'foodscience', 'cookingscience'], community: ['foodtok', 'learnontiktok'] },
   'kitchen-math': { niche: 'bakingtips', specific: ['kitchenhacks', 'measuringtips', 'bakingscience'], community: ['foodtok', 'cookingtips'] },
   'food-history': { niche: 'foodhistory', specific: ['foodfacts', 'trivia', 'didyouknow'], community: ['foodtok', 'learnontiktok'] },
+  protein: { niche: 'highprotein', specific: ['proteintips', 'highproteinmeals', 'proteinpacked'], community: ['foodtok', 'fitfood'] },
+  halal: { niche: 'halal', specific: ['halalfood', 'halalrecipes', 'halalcooking'], community: ['foodtok', 'foodfacts'] },
+  baking: { niche: 'bakingtips', specific: ['bakingscience', 'bakinghacks', 'homebaking'], community: ['foodtok', 'baking'] },
   labels: { niche: 'foodlabels', specific: ['readthelabel', 'ingredientcheck', 'hiddeningredients'], community: ['foodtok', 'foodfacts'] },
 };
 

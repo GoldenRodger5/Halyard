@@ -81,6 +81,9 @@ const TOPIC: Record<string, { label: string; tags: string[]; close: string }> = 
   allergies: { label: 'Food label quiz', tags: ['foodallergies', 'foodlabels', 'foodfacts'], close: 'Save this for your next grocery run.' },
   vegan: { label: 'Vegan quiz', tags: ['vegan', 'veganfood', 'foodfacts'], close: 'Save this for your next grocery run.' },
   vegetarian: { label: 'Vegetarian quiz', tags: ['vegetarian', 'cheese', 'foodfacts'], close: 'Save this for your next cheese run.' },
+  protein: { label: 'Protein math', tags: ['highprotein', 'proteintips', 'foodtok'], close: 'Save this for your next shop.' },
+  halal: { label: 'Halal kitchen', tags: ['halal', 'halalfood', 'foodtok'], close: 'Save this for your next grocery run.' },
+  baking: { label: 'Baking science', tags: ['bakingtips', 'bakingscience', 'foodtok'], close: 'Save this for your next bake.' },
   'kitchen-math': { label: 'Kitchen math', tags: ['cookingtips', 'bakingtips', 'foodtok'], close: 'Save this for the next time you double a recipe.' },
   'food-history': { label: 'Food history', tags: ['foodhistory', 'foodfacts', 'foodtok'], close: 'Save this for your next dinner-table fact.' },
   labels: { label: 'Label detective', tags: ['foodlabels', 'foodfacts', 'foodtok'], close: 'Save this for your next grocery run.' },
@@ -167,7 +170,9 @@ export async function makeQuiz(args: string[], opts: { voice: boolean; date?: st
   // Series identity: each recurring series has its own look (QuizShort THEMES).
   const THEME_BY: Record<string, string> = {
     'label-detective': 'label', labels: 'label', 'gluten-free': 'label', allergies: 'label', vegan: 'label', vegetarian: 'label',
-    'kitchen-math': 'grid', 'kitchen-myths': 'charcoal', 'cooking-myths': 'charcoal', 'food-history': 'paper',
+    'kitchen-math': 'grid', 'kitchen-math-2': 'grid', protein: 'grid', 'protein-math': 'grid', baking: 'grid', 'baking-science': 'grid',
+    'allergen-labels': 'label', 'dairy-free-detective': 'label', 'is-it-vegan': 'label', halal: 'label', 'halal-kitchen': 'label', 'thanksgiving-swaps': 'paper',
+    'kitchen-myths': 'charcoal', 'cooking-myths': 'charcoal', 'food-history': 'paper',
   };
   const theme = THEME_BY[setName ?? ''] ?? THEME_BY[chosen[0]!.topic] ?? 'pop';
   const props = {
