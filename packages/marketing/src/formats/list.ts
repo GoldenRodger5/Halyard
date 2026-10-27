@@ -82,7 +82,9 @@ export async function makeList(id: string, opts: { voice: boolean; date?: string
   contactSheet(video, path.join(s.dir, 'contact.png'), 1.0);
 
   // ── Posts ──
-  const phrase = await searchPhrase({ topic: spec.topic, question: spec.hook, options: [spec.items[0]!.name], correct: 0, why: spec.items.map((i) => i.line).join(' '), search: spec.search });
+  // A list's search phrases are hand-picked real queries; autocomplete scoring once chose
+  // "without gluten foods" over them (review 2026-10-27).
+  const phrase = spec.search?.[0] ?? (await searchPhrase({ topic: spec.topic, question: spec.hook, options: [spec.items[0]!.name], correct: 0, why: spec.items.map((i) => i.line).join(' ') }));
   const lead = `${phrase.charAt(0).toUpperCase()}${phrase.slice(1)}${/^(is|are|does|do|how|can|why|what|which)\b/i.test(phrase) ? '?' : ':'}`;
   const series = { name: spec.series, n: seriesNumber(spec.series, s.id) };
   const tags = hashtags(spec.topic).map((x) => `#${x}`).join(' ');

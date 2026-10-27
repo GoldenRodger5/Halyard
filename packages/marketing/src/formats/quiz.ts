@@ -155,8 +155,8 @@ export async function makeQuiz(args: string[], opts: { voice: boolean; date?: st
     const why = opts.voice ? f.why : shortWhy(f.why);
     const countdownAt = start + (qv ? Math.max(sec(1.6), 6 + sec(qv.seconds) + 8) : sec(Math.min(2.2, read(f.question, 4.5, 1.3))));
     const revealAt = countdownAt + TIMER_SECONDS * FPS;
-    const whyAt = revealAt + (av ? Math.max(sec(1.1), 6 + sec(av.seconds) + 4) : sec(0.8));
-    const end = whyAt + (wv ? sec(wv.seconds) + sec(0.6) : sec(Math.min(3.4, read(why, 4.5, 1.8)) + 0.4));
+    const whyAt = revealAt + (av ? Math.max(sec(1.1), 6 + sec(av.seconds) + 4) : sec(0.6));
+    const end = whyAt + (wv ? sec(wv.seconds) + sec(0.6) : sec(Math.min(2.8, read(why, 5, 1.5)) + 0.3));
     questions.push({
       question: f.question,
       options: f.options,
@@ -178,7 +178,7 @@ export async function makeQuiz(args: string[], opts: { voice: boolean; date?: st
   const prompt = one ? 'Did you get it?' : `Comment your score out of ${chosen.length}`;
   const cv = opts.voice ? await voice(s, prompt, 'close') : null;
   const closeStart = t;
-  const total = closeStart + Math.max(sec(2.2 + chosen.length * 0.9), 4 + sec(cv?.seconds ?? 0) + 30);
+  const total = closeStart + Math.max(sec(2.0 + chosen.length * 0.6), 4 + sec(cv?.seconds ?? 0) + 30);
   // Series identity: each recurring series has its own look (QuizShort THEMES).
   const THEME_BY: Record<string, string> = {
     'label-detective': 'label', labels: 'label', 'gluten-free': 'label', allergies: 'label', vegan: 'label', vegetarian: 'label',
@@ -203,7 +203,7 @@ export async function makeQuiz(args: string[], opts: { voice: boolean; date?: st
   // Search + labels + series (PLAYBOOK §7): one real search phrase leads every caption and title;
   // 3–5 tiered, rotated hashtags; a numbered series gives a reason to follow.
   const phrase = await searchPhrase(chosen[0]!);
-  const searchLead = `${phrase.charAt(0).toUpperCase()}${phrase.slice(1)}${/^(is|are|does|do|how|can|why|what|which)\b/i.test(phrase) ? '?' : ''}`;
+  const searchLead = phrase ? `${phrase.charAt(0).toUpperCase()}${phrase.slice(1)}${/^(is|are|does|do|how|can|why|what|which)\b/i.test(phrase) ? '?' : ''}` : '';
   const seriesName = (set?.label ?? label).replace(/\b\w/g, (c) => c.toUpperCase());
   const series = { name: seriesName, n: seriesNumber(seriesName, s.id) };
   const tags = hashtags(chosen[0]!.topic).map((x) => `#${x}`).join(' ');
@@ -212,7 +212,7 @@ export async function makeQuiz(args: string[], opts: { voice: boolean; date?: st
   const sourceLine = (f: Fact) => `Source: ${f.source.short}`;
   const body = set?.caption ?? (one ? f0.caption : `${chosen.length} questions, ${TIMER_SECONDS} seconds each. Keep score.`);
   // Search phrase first (indexed), the hook, then the series name as a sign-off.
-  const hook = `${searchLead}${/[?.!]$/.test(searchLead) ? '' : ':'} ${body}${one ? ' Did you know this one?' : ' How many did you get?'} ${series.name} #${series.n}.`;
+  const hook = `${searchLead ? `${searchLead}${/[?.!]$/.test(searchLead) ? '' : ':'} ` : ''}${body}${one ? ' Did you know this one?' : ' How many did you get?'} ${series.name} #${series.n}.`;
   const media = [relRepo(video)];
   const posts: Record<string, PlatformPost> = {
     tiktok: { platform: 'tiktok', kind: 'video', media, text: `${hook}\n\n${tags}`, ai_voice: opts.voice, cover_ms: Math.round(((questions[0]!.countdownAt + 10) / FPS) * 1000) },
@@ -227,7 +227,7 @@ export async function makeQuiz(args: string[], opts: { voice: boolean; date?: st
       platform: 'youtube',
       kind: 'video',
       media,
-      title: `${searchLead} | ${series.name} #${series.n} #shorts`.slice(0, 100),
+      title: `${searchLead || set?.label || chosen[0]!.question} | ${series.name} #${series.n} #shorts`.slice(0, 100),
       text: `${chosen.map((f) => `Answer: ${f.options[f.correct]}. ${f.why}\n${sourceLine(f)} (${f.source.url})`).join('\n\n')}\n\n${tie} https://recipefix.app`,
       ai_voice: opts.voice,
     },
@@ -252,7 +252,7 @@ export async function makeQuiz(args: string[], opts: { voice: boolean; date?: st
     if (f.format !== 'myth' && !f.why.toLowerCase().includes(f.options[f.correct]!.toLowerCase())) answerLines.splice(1, 0, f.options[f.correct]!);
     checks.push(...(await qaFrame(s, video, (q.end - 3) / FPS, `q${i + 1}-answer`, answerLines)));
   }
-  checks.push(...(await qaFrame(s, video, (total - 3) / FPS, 'close', ['Save this', ...chosen.map((f) => f.tip ?? f.why), prompt])));
+  checks.push(...(await qaFrame(s, video, (total - 3) / FPS, 'close', ['Cheat sheet', ...chosen.map((f) => f.tip ?? f.why), prompt])));
 
   const limits: Record<string, number> = { tiktok: 2200, instagram: 2200, x: 280, threads: 500, youtube: 5000 };
   const problems: string[] = [];

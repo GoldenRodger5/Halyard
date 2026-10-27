@@ -290,7 +290,7 @@ const Question: React.FC<{ q: QuizQuestionProps; label: string; index: number; t
   const revealed = f >= q.revealAt;
   const why = f >= q.whyAt;
   const twoWay = q.options.length === 2;
-  const qSpring = useSpring(q.start + 4, { damping: 13 });
+  const qSpring = useSpring(q.start - 5, { damping: 13 });
   // The first question is the cover: on screen from frame 0, no entrance.
   const qIn = q.start === 0 ? 1 : qSpring;
   const optOut = interpolate(f, [q.whyAt, q.whyAt + 8], [1, 0], clamp);
@@ -317,19 +317,19 @@ const Question: React.FC<{ q: QuizQuestionProps; label: string; index: number; t
       <div style={{ position: 'absolute', left: SAFE.x0 + 10, top: 392, width: W - 20, height: 196, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', ...theme.headline(qSize), opacity: Math.min(1, qIn), transform: `scale(${interpolate(qIn, [0, 1], [0.7, 1])})` }}>
         {qText}
       </div>
-      <PhotoCard src={q.photo} at={q.start === 0 ? -30 : q.start + 8} top={PHOTO_TOP} height={PHOTO_H} width={880} answer={twoWay ? q.options[q.correct]!.toUpperCase() : q.options[q.correct]!} answerAt={q.revealAt} tone={twoWay && /myth|false|no/i.test(q.options[q.correct]!) ? RED : GREEN} />
+      <PhotoCard src={q.photo} at={q.start === 0 ? -30 : q.start - 4} top={PHOTO_TOP} height={PHOTO_H} width={880} answer={twoWay ? q.options[q.correct]!.toUpperCase() : q.options[q.correct]!} answerAt={q.revealAt} tone={twoWay && /myth|false|no/i.test(q.options[q.correct]!) ? RED : GREEN} />
       {!revealed ? <TimerBar at={q.countdownAt} len={q.revealAt - q.countdownAt} top={OPT + (twoWay ? 268 : 250)} /> : null}
       {twoWay ? (
         <div style={{ position: 'absolute', left: SAFE.x0, top: OPT - 4, width: W, display: 'flex', justifyContent: 'space-evenly', opacity: optOut }}>
           {q.options.map((o, i) => (
-            <BigChoice key={o} text={o.toUpperCase()} tone={/myth|false|no/i.test(o) ? RED : GREEN} state={state(i)} at={q.start === 0 ? -20 : q.start + 14 + i * 5} revealAt={q.revealAt} />
+            <BigChoice key={o} text={o.toUpperCase()} tone={/myth|false|no/i.test(o) ? RED : GREEN} state={state(i)} at={q.start === 0 ? -20 : q.start + i * 3} revealAt={q.revealAt} />
           ))}
         </div>
       ) : (
         <div style={{ position: 'absolute', left: SAFE.x0 + 6, top: OPT, width: W - 12, display: 'grid', gridTemplateColumns: q.options.length > 2 ? '1fr 1fr' : '1fr', gap: 14, opacity: optOut }}>
           {q.options.map((o, i) => (
             <div key={i} style={{ gridColumn: q.options.length === 3 && i === 2 ? '1 / span 2' : undefined }}>
-              <Button text={o} size={optSize} i={i} state={state(i)} at={q.start === 0 ? -20 : q.start + 14} revealAt={q.revealAt} />
+              <Button text={o} size={optSize} i={i} state={state(i)} at={q.start === 0 ? -20 : q.start} revealAt={q.revealAt} />
             </div>
           ))}
         </div>
@@ -374,17 +374,17 @@ const Question: React.FC<{ q: QuizQuestionProps; label: string; index: number; t
  */
 const Close: React.FC<{ c: QuizShortProps['close']; color: string }> = ({ c, color }) => {
   const f = useCurrentFrame();
-  const a = useSpring(c.start + 2, { damping: 12 });
+  const a = useSpring(c.start - 4, { damping: 12 });
   const b = useSpring(c.start + 8 + c.tips.length * 6, { damping: 12 });
   const size = c.tips.length > 1 ? 38 : 46;
   return (
     <>
       <Ground color={color} />
       <div style={{ position: 'absolute', left: SAFE.x0 + 6, top: SAFE.y0 + 10, width: W - 12, display: 'flex', flexDirection: 'column', gap: 24 }}>
-        <div style={{ textAlign: 'center', ...useTheme().headline(84), opacity: Math.min(1, a), transform: `scale(${interpolate(a, [0, 1], [0.7, 1])})` }}>Save this</div>
+        <div style={{ textAlign: 'center', ...useTheme().headline(84), opacity: Math.min(1, a), transform: `scale(${interpolate(a, [0, 1], [0.7, 1])})` }}>Cheat sheet</div>
         <div style={{ background: '#FFFFFF', borderRadius: 28, border: `5px solid ${INK}`, boxShadow: `0 9px 0 ${INK}`, padding: '24px 26px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 18 }}>
           {c.tips.map((t, i) => {
-            const tt = interpolate(f, [c.start + 4 + i * 6, c.start + 10 + i * 6], [0, 1], clamp);
+            const tt = interpolate(f, [c.start - 2 + i * 4, c.start + 4 + i * 4], [0, 1], clamp);
             return (
               <div key={i} style={{ display: 'flex', gap: 16, alignItems: 'flex-start', opacity: tt, transform: `translateX(${(1 - tt) * 40}px)` }}>
                 <div style={{ width: 46, height: 46, flex: '0 0 46px', borderRadius: 23, background: GREEN, color: '#FFFFFF', fontFamily: 'Lilita One', fontSize: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 2 }}>✓</div>

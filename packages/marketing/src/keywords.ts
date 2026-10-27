@@ -86,8 +86,13 @@ export async function searchPhrase(f: { topic: string; question: string; options
       }
     }
   }
-  // Autocomplete drops the slash in fractions ("1 3 cup"); put it back.
-  return best.p.replace(/\b(\d) (\d) (cup|teaspoon|tablespoon)/g, '$1/$2 $3');
+  // Autocomplete drops the slash in fractions ("1 3 cup", "1 3 is how many"); put it back.
+  const fixed = best.p.replace(/\b([1-9]) ([2-9])\b(?= (cup|teaspoon|tablespoon|is|of|in)\b)/g, '$1/$2');
+  // A caption must open with something a person would type and read: a question, or a seed we
+  // chose by hand. Keyword salad ("tomato supreme court vegetable", "diet after quitting alcohol")
+  // read as SEO-stuffed in every viewer review (2026-10-27), so it is dropped rather than shipped.
+  if (/^(is|are|does|do|how|can|why|what|which)\b/i.test(fixed)) return fixed;
+  return f.search?.[0] ?? '';
 }
 
 /** Hashtag tiers per topic: niche, rotating specifics, community; #recipefix is always last. */

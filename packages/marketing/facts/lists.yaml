@@ -14,19 +14,19 @@ lists:
     series: "Not vegan"
     topic: vegan
     hook: "Looks vegan? Check these 5 first"
-    hook_sub: "Yes, even this pasta"
+    hook_sub: "#5 is on this pasta"
     hook_image: "a bowl of spaghetti in tomato sauce with a generous snowfall of grated parmesan and a basil leaf, bright daylight on a kitchen table"
-    save: "Save this for your next grocery run."
+    save: "Screenshot this for the store."
     tie: "Making it vegan? RecipeFix swaps these and rewrites the steps."
     search: ["what foods are not vegan", "surprising non vegan foods"]
-    caption: "Which one did you already know?"
+    caption: "Send this to someone who just went vegan."
     tags: [vegan, veganswaps, vegantok, recipefix]
     claims: [core.diets, core.rewrites_steps]
     items:
       - fact: vegan-carmine
         name: "Red food dye E120"
         stamp: "Insects"
-        line: "Carmine comes from crushed insects. Beet or paprika color is the swap."
+        line: "E120, or carmine, comes from crushed insects. Beet or paprika color is the swap."
         image: "a plate of bright red frosted cupcakes and candy on a kitchen table"
       - fact: veg-marshmallow
         name: "Marshmallows"
@@ -41,7 +41,7 @@ lists:
       - fact: veg-isinglass
         name: "Some beer and wine"
         stamp: "Isinglass"
-        line: "Made from fish bladders. Bottles labelled vegan skip it."
+        line: "Made from fish bladders, it clarifies some of them. Vegan-labelled bottles skip it."
         image: "a glass of beer and a glass of white wine on a wooden bar counter"
       - fact: parmigiano-rennet
         name: "Parmigiano Reggiano"
@@ -52,13 +52,13 @@ lists:
   hidden-gluten:
     series: "Hidden gluten"
     topic: gluten-free
-    hook: "Gluten-free? These 5 have gluten in them"
-    hook_sub: "Plus one that's fine"
-    hook_image: "a plate of fish and chips with a bottle of malt vinegar and a small dish of gravy, bright daylight on a pub table"
-    save: "Save this before your next grocery run."
+    hook: "Gluten-free? Watch for these 5"
+    hook_sub: "Plus 1 you can keep"
+    hook_image: "a pantry shelf with a bottle of soy sauce, a bottle of malt vinegar, a jar of gravy granules and a rustic loaf of bread, bright daylight"
+    save: "Screenshot this for the store."
     tie: "Cooking gluten-free? RecipeFix rewrites your recipe, steps included."
     search: ["hidden gluten foods", "foods with hidden gluten"]
-    caption: "Which one surprised you?"
+    caption: "Send this to someone who cooks gluten-free."
     tags: [glutenfree, glutenfreetips, foodtok, recipefix]
     claims: [core.diets, core.rewrites_steps]
     twist:
@@ -97,13 +97,13 @@ lists:
   hidden-dairy:
     series: "Hidden dairy"
     topic: allergies
-    hook: "Dairy-free? Read the label for these 5"
+    hook: "Dairy-free? These 5 can still hide milk"
     hook_sub: "#3 says nondairy on the front"
-    hook_image: "a mug of coffee with creamer swirling in it next to buttered toast, bright morning light on a breakfast table"
-    save: "Save this for your next grocery run."
+    hook_image: "a kitchen counter with a carton of coffee creamer, a small jar of ghee, a tub of margarine and a can of soup, bright morning light"
+    save: "Screenshot this for the store."
     tie: "Cooking dairy-free? RecipeFix swaps the dairy and rewrites the steps."
     search: ["hidden dairy ingredients", "foods with hidden dairy"]
-    caption: "Which one did you already know?"
+    caption: "Send this to someone who cooks dairy-free."
     tags: [dairyfree, foodlabels, foodtok, recipefix]
     claims: [core.diets, core.rewrites_steps]
     items:
@@ -114,8 +114,8 @@ lists:
         image: "a scoop of protein powder next to a shaker bottle on a kitchen counter"
       - fact: myth-ghee
         name: "Ghee"
-        stamp: "Milk"
-        line: "Made from milk, and milk protein is often left in it."
+        stamp: "Milk protein"
+        line: "Made from milk, and some milk protein is often left in it."
         image: "a small glass jar of golden ghee with a spoon"
       - fact: myth-nondairy
         name: "\"Nondairy\" creamer"
@@ -124,11 +124,11 @@ lists:
         image: "coffee creamer being poured into a mug of black coffee"
       - fact: myth-margarine
         name: "Some margarine"
-        stamp: "Milk"
+        stamp: "Some have milk"
         line: "Not all of it is dairy-free. Look for one labeled vegan."
         image: "a tub of margarine spread on toast on a breakfast table"
       - fact: label-cream-mushroom
-        name: "Cream of mushroom soup"
-        stamp: "Cream + whey"
-        line: "The classic can lists both, plus wheat flour."
+        name: "Canned cream of mushroom"
+        stamp: "Milk + whey"
+        line: "Campbell's classic condensed can lists cream and whey."
         image: "a green bean casserole in a baking dish with crispy onions on top"

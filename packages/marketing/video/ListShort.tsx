@@ -110,8 +110,8 @@ const Item: React.FC<{ it: ListItem; total: number }> = ({ it, total }) => {
           <div style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: it.line.length > 60 ? 38 : 44, lineHeight: 1.22, color: INK }}>{it.line}</div>
         </div>
       </div>
-      <div style={{ position: 'absolute', left: SAFE.x0 + 6, bottom: 1920 - SAFE.y1 + 6, width: W - 12, opacity: c }}>
-        <span style={{ display: 'inline-block', maxWidth: W - 12, background: 'rgba(17,17,17,0.78)', color: '#FFFFFF', fontFamily: 'Inter', fontWeight: 600, fontSize: 34, lineHeight: 1.3, padding: '10px 18px', borderRadius: 10 }}>{`Source: ${it.source}`}</span>
+      <div style={{ position: 'absolute', left: SAFE.x0 + 6, bottom: 1920 - SAFE.y1 + 24, width: W - 12, opacity: c }}>
+        <span style={{ display: 'inline-block', maxWidth: W - 12, background: 'rgba(17,17,17,0.78)', color: '#FFFFFF', fontFamily: 'Inter', fontWeight: 600, fontSize: 36, lineHeight: 1.3, padding: '10px 18px', borderRadius: 10 }}>{`Source: ${it.source}`}</span>
       </div>
     </>
   );
@@ -127,7 +127,7 @@ const Close: React.FC<{ c: ListShortProps['close'] }> = ({ c }) => {
   const rows = c.tips.length;
   return (
     <>
-      <Photo src={c.photo} from={c.start} to={c.start + 150} dim={0.5} />
+      <Photo src={c.photo} from={c.start} to={c.start + 150} dim={0.62} />
       <div style={{ position: 'absolute', left: SAFE.x0 + INSET, top: SAFE.y0 + 10, width: W - 2 * INSET, height: SAFE.y1 - SAFE.y0 - 20, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 20 }}>
         <div style={{ ...display(72), opacity: Math.min(1, a), transform: `scale(${interpolate(a, [0, 1], [0.8, 1])})`, transformOrigin: 'left center' }}>Check the label</div>
         <div style={{ background: '#FFFFFF', border: `5px solid ${INK}`, boxShadow: `0 9px 0 ${INK}`, borderRadius: 26, padding: '22px 26px', display: 'flex', flexDirection: 'column', gap: rows > 5 ? 12 : 18, opacity: card, transform: `translateY(${(1 - card) * 30}px)` }}>
