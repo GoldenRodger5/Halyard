@@ -18,12 +18,16 @@ interface ListItemSpec {
   fact: string;
   name: string;
   stamp: string;
+  /** The words to mark in the source quote; defaults to the stamp. Must appear verbatim. */
+  highlight?: string;
   line: string;
   image: string;
 }
 interface ListSpec {
   series: string;
   kind?: 'warnings' | 'swaps';
+  /** The guess prompt before each stamp; defaults per kind. Set "" to turn the guess off. */
+  guess?: string;
   /** Heading of the closing checklist; defaults to "Check the label" (warnings) or "The swaps". */
   close_title?: string;
   topic: string;
@@ -31,6 +35,8 @@ interface ListSpec {
   hook_sub?: string;
   hook_image: string;
   save: string;
+  /** The question the video ends on (comments beat saves for reach). */
+  ask?: string;
   tie: string;
   search?: string[];
   caption: string;
@@ -40,11 +46,28 @@ interface ListSpec {
   twist?: ListItemSpec;
 }
 
+/**
+ * The part of a source quote shown on screen: a window around the highlighted words,
+ * cut at word boundaries. Throws when the words are not in the quote, so a marker can
+ * never land on text the source does not say.
+ */
+export function quoteExcerpt(quote: string, hl: string, before = 22, after = 28): { text: string; at: number; len: number } {
+  const i = quote.toLowerCase().indexOf(hl.toLowerCase());
+  if (i < 0) throw new Error(`highlight "${hl}" is not in the source quote "${quote.slice(0, 80)}…"`);
+  let a = Math.max(0, i - before);
+  let b = Math.min(quote.length, i + hl.length + after);
+  if (a > 0) a = quote.indexOf(' ', a) + 1 || a;
+  if (b < quote.length) b = quote.lastIndexOf(' ', b) > i + hl.length ? quote.lastIndexOf(' ', b) : b;
+  const pre = a > 0 ? '…' : '';
+  const text = `${pre}${quote.slice(a, b).trim()}${b < quote.length ? '…' : ''}`;
+  return { text, at: pre.length + (i - a), len: hl.length };
+}
+
 export function loadLists(): Record<string, ListSpec> {
   return (yaml.load(readFileSync(path.join(REPO_ROOT, 'packages/marketing/facts/lists.yaml'), 'utf8')) as { lists: Record<string, ListSpec> }).lists;
 }
 
-export async function makeList(id: string, opts: { voice: boolean; date?: string; look?: 'sticker' | 'editorial' }): Promise<StudioRecord> {
+export async function makeList(id: string, opts: { voice: boolean; date?: string; look?: 'sticker' | 'editorial' | 'magazine' }): Promise<StudioRecord> {
   const spec = loadLists()[id];
   if (!spec) throw new Error(`unknown list ${id}; known: ${Object.keys(loadLists()).join(', ')}`);
   const facts = new Map(loadFacts().map((f) => [f.id, f]));
@@ -58,29 +81,32 @@ export async function makeList(id: string, opts: { voice: boolean; date?: string
   const s = openStudio('list', opts.look && opts.look !== 'editorial' ? `${id}-${opts.look}` : id, opts.date);
   const fx = sfx(s);
 
+  const guessText = spec.guess ?? (spec.kind === 'swaps' ? 'Swap it for…' : "What's hiding in it?");
   // ── Timeline: ~2.6 s an item, or the narrator's clock when voiced ──
   const sec = (x: number) => Math.ceil(x * FPS);
   const hookVo = opts.voice ? await voice(s, spec.hook, 'hook') : null;
-  const hookEnd = Math.max(sec(1.8), sec((hookVo?.seconds ?? 0) + 0.3));
+  const hookEnd = Math.max(sec(1.5), sec((hookVo?.seconds ?? 0) + 0.3));
   let t = hookEnd;
-  const items = [];
+  const items: Array<{ n: number; name: string; stamp: string; line: string; source: string; photo: string; start: number; end: number; [k: string]: unknown }> = [];
   for (const [i, it] of all.entries()) {
     const twist = spec.twist === it || spec.kind === 'swaps';
     const vo = opts.voice ? await voice(s, `${it.name}. ${it.stamp}. ${it.line}`, `item${i + 1}`) : null;
     const start = t;
-    t += Math.max(sec(2.2), sec((vo?.seconds ?? 0) + 0.5));
-    items.push({ n: i + 1, name: it.name, stamp: it.stamp, line: it.line, source: facts.get(it.fact)!.source.short.split(',')[0]!.trim(), photo: await generatedPhoto(s, it.image, `${id}-${i + 1}`, 'tall'), start, end: t, twist, audio: vo?.file ?? null });
+    t += Math.max(sec(i === 0 && guessText ? 2.6 : 2.2), sec((vo?.seconds ?? 0) + 0.5));
+    const src = facts.get(it.fact)!.source;
+    const q = quoteExcerpt(src.quote, it.highlight ?? it.stamp);
+    items.push({ n: i + 1, name: it.name, guess: i === 0 ? guessText || undefined : undefined, stamp: it.stamp, line: it.line, quote: q.text, hlAt: q.at, hlLen: q.len, source: src.short.split(',')[0]!.trim(), photo: await generatedPhoto(s, it.image, `${id}-${i + 1}`, 'tall'), start, end: t, twist, audio: vo?.file ?? null });
   }
   const closeStart = t;
   const closeTitle = spec.close_title ?? (spec.kind === 'swaps' ? 'The swaps' : 'Check the label');
-  const total = closeStart + sec(3.2);
+  const total = closeStart + sec(2.6);
   const props = {
     kind: spec.kind ?? 'warnings',
     look: opts.look ?? 'editorial',
     label: spec.series,
     hook: { text: spec.hook, sub: spec.hook_sub, photo: await generatedPhoto(s, spec.hook_image, `${id}-hook`, 'tall'), start: 0, end: hookEnd, audio: hookVo?.file ?? null },
     items,
-    close: { start: closeStart, title: closeTitle, tips: all.map((it) => ({ name: it.name, stamp: it.stamp, ok: spec.twist === it || spec.kind === 'swaps' })), save: spec.save, photo: items[items.length - 1]!.photo },
+    close: { start: closeStart, title: closeTitle, tips: all.map((it) => ({ name: it.name, stamp: it.stamp, ok: spec.twist === it || spec.kind === 'swaps', photo: items[all.indexOf(it)]!.photo })), save: spec.ask ?? '', photo: items[items.length - 1]!.photo },
     sfx: { whoosh: fx.whoosh, reveal: fx.reveal },
   };
   writeJson(path.join(s.dir, 'render-props.json'), props);
@@ -112,8 +138,8 @@ export async function makeList(id: string, opts: { voice: boolean; date?: string
   if (opts.voice) checks.push(transcriptCheck(s, video, [spec.hook, ...all.map((it) => `${it.name}. ${it.stamp}. ${it.line}`)].join(' ')));
   checks.push(...(await qaFrame(s, video, 1.2, 'hook', [spec.hook, ...(spec.hook_sub ? [spec.hook_sub] : [])])));
   for (const it of items) checks.push(...(await qaFrame(s, video, (it.end - 4) / FPS, `item${it.n}`, [it.name, it.stamp, it.line, `Source: ${it.source}`])));
-  checks.push(...(await qaFrame(s, video, (total - 1.2 * FPS) / FPS, 'close', [closeTitle, ...all.map((it) => it.name), spec.save])));
-  const everything = [spec.hook, spec.hook_sub ?? '', spec.caption, spec.save, spec.tie, ...all.flatMap((it) => [it.name, it.stamp, it.line]), ...Object.values(posts).flatMap((p) => [p.text, ...(p.thread ?? []), p.title ?? ''])];
+  checks.push(...(await qaFrame(s, video, (total - 1.2 * FPS) / FPS, 'close', [closeTitle, ...all.map((it) => it.name), ...(spec.ask ? [spec.ask] : [])])));
+  const everything = [spec.hook, spec.hook_sub ?? '', spec.ask ?? '', spec.caption, spec.save, spec.tie, ...all.flatMap((it) => [it.name, it.stamp, it.line]), ...Object.values(posts).flatMap((p) => [p.text, ...(p.thread ?? []), p.title ?? ''])];
   const problems = humanTextProblems(everything);
   for (const c of forbiddenClaims(pack)) for (const ex of c.examples ?? []) for (const txt of everything) if (forbiddenMatches(txt, ex)) problems.push(`forbidden (${c.id}) "${ex}"`);
   const limits: Record<string, number> = { tiktok: 2200, instagram: 2200, x: 280, threads: 500, youtube: 5000 };

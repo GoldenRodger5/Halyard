@@ -341,7 +341,14 @@ export async function qaStill(input: StillQaInput): Promise<{ passed: boolean; c
           // word: "Vegan Society" in the why and the source) is attribution, not a collision.
           // OCR also clips a word's first letters ("rmigiano" for "Parmigiano"), so a fragment of
           // five or more letters inside the other word counts as the same word.
-          const sameWord = (t: string, u: string) => (t.length > 3 && u.startsWith(t.slice(0, 4))) || (Math.min(t.length, u.length) >= 5 && (u.includes(t) || t.includes(u)));
+          const oneEdit = (a: string, b: string) => {
+            if (Math.abs(a.length - b.length) > 1) return false;
+            let i = 0;
+            while (i < a.length && a[i] === b[i]) i++;
+            return a.slice(i + 1) === b.slice(i + 1) || a.slice(i) === b.slice(i + 1) || a.slice(i + 1) === b.slice(i);
+          };
+          // ...and misreads one letter ("Reqgiano"), so two long words one edit apart are the same word too.
+          const sameWord = (t: string, u: string) => (t.length > 3 && u.startsWith(t.slice(0, 4))) || (Math.min(t.length, u.length) >= 5 && (u.includes(t) || t.includes(u))) || (Math.min(t.length, u.length) >= 6 && oneEdit(t, u));
           const same = tokens(p.text).join(' ') === tokens(q.text).join(' ') || tokens(p.text).some((t) => tokens(q.text).some((u) => sameWord(t, u)));
           const share = ix > 0 && iy > 0 ? (ix * iy) / Math.min(p.w * p.h, q.w * q.h) : 0;
           if (!same && ix > 6 && iy > 6 && share > 0.3) overlaps.push(`"${p.text}" (${rb[a]!.line.slice(0, 30)}) overlaps "${q.text}" (${rb[b]!.line.slice(0, 30)})`);

@@ -14,9 +14,9 @@ lists:
   not-vegan:
     series: "Not vegan"
     topic: vegan
-    hook: "Looks vegan? Check these 5."
-    hook_image: "a cozy mug of hot chocolate topped with toasted marshmallows on a wooden table, warm daylight"
-    save: "Screenshot this for the store."
+    hook: "5 sneaky non-vegan ingredients to check for"
+    hook_image: "a plate of bright red frosted cupcakes on a sunny kitchen table"
+    save: "Save this for your next grocery run."
     tie: "Making it vegan? RecipeFix swaps these and rewrites the steps."
     search: ["what foods are not vegan", "surprising non vegan foods"]
     caption: "Send this to someone who just went vegan."
@@ -26,7 +26,7 @@ lists:
       - fact: vegan-carmine
         name: "Red food dye E120"
         stamp: "Insects"
-        line: "E120, or carmine, comes from crushed insects. Beet or paprika color is the swap."
+        line: "Check red foods for E120, or carmine, made from insects. Beet color is the swap."
         image: "a plate of bright red frosted cupcakes and candy on a kitchen table"
       - fact: veg-marshmallow
         name: "Marshmallows"
@@ -52,9 +52,9 @@ lists:
   hidden-gluten:
     series: "Hidden gluten"
     topic: gluten-free
-    hook: "Gluten-free? Check these 5"
+    hook: "5 foods that can secretly contain gluten"
     hook_image: "a pantry shelf with a bottle of soy sauce, a bottle of malt vinegar, a jar of gravy granules and a rustic loaf of bread, bright daylight"
-    save: "Screenshot this for the store."
+    save: "Save this for your next grocery run."
     tie: "Cooking gluten-free? RecipeFix rewrites your recipe, steps included."
     search: ["hidden gluten foods", "foods with hidden gluten"]
     caption: "Send this to someone who cooks gluten-free."
@@ -70,7 +70,7 @@ lists:
       - fact: soy-sauce-wheat
         name: "Soy sauce"
         stamp: "Wheat"
-        line: "Traditionally brewed with wheat. Tamari made without wheat is the swap."
+        line: "Traditionally brewed with wheat. Tamari labelled gluten-free is the swap."
         image: "a bottle of dark soy sauce being poured into a small dish beside a vegetable stir fry"
       - fact: gf-malt-vinegar
         name: "Malt vinegar"
@@ -85,6 +85,7 @@ lists:
       - fact: myth-wheat-free
         name: "\"Wheat-free\" labels"
         stamp: "Rye, barley"
+        highlight: "rye, or barley"
         line: "Wheat-free can still mean rye or barley. Look for the words gluten-free."
         image: "bowls of whole rye grains and pearl barley on a wooden kitchen table"
       - fact: label-cream-mushroom
@@ -96,13 +97,13 @@ lists:
   hidden-dairy:
     series: "Hidden dairy"
     topic: allergies
-    hook: "Dairy-free? Milk hides in these 5"
+    hook: "Dairy-free? Milk can hide in these 5"
     hook_sub: "#5 is at the steakhouse"
     hook_image: "grilled hot dogs in buns and a bowl of tuna salad on a sunny picnic table"
-    save: "Screenshot this for the store."
+    save: "Save this for your next grocery run."
     tie: "Cooking dairy-free? RecipeFix swaps the dairy and rewrites the steps."
     search: ["hidden dairy ingredients", "foods with hidden dairy"]
-    caption: "None of these say milk on the front. Send this to someone who cooks dairy-free."
+    caption: "Send this to someone who cooks dairy-free."
     tags: [dairyfree, foodallergies, foodtok, recipefix]
     claims: [core.diets, core.rewrites_steps]
     items:
@@ -123,7 +124,8 @@ lists:
         image: "an open can of tuna next to a bowl of tuna salad on a kitchen counter"
       - fact: allergen-shellfish-milk
         name: "Shellfish"
-        stamp: "Milk dip"
+        stamp: "Dipped in milk"
+        highlight: "dipped in milk"
         line: "Sometimes dipped in milk to cut the fishy smell. Ask when you buy."
         image: "raw shrimp on ice at a seafood counter"
       - fact: allergen-steak-butter
@@ -138,7 +140,7 @@ lists:
     hook: "Cooking halal? Check these 5"
     hook_sub: "#4 is in this pot"
     hook_image: "a pot of creamy pasta sauce simmering on a stove with an open bottle of white wine beside it, warm kitchen light"
-    save: "Screenshot this for the store."
+    save: "Save this for your next grocery run."
     tie: "Cooking halal? RecipeFix swaps these and rewrites the steps."
     search: ["is vanilla extract halal", "does alcohol cook off"]
     caption: "Send this to someone who cooks halal."
@@ -158,16 +160,19 @@ lists:
       - fact: halal-vanilla
         name: "Vanilla extract"
         stamp: "35% alcohol"
+        highlight: "not less than 35 percent"
         line: "That's the US minimum. Vanilla flavoring has less, which is not none."
         image: "a small brown bottle of vanilla extract with vanilla beans on a baking counter"
       - fact: alcohol-cooks-off
         name: "Wine in the sauce"
         stamp: "25% stays"
+        highlight: "1 HR … 25"
         line: "USDA measured about a quarter of the alcohol left after an hour of simmering."
         image: "white wine being poured into a pan of sauce on a stove"
       - fact: flambe-alcohol
         name: "Flambé"
         stamp: "75% stays"
+        highlight: "FLAMED … 75"
         line: "USDA found only about a quarter burns off in the flames."
         image: "a pan of shrimp flaming on a gas stove in a home kitchen"
 
@@ -188,26 +193,31 @@ lists:
       - fact: alcohol-cooks-off
         name: "\"The alcohol cooks off\""
         stamp: "25% after 1 hr"
+        highlight: "1 HR … 25"
         line: "USDA measured about a quarter still there after an hour of simmering."
         image: "red wine being poured into a pot of stew on a stove"
       - fact: flambe-alcohol
         name: "\"Flambé burns it off\""
         stamp: "75% stays"
+        highlight: "FLAMED … 75"
         line: "USDA found only about a quarter burns off in the flames."
         image: "a pan flaming on a gas stove in a home kitchen"
       - fact: myth-flour-sugar
         name: "\"A cup is a cup\""
         stamp: "120 g vs 198 g"
+        highlight: "120 grams"
         line: "King Arthur's chart: a cup of flour against a cup of sugar."
         image: "a cup of flour and a cup of sugar side by side on a kitchen scale"
       - fact: myth-altitude
         name: "\"Water boils at 212°F\""
         stamp: "202°F at 5,000 ft"
+        highlight: "boils at 202°F"
         line: "About 10° lower up high, so boiled food takes longer."
         image: "a pot of water at a rolling boil on a stove with mountains through the kitchen window"
       - fact: myth-wheat-free
         name: "\"Wheat-free is gluten-free\""
         stamp: "Rye, barley"
+        highlight: "rye, or barley"
         line: "Wheat-free can still mean rye or barley. Look for the words gluten-free."
         image: "bowls of whole rye grains and pearl barley on a wooden kitchen table"
 
@@ -232,11 +242,13 @@ lists:
       - fact: bake-flax-egg
         name: "One egg, for binding"
         stamp: "Flax egg"
+        highlight: "1 tablespoon flax meal"
         line: "1 tbsp flax meal plus 3 tbsp water, 5 to 10 minutes. It binds, it won't fluff."
         image: "a small bowl of flax meal mixed with water and a spoon on a baking counter"
       - fact: km-buttermilk-df
         name: "Buttermilk"
         stamp: "Lemon + milk"
+        highlight: "1 tablespoon lemon juice or vinegar"
         line: "1 tbsp lemon juice or vinegar in 1 cup non-dairy milk. Rest 5 minutes."
         image: "a measuring cup of plant milk with a halved lemon beside it"
       - fact: protein-soy-milk
