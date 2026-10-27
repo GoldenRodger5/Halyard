@@ -67,7 +67,7 @@ const useSpring = (at: number, damping = 13) => {
  * flat stamps and borderless cards. Reviews of the sticker look kept saying
  * "creator template, not brand" (2026-10-27).
  */
-export type ListLook = 'sticker' | 'editorial' | 'magazine';
+export type ListLook = 'sticker' | 'editorial' | 'magazine' | 'native';
 const LookCtx = React.createContext<ListLook>('editorial');
 const useLook = () => React.useContext(LookCtx);
 
@@ -127,6 +127,24 @@ const Photo: React.FC<{ src: string; from: number; to: number; dim?: number; pun
 
 const Hook: React.FC<{ h: ListShortProps['hook']; label: string }> = ({ h, label }) => {
   const display = useDisplay();
+  const lookH = useLook();
+  const fH = useCurrentFrame();
+  if (lookH === 'native') {
+    const z = interpolate(fH, [h.start, h.end], [1.08, 1.0], clamp);
+    const inn = interpolate(fH, [h.start, h.start + 10], [0.9, 1], { ...clamp, easing: (t) => 1 - (1 - t) ** 3 });
+    return (
+      <>
+        <AbsoluteFill style={{ background: INK, overflow: 'hidden' }}>
+          <Img src={staticFile(h.photo)} style={{ width: '100%', height: '100%', objectFit: 'cover', transform: `scale(${z})` }} />
+          <AbsoluteFill style={{ background: 'rgba(0,0,0,0.28)' }} />
+        </AbsoluteFill>
+        <div style={{ position: 'absolute', left: SAFE.x0 + INSET, top: 560, width: W - 2 * INSET, height: 560, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 22 }}>
+          <div style={{ ...CAP, fontSize: 30, letterSpacing: 3, textTransform: 'uppercase', opacity: 0.95 }}>{label}</div>
+          <div style={{ ...CAP, fontSize: h.text.length > 36 ? 88 : 100, transform: `scale(${inn})` }}>{h.text}</div>
+        </div>
+      </>
+    );
+  }
   const a = useSpring(h.start - 30, 12);
   const b = useSpring(h.start + 10);
   return (
@@ -255,6 +273,54 @@ const LabelShot: React.FC<{ it: ListItem; total: number; from: number }> = ({ it
   );
 };
 
+/**
+ * The native look (owner, 2026-10-27: "clip art and Canva, lots of blank space"): what food
+ * lists on TikTok actually look like. Full-bleed picture that never stops moving, big centred
+ * captions that build the line in short phrases like subtitles, no cards, boxes or paper.
+ * When stock or generated footage exists, a clip replaces the still in the same slot.
+ */
+const CAP: React.CSSProperties = {
+  fontFamily: 'Inter',
+  fontWeight: 600,
+  color: '#FFFFFF',
+  textAlign: 'center',
+  lineHeight: 1.12,
+  letterSpacing: -0.5,
+  textShadow: '0 3px 0 rgba(0,0,0,0.55), 0 0 22px rgba(0,0,0,0.65)',
+  ...({ textWrap: 'balance' } as unknown as React.CSSProperties),
+};
+
+const NativeItem: React.FC<{ it: ListItem; total: number }> = ({ it, total }) => {
+  const f = useCurrentFrame();
+  const len = it.end - it.start;
+  const z = interpolate(f, [it.start - 6, it.end], [1.0, 1.18], clamp);
+  const pan = interpolate(f, [it.start - 6, it.end], [it.n % 2 ? -30 : 30, it.n % 2 ? 30 : -30], clamp);
+  // Captions in three beats: the name, what is hidden in it, then the takeaway.
+  const b1 = it.start - 4;
+  const b2 = it.start + Math.round(len * 0.28);
+  const b3 = it.start + Math.round(len * 0.52);
+  const show = (from: number, to: number) => interpolate(f, [from, from + 8, to - 6, to], [0, 1, 1, 0], clamp);
+  const pop = (from: number) => interpolate(f, [from, from + 10], [0.92, 1], { ...clamp, easing: (t) => 1 - (1 - t) ** 3 });
+  const tone = it.twist ? STAMP_GREEN : STAMP_RED;
+  return (
+    <>
+      <AbsoluteFill style={{ background: INK, overflow: 'hidden' }}>
+        <Img src={staticFile(it.photo)} style={{ width: '100%', height: '100%', objectFit: 'cover', transform: `translateX(${pan}px) scale(${z})` }} />
+        <AbsoluteFill style={{ background: 'radial-gradient(ellipse at 50% 45%, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.45) 100%)' }} />
+      </AbsoluteFill>
+      <div style={{ position: 'absolute', left: SAFE.x0 + INSET, top: SAFE.y0 + 10, width: W - 2 * INSET, textAlign: 'center', ...CAP, fontSize: 34, opacity: show(b1, it.end) }}>{it.twist && it.n > total ? "And one that's fine" : `${it.n} of ${total}`}</div>
+      <div style={{ position: 'absolute', left: SAFE.x0 + INSET, top: 700, width: W - 2 * INSET, height: 420, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ position: 'absolute', ...CAP, fontSize: it.name.length > 18 ? 84 : 104, opacity: show(b1, b2), transform: `scale(${pop(b1)})` }}>{it.name}</div>
+        <div style={{ position: 'absolute', ...CAP, fontSize: 64, opacity: show(b2, b3), transform: `scale(${pop(b2)})` }}>
+          {it.twist ? 'It is ' : 'Hidden: '}<span style={{ color: '#FFFFFF', background: tone, padding: '0 14px', borderRadius: 10, textShadow: 'none' }}>{it.stamp.toLowerCase()}</span>
+        </div>
+        <div style={{ position: 'absolute', ...CAP, fontSize: it.line.length > 44 ? 60 : 68, opacity: show(b3, it.end + 6), transform: `scale(${pop(b3)})` }}>{it.line}</div>
+      </div>
+      <div style={{ position: 'absolute', left: SAFE.x0 + INSET, top: SAFE.y1 - 60, width: W - 2 * INSET, ...CAP, fontSize: 28, fontWeight: 600, opacity: 0.9 * show(b3, it.end + 6) }}>{`Source: ${it.source}`}</div>
+    </>
+  );
+};
+
 const Item: React.FC<{ it: ListItem; total: number }> = ({ it, total }) => {
   const f = useCurrentFrame();
   const a = useSpring(it.start - 5);
@@ -378,7 +444,7 @@ export const ListShort: React.FC<ListShortProps> = (p) => {
       </Visible>
       {p.items.map((it) => (
         <Visible key={it.n} from={it.start} to={it.end}>
-          {((p.look as ListLook) ?? 'editorial') === 'magazine' ? <MagazineItem it={it} total={total} /> : <Item it={it} total={total} />}
+          {((p.look as ListLook) ?? 'editorial') === 'magazine' ? <MagazineItem it={it} total={total} /> : p.look === 'native' ? <NativeItem it={it} total={total} /> : <Item it={it} total={total} />}
         </Visible>
       ))}
       <Visible from={p.close.start} to={Number.MAX_SAFE_INTEGER}>

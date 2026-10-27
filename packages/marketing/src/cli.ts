@@ -136,7 +136,7 @@ async function main(): Promise<void> {
       for (const [k, v] of Object.entries(loadLists())) console.log(`${k.padEnd(16)} ${v.hook}`);
       return;
     }
-    report(await makeList(id, { voice: rest.includes('--voice'), date: flag('--date'), look: flag('--look') as 'sticker' | 'editorial' | 'magazine' | undefined }));
+    report(await makeList(id, { voice: rest.includes('--voice'), date: flag('--date'), look: flag('--look') as 'sticker' | 'editorial' | 'magazine' | 'native' | undefined }));
     return;
   }
 
@@ -152,7 +152,7 @@ async function main(): Promise<void> {
     const dirs: string[] = [];
     const rows: string[] = [];
     for (const id of ids) {
-      const rec = await makeList(id, { voice: rest.includes('--voice'), date: flag('--date'), look: flag('--look') as 'sticker' | 'editorial' | 'magazine' | undefined });
+      const rec = await makeList(id, { voice: rest.includes('--voice'), date: flag('--date'), look: flag('--look') as 'sticker' | 'editorial' | 'magazine' | 'native' | undefined });
       const dir = path.dirname(path.resolve(REPO_ROOT, rec.outputs.video!));
       dirs.push(dir);
       const c = rec.qa.passed ? await critique(dir) : null;

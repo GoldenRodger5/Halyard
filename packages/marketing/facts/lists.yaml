@@ -139,8 +139,7 @@ lists:
   check-halal:
     series: "Halal kitchen"
     topic: halal
-    hook: "Cook halal? Check these 5"
-    hook_sub: "#4 is in this pot"
+    hook: "5 ingredients that can make a recipe not halal"
     hook_image: "a pot of creamy pasta sauce simmering on a stove with an open bottle of white wine beside it, warm kitchen light"
     save: "Save this for your next grocery run."
     tie: "Cooking halal? RecipeFix swaps these and rewrites the steps."

@@ -76,7 +76,7 @@ export function loadLists(): Record<string, ListSpec> {
   return (yaml.load(readFileSync(path.join(REPO_ROOT, 'packages/marketing/facts/lists.yaml'), 'utf8')) as { lists: Record<string, ListSpec> }).lists;
 }
 
-export async function makeList(id: string, opts: { voice: boolean; date?: string; look?: 'sticker' | 'editorial' | 'magazine' }): Promise<StudioRecord> {
+export async function makeList(id: string, opts: { voice: boolean; date?: string; look?: 'sticker' | 'editorial' | 'magazine' | 'native' }): Promise<StudioRecord> {
   const spec = loadLists()[id];
   if (!spec) throw new Error(`unknown list ${id}; known: ${Object.keys(loadLists()).join(', ')}`);
   const facts = new Map(loadFacts().map((f) => [f.id, f]));
@@ -87,7 +87,9 @@ export async function makeList(id: string, opts: { voice: boolean; date?: string
   const pack = loadKnowledgePack({ kind: 'git', repo: ideas.product_repo, ref: ideas.knowledge.ref, path: ideas.knowledge.path });
   for (const c of spec.claims) if (!isQuotable(claimById(pack, c))) throw new Error(`${c} not quotable at ${pack.commit}`);
   const paused = productPostsPaused(pack);
-  const s = openStudio('list', opts.look && opts.look !== 'editorial' ? `${id}-${opts.look}` : id, opts.date);
+  // Native is the default since 2026-10-27 (owner: the card looks read as Canva).
+  const look = opts.look ?? 'native';
+  const s = openStudio('list', look !== 'native' ? `${id}-${look}` : id, opts.date);
   const fx = sfx(s);
 
   const guessText = spec.guess ?? (spec.kind === 'swaps' ? 'Swap it for…' : "What's hiding in it?");
@@ -115,7 +117,7 @@ export async function makeList(id: string, opts: { voice: boolean; date?: string
   const total = closeStart + sec(readFor('', 4.0, 5.0, all.map((it) => `${it.name} ${it.stamp}`).join(' ')));
   const props = {
     kind: spec.kind ?? 'warnings',
-    look: opts.look ?? 'editorial',
+    look,
     label: spec.series,
     hook: { text: spec.hook, sub: spec.hook_sub, photo: await generatedPhoto(s, spec.hook_image, `${id}-hook`, 'tall'), start: 0, end: hookEnd, audio: hookVo?.file ?? null },
     items,
@@ -169,7 +171,15 @@ export async function makeList(id: string, opts: { voice: boolean; date?: string
   checks.push(check('video.duration', d >= 22 && d <= 46, `${d.toFixed(1)} s (target 22–46 s: calm and readable, owner 2026-10-27)`));
   if (opts.voice) checks.push(transcriptCheck(s, video, [spec.hook, ...all.map((it) => `${it.name}. ${it.stamp}. ${it.line}`)].join(' ')));
   checks.push(...(await qaFrame(s, video, 1.2, 'hook', [spec.hook, ...(spec.hook_sub ? [spec.hook_sub] : [])])));
-  for (const it of items) checks.push(...(await qaFrame(s, video, (it.end - 4) / FPS, `item${it.n}`, [it.name, it.stamp, it.line, `From ${it.source}`, { text: it.quote.replace(/…/g, ''), min: 0.8 }])));
+  for (const it of items) {
+    if (look === 'native') {
+      // Captions arrive in beats: check each at its own moment (name, hidden, takeaway + source).
+      const len = it.end - it.start;
+      checks.push(...(await qaFrame(s, video, (it.start + Math.round(len * 0.18)) / FPS, `item${it.n}-name`, [it.name])));
+      checks.push(...(await qaFrame(s, video, (it.start + Math.round(len * 0.42)) / FPS, `item${it.n}-hidden`, [it.stamp.toLowerCase()])));
+      checks.push(...(await qaFrame(s, video, (it.end - 8) / FPS, `item${it.n}`, [it.line, `Source: ${it.source}`])));
+    } else checks.push(...(await qaFrame(s, video, (it.end - 4) / FPS, `item${it.n}`, [it.name, it.stamp, it.line, `From ${it.source}`, { text: it.quote.replace(/…/g, ''), min: 0.8 }])));
+  }
   checks.push(...(await qaFrame(s, video, (total - 1.2 * FPS) / FPS, 'close', [closeTitle, ...all.map((it) => it.name.replace(/^"|"$/g, '')), ...(spec.ask ? [spec.ask] : []), ...(spec.note ? [spec.note] : [])])));
   const everything = [spec.hook, spec.hook_sub ?? '', spec.ask ?? '', spec.note ?? '', spec.caption, spec.save, spec.tie, ...all.flatMap((it) => [it.name, it.stamp, it.line]), ...Object.values(posts).flatMap((p) => [p.text, ...(p.thread ?? []), p.title ?? '', p.pinned_comment ?? ''])];
   const problems = humanTextProblems(everything);
