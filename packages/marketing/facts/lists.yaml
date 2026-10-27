@@ -26,7 +26,7 @@ lists:
       - fact: vegan-carmine
         name: "Red food dye E120"
         stamp: "Insects"
-        line: "Carmine comes from insects. Beet color swaps in."
+        line: "Carmine comes from insects. Swap: beet color."
         image: "a plate of bright red frosted cupcakes and candy on a kitchen table"
       - fact: veg-marshmallow
         name: "Marshmallows"
@@ -71,7 +71,7 @@ lists:
       - fact: soy-sauce-wheat
         name: "Soy sauce"
         stamp: "Wheat"
-        line: "Brewed with wheat. Swap in gluten-free tamari."
+        line: "Brewed with wheat. Swap: gluten-free tamari."
         image: "a bottle of dark soy sauce being poured into a small dish beside a vegetable stir fry"
       - fact: gf-malt-vinegar
         name: "Malt vinegar"
@@ -139,7 +139,7 @@ lists:
   check-halal:
     series: "Halal kitchen"
     topic: halal
-    hook: "Cooking halal? Check these 5"
+    hook: "Cook halal? Check these 5"
     hook_sub: "#4 is in this pot"
     hook_image: "a pot of creamy pasta sauce simmering on a stove with an open bottle of white wine beside it, warm kitchen light"
     save: "Save this for your next grocery run."
@@ -157,13 +157,13 @@ lists:
       - fact: halal-gelatin
         name: "Gummy candy"
         stamp: "Gelatin"
-        line: "Made from cattle and pig parts. Agar-agar swaps in."
+        line: "Made from cattle and pig parts. Swap: agar-agar."
         image: "a bowl of colorful gummy bears on a kitchen table"
       - fact: halal-vanilla
         name: "Vanilla extract"
         stamp: "35% alcohol"
         highlight: "not less than 35 percent"
-        line: "The US minimum. Vanilla flavoring has less, not none."
+        line: "The legal US minimum. Flavoring has less, not none."
         image: "a small brown bottle of vanilla extract with vanilla beans on a baking counter"
       - fact: alcohol-cooks-off
         name: "Wine in the sauce"

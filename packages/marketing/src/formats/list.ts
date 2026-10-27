@@ -98,7 +98,7 @@ export async function makeList(id: string, opts: { voice: boolean; date?: string
   const words = (x: string) => x.split(/\s+/).filter(Boolean).length;
   const readFor = (x: string, min: number, max: number, display = '') => Math.min(max, Math.max(min, ENTRANCE_S + words(x) / READ_WPS + words(display) * DISPLAY_S_PER_WORD));
   const hookVo = opts.voice ? await voice(s, spec.hook, 'hook') : null;
-  const hookEnd = Math.max(sec(readFor(`${spec.hook} ${spec.hook_sub ?? ''}`, 2.5, 3.2)), sec((hookVo?.seconds ?? 0) + 0.3));
+  const hookEnd = Math.max(sec(readFor(`${spec.hook} ${spec.hook_sub ?? ''}`, 2.2, 2.6)), sec((hookVo?.seconds ?? 0) + 0.3));
   let t = hookEnd;
   const items: Array<{ n: number; name: string; stamp: string; line: string; source: string; photo: string; start: number; end: number; [k: string]: unknown }> = [];
   for (const [i, it] of all.entries()) {

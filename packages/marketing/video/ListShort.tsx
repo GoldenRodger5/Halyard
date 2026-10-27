@@ -109,9 +109,12 @@ const display = (size: number): React.CSSProperties => ({
 });
 
 /** Full-bleed photo with a slow push and a short slide-in from the right. */
-const Photo: React.FC<{ src: string; from: number; to: number; dim?: number }> = ({ src, from, to, dim = 0.18 }) => {
+const Photo: React.FC<{ src: string; from: number; to: number; dim?: number; punchAt?: number }> = ({ src, from, to, dim = 0.18, punchAt }) => {
   const f = useCurrentFrame();
-  const z = interpolate(f, [from, to], [1.04, 1.16], clamp);
+  // A punch-in halfway through a longer beat: the text stays put while the picture changes,
+  // so a readable hold never reads as a static slide (review 2026-10-27).
+  const punch = punchAt === undefined ? 0 : interpolate(f, [punchAt, punchAt + 5], [0, 0.16], { ...clamp, easing: (t) => 1 - (1 - t) ** 3 });
+  const z = interpolate(f, [from, to], [1.04, 1.12], clamp) + punch;
   const slide = interpolate(f, [from, from + 7], [140, 0], clamp);
   return (
     <AbsoluteFill style={{ overflow: 'hidden', background: INK }}>
@@ -221,7 +224,7 @@ const Item: React.FC<{ it: ListItem; total: number }> = ({ it, total }) => {
   const display = useDisplay();
   return (
     <>
-      <Photo src={it.photo} from={it.start} to={it.end} />
+      <Photo src={it.photo} from={it.start} to={it.end} punchAt={Math.round(it.start + (it.end - it.start) * 0.55)} />
       {/* Odd items sit high, even items sit low, so five beats are not one layout five times. */}
       <div style={{ position: 'absolute', left: SAFE.x0 + INSET, top: SAFE.y0 + 10, width: W - 2 * INSET, height: SAFE.y1 - SAFE.y0 - 110, display: 'flex', flexDirection: 'column', justifyContent: it.n % 2 ? 'flex-start' : 'flex-end', gap: 18 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 18, transform: `translateX(${(1 - Math.min(1, a)) * -120}px)`, opacity: Math.min(1, a * 1.5) }}>
