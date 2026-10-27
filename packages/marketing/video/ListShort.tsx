@@ -230,14 +230,18 @@ const LabelShot: React.FC<{ it: ListItem; total: number; from: number }> = ({ it
   return (
     <>
       <AbsoluteFill style={{ background: '#F2EBE1' }} />
-      <div style={{ position: 'absolute', left: SAFE.x0 + INSET, top: SAFE.y0 + 4, width: W - 2 * INSET, display: 'flex', flexDirection: 'column', gap: 18 }}>
+      {/* The food stays in view under the proof, in the band the platform's caption covers anyway. */}
+      <div style={{ position: 'absolute', left: 0, top: SAFE.y1 + 40, width: 1080, height: 1920 - SAFE.y1 - 40, overflow: 'hidden', borderTop: `8px solid ${tone}` }}>
+        <Img src={staticFile(it.photo)} style={{ width: '100%', height: '100%', objectFit: 'cover', transform: `scale(${interpolate(f, [from, from + 150], [1.05, 1.12], clamp)})` }} />
+      </div>
+      <div style={{ position: 'absolute', left: SAFE.x0 + INSET, top: SAFE.y0, width: W - 2 * INSET, height: SAFE.y1 - SAFE.y0 - 10, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 26 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <div style={{ width: 64, height: 64, borderRadius: 32, background: tone, color: '#FFFFFF', fontFamily: 'Inter', fontWeight: 600, fontSize: 34, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{it.twist && it.n > total ? '✓' : it.n}</div>
-          <div style={{ fontFamily: 'Instrument Serif', fontSize: it.name.length > 20 ? 64 : 76, lineHeight: 1, color: INK, ...BALANCE }}>{it.name}</div>
+          <div style={{ fontFamily: 'Instrument Serif', fontSize: it.name.length > 20 ? 72 : 88, lineHeight: 1, color: INK, ...BALANCE }}>{it.name}</div>
         </div>
         <div style={{ position: 'relative', background: '#FFFFFF', borderRadius: 16, padding: '22px 26px 26px', boxShadow: '0 12px 36px rgba(40,25,15,0.18)', borderLeft: `10px solid ${tone}`, overflow: 'hidden', opacity: Math.min(1, inn * 1.4), transform: `translateY(${(1 - Math.min(1, inn)) * 24}px)` }}>
           <div style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: 28, letterSpacing: 2, textTransform: 'uppercase', color: '#6A5D50', marginBottom: 10 }}>{`From ${it.source}`}</div>
-          <div style={{ fontFamily: 'Inter', fontWeight: 400, fontSize: 44, lineHeight: 1.32, color: INK }}>
+          <div style={{ fontFamily: 'Inter', fontWeight: 400, fontSize: 50, lineHeight: 1.3, color: INK }}>
             {pre}
             <span style={{ fontWeight: 600, backgroundImage: 'linear-gradient(transparent 10%, #FFD84D 10%, #FFD84D 92%, transparent 92%)', backgroundRepeat: 'no-repeat', backgroundSize: `${mark}% 100%`, outline: `${box * 4}px solid ${tone}`, outlineOffset: 4, borderRadius: 4 }}>{hl}</span>
             {post}
@@ -245,7 +249,7 @@ const LabelShot: React.FC<{ it: ListItem; total: number; from: number }> = ({ it
           {scan > 0 && scan < 1 ? <div style={{ position: 'absolute', left: 0, right: 0, top: `${scan * 100}%`, height: 6, background: tone, opacity: 0.35, boxShadow: `0 0 24px ${tone}` }} /> : null}
         </div>
         <div style={{ alignSelf: 'flex-start', ...stampStyle('editorial', it.twist ? GREEN : RED, it.stamp, 1) }}>{it.stamp}</div>
-        <div style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: 50, lineHeight: 1.2, color: INK, opacity: take, transform: `translateY(${(1 - take) * 16}px)`, ...BALANCE }}>{it.line}</div>
+        <div style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: 58, lineHeight: 1.18, color: INK, opacity: take, transform: `translateY(${(1 - take) * 16}px)`, ...BALANCE }}>{it.line}</div>
       </div>
     </>
   );

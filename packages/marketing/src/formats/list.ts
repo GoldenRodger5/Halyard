@@ -105,9 +105,9 @@ export async function makeList(id: string, opts: { voice: boolean; date?: string
     const twist = spec.twist === it || spec.kind === 'swaps';
     const vo = opts.voice ? await voice(s, `${it.name}. ${it.stamp}. ${it.line}`, `item${i + 1}`) : null;
     const start = t;
-    t += Math.max(sec(1.9 + readFor(it.line, 3.6, 4.6) + 0.9 + (i === 0 && guessText ? 0.4 : 0)), sec((vo?.seconds ?? 0) + 0.5));
+    t += Math.max(sec(1.8 + readFor(it.line, 3.0, 4.2) + 0.6 + (i === 0 && guessText ? 0.4 : 0)), sec((vo?.seconds ?? 0) + 0.5));
     const src = facts.get(it.fact)!.source;
-    const q = quoteExcerpt(src.quote, it.highlight ?? it.stamp);
+    const q = quoteExcerpt(src.quote, it.highlight ?? it.stamp, 50, 70);
     items.push({ n: i + 1, name: it.name, guess: i === 0 ? guessText || undefined : undefined, stamp: it.stamp, line: it.line, quote: q.text, hlAt: q.at, hlLen: q.len, source: src.short.split(',')[0]!.trim(), photo: await generatedPhoto(s, it.image, `${id}-${i + 1}`, 'tall'), start, end: t, twist, audio: vo?.file ?? null });
   }
   const closeStart = t;
