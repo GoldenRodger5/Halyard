@@ -4,7 +4,8 @@
  * whose source is shown under the item. See video/ListShort.tsx for why this
  * format exists.
  */
-import { readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { mkdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import yaml from 'js-yaml';
 import { forbiddenMatches, type GateCheck } from '../copyGate.js';
@@ -124,6 +125,18 @@ export async function makeList(id: string, opts: { voice: boolean; date?: string
   writeJson(path.join(s.dir, 'render-props.json'), props);
   const video = await renderVideo(s, 'ListShort', props, total, s.id);
   contactSheet(video, path.join(s.dir, 'contact.png'), 1.0);
+  // The same list as a photo carousel (TikTok photo mode): each beat at rest, plus the
+  // checklist, taken before the loop seam. Carousels earn saves; video earns reach.
+  mkdirSync(path.join(s.dir, 'photos'), { recursive: true });
+  const stills = [
+    { t: (hookEnd - 6) / FPS, name: '01-cover' },
+    ...items.map((it, i) => ({ t: (it.end - 8) / FPS, name: `${String(i + 2).padStart(2, '0')}-item${it.n}` })),
+    { t: (total - 16) / FPS, name: `${String(items.length + 2).padStart(2, '0')}-checklist` },
+  ].map((x) => {
+    const f = path.join(s.dir, 'photos', `${x.name}.jpg`);
+    execFileSync('ffmpeg', ['-v', 'error', '-y', '-ss', x.t.toFixed(2), '-i', video, '-frames:v', '1', '-q:v', '2', f]);
+    return f;
+  });
 
   // ── Posts ──
   // A list's search phrases are hand-picked real queries; autocomplete scoring once chose
@@ -141,6 +154,7 @@ export async function makeList(id: string, opts: { voice: boolean; date?: string
     youtube: { platform: 'youtube', kind: 'video', media, title: `${lead.replace(/:$/, '')} | ${series.name} #${series.n} #shorts`.slice(0, 100), text: `${spec.hook}.\n\n${sourcesText}\n\n${spec.tie} https://recipefix.app`, ai_voice: opts.voice },
     x: { platform: 'x', kind: 'video', media, text: `${spec.hook}. ${spec.caption}`.slice(0, 270), thread: [sourcesText.slice(0, 275)] },
     threads: { platform: 'threads', kind: 'video', media, text: `${spec.hook}. ${spec.caption}`, thread: [sourcesText] },
+    tiktok_photos: { platform: 'tiktok', kind: 'carousel', media: stills.map(relRepo), title: spec.hook.slice(0, 90), text: `${body}\n\nSources:\n${sourcesText}\n\n${tags}` },
   };
 
   // The bridge (CREATIVE_STRATEGY §4): a pinned comment, never a pitch inside the video.
@@ -171,7 +185,7 @@ export async function makeList(id: string, opts: { voice: boolean; date?: string
     search_phrase: phrase,
     summary: spec.hook,
     made_at: new Date().toISOString(),
-    outputs: { video: relRepo(video) },
+    outputs: { video: relRepo(video), tiktok_slides: stills.map(relRepo) },
     posts,
     sources: all.map((it) => ({ name: facts.get(it.fact)!.source.name, url: facts.get(it.fact)!.source.url, quote: facts.get(it.fact)!.source.quote })),
     claims: spec.claims,

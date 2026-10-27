@@ -75,6 +75,7 @@ const POSTS_BY_FORMAT: Record<string, string[]> = {
   history: VIDEO_POSTS,
   versus: VIDEO_POSTS,
   list: VIDEO_POSTS,
+  'list-photos': ['tiktok_photos'],
   carousel: ['instagram_carousel', 'tiktok_photos'],
   image: ['x', 'threads'],
 };
@@ -110,6 +111,8 @@ export function planWeek(opts: { start: string; perDay: number; extraFormats?: s
     history: idsFrom('facts/history.yaml', 'stories').map((id) => ({ command: `history ${id} --voice`, topic: 'food-history', facts: [] })),
     versus: idsFrom('facts/versus.yaml', 'games').map((id) => ({ command: `versus ${id}`, topic: 'versus', facts: [] })),
     list: idsFrom('facts/lists.yaml', 'lists').map((id) => ({ command: `list ${id}`, topic: `list-${id}`, facts: [] })),
+    // The same list as a photo carousel (saves), from the same render.
+    'list-photos': idsFrom('facts/lists.yaml', 'lists').map((id) => ({ command: `list ${id}`, topic: `list-photos-${id}`, facts: [] })),
     carousel: setNames.map((k) => ({ command: `slides quiz ${k}`, topic: k, facts: [] })),
     image: facts.filter((f) => !used.has(f.id)).map((f) => ({ command: `image ${f.id}`, topic: f.topic, facts: [f.id] })),
   };
@@ -119,7 +122,7 @@ export function planWeek(opts: { start: string; perDay: number; extraFormats?: s
   // (single, set, myth) stall at stay 4-6 / engage 3-5 in every theme, so they are out of the
   // rotation until redesigned. The same facts still ship as carousels and image posts.
   // History and this-or-that videos plateau at engage 3 (2026-10-27, five rounds each), so they wait too.
-  const order = ['list', 'carousel', 'transform', 'recipe', 'list', 'image', 'list', 'carousel', 'recipe', 'app'];
+  const order = ['list', 'carousel', 'transform', 'list-photos', 'list', 'image', 'recipe', 'list', 'list-photos', 'carousel', 'recipe', 'app'];
   const items: PlanItem[] = [];
   const takenFacts = new Set<string>();
   let lastFormat = '';
