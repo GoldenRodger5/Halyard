@@ -295,7 +295,7 @@ const Versus: React.FC<{ b: HistoryBeat }> = ({ b }) => {
   const arrowLen = interpolate(f, [b.start + 6, b.start + 30], [0, 1], clamp);
   return (
     <div style={{ position: 'absolute', left: SAFE.x0, top: 410, width: W, height: 600, ...m }}>
-      <div style={{ position: 'absolute', left: 26, top: 0, fontFamily: 'Instrument Serif', fontSize: size(b.left ?? ''), lineHeight: 1, color: INK, opacity: Math.min(1, l), transform: `translateX(${(1 - l) * -80}px)` }}>{b.left}</div>
+      <div style={{ position: 'absolute', left: 40, top: 0, fontFamily: 'Instrument Serif', fontSize: size(b.left ?? ''), lineHeight: 1, color: INK, opacity: Math.min(1, l), transform: `translateX(${(1 - l) * -80}px)` }}>{b.left}</div>
       {b.arrow ? (
         <svg width={W} height={240} style={{ position: 'absolute', left: 0, top: 180 }}>
           <path d={`M 80 20 C 260 180, 520 180, ${W - 90} 60`} fill="none" stroke={RED} strokeWidth={8} strokeDasharray="22 16" pathLength={1000} strokeDashoffset={0} style={{ clipPath: `inset(0 ${(1 - arrowLen) * 100}% 0 0)` }} />
@@ -306,7 +306,7 @@ const Versus: React.FC<{ b: HistoryBeat }> = ({ b }) => {
           vs
         </div>
       )}
-      <div style={{ position: 'absolute', right: 26, top: 440, fontFamily: 'Instrument Serif', fontSize: size(b.right ?? ''), lineHeight: 1, color: b.arrow ? RED : INK, textAlign: 'right', opacity: Math.min(1, r), transform: `translateX(${(1 - r) * 80}px)` }}>{b.right}</div>
+      <div style={{ position: 'absolute', right: 40, top: 440, fontFamily: 'Instrument Serif', fontSize: size(b.right ?? ''), lineHeight: 1, color: b.arrow ? RED : INK, textAlign: 'right', opacity: Math.min(1, r), transform: `translateX(${(1 - r) * 80}px)` }}>{b.right}</div>
     </div>
   );
 };

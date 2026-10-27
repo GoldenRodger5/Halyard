@@ -1,0 +1,96 @@
+{
+  "verdict": "revise",
+  "scores": {
+    "stop": 6,
+    "stay": 4,
+    "engage": 3,
+    "human": 6
+  },
+  "cringe": [
+    "The unrelated RecipeFix pitch in the caption makes it feel like an ad tacked onto a food-fact post.",
+    "The 3-second countdown before every reveal feels like engagement-bait and gets repetitive fast.",
+    "Static versus screens sit almost unchanged for several seconds, which feels templated rather than edited for social pacing.",
+    "The tiny source text and small explanatory callouts are hard to read on mobile.",
+    "The phrasing “Tell RecipeFix how you eat” is stiff and obviously promotional compared with the rest of the post."
+  ],
+  "pro_team_would_post": false,
+  "would_leave_at": "around 3.0 s, when the first matchup still has not revealed anything",
+  "first_impression": "Clean-looking nutrition trivia, but it moves way too slowly and feels like a Canva template with an ad CTA bolted on.",
+  "problems": [
+    "The hook is not strong enough visually; the cover is neat but not surprising or human enough to stop a fast scroll.",
+    "Each question takes about 10 seconds, which is far too long for a simple this-or-that fact.",
+    "The countdowns add dead time instead of tension; viewers understand the format immediately and do not need 3 seconds per round.",
+    "The layout repeats almost identically three times, making the video feel longer than it is.",
+    "The actual useful information is delayed, while the reveal cards are only on screen briefly compared with the waiting time.",
+    "Some typography is too small, especially “per 100 g,” source text, and the explanatory notes.",
+    "The final summary is useful but appears after 29 seconds, when many viewers will already be gone.",
+    "The caption’s RecipeFix promotion is disconnected from the content and lowers trust.",
+    "No food imagery, texture, hands, or real-world context makes it feel abstract and slightly sterile.",
+    "The post does not give viewers much reason to comment, save, or share beyond mild trivia value."
+  ],
+  "fixes": [
+    "Cut the whole piece to 10–14 seconds total: 2 seconds question, immediate reveal, then move on.",
+    "Remove the countdowns or replace them with a quick animated tap/choice moment under 0.5 seconds.",
+    "Open with the strongest surprise: “Ketchup has 2x the sugar of cola per 100g” or “A potato beats a banana for potassium.”",
+    "Show the answer faster on the first frame or use a cover like “3 food facts people usually get wrong.”",
+    "Make each round visually distinct with actual food cutouts or simple illustrations instead of only color blocks and giant letters.",
+    "Increase the size of the per-100g label and source note, or move the source to the caption and keep the frame cleaner.",
+    "Keep the explanatory callout short and large: “Red bell pepper: 2.4x more vitamin C.”",
+    "Put the final summary earlier or make it the last 2 seconds after quick reveals, not after a long wait.",
+    "Remove the RecipeFix CTA from this post, or integrate it naturally as a very small end-card only if this is an owned-brand ad.",
+    "Add a comment prompt tied to the content, e.g. “Which one surprised you most?”",
+    "Consider making it a carousel instead of a video if the goal is comparison and saving.",
+    "Check and standardize the USDA numbers so the values do not appear to change oddly during the reveal animation."
+  ],
+  "samples": [
+    {
+      "scores": {
+        "stop": 6,
+        "stay": 4,
+        "engage": 3,
+        "human": 6
+      },
+      "cringe": [
+        "The unrelated RecipeFix pitch in the caption makes it feel like an ad tacked onto a food-fact post.",
+        "The 3-second countdown before every reveal feels like engagement-bait and gets repetitive fast.",
+        "Static versus screens sit almost unchanged for several seconds, which feels templated rather than edited for social pacing.",
+        "The tiny source text and small explanatory callouts are hard to read on mobile.",
+        "The phrasing “Tell RecipeFix how you eat” is stiff and obviously promotional compared with the rest of the post."
+      ],
+      "pro_team_would_post": false
+    },
+    {
+      "scores": {
+        "stop": 6,
+        "stay": 4,
+        "engage": 3,
+        "human": 6
+      },
+      "cringe": [
+        "The pacing is painfully slow: each quiz holds for several seconds before anything happens, making it feel padded.",
+        "The caption turns into a RecipeFix promo that is unrelated to the actual post and makes the whole thing feel like an ad funnel.",
+        "The repeated countdown mechanic feels templated and gets old by the second round.",
+        "Some copy feels stiff, like 'Gram for gram' repeated in every reveal."
+      ],
+      "pro_team_would_post": false
+    },
+    {
+      "scores": {
+        "stop": 6,
+        "stay": 4,
+        "engage": 3,
+        "human": 6
+      },
+      "cringe": [
+        "The pacing feels painfully padded: viewers wait about 7 seconds for the first answer.",
+        "The RecipeFix plug in the caption feels bolted on and ad-like, not connected to the post.",
+        "The repeated countdown mechanic three times feels template-y and wastes time.",
+        "Comparing ketchup and cola per 100 g is technically fair but feels a little gotcha/misleading without serving-size context."
+      ],
+      "pro_team_would_post": false
+    }
+  ],
+  "model": "gpt-5.5",
+  "cost_usd": 0.06453,
+  "at": "2026-10-27T14:36:36.040Z"
+}
