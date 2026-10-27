@@ -61,7 +61,7 @@ export const QUIZ = {
 export const SWAP = {
   feed: {
     coverPhoto: { x: 0, y: 0, w: 1080, h: 760 },
-    pad: { x: 72, y: 70, w: 936, h: 1210 },
+    pad: { x: 72, y: 70, w: 936, h: 1190 },
     shotW: 900,
   },
   tall: {
@@ -101,3 +101,6 @@ export function fitSize(text: string, width: number, height: number, max: number
   for (let s = max; s > min; s -= 2) if (wrapLines(text, s, width, em) * s * lineHeight <= height) return s;
   return min;
 }
+
+/** Small counts spelled out on slides: OCR reads a lone digit with a box too tight to measure contrast honestly. */
+export const WORD = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'];

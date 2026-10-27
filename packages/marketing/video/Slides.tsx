@@ -18,7 +18,7 @@
 import React from 'react';
 import { AbsoluteFill, Img, staticFile, useCurrentFrame } from 'remotion';
 import { C, FONTS } from './kit.js';
-import { CANVAS, CHAR_EM, FACT, QUIZ, SWAP, fitSize, wrapLines, type Box, type Canvas } from './slideLayout.js';
+import { CANVAS, CHAR_EM, FACT, QUIZ, SWAP, WORD, fitSize, wrapLines, type Box, type Canvas } from './slideLayout.js';
 
 const INK = '#1B1410';
 const GREEN = '#1E7F48';
@@ -84,8 +84,8 @@ const Mark: React.FC<{ size: number; border?: string }> = ({ size, border = '#FF
 export type QuizSlide =
   | { kind: 'cover'; kicker: string; headline: string; photo: string; count: number; color: string }
   | { kind: 'question'; n: number; total: number; kicker: string; question: string; options: string[]; myth: boolean; photo: string; color: string }
-  | { kind: 'answers'; title: string; items: Array<{ n: number; question: string; answer: string; myth: boolean; correctIsMyth: boolean; why: string; source: string }> }
-  | { kind: 'close'; tie: string; save: string; color: string };
+  | { kind: 'answers'; title: string; items: Array<{ n: number; question: string; photo?: string; answer: string; myth: boolean; correctIsMyth: boolean; why: string; source: string }> }
+  | { kind: 'close'; tie: string; save: string; color: string; photo?: string };
 
 export interface QuizDeckProps {
   canvas: Canvas;
@@ -207,7 +207,7 @@ const QuizAnswers: React.FC<{ s: Extract<QuizSlide, { kind: 'answers' }>; canvas
               <div style={{ width: 58, height: 58, flex: '0 0 58px', borderRadius: 29, background: INK, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Lilita One', fontSize: 34, color: '#FFFFFF' }}>{a.n}</div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 {solo ? <div style={{ fontFamily: 'Lilita One', fontSize: 40, lineHeight: 1.12, color: INK, marginBottom: 18 }}>{a.question}</div> : null}
-                <span style={{ display: 'inline-block', background: a.myth ? (a.correctIsMyth ? RED : GREEN) : GREEN, borderRadius: 14, padding: '4px 18px 6px', ...display(canvas === 'feed' ? 52 : 44, '#FFFFFF', false) }}>{a.answer}</span>
+                <span style={{ display: 'inline-block', background: a.myth ? (a.correctIsMyth ? RED : GREEN) : GREEN, borderRadius: 14, padding: '4px 18px 6px', ...display(solo ? 68 : canvas === 'feed' ? 52 : 44, '#FFFFFF', false) }}>{a.answer}</span>
                 <div style={{ marginTop: 12, fontFamily: 'Inter', fontWeight: 600, fontSize: whySize, lineHeight: 1.28, color: INK }}>{a.why}</div>
                 <div style={{ marginTop: 12, fontFamily: 'Inter', fontWeight: 600, fontSize: canvas === 'feed' ? 30 : 28, lineHeight: 1.25, color: SECONDARY }}>{`Source: ${a.source}`}</div>
               </div>
@@ -215,9 +215,13 @@ const QuizAnswers: React.FC<{ s: Extract<QuizSlide, { kind: 'answers' }>; canvas
           );
         })}
       </div>
+      {canvas === 'tall' && s.items.length === 1 && s.items[0]!.photo ? <Photo src={s.items[0]!.photo} box={TALL_BAND} card tilt={-1} radius={30} /> : null}
     </>
   );
 };
+
+/** Below TikTok's text safe area: decoration only (it sits behind the caption), so a tall slide never ends in blank. */
+const TALL_BAND = { x: 130, y: 1300, w: 820, h: 520 };
 
 const QuizClose: React.FC<{ s: Extract<QuizSlide, { kind: 'close' }>; canvas: Canvas }> = ({ s, canvas }) => {
   const safe = canvas === 'feed' ? { x: 64, y: 90, w: 952, h: 1170 } : { x: 120, y: 290, w: 780, h: 950 };
@@ -234,6 +238,7 @@ const QuizClose: React.FC<{ s: Extract<QuizSlide, { kind: 'close' }>; canvas: Ca
         </div>
         <div style={{ ...display(feed ? 76 : 64) }}>recipefix.app</div>
       </div>
+      {!feed && s.photo ? <Photo src={s.photo} box={TALL_BAND} card tilt={1} radius={30} /> : null}
     </>
   );
 };
@@ -268,7 +273,7 @@ export interface SwapDeckProps {
 
 const serif = (size: number, color: string = C.ink): React.CSSProperties => ({ fontFamily: 'Instrument Serif', fontSize: size, lineHeight: 1.04, color, letterSpacing: -0.5 });
 const inter = (size: number, color: string = C.ink, weight = 400): React.CSSProperties => ({ fontFamily: 'Inter', fontWeight: weight, fontSize: size, lineHeight: 1.28, color });
-const TERRA_TEXT = '#8A3F27';
+const TERRA_TEXT = '#7A3520';
 const KICK: React.CSSProperties = { fontFamily: 'Lilita One', color: TERRA_TEXT, textTransform: 'uppercase', letterSpacing: 1.5, lineHeight: 1 };
 
 const SwapCover: React.FC<{ s: Extract<SwapSlide, { kind: 'cover' }>; canvas: Canvas }> = ({ s, canvas }) => {
@@ -327,21 +332,21 @@ const SwapCard: React.FC<{ s: Extract<SwapSlide, { kind: 'swap' }>; canvas: Canv
   const L = SWAP[canvas];
   const feed = canvas === 'feed';
   const T = feed
-    ? { kick: 46, from: 80, toMax: 116, label: 32, amount: 35, why: 35, foot: 29, gap: 30, panelLabel: 29, stepMax: 52 }
+    ? { kick: 46, from: 80, toMax: 116, label: 32, amount: 35, why: 35, foot: 29, gap: 30, panelLabel: 29, stepMax: 48 }
     : { kick: 38, from: 56, toMax: 80, label: 27, amount: 28, why: 28, foot: 26, gap: 18, panelLabel: 25, stepMax: 40 };
   const W = L.pad.w;
-  const labelW = feed ? 190 : 150;
+  const labelW = feed ? 215 : 172;
   const toSize = fitSize(s.to, W - 90, T.toMax * 1.1, T.toMax, 56, CHAR_EM.serif, 1.04);
   const lh = (t: string, size: number, w: number) => wrapLines(t, size, w, CHAR_EM.inter) * size * 1.28;
   const amountsH = lh(s.asWritten, T.amount, W - labelW - 64) + lh(s.adapted, T.amount, W - labelW - 64) + 12 + (feed ? 40 : 32);
   const whyH = lh(`Why: ${s.why}`, T.why, W);
   const fixed = T.kick * 1.1 + T.from * 1.06 + toSize * 1.12 + amountsH + whyH + T.foot * 1.3 + T.gap * 5 + T.panelLabel * 1.3 + (feed ? 60 : 50) + 14 * s.steps.length;
-  const stepSize = fitSize(s.steps.join(' '), W - (feed ? 92 : 74), Math.max(120, L.pad.h - fixed - (feed ? 0 : 40)), T.stepMax, feed ? 36 : 28, CHAR_EM.inter, 1.3);
+  const stepSize = fitSize(s.steps.join(' '), W - (feed ? 92 : 74), Math.max(120, L.pad.h - fixed - (feed ? 70 : 60)), T.stepMax, feed ? 32 : 28, CHAR_EM.inter, 1.3);
   return (
     <>
       <div style={{ ...abs(L.pad), display: 'flex', flexDirection: 'column', gap: T.gap }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 18, flexWrap: 'wrap' }}>
-          <span style={{ ...KICK, fontSize: T.kick }}>{`Swap ${s.n} of ${s.total}`}</span>
+          <span style={{ ...inter(T.kick * 0.78, TERRA_TEXT, 600), letterSpacing: 2.5, textTransform: 'uppercase', lineHeight: 1 }}>{`Swap ${WORD[s.n]} of ${WORD[s.total]}`}</span>
           {s.label ? <span style={inter(T.label, SECONDARY, 600)}>{s.label}</span> : null}
         </div>
         <div>
@@ -353,11 +358,11 @@ const SwapCard: React.FC<{ s: Extract<SwapSlide, { kind: 'swap' }>; canvas: Canv
         </div>
         <div style={{ background: '#FFFFFF', border: '3px solid #D9CBBE', borderRadius: 22, padding: feed ? '20px 26px' : '16px 18px', display: 'flex', flexDirection: 'column', gap: 12 }}>
           {[
-            [`Serves ${s.servesFrom}`, s.asWritten, SECONDARY],
-            [`Serves ${s.servesTo}`, s.adapted, TERRA_TEXT],
+            [`Serves ${WORD[s.servesFrom]}`, s.asWritten, SECONDARY],
+            [`Serves ${WORD[s.servesTo]}`, s.adapted, TERRA_TEXT],
           ].map(([k, v, tone]) => (
             <div key={k} style={{ display: 'flex', gap: 16 }}>
-              <div style={{ flex: `0 0 ${labelW}px`, ...inter(T.amount, tone, 600) }}>{k}</div>
+              <div style={{ flex: `0 0 ${labelW}px`, ...inter(T.amount, tone, 600), whiteSpace: 'nowrap' }}>{k}</div>
               <div style={inter(T.amount, C.ink)}>{v}</div>
             </div>
           ))}
@@ -365,7 +370,7 @@ const SwapCard: React.FC<{ s: Extract<SwapSlide, { kind: 'swap' }>; canvas: Canv
         <div style={{ flex: 1, background: C.ink, borderRadius: 28, padding: feed ? '26px 32px 28px' : '20px 22px 22px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
           <div style={{ ...inter(T.panelLabel, C.peach, 600), letterSpacing: 2.2, textTransform: 'uppercase' }}>{s.stepsLabel ?? 'What changes in the steps'}</div>
           {s.steps.map((t) => (
-            <div key={t} style={{ display: 'flex', gap: 16, marginTop: 20 }}>
+            <div key={t} style={{ display: 'flex', gap: 16, marginTop: 28 }}>
               <div style={{ width: 16, height: 16, flex: '0 0 16px', borderRadius: 8, background: C.terracotta, marginTop: stepSize * 0.45 }} />
               <div style={{ ...inter(stepSize, '#FFFFFF', 600), lineHeight: 1.3 }}>{t}</div>
             </div>
@@ -475,7 +480,7 @@ export const FactCard: React.FC<FactCardProps> = (p) => {
     <AbsoluteFill style={{ background: p.color }}>
       <style>{FONTS}</style>
       <Photo src={p.photo} box={FACT.photo} />
-      <div style={{ ...abs(card), background: '#FFFFFF', borderRadius: 40, border: `6px solid ${INK}`, boxShadow: `0 12px 0 ${INK}`, boxSizing: 'border-box', padding: `70px ${padX - 6}px 34px`, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+      <div style={{ ...abs(card), background: '#FFFFFF', borderRadius: 40, border: `6px solid ${INK}`, boxShadow: `0 12px 0 ${INK}`, boxSizing: 'border-box', padding: `64px ${padX - 6}px 30px`, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 34 }}>
         <div style={{ flex: 1, minHeight: 230, display: 'flex', alignItems: 'center', fontFamily: 'Lilita One', fontSize: qSize, lineHeight: 1.08, color: INK }}>{text}</div>
         {p.myth ? (
           <div style={{ display: 'flex', gap: 24 }}>

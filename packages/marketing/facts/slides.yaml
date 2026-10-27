@@ -114,6 +114,6 @@ swap_guides:
         - { path: "explanations[2]", quote: "The larger batch needs more broiler space, not longer broiling per piece" }
     tie: "Swapping an ingredient? RecipeFix rewrites the steps to match, and every change comes with its reason."
     claims: [proof.tikka_method_changes, core.rewrites_steps, core.reasons]
-    caption: "The ingredient swaps were the easy part of making this tikka masala dairy-free. What matters is what each swap changes in the steps: stir the coconut yogurt smooth, let it drip so the chicken chars, whisk the coconut cream and keep it at a gentle simmer. Real RecipeFix result (captured 2026-10-21), scaled 4 to 6 servings. The starting recipe is a RecipeFix Original, an AI-written home recipe. Save this for your next dairy-free curry."
-    title: "4 dairy-free swaps and what each one changes in the steps"
+    caption: "The ingredient swaps were the easy part of making this tikka masala dairy-free. What matters is what you do differently with each one: stir the coconut yogurt smooth, let it drip so the chicken chars, whisk the coconut cream and keep it at a gentle simmer. Real RecipeFix result (captured 2026-10-21), scaled 4 to 6 servings. The starting recipe is a RecipeFix Original, an AI-written home recipe. Save this for your next dairy-free curry."
+    title: "4 dairy-free swaps and what to do differently with each"
     tags: [dairyfree, dairyfreerecipes, tikkamasala, cookingtips, recipefix]
