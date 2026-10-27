@@ -300,7 +300,9 @@ export async function qaFrame(s: Studio, file: string, t: number, label: string,
   mkdirSync(path.join(s.dir, 'qa-frames'), { recursive: true });
   const png = file.endsWith('.mp4') ? frameAt(file, t, path.join(s.dir, 'qa-frames', `${label}.png`)) : readFileSync(file);
   // OCR cannot read a lone glyph ("9", "8") reliably; such a line is recorded but not held to the read-back bar.
-  const lines = intended.map((l) => (typeof l === 'string' ? { text: l } : l)).map((l) => (l.text.replace(/\W/g, '').length <= 2 ? { ...l, min: 0 } : l));
+  // A lone glyph ("5", "No") is left out of matching altogether: it would otherwise
+  // consume a word another line needs ("5" stealing the 5 of "5 and 1/3").
+  const lines = intended.map((l) => (typeof l === 'string' ? { text: l } : l)).filter((l) => l.text.replace(/\W/g, '').length > 2);
   const r = await qaStill({ png, intended: lines, safeBox: safe, canvas, minWordHeight: 22, label });
   return r.checks.map((c) => ({ ...c, id: `${label}:${c.id}` }));
 }
