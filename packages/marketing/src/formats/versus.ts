@@ -130,7 +130,8 @@ export async function makeVersus(setName: string, opts: { date?: string; voice?:
     const av = useVoice ? await voice(s, r.say_a, `a${i + 1}`) : null;
     if (useVoice) spoken.push(r.say_q, r.say_a);
     const start = t;
-    const countdownAt = start + Math.max(sec(1.3), 6 + sec(qv?.seconds ?? 1.6));
+    // Round-2 reviews: "waits 4-5 s before the answer". The countdown runs under the question, not after it.
+    const countdownAt = start + sec(0.5);
     const revealAt = countdownAt + TIMER;
     // The why card rises while the answer is still being said: the reader is already reading.
     const whyAt = revealAt + sec(0.4);

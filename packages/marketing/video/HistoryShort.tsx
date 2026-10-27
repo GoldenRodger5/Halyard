@@ -105,36 +105,7 @@ const useBeatMotion = (b: HistoryBeat) => {
   return { opacity: Math.min(1, s) * (1 - out), transform: `translateY(${(1 - s) * 90 - out * 80}px)` };
 };
 
-/** Odometer year: each digit column spins back from today's year and lands one after another. */
-const Year: React.FC<{ from: number; to: number; at: number; size: number }> = ({ from, to, at, size }) => {
-  const f = useCurrentFrame();
-  const a = String(from).split('').map(Number);
-  const b = String(to).split('').map(Number);
-  return (
-    <div style={{ display: 'flex', justifyContent: 'center', height: size * 0.98, overflow: 'hidden' }}>
-      {b.map((d, i) => {
-        const land = at + 4 + i * 4;
-        const k = spring({ frame: f - at, fps: 30, durationInFrames: land - at + 10, config: { damping: 18, stiffness: 90 } });
-        // Spin backwards through extra turns so every column visibly moves.
-        const start = a[i]! + 20;
-        const pos = interpolate(k, [0, 1], [start, d]);
-        return (
-          <div key={i} style={{ width: size * 0.47, height: size * 0.98, position: 'relative' }}>
-            <div style={{ position: 'absolute', left: 0, top: -pos * size * 0.98, width: '100%' }}>
-              {Array.from({ length: 30 }, (_, n) => (
-                <div key={n} style={{ height: size * 0.98, lineHeight: `${size * 0.98}px`, textAlign: 'center', fontFamily: 'Instrument Serif', fontSize: size, color: RED, textShadow: '0 3px 0 rgba(90,40,20,0.18)' }}>
-                  {n % 10}
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-};
-
-const Hook: React.FC<{ b: HistoryBeat; year: number; fromYear: number }> = ({ b, year, fromYear }) => {
+const Hook: React.FC<{ b: HistoryBeat; year: number }> = ({ b, year }) => {
   const f = useCurrentFrame();
   const out = interpolate(f, [b.end - 2, b.end + EXIT], [0, 1], clamp);
   const line = interpolate(f, [8, 30], [0, 1], clamp);
@@ -142,7 +113,9 @@ const Hook: React.FC<{ b: HistoryBeat; year: number; fromYear: number }> = ({ b,
   const push = interpolate(f, [b.start, b.end], [1, 1.04], clamp);
   return (
     <div style={{ position: 'absolute', left: SAFE.x0 + 30, top: 400, width: W - 60, opacity: 1 - out, transform: `scale(${push}) translateY(${-out * 80}px)`, transformOrigin: '50% 30%' }}>
-      <Year from={fromYear} to={year} at={b.start} size={400} />
+      {/* Round-2 reviews (2026-10-27): the rolling odometer made the cover a broken half-number. The year is
+          whole from frame 0 and lands with a punch-in instead; */}
+      <div style={{ height: 392, lineHeight: '392px', textAlign: 'center', fontFamily: 'Instrument Serif', fontSize: 400, color: RED, textShadow: '0 3px 0 rgba(90,40,20,0.18)', transform: `scale(${interpolate(f, [0, 12], [1.1, 1], clamp)})` }}>{year}</div>
       <div style={{ margin: '10px auto 0', height: 6, width: 560 * line, background: INK }} />
       <div style={{ marginTop: 40, textAlign: 'center', fontFamily: 'Instrument Serif', fontSize: 92, lineHeight: 1.03, color: INK, textShadow: '0 4px 18px rgba(70,45,20,0.18)' }}>{b.screen}</div>
     </div>
@@ -506,7 +479,7 @@ export const HistoryShort: React.FC<HistoryShortProps> = (p) => {
         {p.beats.map((b, i) =>
           f >= b.start && f < b.end + EXIT ? (
             <React.Fragment key={i}>
-              {b.kind === 'hook' ? <Hook b={b} year={p.year} fromYear={p.fromYear} /> : null}
+              {b.kind === 'hook' ? <Hook b={b} year={p.year} /> : null}
               {b.kind === 'photo' ? <PhotoPrint b={b} photo={p.photo} focus={p.focus} /> : null}
               {b.kind === 'ledger' ? <Ledger b={b} /> : null}
               {b.kind === 'quote' ? <Quote b={b} /> : null}
