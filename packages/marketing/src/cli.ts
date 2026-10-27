@@ -136,6 +136,9 @@ async function main(): Promise<void> {
       return;
     }
     report(await makeList(id, { voice: rest.includes('--voice'), date: flag('--date'), look: flag('--look') as 'sticker' | 'editorial' | undefined }));
+    return;
+  }
+
   if (cmd === 'history') {
     const id = rest.find((r) => !r.startsWith('--') && r !== flag('--date'));
     const { makeHistory, loadStories } = await import('./formats/history.js');
