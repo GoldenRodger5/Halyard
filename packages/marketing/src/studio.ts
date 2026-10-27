@@ -113,13 +113,14 @@ const IMAGE_USD = Number(process.env.MK_IMAGE_USD || 0.05);
 const IMAGE_MODEL = process.env.MK_IMAGE_MODEL || 'gpt-image-2.5-sunburst';
 export async function generatedPhoto(s: Studio, prompt: string, name: string): Promise<string> {
   mkdirSync(IMG_CACHE, { recursive: true });
-  const key = sha256(`${IMAGE_MODEL}|1536x1024|${prompt}`).slice(0, 24);
+  const key = sha256(`${IMAGE_MODEL}|1536x1024|candid-v2|${prompt}`).slice(0, 24);
   const cached = path.join(IMG_CACHE, `${key}.jpg`);
   if (!existsSync(cached)) {
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) throw new Error('OPENAI_API_KEY not set');
     s.ledger.assertCanSpend(IMAGE_USD);
-    const full = `${prompt}. Photorealistic food photography, natural window light, shallow depth of field, real kitchen surface, no text, no labels with readable brand names, no people, no hands.`;
+    // Candid, not catalogue: viewer reviews flagged glossy generated food as "stock/AI" (2026-10-27).
+    const full = `${prompt}. Candid photo taken on a phone in a real home kitchen, slightly imperfect framing, everyday light, a little mess, natural colours, not a styled food shoot, no text, no readable brand names, no people, no hands.`;
     const r = await fetch('https://api.openai.com/v1/images/generations', {
       method: 'POST',
       headers: { authorization: `Bearer ${apiKey}`, 'content-type': 'application/json' },

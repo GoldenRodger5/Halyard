@@ -40,6 +40,8 @@ export interface QuizShortProps {
   questions: QuizQuestionProps[];
   close: { start: number; tie: string; save: string; tips: string[]; audio: string | null; photo: string };
   sfx: { tick: string; reveal: string } | null;
+  /** Series look (THEMES). */
+  theme?: string;
   [key: string]: unknown;
 }
 
@@ -72,10 +74,67 @@ const display = (size: number, color = '#FFFFFF'): React.CSSProperties => ({
   letterSpacing: 0.5,
 });
 
+/**
+ * Series identity (owner, 2026-10-27: "not the same template every time"). A
+ * pro account gives each recurring series its own look so the feed reads as
+ * a channel, not a bot. The game mechanics are shared; ground, headline type,
+ * title banner and accent change per series.
+ */
+export type ThemeName = 'pop' | 'label' | 'grid' | 'charcoal' | 'paper';
+interface Theme {
+  name: ThemeName;
+  /** Ground colour for question i (pop rotates; series themes hold one). */
+  ground: (i: number) => string;
+  headline: (size: number) => React.CSSProperties;
+  bannerBg: string;
+  bannerInk: string;
+  bannerFont: string;
+  bannerRotate: number;
+  badge: string;
+  /** Ink on the ground itself (small text drawn straight on it). */
+  onGround: string;
+}
+const serifHead = (size: number, color: string): React.CSSProperties => ({ fontFamily: 'Instrument Serif', fontSize: size * 1.12, lineHeight: 1.02, color, letterSpacing: -0.5 });
+const inkHead = (size: number, color: string): React.CSSProperties => ({ fontFamily: 'Lilita One', fontSize: size, lineHeight: 1.08, color, letterSpacing: 0.3 });
+const labelHead = (size: number): React.CSSProperties => ({ fontFamily: 'Inter', fontWeight: 600, fontSize: size * 0.86, lineHeight: 1.08, color: '#111111', letterSpacing: -1.2 });
+const THEMES: Record<ThemeName, Theme> = {
+  pop: { name: 'pop', ground: (i) => GROUNDS[i % GROUNDS.length]!, headline: (z) => display(z), bannerBg: '#FFFFFF', bannerInk: INK, bannerFont: 'Lilita One', bannerRotate: -1.5, badge: RED, onGround: '#FFFFFF' },
+  label: { name: 'label', ground: () => '#F6F3EC', headline: labelHead, bannerBg: '#111111', bannerInk: '#FFFFFF', bannerFont: 'Inter', bannerRotate: 0, badge: '#111111', onGround: '#111111' },
+  grid: { name: 'grid', ground: () => '#FFFDF5', headline: (z) => inkHead(z, INK), bannerBg: '#F4C542', bannerInk: INK, bannerFont: 'Lilita One', bannerRotate: -2.5, badge: '#3B6FB6', onGround: INK },
+  charcoal: { name: 'charcoal', ground: () => '#1C1A18', headline: (z) => ({ ...inkHead(z, '#FFFFFF'), textShadow: '0 4px 0 rgba(0,0,0,0.5)' }), bannerBg: '#E0483E', bannerInk: '#FFFFFF', bannerFont: 'Lilita One', bannerRotate: -1.5, badge: '#E0483E', onGround: '#FFFFFF' },
+  paper: { name: 'paper', ground: () => '#EFE2C6', headline: (z) => serifHead(z, '#2A1E14'), bannerBg: '#2A1E14', bannerInk: '#EFE2C6', bannerFont: 'Instrument Serif', bannerRotate: 0, badge: '#8A3B1E', onGround: '#2A1E14' },
+};
+const ThemeCtx = React.createContext<Theme>(THEMES.pop);
+const useTheme = () => React.useContext(ThemeCtx);
+
 /** Solid ground + faint drifting "?" pattern. */
 const Ground: React.FC<{ color: string }> = ({ color }) => {
   const f = useCurrentFrame();
+  const t = useTheme();
   const drift = (f * 0.6) % 160;
+  if (t.name === 'grid') {
+    // Graph paper: the page a recipe gets scaled on.
+    return (
+      <AbsoluteFill style={{ background: color, backgroundImage: 'linear-gradient(rgba(59,111,182,0.16) 2px, transparent 2px), linear-gradient(90deg, rgba(59,111,182,0.16) 2px, transparent 2px), linear-gradient(rgba(59,111,182,0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(59,111,182,0.07) 1px, transparent 1px)', backgroundSize: '120px 120px, 120px 120px, 24px 24px, 24px 24px', backgroundPosition: `0 ${drift * 0.3}px` }} />
+    );
+  }
+  if (t.name === 'label') {
+    // A nutrition-label panel: hairline rules down the page.
+    return (
+      <AbsoluteFill style={{ background: color, backgroundImage: 'repeating-linear-gradient(0deg, rgba(17,17,17,0.06) 0 2px, transparent 2px 64px)' }}>
+        <div style={{ position: 'absolute', left: 60, right: 60, top: 0, bottom: 0, borderLeft: '6px solid rgba(17,17,17,0.85)', borderRight: '6px solid rgba(17,17,17,0.85)' }} />
+      </AbsoluteFill>
+    );
+  }
+  if (t.name === 'paper') {
+    // Archival paper: warm ground, a vignette and a little grain.
+    const grain = [];
+    for (let i = 0; i < 160; i++) grain.push(<div key={i} style={{ position: 'absolute', left: (i * 137) % 1080, top: (i * 251) % 1920, width: 3, height: 3, borderRadius: 2, background: 'rgba(42,30,20,0.18)' }} />);
+    return <AbsoluteFill style={{ background: `radial-gradient(ellipse at 50% 40%, ${color} 0%, ${color} 55%, #C9B38C 120%)` }}>{grain}</AbsoluteFill>;
+  }
+  if (t.name === 'charcoal') {
+    return <AbsoluteFill style={{ background: color, backgroundImage: 'repeating-linear-gradient(135deg, rgba(255,255,255,0.03) 0 22px, transparent 22px 44px)', backgroundPosition: `${drift}px 0` }} />;
+  }
   const marks = [];
   for (let r = -1; r < 14; r++)
     for (let c = -1; c < 8; c++)
@@ -90,13 +149,14 @@ const Ground: React.FC<{ color: string }> = ({ color }) => {
 /** Top row: question badge, title banner, RecipeFix mark (the channel's corner logo). */
 const TopBar: React.FC<{ label: string; n: number | null; at: number }> = ({ label, n, at }) => {
   const s = useSpring(at, { damping: 14 });
+  const t = useTheme();
   return (
     <div style={{ position: 'absolute', left: SAFE.x0, top: SAFE.y0 + 6, width: W, height: 96, display: 'flex', alignItems: 'center', gap: 16 }}>
       {n !== null ? (
-        <div style={{ width: 84, height: 84, flex: '0 0 84px', borderRadius: 42, background: RED, border: '5px solid #FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', ...display(46), transform: `scale(${s})` }}>{n}</div>
+        <div style={{ width: 84, height: 84, flex: '0 0 84px', borderRadius: 42, background: t.badge, border: '5px solid #FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', ...display(46), transform: `scale(${s})` }}>{n}</div>
       ) : null}
-      <div style={{ flex: 1, height: 84, borderRadius: 22, background: '#FFFFFF', border: `5px solid ${INK}`, boxShadow: `0 7px 0 ${INK}`, display: 'flex', alignItems: 'center', justifyContent: 'center', transform: `rotate(-1.5deg) scale(${interpolate(s, [0, 1], [0.6, 1])})` }}>
-        <span style={{ fontFamily: 'Lilita One', fontSize: 46, color: INK, letterSpacing: 1, textTransform: 'uppercase' }}>{label}</span>
+      <div style={{ flex: 1, height: 84, borderRadius: t.name === 'label' || t.name === 'paper' ? 6 : 22, background: t.bannerBg, border: `5px solid ${INK}`, boxShadow: t.name === 'label' || t.name === 'paper' ? 'none' : `0 7px 0 ${INK}`, display: 'flex', alignItems: 'center', justifyContent: 'center', transform: `rotate(${t.bannerRotate}deg) scale(${interpolate(s, [0, 1], [0.6, 1])})` }}>
+        <span style={{ fontFamily: t.bannerFont, fontWeight: t.bannerFont === 'Inter' ? 600 : 400, fontSize: t.bannerFont === 'Instrument Serif' ? 54 : 46, color: t.bannerInk, letterSpacing: t.bannerFont === 'Inter' ? 4 : 1, textTransform: t.bannerFont === 'Instrument Serif' ? 'none' : 'uppercase', fontStyle: t.bannerFont === 'Instrument Serif' ? 'italic' : 'normal' }}>{label}</span>
       </div>
       <Img src={staticFile('brand/recipefix-mark-512.png')} style={{ width: 84, height: 84, borderRadius: 20, border: '5px solid #FFFFFF', boxShadow: `0 7px 0 ${INK}`, transform: `scale(${s})` }} />
     </div>
@@ -246,11 +306,14 @@ const Question: React.FC<{ q: QuizQuestionProps; label: string; index: number; t
   const OPT = 606;
   const PHOTO_TOP = 940;
   const PHOTO_H = 540;
+  const theme = useTheme();
   return (
     <>
       <Ground color={color} />
       <TopBar label={label} n={total > 1 ? index + 1 : null} at={q.start} />
-      <div style={{ position: 'absolute', left: SAFE.x0 + 10, top: 392, width: W - 20, height: 196, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', ...display(qSize), opacity: Math.min(1, qIn), transform: `scale(${interpolate(qIn, [0, 1], [0.7, 1])})` }}>
+      {theme.name === 'label' ? <div style={{ position: 'absolute', left: SAFE.x0, top: 384, width: W, height: 10, background: '#111111' }} /> : null}
+      {theme.name === 'label' ? <div style={{ position: 'absolute', left: SAFE.x0, top: 590, width: W, height: 4, background: '#111111' }} /> : null}
+      <div style={{ position: 'absolute', left: SAFE.x0 + 10, top: 392, width: W - 20, height: 196, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', ...theme.headline(qSize), opacity: Math.min(1, qIn), transform: `scale(${interpolate(qIn, [0, 1], [0.7, 1])})` }}>
         {qText}
       </div>
       <PhotoCard src={q.photo} at={q.start === 0 ? -30 : q.start + 8} top={PHOTO_TOP} height={PHOTO_H} width={880} answer={twoWay ? q.options[q.correct]!.toUpperCase() : q.options[q.correct]!} answerAt={q.revealAt} tone={twoWay && /myth|false|no/i.test(q.options[q.correct]!) ? RED : GREEN} />
@@ -316,7 +379,7 @@ const Close: React.FC<{ c: QuizShortProps['close']; color: string }> = ({ c, col
     <>
       <Ground color={color} />
       <div style={{ position: 'absolute', left: SAFE.x0 + 6, top: SAFE.y0 + 10, width: W - 12, display: 'flex', flexDirection: 'column', gap: 24 }}>
-        <div style={{ textAlign: 'center', ...display(84), opacity: Math.min(1, a), transform: `scale(${interpolate(a, [0, 1], [0.7, 1])})` }}>Save this</div>
+        <div style={{ textAlign: 'center', ...useTheme().headline(84), opacity: Math.min(1, a), transform: `scale(${interpolate(a, [0, 1], [0.7, 1])})` }}>Save this</div>
         <div style={{ background: '#FFFFFF', borderRadius: 28, border: `5px solid ${INK}`, boxShadow: `0 9px 0 ${INK}`, padding: '24px 26px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 18 }}>
           {c.tips.map((t, i) => {
             const tt = interpolate(f, [c.start + 8 + i * 8, c.start + 16 + i * 8], [0, 1], clamp);
@@ -343,16 +406,19 @@ const Visible: React.FC<{ from: number; to: number; children: React.ReactNode }>
   return f >= from && f < to ? <>{children}</> : null;
 };
 
-export const QuizShort: React.FC<QuizShortProps> = (p) => (
-  <AbsoluteFill style={{ background: GROUNDS[0] }}>
+export const QuizShort: React.FC<QuizShortProps> = (p) => {
+  const theme = THEMES[(p.theme as ThemeName) ?? 'pop'] ?? THEMES.pop;
+  return (
+  <ThemeCtx.Provider value={theme}>
+  <AbsoluteFill style={{ background: theme.ground(0) }}>
     <style>{FONTS}</style>
     {p.questions.map((q, i) => (
       <Visible key={`q${i}`} from={q.start} to={q.end}>
-        <Question q={q} label={p.label} index={i} total={p.questions.length} color={GROUNDS[i % GROUNDS.length]!} />
+        <Question q={q} label={p.label} index={i} total={p.questions.length} color={theme.ground(i)} />
       </Visible>
     ))}
     <Visible from={p.close.start} to={Number.MAX_SAFE_INTEGER}>
-      <Close c={p.close} color={GROUNDS[p.questions.length % GROUNDS.length]!} />
+      <Close c={p.close} color={theme.ground(p.questions.length)} />
     </Visible>
     {p.questions.map((q, i) => {
       const secs = Math.round((q.revealAt - q.countdownAt) / 30);
@@ -394,4 +460,6 @@ export const QuizShort: React.FC<QuizShortProps> = (p) => (
       </Sequence>
     ) : null}
   </AbsoluteFill>
-);
+  </ThemeCtx.Provider>
+  );
+};

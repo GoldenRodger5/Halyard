@@ -136,7 +136,7 @@ async function main(): Promise<void> {
     const { critique } = await import('./critique.js');
     const c = await critique(dir);
     console.log(`${c.verdict.toUpperCase()}  stop ${c.scores.stop} · stay ${c.scores.stay} · engage ${c.scores.engage} · human ${c.scores.human}  ($${c.cost_usd})`);
-    console.log(`first impression: ${c.first_impression}\nwould leave at: ${c.would_leave_at}`);
+    console.log(`first impression: ${c.first_impression}\nwould leave at: ${c.would_leave_at}\npro team would post: ${c.pro_team_would_post ? 'yes' : 'no'}${c.cringe?.length ? `\ncringe: ${c.cringe.join('; ')}` : ''}`);
     for (const p of c.problems) console.log(`  - ${p}`);
     for (const f of c.fixes) console.log(`  → ${f}`);
     return;

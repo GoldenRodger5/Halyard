@@ -164,7 +164,14 @@ export async function makeQuiz(args: string[], opts: { voice: boolean; date?: st
   const cv = opts.voice ? await voice(s, tie, 'close') : null;
   const closeStart = t;
   const total = closeStart + Math.max(sec(2.6 + chosen.length * 1.1), 4 + sec(cv?.seconds ?? 0) + 30);
+  // Series identity: each recurring series has its own look (QuizShort THEMES).
+  const THEME_BY: Record<string, string> = {
+    'label-detective': 'label', labels: 'label', 'gluten-free': 'label', allergies: 'label', vegan: 'label', vegetarian: 'label',
+    'kitchen-math': 'grid', 'kitchen-myths': 'charcoal', 'cooking-myths': 'charcoal', 'food-history': 'paper',
+  };
+  const theme = THEME_BY[setName ?? ''] ?? THEME_BY[chosen[0]!.topic] ?? 'pop';
   const props = {
+    theme,
     label,
     questions,
     close: { start: closeStart, tie, save: set?.save ?? topic.close, tips: chosen.map((f) => f.tip ?? f.why), audio: cv?.file ?? null, photo: questions[0]!.photo },

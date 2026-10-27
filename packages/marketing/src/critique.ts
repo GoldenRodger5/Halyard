@@ -27,6 +27,8 @@ export const POST_BAR = { stop: 7, stay: 7, engage: 6, human: 7 };
 export interface Critique {
   verdict: 'post' | 'revise' | 'reject';
   scores: { stop: number; stay: number; engage: number; human: number };
+  cringe: string[];
+  pro_team_would_post: boolean;
   would_leave_at: string;
   first_impression: string;
   problems: string[];
@@ -66,9 +68,10 @@ Score 1-10:
 - stay: would you watch to the end (or swipe to the last slide)?
 - engage: would you comment, save or share it?
 - human: does it look made by a person with taste (10) or like templated AI slop (1)? Penalise: text blocked by other text or by platform buttons, squashed or distorted images, tiny type, dead empty space, repetitive layouts, stiff stock phrasing, anything that looks like an ad.
+Then, the owner's bar: list anything dumb, cringe, try-hard, preachy or obviously AI-made (empty list if none), and answer honestly whether the social team at a well-known food brand would publish this exactly as is (pro_team_would_post).
 Then: the exact moment you would leave (or "never"), your first impression in one sentence, concrete problems, and concrete fixes a designer could act on today.
-verdict: "post" only if stop>=7, stay>=7, engage>=6, human>=7; "reject" if the concept itself is weak; otherwise "revise".
-Reply with JSON only: {"verdict":"post|revise|reject","scores":{"stop":n,"stay":n,"engage":n,"human":n},"would_leave_at":"...","first_impression":"...","problems":["..."],"fixes":["..."]}`;
+verdict: "post" only if stop>=7, stay>=7, engage>=6, human>=7, cringe is empty and pro_team_would_post is true; "reject" if the concept itself is weak; otherwise "revise".
+Reply with JSON only: {"verdict":"post|revise|reject","scores":{"stop":n,"stay":n,"engage":n,"human":n},"cringe":["..."],"pro_team_would_post":true|false,"would_leave_at":"...","first_impression":"...","problems":["..."],"fixes":["..."]}`;
 
 export async function critique(runDir: string): Promise<Critique> {
   const dir = path.resolve(runDir);
@@ -98,7 +101,7 @@ export async function critique(runDir: string): Promise<Critique> {
   const parsed = JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1)) as Omit<Critique, 'model' | 'cost_usd' | 'at'>;
   const s = parsed.scores;
   // The bar is enforced here, not trusted from the model's own verdict.
-  const meets = s.stop >= POST_BAR.stop && s.stay >= POST_BAR.stay && s.engage >= POST_BAR.engage && s.human >= POST_BAR.human;
+  const meets = s.stop >= POST_BAR.stop && s.stay >= POST_BAR.stay && s.engage >= POST_BAR.engage && s.human >= POST_BAR.human && (parsed.cringe ?? []).length === 0 && parsed.pro_team_would_post === true;
   const out: Critique = { ...parsed, verdict: meets ? 'post' : parsed.verdict === 'reject' ? 'reject' : 'revise', model: MODEL, cost_usd: usd, at: new Date().toISOString() };
   writeFileSync(path.join(dir, 'critique.json'), `${JSON.stringify(out, null, 2)}\n`);
   return out;
