@@ -4,3 +4,10 @@
 */*/public/fonts/
 */*/vo-16k.wav
 *.webm
+
+# Lean lane formats: copied inputs and QA scratch frames are reproducible, not records.
+*/quiz-*/public/
+*/recipe-*/public/
+*/app-*/public/
+*/*/qa-frames/
+_cache/

@@ -1,0 +1,38 @@
+{
+  "label": "Vegan quiz",
+  "questions": [
+    {
+      "question": "Is honey vegan?",
+      "options": [
+        "Yes",
+        "No",
+        "Only raw honey"
+      ],
+      "correct": 1,
+      "why": "The Vegan Society lists honey with meat, dairy and eggs as foods vegans avoid. Maple syrup is the easy swap.",
+      "source": "The Vegan Society, Definition of veganism",
+      "photo": "photo-blueberry-banana-french-toast-16x9.jpg",
+      "start": 0,
+      "countdownAt": 89,
+      "revealAt": 239,
+      "whyAt": 272,
+      "end": 514,
+      "audio": {
+        "question": null,
+        "answer": null,
+        "why": null
+      }
+    }
+  ],
+  "close": {
+    "start": 514,
+    "tie": "Making it vegan? RecipeFix swaps the honey and rewrites the steps.",
+    "audio": null,
+    "photo": "photo-blueberry-banana-french-toast-16x9.jpg"
+  },
+  "sfx": {
+    "tick": "sfx-tick.wav",
+    "reveal": "sfx-reveal.wav",
+    "whoosh": "sfx-whoosh.wav"
+  }
+}

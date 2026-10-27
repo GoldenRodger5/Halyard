@@ -1,12 +1,18 @@
 #!/usr/bin/env tsx
 /* eslint-disable no-console -- a CLI: stdout is its interface */
 /**
- * `pnpm mk <command>` — the lean marketing lane. Local, file-based, never publishes.
+ * `pnpm mk <command>` — the lean marketing lane. Local and file-based; posts only with `publish --live`.
  *
  *   pnpm mk brief                     print the assembled brief and the pack's state
  *   pnpm mk plan                      list ideas, check every cited claim against the pack
  *   pnpm mk make <idea-id> [--copy f] render + QA one idea (model copy, or a reviewed copy file)
  *   pnpm mk gate <drafts.json>        copy-gate platform variants that reuse a QA-passed asset
+ *   pnpm mk quiz [fact-id…] [--voice]  list facts, or make a quiz video + posts (silent unless --voice)
+ *   pnpm mk recipe [original-id] [--voice]  list Originals, or make a recipe video + posts
+ *   pnpm mk app                       RecipeFix intro video from real screen recordings
+ *   pnpm mk accounts                  Blotato accounts the lane posts to (read-only)
+ *   pnpm mk publish <run> [--only a,b] [--live] [--at ISO]  dry run by default; --live posts via Blotato
+ *   pnpm mk status <run>              re-check submitted posts
  *   pnpm mk ledger                    the spend ledger and the cap
  *
  * Paid calls (copy, voice) go through the ledger and stop before the cap.
@@ -15,6 +21,11 @@ import path from 'node:path';
 import { loadIdeas, LEDGER_FILE, openRun, SPEND_CAP_USD } from './runContext.js';
 import { claimById, isQuotable, loadKnowledgePack, productPostsPaused } from './knowledge.js';
 import { Ledger } from './ledger.js';
+
+function report(r: { id: string; qa: { passed: boolean; checks: Array<{ id: string; passed: boolean; detail: string; problems: string[] }> }; cost_usd: number; outputs: unknown }): void {
+  console.log(`${r.id}: ${r.qa.passed ? 'QA PASS' : 'QA FAIL'} · $${r.cost_usd.toFixed(3)} · runs/…/${r.id}/preview.html`);
+  for (const c of r.qa.checks) if (!c.passed) console.log(`  FAIL ${c.id}: ${c.detail} | ${c.problems.join(' | ')}`);
+}
 
 async function main(): Promise<void> {
   const [cmd, ...rest] = process.argv.slice(2);
@@ -58,6 +69,65 @@ async function main(): Promise<void> {
       const { makeShort } = await import('./makeShort.js');
       await makeShort(id, { copyFile, date: flag('--date'), voice: !rest.includes('--no-voice') });
     }
+    return;
+  }
+
+  if (cmd === 'quiz') {
+    const ids = rest.filter((r) => !r.startsWith('--') && r !== flag('--date'));
+    const { makeQuiz, loadFacts } = await import('./formats/quiz.js');
+    if (!ids.length) {
+      for (const f of loadFacts()) console.log(`${f.id.padEnd(22)} ${f.topic.padEnd(14)} ${f.question}`);
+      const { loadSets } = await import('./formats/quiz.js');
+      for (const [k, v] of Object.entries(loadSets())) console.log(`set:${k.padEnd(18)} ${v.label}: ${v.facts.join(', ')}`);
+      return;
+    }
+    const r = await makeQuiz(ids, { voice: rest.includes('--voice'), date: flag('--date') });
+    report(r);
+    return;
+  }
+
+  if (cmd === 'recipe') {
+    const id = rest.find((r) => !r.startsWith('--') && r !== flag('--date'));
+    const { makeRecipe, loadOriginals } = await import('./formats/recipe.js');
+    if (!id) {
+      for (const o of loadOriginals().originals) console.log(`${o.id.padEnd(32)} ${o.totalMinutes} min · serves ${o.servings}`);
+      return;
+    }
+    report(await makeRecipe(id, { voice: rest.includes('--voice'), date: flag('--date') }));
+    return;
+  }
+
+  if (cmd === 'app') {
+    const { makeApp } = await import('./formats/app.js');
+    report(await makeApp({ date: flag('--date') }));
+    return;
+  }
+
+  if (cmd === 'accounts') {
+    const { listAccounts, accountFor } = await import('./publish.js');
+    const all = await listAccounts();
+    for (const a of all) console.log(`${a.platform.padEnd(10)} ${a.id.padEnd(8)} ${a.username ?? a.fullname ?? ''}`);
+    for (const p of ['tiktok', 'instagram', 'x', 'threads', 'youtube', 'pinterest'] as const) {
+      const id = accountFor(p);
+      const ok = all.some((a) => a.id === id);
+      console.log(`  mk uses ${p.padEnd(9)} → ${id ?? '(none)'} ${ok ? 'ok' : 'NOT CONNECTED'}`);
+    }
+    return;
+  }
+
+  if (cmd === 'publish') {
+    const dir = rest.find((r) => !r.startsWith('--') && r !== flag('--only') && r !== flag('--at'));
+    if (!dir) throw new Error('usage: pnpm mk publish <run-dir> [--only tiktok,x] [--live] [--at 2026-10-27T17:00:00-04:00]');
+    const { publishRun } = await import('./publish.js');
+    await publishRun(dir, { live: rest.includes('--live'), only: flag('--only')?.split(','), at: flag('--at') });
+    return;
+  }
+
+  if (cmd === 'status') {
+    const dir = rest[0];
+    if (!dir) throw new Error('usage: pnpm mk status <run-dir>');
+    const { pollAll } = await import('./publish.js');
+    await pollAll(path.join(path.resolve(dir), 'publish.json'), 0);
     return;
   }
 

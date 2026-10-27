@@ -1,0 +1,38 @@
+{
+  "label": "Myth or fact",
+  "questions": [
+    {
+      "question": "You flambé a pan. How much of the alcohol burns off?",
+      "options": [
+        "All of it",
+        "About 75%",
+        "About 25%"
+      ],
+      "correct": 2,
+      "why": "USDA found about 75% of the alcohol is still there after flaming. Only about a quarter burns off.",
+      "source": "USDA Nutrient Retention Factors, Release 6",
+      "photo": "photo-lemon-herb-roast-chicken-16x9.jpg",
+      "start": 0,
+      "countdownAt": 183,
+      "revealAt": 333,
+      "whyAt": 366,
+      "end": 588,
+      "audio": {
+        "question": null,
+        "answer": null,
+        "why": null
+      }
+    }
+  ],
+  "close": {
+    "start": 588,
+    "tie": "Cooking halal or without wine? RecipeFix swaps it out and rewrites the steps.",
+    "audio": null,
+    "photo": "photo-lemon-herb-roast-chicken-16x9.jpg"
+  },
+  "sfx": {
+    "tick": "sfx-tick.wav",
+    "reveal": "sfx-reveal.wav",
+    "whoosh": "sfx-whoosh.wav"
+  }
+}

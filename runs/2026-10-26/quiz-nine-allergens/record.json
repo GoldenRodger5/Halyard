@@ -1,0 +1,249 @@
+{
+  "schema": 1,
+  "id": "quiz-nine-allergens",
+  "format": "quiz",
+  "summary": "How many major food allergens must US labels declare?",
+  "made_at": "2026-10-27T02:10:25.478Z",
+  "outputs": {
+    "video": "runs/2026-10-26/quiz-nine-allergens/quiz-nine-allergens.mp4"
+  },
+  "posts": {
+    "tiktok": {
+      "platform": "tiktok",
+      "kind": "video",
+      "media": [
+        "runs/2026-10-26/quiz-nine-allergens/quiz-nine-allergens.mp4"
+      ],
+      "text": "The list changed in 2023 and a lot of people missed it. 5 seconds, go.\n\n#foodallergies #foodlabels #foodtok #recipefix",
+      "ai_voice": false
+    },
+    "instagram_reel": {
+      "platform": "instagram",
+      "kind": "video",
+      "media": [
+        "runs/2026-10-26/quiz-nine-allergens/quiz-nine-allergens.mp4"
+      ],
+      "text": "The list changed in 2023 and a lot of people missed it. 5 seconds, go.\n\nAnswer: 9. Sesame became the ninth on January 1, 2023, joining milk, eggs, fish, shellfish, tree nuts, peanuts, wheat and soy.\nSource: FDA, Food Allergies\n\nSave this for your next grocery run.\n\n#foodallergies #foodlabels #foodtok #recipefix",
+      "ai_voice": false
+    },
+    "youtube": {
+      "platform": "youtube",
+      "kind": "video",
+      "media": [
+        "runs/2026-10-26/quiz-nine-allergens/quiz-nine-allergens.mp4"
+      ],
+      "title": "How many major food allergens must US labels declare? #shorts",
+      "text": "Answer: 9. Sesame became the ninth on January 1, 2023, joining milk, eggs, fish, shellfish, tree nuts, peanuts, wheat and soy.\nSource: FDA, Food Allergies (https://www.fda.gov/food/nutrition-food-labeling-and-critical-foods/food-allergies)\n\nCooking nut-free? RecipeFix rewrites your recipe, steps included. https://recipefix.app",
+      "ai_voice": false
+    },
+    "x": {
+      "platform": "x",
+      "kind": "video",
+      "media": [
+        "runs/2026-10-26/quiz-nine-allergens/quiz-nine-allergens.mp4"
+      ],
+      "text": "The list changed in 2023 and a lot of people missed it. 5 seconds, go.",
+      "thread": [
+        "Answer: B) 9\n\nSesame became the ninth on January 1, 2023, joining milk, eggs, fish, shellfish, tree nuts, peanuts, wheat and soy.\n\nSource: FDA, Food Allergies"
+      ]
+    },
+    "threads": {
+      "platform": "threads",
+      "kind": "video",
+      "media": [
+        "runs/2026-10-26/quiz-nine-allergens/quiz-nine-allergens.mp4"
+      ],
+      "text": "The list changed in 2023 and a lot of people missed it. 5 seconds, go.",
+      "thread": [
+        "Answer: B) 9\n\nSesame became the ninth on January 1, 2023, joining milk, eggs, fish, shellfish, tree nuts, peanuts, wheat and soy.\n\nSource: FDA, Food Allergies"
+      ]
+    }
+  },
+  "sources": [
+    {
+      "name": "U.S. FDA",
+      "url": "https://www.fda.gov/food/nutrition-food-labeling-and-critical-foods/food-allergies",
+      "quote": "The major food allergens are milk, eggs, fish, Crustacean shellfish, tree nuts, peanuts, wheat, soybeans, and sesame."
+    }
+  ],
+  "claims": [
+    "core.diets",
+    "core.rewrites_steps"
+  ],
+  "assets": [
+    {
+      "id": "brand/recipefix-mark-512.png",
+      "provenance": "recipe-fix a82f8bb9:LAUNCH_KIT/assets/brand/recipefix-mark-512.png",
+      "licence": "first-party brand mark",
+      "sha256": "fcebd5205fadf3dfdddff83e288253498d98d06fa8c08b43444c3c06fb2cc84f"
+    },
+    {
+      "id": "photo-classic-banana-bread-16x9.jpg",
+      "provenance": "recipe-fix a82f8bb9:public/images/originals/classic-banana-bread-16x9.webp",
+      "licence": "Licensed stock (Unsplash/Pexels) per RecipeFix docs/RECIPEFIX_ORIGINALS.md; never \"our photo\"",
+      "sha256": "32f70d7721fc36bb8cbc0096ce51282dec385554db6af4a7d86deb9ccd7142c5"
+    }
+  ],
+  "qa": {
+    "passed": true,
+    "checks": [
+      {
+        "id": "video.duration",
+        "passed": true,
+        "detail": "21.9 s (target 8–25 s)",
+        "problems": []
+      },
+      {
+        "id": "audio.loudness",
+        "passed": true,
+        "detail": "-30.9 LUFS, peak -18.4 dBFS (silent cut: ticks and chime only, not held to −14)",
+        "problems": []
+      },
+      {
+        "id": "q1-question:still.canvas",
+        "passed": true,
+        "detail": "1080×1920",
+        "problems": []
+      },
+      {
+        "id": "q1-question:still.text_readback",
+        "passed": true,
+        "detail": "5 intended lines, min similarity 0.00 (OCR vision: 17 words, file: 23 words, inverted: 13 words, rules removed: 20 words, white-text mask: 12 words, dark-text mask: 25 words); 4 struck lines held to their recorded lower bar",
+        "problems": []
+      },
+      {
+        "id": "q1-question:still.no_artefacts",
+        "passed": true,
+        "detail": "no [object Object] / undefined / NaN / braces read on the image",
+        "problems": []
+      },
+      {
+        "id": "q1-question:still.safe_zone",
+        "passed": true,
+        "detail": "11 word boxes inside x 120–900, y 270–1250",
+        "problems": []
+      },
+      {
+        "id": "q1-question:still.text_overlap",
+        "passed": true,
+        "detail": "no two intended lines overprint each other",
+        "problems": []
+      },
+      {
+        "id": "q1-question:still.text_size",
+        "passed": true,
+        "detail": "every line's median OCR word height ≥ 22px",
+        "problems": []
+      },
+      {
+        "id": "q1-question:still.contrast",
+        "passed": true,
+        "detail": "min 5.55:1 over 11 word boxes (WCAG AA 4.5:1)",
+        "problems": []
+      },
+      {
+        "id": "q1-answer:still.canvas",
+        "passed": true,
+        "detail": "1080×1920",
+        "problems": []
+      },
+      {
+        "id": "q1-answer:still.text_readback",
+        "passed": true,
+        "detail": "4 intended lines, min similarity 1.00 (OCR vision: 36 words, file: 28 words, inverted: 35 words, rules removed: 18 words, white-text mask: 36 words, dark-text mask: 37 words); 1 struck lines held to their recorded lower bar",
+        "problems": []
+      },
+      {
+        "id": "q1-answer:still.no_artefacts",
+        "passed": true,
+        "detail": "no [object Object] / undefined / NaN / braces read on the image",
+        "problems": []
+      },
+      {
+        "id": "q1-answer:still.safe_zone",
+        "passed": true,
+        "detail": "31 word boxes inside x 120–900, y 270–1250",
+        "problems": []
+      },
+      {
+        "id": "q1-answer:still.text_overlap",
+        "passed": true,
+        "detail": "no two intended lines overprint each other",
+        "problems": []
+      },
+      {
+        "id": "q1-answer:still.text_size",
+        "passed": true,
+        "detail": "every line's median OCR word height ≥ 22px",
+        "problems": []
+      },
+      {
+        "id": "q1-answer:still.contrast",
+        "passed": true,
+        "detail": "min 5.58:1 over 31 word boxes (WCAG AA 4.5:1)",
+        "problems": []
+      },
+      {
+        "id": "close:still.canvas",
+        "passed": true,
+        "detail": "1080×1920",
+        "problems": []
+      },
+      {
+        "id": "close:still.text_readback",
+        "passed": true,
+        "detail": "2 intended lines, min similarity 1.00 (OCR vision: 10 words, file: 10 words, inverted: 10 words, rules removed: 10 words, white-text mask: 10 words, dark-text mask: 8 words); 0 struck lines held to their recorded lower bar",
+        "problems": []
+      },
+      {
+        "id": "close:still.no_artefacts",
+        "passed": true,
+        "detail": "no [object Object] / undefined / NaN / braces read on the image",
+        "problems": []
+      },
+      {
+        "id": "close:still.safe_zone",
+        "passed": true,
+        "detail": "11 word boxes inside x 120–900, y 270–1250",
+        "problems": []
+      },
+      {
+        "id": "close:still.text_overlap",
+        "passed": true,
+        "detail": "no two intended lines overprint each other",
+        "problems": []
+      },
+      {
+        "id": "close:still.text_size",
+        "passed": true,
+        "detail": "every line's median OCR word height ≥ 22px",
+        "problems": []
+      },
+      {
+        "id": "close:still.contrast",
+        "passed": true,
+        "detail": "min 9.34:1 over 11 word boxes (WCAG AA 4.5:1)",
+        "problems": []
+      },
+      {
+        "id": "copy.platform_rules",
+        "passed": true,
+        "detail": "caption lengths, no X links, no forbidden claims, no bait, reads human (no em dashes, no stock AI phrasing)",
+        "problems": []
+      },
+      {
+        "id": "knowledge.product_posts",
+        "passed": true,
+        "detail": "pack ad17c991 has a release receipt",
+        "problems": []
+      }
+    ]
+  },
+  "cost_usd": 0.0385,
+  "disclosures": {
+    "ai_voice": false,
+    "tiktok_is_aigc": false,
+    "photos": "licensed stock behind the card; not the dish discussed",
+    "knowledge_commit": "ad17c99162a47c769abfb70cd62f0bfb2f2e31e3"
+  }
+}

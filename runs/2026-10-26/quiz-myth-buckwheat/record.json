@@ -1,0 +1,249 @@
+{
+  "schema": 1,
+  "id": "quiz-myth-buckwheat",
+  "format": "quiz",
+  "summary": "Buckwheat is a kind of wheat.",
+  "made_at": "2026-10-27T02:20:14.131Z",
+  "outputs": {
+    "video": "runs/2026-10-26/quiz-myth-buckwheat/quiz-myth-buckwheat.mp4"
+  },
+  "posts": {
+    "tiktok": {
+      "platform": "tiktok",
+      "kind": "video",
+      "media": [
+        "runs/2026-10-26/quiz-myth-buckwheat/quiz-myth-buckwheat.mp4"
+      ],
+      "text": "Myth or fact? The name is doing a lot of damage here.\n\n#glutenfree #foodtok #kitchenmyths #recipefix",
+      "ai_voice": false
+    },
+    "instagram_reel": {
+      "platform": "instagram",
+      "kind": "video",
+      "media": [
+        "runs/2026-10-26/quiz-myth-buckwheat/quiz-myth-buckwheat.mp4"
+      ],
+      "text": "Myth or fact? The name is doing a lot of damage here.\n\nAnswer: Myth. Buckwheat is a seed from the rhubarb family, not wheat, and it's naturally gluten-free.\nSource: Celiac Disease Foundation, Buckwheat\n\nSave this for your next grocery run.\n\n#glutenfree #foodtok #kitchenmyths #recipefix",
+      "ai_voice": false
+    },
+    "youtube": {
+      "platform": "youtube",
+      "kind": "video",
+      "media": [
+        "runs/2026-10-26/quiz-myth-buckwheat/quiz-myth-buckwheat.mp4"
+      ],
+      "title": "Buckwheat is a kind of wheat. #shorts",
+      "text": "Answer: Myth. Buckwheat is a seed from the rhubarb family, not wheat, and it's naturally gluten-free.\nSource: Celiac Disease Foundation, Buckwheat (https://eat-gluten-free.celiac.org/buckwheat-the-nutrient-packed-naturally-gluten-free-star-with-global-roots/)\n\nCooking gluten-free? RecipeFix rewrites your recipe, steps included. https://recipefix.app",
+      "ai_voice": false
+    },
+    "x": {
+      "platform": "x",
+      "kind": "video",
+      "media": [
+        "runs/2026-10-26/quiz-myth-buckwheat/quiz-myth-buckwheat.mp4"
+      ],
+      "text": "Myth or fact? The name is doing a lot of damage here.",
+      "thread": [
+        "Answer: Myth\n\nBuckwheat is a seed from the rhubarb family, not wheat, and it's naturally gluten-free.\n\nSource: Celiac Disease Foundation, Buckwheat"
+      ]
+    },
+    "threads": {
+      "platform": "threads",
+      "kind": "video",
+      "media": [
+        "runs/2026-10-26/quiz-myth-buckwheat/quiz-myth-buckwheat.mp4"
+      ],
+      "text": "Myth or fact? The name is doing a lot of damage here.",
+      "thread": [
+        "Answer: Myth\n\nBuckwheat is a seed from the rhubarb family, not wheat, and it's naturally gluten-free.\n\nSource: Celiac Disease Foundation, Buckwheat"
+      ]
+    }
+  },
+  "sources": [
+    {
+      "name": "Celiac Disease Foundation",
+      "url": "https://eat-gluten-free.celiac.org/buckwheat-the-nutrient-packed-naturally-gluten-free-star-with-global-roots/",
+      "quote": "buckwheat isn't related to wheat at all, it's a seed from a flowering plant in the same family as rhubarb"
+    }
+  ],
+  "claims": [
+    "core.diets",
+    "core.rewrites_steps"
+  ],
+  "assets": [
+    {
+      "id": "brand/recipefix-mark-512.png",
+      "provenance": "recipe-fix a82f8bb9:LAUNCH_KIT/assets/brand/recipefix-mark-512.png",
+      "licence": "first-party brand mark",
+      "sha256": "fcebd5205fadf3dfdddff83e288253498d98d06fa8c08b43444c3c06fb2cc84f"
+    },
+    {
+      "id": "photo-fluffy-buttermilk-pancakes-16x9.jpg",
+      "provenance": "recipe-fix a82f8bb9:public/images/originals/fluffy-buttermilk-pancakes-16x9.webp",
+      "licence": "Licensed stock (Unsplash/Pexels) per RecipeFix docs/RECIPEFIX_ORIGINALS.md; never \"our photo\"",
+      "sha256": "ddb0c942c75c1b74dcdfa9c64d7a3c56fd48432c6a3828da843206b41cf63210"
+    }
+  ],
+  "qa": {
+    "passed": true,
+    "checks": [
+      {
+        "id": "video.duration",
+        "passed": true,
+        "detail": "18.6 s (target 8–25 s)",
+        "problems": []
+      },
+      {
+        "id": "audio.loudness",
+        "passed": true,
+        "detail": "-30.5 LUFS, peak -18.4 dBFS (silent cut: ticks and chime only, not held to −14)",
+        "problems": []
+      },
+      {
+        "id": "q1-question:still.canvas",
+        "passed": true,
+        "detail": "1080×1920",
+        "problems": []
+      },
+      {
+        "id": "q1-question:still.text_readback",
+        "passed": true,
+        "detail": "2 intended lines, min similarity 1.00 (OCR vision: 10 words, file: 14 words, inverted: 17 words, rules removed: 14 words, white-text mask: 9 words, dark-text mask: 14 words); 0 struck lines held to their recorded lower bar",
+        "problems": []
+      },
+      {
+        "id": "q1-question:still.no_artefacts",
+        "passed": true,
+        "detail": "no [object Object] / undefined / NaN / braces read on the image",
+        "problems": []
+      },
+      {
+        "id": "q1-question:still.safe_zone",
+        "passed": true,
+        "detail": "6 word boxes inside x 120–900, y 270–1250",
+        "problems": []
+      },
+      {
+        "id": "q1-question:still.text_overlap",
+        "passed": true,
+        "detail": "no two intended lines overprint each other",
+        "problems": []
+      },
+      {
+        "id": "q1-question:still.text_size",
+        "passed": true,
+        "detail": "every line's median OCR word height ≥ 22px",
+        "problems": []
+      },
+      {
+        "id": "q1-question:still.contrast",
+        "passed": true,
+        "detail": "min 9.46:1 over 6 word boxes (WCAG AA 4.5:1)",
+        "problems": []
+      },
+      {
+        "id": "q1-answer:still.canvas",
+        "passed": true,
+        "detail": "1080×1920",
+        "problems": []
+      },
+      {
+        "id": "q1-answer:still.text_readback",
+        "passed": true,
+        "detail": "3 intended lines, min similarity 1.00 (OCR vision: 28 words, file: 11 words, inverted: 31 words, rules removed: 9 words, white-text mask: 28 words, dark-text mask: 24 words); 0 struck lines held to their recorded lower bar",
+        "problems": []
+      },
+      {
+        "id": "q1-answer:still.no_artefacts",
+        "passed": true,
+        "detail": "no [object Object] / undefined / NaN / braces read on the image",
+        "problems": []
+      },
+      {
+        "id": "q1-answer:still.safe_zone",
+        "passed": true,
+        "detail": "20 word boxes inside x 120–900, y 270–1250",
+        "problems": []
+      },
+      {
+        "id": "q1-answer:still.text_overlap",
+        "passed": true,
+        "detail": "no two intended lines overprint each other",
+        "problems": []
+      },
+      {
+        "id": "q1-answer:still.text_size",
+        "passed": true,
+        "detail": "every line's median OCR word height ≥ 22px",
+        "problems": []
+      },
+      {
+        "id": "q1-answer:still.contrast",
+        "passed": true,
+        "detail": "min 5.56:1 over 20 word boxes (WCAG AA 4.5:1)",
+        "problems": []
+      },
+      {
+        "id": "close:still.canvas",
+        "passed": true,
+        "detail": "1080×1920",
+        "problems": []
+      },
+      {
+        "id": "close:still.text_readback",
+        "passed": true,
+        "detail": "2 intended lines, min similarity 1.00 (OCR vision: 10 words, file: 11 words, inverted: 10 words, rules removed: 12 words, white-text mask: 10 words, dark-text mask: 10 words); 0 struck lines held to their recorded lower bar",
+        "problems": []
+      },
+      {
+        "id": "close:still.no_artefacts",
+        "passed": true,
+        "detail": "no [object Object] / undefined / NaN / braces read on the image",
+        "problems": []
+      },
+      {
+        "id": "close:still.safe_zone",
+        "passed": true,
+        "detail": "11 word boxes inside x 120–900, y 270–1250",
+        "problems": []
+      },
+      {
+        "id": "close:still.text_overlap",
+        "passed": true,
+        "detail": "no two intended lines overprint each other",
+        "problems": []
+      },
+      {
+        "id": "close:still.text_size",
+        "passed": true,
+        "detail": "every line's median OCR word height ≥ 22px",
+        "problems": []
+      },
+      {
+        "id": "close:still.contrast",
+        "passed": true,
+        "detail": "min 13.77:1 over 11 word boxes (WCAG AA 4.5:1)",
+        "problems": []
+      },
+      {
+        "id": "copy.platform_rules",
+        "passed": true,
+        "detail": "caption lengths, no X links, no forbidden claims, no bait, reads human (no em dashes, no stock AI phrasing)",
+        "problems": []
+      },
+      {
+        "id": "knowledge.product_posts",
+        "passed": true,
+        "detail": "pack ad17c991 has a release receipt",
+        "problems": []
+      }
+    ]
+  },
+  "cost_usd": 0,
+  "disclosures": {
+    "ai_voice": false,
+    "tiktok_is_aigc": false,
+    "photos": "licensed stock behind the card; not the dish discussed",
+    "knowledge_commit": "ad17c99162a47c769abfb70cd62f0bfb2f2e31e3"
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "label": "Gluten-free quiz",
+  "questions": [
+    {
+      "question": "A US gluten-free label allows how much gluten?",
+      "options": [
+        "None at all",
+        "Under 20 ppm",
+        "Under 100 ppm",
+        "Under 1%"
+      ],
+      "correct": 1,
+      "why": "Gluten-free on a US label doesn't mean zero. The FDA rule caps it below 20 parts per million.",
+      "source": "FDA, Gluten-Free Labeling Q&A",
+      "photo": "photo-garlic-shrimp-spaghetti-16x9.jpg",
+      "start": 0,
+      "countdownAt": 193,
+      "revealAt": 343,
+      "whyAt": 376,
+      "end": 598,
+      "audio": {
+        "question": null,
+        "answer": null,
+        "why": null
+      }
+    }
+  ],
+  "close": {
+    "start": 598,
+    "tie": "Cooking gluten-free? RecipeFix rewrites your recipe, steps included.",
+    "audio": null,
+    "photo": "photo-garlic-shrimp-spaghetti-16x9.jpg"
+  },
+  "sfx": {
+    "tick": "sfx-tick.wav",
+    "reveal": "sfx-reveal.wav",
+    "whoosh": "sfx-whoosh.wav"
+  }
+}

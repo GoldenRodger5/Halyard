@@ -12,8 +12,9 @@ product: recipefix
 product_terms: [RecipeFix, "the app", Plus]
 product_repo: /Users/isaacmineo/PROJECT_2025/recipe-fix
 knowledge:
-  # Reconciled pack (docs-only branch docs/marketing-knowledge-reconcile-20261026).
-  ref: e756660ef6e26ff0f3a798fb6256934ef1d4ec95
+  # Reconciled pack matching the 2026-10-26 release receipt (a82f8bb9), branch
+  # docs/marketing-knowledge-reconcile-20261026 (local; push held by the owner).
+  ref: ad17c99162a47c769abfb70cd62f0bfb2f2e31e3
   path: docs/marketing/knowledge
 # Proof and photos are read at the commit production serves (bundle markers,
 # 2026-10-26T19:24Z: 3f32680f tree). Identical blobs on origin/main 619c036a.

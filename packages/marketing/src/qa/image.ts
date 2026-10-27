@@ -11,7 +11,7 @@
  * Contrast is measured from rendered pixels behind the text.
  */
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import sharp from 'sharp';
@@ -92,16 +92,54 @@ export async function whiteTextMask(png: Buffer): Promise<Buffer> {
   return sharp(out, { raw: { width: info.width, height: info.height, channels: 1 } }).png().toBuffer();
 }
 
+/** Dark ink only (luminance < 100 → black, everything else white): lifts dark type off a busy colour ground. */
+export async function darkTextMask(png: Buffer): Promise<Buffer> {
+  const { data, info } = await sharp(png).removeAlpha().raw().toBuffer({ resolveWithObject: true });
+  const out = Buffer.alloc(info.width * info.height);
+  for (let p = 0, i = 0; p < out.length; p++, i += info.channels) {
+    out[p] = 0.299 * data[i]! + 0.587 * data[i + 1]! + 0.114 * data[i + 2]! < 100 ? 0 : 255;
+  }
+  return sharp(out, { raw: { width: info.width, height: info.height, channels: 1 } }).png().toBuffer();
+}
+
+/**
+ * Apple Vision text recognition (tools/vision-ocr, built from vision-ocr.swift with swiftc).
+ * Tesseract cannot read dark type hugged by thick card borders (the quiz template); Vision can.
+ * Returns [] when the tool is not built, so Tesseract remains the floor.
+ */
+const VISION_BIN = new URL('../../tools/vision-ocr', import.meta.url).pathname;
+export function visionWords(png: Buffer): OcrWord[] {
+  if (!existsSync(VISION_BIN)) {
+    try {
+      execFileSync('swiftc', ['-O', `${VISION_BIN}.swift`, '-o', VISION_BIN], { stdio: 'ignore' });
+    } catch {
+      return [];
+    }
+  }
+  const dir = new URL('../../../../runs/_cache/ocr/', import.meta.url).pathname;
+  mkdirSync(dir, { recursive: true });
+  const file = `${dir}${process.pid}-${Date.now()}.png`;
+  writeFileSync(file, png);
+  try {
+    const out = JSON.parse(execFileSync(VISION_BIN, [file], { encoding: 'utf8' })) as Array<{ text: string; conf: number; x: number; y: number; w: number; h: number }>;
+    return out.map((w) => ({ text: w.text, conf: w.conf, x: w.x, y: w.y, w: w.w, h: w.h }) as OcrWord);
+  } finally {
+    rmSync(file, { force: true });
+  }
+}
+
 /** OCR passes merged: the file as is, inverted (light text on colour), and rules removed. */
 export async function ocrAllPasses(png: Buffer): Promise<{ words: OcrWord[]; passes: string[] }> {
   const inverted = await sharp(png).removeAlpha().negate().greyscale().png().toBuffer();
   const ruled = await withoutRules(png);
   const whiteText = await whiteTextMask(png);
   const passes: Array<[string, OcrWord[]]> = [
+    ['vision', visionWords(png)],
     ['file', ocrWords(png)],
     ['inverted', ocrWords(inverted)],
     ['rules removed', ocrWords(ruled)],
     ['white-text mask', ocrWords(whiteText)],
+    ['dark-text mask', ocrWords(await darkTextMask(png))],
   ];
   const merged: OcrWord[] = [];
   for (const [, ws] of passes) {
@@ -292,7 +330,11 @@ export async function qaStill(input: StillQaInput): Promise<{ passed: boolean; c
           if (p === q) continue;
           const ix = Math.min(p.x + p.w, q.x + q.w) - Math.max(p.x, q.x);
           const iy = Math.min(p.y + p.h, q.y + q.h) - Math.max(p.y, q.y);
-          if (ix > 6 && iy > 6) overlaps.push(`"${p.text}" (${rb[a]!.line.slice(0, 30)}) overlaps "${q.text}" (${rb[b]!.line.slice(0, 30)})`);
+          // The same physical word read by two OCR passes and credited to two lines (a repeated
+          // word: "Vegan Society" in the why and the source) is attribution, not a collision.
+          const same = tokens(p.text).join(' ') === tokens(q.text).join(' ') || tokens(p.text).some((t) => t.length > 3 && tokens(q.text).some((u) => u.startsWith(t.slice(0, 4))));
+          const share = ix > 0 && iy > 0 ? (ix * iy) / Math.min(p.w * p.h, q.w * q.h) : 0;
+          if (!same && ix > 6 && iy > 6 && share > 0.3) overlaps.push(`"${p.text}" (${rb[a]!.line.slice(0, 30)}) overlaps "${q.text}" (${rb[b]!.line.slice(0, 30)})`);
         }
   checks.push({ id: 'still.text_overlap', passed: overlaps.length === 0, detail: 'no two intended lines overprint each other', problems: [...new Set(overlaps)].slice(0, 8) });
 

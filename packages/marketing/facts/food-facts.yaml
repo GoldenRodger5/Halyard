@@ -1,0 +1,401 @@
+# Food quiz fact bank — the ONLY source of quiz questions.
+#
+# Every fact was read on its source page on `verified` and the quote is what
+# the page says. The video, carousel and captions are built from these fields
+# deterministically: no model writes a quiz answer. Rules (knowledge pack
+# no.safety): say "contains wheat", never "safe for celiacs"; no medical claims;
+# the answer and the source are always in the post itself.
+#
+# `photo` names a RecipeFix Original whose licensed stock photo sits behind the
+# question (docs/RECIPEFIX_ORIGINALS.md). It is mood, not a claim about the dish.
+
+facts:
+  - id: soy-sauce-wheat
+    topic: gluten-free
+    question: "Which one usually contains wheat?"
+    options: ["Soy sauce", "Rice vinegar", "Maple syrup", "Corn tortillas"]
+    correct: 0
+    why: "Traditional soy sauce is brewed with wheat. Tamari made without wheat is the usual swap."
+    source:
+      name: "Celiac Disease Foundation"
+      short: "Celiac Disease Foundation, Sources of Gluten"
+      url: "https://celiac.org/gluten-free-living/what-is-gluten/sources-of-gluten/"
+      quote: "Soy sauce (though tamari made without wheat is gluten-free)"
+    verified: 2026-10-26
+    photo: weeknight-vegetable-fried-rice
+    tie: "Gluten-free fried rice? RecipeFix swaps the soy sauce and rewrites the steps."
+    caption: "Check the bottle before your next stir fry. Answer and source in the video."
+    tags: [glutenfree, foodtok, cookingtips, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+
+  - id: gluten-free-20ppm
+    topic: gluten-free
+    question: "A US gluten-free label allows how much gluten?"
+    options: ["None at all", "Under 20 ppm", "Under 100 ppm", "Under 1%"]
+    correct: 1
+    why: "Gluten-free on a US label doesn't mean zero. The FDA rule caps it below 20 parts per million."
+    source:
+      name: "U.S. FDA"
+      short: "FDA, Gluten-Free Labeling Q&A"
+      url: "https://www.fda.gov/food/nutrition-food-labeling-and-critical-foods/questions-and-answers-gluten-free-food-labeling-final-rule"
+      quote: "any unavoidable presence of gluten in the food must be less than 20 ppm"
+    verified: 2026-10-26
+    photo: garlic-shrimp-spaghetti
+    tie: "Cooking gluten-free? RecipeFix rewrites your recipe, steps included."
+    caption: "Gluten-free on a US label doesn't mean zero. Do you know the number? You get 5 seconds."
+    tags: [glutenfree, foodlabels, foodtok, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+
+  - id: nine-allergens
+    topic: allergies
+    question: "How many major food allergens must US labels declare?"
+    options: ["8", "9", "12", "14"]
+    correct: 1
+    why: "Sesame became the ninth on January 1, 2023, joining milk, eggs, fish, shellfish, tree nuts, peanuts, wheat and soy."
+    source:
+      name: "U.S. FDA"
+      short: "FDA, Food Allergies"
+      url: "https://www.fda.gov/food/nutrition-food-labeling-and-critical-foods/food-allergies"
+      quote: "The major food allergens are milk, eggs, fish, Crustacean shellfish, tree nuts, peanuts, wheat, soybeans, and sesame."
+    verified: 2026-10-26
+    photo: classic-banana-bread
+    tie: "Swapping an ingredient? RecipeFix rewrites the steps to match."
+    caption: "The list changed in 2023 and a lot of people missed it. 5 seconds, go."
+    tags: [foodallergies, foodlabels, foodtok, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+
+  - id: honey-vegan
+    topic: vegan
+    question: "Is honey vegan?"
+    options: ["Yes", "No", "Only raw honey"]
+    correct: 1
+    why: "The Vegan Society lists honey with meat, dairy and eggs as foods vegans avoid. Maple syrup is the easy swap."
+    source:
+      name: "The Vegan Society"
+      short: "The Vegan Society, Definition of veganism"
+      url: "https://www.vegansociety.com/go-vegan/definition-veganism"
+      quote: "avoiding all animal foods such as meat (including fish, shellfish and insects), dairy, eggs and honey"
+    verified: 2026-10-26
+    photo: blueberry-banana-french-toast
+    tie: "Making it vegan? RecipeFix swaps the honey and rewrites the steps."
+    caption: "Quick one for anyone new to vegan cooking. Answer and source in the video."
+    tags: [vegan, vegantok, foodtok, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+
+  - id: parmigiano-rennet
+    topic: vegetarian
+    question: "Is real Parmigiano Reggiano vegetarian?"
+    options: ["Yes", "No", "Only when aged"]
+    correct: 1
+    why: "Its official production rules allow only calf rennet. Look for hard cheeses made with microbial or vegetable rennet."
+    source:
+      name: "Consorzio del Formaggio Parmigiano Reggiano, Production Standard (2025)"
+      short: "Parmigiano Reggiano Consortium, Production Standard"
+      url: "https://backend.parmigianoreggiano.com/uploads/disciplinare_PR_EN_clean_02072025_55f8b10686.pdf"
+      quote: "Milk coagulation, obtained exclusively by the use of calf rennet, takes place in bell-shaped copper vats"
+    verified: 2026-10-26
+    photo: crispy-chicken-parmesan
+    tie: "Cooking vegetarian? RecipeFix swaps the cheese and tells you why."
+    caption: "This one surprises a lot of vegetarians. Answer and source in the video."
+    tags: [vegetarian, cheese, foodtok, recipefix]
+    claims: [core.diets, core.reasons]
+
+  - id: alcohol-cooks-off
+    topic: cooking-myths
+    question: "Wine simmered in a sauce for 1 hour. How much alcohol is left?"
+    options: ["None", "About 5%", "About 25%", "About 75%"]
+    correct: 2
+    why: "USDA measured about 25% left after an hour of simmering, and still about 5% after two and a half hours."
+    source:
+      name: "USDA Table of Nutrient Retention Factors, Release 6"
+      short: "USDA Nutrient Retention Factors, Release 6"
+      url: "https://www.ars.usda.gov/ARSUserFiles/80400525/Data/retn/retn06.pdf"
+      quote: "ALC BEV,STIRRED,BKD/SIMMRD 1 HR … 25; ALC BEV,STIRRED,BKD/SIMMRD 2.5 HR … 5"
+    verified: 2026-10-26
+    photo: creamy-tuscan-chicken
+    tie: "Cooking halal or without wine? RecipeFix swaps it out and rewrites the steps."
+    caption: "Wine in the sauce, simmered for an hour. How much is left? 5 seconds."
+    tags: [cookingtips, foodscience, foodtok, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+
+  - id: flambe-alcohol
+    topic: cooking-myths
+    question: "You flambé a pan. How much of the alcohol burns off?"
+    options: ["All of it", "About 75%", "About 25%"]
+    correct: 2
+    why: "USDA found about 75% of the alcohol is still there after flaming. Only about a quarter burns off."
+    source:
+      name: "USDA Table of Nutrient Retention Factors, Release 6"
+      short: "USDA Nutrient Retention Factors, Release 6"
+      url: "https://www.ars.usda.gov/ARSUserFiles/80400525/Data/retn/retn06.pdf"
+      quote: "ALC BEV,FLAMED … 75"
+    verified: 2026-10-26
+    photo: lemon-herb-roast-chicken
+    tie: "Cooking halal or without wine? RecipeFix swaps it out and rewrites the steps."
+    caption: "The flames look like they take it all. They do not. Answer and source in the video."
+    tags: [cookingtips, foodscience, foodtok, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+
+  - id: buckwheat-gluten
+    topic: gluten-free
+    question: "Despite the name, is buckwheat a kind of wheat?"
+    options: ["Yes", "No"]
+    correct: 1
+    why: "Buckwheat is a seed from the rhubarb family, not wheat, and it's naturally gluten-free."
+    source:
+      name: "Celiac Disease Foundation"
+      short: "Celiac Disease Foundation, Buckwheat"
+      url: "https://eat-gluten-free.celiac.org/buckwheat-the-nutrient-packed-naturally-gluten-free-star-with-global-roots/"
+      quote: "buckwheat isn't related to wheat at all, it's a seed from a flowering plant in the same family as rhubarb"
+    verified: 2026-10-26
+    photo: roasted-butternut-squash-soup
+    tie: "Cooking gluten-free? RecipeFix rewrites your recipe, steps included."
+    caption: "The name is doing a lot of damage here. Answer in the video."
+    tags: [glutenfree, foodtok, cookingtips, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+
+  # Myth or fact: a statement; options are Myth / Fact (correct 0 = Myth).
+  - id: myth-alcohol-simmer
+    format: myth
+    topic: cooking-myths
+    question: "Simmer wine in a sauce for an hour and the alcohol is gone."
+    options: []
+    correct: 0
+    why: "USDA measured about 25% of the alcohol still there after an hour of simmering, and about 5% after two and a half hours."
+    source:
+      name: "USDA Table of Nutrient Retention Factors, Release 6"
+      short: "USDA Nutrient Retention Factors, Release 6"
+      url: "https://www.ars.usda.gov/ARSUserFiles/80400525/Data/retn/retn06.pdf"
+      quote: "ALC BEV,STIRRED,BKD/SIMMRD 1 HR … 25; ALC BEV,STIRRED,BKD/SIMMRD 2.5 HR … 5"
+    verified: 2026-10-26
+    photo: creamy-tuscan-chicken
+    tie: "Cooking halal or without wine? RecipeFix swaps it out and rewrites the steps."
+    caption: "Myth or fact? Most recipes imply one answer. USDA measured another."
+    tags: [cookingtips, foodscience, kitchenmyths, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+
+  - id: myth-flambe
+    format: myth
+    topic: cooking-myths
+    question: "Setting the pan on fire burns off all the alcohol."
+    options: []
+    correct: 0
+    why: "USDA found about 75% of the alcohol still in the food after flaming."
+    source:
+      name: "USDA Table of Nutrient Retention Factors, Release 6"
+      short: "USDA Nutrient Retention Factors, Release 6"
+      url: "https://www.ars.usda.gov/ARSUserFiles/80400525/Data/retn/retn06.pdf"
+      quote: "ALC BEV,FLAMED … 75"
+    verified: 2026-10-26
+    photo: lemon-herb-roast-chicken
+    tie: "Cooking halal or without wine? RecipeFix swaps it out and rewrites the steps."
+    caption: "Myth or fact? Decide before the timer runs out."
+    tags: [cookingtips, foodscience, kitchenmyths, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+
+  - id: myth-buckwheat
+    format: myth
+    topic: gluten-free
+    question: "Buckwheat is a kind of wheat."
+    options: []
+    correct: 0
+    why: "Buckwheat is a seed from the rhubarb family, not wheat, and it's naturally gluten-free."
+    source:
+      name: "Celiac Disease Foundation"
+      short: "Celiac Disease Foundation, Buckwheat"
+      url: "https://eat-gluten-free.celiac.org/buckwheat-the-nutrient-packed-naturally-gluten-free-star-with-global-roots/"
+      quote: "buckwheat isn't related to wheat at all, it's a seed from a flowering plant in the same family as rhubarb"
+    verified: 2026-10-26
+    photo: roasted-butternut-squash-soup
+    tie: "Cooking gluten-free? RecipeFix rewrites your recipe, steps included."
+    caption: "Myth or fact? The name is doing a lot of damage here."
+    tags: [glutenfree, foodtok, kitchenmyths, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+
+  # ── Kitchen math (USDA FNS Food Buying Guide, Table 12) ──
+  - id: km-tsp-tbsp
+    topic: kitchen-math
+    question: "How many teaspoons are in one tablespoon?"
+    options: ["2", "3", "4", "5"]
+    correct: 1
+    why: "1 tablespoon is 3 teaspoons, or half a fluid ounce."
+    source: &usda12
+      name: "USDA Food Buying Guide, Table 12"
+      short: "USDA Food Buying Guide, Volume Equivalents"
+      url: "https://foodbuyingguide.fns.usda.gov/Content/TablesFBG/Table12_FBG_A_Guide_to_Volume_Equivalents_for_Liquids.pdf"
+      quote: "1 tablespoon = 3 teaspoons = 0.5 fluid ounce; 1/4 cup = 4 tablespoons; 1/3 cup = 5 1/3 tablespoons; 1 cup = 16 tablespoons"
+    verified: 2026-10-26
+    photo: classic-banana-bread
+    tie: &kmtie "Scaling a recipe? RecipeFix does the math in measurements you can actually use."
+    caption: "Kitchen math, round one. 5 seconds."
+    tags: [cookingtips, bakingtips, foodtok, recipefix]
+    claims: [core.scaling]
+
+  - id: km-quarter-cup
+    topic: kitchen-math
+    question: "No 1/4 cup measure. How many tablespoons do you use?"
+    options: ["2", "3", "4", "6"]
+    correct: 2
+    why: "A quarter cup is 4 tablespoons. A full cup is 16."
+    source: *usda12
+    verified: 2026-10-26
+    photo: fluffy-buttermilk-pancakes
+    tie: *kmtie
+    caption: "Lost your quarter cup? You only need a tablespoon."
+    tags: [cookingtips, bakingtips, foodtok, recipefix]
+    claims: [core.scaling]
+
+  - id: km-third-cup
+    topic: kitchen-math
+    question: "How many tablespoons are in 1/3 cup?"
+    options: ["4", "5", "5 and 1/3", "6"]
+    correct: 2
+    why: "One third of 16 tablespoons is 5 and 1/3: that's 5 tablespoons plus 1 teaspoon."
+    source: *usda12
+    verified: 2026-10-26
+    photo: blueberry-banana-french-toast
+    tie: *kmtie
+    caption: "The hard one. Most people say 5."
+    tags: [cookingtips, bakingtips, foodtok, recipefix]
+    claims: [core.scaling]
+
+  # ── Food history ──
+  - id: hist-tomato
+    topic: food-history
+    question: "In 1893 the US Supreme Court ruled a tomato is a…"
+    options: ["Fruit", "Vegetable", "Berry"]
+    correct: 1
+    why: "In Nix v. Hedden the Court called it a vegetable for tariffs, because it's served with dinner, not as dessert."
+    source:
+      name: "Nix v. Hedden, 149 U.S. 304 (1893)"
+      short: "Nix v. Hedden, 149 U.S. 304 (1893)"
+      url: "https://www.law.cornell.edu/supremecourt/text/149/304"
+      quote: "usually served at dinner in, with, or after the soup, fish, or meats which constitute the principal part of the repast, and not, like fruits generally, as dessert"
+    verified: 2026-10-26
+    photo: creamy-tuscan-chicken
+    tie: &histtie "Cooking it your way tonight? RecipeFix rewrites the recipe, steps included."
+    caption: "Botanists and the Supreme Court disagree on this one."
+    tags: [foodhistory, foodfacts, foodtok, recipefix]
+    claims: [core.rewrites_steps]
+
+  - id: hist-caesar
+    topic: food-history
+    question: "Caesar salad was invented in which country?"
+    options: ["Italy", "Mexico", "USA", "Spain"]
+    correct: 1
+    why: "Caesar Cardini, an Italian immigrant, is credited with creating it at his restaurant in Tijuana in 1924."
+    source:
+      name: "Associated Press, 2024 (100th anniversary)"
+      short: "AP, Caesar salad turns 100"
+      url: "https://fox6now.com/news/caesar-salad-origins-100th-birthday"
+      quote: "Caesar salad origins: Iconic dish, invented in Mexico, turns 100"
+    verified: 2026-10-26
+    photo: salmon-cucumber-salsa
+    tie: *histtie
+    caption: "Not Rome. Not Italy either."
+    tags: [foodhistory, foodfacts, foodtok, recipefix]
+    claims: [core.rewrites_steps]
+
+  - id: hist-ketchup
+    topic: food-history
+    question: "In the 1830s, tomato ketchup was sold as…"
+    options: ["Medicine", "Hair dye", "Paint", "Soap"]
+    correct: 0
+    why: "An Ohio doctor claimed tomatoes could treat indigestion, and by 1835 tomato pills were on sale."
+    source:
+      name: "Popular Science, Ketchup was once a diarrhea cure"
+      short: "Popular Science, ketchup history"
+      url: "https://www.popsci.com/science/ketchup-history-medicine/"
+      quote: "Bennett declared that tomatoes could treat diarrhea, bilious attacks, and indigestion … In 1835, doctor A.J. Holcombe introduced the first tomato pills"
+    verified: 2026-10-26
+    photo: crispy-chicken-parmesan
+    tie: *histtie
+    caption: "Ketchup had a strange first career."
+    tags: [foodhistory, foodfacts, foodtok, recipefix]
+    claims: [core.rewrites_steps]
+
+  - id: hist-choc-chip
+    topic: food-history
+    question: "Which state made the chocolate chip cookie its official cookie?"
+    options: ["New York", "Massachusetts", "Ohio", "California"]
+    correct: 1
+    why: "Massachusetts did, in 1997. The cookie was created at the Toll House Inn in Whitman, Massachusetts."
+    source:
+      name: "Massachusetts General Laws, Chapter 2, Section 42"
+      short: "Mass. General Laws c. 2, § 42"
+      url: "https://law.counselstack.com/statute/ma/2/42"
+      quote: "The chocolate chip cookie shall be the official cookie of the commonwealth."
+    verified: 2026-10-26
+    photo: classic-banana-bread
+    tie: *histtie
+    caption: "A state cookie is a real thing, and it's this one."
+    tags: [foodhistory, baking, foodtok, recipefix]
+    claims: [core.rewrites_steps]
+
+  # ── Label detective ──
+  - id: label-worcestershire
+    topic: labels
+    question: "Which of these sauces has anchovies in it?"
+    options: ["Ketchup", "Worcestershire", "Soy sauce", "Sriracha"]
+    correct: 1
+    why: "Classic Worcestershire is made with anchovies. Vegan versions exist if you check the label."
+    source:
+      name: "Lea & Perrins Worcestershire Sauce, US label"
+      short: "Lea & Perrins ingredient label"
+      url: "https://www.heb.com/product-detail/product/149475"
+      quote: "distilled white vinegar, molasses, sugar, water, salt, onions, anchovies, garlic, cloves, tamarind extract, natural flavorings, chili pepper extract"
+    verified: 2026-10-26
+    photo: lemon-herb-roast-chicken
+    tie: &labeltie "Making it vegan? RecipeFix swaps the hidden stuff and rewrites the steps."
+    caption: "Read the back of this bottle once and you'll never forget it."
+    tags: [vegan, foodlabels, foodtok, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+
+  - id: label-peanut
+    topic: labels
+    question: "Botanically, a peanut is a…"
+    options: ["Tree nut", "Legume", "Seed", "Grain"]
+    correct: 1
+    why: "Peanuts grow underground and belong to the legume family, the same family as beans and lentils."
+    source:
+      name: "FARE, Peanut Allergy"
+      short: "FARE (Food Allergy Research & Education)"
+      url: "https://www.foodallergy.org/living-food-allergies/food-allergy-essentials/common-allergens/peanut"
+      quote: "Peanuts grow underground and are part of a different plant family, the legumes."
+    verified: 2026-10-26
+    photo: sweet-potato-black-bean-tacos
+    tie: *labeltie
+    caption: "It's in the name, and the name is wrong."
+    tags: [foodfacts, foodscience, foodtok, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+
+# Themed sets: one video, several questions, easiest first.
+sets:
+  kitchen-math:
+    label: "Kitchen math"
+    facts: [km-tsp-tbsp, km-quarter-cup, km-third-cup]
+    caption: "3 kitchen math questions, 5 seconds each. The last one gets almost everyone."
+    tie: "Scaling a recipe? RecipeFix does the math in measurements you can actually use."
+    tags: [cookingtips, bakingtips, kitchenhacks, foodtok, recipefix]
+    claims: [core.scaling]
+  food-history:
+    label: "Food history"
+    facts: [hist-tomato, hist-caesar, hist-ketchup]
+    caption: "3 food history questions. 5 seconds each. Keep score."
+    tie: "Cooking it your way tonight? RecipeFix rewrites the recipe, steps included."
+    tags: [foodhistory, foodfacts, trivia, foodtok, recipefix]
+    claims: [core.rewrites_steps]
+  label-detective:
+    label: "Label detective"
+    facts: [soy-sauce-wheat, label-worcestershire, honey-vegan]
+    caption: "3 ingredients hiding where you don't expect them. 5 seconds each."
+    tie: "Cooking vegan or gluten-free? RecipeFix swaps the hidden stuff and rewrites the steps."
+    tags: [foodlabels, vegan, glutenfree, foodtok, recipefix]
+    claims: [core.diets, core.rewrites_steps]
+  kitchen-myths:
+    label: "Myth or fact"
+    facts: [myth-alcohol-simmer, myth-flambe, myth-buckwheat]
+    caption: "3 kitchen myths. Myth or fact, 5 seconds each."
+    tie: "Cooking without wine? RecipeFix swaps it out and rewrites the steps."
+    tags: [kitchenmyths, cookingtips, foodscience, foodtok, recipefix]
+    claims: [core.diets, core.rewrites_steps]

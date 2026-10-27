@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "The lean marketing lane: knowledge pack \u2192 brief \u2192 copy \u2192 render \u2192 QA \u2192 preview \u2192 run record. A CLI, not a service. No tables, no worker, no scheduler, no publishing.",
+  "description": "The lean marketing lane: knowledge pack → brief → copy → render → QA → preview → run record. A CLI, not a service. No tables, no worker, no scheduler, no publishing.",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "scripts": {
@@ -11,14 +11,15 @@
     "lint": "eslint src --max-warnings=0"
   },
   "dependencies": {
+    "@fontsource/lilita-one": "5.2.5",
     "@halyard/core": "workspace:*",
     "@halyard/render": "workspace:*",
-    "js-yaml": "^4.1.0",
-    "sharp": "^0.33.5",
     "@remotion/bundler": "^4.0.507",
     "@remotion/renderer": "^4.0.507",
+    "js-yaml": "^4.1.0",
+    "react": "^19.0.0",
     "remotion": "^4.0.507",
-    "react": "^19.0.0"
+    "sharp": "^0.33.5"
   },
   "devDependencies": {
     "@types/js-yaml": "^4.0.9",

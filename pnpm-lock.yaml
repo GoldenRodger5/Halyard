@@ -210,6 +210,9 @@ importers:
 
   packages/marketing:
     dependencies:
+      '@fontsource/lilita-one':
+        specifier: 5.2.5
+        version: 5.2.5
       '@halyard/core':
         specifier: workspace:*
         version: link:../core
@@ -831,6 +834,9 @@ packages:
   '@eslint/plugin-kit@0.4.1':
     resolution: {integrity: sha512-43/qtrDUokr7LJqoF2c3+RInu/t4zfrpYdoSDfYyhg52rwLV6TnOvdG4fXm7IkSB3wErkcmJS9iEhjVtOSEjjA==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+
+  '@fontsource/lilita-one@5.2.5':
+    resolution: {integrity: sha512-TkBlCDDJtYz+2g4yC55ZfQsAdQkgCrPz2VZAA8L+KJputlXy2+TQ2s5qH2Kdx48BGg71RkWateCCHLUtltgEbw==}
 
   '@humanfs/core@0.19.2':
     resolution: {integrity: sha512-UhXNm+CFMWcbChXywFwkmhqjs3PRCmcSa/hfBgLIb7oQ5HNb1wS0icWsGtSAUNgefHeI+eBrA8I1fxmbHsGdvA==}
@@ -3643,6 +3649,8 @@ snapshots:
     dependencies:
       '@eslint/core': 0.17.0
       levn: 0.4.1
+
+  '@fontsource/lilita-one@5.2.5': {}
 
   '@humanfs/core@0.19.2':
     dependencies:
