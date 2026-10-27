@@ -64,20 +64,56 @@ export function recentlyPosted(days = 30, now = new Date()): Set<string> {
 const SLOTS = ['12:30', '17:00'];
 const VIDEO_POSTS = ['tiktok', 'instagram_reel', 'youtube', 'x', 'threads'];
 
+/** Which record.posts each format queues (its natural platforms). */
+const POSTS_BY_FORMAT: Record<string, string[]> = {
+  'quiz-set': VIDEO_POSTS,
+  myth: VIDEO_POSTS,
+  quiz: VIDEO_POSTS,
+  recipe: VIDEO_POSTS,
+  app: VIDEO_POSTS,
+  transform: VIDEO_POSTS,
+  history: VIDEO_POSTS,
+  versus: VIDEO_POSTS,
+  carousel: ['instagram_carousel', 'tiktok_photos'],
+  image: ['x', 'threads'],
+};
+
+const inSeason = (season: { from: string; to: string } | undefined, day: string) => !season || (day.slice(5) >= season.from && day.slice(5) <= season.to);
+
+/** Ids from an optional YAML list file (formats on branches not merged yet simply contribute nothing). */
+function idsFrom(file: string, key: string): string[] {
+  const f = path.join(REPO_ROOT, 'packages/marketing', file);
+  if (!existsSync(f)) return [];
+  const doc = yaml.load(readFileSync(f, 'utf8')) as Record<string, Array<{ id: string }> | Record<string, unknown>>;
+  const v = doc?.[key];
+  return Array.isArray(v) ? v.map((x) => x.id) : v ? Object.keys(v) : [];
+}
+
 export function planWeek(opts: { start: string; perDay: number; extraFormats?: string[] }): PlanItem[] {
-  const { facts, sets } = factBank();
+  const { facts, sets } = factBank() as unknown as { facts: FactRow[]; sets: Record<string, { facts: string[]; label: string; season?: { from: string; to: string } }> };
   const used = recentlyPosted();
   const freshSet = (name: string) => sets[name]!.facts.every((f) => !used.has(f));
-  // Candidate pool per format, in a stable order.
+  const startDay = opts.start;
+  // In-season sets jump the queue (PLAYBOOK §7 seasonality); out-of-season ones wait.
+  const setNames = Object.keys(sets)
+    .filter(freshSet)
+    .filter((k) => inSeason(sets[k]!.season, startDay))
+    .sort((a, b) => Number(Boolean(sets[b]!.season)) - Number(Boolean(sets[a]!.season)));
   const pools: Record<string, Array<{ command: string; topic: string; facts: string[] }>> = {
-    'quiz-set': Object.keys(sets).filter(freshSet).map((k) => ({ command: `quiz set:${k}`, topic: k, facts: sets[k]!.facts })),
+    'quiz-set': setNames.map((k) => ({ command: `quiz set:${k}`, topic: k, facts: sets[k]!.facts })),
     myth: facts.filter((f) => f.format === 'myth' && !used.has(f.id)).map((f) => ({ command: `quiz ${f.id}`, topic: f.topic, facts: [f.id] })),
     quiz: facts.filter((f) => f.format !== 'myth' && !used.has(f.id)).map((f) => ({ command: `quiz ${f.id}`, topic: f.topic, facts: [f.id] })),
     recipe: ['creamy-tuscan-chicken', 'lemon-herb-roast-chicken', 'garlic-shrimp-spaghetti', 'salmon-cucumber-salsa', 'sweet-potato-black-bean-tacos', 'roasted-butternut-squash-soup'].map((id) => ({ command: `recipe ${id}`, topic: 'recipe', facts: [] })),
     app: [{ command: 'app --voice', topic: 'product', facts: [] }],
+    transform: idsFrom('data/transforms.yaml', 'transforms').map((id) => ({ command: `transform ${id}`, topic: 'transform', facts: [] })),
+    history: idsFrom('facts/history.yaml', 'stories').map((id) => ({ command: `history ${id} --voice`, topic: 'food-history', facts: [] })),
+    versus: idsFrom('facts/versus.yaml', 'games').map((id) => ({ command: `versus ${id}`, topic: 'versus', facts: [] })),
+    carousel: setNames.map((k) => ({ command: `slides quiz ${k}`, topic: k, facts: [] })),
+    image: facts.filter((f) => !used.has(f.id)).map((f) => ({ command: `image ${f.id}`, topic: f.topic, facts: [f.id] })),
   };
   for (const f of opts.extraFormats ?? []) pools[f] ??= [];
-  const order = ['quiz-set', 'recipe', 'myth', 'quiz', 'quiz-set', 'recipe', 'app'];
+  // PLAYBOOK §2 phase 1 mix: mostly diet-niche games, some recipes, a little product.
+  const order = ['quiz-set', 'recipe', 'myth', 'carousel', 'transform', 'quiz', 'history', 'versus', 'quiz-set', 'image', 'recipe', 'app'];
   const items: PlanItem[] = [];
   const takenFacts = new Set<string>();
   let lastFormat = '';
@@ -96,7 +132,7 @@ export function planWeek(opts: { start: string; perDay: number; extraFormats?: s
         const cand = (pools[format] ?? []).find((c) => c.topic !== lastTopic && c.facts.every((f) => !takenFacts.has(f)));
         if (!cand) continue;
         pools[format] = pools[format]!.filter((c) => c !== cand);
-        picked = { day, slot: SLOTS[slot % SLOTS.length]!, command: cand.command, format, topic: cand.topic, facts: cand.facts, posts: VIDEO_POSTS };
+        picked = { day, slot: SLOTS[slot % SLOTS.length]!, command: cand.command, format, topic: cand.topic, facts: cand.facts, posts: POSTS_BY_FORMAT[format] ?? VIDEO_POSTS };
         for (const f of cand.facts) takenFacts.add(f);
         if (format === 'app') appUsed = true;
       }

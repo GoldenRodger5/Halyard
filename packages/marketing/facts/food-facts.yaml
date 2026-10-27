@@ -1453,6 +1453,7 @@ sets:
     tags: [bakingtips, foodscience, cookingtips, foodtok, recipefix]
     claims: [core.diets, core.rewrites_steps, core.reasons]
   thanksgiving-swaps:
+    season: { from: "10-20", to: "11-27" }
     save: "Save this for Thanksgiving."
     label: "Thanksgiving swaps"
     facts: [gf-gravy, veg-marshmallow, label-cream-mushroom]
