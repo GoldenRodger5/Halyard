@@ -193,6 +193,8 @@ viewer review. Until then every render is a pipeline test.
 | P10 | Runner: nightly launchd job (plan → make → review → digest; queue when approved) | a full dry-run week on disk | lead |
 | P11 | Bank the two-week buffer (~30 posts) from the perfected templates; queue in Blotato once RecipeFix accounts are connected | 30 approved posts scheduled | lead + owner |
 
+**Status (2026-10-27):** P1 carousel/image/X formats merged, history + this-or-that with an agent · P2 done (search phrases from real autocomplete, tiered rotating hashtags, numbered series, in quiz posts; slides to follow) · P3 transformation video with an agent · P4 fact bank to 60 with an agent · P5 started: latest quiz sets review at stop 6 / stay 6–7 / engage 5 / human 5–6 against a bar of 7/7/6/7 · P6–P11 not started.
+
 Owner-only: create the RecipeFix accounts and connect them in Blotato; write
 the bio; pin posts; approve the first weekly slates; be on camera sometimes.
 

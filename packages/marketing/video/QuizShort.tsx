@@ -109,7 +109,7 @@ const PhotoCard: React.FC<{ src: string; at: number; top: number; height: number
   const a = useSpring(answerAt, { damping: 9, stiffness: 240 });
   const w = width;
   return (
-    <div style={{ position: 'absolute', left: CX - w / 2, top, width: w, height, transform: `rotate(${interpolate(s, [0, 1], [-4, 0.8])}deg) scale(${s})` }}>
+    <div style={{ position: 'absolute', left: CX - w / 2, top, width: w, height, opacity: Math.min(1, s * 1.5), transform: `rotate(${interpolate(s, [0, 1], [-4, 0.8])}deg) scale(${interpolate(s, [0, 1], [0.85, 1])})` }}>
       <div style={{ width: '100%', height: '100%', borderRadius: 34, overflow: 'hidden', border: '10px solid #FFFFFF', boxShadow: `0 10px 0 ${INK}, 0 24px 50px rgba(0,0,0,0.3)`, background: '#FFFFFF', boxSizing: 'border-box' }}>
         <Img src={staticFile(src)} style={{ width: '100%', height: '100%', objectFit: 'cover', transform: `scale(${interpolate(f, [at, at + 300], [1.0, 1.12], clamp)})` }} />
       </div>

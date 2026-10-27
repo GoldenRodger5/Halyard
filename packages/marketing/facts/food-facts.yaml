@@ -47,7 +47,7 @@ facts:
     tip: "Gluten-free on a US label means under 20 ppm, not zero."
     image: "a pantry shelf of packaged pasta, crackers and cereal boxes, labels blurred and unreadable"
     tie: "Cooking gluten-free? RecipeFix rewrites your recipe, steps included."
-    caption: "Gluten-free on a US label doesn't mean zero. Do you know the number? You get 5 seconds."
+    caption: "Gluten-free on a US label doesn't mean zero. Do you know the number? You get 3 seconds."
     tags: [glutenfree, foodlabels, foodtok, recipefix]
     claims: [core.diets, core.rewrites_steps]
 
@@ -68,7 +68,7 @@ facts:
     tip: "The nine: milk, eggs, fish, shellfish, tree nuts, peanuts, wheat, soy, sesame."
     image: "an overhead view of a busy family dinner table with many different dishes"
     tie: "Swapping an ingredient? RecipeFix rewrites the steps to match."
-    caption: "The list changed in 2023 and a lot of people missed it. 5 seconds, go."
+    caption: "The list changed in 2023 and a lot of people missed it. 3 seconds, go."
     tags: [foodallergies, foodlabels, foodtok, recipefix]
     claims: [core.diets, core.rewrites_steps]
 
@@ -129,7 +129,7 @@ facts:
     tip: "An hour of simmering still leaves about 25% of the alcohol."
     image: "a heavy pot of beef stew simmering on a stove with steam rising"
     tie: "Cooking halal or without wine? RecipeFix swaps it out and rewrites the steps."
-    caption: "Wine in the sauce, simmered for an hour. How much is left? 5 seconds."
+    caption: "Wine in the sauce, simmered for an hour. How much is left? 3 seconds."
     tags: [cookingtips, foodscience, foodtok, recipefix]
     claims: [core.diets, core.rewrites_steps]
 
@@ -257,7 +257,7 @@ facts:
     tip: "1 tablespoon = 3 teaspoons."
     image: "a set of metal measuring spoons, a teaspoon and a tablespoon filled with sugar, on a floured counter"
     tie: &kmtie "Scaling a recipe? RecipeFix does the math in measurements you can actually use."
-    caption: "Kitchen math, round one. 5 seconds."
+    caption: "Kitchen math, round one. 3 seconds."
     tags: [cookingtips, bakingtips, foodtok, recipefix]
     claims: [core.scaling]
 
@@ -426,7 +426,7 @@ sets:
     save: "Save this for the next time you double a recipe."
     label: "Kitchen math"
     facts: [km-tsp-tbsp, km-quarter-cup, km-third-cup]
-    caption: "3 kitchen math questions, 5 seconds each. The last one gets almost everyone."
+    caption: "3 kitchen math questions, 3 seconds each. The last one gets almost everyone."
     tie: "Scaling a recipe? RecipeFix does the math in measurements you can actually use."
     tags: [cookingtips, bakingtips, kitchenhacks, foodtok, recipefix]
     claims: [core.scaling]
@@ -434,7 +434,7 @@ sets:
     save: "Save this for your next dinner-table fact."
     label: "Food history"
     facts: [hist-tomato, hist-caesar, hist-ketchup]
-    caption: "3 food history questions. 5 seconds each. Keep score."
+    caption: "3 food history questions. 3 seconds each. Keep score."
     tie: "Cooking it your way tonight? RecipeFix rewrites the recipe, steps included."
     tags: [foodhistory, foodfacts, trivia, foodtok, recipefix]
     claims: [core.rewrites_steps]
@@ -442,7 +442,7 @@ sets:
     save: "Save this for your next grocery run."
     label: "Label detective"
     facts: [soy-sauce-wheat, label-worcestershire, honey-vegan]
-    caption: "3 ingredients hiding where you don't expect them. 5 seconds each."
+    caption: "3 ingredients hiding where you don't expect them. 3 seconds each."
     tie: "Cooking vegan or gluten-free? RecipeFix swaps the hidden stuff and rewrites the steps."
     tags: [foodlabels, vegan, glutenfree, foodtok, recipefix]
     claims: [core.diets, core.rewrites_steps]
@@ -450,7 +450,7 @@ sets:
     save: "Save this before you cook with wine again."
     label: "Myth or fact"
     facts: [myth-alcohol-simmer, myth-flambe, myth-buckwheat]
-    caption: "3 kitchen myths. Myth or fact, 5 seconds each."
+    caption: "3 kitchen myths. Myth or fact, 3 seconds each."
     tie: "Cooking without wine? RecipeFix swaps it out and rewrites the steps."
     tags: [kitchenmyths, cookingtips, foodscience, foodtok, recipefix]
     claims: [core.diets, core.rewrites_steps]

@@ -180,13 +180,15 @@ export async function makeQuiz(args: string[], opts: { voice: boolean; date?: st
   // 3–5 tiered, rotated hashtags; a numbered series gives a reason to follow.
   const phrase = await searchPhrase(chosen[0]!);
   const searchLead = `${phrase.charAt(0).toUpperCase()}${phrase.slice(1)}${/^(is|are|does|do|how|can|why|what|which)\b/i.test(phrase) ? '?' : ''}`;
-  const seriesName = set?.label ?? label;
+  const seriesName = (set?.label ?? label).replace(/\b\w/g, (c) => c.toUpperCase());
   const series = { name: seriesName, n: seriesNumber(seriesName, s.id) };
   const tags = hashtags(chosen[0]!.topic).map((x) => `#${x}`).join(' ');
   const f0 = chosen[0]!;
   const answerLine = (f: Fact) => (f.format === 'myth' ? f.options[f.correct]! : `${LETTERS[f.correct]}) ${f.options[f.correct]}`);
   const sourceLine = (f: Fact) => `Source: ${f.source.short}`;
-  const hook = `${searchLead} ${series.name} #${series.n}. ${set?.caption ?? (one ? f0.caption : `${chosen.length} questions, ${TIMER_SECONDS} seconds each. Keep score.`)}${one ? ' Did you know this one?' : ' How many did you get?'}`;
+  const body = set?.caption ?? (one ? f0.caption : `${chosen.length} questions, ${TIMER_SECONDS} seconds each. Keep score.`);
+  // Search phrase first (indexed), the hook, then the series name as a sign-off.
+  const hook = `${searchLead}${/[?.!]$/.test(searchLead) ? '' : ':'} ${body}${one ? ' Did you know this one?' : ' How many did you get?'} ${series.name} #${series.n}.`;
   const media = [relRepo(video)];
   const posts: Record<string, PlatformPost> = {
     tiktok: { platform: 'tiktok', kind: 'video', media, text: `${hook}\n\n${tags}`, ai_voice: opts.voice, cover_ms: Math.round(((questions[0]!.countdownAt + 10) / FPS) * 1000) },
