@@ -8,7 +8,7 @@
  * the video cannot crown the wrong food even if a line of copy is wrong; the
  * copy is then checked against the computed ratio.
  */
-import { readFileSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import yaml from 'js-yaml';
 import type { GateCheck } from '../copyGate.js';
@@ -193,6 +193,9 @@ export async function makeVersus(setName: string, opts: { date?: string; voice?:
   // ── QA ──
   const checks: GateCheck[] = [];
   const d = duration(video);
+  // Paper grain that changed every frame once made a 40 s cut 95 MB; platforms and the repo want it small.
+  const mb = statSync(video).size / 1e6;
+  checks.push(check('video.size', mb <= 40, `${mb.toFixed(1)} MB (≤ 40 MB)`));
   checks.push(check('video.duration', d >= 25 && d <= 45, `${d.toFixed(1)} s (target 25–45 s for three rounds)`));
   const loud = loudnessChecked(video);
   checks.push(check('audio.loudness', !useVoice || (Math.abs(loud.lufs + 14) <= 1.5 && loud.peak <= -0.5), `${loud.lufs} LUFS, peak ${loud.peak} dBFS`));

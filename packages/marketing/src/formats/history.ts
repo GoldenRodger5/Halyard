@@ -9,7 +9,7 @@
  * Nothing is written by a model: the narrator reads the YAML verbatim, the
  * captions are those words, the posts are templates over the story.
  */
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, statSync } from 'node:fs';
 import sharp from 'sharp';
 import path from 'node:path';
 import yaml from 'js-yaml';
@@ -304,6 +304,9 @@ export async function makeHistory(id: string, opts: { date?: string } = {}): Pro
   // ── QA ──
   const checks: GateCheck[] = [];
   const d = duration(video);
+  // Paper grain that changed every frame once made a 40 s cut 95 MB; platforms and the repo want it small.
+  const mb = statSync(video).size / 1e6;
+  checks.push(check('video.size', mb <= 40, `${mb.toFixed(1)} MB (≤ 40 MB)`));
   checks.push(check('video.duration', d >= 25 && d <= 42, `${d.toFixed(1)} s (target 25–40 s)`));
   const loud = loudnessChecked(video);
   checks.push(check('audio.loudness', Math.abs(loud.lufs + 14) <= 1.5 && loud.peak <= -0.5, `${loud.lufs} LUFS, peak ${loud.peak} dBFS`));

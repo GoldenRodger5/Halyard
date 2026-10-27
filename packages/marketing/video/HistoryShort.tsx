@@ -86,21 +86,16 @@ const useSpr = (at: number, cfg: { damping?: number; stiffness?: number; mass?: 
 
 /**
  * Aged paper: the texture is drawn once per run (SVG noise rasterised by the
- * format builder into paper.png and grain.png); here it is laid down and the
- * grain tile jumps every two frames, so the page is never a still.
+ * format builder into paper.png and grain.png) and it does NOT move. A grain
+ * that jumped every other frame made every frame new noise: 95 MB for 40 s at
+ * CRF 17. The page holds still; everything on it moves.
  */
-const Paper: React.FC = () => {
-  const f = useCurrentFrame();
-  const step = Math.floor(f / 2);
-  const gx = (step * 73) % 256;
-  const gy = (step * 151) % 256;
-  return (
-    <AbsoluteFill style={{ background: PAPER }}>
-      <Img src={staticFile('paper.png')} style={{ position: 'absolute', inset: 0, width: 1080, height: 1920 }} />
-      <AbsoluteFill style={{ backgroundImage: `url(${staticFile('grain.png')})`, backgroundSize: '256px 256px', backgroundPosition: `${gx}px ${gy}px`, opacity: 0.55, mixBlendMode: 'multiply' }} />
-    </AbsoluteFill>
-  );
-};
+const Paper: React.FC = () => (
+  <AbsoluteFill style={{ background: PAPER }}>
+    <Img src={staticFile('paper.png')} style={{ position: 'absolute', inset: 0, width: 1080, height: 1920 }} />
+    <AbsoluteFill style={{ backgroundImage: `url(${staticFile('grain.png')})`, backgroundSize: '256px 256px', opacity: 0.4, mixBlendMode: 'multiply' }} />
+  </AbsoluteFill>
+);
 
 /** Entrance and exit for a beat's visual: rises in on a spring, lifts out over its last frames. */
 const useBeatMotion = (b: HistoryBeat) => {
@@ -426,7 +421,7 @@ const Captions: React.FC<{ cues: HistoryCue[]; until: number }> = ({ cues, until
 const Watermark: React.FC<{ year: number }> = ({ year }) => {
   const f = useCurrentFrame();
   return (
-    <div style={{ position: 'absolute', left: -60 - f * 0.25, top: 1300, fontFamily: 'Instrument Serif', fontSize: 560, lineHeight: 1, color: 'rgba(140,60,35,0.075)', whiteSpace: 'nowrap' }}>
+    <div style={{ position: 'absolute', left: -60 - Math.floor(f / 4), top: 1300, fontFamily: 'Instrument Serif', fontSize: 560, lineHeight: 1, color: 'rgba(140,60,35,0.075)', whiteSpace: 'nowrap' }}>
       {year} {year}
     </div>
   );
@@ -504,9 +499,9 @@ export const HistoryShort: React.FC<HistoryShortProps> = (p) => {
   return (
     <AbsoluteFill style={{ background: PAPER }}>
       <style>{FONTS}</style>
+      <Paper />
+      <Watermark year={p.year} />
       <AbsoluteFill style={{ transform: `scale(${push}) translate(${shake}px, ${shake * 0.6}px)` }}>
-        <Paper />
-        <Watermark year={p.year} />
         <Kicker text={p.kicker} year={p.year} />
         {p.beats.map((b, i) =>
           f >= b.start && f < b.end + EXIT ? (
