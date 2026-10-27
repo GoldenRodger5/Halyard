@@ -296,6 +296,13 @@ export async function qaStill(input: StillQaInput): Promise<{ passed: boolean; c
   const held = rb.filter((_, i) => lines[i]!.min > 0);
   rb.forEach((r, i) => {
     if (lines[i]!.min === 0) r.boxes = [];
+    // A one-character box inside a longer line ("3" in "plus 3 tbsp water") is the weakest match
+    // OCR makes: it was credited from wood grain at x 924 once (2026-10-27). With the line's other
+    // words present it proves nothing about position or contrast, so it is dropped from those checks.
+    else if (r.boxes.length > 1) {
+      const longer = r.boxes.filter((b) => tokens(b.text).join('').length > 1);
+      if (longer.length) r.boxes = longer;
+    }
   });
   checks.push({
     id: 'still.text_readback',
