@@ -155,7 +155,8 @@ const Badge: React.FC<{ r: VersusRound; x: number }> = ({ r, x }) => {
   );
 };
 
-const Round: React.FC<{ r: VersusRound; index: number; total: number; label: string }> = ({ r, index, total, label }) => {
+const Round: React.FC<{ r: VersusRound; index: number; total: number; label: string }> = ({ r, index, total }) => {
+  // Round-4 reviews: the cover had "no surprising claim". The header now states the gap, computed from the FDC numbers.
   const f = useCurrentFrame();
   const first = r.start === 0;
   // The next pair starts sliding in 5 frames before the cut: never an empty frame between rounds.
@@ -177,7 +178,7 @@ const Round: React.FC<{ r: VersusRound; index: number; total: number; label: str
   return (
     <AbsoluteFill style={{ opacity: 1 - exit, transform: `translateY(${-exit * 40}px)` }}>
       <div style={{ position: 'absolute', left: SAFE.x0, top: 282, width: W, height: 58, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: 30, letterSpacing: 6, color: CREAM, textTransform: 'uppercase' }}>{label}</span>
+        <span style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: 30, letterSpacing: 6, color: CREAM, textTransform: 'uppercase' }}>{`One has ${r.ratio.replace('×', 'x')} more`}</span>
         <span style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: 28, letterSpacing: 2, color: INK, background: CREAM, padding: '8px 18px', borderRadius: 999 }}>{`Round ${index + 1} of ${total}`}</span>
       </div>
       <div style={{ position: 'absolute', left: SAFE.x0, top: 360, width: W, textAlign: 'center', opacity: Math.min(1, qIn), transform: `scale(${interpolate(qIn, [0, 1], [0.85, 1])})` }}>

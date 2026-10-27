@@ -37,9 +37,10 @@ stories:
         say: "Imported vegetables were taxed. Fruit came in free."
         title: "Tariff act of 1883"
         rows: [["Vegetables", "10%"], ["Fruit", "Free"]]
-      - kind: photo
+      - kind: versus
         say: "So an importer, John Nix, sued. Tomatoes are fruit, he argued."
-        chip: "Nix v. Hedden"
+        left: "John Nix"
+        right: "The tax man"
       - kind: quote
         say: "The Court agreed. Botanically speaking, tomatoes are the fruit of a vine."
         quote: "Botanically speaking, tomatoes are the fruit of a vine"
