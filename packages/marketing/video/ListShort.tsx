@@ -136,11 +136,12 @@ const Hook: React.FC<{ h: ListShortProps['hook']; label: string }> = ({ h, label
       <>
         <AbsoluteFill style={{ background: INK, overflow: 'hidden' }}>
           <Img src={staticFile(h.photo)} style={{ width: '100%', height: '100%', objectFit: 'cover', transform: `scale(${z})` }} />
-          <AbsoluteFill style={{ background: 'rgba(0,0,0,0.28)' }} />
+          <AbsoluteFill style={{ background: 'rgba(0,0,0,0.38)' }} />
         </AbsoluteFill>
         <div style={{ position: 'absolute', left: SAFE.x0 + INSET, top: 560, width: W - 2 * INSET, height: 560, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 22 }}>
           <div style={{ ...CAP, fontSize: 30, letterSpacing: 3, textTransform: 'uppercase', opacity: 0.95 }}>{label}</div>
           <div style={{ ...CAP, fontSize: h.text.length > 36 ? 88 : 100, transform: `scale(${inn})` }}>{h.text}</div>
+          {h.sub ? <div style={{ ...CAP, fontSize: 48, opacity: interpolate(fH, [h.start + 12, h.start + 22], [0, 1], clamp) }}>{h.sub}</div> : null}
         </div>
       </>
     );
@@ -307,6 +308,8 @@ const NativeItem: React.FC<{ it: ListItem; total: number }> = ({ it, total }) =>
       <AbsoluteFill style={{ background: INK, overflow: 'hidden' }}>
         <Img src={staticFile(it.photo)} style={{ width: '100%', height: '100%', objectFit: 'cover', transform: `translateX(${pan}px) scale(${z})` }} />
         <AbsoluteFill style={{ background: 'radial-gradient(ellipse at 50% 45%, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.45) 100%)' }} />
+        {/* A soft band behind the caption zone: white captions held 3.9-4.5:1 over bright food without it. */}
+        <AbsoluteFill style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0) 14%, rgba(0,0,0,0) 30%, rgba(0,0,0,0.42) 40%, rgba(0,0,0,0.42) 66%, rgba(0,0,0,0) 78%)' }} />
       </AbsoluteFill>
       <div style={{ position: 'absolute', left: SAFE.x0 + INSET, top: SAFE.y0 + 10, width: W - 2 * INSET, textAlign: 'center', ...CAP, fontSize: 34, opacity: show(b1, it.end) }}>{it.twist && it.n > total ? "And one that's fine" : `${it.n} of ${total}`}</div>
       <div style={{ position: 'absolute', left: SAFE.x0 + INSET, top: 700, width: W - 2 * INSET, height: 420, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -316,7 +319,7 @@ const NativeItem: React.FC<{ it: ListItem; total: number }> = ({ it, total }) =>
         </div>
         <div style={{ position: 'absolute', ...CAP, fontSize: it.line.length > 44 ? 60 : 68, opacity: show(b3, it.end + 6), transform: `scale(${pop(b3)})` }}>{it.line}</div>
       </div>
-      <div style={{ position: 'absolute', left: SAFE.x0 + INSET, top: SAFE.y1 - 60, width: W - 2 * INSET, ...CAP, fontSize: 28, fontWeight: 600, opacity: 0.9 * show(b3, it.end + 6) }}>{`Source: ${it.source}`}</div>
+      <div style={{ position: 'absolute', left: SAFE.x0 + INSET, top: SAFE.y1 - 64, width: W - 2 * INSET, ...CAP, fontSize: 30, fontWeight: 600, textShadow: '0 2px 0 rgba(0,0,0,0.8), 0 0 14px rgba(0,0,0,0.9)', opacity: show(b3, it.end + 6) }}>{`Source: ${it.source}`}</div>
     </>
   );
 };
