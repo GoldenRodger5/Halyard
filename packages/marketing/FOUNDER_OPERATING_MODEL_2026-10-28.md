@@ -67,3 +67,7 @@ This document records **operating intent**, not completion. As of the October 28
 - First choose and approve an affordable distribution path and credible finished creative mix; then prove one safe scheduled/published post and reliable reporting before a full calendar. Do not restart an expensive automated creative-generation project.
 
 **Precedence for future agents:** this operating decision controls *who prepares content and what should run autonomously*. Current release/creative rejections, provider conditions and explicit owner approvals control *what may actually go live*. Older playbook statements requiring unattended generation, month-based auto-approval or a mandatory specific narrator are historical, not instructions to execute.
+
+## Expanded research and build phases
+
+The source-linked technical, editorial, and operations recommendation now lives in [the Social Studio planning index](strategy/README.md), which includes the ranked tool bakeoff, deliberately varied platform-native content, publisher options (including Blotato), research-agent requirements, phase-by-phase QA and budget/approval gates. This document remains the authority on founder involvement and automation boundaries. The research is NOT authorization to begin paid model experiments or public publishing.

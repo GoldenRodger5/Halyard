@@ -1,3 +1,5 @@
+> **Strategic plan 2026-10-28:** [Social Studio deep research, diverse creative formats and phased delivery](strategy/README.md) supersedes any older implied requirement that the existing templates/robotic narrator suffice. Founder-approved 14-day creative batches remain the operating model.
+
 > **2026-10-28 operating model supersession:** [Founder-led 14-day content and operations](FOUNDER_OPERATING_MODEL_2026-10-28.md) replaces earlier auto-creator and auto-approval requirements. Collaborative creation, exact-batch founder approval, then automated supported posting/analytics and source-linked market research. Blotato remains under evaluation; external comments/replies/DMs require separate owner decisions.
 
 # RecipeFix social playbook (2026-10-27)
