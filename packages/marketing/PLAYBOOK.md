@@ -1,3 +1,5 @@
+> **2026-10-28 operating model supersession:** [Founder-led 14-day content and operations](FOUNDER_OPERATING_MODEL_2026-10-28.md) replaces earlier auto-creator and auto-approval requirements. Collaborative creation, exact-batch founder approval, then automated supported posting/analytics and source-linked market research. Blotato remains under evaluation; external comments/replies/DMs require separate owner decisions.
+
 # RecipeFix social playbook (2026-10-27)
 
 What to post, where, how often, in what order, and how the machine decides.
