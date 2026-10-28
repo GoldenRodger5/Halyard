@@ -1,0 +1,130 @@
+[
+  {
+    "id": "A",
+    "name": "Roger",
+    "model": "eleven_v4",
+    "settings": {
+      "stability": 0.5,
+      "similarity_boost": 0.75
+    },
+    "provider": "elevenlabs",
+    "text": "A cup of flour. A cup of sugar. Same size, right? On King Arthur's chart, that's a hundred and twenty grams of flour, and a hundred and ninety-eight of sugar. Equal cups don't mean equal weight.",
+    "file": "runs/2026-10-28/voice-quality/A-raw.mp3",
+    "normalized": "runs/2026-10-28/voice-quality/A.mp3",
+    "duration": 12.826122,
+    "requestId": "9gy1hz9evqGxdTDWCl9f",
+    "estimatedUsd": 0.04268,
+    "status": "audition only; not approved"
+  },
+  {
+    "id": "B",
+    "name": "Roger",
+    "model": "eleven_v4",
+    "settings": {
+      "stability": 0.25,
+      "similarity_boost": 0.75
+    },
+    "provider": "elevenlabs",
+    "text": "A cup of flour. A cup of sugar. Same size, right? On King Arthur's chart, that's a hundred and twenty grams of flour, and a hundred and ninety-eight of sugar. Equal cups don't mean equal weight.",
+    "file": "runs/2026-10-28/voice-quality/B-raw.mp3",
+    "normalized": "runs/2026-10-28/voice-quality/B.mp3",
+    "duration": 13.087347,
+    "requestId": "ob8aKkd2t6z5AfdveuJC",
+    "estimatedUsd": 0.04268,
+    "status": "audition only; not approved"
+  },
+  {
+    "id": "C",
+    "name": "Roger",
+    "model": "eleven_v4",
+    "settings": {
+      "stability": 0.25,
+      "similarity_boost": 0.5
+    },
+    "provider": "elevenlabs",
+    "text": "A cup of flour. A cup of sugar. Same size, right? On King Arthur's chart, that's a hundred and twenty grams of flour, and a hundred and ninety-eight of sugar. Equal cups don't mean equal weight.",
+    "file": "runs/2026-10-28/voice-quality/C-raw.mp3",
+    "normalized": "runs/2026-10-28/voice-quality/C.mp3",
+    "duration": 13.165714,
+    "requestId": "nkhAr7mfEG9sCWdsvIcT",
+    "estimatedUsd": 0.04268,
+    "status": "audition only; not approved"
+  },
+  {
+    "id": "D",
+    "name": "Eric",
+    "model": "eleven_v4",
+    "settings": {
+      "stability": 0.25,
+      "similarity_boost": 0.5
+    },
+    "provider": "elevenlabs",
+    "text": "A cup of flour. A cup of sugar. Same size, right? On King Arthur's chart, that's a hundred and twenty grams of flour, and a hundred and ninety-eight of sugar. Equal cups don't mean equal weight.",
+    "file": "runs/2026-10-28/voice-quality/D-raw.mp3",
+    "normalized": "runs/2026-10-28/voice-quality/D.mp3",
+    "duration": 12.669388,
+    "requestId": "M1B4WsG50I5UQpjNhS0x",
+    "estimatedUsd": 0.04268,
+    "status": "audition only; not approved"
+  },
+  {
+    "id": "E",
+    "name": "Alice",
+    "model": "eleven_v4",
+    "settings": {
+      "stability": 0.25,
+      "similarity_boost": 0.5
+    },
+    "provider": "elevenlabs",
+    "text": "A cup of flour. A cup of sugar. Same size, right? On King Arthur's chart, that's a hundred and twenty grams of flour, and a hundred and ninety-eight of sugar. Equal cups don't mean equal weight.",
+    "file": "runs/2026-10-28/voice-quality/E-raw.mp3",
+    "normalized": "runs/2026-10-28/voice-quality/E.mp3",
+    "duration": 13.635918,
+    "requestId": "YeLAvfTpQJOV9JZAwtk0",
+    "estimatedUsd": 0.04268,
+    "status": "audition only; not approved"
+  },
+  {
+    "id": "F",
+    "name": "Roger",
+    "model": "eleven_v3",
+    "settings": {
+      "stability": 0.5,
+      "similarity_boost": 0.75
+    },
+    "provider": "elevenlabs",
+    "text": "A cup of flour. A cup of sugar. Same size, right? On King Arthur's chart, that's a hundred and twenty grams of flour, and a hundred and ninety-eight of sugar. Equal cups don't mean equal weight.",
+    "file": "runs/2026-10-28/voice-quality/F-raw.mp3",
+    "normalized": "runs/2026-10-28/voice-quality/F.mp3",
+    "duration": 14.915918,
+    "requestId": "IPrgniAQ0cVKfA6bbgyz",
+    "estimatedUsd": 0.04268,
+    "status": "audition only; not approved"
+  },
+  {
+    "id": "G",
+    "name": "cedar",
+    "model": "gpt-4o-mini-tts",
+    "provider": "openai",
+    "text": "A cup of flour. A cup of sugar. Same size, right? On King Arthur's chart, that's a hundred and twenty grams of flour, and a hundred and ninety-eight of sugar. Equal cups don't mean equal weight.",
+    "file": "runs/2026-10-28/voice-quality/G-raw.mp3",
+    "normalized": "runs/2026-10-28/voice-quality/G.mp3",
+    "duration": 11.064,
+    "requestId": "req_32fd48039de14159a48496912e7414e0",
+    "estimatedUsd": 0.04,
+    "status": "audition only; not approved"
+  },
+  {
+    "id": "H",
+    "name": "marin",
+    "model": "gpt-4o-mini-tts",
+    "provider": "openai",
+    "text": "A cup of flour. A cup of sugar. Same size, right? On King Arthur's chart, that's a hundred and twenty grams of flour, and a hundred and ninety-eight of sugar. Equal cups don't mean equal weight.",
+    "file": "runs/2026-10-28/voice-quality/H-raw.mp3",
+    "normalized": "runs/2026-10-28/voice-quality/H.mp3",
+    "duration": 12,
+    "requestId": "req_d2e19adc759f47298f6a99715a15e4da",
+    "estimatedUsd": 0.04,
+    "status": "audition only; not approved"
+  }
+]

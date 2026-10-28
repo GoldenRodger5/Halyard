@@ -1,0 +1,14 @@
+{
+  "voice_id": "CwhRBWXzGAHq8TQ4Fs17",
+  "voice_name": "Roger - Laid-Back, Casual, Resonant",
+  "model_id": "eleven_v4",
+  "voice_settings": {
+    "stability": 0.5,
+    "similarity_boost": 0.75
+  },
+  "direction": "Calm conversational kitchen guide. Full sentences; no announcer hype or forced reactions.",
+  "status": "ON HOLD: owner rejected Roger finished mix as robotic on 2026-10-28. Auditions are experiments; no voice or finished creative is approved.",
+  "approval_status": "hold",
+  "replacement_selected": false,
+  "review": "runs/2026-10-28/voice-quality/index.html"
+}

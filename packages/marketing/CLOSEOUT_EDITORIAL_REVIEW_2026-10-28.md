@@ -1,0 +1,13 @@
+> **Latest owner decision, 2026-10-28:** Roger's finished narration is rejected as robotic. The white-text-over-stock-motion direction is rejected as uninteresting. Earlier “selected” or “preferred” language below is historical, not approval. All current cuts are held. See [the creative reset](CREATIVE_RESET_2026-10-28.md) and [actual auditions](../../runs/2026-10-28/voice-quality/index.html).
+
+# October28 editorial and pipeline review
+
+All seven actual exports were reviewed at their opening, middle and ending alongside their stored timestamped critiques. This is AI-assisted editorial judgment, not a human focus group or measured social performance. The strongest three are hidden dairy, hidden gluten and kitchen measuring/cooking myths. The other four are held with specific content reasons in their editorial-review.json, visible on the owner page.
+
+The main defect was editorial structure, not font polish: the renderer repeatedly hid the food name, flashed a contextless stamp, then replaced it with the explanation. A viewer had to remember the noun while rereading the same layout. Some categories inherited nonsensical Hidden labels, the recap became an unreadable miniature card, generic hooks delayed the useful payoff, and the critic excused the format by comparing only against other still-image slideshows.
+
+Implemented: persistent noun + early correction/advice; category-appropriate Check/Swap/Instead labels; reading-time budgets for the complete message; specific source-backed hooks; relevant licensed motion in selected openings/first beats; full-frame readable recap; niche questions with a reason to answer; model review tied to exact creative digests. Source clips are illustrations, not labels, publisher photos, or demonstrations of product output.
+
+The critic now evaluates against the next actual food post in a feed, identifies payoff/exit/save-or-share reason, uses skeptical-viewer and editorial lenses, and must not pretend sampled frames prove audio or audience retention. Three fresh single-sample reviews of the selected final exports are bounded to at most three calls and a $1 additional estimated ledger budget. Older scores are labelled archived. No metric threshold is lowered and no stored revise is rewritten to post.
+
+Next actual distribution experiment: after exact creative/account approval, compare the three posts using real platform retention/completion/save/share data and attributed successful adaptations. Improve the observed weakest beat once; do not endlessly tune model scores. Silent-first is deliberate until an owned/licensed music bed is supplied or a platform-native permitted track is added by the operator.

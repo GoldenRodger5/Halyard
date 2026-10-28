@@ -1,0 +1,18 @@
+{
+  "date": "2026-10-28",
+  "actualAuditions": 8,
+  "providerCalls": {
+    "elevenlabsTTS": 6,
+    "openaiTTS": 2,
+    "openaiAudioCritic": 1
+  },
+  "cumulativeLedgerUsdEstimateOrReserve": 12.320734,
+  "ownerBudgetCapUsd": 15,
+  "typecheck": "passed",
+  "voiceHoldManualCheck": "rejected project default throws; explicit controlled MK voice override resolves; no provider call",
+  "reviewBoard": "Safari actual rendered layout inspected; Alice sample played to its 13-second end",
+  "fullManualVideoPlayback": "not completed in this pass; QuickTime automation timed out",
+  "marketingTests": "Final serial full run: 9 files / 42 tests passed in14.99s, no thresholds or timeouts changed. Initial overlapping-encoding timeout retained as a prior failed attempt.",
+  "publicationApproved": false,
+  "videoBrowserAttempt": "Safari loaded current Roger MP4 but playback remained below one second across observations; stopped and closed only the added preview tab. Not claimed as complete playback."
+}

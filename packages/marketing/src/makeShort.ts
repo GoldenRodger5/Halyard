@@ -173,14 +173,30 @@ export function captionCues(timed: TimedWord[], fps = FPS): Array<{ start: numbe
  * the synthesiser's own clock rather than a transcription of it (whisper
  * base.en word times jitter 0.3–0.7 s between passes on the same audio).
  */
+/** One project voice direction; per-run MK_ overrides support controlled auditions. */
+export function voiceDirection() {
+  const file = path.join(REPO_ROOT, 'packages/marketing/data/voice-profile.json');
+  const profile = existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : {};
+  if (profile.approval_status === 'hold' && !process.env.MK_ELEVENLABS_VOICE_ID) {
+    throw new Error('Project narration is on hold after owner review. Select a replacement voice before batch generation; an explicit MK_ELEVENLABS_VOICE_ID may be used for a controlled audition.');
+  }
+  const model = process.env.MK_ELEVENLABS_MODEL || profile.model_id || 'eleven_multilingual_v2';
+  const voice = process.env.MK_ELEVENLABS_VOICE_ID || profile.voice_id || process.env.ELEVENLABS_VOICE_ID;
+  const settings = profile.model_id === model && profile.voice_settings
+    ? profile.voice_settings
+    : model.startsWith('eleven_v4')
+      ? { stability: 0.5, similarity_boost: 0.75 }
+      : { stability: 0.5, similarity_boost: 0.8, use_speaker_boost: true };
+  return { model, voice, settings };
+}
 export async function synthWithTimestamps(script: string): Promise<{ audio: Buffer; words: TimedWord[] }> {
   const key = process.env.ELEVENLABS_API_KEY;
-  const voice = process.env.ELEVENLABS_VOICE_ID;
+  const {voice,model,settings}=voiceDirection();
   if (!key || !voice) throw new Error('ELEVENLABS_API_KEY / ELEVENLABS_VOICE_ID not set');
   const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voice)}/with-timestamps?output_format=mp3_44100_128`, {
     method: 'POST',
     headers: { 'xi-api-key': key, 'content-type': 'application/json' },
-    body: JSON.stringify({ text: script, model_id: 'eleven_multilingual_v2', voice_settings: { stability: 0.5, similarity_boost: 0.8, use_speaker_boost: true } }),
+    body: JSON.stringify({text:script,model_id:model,voice_settings:settings}),
   });
   if (!r.ok) throw new Error(`ElevenLabs with-timestamps ${r.status}: ${(await r.text()).slice(0, 300)}`);
   const j = (await r.json()) as { audio_base64: string; alignment: { characters: string[]; character_start_times_seconds: number[]; character_end_times_seconds: number[] } };
@@ -337,7 +353,10 @@ export async function makeShort(ideaId: string, opts: { copyFile?: string; date?
   if (opts.voice) {
     // Identical words already voiced (with their alignment) on disk: reuse, never pay twice.
     const alignFile = path.join(ctx.dir, 'vo-alignment.json');
-    const same = existsSync(voMp3) && existsSync(scriptFile) && existsSync(alignFile) && readFileSync(scriptFile, 'utf8') === script;
+    const direction=voiceDirection();
+    const directionFile=path.join(ctx.dir,'voice-direction.json');
+    const sameDirection=existsSync(directionFile)&&readFileSync(directionFile,'utf8')===JSON.stringify(direction);
+    const same = sameDirection && existsSync(voMp3) && existsSync(scriptFile) && existsSync(alignFile) && readFileSync(scriptFile, 'utf8') === script;
     if (!same) {
       const est = (script.length / 1000) * ELEVENLABS_USD_PER_1K;
       ctx.ledger.assertCanSpend(est);
@@ -345,10 +364,11 @@ export async function makeShort(ideaId: string, opts: { copyFile?: string; date?
       writeFileSync(voMp3, audio);
       writeFileSync(scriptFile, script);
       writeJson(alignFile, aligned);
+      writeFileSync(directionFile,JSON.stringify(direction));
       ctx.ledger.record({
         run: ctx.runId,
         provider: 'elevenlabs',
-        model: 'eleven_multilingual_v2',
+        model: direction.model,
         purpose: 'voiceover (with-timestamps)',
         units: { characters: script.length },
         usd: Number(est.toFixed(4)),
@@ -361,7 +381,7 @@ export async function makeShort(ideaId: string, opts: { copyFile?: string; date?
       kind: 'audio',
       location: path.relative(REPO_ROOT, voMp3),
       sha256: sha256(readFileSync(voMp3)),
-      provenance: `ElevenLabs TTS (eleven_multilingual_v2, account voice ELEVENLABS_VOICE_ID) of vo-script.txt, generated ${new Date().toISOString().slice(0, 10)}`,
+      provenance: `ElevenLabs TTS (${direction.model}, voice ${direction.voice}) of vo-script.txt, generated ${new Date().toISOString().slice(0, 10)}`,
       licence: 'ElevenLabs output under the account plan terms; synthetic voice: disclose as AI voice where the platform asks (TikTok is_aigc)',
       disclosure: 'AI-generated voiceover',
     });

@@ -1,3 +1,5 @@
+> **2026-10-28 owner steering:** Plan and review the posting batch collaboratively every two weeks. Unattended creation is not the objective. The owner rejected the Roger finished mix as robotic and the current caption-over-motion format as uninteresting. All seven remain held; three current Roger cuts are explicitly rejected. No replacement voice is selected. Read `CREATIVE_RESET_2026-10-28.md` first. Eight real continuous auditions and the critical review are in `runs/2026-10-28/voice-quality/index.html`. Do not make another batch by substituting a preset voice or more generic stock. No public posting/scheduling authorization.
+
 # Marketing pipeline: full handoff (2026-10-27)
 
 Written for whoever picks this up next (human or agent). Read this whole file first, then
