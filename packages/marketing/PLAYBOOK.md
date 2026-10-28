@@ -1,3 +1,5 @@
+> **Operating-model update, 2026-10-28:** [Founder-approved fortnightly marketing operating model](FOUNDER_OPERATING_MODEL_2026-10-28.md) supersedes earlier autonomous creator, auto-approval, static post-volume and fixed voice assumptions below. Collaboratively create and approve the two-week batch; automate only approved distribution plus analytics/reporting and ongoing source-linked market research. Investigate Blotato's current publishing/social intelligence capabilities and actual account/subscription state before selecting an alternative. Research recommendations for follows, comments, replies and DMs remain founder-reviewed, not automatically sent.
+
 # RecipeFix social playbook (2026-10-27)
 
 What to post, where, how often, in what order, and how the machine decides.
