@@ -1,3 +1,5 @@
+> **Expanded creative-toolbox clarification, October 28:** Halyard is an extensible workspace, NOT a restriction to its current templates. Research and compare new libraries, genuine screen recording, animation, AI motion inserts and per-platform execution styles. See [creative toolbox research](EXPANDED_CREATIVE_TOOLBOX_RESEARCH_2026-10-28.md). This is not purchase or publication approval.
+
 # RecipeFix marketing operating model — founder decision, October 28, 2026
 
 **Status: authoritative owner direction for planning; NOT an implementation or publication approval.** This supersedes earlier requirements that every creative be generated autonomously, that we use one narrator/stock-list template, or that posts auto-approve after a month of data. It does not supersede verified platform policy, source/rights constraints, account-ownership checks, or the existing rejection/hold on October 28 creative exports.
