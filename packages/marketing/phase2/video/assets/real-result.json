@@ -1,0 +1,260 @@
+{
+  "recipeName": "Chicken Tikka Masala with Coconut Cream",
+  "servings": 6,
+  "originalServings": 4,
+  "activeModifications": [
+    "Dairy-Free",
+    "Scaled 4 \u2192 6"
+  ],
+  "ingredients": [
+    {
+      "original": "1 1/2 lb boneless, skinless chicken thighs, cut into 1 1/2-inch pieces",
+      "adapted": "2\u00bc lb boneless, skinless chicken thighs, cut into 1 1/2-inch pieces",
+      "changed": true,
+      "changeType": "scaled",
+      "changeReason": null,
+      "amountShift": "servings"
+    },
+    {
+      "original": "3/4 cup plain whole-milk yogurt",
+      "adapted": "1 cup plus 2 tablespoons plain unsweetened dairy-free coconut yogurt",
+      "changed": true,
+      "changeType": "both",
+      "changeReason": "Coconut yogurt provides an acidic, coating marinade without dairy; choose an unsweetened, unflavored variety."
+    },
+    {
+      "original": "1 tablespoon lemon juice",
+      "adapted": "1\u00bd tablespoons lemon juice",
+      "changed": true,
+      "changeType": "scaled",
+      "changeReason": null,
+      "amountShift": "servings"
+    },
+    {
+      "original": "1 tablespoon garam masala",
+      "adapted": "1\u00bd tablespoons garam masala",
+      "changed": true,
+      "changeType": "scaled",
+      "changeReason": null,
+      "amountShift": "servings"
+    },
+    {
+      "original": "1 teaspoon kosher salt",
+      "adapted": "1\u00bd teaspoons kosher salt",
+      "changed": true,
+      "changeType": "scaled",
+      "changeReason": null,
+      "amountShift": "servings"
+    },
+    {
+      "original": "2 tablespoons butter",
+      "adapted": "3 tablespoons vegan butter",
+      "changed": true,
+      "changeType": "both",
+      "changeReason": "Vegan butter supplies the fat needed to soften the onion and bloom the spices without dairy."
+    },
+    {
+      "original": "1 large onion, finely chopped",
+      "adapted": "2 large onions, finely chopped",
+      "changed": true,
+      "changeType": "scaled",
+      "changeReason": "Rounded to whole onions; the extra onion gives the sauce a slightly sweeter base.",
+      "amountShift": "servings"
+    },
+    {
+      "original": "1/2 teaspoon kosher salt, plus more to taste",
+      "adapted": "\u00be teaspoon kosher salt, plus more to taste",
+      "changed": true,
+      "changeType": "scaled",
+      "changeReason": null,
+      "amountShift": "servings"
+    },
+    {
+      "original": "4 cloves garlic, minced",
+      "adapted": "6 cloves garlic, minced",
+      "changed": true,
+      "changeType": "scaled",
+      "amountShift": "servings"
+    },
+    {
+      "original": "1 tablespoon finely grated fresh ginger",
+      "adapted": "1\u00bd tablespoons finely grated fresh ginger",
+      "changed": true,
+      "changeType": "scaled",
+      "changeReason": null,
+      "amountShift": "servings"
+    },
+    {
+      "original": "1 tablespoon garam masala",
+      "adapted": "1\u00bd tablespoons garam masala",
+      "changed": true,
+      "changeType": "scaled",
+      "changeReason": null,
+      "amountShift": "servings"
+    },
+    {
+      "original": "1 teaspoon ground cumin",
+      "adapted": "1\u00bd teaspoons ground cumin",
+      "changed": true,
+      "changeType": "scaled",
+      "changeReason": null,
+      "amountShift": "servings"
+    },
+    {
+      "original": "1 teaspoon paprika",
+      "adapted": "1\u00bd teaspoons paprika",
+      "changed": true,
+      "changeType": "scaled",
+      "changeReason": null,
+      "amountShift": "servings"
+    },
+    {
+      "original": "1/2 teaspoon ground turmeric",
+      "adapted": "\u00be teaspoon ground turmeric",
+      "changed": true,
+      "changeType": "scaled",
+      "changeReason": null,
+      "amountShift": "servings"
+    },
+    {
+      "original": "1 (14.5-oz) can crushed tomatoes",
+      "adapted": "1\u00bd (14.5-oz) can crushed tomatoes",
+      "changed": true,
+      "changeType": "scaled",
+      "changeReason": null,
+      "amountShift": "servings"
+    },
+    {
+      "original": "1/2 cup heavy cream",
+      "adapted": "3/4 cup full-fat coconut cream",
+      "changed": true,
+      "changeType": "both",
+      "changeReason": "Coconut cream restores the sauce's richness without dairy; unsweetened soy cooking cream offers a less coconut-forward alternative.",
+      "alternative": {
+        "adapted": "3/4 cup unsweetened dairy-free soy cooking cream",
+        "tradeoff": "Soy cooking cream tastes more neutral, while coconut cream gives a richer body.",
+        "stepNote": "Keep the sauce at a gentle simmer rather than a hard boil after adding soy cooking cream.",
+        "replaceTerm": {
+          "from": "coconut cream",
+          "to": "soy cooking cream"
+        }
+      }
+    },
+    {
+      "original": "4 cups cooked basmati rice",
+      "adapted": "6 cups cooked basmati rice",
+      "changed": true,
+      "changeType": "scaled",
+      "changeReason": null,
+      "amountShift": "servings"
+    },
+    {
+      "original": "2 tablespoons chopped cilantro",
+      "adapted": "3 tablespoons chopped cilantro",
+      "changed": true,
+      "changeType": "scaled",
+      "changeReason": null,
+      "amountShift": "servings"
+    }
+  ],
+  "steps": [
+    {
+      "title": "Marinate the Chicken",
+      "instruction": "Stir the dairy-free coconut yogurt, lemon juice, the marinade portion of garam masala and the marinade portion of salt together in a bowl, then add the chicken, turn to coat every piece and leave to marinate at room temperature for 20 minutes while you make the sauce.",
+      "ingredients_used": [
+        "1 cup plus 2 tablespoons plain unsweetened dairy-free coconut yogurt",
+        "1\u00bd tablespoons lemon juice",
+        "1\u00bd tablespoons garam masala",
+        "1\u00bd teaspoons kosher salt",
+        "2\u00bc lb boneless, skinless chicken thighs, cut into 1 1/2-inch pieces"
+      ],
+      "equipment_used": [],
+      "updated_note": "Stir the coconut yogurt smooth before coating the chicken; a thick, cultured variety clings better than a thin yogurt."
+    },
+    {
+      "title": "Soften the Onion",
+      "instruction": "Melt the vegan butter in a wide, deep skillet or Dutch oven over medium heat, then add the onion and the sauce portion of salt and cook, stirring occasionally, for 10 to 14 minutes, until soft and golden at the edges.",
+      "ingredients_used": [
+        "3 tablespoons vegan butter",
+        "2 large onions, finely chopped",
+        "\u00be teaspoon kosher salt, plus more to taste"
+      ],
+      "equipment_used": [
+        "dutch oven"
+      ],
+      "updated_note": "Use a wide vessel with room for the larger batch; the extra onion may need a few more minutes to release its moisture and turn golden."
+    },
+    {
+      "title": "Toast the Spices",
+      "instruction": "Add the garlic and ginger and cook, stirring, for 1 minute. Stir in the remaining garam masala, the cumin, paprika and turmeric and cook for 30 seconds more, stirring constantly so the spices toast without scorching.",
+      "ingredients_used": [
+        "6 cloves garlic, minced",
+        "1\u00bd tablespoons finely grated fresh ginger",
+        "1\u00bd tablespoons garam masala",
+        "1\u00bd teaspoons ground cumin",
+        "1\u00bd teaspoons paprika",
+        "\u00be teaspoon ground turmeric"
+      ],
+      "equipment_used": []
+    },
+    {
+      "title": "Reduce the Tomato Sauce",
+      "instruction": "Pour in the crushed tomatoes and scrape up any browned bits from the bottom of the pan, then bring to a gentle simmer, lower the heat and cook uncovered for 10 to 15 minutes, stirring now and then, until the sauce thickens enough to leave a trail when you drag a spoon through it.",
+      "ingredients_used": [
+        "1\u00bd (14.5-oz) can crushed tomatoes"
+      ],
+      "equipment_used": [],
+      "updated_note": "Start checking at 10 minutes; a wider pan evaporates liquid faster, so use the spoon trail rather than multiplying the original cooking time."
+    },
+    {
+      "title": "Broil the Marinated Chicken",
+      "instruction": "While the sauce simmers, heat the broiler with a rack about 6 inches below the element, then lift the chicken from the marinade, letting the excess drip off, spread in a single uncrowded layer on two foil-lined baking sheets and discard the leftover marinade; broil one sheet at a time for 8 to 10 minutes, turning once, until charred in spots, then promptly transfer each batch to the simmering sauce to finish cooking. Cook until the thickest part reaches 165\u00b0F (74\u00b0C) internally.",
+      "ingredients_used": [
+        "2\u00bc lb boneless, skinless chicken thighs, cut into 1 1/2-inch pieces",
+        "1 cup plus 2 tablespoons plain unsweetened dairy-free coconut yogurt",
+        "1\u00bd tablespoons lemon juice",
+        "1\u00bd tablespoons garam masala",
+        "1\u00bd teaspoons kosher salt"
+      ],
+      "equipment_used": [],
+      "updated_note": "Allow two broiler batches at this size, keeping the cooking time per batch unchanged; let excess coconut yogurt drip off so the coating chars rather than pools."
+    },
+    {
+      "title": "Finish the Creamy Sauce",
+      "instruction": "Stir the coconut cream into the sauce with the chicken and any juices from the baking sheets, then simmer gently for about 5 minutes after the last batch is added, until the chicken is cooked through and an instant-read thermometer in the thickest pieces reads 165\u00b0F (74\u00b0C).",
+      "ingredients_used": [
+        "3/4 cup full-fat coconut cream",
+        "2\u00bc lb boneless, skinless chicken thighs, cut into 1 1/2-inch pieces"
+      ],
+      "equipment_used": [
+        "instant-read thermometer"
+      ],
+      "updated_note": "Whisk separated coconut cream smooth before adding and keep the sauce at a gentle simmer; check several chicken pieces rather than extending cooking time in proportion to the batch size."
+    },
+    {
+      "title": "Season and Serve",
+      "instruction": "Taste and add more salt if needed. If the sauce is thicker than you like, loosen it with a splash of water. Serve over the rice, scattered with the cilantro.",
+      "ingredients_used": [
+        "\u00be teaspoon kosher salt, plus more to taste",
+        "6 cups cooked basmati rice",
+        "3 tablespoons chopped cilantro"
+      ],
+      "equipment_used": []
+    }
+  ],
+  "explanations": [
+    "Coconut yogurt and coconut cream keep the marinade tangy and the sauce rich, though the finished dish will have a gentle coconut flavor rather than dairy's more neutral richness.",
+    "Choose plain unsweetened coconut cream, not sweetened cream of coconut, and check that the vegan butter contains no milk derivatives.",
+    "The larger batch needs more broiler space, not longer broiling per piece; keeping the chicken uncrowded preserves the char that balances the creamy sauce."
+  ],
+  "refine_suggestion": "e.g. swap chicken thighs for chicken breast",
+  "yieldText": "1 plate with 1 cup rice and chicken sauce each",
+  "modificationTags": [
+    "dairy_free",
+    "scaled"
+  ],
+  "totalTimeMinutes": null,
+  "_dietary": [
+    "Dairy-Free"
+  ]
+}

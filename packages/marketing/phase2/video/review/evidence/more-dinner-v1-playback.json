@@ -1,0 +1,36 @@
+[
+  {
+    "name": "more-dinner-v1",
+    "muted": true,
+    "ended": true,
+    "currentTime": 23.061333,
+    "duration": 23.061333,
+    "played": [
+      [
+        0,
+        23.061333
+      ]
+    ],
+    "readyState": 4,
+    "networkState": 1,
+    "error": null,
+    "perception": "Browser playback through final visual frame, sampled decoded visual evidence; no direct auditory perception."
+  },
+  {
+    "name": "more-dinner-v1",
+    "muted": false,
+    "ended": true,
+    "currentTime": 23.061333,
+    "duration": 23.061333,
+    "played": [
+      [
+        0,
+        23.061333
+      ]
+    ],
+    "readyState": 4,
+    "networkState": 1,
+    "error": null,
+    "perception": "Browser playback through final visual frame, sampled decoded visual evidence; no direct auditory perception."
+  }
+]

@@ -1,0 +1,47 @@
+{
+  "finalFilm": "more-dinner-v2",
+  "sha256": "9c3d168defdde5f95a9a1c912b79d04320d50ccbb33567ce84c6d362009b4e4d",
+  "sourceCommit": "3f32680f091d06ad9046bb95e4dfb55489d2c264",
+  "sourcePin": {
+    "repository": "GoldenRodger5/recipe-fix",
+    "file": "src/data/landingRealResult.ts",
+    "captureBundle": "index-D18VC9ff.js",
+    "recordedResultDate": "2026-10-21"
+  },
+  "costUsd": 0,
+  "paidCalls": 0,
+  "voice": "None; generation held until locked clips selected to post.",
+  "finalSources": [
+    {
+      "kind": "first-party historical result",
+      "url": "https://github.com/GoldenRodger5/recipe-fix/blob/3f32680f091d06ad9046bb95e4dfb55489d2c264/src/data/landingRealResult.ts",
+      "recordedDate": "2026-10-21",
+      "captureBundle": "index-D18VC9ff.js",
+      "captureDate": "2026-10-29",
+      "truth": "Combined Dairy-Free 4→6 result; zero fresh provider calls or production writes."
+    },
+    {
+      "kind": "original Blender geometry/material/animation",
+      "rights": "Original procedural illustration; no downloaded 3D models, no physical cooking result."
+    },
+    {
+      "kind": "original music and synthetic illustrative foley",
+      "rights": "Original procedural synthesis, no external samples or voice."
+    },
+    {
+      "kind": "Inter fonts",
+      "rights": "SIL OFL; bundled license in assets/fonts."
+    }
+  ],
+  "rejectedPrototypeOnly": [
+    {
+      "url": "https://www.pexels.com/video/marinating-chicken-with-spices-in-traditional-bowl-34907667/",
+      "rights": "Pexels License https://www.pexels.com/license/",
+      "usedInFinal": false
+    }
+  ],
+  "disclosure": "CGI planning illustration, not a cooked or tasted result. Recorded combined Dairy-Free 4→6 response, Oct 21, 2026; actual UI capture uses the stored response, not a fresh live adaptation. Piece count is illustrative. Original synthetic foley/music; no generated voice.",
+  "approval": "unreviewed",
+  "accounts": [],
+  "schedule": null
+}
