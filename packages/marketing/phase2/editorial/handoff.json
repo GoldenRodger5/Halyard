@@ -227,7 +227,7 @@
     }
   ],
   "producerQA": {
-    "checkedAt": "2026-10-29T21:17:59.023Z",
+    "checkedAt": "2026-10-29T21:18:07.995Z",
     "contractErrors": [],
     "geometry": [
       {
@@ -391,7 +391,7 @@
   "source": {
     "branch": "feat/recipefix-phase2-editorial-20261029",
     "baseCommit": "dec9558",
-    "sourceCommit": "dec955885cf1094ea2e747233e72d075dd32a89e",
+    "sourceCommit": "9bbc2169733606dd9b37db6927e8eda5ffd0811f",
     "ownership": "packages/marketing/phase2/editorial/**"
   },
   "cost": {
