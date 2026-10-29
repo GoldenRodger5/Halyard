@@ -16,4 +16,6 @@ Precedence:
 - [Founder creative rejection on the still-open PR #104](https://github.com/GoldenRodger5/Halyard/pull/104#issuecomment-6500212414): seven cuts and Roger narration rejected and on hold.
 - [Existing Halyard handoff](../HANDOFF.md), playbook and source remain reference implementations, not creative boundaries.
 
+**October 29 first production handoff:** [Checkpoint #1, four specialist streams, premium media standards and integration gates](2026-10-29-FIRST-CREATIVE-TEAM-EXECUTION-CHECKPOINT.md). Start 3–4 truly different ideas with finished exports, not 14 at once.
+
 **Next:** Use the October 29 content strategy to produce a *product-led, interesting recipe-problem* pilot and relevant Instagram/X companion variants, not a recolor of PR #104 or another entertainment-only animation. The existing Phase 0 / Phase 1A / Phase 1B technical R&D remains recorded. No automatic new 14-day batch, new scheduler, paid AI spend or public posts without separate founder approvals.

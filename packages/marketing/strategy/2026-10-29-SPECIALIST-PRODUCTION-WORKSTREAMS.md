@@ -1,3 +1,5 @@
+> **Execution-ready checkpoint:** See [the October 29 first-batch operational handoff](2026-10-29-FIRST-CREATIVE-TEAM-EXECUTION-CHECKPOINT.md) for actual bounded creative deliverables, agent worktree boundaries, first gallery and live-release blockers.
+
 # RecipeFix Social Studio — Specialist production workstreams and handoff contracts
 **2026-10-29 | Product owner directive.** An execution blueprint; the specialists have not all been launched by publishing this document.
 
