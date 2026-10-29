@@ -8,7 +8,8 @@ These documents are the plan for founder-led creative collaboration and separate
 2. [Phased delivery plan](2026-10-28-PHASED-DELIVERY-PLAN.md) — phase 0–6, dependencies, owners, QA, budgets, account and approval gates, evidence needed to close each phase.
 3. [Creative portfolio and pilot scorecard](2026-10-28-CREATIVE-PORTFOLIO-AND-PILOT-SCORECARD.md) — ideas, distinct platform-native executions, four detailed pilot briefs, illustrative 14-day mix, comparison rubric and analytics.
 4. **Current commercial direction:** [15-category business-aware content taxonomy](2026-10-29-CONTENT-CATEGORIES-AND-GROWTH-STRATEGY.md) — product/recipes, useful food/teaching and games/trivia/community, with a measurable app-use bridge.
-5. [First 14-day editorial experiment](2026-10-29-FIRST-FORTNIGHT-EDITORIAL-EXPERIMENT.md) — illustrative platform-native slate, actual first conversion-focused creative pilot, explicit safeguards.
+5. [First 14-day editorial experiment](2026-10-29-FIRST-FORTNIGHT-EDITORIAL-EXPERIMENT.md)
+6. **Current reusable architecture:** [Social Studio data model and safety/production plan](2026-10-29-REUSABLE-SOCIAL-STUDIO-ARCHITECTURE.md), [Specialist workstreams](2026-10-29-SPECIALIST-PRODUCTION-WORKSTREAMS.md). Typed content/format/approval contracts and focused tests added on a separate PR; real publisher integration and public posting remain pending. — illustrative platform-native slate, actual first conversion-focused creative pilot, explicit safeguards.
 
 Precedence:
 - [Founder operating model](../FOUNDER_OPERATING_MODEL_2026-10-28.md): human-collaborative creation for 1–2 days every 14 days; automated publishing/reports/research only after exact approvals.
