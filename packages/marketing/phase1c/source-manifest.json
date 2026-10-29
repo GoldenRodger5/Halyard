@@ -1,0 +1,195 @@
+{
+  "phase": "1C",
+  "date": "2026-10-29",
+  "timezone": "America/New_York",
+  "marketingBase": "cd83a303",
+  "worktreeBranch": "feat/recipefix-acquisition-pilot-phase1c-20261029",
+  "status": "FOUNDER_REVIEW_ONLY",
+  "publicationApproved": false,
+  "proofGit": {
+    "repository": "GoldenRodger5/recipe-fix",
+    "commit": "3f32680f091d06ad9046bb95e4dfb55489d2c264",
+    "file": "src/data/landingRealResult.ts",
+    "export": "LANDING_REAL_RESULT",
+    "capturedOn": "2026-10-21"
+  },
+  "actualCurrentUiBundle": "index-D18VC9ff.js",
+  "analyticsSourcePin": "81a6bd9e8c892b08c2510fe1bfe9ea0681a51842",
+  "actualTransformation": {
+    "request": "Dairy-Free,4→6servings",
+    "ingredientIndex": 0,
+    "original": "1 1/2 lb boneless, skinless chicken thighs",
+    "adapted": "2¼ lb boneless, skinless chicken thighs",
+    "stepIndex": 4,
+    "step": "Two uncrowded foil-lined sheets; broil one at a time, then promptly finish each batch in simmering sauce. Full source specifies internal165°F/74°C."
+  },
+  "providerCalls": 0,
+  "additionalProviderCostUsd": 0,
+  "newSubscriptions": 0,
+  "customerWrites": 0,
+  "publicPosts": 0,
+  "freshAdaptation": false,
+  "physicalCookingResultClaimed": false,
+  "nutritionAchievementClaimed": false,
+  "sourceUiPixelsChanged": false,
+  "claimLimits": [
+    "Specific combined dairy-free and six-serving result, not fresh scaling-only inference",
+    "Illustrative tray capacity/piece counts, no appliance detection or measured cooking",
+    "Original photo is not an adapted meal",
+    "UTMlocal parsing is not analytics ingestion or acquisition",
+    "Social account/profile links unverified"
+  ],
+  "licenseSource": "https://unsplash.com/license",
+  "assets": [
+    {
+      "path": "assets/broiler-proof.png",
+      "bytes": 221111,
+      "sha256": "34c37efe2b2d322f943bc82c2a819252d55cd97f85ad19c0176a9d066884d739",
+      "provenance": "Actual current first-party UI capture,October29; historical response fulfilled locally, no fresh inference"
+    },
+    {
+      "path": "assets/fonts/InstrumentSerif-Regular.ttf",
+      "bytes": 70012,
+      "sha256": "498efd461f6ddfcb7a111bf9a565709d2085d48201d501ead960d93e84ffbb88",
+      "provenance": "SIL Open Font License, bundled license text"
+    },
+    {
+      "path": "assets/fonts/Inter-Regular.woff",
+      "bytes": 31196,
+      "sha256": "31656ddbb58d39790f910df827596106a5d91ce80dd4309a6aad91e08a90f9e4",
+      "provenance": "SIL Open Font License, bundled license text"
+    },
+    {
+      "path": "assets/fonts/Inter-SemiBold.woff",
+      "bytes": 31780,
+      "sha256": "a96e5ee7ab248008e5e6cc92dd561eceb892d19a10a537aa1b2e64f979351add",
+      "provenance": "SIL Open Font License, bundled license text"
+    },
+    {
+      "path": "assets/fonts/instrumentserif-OFL.txt",
+      "bytes": 4404,
+      "sha256": "b6b2292aa580937fb63796878d65a027a27f8c3db2d97601d0c34d9031f4ca17",
+      "provenance": "SIL Open Font License, bundled license text"
+    },
+    {
+      "path": "assets/fonts/inter-OFL.txt",
+      "bytes": 4376,
+      "sha256": "5dd548d31a85f756e01d63e00d7faf1e324103ed3e9102fcbbabf2cc2db6dd39",
+      "provenance": "SIL Open Font License, bundled license text"
+    },
+    {
+      "path": "assets/hero.jpg",
+      "bytes": 596098,
+      "sha256": "09633760cff8b5adc5199d4d89bbc787a13d17848f39072f86d2126e976f0077",
+      "provenance": "Unsplash License; RecipeFix Original photo1585937421612-70a008356fbe, first-party docs/RECIPEFIX_ORIGINALS.md @3f32680f; not adapted/cooked result"
+    },
+    {
+      "path": "assets/modal-six.png",
+      "bytes": 222603,
+      "sha256": "ec2d7d778fec00b32490a8d73236717c1f792abdf2ffaa23defe3f478fefbda6",
+      "provenance": "Actual current first-party UI capture,October29; historical response fulfilled locally, no fresh inference"
+    },
+    {
+      "path": "assets/original-ui.png",
+      "bytes": 1238705,
+      "sha256": "3fe05a04d024df1599303bfb364a134dd7270ecb62025513a31893927322303d",
+      "provenance": "Actual current first-party UI capture,October29; historical response fulfilled locally, no fresh inference"
+    },
+    {
+      "path": "assets/real-result.json",
+      "bytes": 11036,
+      "sha256": "572f681c851d3b0777e0c4ca15c781a0c573bab7c026f5b683d9c7f1b72ff473",
+      "provenance": "Verbatim recorded RecipeFix production response,October21,2026; source pinned below"
+    },
+    {
+      "path": "assets/score.wav",
+      "bytes": 3475278,
+      "sha256": "d03c8db6e8bceaec77d7e6273a60ab4c908eaff06cb41aaaa27599931026bb71",
+      "provenance": "original procedural graphics/audio authored through AI-assisted code"
+    },
+    {
+      "path": "assets/ui-action.mp4",
+      "bytes": 503960,
+      "sha256": "27e528f522efca3c89adc1395fd6afb65d0c6bbf860b7070dce898addab1ffdb",
+      "provenance": "Actual current first-party UI capture,October29; historical response fulfilled locally, no fresh inference"
+    },
+    {
+      "path": "review/annotation-proof.png",
+      "bytes": 49304,
+      "sha256": "d4a49e274ac0042ac9841e9856cba86faef6105e661d3a38fda169e6fe1e331c",
+      "provenance": "Final rendered deliverable or exact exported-frame measurement; source ingredients listed in manifest"
+    },
+    {
+      "path": "review/ig-1.png",
+      "bytes": 1034935,
+      "sha256": "63763e1d8ac24f45b98f50faa812f14ff1f3ad1e5228c2d72b648bc21ae64b06",
+      "provenance": "Final rendered deliverable or exact exported-frame measurement; source ingredients listed in manifest"
+    },
+    {
+      "path": "review/ig-2.png",
+      "bytes": 147201,
+      "sha256": "10a8282a38e5e84bb6103f3ac3e51ed90b0b039f170ff8e18e4ac88593932380",
+      "provenance": "Final rendered deliverable or exact exported-frame measurement; source ingredients listed in manifest"
+    },
+    {
+      "path": "review/ig-3.png",
+      "bytes": 319115,
+      "sha256": "8ef5361eff48fcce1c7a220c05a0ab54c0edcb9cb59e32cca4d89de33690629e",
+      "provenance": "Final rendered deliverable or exact exported-frame measurement; source ingredients listed in manifest"
+    },
+    {
+      "path": "review/ig-4.png",
+      "bytes": 161786,
+      "sha256": "67d376f7fb2615798689923247aba9901b7f62d93e6415e2940a18ca26723b9a",
+      "provenance": "Final rendered deliverable or exact exported-frame measurement; source ingredients listed in manifest"
+    },
+    {
+      "path": "review/ig-5.png",
+      "bytes": 145519,
+      "sha256": "e257226cdc52ffccabdbcaad757d8ba35dab494e8415771fa5f2a09f192869cb",
+      "provenance": "Final rendered deliverable or exact exported-frame measurement; source ingredients listed in manifest"
+    },
+    {
+      "path": "review/x.png",
+      "bytes": 299410,
+      "sha256": "0d1b20b79181f01ce14e0cb915f99866099e896f776b3ea507d9c6c6b52cbcb4",
+      "provenance": "Final rendered deliverable or exact exported-frame measurement; source ingredients listed in manifest"
+    },
+    {
+      "path": "review/broiler.mp4",
+      "bytes": 2775929,
+      "sha256": "cc517caff8d66a991c476f68dfe5805d129b601593ab02f45d8953bddc4d4f92",
+      "provenance": "Final rendered deliverable or exact exported-frame measurement; source ingredients listed in manifest"
+    },
+    {
+      "path": "posts.json",
+      "bytes": 6824,
+      "sha256": "c92213ed7da9e4e58741e58eae2c2733e51100dca64ccc741b4e64833af9aac2",
+      "provenance": "original procedural graphics/audio authored through AI-assisted code"
+    },
+    {
+      "path": "BroilerStory.tsx",
+      "bytes": 5691,
+      "sha256": "adb657316fa5086e75fe364b92bca0812f0a6e74cf445161a9d6fc1626b1a81b",
+      "provenance": "original procedural graphics/audio authored through AI-assisted code"
+    },
+    {
+      "path": "Visuals.tsx",
+      "bytes": 4926,
+      "sha256": "7da3018641e2f87b96ec33e7e9933d0d029acb4ad4cc6ca8345c84b3fc9a5d88",
+      "provenance": "original procedural graphics/audio authored through AI-assisted code"
+    },
+    {
+      "path": "Companions.tsx",
+      "bytes": 5873,
+      "sha256": "8deb5351476a337f8cb73ae362b5608fb5316e96ba4bfffb15ee021050dbd5c7",
+      "provenance": "original procedural graphics/audio authored through AI-assisted code"
+    },
+    {
+      "path": "scripts/make-sound.py",
+      "bytes": 3372,
+      "sha256": "f694fa2c197ac065a384695e15c78309a945e5213d37738f6445fda7f9d9daf7",
+      "provenance": "original procedural graphics/audio authored through AI-assisted code"
+    }
+  ]
+}

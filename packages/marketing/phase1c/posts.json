@@ -1,0 +1,65 @@
+{
+  "idea": "rf_headcount_1c",
+  "categories": [
+    "P02",
+    "P03",
+    "E04"
+  ],
+  "publicationStatus": "FOUNDER_REVIEW_ONLY",
+  "accountVerified": false,
+  "profileLinkConfigured": false,
+  "scheduledAt": null,
+  "paidProviderSpendUsd": 0,
+  "aiMediaProvenance": "Original procedural illustration/sound authored through AI-assisted code, actual recorded UI, licensed Original photo. No image/video-generation service or synthetic narrator. Platform label review pending before public release.",
+  "tiktok": {
+    "media": [
+      "review/broiler.mp4"
+    ],
+    "caption": "Cooking for more people? Check the cooking plan, too.\n\nThis RecipeFix example takes our Chicken Tikka Masala Original from 4 to 6 servings, with a dairy-free request. Chicken goes from 1½ to 2¼ lb. The broiler step becomes two uncrowded sheets, one at a time, then each batch finishes in simmering sauce.\n\nRecorded production result, October 21, 2026, shown in the current app. The tray animation is an illustrated plan; the photograph is the Original, not an adapted cooking test. Read the full recipe for doneness.\n\nTry the Chicken Tikka Masala Original via our profile, then tap Make it fit. Choose your needs and servings.\n\n#CookingForMore #RecipeScaling #TikkaMasala #RecipeFix",
+    "destination": "https://recipefix.app/original-recipes/chicken-tikka-masala?utm_source=tiktok&utm_medium=social&utm_campaign=rf_headcount_1c&utm_content=tt_broiler_v3",
+    "linkPlacement": "Verified owned profile website link, only after supported capability and exact link are confirmed"
+  },
+  "instagram": {
+    "media": [
+      "review/ig-1.png",
+      "review/ig-2.png",
+      "review/ig-3.png",
+      "review/ig-4.png",
+      "review/ig-5.png"
+    ],
+    "caption": "More dinner does not automatically mean more broiler space.\n\nSwipe through one actual RecipeFix example: Chicken Tikka Masala, Dairy-Free, 4 → 6 servings. The chicken amount changes from 1½ to 2¼ lb. The method also changes: two uncrowded foil-lined sheets, broiled one at a time, with each batch promptly finished in simmering sauce. Follow the full recipe and use a thermometer for its 165°F (74°C) internal doneness instruction.\n\nThis is a recorded October 21, 2026 production response, not a new kitchen test. The food photograph depicts the Original; the tray layout is illustrative. This is one recipe’s plan, not a universal scaling rule.\n\nTo try it: open the Chicken Tikka Masala Original from our profile link, tap Make it fit and set your needs and servings. Bring your own recipe next.\n\n#CookingForMore #RecipeScaling #TikkaMasala #DairyFree #RecipeFix",
+    "destination": "https://recipefix.app/original-recipes/chicken-tikka-masala?utm_source=instagram&utm_medium=social&utm_campaign=rf_headcount_1c&utm_content=ig_plan_v2",
+    "linkPlacement": "Verified profile link to exact Original, not assumed clickable caption",
+    "altText": [
+      "Six people, same broiler. Chicken Tikka Masala Original recipe photograph; a real recorded RecipeFix Dairy-Free adaptation changes four servings to six.",
+      "For this specific four-to-six-serving recipe, the chicken amount changes from one and a half pounds to two and a quarter pounds. The broiler space stays the same.",
+      "Two illustrated foil-lined sheets form a sequence: broil one sheet at a time, then finish each batch in simmering sauce. The diagram is not actual cooking footage or portion counts.",
+      "Excerpts from the recorded RecipeFix method specify a single uncrowded layer on two foil-lined sheets, broiled one at a time. The full method finishes chicken in simmering sauce to165 degrees Fahrenheit,74 degrees Celsius internally.",
+      "To try it, open the Chicken Tikka Masala Original in RecipeFix, tap Make it fit, and choose needs and servings. This example was Dairy-Free for six; individual results may differ."
+    ]
+  },
+  "youtube": {
+    "media": [
+      "review/broiler.mp4"
+    ],
+    "title": "Cooking for 6? Watch the broiler plan change | RecipeFix",
+    "caption": "A real recorded RecipeFix adaptation changes Chicken Tikka Masala from 4 to 6 servings with a dairy-free request: more chicken, two uncrowded sheets, one at a time, then finish each batch in the sauce. Current app recording; production result captured October 21, 2026. Illustrative cooking plan, Original recipe photo, no cooked-result or nutrition achievement claim. Full recipe/doneness instructions in RecipeFix. Open the Chicken Tikka Masala Original through our channel profile link, then choose Make it fit.",
+    "destination": "https://recipefix.app/original-recipes/chicken-tikka-masala?utm_source=youtube&utm_medium=social&utm_campaign=rf_headcount_1c&utm_content=yt_broiler_v3",
+    "linkPlacement": "Channel profile link; Shorts comments/descriptions are non-clickable"
+  },
+  "x": {
+    "media": [
+      "review/x.png"
+    ],
+    "thread": [
+      "Scaling dinner isn’t only arithmetic. In this RecipeFix example, 4 → 6 servings changes chicken from 1½ → 2¼ lb—and the broiler plan to two sheets, one at a time. What part of cooking for more people trips you up?",
+      "This is our recorded Oct 21 dairy-free adaptation of the Chicken Tikka Masala Original. It also says to finish each batch in simmering sauce. It is an app result, not a cooking test. Read the full method for doneness.",
+      "Try the Original → Make it fit. Choose your needs and servings, then read the adapted method before cooking.\n\nhttps://recipefix.app/original-recipes/chicken-tikka-masala?utm_source=x&utm_medium=social&utm_campaign=rf_headcount_1c&utm_content=x_plan_v2"
+    ],
+    "destination": "https://recipefix.app/original-recipes/chicken-tikka-masala?utm_source=x&utm_medium=social&utm_campaign=rf_headcount_1c&utm_content=x_plan_v2",
+    "linkPlacement": "Explicit optional trial reply",
+    "altText": "A specific recorded dairy-free RecipeFix example: scaling Chicken Tikka Masala from four to six servings changes chicken from one and a half to two and a quarter pounds. The plan uses two uncrowded sheets, broiled one at a time, then finishes each batch in simmering sauce. Illustrated plan, not a cooked test."
+  },
+  "metricsStatus": "No public post, campaign or conversion outcome. UTM parsing/continuity locally verified on QA-excluded visit; source event coverage is not ingestion proof.",
+  "videoDescription": "A broiler becomes crowded as a four-serving dinner grows to six. Actual RecipeFix controls select Dairy-Free and six servings. Its recorded method calls for two sheets, one at a time, then sauce finish; original illustrated pieces visibly redistribute into that plan. Invitation to open the Chicken Tikka Masala Original and choose Make it fit. Historical result captured October21,2026, current UI filmedOctober29; no actual cooked outcome."
+}

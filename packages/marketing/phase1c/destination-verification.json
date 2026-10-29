@@ -1,0 +1,32 @@
+{
+  "url": "https://recipefix.app/adapt",
+  "originalDestination": "https://recipefix.app/original-recipes/chicken-tikka-masala?utm_source=qa&utm_medium=social&utm_campaign=rf_headcount_1c&utm_content=qa_excluded",
+  "originalHeadingVerified": true,
+  "makeItFitModalOpened": true,
+  "localAttribution": {
+    "first": {
+      "landing_path": "/original-recipes/chicken-tikka-masala",
+      "captured_at": "2026-10-29T17:21:42.946Z",
+      "utm_source": "qa",
+      "utm_medium": "social",
+      "utm_campaign": "rf_headcount_1c",
+      "utm_content": "qa_excluded",
+      "channel": "social"
+    },
+    "last": {
+      "landing_path": "/original-recipes/chicken-tikka-masala",
+      "captured_at": "2026-10-29T17:21:42.946Z",
+      "utm_source": "qa",
+      "utm_medium": "social",
+      "utm_campaign": "rf_headcount_1c",
+      "utm_content": "qa_excluded",
+      "channel": "social"
+    },
+    "qa": "1"
+  },
+  "bundleUrls": [
+    "https://recipefix.app/assets/index-D18VC9ff.js",
+    "https://recipefix.app/~flock.js",
+    "https://recipefix.app/__l5e/events.59f10ad6d72ea62d.js"
+  ]
+}
