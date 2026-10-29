@@ -10,9 +10,9 @@ Draft narration (final words must be matched to the chosen actual edit before th
 
 Direction: native US English; a grounded, warm kitchen friend with lightly amused, conversational delivery, connected phrases and varied natural emphasis. No announcer cadence, exaggerated enthusiasm, breathy sales performance or forced character voice. Voice Design is a bounded test of a less generic identity, not a naturalness guarantee.
 
-Use the returned complete-script audio directly in the chosen film. Compare all useful takes in context against the same film with music/foley only. Fit the edit around natural phrase timing; do not time-stretch a voice into a rigid16-second slot. Retain raw audio, final mixes, exact requests, measured credits, sources and hashes. Never equate signal measurements with hearing. Founder listening decides.
+Use the returned complete-script audio directly in the chosen film. Compare all useful takes in context against the same film with music/foley only. Fit the edit around natural phrase timing; do not time-stretch a voice into a rigid 16-second slot. Retain raw audio, final mixes, exact requests, measured credits, sources and hashes. Never equate signal measurements with hearing. Founder listening decides.
 
-Read-only sources checked29October2026:
+Read-only sources checked 29 October 2026:
 
 - [Official Voice Design guide](https://elevenlabs.io/docs/eleven-creative/voices/voice-design): three previews, credit charging, quality variability.
 - [API request/response](https://elevenlabs.io/docs/api-reference/text-to-voice/design): `eleven_ttv_v3`, 100–1000-character text, returned preview audio.

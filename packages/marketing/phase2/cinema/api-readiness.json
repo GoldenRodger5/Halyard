@@ -1,0 +1,88 @@
+{
+  "date": "2026-10-29",
+  "credentialSource": "Existing local Scrapbook .env, read in memory; not copied or displayed",
+  "request": "GET official Gemini model catalog only",
+  "generationCalls": 0,
+  "billingTierVerified": false,
+  "status": 200,
+  "models": [
+    {
+      "name": "models/gemini-2.5-flash-image",
+      "methods": [
+        "generateContent",
+        "countTokens",
+        "batchGenerateContent"
+      ]
+    },
+    {
+      "name": "models/gemini-3-pro-image-preview",
+      "methods": [
+        "generateContent",
+        "countTokens",
+        "batchGenerateContent"
+      ]
+    },
+    {
+      "name": "models/gemini-3-pro-image",
+      "methods": [
+        "generateContent",
+        "countTokens",
+        "batchGenerateContent"
+      ]
+    },
+    {
+      "name": "models/nano-banana-pro-preview",
+      "methods": [
+        "generateContent",
+        "countTokens",
+        "batchGenerateContent"
+      ]
+    },
+    {
+      "name": "models/gemini-3.1-flash-image-preview",
+      "methods": [
+        "generateContent",
+        "countTokens",
+        "batchGenerateContent"
+      ]
+    },
+    {
+      "name": "models/gemini-3.1-flash-image",
+      "methods": [
+        "generateContent",
+        "countTokens",
+        "batchGenerateContent"
+      ]
+    },
+    {
+      "name": "models/gemini-3.1-flash-lite-image",
+      "methods": [
+        "generateContent",
+        "countTokens",
+        "batchGenerateContent"
+      ]
+    },
+    {
+      "name": "models/gemini-nano-banana-2.1",
+      "methods": [
+        "generateContent",
+        "countTokens",
+        "batchGenerateContent"
+      ]
+    },
+    {
+      "name": "models/gemini-omni-flash-preview",
+      "methods": [
+        "generateContent",
+        "countTokens"
+      ]
+    },
+    {
+      "name": "models/gemini-omni-1.1-flash",
+      "methods": [
+        "generateContent",
+        "countTokens"
+      ]
+    }
+  ]
+}

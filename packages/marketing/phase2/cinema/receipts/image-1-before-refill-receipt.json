@@ -1,0 +1,12 @@
+{
+  "name": "image-1",
+  "model": "gemini-nano-banana-2.1",
+  "reservedUSD": 0.21,
+  "budgetCeilingUSD": 2.0,
+  "state": "stopped",
+  "submittedAt": "2026-10-29T22:15:26Z",
+  "automaticRetry": false,
+  "errorType": "RuntimeError",
+  "error": "Provider HTTP status 402; no retry",
+  "billingStatus": "Not verified; a timeout is not proof no job was submitted"
+}

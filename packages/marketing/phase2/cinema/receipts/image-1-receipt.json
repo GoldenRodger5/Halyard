@@ -1,0 +1,35 @@
+{
+  "name": "image-1",
+  "model": "gemini-nano-banana-2.1",
+  "reservedUSD": 0.21,
+  "budgetCeilingUSD": 2.0,
+  "state": "completed",
+  "submittedAt": "2026-10-29T22:22:53Z",
+  "automaticRetry": false,
+  "usage": {
+    "promptTokenCount": 167,
+    "candidatesTokenCount": 1530,
+    "totalTokenCount": 2496,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 167
+      }
+    ],
+    "candidatesTokensDetails": [
+      {
+        "modality": "IMAGE",
+        "tokenCount": 1120
+      }
+    ],
+    "thoughtsTokenCount": 799,
+    "serviceTier": "standard"
+  },
+  "outputs": [
+    {
+      "file": "image-1.jpg",
+      "mime": "image/jpeg",
+      "sha256": "4bd686e2689d1c17ef128965fe7ab4a9c9a3fbd5f9b01839aee40475841b4bbd"
+    }
+  ]
+}

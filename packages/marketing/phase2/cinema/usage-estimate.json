@@ -1,0 +1,18 @@
+{
+  "approvedCeilingUSD": 2,
+  "successfulImageGenerations": 2,
+  "successfulVideoGenerations": 1,
+  "videoSeconds": 6,
+  "initialDeclinedImageAttempts": 1,
+  "explicitResumeAfterRefill": true,
+  "automaticallyRetried": false,
+  "voiceGenerations": 0,
+  "imageUsageEstimateUSD": 0.088034,
+  "videoUsageEstimateUSD": 0.612648,
+  "totalUsageEstimateUSD": 0.700682,
+  "higherInputInterpretationEstimateUSD": 0.7458,
+  "conservativeCumulativeReservedUSD": 1.53,
+  "billingInvoiceVerified": false,
+  "basis": "Official standard pricing applied to returned usage, not a billing receipt; initial_input_tokens interpretation stated separately. Prior HTTP402 produced no media. Existing top-up was performed by founder, not by this agent.",
+  "moreGenerationAuthorized": false
+}

@@ -4,7 +4,7 @@ Founder direction: **no voice generation until the very end, only for visually l
 
 **Recommendation: keep the existing ElevenLabs Starter plan.** A read-only check confirmed it is active, with 32,113 included credits available and overage disabled. Current [official pricing](https://elevenlabs.io/pricing) lists Starter at $6/month, 30,000 monthly credits and commercial licensing. The current model catalog exposes Eleven v4/v3 on this existing entitlement. A $200/month voice budget is unnecessary for this proposed short-form volume; buying more credit capacity would not by itself fix delivery.
 
-Illustrative planning arithmetic at about one credit/character: the prepared 301-character script costs about301credits per take. Fourteen clips use4,214credits for one take each; three takes each use12,642. Even28clips with three takes each use25,284. These are budget estimates, not billed usage, and other ElevenLabs features share the pool. We will not spend those credits before the actual clips are chosen.
+Illustrative planning arithmetic at about one credit/character: the prepared 301-character script costs about 301 credits per take. Fourteen clips use 4,214 credits for one take each; three takes each use 12,642. Even 28 clips with three takes each use 25,284. These are budget estimates, not billed usage, and other ElevenLabs features share the pool. We will not spend those credits before the actual clips are chosen.
 
 ## What the TikTok evidence supports
 

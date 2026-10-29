@@ -1,0 +1,42 @@
+{
+  "name": "video-1",
+  "model": "gemini-omni-1.1-flash",
+  "reservedUSD": 0.9,
+  "budgetCeilingUSD": 2.0,
+  "state": "completed",
+  "submittedAt": "2026-10-29T22:26:11Z",
+  "automaticRetry": false,
+  "interactionId": "v1_ChdCTWpqYXNEVEVLT2c1Tm9QOU1YSTZBURIXQk1qamFzRFRFS09nNU5vUDlNWEk2QVE",
+  "usage": {
+    "total_tokens": 36319,
+    "total_input_tokens": 1282,
+    "input_tokens_by_modality": [
+      {
+        "modality": "image",
+        "tokens": 1100
+      },
+      {
+        "modality": "text",
+        "tokens": 182
+      }
+    ],
+    "total_cached_tokens": 0,
+    "total_output_tokens": 34752,
+    "output_tokens_by_modality": [
+      {
+        "modality": "video",
+        "tokens": 34752
+      }
+    ],
+    "total_tool_use_tokens": 0,
+    "total_thought_tokens": 285,
+    "initial_input_tokens": 31361
+  },
+  "outputs": [
+    {
+      "file": "video-1.mp4",
+      "mime": "video/mp4",
+      "sha256": "84e86a1b9131d8164fad20caee4cf79645574ae29bb65e03705627edb8ef5e90"
+    }
+  ]
+}
