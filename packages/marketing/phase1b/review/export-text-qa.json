@@ -1,0 +1,841 @@
+{
+  "purpose": "Critical-copy readability and safe zones on actual encoded frames; not creative approval",
+  "minWordHeight": 24,
+  "contrastThreshold": 4.5,
+  "safeBox": {
+    "x0": 90,
+    "y0": 240,
+    "x1": 920,
+    "y1": 1460
+  },
+  "results": [
+    {
+      "film": "egg",
+      "at": 1.2,
+      "intended": [
+        "FOLLOW",
+        "THE YOLK."
+      ],
+      "passed": true,
+      "checks": [
+        {
+          "id": "still.canvas",
+          "passed": true,
+          "detail": "1080×1920",
+          "problems": []
+        },
+        {
+          "id": "still.text_readback",
+          "passed": true,
+          "detail": "2 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 12 words, file: 38 words, inverted: 20 words, rules removed: 40 words, white-text mask: 4 words, dark-text mask: 3 words)",
+          "problems": []
+        },
+        {
+          "id": "still.no_artefacts",
+          "passed": true,
+          "detail": "no [object Object] / undefined / NaN / braces read on the image",
+          "problems": []
+        },
+        {
+          "id": "still.safe_zone",
+          "passed": true,
+          "detail": "3 word boxes inside x 90–920, y 240–1460",
+          "problems": []
+        },
+        {
+          "id": "still.text_overlap",
+          "passed": true,
+          "detail": "no two intended lines overprint each other",
+          "problems": []
+        },
+        {
+          "id": "still.text_size",
+          "passed": true,
+          "detail": "every line's median OCR word height ≥ 24px",
+          "problems": []
+        },
+        {
+          "id": "still.contrast",
+          "passed": true,
+          "detail": "min 9.87:1 over 3 word boxes (WCAG AA 4.5:1)",
+          "problems": []
+        }
+      ],
+      "readBack": [
+        {
+          "line": "FOLLOW",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "FOLLOW",
+              "conf": 100,
+              "x": 320,
+              "y": 299,
+              "w": 439,
+              "h": 102
+            }
+          ]
+        },
+        {
+          "line": "THE YOLK.",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "THE",
+              "conf": 100,
+              "x": 269,
+              "y": 417,
+              "w": 217,
+              "h": 112
+            },
+            {
+              "text": "YOLK.",
+              "conf": 100,
+              "x": 499,
+              "y": 420,
+              "w": 319,
+              "h": 113
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "film": "egg",
+      "at": 6.95,
+      "intended": [
+        "NICE",
+        "TRY."
+      ],
+      "passed": true,
+      "checks": [
+        {
+          "id": "still.canvas",
+          "passed": true,
+          "detail": "1080×1920",
+          "problems": []
+        },
+        {
+          "id": "still.text_readback",
+          "passed": true,
+          "detail": "2 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 11 words, file: 21 words, inverted: 18 words, rules removed: 22 words, white-text mask: 4 words, dark-text mask: 11 words)",
+          "problems": []
+        },
+        {
+          "id": "still.no_artefacts",
+          "passed": true,
+          "detail": "no [object Object] / undefined / NaN / braces read on the image",
+          "problems": []
+        },
+        {
+          "id": "still.safe_zone",
+          "passed": true,
+          "detail": "2 word boxes inside x 90–920, y 240–1460",
+          "problems": []
+        },
+        {
+          "id": "still.text_overlap",
+          "passed": true,
+          "detail": "no two intended lines overprint each other",
+          "problems": []
+        },
+        {
+          "id": "still.text_size",
+          "passed": true,
+          "detail": "every line's median OCR word height ≥ 24px",
+          "problems": []
+        },
+        {
+          "id": "still.contrast",
+          "passed": true,
+          "detail": "min 9.03:1 over 2 word boxes (WCAG AA 4.5:1)",
+          "problems": []
+        }
+      ],
+      "readBack": [
+        {
+          "line": "NICE",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "NICE",
+              "conf": 100,
+              "x": 421,
+              "y": 304,
+              "w": 259,
+              "h": 92
+            }
+          ]
+        },
+        {
+          "line": "TRY.",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "TRY.",
+              "conf": 100,
+              "x": 421,
+              "y": 421,
+              "w": 259,
+              "h": 111
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "film": "egg",
+      "at": 9.5,
+      "intended": [
+        "WHICH",
+        "SHELL?"
+      ],
+      "passed": true,
+      "checks": [
+        {
+          "id": "still.canvas",
+          "passed": true,
+          "detail": "1080×1920",
+          "problems": []
+        },
+        {
+          "id": "still.text_readback",
+          "passed": true,
+          "detail": "2 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 12 words, file: 23 words, inverted: 11 words, rules removed: 26 words, white-text mask: 3 words, dark-text mask: 11 words)",
+          "problems": []
+        },
+        {
+          "id": "still.no_artefacts",
+          "passed": true,
+          "detail": "no [object Object] / undefined / NaN / braces read on the image",
+          "problems": []
+        },
+        {
+          "id": "still.safe_zone",
+          "passed": true,
+          "detail": "2 word boxes inside x 90–920, y 240–1460",
+          "problems": []
+        },
+        {
+          "id": "still.text_overlap",
+          "passed": true,
+          "detail": "no two intended lines overprint each other",
+          "problems": []
+        },
+        {
+          "id": "still.text_size",
+          "passed": true,
+          "detail": "every line's median OCR word height ≥ 24px",
+          "problems": []
+        },
+        {
+          "id": "still.contrast",
+          "passed": true,
+          "detail": "min 9.32:1 over 2 word boxes (WCAG AA 4.5:1)",
+          "problems": []
+        }
+      ],
+      "readBack": [
+        {
+          "line": "WHICH",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "WHICH",
+              "conf": 100,
+              "x": 360,
+              "y": 301,
+              "w": 365,
+              "h": 97
+            }
+          ]
+        },
+        {
+          "line": "SHELL?",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "SHELL?",
+              "conf": 100,
+              "x": 354,
+              "y": 415,
+              "w": 385,
+              "h": 110
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "film": "egg",
+      "at": 12.2,
+      "intended": [
+        "THERE",
+        "YOU ARE."
+      ],
+      "passed": true,
+      "checks": [
+        {
+          "id": "still.canvas",
+          "passed": true,
+          "detail": "1080×1920",
+          "problems": []
+        },
+        {
+          "id": "still.text_readback",
+          "passed": true,
+          "detail": "2 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 12 words, file: 30 words, inverted: 24 words, rules removed: 30 words, white-text mask: 4 words, dark-text mask: 8 words)",
+          "problems": []
+        },
+        {
+          "id": "still.no_artefacts",
+          "passed": true,
+          "detail": "no [object Object] / undefined / NaN / braces read on the image",
+          "problems": []
+        },
+        {
+          "id": "still.safe_zone",
+          "passed": true,
+          "detail": "3 word boxes inside x 90–920, y 240–1460",
+          "problems": []
+        },
+        {
+          "id": "still.text_overlap",
+          "passed": true,
+          "detail": "no two intended lines overprint each other",
+          "problems": []
+        },
+        {
+          "id": "still.text_size",
+          "passed": true,
+          "detail": "every line's median OCR word height ≥ 24px",
+          "problems": []
+        },
+        {
+          "id": "still.contrast",
+          "passed": true,
+          "detail": "min 9.62:1 over 3 word boxes (WCAG AA 4.5:1)",
+          "problems": []
+        }
+      ],
+      "readBack": [
+        {
+          "line": "THERE",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "THERE",
+              "conf": 100,
+              "x": 371,
+              "y": 303,
+              "w": 343,
+              "h": 92
+            }
+          ]
+        },
+        {
+          "line": "YOU ARE.",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "YOU",
+              "conf": 100,
+              "x": 303,
+              "y": 420,
+              "w": 230,
+              "h": 109
+            },
+            {
+              "text": "ARE.",
+              "conf": 100,
+              "x": 546,
+              "y": 418,
+              "w": 247,
+              "h": 109
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "film": "egg",
+      "at": 14.1,
+      "intended": [
+        "OH."
+      ],
+      "passed": false,
+      "checks": [
+        {
+          "id": "still.canvas",
+          "passed": true,
+          "detail": "1080×1920",
+          "problems": []
+        },
+        {
+          "id": "still.text_readback",
+          "passed": true,
+          "detail": "1 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 10 words, file: 23 words, inverted: 21 words, rules removed: 23 words, white-text mask: 2 words, dark-text mask: 10 words)",
+          "problems": []
+        },
+        {
+          "id": "still.no_artefacts",
+          "passed": true,
+          "detail": "no [object Object] / undefined / NaN / braces read on the image",
+          "problems": []
+        },
+        {
+          "id": "still.safe_zone",
+          "passed": false,
+          "detail": "0 word boxes inside x 90–920, y 240–1460",
+          "problems": []
+        },
+        {
+          "id": "still.text_overlap",
+          "passed": true,
+          "detail": "no two intended lines overprint each other",
+          "problems": []
+        },
+        {
+          "id": "still.text_size",
+          "passed": true,
+          "detail": "every line's median OCR word height ≥ 24px",
+          "problems": []
+        },
+        {
+          "id": "still.contrast",
+          "passed": false,
+          "detail": "min n/a:1 over 0 word boxes (WCAG AA 4.5:1)",
+          "problems": []
+        }
+      ],
+      "readBack": [
+        {
+          "line": "OH.",
+          "similarity": 1,
+          "missing": [],
+          "boxes": []
+        }
+      ]
+    },
+    {
+      "film": "popcorn",
+      "at": 0.5,
+      "intended": [
+        "An explosion.",
+        "In a snack."
+      ],
+      "passed": true,
+      "checks": [
+        {
+          "id": "still.canvas",
+          "passed": true,
+          "detail": "1080×1920",
+          "problems": []
+        },
+        {
+          "id": "still.text_readback",
+          "passed": true,
+          "detail": "2 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 8 words, file: 7 words, inverted: 7 words, rules removed: 7 words, white-text mask: 2 words, dark-text mask: 7 words)",
+          "problems": []
+        },
+        {
+          "id": "still.no_artefacts",
+          "passed": true,
+          "detail": "no [object Object] / undefined / NaN / braces read on the image",
+          "problems": []
+        },
+        {
+          "id": "still.safe_zone",
+          "passed": true,
+          "detail": "2 word boxes inside x 90–920, y 240–1460",
+          "problems": []
+        },
+        {
+          "id": "still.text_overlap",
+          "passed": true,
+          "detail": "no two intended lines overprint each other",
+          "problems": []
+        },
+        {
+          "id": "still.text_size",
+          "passed": true,
+          "detail": "every line's median OCR word height ≥ 24px",
+          "problems": []
+        },
+        {
+          "id": "still.contrast",
+          "passed": true,
+          "detail": "min 10.27:1 over 2 word boxes (WCAG AA 4.5:1)",
+          "problems": []
+        }
+      ],
+      "readBack": [
+        {
+          "line": "An explosion.",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "explosion.",
+              "conf": 100,
+              "x": 195,
+              "y": 269,
+              "w": 349,
+              "h": 73
+            }
+          ]
+        },
+        {
+          "line": "In a snack.",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "snack.",
+              "conf": 100,
+              "x": 218,
+              "y": 350,
+              "w": 231,
+              "h": 71
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "film": "popcorn",
+      "at": 3,
+      "intended": [
+        "Inside a kernel.",
+        "A little water."
+      ],
+      "passed": true,
+      "checks": [
+        {
+          "id": "still.canvas",
+          "passed": true,
+          "detail": "1080×1920",
+          "problems": []
+        },
+        {
+          "id": "still.text_readback",
+          "passed": true,
+          "detail": "2 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 9 words, file: 9 words, inverted: 9 words, rules removed: 9 words, white-text mask: 0 words, dark-text mask: 9 words)",
+          "problems": []
+        },
+        {
+          "id": "still.no_artefacts",
+          "passed": true,
+          "detail": "no [object Object] / undefined / NaN / braces read on the image",
+          "problems": []
+        },
+        {
+          "id": "still.safe_zone",
+          "passed": true,
+          "detail": "4 word boxes inside x 90–920, y 240–1460",
+          "problems": []
+        },
+        {
+          "id": "still.text_overlap",
+          "passed": true,
+          "detail": "no two intended lines overprint each other",
+          "problems": []
+        },
+        {
+          "id": "still.text_size",
+          "passed": true,
+          "detail": "every line's median OCR word height ≥ 24px",
+          "problems": []
+        },
+        {
+          "id": "still.contrast",
+          "passed": true,
+          "detail": "min 10.27:1 over 4 word boxes (WCAG AA 4.5:1)",
+          "problems": []
+        }
+      ],
+      "readBack": [
+        {
+          "line": "Inside a kernel.",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Inside",
+              "conf": 100,
+              "x": 94,
+              "y": 269,
+              "w": 198,
+              "h": 68
+            },
+            {
+              "text": "kernel.",
+              "conf": 100,
+              "x": 350,
+              "y": 271,
+              "w": 239,
+              "h": 68
+            }
+          ]
+        },
+        {
+          "line": "A little water.",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "little",
+              "conf": 100,
+              "x": 153,
+              "y": 347,
+              "w": 140,
+              "h": 64
+            },
+            {
+              "text": "water.",
+              "conf": 100,
+              "x": 300,
+              "y": 350,
+              "w": 219,
+              "h": 66
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "film": "popcorn",
+      "at": 6,
+      "intended": [
+        "Water",
+        "steam.",
+        "Pressure builds."
+      ],
+      "passed": true,
+      "checks": [
+        {
+          "id": "still.canvas",
+          "passed": true,
+          "detail": "1080×1920",
+          "problems": []
+        },
+        {
+          "id": "still.text_readback",
+          "passed": true,
+          "detail": "3 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 8 words, file: 8 words, inverted: 8 words, rules removed: 8 words, white-text mask: 7 words, dark-text mask: 8 words)",
+          "problems": []
+        },
+        {
+          "id": "still.no_artefacts",
+          "passed": true,
+          "detail": "no [object Object] / undefined / NaN / braces read on the image",
+          "problems": []
+        },
+        {
+          "id": "still.safe_zone",
+          "passed": true,
+          "detail": "4 word boxes inside x 90–920, y 240–1460",
+          "problems": []
+        },
+        {
+          "id": "still.text_overlap",
+          "passed": true,
+          "detail": "no two intended lines overprint each other",
+          "problems": []
+        },
+        {
+          "id": "still.text_size",
+          "passed": true,
+          "detail": "every line's median OCR word height ≥ 24px",
+          "problems": []
+        },
+        {
+          "id": "still.contrast",
+          "passed": true,
+          "detail": "min 9.53:1 over 4 word boxes (WCAG AA 4.5:1)",
+          "problems": []
+        }
+      ],
+      "readBack": [
+        {
+          "line": "Water",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Water",
+              "conf": 100,
+              "x": 99,
+              "y": 266,
+              "w": 193,
+              "h": 70
+            }
+          ]
+        },
+        {
+          "line": "steam.",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "steam.",
+              "conf": 100,
+              "x": 384,
+              "y": 272,
+              "w": 239,
+              "h": 71
+            }
+          ]
+        },
+        {
+          "line": "Pressure builds.",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Pressure",
+              "conf": 100,
+              "x": 99,
+              "y": 339,
+              "w": 281,
+              "h": 74
+            },
+            {
+              "text": "builds.",
+              "conf": 100,
+              "x": 388,
+              "y": 345,
+              "w": 235,
+              "h": 73
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "film": "popcorn",
+      "at": 12.7,
+      "intended": [
+        "The starch becomes",
+        "the fluffy part."
+      ],
+      "passed": true,
+      "checks": [
+        {
+          "id": "still.canvas",
+          "passed": true,
+          "detail": "1080×1920",
+          "problems": []
+        },
+        {
+          "id": "still.text_readback",
+          "passed": true,
+          "detail": "2 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 9 words, file: 9 words, inverted: 9 words, rules removed: 9 words, white-text mask: 1 words, dark-text mask: 9 words)",
+          "problems": []
+        },
+        {
+          "id": "still.no_artefacts",
+          "passed": true,
+          "detail": "no [object Object] / undefined / NaN / braces read on the image",
+          "problems": []
+        },
+        {
+          "id": "still.safe_zone",
+          "passed": true,
+          "detail": "6 word boxes inside x 90–920, y 240–1460",
+          "problems": []
+        },
+        {
+          "id": "still.text_overlap",
+          "passed": true,
+          "detail": "no two intended lines overprint each other",
+          "problems": []
+        },
+        {
+          "id": "still.text_size",
+          "passed": true,
+          "detail": "every line's median OCR word height ≥ 24px",
+          "problems": []
+        },
+        {
+          "id": "still.contrast",
+          "passed": true,
+          "detail": "min 10.60:1 over 6 word boxes (WCAG AA 4.5:1)",
+          "problems": []
+        }
+      ],
+      "readBack": [
+        {
+          "line": "The starch becomes",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "The",
+              "conf": 100,
+              "x": 97,
+              "y": 1225,
+              "w": 133,
+              "h": 56
+            },
+            {
+              "text": "starch",
+              "conf": 100,
+              "x": 237,
+              "y": 1225,
+              "w": 209,
+              "h": 56
+            },
+            {
+              "text": "becomes",
+              "conf": 100,
+              "x": 454,
+              "y": 1225,
+              "w": 304,
+              "h": 56
+            }
+          ]
+        },
+        {
+          "line": "the fluffy part.",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "the",
+              "conf": 100,
+              "x": 94,
+              "y": 1294,
+              "w": 109,
+              "h": 73
+            },
+            {
+              "text": "fluffy",
+              "conf": 100,
+              "x": 211,
+              "y": 1295,
+              "w": 171,
+              "h": 74
+            },
+            {
+              "text": "part.",
+              "conf": 100,
+              "x": 391,
+              "y": 1298,
+              "w": 170,
+              "h": 74
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

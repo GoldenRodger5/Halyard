@@ -1,0 +1,400 @@
+{
+  "purpose": "Engineering support only, not a creative approval",
+  "exports": [
+    {
+      "name": "egg",
+      "sha256": "05b3016cdd9a8e0d6d4f1d475ae1b38a0afa345e07b84d9d48503e0c623304a5",
+      "bytes": 2975870,
+      "probe": {
+        "streams": [
+          {
+            "index": 0,
+            "codec_name": "h264",
+            "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+            "profile": "High",
+            "codec_type": "video",
+            "codec_tag_string": "avc1",
+            "codec_tag": "0x31637661",
+            "width": 1080,
+            "height": 1920,
+            "coded_width": 1080,
+            "coded_height": 1920,
+            "closed_captions": 0,
+            "film_grain": 0,
+            "has_b_frames": 2,
+            "sample_aspect_ratio": "1:1",
+            "display_aspect_ratio": "9:16",
+            "pix_fmt": "yuvj420p",
+            "level": 40,
+            "color_range": "pc",
+            "color_space": "bt470bg",
+            "chroma_location": "center",
+            "field_order": "progressive",
+            "refs": 1,
+            "is_avc": "true",
+            "nal_length_size": "4",
+            "id": "0x1",
+            "r_frame_rate": "30/1",
+            "avg_frame_rate": "30/1",
+            "time_base": "1/90000",
+            "start_pts": 0,
+            "start_time": "0.000000",
+            "duration_ts": 1350000,
+            "duration": "15.000000",
+            "bit_rate": "1258866",
+            "bits_per_raw_sample": "8",
+            "nb_frames": "450",
+            "extradata_size": 51,
+            "disposition": {
+              "default": 1,
+              "dub": 0,
+              "original": 0,
+              "comment": 0,
+              "lyrics": 0,
+              "karaoke": 0,
+              "forced": 0,
+              "hearing_impaired": 0,
+              "visual_impaired": 0,
+              "clean_effects": 0,
+              "attached_pic": 0,
+              "timed_thumbnails": 0,
+              "non_diegetic": 0,
+              "captions": 0,
+              "descriptions": 0,
+              "metadata": 0,
+              "dependent": 0,
+              "still_image": 0,
+              "multilayer": 0
+            },
+            "tags": {
+              "language": "und",
+              "handler_name": "VideoHandler",
+              "vendor_id": "[0][0][0][0]",
+              "encoder": "Lavc61.19.100 libx264"
+            },
+            "side_data_list": [
+              {
+                "side_data_type": "ICC Profile"
+              }
+            ]
+          },
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_long_name": "AAC (Advanced Audio Coding)",
+            "profile": "LC",
+            "codec_type": "audio",
+            "codec_tag_string": "mp4a",
+            "codec_tag": "0x6134706d",
+            "sample_fmt": "fltp",
+            "sample_rate": "48000",
+            "channels": 2,
+            "channel_layout": "stereo",
+            "bits_per_sample": 0,
+            "initial_padding": 0,
+            "id": "0x2",
+            "r_frame_rate": "0/0",
+            "avg_frame_rate": "0/0",
+            "time_base": "1/48000",
+            "start_pts": 0,
+            "start_time": "0.000000",
+            "duration_ts": 722944,
+            "duration": "15.061333",
+            "bit_rate": "317375",
+            "nb_frames": "706",
+            "extradata_size": 2,
+            "disposition": {
+              "default": 1,
+              "dub": 0,
+              "original": 0,
+              "comment": 0,
+              "lyrics": 0,
+              "karaoke": 0,
+              "forced": 0,
+              "hearing_impaired": 0,
+              "visual_impaired": 0,
+              "clean_effects": 0,
+              "attached_pic": 0,
+              "timed_thumbnails": 0,
+              "non_diegetic": 0,
+              "captions": 0,
+              "descriptions": 0,
+              "metadata": 0,
+              "dependent": 0,
+              "still_image": 0,
+              "multilayer": 0
+            },
+            "tags": {
+              "language": "und",
+              "handler_name": "SoundHandler",
+              "vendor_id": "[0][0][0][0]"
+            }
+          }
+        ],
+        "format": {
+          "filename": "/Volumes/T9/Developer/Worktrees/halyard-recipefix-creative-breakthrough-20261029/packages/marketing/phase1b/review/egg.mp4",
+          "nb_streams": 2,
+          "nb_programs": 0,
+          "nb_stream_groups": 0,
+          "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+          "format_long_name": "QuickTime / MOV",
+          "start_time": "0.000000",
+          "duration": "15.061333",
+          "size": "2975870",
+          "bit_rate": "1580667",
+          "probe_score": 100,
+          "tags": {
+            "major_brand": "isom",
+            "minor_version": "512",
+            "compatible_brands": "isomiso2avc1mp41",
+            "encoder": "Lavf61.7.100",
+            "comment": "Made with Remotion 4.0.507"
+          }
+        }
+      },
+      "ebur128Summary": "Summary:\n\n  Integrated loudness:\n    I:         -18.1 LUFS\n    Threshold: -28.7 LUFS\n\n  Loudness range:\n    LRA:         3.3 LU\n    Threshold: -38.6 LUFS\n    LRA low:   -20.2 LUFS\n    LRA high:  -16.9 LUFS\n\n  True peak:\n    Peak:       -2.0 dBFS",
+      "loudnormInputMeasurement": {
+        "input_i": "-18.31",
+        "input_tp": "-2.00",
+        "input_lra": "4.90",
+        "input_thresh": "-29.09",
+        "output_i": "-18.25",
+        "output_tp": "-2.00",
+        "output_lra": "3.70",
+        "output_thresh": "-28.78",
+        "normalization_type": "dynamic",
+        "target_offset": "-0.75"
+      },
+      "measurementNote": "EBU R128 is the canonical reporting meter. loudnorm input analysis retained separately; it uses a different analysis path.",
+      "encodedAudioRms": [
+        {
+          "from": 4.35,
+          "to": 4.8,
+          "dBFS": -18.51575333199763
+        },
+        {
+          "from": 9.1,
+          "to": 9.8,
+          "dBFS": -83.33636774631792
+        },
+        {
+          "from": 11.4,
+          "to": 11.9,
+          "dBFS": -14.71369667505755
+        },
+        {
+          "from": 14.1,
+          "to": 14.4,
+          "dBFS": -18.042618135748775
+        }
+      ]
+    },
+    {
+      "name": "popcorn",
+      "sha256": "2852f0b9488a4c9eb84f7606f520b1536f35d9ea192292229c4a3f0be8c58070",
+      "bytes": 4836829,
+      "probe": {
+        "streams": [
+          {
+            "index": 0,
+            "codec_name": "h264",
+            "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+            "profile": "High",
+            "codec_type": "video",
+            "codec_tag_string": "avc1",
+            "codec_tag": "0x31637661",
+            "width": 1080,
+            "height": 1920,
+            "coded_width": 1080,
+            "coded_height": 1920,
+            "closed_captions": 0,
+            "film_grain": 0,
+            "has_b_frames": 2,
+            "sample_aspect_ratio": "1:1",
+            "display_aspect_ratio": "9:16",
+            "pix_fmt": "yuvj420p",
+            "level": 40,
+            "color_range": "pc",
+            "color_space": "bt470bg",
+            "chroma_location": "center",
+            "field_order": "progressive",
+            "refs": 1,
+            "is_avc": "true",
+            "nal_length_size": "4",
+            "id": "0x1",
+            "r_frame_rate": "30/1",
+            "avg_frame_rate": "30/1",
+            "time_base": "1/90000",
+            "start_pts": 0,
+            "start_time": "0.000000",
+            "duration_ts": 1215000,
+            "duration": "13.500000",
+            "bit_rate": "2537889",
+            "bits_per_raw_sample": "8",
+            "nb_frames": "405",
+            "extradata_size": 51,
+            "disposition": {
+              "default": 1,
+              "dub": 0,
+              "original": 0,
+              "comment": 0,
+              "lyrics": 0,
+              "karaoke": 0,
+              "forced": 0,
+              "hearing_impaired": 0,
+              "visual_impaired": 0,
+              "clean_effects": 0,
+              "attached_pic": 0,
+              "timed_thumbnails": 0,
+              "non_diegetic": 0,
+              "captions": 0,
+              "descriptions": 0,
+              "metadata": 0,
+              "dependent": 0,
+              "still_image": 0,
+              "multilayer": 0
+            },
+            "tags": {
+              "language": "und",
+              "handler_name": "VideoHandler",
+              "vendor_id": "[0][0][0][0]",
+              "encoder": "Lavc61.19.100 libx264"
+            },
+            "side_data_list": [
+              {
+                "side_data_type": "ICC Profile"
+              }
+            ]
+          },
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_long_name": "AAC (Advanced Audio Coding)",
+            "profile": "LC",
+            "codec_type": "audio",
+            "codec_tag_string": "mp4a",
+            "codec_tag": "0x6134706d",
+            "sample_fmt": "fltp",
+            "sample_rate": "48000",
+            "channels": 2,
+            "channel_layout": "stereo",
+            "bits_per_sample": 0,
+            "initial_padding": 0,
+            "id": "0x2",
+            "r_frame_rate": "0/0",
+            "avg_frame_rate": "0/0",
+            "time_base": "1/48000",
+            "start_pts": 0,
+            "start_time": "0.000000",
+            "duration_ts": 650240,
+            "duration": "13.546667",
+            "bit_rate": "317375",
+            "nb_frames": "635",
+            "extradata_size": 2,
+            "disposition": {
+              "default": 1,
+              "dub": 0,
+              "original": 0,
+              "comment": 0,
+              "lyrics": 0,
+              "karaoke": 0,
+              "forced": 0,
+              "hearing_impaired": 0,
+              "visual_impaired": 0,
+              "clean_effects": 0,
+              "attached_pic": 0,
+              "timed_thumbnails": 0,
+              "non_diegetic": 0,
+              "captions": 0,
+              "descriptions": 0,
+              "metadata": 0,
+              "dependent": 0,
+              "still_image": 0,
+              "multilayer": 0
+            },
+            "tags": {
+              "language": "und",
+              "handler_name": "SoundHandler",
+              "vendor_id": "[0][0][0][0]"
+            }
+          }
+        ],
+        "format": {
+          "filename": "/Volumes/T9/Developer/Worktrees/halyard-recipefix-creative-breakthrough-20261029/packages/marketing/phase1b/review/popcorn.mp4",
+          "nb_streams": 2,
+          "nb_programs": 0,
+          "nb_stream_groups": 0,
+          "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+          "format_long_name": "QuickTime / MOV",
+          "start_time": "0.000000",
+          "duration": "13.546667",
+          "size": "4836829",
+          "bit_rate": "2856395",
+          "probe_score": 100,
+          "tags": {
+            "major_brand": "isom",
+            "minor_version": "512",
+            "compatible_brands": "isomiso2avc1mp41",
+            "encoder": "Lavf61.7.100",
+            "comment": "Made with Remotion 4.0.507"
+          }
+        }
+      },
+      "ebur128Summary": "Summary:\n\n  Integrated loudness:\n    I:         -17.9 LUFS\n    Threshold: -29.6 LUFS\n\n  Loudness range:\n    LRA:         6.8 LU\n    Threshold: -39.3 LUFS\n    LRA low:   -23.5 LUFS\n    LRA high:  -16.7 LUFS\n\n  True peak:\n    Peak:       -1.7 dBFS",
+      "loudnormInputMeasurement": {
+        "input_i": "-18.42",
+        "input_tp": "-1.72",
+        "input_lra": "10.30",
+        "input_thresh": "-30.32",
+        "output_i": "-18.87",
+        "output_tp": "-2.00",
+        "output_lra": "4.70",
+        "output_thresh": "-30.50",
+        "normalization_type": "dynamic",
+        "target_offset": "-0.13"
+      },
+      "measurementNote": "EBU R128 is the canonical reporting meter. loudnorm input analysis retained separately; it uses a different analysis path.",
+      "encodedAudioRms": [
+        {
+          "from": 6.4,
+          "to": 7,
+          "dBFS": -19.968534686991948
+        },
+        {
+          "from": 8.02,
+          "to": 8.27,
+          "dBFS": -80.96134265381737
+        },
+        {
+          "from": 8.333333,
+          "to": 8.6,
+          "dBFS": -11.289897242379325
+        },
+        {
+          "from": 12.9,
+          "to": 13.3,
+          "dBFS": -46.19492807168346
+        }
+      ]
+    }
+  ],
+  "ohSupplement": {
+    "automaticOcrResult": "Failed: zero boxes; retained in export-text-qa.json",
+    "scope": "Actual encoded14.1s frame, independent bright-ink region measurement and reviewer read-back; not a change to shared OCR gate",
+    "intended": "OH.",
+    "bounds": {
+      "x0": 454,
+      "y0": 308,
+      "x1": 628,
+      "y1": 390
+    },
+    "contrastRatio": 9.99528168865632,
+    "minWordHeight": 24,
+    "contrastThreshold": 4.5,
+    "measuredPassed": true
+  },
+  "providerCalls": 0,
+  "providerSpendUsd": 0,
+  "newSubscriptions": 0,
+  "publicationApproved": false
+}

@@ -1,0 +1,25 @@
+import {createServer} from 'node:http';
+import {createReadStream, statSync} from 'node:fs';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+createServer((req, res) => {
+  try {
+    const name = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
+    if (name === '/') { res.writeHead(302, {Location: '/review/index.html'}); return res.end(); }
+    const file = path.resolve(root, '.' + name);
+    if (!file.startsWith(root + path.sep)) throw Error('Outside review');
+    const stat = statSync(file);
+    if (!stat.isFile()) throw Error('Not a file');
+    const mime = {'.html':'text/html; charset=utf-8','.mp4':'video/mp4','.jpg':'image/jpeg','.json':'application/json','.md':'text/plain; charset=utf-8'}[path.extname(file)] || 'application/octet-stream';
+    res.setHeader('Content-Type', mime); res.setHeader('Accept-Ranges', 'bytes'); res.setHeader('Cache-Control', 'no-cache');
+    const range = req.headers.range?.match(/^bytes=(\d+)-(\d*)$/);
+    if (range) {
+      const start = Number(range[1]), end = Math.min(stat.size - 1, range[2] ? Number(range[2]) : stat.size - 1);
+      if (start > end || start >= stat.size) { res.writeHead(416, {'Content-Range': `bytes */${stat.size}`}); return res.end(); }
+      res.writeHead(206, {'Content-Range': `bytes ${start}-${end}/${stat.size}`, 'Content-Length': end - start + 1});
+      return createReadStream(file, {start, end}).pipe(res);
+    }
+    res.writeHead(200, {'Content-Length': stat.size}); createReadStream(file).pipe(res);
+  } catch {res.writeHead(404); res.end('Not found');}
+}).listen(4330, '127.0.0.1', () => console.log('Phase1B private review: http://127.0.0.1:4330/'));
