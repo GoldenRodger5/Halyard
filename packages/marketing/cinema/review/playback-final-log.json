@@ -1,0 +1,325 @@
+[
+  {
+    "mode": "muted",
+    "at": 2,
+    "states": [
+      {
+        "id": "A",
+        "currentTime": 2.083549,
+        "duration": 23.061333,
+        "muted": true,
+        "ended": false,
+        "paused": false,
+        "error": null,
+        "played": [
+          [
+            0,
+            2.083549
+          ]
+        ]
+      },
+      {
+        "id": "B",
+        "currentTime": 2.084077,
+        "duration": 23,
+        "muted": true,
+        "ended": false,
+        "paused": false,
+        "error": null,
+        "played": [
+          [
+            0,
+            2.084077
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "mode": "muted",
+    "at": 7,
+    "states": [
+      {
+        "id": "A",
+        "currentTime": 7.057908,
+        "duration": 23.061333,
+        "muted": true,
+        "ended": false,
+        "paused": false,
+        "error": null,
+        "played": [
+          [
+            0,
+            7.057908
+          ]
+        ]
+      },
+      {
+        "id": "B",
+        "currentTime": 7.057937,
+        "duration": 23,
+        "muted": true,
+        "ended": false,
+        "paused": false,
+        "error": null,
+        "played": [
+          [
+            0,
+            7.057937
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "mode": "muted",
+    "at": 11,
+    "states": [
+      {
+        "id": "A",
+        "currentTime": 11.070831,
+        "duration": 23.061333,
+        "muted": true,
+        "ended": false,
+        "paused": false,
+        "error": null,
+        "played": [
+          [
+            0,
+            11.070831
+          ]
+        ]
+      },
+      {
+        "id": "B",
+        "currentTime": 11.070848,
+        "duration": 23,
+        "muted": true,
+        "ended": false,
+        "paused": false,
+        "error": null,
+        "played": [
+          [
+            0,
+            11.070848
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "mode": "muted",
+    "at": 15,
+    "states": [
+      {
+        "id": "A",
+        "currentTime": 15.065281,
+        "duration": 23.061333,
+        "muted": true,
+        "ended": false,
+        "paused": false,
+        "error": null,
+        "played": [
+          [
+            0,
+            15.065281
+          ]
+        ]
+      },
+      {
+        "id": "B",
+        "currentTime": 15.065299,
+        "duration": 23,
+        "muted": true,
+        "ended": false,
+        "paused": false,
+        "error": null,
+        "played": [
+          [
+            0,
+            15.065299
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "mode": "muted",
+    "at": 19,
+    "states": [
+      {
+        "id": "A",
+        "currentTime": 19.080866,
+        "duration": 23.061333,
+        "muted": true,
+        "ended": false,
+        "paused": false,
+        "error": null,
+        "played": [
+          [
+            0,
+            19.080866
+          ]
+        ]
+      },
+      {
+        "id": "B",
+        "currentTime": 19.080892,
+        "duration": 23,
+        "muted": true,
+        "ended": false,
+        "paused": false,
+        "error": null,
+        "played": [
+          [
+            0,
+            19.080892
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "mode": "muted",
+    "at": 22.8,
+    "states": [
+      {
+        "id": "A",
+        "currentTime": 22.882771,
+        "duration": 23.061333,
+        "muted": true,
+        "ended": false,
+        "paused": false,
+        "error": null,
+        "played": [
+          [
+            0,
+            22.882771
+          ]
+        ]
+      },
+      {
+        "id": "B",
+        "currentTime": 22.882811,
+        "duration": 23,
+        "muted": true,
+        "ended": false,
+        "paused": false,
+        "error": null,
+        "played": [
+          [
+            0,
+            22.882811
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "mode": "muted-completed-to-ended",
+    "states": [
+      {
+        "id": "A",
+        "currentTime": 23.061333,
+        "duration": 23.061333,
+        "muted": true,
+        "ended": true,
+        "paused": true,
+        "error": null,
+        "played": [
+          [
+            0,
+            23.061333
+          ]
+        ]
+      },
+      {
+        "id": "B",
+        "currentTime": 23,
+        "duration": 23,
+        "muted": true,
+        "ended": true,
+        "paused": true,
+        "error": null,
+        "played": [
+          [
+            0,
+            23
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "mode": "sound-on playback; musical/auditory quality not directly perceived by reviewer",
+    "id": "A",
+    "states": [
+      {
+        "id": "A",
+        "currentTime": 23.061333,
+        "duration": 23.061333,
+        "muted": false,
+        "ended": true,
+        "paused": true,
+        "error": null,
+        "played": [
+          [
+            0,
+            23.061333
+          ]
+        ]
+      },
+      {
+        "id": "B",
+        "currentTime": 23,
+        "duration": 23,
+        "muted": true,
+        "ended": true,
+        "paused": true,
+        "error": null,
+        "played": [
+          [
+            0,
+            23
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "mode": "sound-on playback; musical/auditory quality not directly perceived by reviewer",
+    "id": "B",
+    "states": [
+      {
+        "id": "A",
+        "currentTime": 23.061333,
+        "duration": 23.061333,
+        "muted": true,
+        "ended": true,
+        "paused": true,
+        "error": null,
+        "played": [
+          [
+            0,
+            23.061333
+          ]
+        ]
+      },
+      {
+        "id": "B",
+        "currentTime": 23,
+        "duration": 23,
+        "muted": false,
+        "ended": true,
+        "paused": true,
+        "error": null,
+        "played": [
+          [
+            0,
+            23
+          ]
+        ]
+      }
+    ]
+  }
+]

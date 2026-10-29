@@ -1,0 +1,6 @@
+{
+  "name": "recipefix-cinema-hyperframes-tool",
+  "private": true,
+  "type": "module",
+  "dependencies": {"hyperframes": "0.8.214", "gsap": "3.15.0"}
+}

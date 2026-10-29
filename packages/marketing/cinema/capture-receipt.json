@@ -1,0 +1,72 @@
+{
+  "source": "https://recipefix.app",
+  "mode": "Current live UI with route-fulfilled recorded production adaptation; not a fresh live adaptation",
+  "recordedResultDate": "2026-10-21",
+  "viewport": {
+    "width": 390,
+    "height": 844,
+    "dpr": 3
+  },
+  "events": [
+    {
+      "name": "original",
+      "atSeconds": 1.821,
+      "url": "https://recipefix.app/original-recipes/chicken-tikka-masala"
+    },
+    {
+      "name": "choose",
+      "atSeconds": 3.89,
+      "url": "https://recipefix.app/original-recipes/chicken-tikka-masala"
+    },
+    {
+      "name": "result",
+      "atSeconds": 5.936,
+      "url": "https://recipefix.app/adapt"
+    },
+    {
+      "name": "result-context",
+      "atSeconds": 6.315,
+      "url": "https://recipefix.app/adapt"
+    },
+    {
+      "name": "ingredient-context",
+      "atSeconds": 7.064,
+      "url": "https://recipefix.app/adapt"
+    },
+    {
+      "name": "method-context",
+      "atSeconds": 7.989,
+      "url": "https://recipefix.app/adapt"
+    }
+  ],
+  "network": [
+    {
+      "function": "adapt-recipe",
+      "method": "POST",
+      "sentToProvider": false,
+      "fixture": true
+    },
+    {
+      "function": "estimate-nutrition",
+      "method": "POST",
+      "sentToProvider": false,
+      "fixture": false
+    }
+  ],
+  "providerCalls": 0,
+  "customerWrites": 0,
+  "rawRecordingLocal": "/Volumes/T9/Developer/Builds/recipefix-product-cinema-20261028/captures/interaction-raw.webm",
+  "rawRecordingSha256": "a10c2b4b86f6ed0b31aeb03e4bf04410857f12f7683ed2f27203f20bc616a985",
+  "actualScreenshotDimensions": [
+    1170,
+    2532
+  ],
+  "recordingCanvasDimensions": [
+    780,
+    1688
+  ],
+  "correctedRecordingViewport": [
+    390,
+    844
+  ]
+}

@@ -1,0 +1,1 @@
+import React from 'react';import{Composition,registerRoot}from'remotion';import{ProductCinema}from'./ProductCinema.js';const Root:React.FC=()=> <Composition id="ProductCinema" component={ProductCinema} width={1080} height={1920} fps={30} durationInFrames={690}/>;registerRoot(Root);

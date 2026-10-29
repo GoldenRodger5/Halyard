@@ -1,0 +1,1928 @@
+{
+  "kind": "Critical-copy OCR/readability supporting check; not creative approval",
+  "safeBox": {
+    "x0": 90,
+    "y0": 240,
+    "x1": 920,
+    "y1": 1460
+  },
+  "minWordHeight": 24,
+  "results": [
+    {
+      "candidate": "a",
+      "at": 1.2,
+      "intended": [
+        "The cream",
+        "changed.",
+        "So did the method.",
+        "Recorded-result demo"
+      ],
+      "passed": true,
+      "checks": [
+        {
+          "id": "still.canvas",
+          "passed": true,
+          "detail": "1080×1920",
+          "problems": []
+        },
+        {
+          "id": "still.text_readback",
+          "passed": true,
+          "detail": "4 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 57 words, file: 58 words, inverted: 61 words, rules removed: 62 words, white-text mask: 124 words, dark-text mask: 57 words)",
+          "problems": []
+        },
+        {
+          "id": "still.no_artefacts",
+          "passed": true,
+          "detail": "no [object Object] / undefined / NaN / braces read on the image",
+          "problems": []
+        },
+        {
+          "id": "still.safe_zone",
+          "passed": true,
+          "detail": "9 word boxes inside x 90–920, y 240–1460",
+          "problems": []
+        },
+        {
+          "id": "still.text_overlap",
+          "passed": true,
+          "detail": "no two intended lines overprint each other",
+          "problems": []
+        },
+        {
+          "id": "still.text_size",
+          "passed": true,
+          "detail": "every line's median OCR word height ≥ 24px",
+          "problems": []
+        },
+        {
+          "id": "still.contrast",
+          "passed": true,
+          "detail": "min 4.98:1 over 9 word boxes (WCAG AA 4.5:1)",
+          "problems": []
+        }
+      ],
+      "readBack": [
+        {
+          "line": "The cream",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "the",
+              "conf": 100,
+              "x": 268,
+              "y": 659,
+              "w": 87,
+              "h": 49
+            },
+            {
+              "text": "cream",
+              "conf": 100,
+              "x": 560,
+              "y": 899,
+              "w": 117,
+              "h": 36
+            }
+          ]
+        },
+        {
+          "line": "changed.",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "changed",
+              "conf": 100,
+              "x": 397,
+              "y": 827,
+              "w": 165,
+              "h": 47
+            }
+          ]
+        },
+        {
+          "line": "So did the method.",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "did",
+              "conf": 100,
+              "x": 180,
+              "y": 659,
+              "w": 81,
+              "h": 49
+            },
+            {
+              "text": "The",
+              "conf": 100,
+              "x": 94,
+              "y": 366,
+              "w": 159,
+              "h": 99
+            },
+            {
+              "text": "method.",
+              "conf": 100,
+              "x": 361,
+              "y": 658,
+              "w": 218,
+              "h": 50
+            }
+          ]
+        },
+        {
+          "line": "Recorded-result demo",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Recorded-result",
+              "conf": 100,
+              "x": 106,
+              "y": 1408,
+              "w": 244,
+              "h": 28
+            },
+            {
+              "text": "Recorded-result",
+              "conf": 100,
+              "x": 106,
+              "y": 1408,
+              "w": 244,
+              "h": 28
+            },
+            {
+              "text": "demo",
+              "conf": 100,
+              "x": 354,
+              "y": 1409,
+              "w": 90,
+              "h": 27
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "candidate": "a",
+      "at": 5.8,
+      "intended": [
+        "Dairy-free.",
+        "For six.",
+        "Recorded-result demo"
+      ],
+      "passed": true,
+      "checks": [
+        {
+          "id": "still.canvas",
+          "passed": true,
+          "detail": "1080×1920",
+          "problems": []
+        },
+        {
+          "id": "still.text_readback",
+          "passed": true,
+          "detail": "3 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 43 words, file: 38 words, inverted: 43 words, rules removed: 38 words, white-text mask: 36 words, dark-text mask: 35 words)",
+          "problems": []
+        },
+        {
+          "id": "still.no_artefacts",
+          "passed": true,
+          "detail": "no [object Object] / undefined / NaN / braces read on the image",
+          "problems": []
+        },
+        {
+          "id": "still.safe_zone",
+          "passed": true,
+          "detail": "7 word boxes inside x 90–920, y 240–1460",
+          "problems": []
+        },
+        {
+          "id": "still.text_overlap",
+          "passed": true,
+          "detail": "no two intended lines overprint each other",
+          "problems": []
+        },
+        {
+          "id": "still.text_size",
+          "passed": true,
+          "detail": "every line's median OCR word height ≥ 24px",
+          "problems": []
+        },
+        {
+          "id": "still.contrast",
+          "passed": true,
+          "detail": "min 5.38:1 over 7 word boxes (WCAG AA 4.5:1)",
+          "problems": []
+        }
+      ],
+      "readBack": [
+        {
+          "line": "Dairy-free.",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Dairy-Free",
+              "conf": 100,
+              "x": 602,
+              "y": 945,
+              "w": 131,
+              "h": 28
+            },
+            {
+              "text": "Dairy-Free",
+              "conf": 100,
+              "x": 602,
+              "y": 945,
+              "w": 131,
+              "h": 28
+            }
+          ]
+        },
+        {
+          "line": "For six.",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "For",
+              "conf": 96.938484,
+              "x": 102,
+              "y": 489,
+              "w": 132,
+              "h": 94
+            },
+            {
+              "text": "six.",
+              "conf": 94.895508,
+              "x": 254,
+              "y": 491,
+              "w": 128,
+              "h": 92
+            }
+          ]
+        },
+        {
+          "line": "Recorded-result demo",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Recorded-result",
+              "conf": 100,
+              "x": 106,
+              "y": 1408,
+              "w": 244,
+              "h": 28
+            },
+            {
+              "text": "Recorded-result",
+              "conf": 100,
+              "x": 106,
+              "y": 1408,
+              "w": 244,
+              "h": 28
+            },
+            {
+              "text": "demo",
+              "conf": 100,
+              "x": 354,
+              "y": 1409,
+              "w": 90,
+              "h": 27
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "candidate": "a",
+      "at": 8.5,
+      "intended": [
+        "Heavy cream",
+        "Coconut cream.",
+        "Recorded-result demo"
+      ],
+      "passed": true,
+      "checks": [
+        {
+          "id": "still.canvas",
+          "passed": true,
+          "detail": "1080×1920",
+          "problems": []
+        },
+        {
+          "id": "still.text_readback",
+          "passed": true,
+          "detail": "3 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 59 words, file: 57 words, inverted: 57 words, rules removed: 58 words, white-text mask: 63 words, dark-text mask: 44 words)",
+          "problems": []
+        },
+        {
+          "id": "still.no_artefacts",
+          "passed": true,
+          "detail": "no [object Object] / undefined / NaN / braces read on the image",
+          "problems": []
+        },
+        {
+          "id": "still.safe_zone",
+          "passed": true,
+          "detail": "7 word boxes inside x 90–920, y 240–1460",
+          "problems": []
+        },
+        {
+          "id": "still.text_overlap",
+          "passed": true,
+          "detail": "no two intended lines overprint each other",
+          "problems": []
+        },
+        {
+          "id": "still.text_size",
+          "passed": true,
+          "detail": "every line's median OCR word height ≥ 24px",
+          "problems": []
+        },
+        {
+          "id": "still.contrast",
+          "passed": true,
+          "detail": "min 4.95:1 over 7 word boxes (WCAG AA 4.5:1)",
+          "problems": []
+        }
+      ],
+      "readBack": [
+        {
+          "line": "Heavy cream",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "heavy",
+              "conf": 100,
+              "x": 341,
+              "y": 959,
+              "w": 100,
+              "h": 34
+            },
+            {
+              "text": "cream",
+              "conf": 100,
+              "x": 554,
+              "y": 842,
+              "w": 118,
+              "h": 36
+            }
+          ]
+        },
+        {
+          "line": "Coconut cream.",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "coconut",
+              "conf": 100,
+              "x": 392,
+              "y": 843,
+              "w": 157,
+              "h": 35
+            },
+            {
+              "text": "cream",
+              "conf": 100,
+              "x": 445,
+              "y": 961,
+              "w": 109,
+              "h": 34
+            }
+          ]
+        },
+        {
+          "line": "Recorded-result demo",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Recorded-result",
+              "conf": 100,
+              "x": 106,
+              "y": 1408,
+              "w": 244,
+              "h": 28
+            },
+            {
+              "text": "Recorded-result",
+              "conf": 100,
+              "x": 106,
+              "y": 1408,
+              "w": 244,
+              "h": 28
+            },
+            {
+              "text": "demo",
+              "conf": 100,
+              "x": 354,
+              "y": 1409,
+              "w": 90,
+              "h": 27
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "candidate": "a",
+      "at": 12.5,
+      "intended": [
+        "Whisk it",
+        "smooth.",
+        "RecipeFix changed this step",
+        "Recorded-result demo"
+      ],
+      "passed": true,
+      "checks": [
+        {
+          "id": "still.canvas",
+          "passed": true,
+          "detail": "1080×1920",
+          "problems": []
+        },
+        {
+          "id": "still.text_readback",
+          "passed": true,
+          "detail": "4 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 59 words, file: 56 words, inverted: 59 words, rules removed: 59 words, white-text mask: 150 words, dark-text mask: 53 words)",
+          "problems": []
+        },
+        {
+          "id": "still.no_artefacts",
+          "passed": true,
+          "detail": "no [object Object] / undefined / NaN / braces read on the image",
+          "problems": []
+        },
+        {
+          "id": "still.safe_zone",
+          "passed": true,
+          "detail": "9 word boxes inside x 90–920, y 240–1460",
+          "problems": []
+        },
+        {
+          "id": "still.text_overlap",
+          "passed": true,
+          "detail": "no two intended lines overprint each other",
+          "problems": []
+        },
+        {
+          "id": "still.text_size",
+          "passed": true,
+          "detail": "every line's median OCR word height ≥ 24px",
+          "problems": []
+        },
+        {
+          "id": "still.contrast",
+          "passed": true,
+          "detail": "min 4.99:1 over 9 word boxes (WCAG AA 4.5:1)",
+          "problems": []
+        }
+      ],
+      "readBack": [
+        {
+          "line": "Whisk it",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Whisk",
+              "conf": 100,
+              "x": 755,
+              "y": 833,
+              "w": 124,
+              "h": 44
+            }
+          ]
+        },
+        {
+          "line": "smooth.",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "smooth",
+              "conf": 100,
+              "x": 678,
+              "y": 896,
+              "w": 142,
+              "h": 37
+            }
+          ]
+        },
+        {
+          "line": "RecipeFix changed this step",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "RecipeFix",
+              "conf": 100,
+              "x": 201,
+              "y": 830,
+              "w": 188,
+              "h": 44
+            },
+            {
+              "text": "changed",
+              "conf": 100,
+              "x": 394,
+              "y": 831,
+              "w": 166,
+              "h": 43
+            },
+            {
+              "text": "this",
+              "conf": 100,
+              "x": 566,
+              "y": 832,
+              "w": 70,
+              "h": 43
+            },
+            {
+              "text": "step",
+              "conf": 100,
+              "x": 642,
+              "y": 833,
+              "w": 91,
+              "h": 43
+            }
+          ]
+        },
+        {
+          "line": "Recorded-result demo",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Recorded-result",
+              "conf": 100,
+              "x": 106,
+              "y": 1406,
+              "w": 247,
+              "h": 30
+            },
+            {
+              "text": "Recorded-result",
+              "conf": 100,
+              "x": 106,
+              "y": 1406,
+              "w": 247,
+              "h": 30
+            },
+            {
+              "text": "demo",
+              "conf": 100,
+              "x": 357,
+              "y": 1407,
+              "w": 86,
+              "h": 30
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "candidate": "a",
+      "at": 16,
+      "intended": [
+        "Then simmer",
+        "gently.",
+        "Recorded-result demo"
+      ],
+      "passed": true,
+      "checks": [
+        {
+          "id": "still.canvas",
+          "passed": true,
+          "detail": "1080×1920",
+          "problems": []
+        },
+        {
+          "id": "still.text_readback",
+          "passed": true,
+          "detail": "3 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 59 words, file: 56 words, inverted: 59 words, rules removed: 59 words, white-text mask: 151 words, dark-text mask: 52 words)",
+          "problems": []
+        },
+        {
+          "id": "still.no_artefacts",
+          "passed": true,
+          "detail": "no [object Object] / undefined / NaN / braces read on the image",
+          "problems": []
+        },
+        {
+          "id": "still.safe_zone",
+          "passed": true,
+          "detail": "6 word boxes inside x 90–920, y 240–1460",
+          "problems": []
+        },
+        {
+          "id": "still.text_overlap",
+          "passed": true,
+          "detail": "no two intended lines overprint each other",
+          "problems": []
+        },
+        {
+          "id": "still.text_size",
+          "passed": true,
+          "detail": "every line's median OCR word height ≥ 24px",
+          "problems": []
+        },
+        {
+          "id": "still.contrast",
+          "passed": true,
+          "detail": "min 8.20:1 over 6 word boxes (WCAG AA 4.5:1)",
+          "problems": []
+        }
+      ],
+      "readBack": [
+        {
+          "line": "Then simmer",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Then",
+              "conf": 100,
+              "x": 91,
+              "y": 379,
+              "w": 210,
+              "h": 100
+            },
+            {
+              "text": "simmer",
+              "conf": 95.390457,
+              "x": 335,
+              "y": 378,
+              "w": 317,
+              "h": 92
+            }
+          ]
+        },
+        {
+          "line": "gently.",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "gentle",
+              "conf": 100,
+              "x": 206,
+              "y": 1023,
+              "w": 115,
+              "h": 42
+            }
+          ]
+        },
+        {
+          "line": "Recorded-result demo",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Recorded-result",
+              "conf": 100,
+              "x": 106,
+              "y": 1406,
+              "w": 247,
+              "h": 30
+            },
+            {
+              "text": "Recorded-result",
+              "conf": 100,
+              "x": 106,
+              "y": 1406,
+              "w": 247,
+              "h": 30
+            },
+            {
+              "text": "demo",
+              "conf": 100,
+              "x": 357,
+              "y": 1407,
+              "w": 86,
+              "h": 30
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "candidate": "a",
+      "at": 21,
+      "intended": [
+        "RecipeFix",
+        "Make your recipe fit.",
+        "recipefix.app",
+        "Recorded-result demo"
+      ],
+      "passed": true,
+      "checks": [
+        {
+          "id": "still.canvas",
+          "passed": true,
+          "detail": "1080×1920",
+          "problems": []
+        },
+        {
+          "id": "still.text_readback",
+          "passed": true,
+          "detail": "4 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 42 words, file: 44 words, inverted: 44 words, rules removed: 44 words, white-text mask: 26 words, dark-text mask: 35 words)",
+          "problems": []
+        },
+        {
+          "id": "still.no_artefacts",
+          "passed": true,
+          "detail": "no [object Object] / undefined / NaN / braces read on the image",
+          "problems": []
+        },
+        {
+          "id": "still.safe_zone",
+          "passed": true,
+          "detail": "10 word boxes inside x 90–920, y 240–1460",
+          "problems": []
+        },
+        {
+          "id": "still.text_overlap",
+          "passed": true,
+          "detail": "no two intended lines overprint each other",
+          "problems": []
+        },
+        {
+          "id": "still.text_size",
+          "passed": true,
+          "detail": "every line's median OCR word height ≥ 24px",
+          "problems": []
+        },
+        {
+          "id": "still.contrast",
+          "passed": true,
+          "detail": "min 4.87:1 over 10 word boxes (WCAG AA 4.5:1)",
+          "problems": []
+        }
+      ],
+      "readBack": [
+        {
+          "line": "RecipeFix",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "recipefix.app",
+              "conf": 100,
+              "x": 108,
+              "y": 1292,
+              "w": 264,
+              "h": 47
+            }
+          ]
+        },
+        {
+          "line": "Make your recipe fit.",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Make",
+              "conf": 100,
+              "x": 114,
+              "y": 1211,
+              "w": 132,
+              "h": 56
+            },
+            {
+              "text": "your",
+              "conf": 100,
+              "x": 253,
+              "y": 1211,
+              "w": 111,
+              "h": 56
+            },
+            {
+              "text": "recipe",
+              "conf": 100,
+              "x": 372,
+              "y": 1211,
+              "w": 160,
+              "h": 56
+            },
+            {
+              "text": "fit.",
+              "conf": 100,
+              "x": 540,
+              "y": 1211,
+              "w": 78,
+              "h": 56
+            }
+          ]
+        },
+        {
+          "line": "recipefix.app",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Recipefix",
+              "conf": 100,
+              "x": 100,
+              "y": 1035,
+              "w": 505,
+              "h": 153
+            },
+            {
+              "text": "recipefix.app",
+              "conf": 100,
+              "x": 108,
+              "y": 1292,
+              "w": 264,
+              "h": 47
+            }
+          ]
+        },
+        {
+          "line": "Recorded-result demo",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Recorded-result",
+              "conf": 100,
+              "x": 106,
+              "y": 1408,
+              "w": 244,
+              "h": 28
+            },
+            {
+              "text": "Recorded-result",
+              "conf": 100,
+              "x": 106,
+              "y": 1408,
+              "w": 244,
+              "h": 28
+            },
+            {
+              "text": "demo",
+              "conf": 100,
+              "x": 354,
+              "y": 1409,
+              "w": 90,
+              "h": 27
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "candidate": "b",
+      "at": 1.2,
+      "intended": [
+        "New cream.",
+        "New method.",
+        "Recorded-result demo"
+      ],
+      "passed": true,
+      "checks": [
+        {
+          "id": "still.canvas",
+          "passed": true,
+          "detail": "1080×1920",
+          "problems": []
+        },
+        {
+          "id": "still.text_readback",
+          "passed": true,
+          "detail": "3 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 54 words, file: 7 words, inverted: 54 words, rules removed: 7 words, white-text mask: 6 words, dark-text mask: 45 words)",
+          "problems": []
+        },
+        {
+          "id": "still.no_artefacts",
+          "passed": true,
+          "detail": "no [object Object] / undefined / NaN / braces read on the image",
+          "problems": []
+        },
+        {
+          "id": "still.safe_zone",
+          "passed": true,
+          "detail": "7 word boxes inside x 90–920, y 240–1460",
+          "problems": []
+        },
+        {
+          "id": "still.text_overlap",
+          "passed": true,
+          "detail": "no two intended lines overprint each other",
+          "problems": []
+        },
+        {
+          "id": "still.text_size",
+          "passed": true,
+          "detail": "every line's median OCR word height ≥ 24px",
+          "problems": []
+        },
+        {
+          "id": "still.contrast",
+          "passed": true,
+          "detail": "min 4.95:1 over 7 word boxes (WCAG AA 4.5:1)",
+          "problems": []
+        }
+      ],
+      "readBack": [
+        {
+          "line": "New cream.",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "New",
+              "conf": 100,
+              "x": 103,
+              "y": 488,
+              "w": 220,
+              "h": 104
+            },
+            {
+              "text": "cream",
+              "conf": 100,
+              "x": 513,
+              "y": 664,
+              "w": 108,
+              "h": 36
+            }
+          ]
+        },
+        {
+          "line": "New method.",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "New",
+              "conf": 100,
+              "x": 102,
+              "y": 383,
+              "w": 229,
+              "h": 89
+            },
+            {
+              "text": "method",
+              "conf": 96.371094,
+              "x": 355,
+              "y": 483,
+              "w": 369,
+              "h": 83
+            }
+          ]
+        },
+        {
+          "line": "Recorded-result demo",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Recorded-result",
+              "conf": 100,
+              "x": 100,
+              "y": 1403,
+              "w": 246,
+              "h": 25
+            },
+            {
+              "text": "Recorded-result",
+              "conf": 100,
+              "x": 100,
+              "y": 1403,
+              "w": 246,
+              "h": 25
+            },
+            {
+              "text": "demo",
+              "conf": 100,
+              "x": 350,
+              "y": 1403,
+              "w": 90,
+              "h": 25
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "candidate": "b",
+      "at": 5,
+      "intended": [
+        "Make it fit.",
+        "Dairy-free. For six.",
+        "Recorded-result demo"
+      ],
+      "passed": true,
+      "checks": [
+        {
+          "id": "still.canvas",
+          "passed": true,
+          "detail": "1080×1920",
+          "problems": []
+        },
+        {
+          "id": "still.text_readback",
+          "passed": true,
+          "detail": "3 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 32 words, file: 29 words, inverted: 25 words, rules removed: 28 words, white-text mask: 11 words, dark-text mask: 23 words)",
+          "problems": []
+        },
+        {
+          "id": "still.no_artefacts",
+          "passed": true,
+          "detail": "no [object Object] / undefined / NaN / braces read on the image",
+          "problems": []
+        },
+        {
+          "id": "still.safe_zone",
+          "passed": true,
+          "detail": "9 word boxes inside x 90–920, y 240–1460",
+          "problems": []
+        },
+        {
+          "id": "still.text_overlap",
+          "passed": true,
+          "detail": "no two intended lines overprint each other",
+          "problems": []
+        },
+        {
+          "id": "still.text_size",
+          "passed": true,
+          "detail": "every line's median OCR word height ≥ 24px",
+          "problems": []
+        },
+        {
+          "id": "still.contrast",
+          "passed": true,
+          "detail": "min 11.32:1 over 9 word boxes (WCAG AA 4.5:1)",
+          "problems": []
+        }
+      ],
+      "readBack": [
+        {
+          "line": "Make it fit.",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Make",
+              "conf": 100,
+              "x": 102,
+              "y": 359,
+              "w": 202,
+              "h": 87
+            },
+            {
+              "text": "fit.",
+              "conf": 100,
+              "x": 378,
+              "y": 358,
+              "w": 114,
+              "h": 86
+            }
+          ]
+        },
+        {
+          "line": "Dairy-free. For six.",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Dairy-free.",
+              "conf": 100,
+              "x": 106,
+              "y": 454,
+              "w": 388,
+              "h": 84
+            },
+            {
+              "text": "Dairy-free.",
+              "conf": 100,
+              "x": 106,
+              "y": 454,
+              "w": 388,
+              "h": 84
+            },
+            {
+              "text": "For",
+              "conf": 100,
+              "x": 505,
+              "y": 454,
+              "w": 125,
+              "h": 84
+            },
+            {
+              "text": "six.",
+              "conf": 96.217346,
+              "x": 653,
+              "y": 455,
+              "w": 120,
+              "h": 65
+            }
+          ]
+        },
+        {
+          "line": "Recorded-result demo",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Recorded-result",
+              "conf": 100,
+              "x": 97,
+              "y": 1403,
+              "w": 248,
+              "h": 28
+            },
+            {
+              "text": "Recorded-result",
+              "conf": 100,
+              "x": 97,
+              "y": 1403,
+              "w": 248,
+              "h": 28
+            },
+            {
+              "text": "demo",
+              "conf": 100,
+              "x": 349,
+              "y": 1403,
+              "w": 90,
+              "h": 28
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "candidate": "b",
+      "at": 8.5,
+      "intended": [
+        "A different",
+        "kind of cream.",
+        "Heavy",
+        "cream",
+        "Full-fat",
+        "coconut cream",
+        "Recorded-result demo"
+      ],
+      "passed": true,
+      "checks": [
+        {
+          "id": "still.canvas",
+          "passed": true,
+          "detail": "1080×1920",
+          "problems": []
+        },
+        {
+          "id": "still.text_readback",
+          "passed": true,
+          "detail": "7 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 38 words, file: 31 words, inverted: 35 words, rules removed: 31 words, white-text mask: 0 words, dark-text mask: 33 words)",
+          "problems": []
+        },
+        {
+          "id": "still.no_artefacts",
+          "passed": true,
+          "detail": "no [object Object] / undefined / NaN / braces read on the image",
+          "problems": []
+        },
+        {
+          "id": "still.safe_zone",
+          "passed": true,
+          "detail": "12 word boxes inside x 90–920, y 240–1460",
+          "problems": []
+        },
+        {
+          "id": "still.text_overlap",
+          "passed": true,
+          "detail": "no two intended lines overprint each other",
+          "problems": []
+        },
+        {
+          "id": "still.text_size",
+          "passed": true,
+          "detail": "every line's median OCR word height ≥ 24px",
+          "problems": []
+        },
+        {
+          "id": "still.contrast",
+          "passed": true,
+          "detail": "min 4.93:1 over 12 word boxes (WCAG AA 4.5:1)",
+          "problems": []
+        }
+      ],
+      "readBack": [
+        {
+          "line": "A different",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "different",
+              "conf": 93.651306,
+              "x": 190,
+              "y": 434,
+              "w": 358,
+              "h": 76
+            }
+          ]
+        },
+        {
+          "line": "kind of cream.",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "kind",
+              "conf": 100,
+              "x": 99,
+              "y": 526,
+              "w": 193,
+              "h": 89
+            },
+            {
+              "text": "cream",
+              "conf": 100,
+              "x": 682,
+              "y": 784,
+              "w": 130,
+              "h": 36
+            }
+          ]
+        },
+        {
+          "line": "Heavy",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "heavy",
+              "conf": 100,
+              "x": 314,
+              "y": 1291,
+              "w": 96,
+              "h": 34
+            }
+          ]
+        },
+        {
+          "line": "cream",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "cream",
+              "conf": 100,
+              "x": 131,
+              "y": 792,
+              "w": 139,
+              "h": 33
+            }
+          ]
+        },
+        {
+          "line": "Full-fat",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "full-fat",
+              "conf": 100,
+              "x": 238,
+              "y": 1183,
+              "w": 120,
+              "h": 37
+            },
+            {
+              "text": "full-fat",
+              "conf": 100,
+              "x": 238,
+              "y": 1183,
+              "w": 120,
+              "h": 37
+            }
+          ]
+        },
+        {
+          "line": "coconut cream",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "coconut",
+              "conf": 100,
+              "x": 363,
+              "y": 1183,
+              "w": 143,
+              "h": 37
+            },
+            {
+              "text": "cream",
+              "conf": 100,
+              "x": 511,
+              "y": 1183,
+              "w": 110,
+              "h": 37
+            }
+          ]
+        },
+        {
+          "line": "Recorded-result demo",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Recorded-result",
+              "conf": 100,
+              "x": 100,
+              "y": 1400,
+              "w": 248,
+              "h": 28
+            },
+            {
+              "text": "Recorded-result",
+              "conf": 100,
+              "x": 100,
+              "y": 1400,
+              "w": 248,
+              "h": 28
+            },
+            {
+              "text": "demo",
+              "conf": 100,
+              "x": 351,
+              "y": 1401,
+              "w": 90,
+              "h": 27
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "candidate": "b",
+      "at": 12.5,
+      "intended": [
+        "The instructions",
+        "change with it.",
+        "Whisk it smooth.",
+        "RecipeFix changed this step",
+        "Recorded-result demo"
+      ],
+      "passed": true,
+      "checks": [
+        {
+          "id": "still.canvas",
+          "passed": true,
+          "detail": "1080×1920",
+          "problems": []
+        },
+        {
+          "id": "still.text_readback",
+          "passed": true,
+          "detail": "5 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 58 words, file: 58 words, inverted: 58 words, rules removed: 50 words, white-text mask: 59 words, dark-text mask: 52 words)",
+          "problems": []
+        },
+        {
+          "id": "still.no_artefacts",
+          "passed": true,
+          "detail": "no [object Object] / undefined / NaN / braces read on the image",
+          "problems": []
+        },
+        {
+          "id": "still.safe_zone",
+          "passed": true,
+          "detail": "13 word boxes inside x 90–920, y 240–1460",
+          "problems": []
+        },
+        {
+          "id": "still.text_overlap",
+          "passed": true,
+          "detail": "no two intended lines overprint each other",
+          "problems": []
+        },
+        {
+          "id": "still.text_size",
+          "passed": true,
+          "detail": "every line's median OCR word height ≥ 24px",
+          "problems": []
+        },
+        {
+          "id": "still.contrast",
+          "passed": true,
+          "detail": "min 4.93:1 over 13 word boxes (WCAG AA 4.5:1)",
+          "problems": []
+        }
+      ],
+      "readBack": [
+        {
+          "line": "The instructions",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "The",
+              "conf": 100,
+              "x": 97,
+              "y": 429,
+              "w": 156,
+              "h": 78
+            },
+            {
+              "text": "instructions",
+              "conf": 94.91716,
+              "x": 282,
+              "y": 430,
+              "w": 470,
+              "h": 71
+            }
+          ]
+        },
+        {
+          "line": "change with it.",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "change",
+              "conf": 100,
+              "x": 99,
+              "y": 520,
+              "w": 300,
+              "h": 96
+            },
+            {
+              "text": "with",
+              "conf": 100,
+              "x": 410,
+              "y": 524,
+              "w": 185,
+              "h": 94
+            }
+          ]
+        },
+        {
+          "line": "Whisk it smooth.",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Whisk",
+              "conf": 100,
+              "x": 139,
+              "y": 794,
+              "w": 117,
+              "h": 39
+            },
+            {
+              "text": "smooth",
+              "conf": 100,
+              "x": 136,
+              "y": 837,
+              "w": 143,
+              "h": 46
+            }
+          ]
+        },
+        {
+          "line": "RecipeFix changed this step",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "RecipeFix",
+              "conf": 100,
+              "x": 186,
+              "y": 1007,
+              "w": 175,
+              "h": 36
+            },
+            {
+              "text": "changed",
+              "conf": 100,
+              "x": 366,
+              "y": 1007,
+              "w": 152,
+              "h": 36
+            },
+            {
+              "text": "this",
+              "conf": 100,
+              "x": 523,
+              "y": 1007,
+              "w": 69,
+              "h": 36
+            },
+            {
+              "text": "step",
+              "conf": 100,
+              "x": 597,
+              "y": 1007,
+              "w": 83,
+              "h": 36
+            }
+          ]
+        },
+        {
+          "line": "Recorded-result demo",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Recorded-result",
+              "conf": 100,
+              "x": 97,
+              "y": 1403,
+              "w": 248,
+              "h": 28
+            },
+            {
+              "text": "Recorded-result",
+              "conf": 100,
+              "x": 97,
+              "y": 1403,
+              "w": 248,
+              "h": 28
+            },
+            {
+              "text": "demo",
+              "conf": 100,
+              "x": 349,
+              "y": 1403,
+              "w": 90,
+              "h": 28
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "candidate": "b",
+      "at": 16,
+      "intended": [
+        "Keep it gentle.",
+        "Keep the sauce at a gentle simmer.",
+        "Recorded-result demo"
+      ],
+      "passed": true,
+      "checks": [
+        {
+          "id": "still.canvas",
+          "passed": true,
+          "detail": "1080×1920",
+          "problems": []
+        },
+        {
+          "id": "still.text_readback",
+          "passed": true,
+          "detail": "3 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 58 words, file: 52 words, inverted: 58 words, rules removed: 58 words, white-text mask: 56 words, dark-text mask: 52 words)",
+          "problems": []
+        },
+        {
+          "id": "still.no_artefacts",
+          "passed": true,
+          "detail": "no [object Object] / undefined / NaN / braces read on the image",
+          "problems": []
+        },
+        {
+          "id": "still.safe_zone",
+          "passed": true,
+          "detail": "10 word boxes inside x 90–920, y 240–1460",
+          "problems": []
+        },
+        {
+          "id": "still.text_overlap",
+          "passed": true,
+          "detail": "no two intended lines overprint each other",
+          "problems": []
+        },
+        {
+          "id": "still.text_size",
+          "passed": true,
+          "detail": "every line's median OCR word height ≥ 24px",
+          "problems": []
+        },
+        {
+          "id": "still.contrast",
+          "passed": true,
+          "detail": "min 11.03:1 over 10 word boxes (WCAG AA 4.5:1)",
+          "problems": []
+        }
+      ],
+      "readBack": [
+        {
+          "line": "Keep it gentle.",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Keep",
+              "conf": 100,
+              "x": 139,
+              "y": 795,
+              "w": 94,
+              "h": 42
+            },
+            {
+              "text": "gentle",
+              "conf": 100,
+              "x": 512,
+              "y": 795,
+              "w": 126,
+              "h": 41
+            }
+          ]
+        },
+        {
+          "line": "Keep the sauce at a gentle simmer.",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Keep",
+              "conf": 100,
+              "x": 138,
+              "y": 699,
+              "w": 165,
+              "h": 72
+            },
+            {
+              "text": "the",
+              "conf": 100,
+              "x": 239,
+              "y": 795,
+              "w": 68,
+              "h": 41
+            },
+            {
+              "text": "sauce",
+              "conf": 100,
+              "x": 313,
+              "y": 795,
+              "w": 120,
+              "h": 41
+            },
+            {
+              "text": "gentle.",
+              "conf": 100,
+              "x": 363,
+              "y": 703,
+              "w": 231,
+              "h": 73
+            },
+            {
+              "text": "simmer.",
+              "conf": 100,
+              "x": 643,
+              "y": 795,
+              "w": 156,
+              "h": 42
+            }
+          ]
+        },
+        {
+          "line": "Recorded-result demo",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Recorded-result",
+              "conf": 100,
+              "x": 97,
+              "y": 1403,
+              "w": 248,
+              "h": 28
+            },
+            {
+              "text": "Recorded-result",
+              "conf": 100,
+              "x": 97,
+              "y": 1403,
+              "w": 248,
+              "h": 28
+            },
+            {
+              "text": "demo",
+              "conf": 100,
+              "x": 349,
+              "y": 1403,
+              "w": 90,
+              "h": 28
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "candidate": "b",
+      "at": 21.5,
+      "intended": [
+        "Your recipe.",
+        "Rethought.",
+        "Ingredients and method,",
+        "changed together.",
+        "recipefix.app",
+        "Recorded-result demo"
+      ],
+      "passed": true,
+      "checks": [
+        {
+          "id": "still.canvas",
+          "passed": true,
+          "detail": "1080×1920",
+          "problems": []
+        },
+        {
+          "id": "still.text_readback",
+          "passed": true,
+          "detail": "6 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 37 words, file: 12 words, inverted: 40 words, rules removed: 12 words, white-text mask: 13 words, dark-text mask: 38 words)",
+          "problems": []
+        },
+        {
+          "id": "still.no_artefacts",
+          "passed": true,
+          "detail": "no [object Object] / undefined / NaN / braces read on the image",
+          "problems": []
+        },
+        {
+          "id": "still.safe_zone",
+          "passed": true,
+          "detail": "13 word boxes inside x 90–920, y 240–1460",
+          "problems": []
+        },
+        {
+          "id": "still.text_overlap",
+          "passed": true,
+          "detail": "no two intended lines overprint each other",
+          "problems": []
+        },
+        {
+          "id": "still.text_size",
+          "passed": true,
+          "detail": "every line's median OCR word height ≥ 24px",
+          "problems": []
+        },
+        {
+          "id": "still.contrast",
+          "passed": true,
+          "detail": "min 10.51:1 over 13 word boxes (WCAG AA 4.5:1)",
+          "problems": []
+        }
+      ],
+      "readBack": [
+        {
+          "line": "Your recipe.",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Your",
+              "conf": 100,
+              "x": 99,
+              "y": 383,
+              "w": 246,
+              "h": 117
+            },
+            {
+              "text": "recipe.",
+              "conf": 100,
+              "x": 360,
+              "y": 384,
+              "w": 395,
+              "h": 117
+            }
+          ]
+        },
+        {
+          "line": "Rethought.",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Rethought.",
+              "conf": 100,
+              "x": 102,
+              "y": 505,
+              "w": 604,
+              "h": 131
+            }
+          ]
+        },
+        {
+          "line": "Ingredients and method,",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Ingredients",
+              "conf": 100,
+              "x": 96,
+              "y": 688,
+              "w": 260,
+              "h": 67
+            },
+            {
+              "text": "and",
+              "conf": 100,
+              "x": 363,
+              "y": 694,
+              "w": 92,
+              "h": 63
+            },
+            {
+              "text": "method,",
+              "conf": 100,
+              "x": 462,
+              "y": 696,
+              "w": 213,
+              "h": 66
+            }
+          ]
+        },
+        {
+          "line": "changed together.",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "changed",
+              "conf": 100,
+              "x": 100,
+              "y": 756,
+              "w": 202,
+              "h": 54
+            },
+            {
+              "text": "together.",
+              "conf": 100,
+              "x": 308,
+              "y": 753,
+              "w": 222,
+              "h": 54
+            }
+          ]
+        },
+        {
+          "line": "recipefix.app",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "recipefix.app",
+              "conf": 100,
+              "x": 100,
+              "y": 1283,
+              "w": 418,
+              "h": 72
+            },
+            {
+              "text": "recipefix.app",
+              "conf": 100,
+              "x": 100,
+              "y": 1283,
+              "w": 418,
+              "h": 72
+            }
+          ]
+        },
+        {
+          "line": "Recorded-result demo",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Recorded-result",
+              "conf": 100,
+              "x": 100,
+              "y": 1400,
+              "w": 247,
+              "h": 33
+            },
+            {
+              "text": "Recorded-result",
+              "conf": 100,
+              "x": 100,
+              "y": 1400,
+              "w": 247,
+              "h": 33
+            },
+            {
+              "text": "demo",
+              "conf": 100,
+              "x": 351,
+              "y": 1403,
+              "w": 89,
+              "h": 31
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

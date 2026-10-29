@@ -1,0 +1,28 @@
+[
+  {
+    "mode": "muted",
+    "duration": 23.061333,
+    "time": 23.061333,
+    "ended": true,
+    "error": null,
+    "played": [
+      [
+        0,
+        23.061333
+      ]
+    ]
+  },
+  {
+    "mode": "sound-on; auditory taste unassessed",
+    "duration": 23.061333,
+    "time": 23.061333,
+    "ended": true,
+    "error": null,
+    "played": [
+      [
+        0,
+        23.061333
+      ]
+    ]
+  }
+]

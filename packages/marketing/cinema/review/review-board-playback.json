@@ -1,0 +1,64 @@
+{
+  "viewport": [
+    390,
+    844
+  ],
+  "states": [
+    {
+      "mode": "both muted",
+      "players": [
+        {
+          "id": "a",
+          "ended": true,
+          "time": 23.061,
+          "error": null
+        },
+        {
+          "id": "b",
+          "ended": true,
+          "time": 23.018,
+          "error": null
+        }
+      ]
+    },
+    {
+      "mode": "A unmuted",
+      "players": [
+        {
+          "id": "a",
+          "ended": true,
+          "time": 23.061,
+          "muted": false,
+          "error": null
+        },
+        {
+          "id": "b",
+          "ended": true,
+          "time": 23.018,
+          "muted": true,
+          "error": null
+        }
+      ]
+    },
+    {
+      "mode": "B unmuted",
+      "players": [
+        {
+          "id": "a",
+          "ended": true,
+          "time": 23.061,
+          "muted": true,
+          "error": null
+        },
+        {
+          "id": "b",
+          "ended": true,
+          "time": 23.018,
+          "muted": false,
+          "error": null
+        }
+      ]
+    }
+  ],
+  "auditoryTasteAssessed": false
+}

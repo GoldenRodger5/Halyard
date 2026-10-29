@@ -1,0 +1,144 @@
+{
+  "createdFor": "RecipeFix Phase0 + Phase1A,2026-10-28",
+  "sourceMode": "Current recipefix.app UI with locally fulfilled exact recorded production response; NOT fresh live adaptation",
+  "recordedResultDate": "2026-10-21",
+  "captureDate": "2026-10-28",
+  "proofGit": {
+    "repository": "GoldenRodger5/recipe-fix",
+    "commit": "3f32680f091d06ad9046bb95e4dfb55489d2c264",
+    "file": "src/data/landingRealResult.ts",
+    "export": "LANDING_REAL_RESULT"
+  },
+  "selection": {
+    "diet": "Dairy-Free",
+    "originalServings": 4,
+    "servings": 6
+  },
+  "evidence": {
+    "originalIngredient": "1/2 cup heavy cream",
+    "adaptedIngredient": "3/4 cup full-fat coconut cream",
+    "newMethod": "Whisk separated coconut cream smooth before adding",
+    "retainedGuidance": "keep the sauce at a gentle simmer",
+    "importantDistinction": "Original already says simmer gently; only whisking is the newly added cream-specific instruction."
+  },
+  "providerRequestsSent": 0,
+  "customerWrites": 0,
+  "nutritionInFinal": false,
+  "physicalCookingOutcomeClaimed": false,
+  "narration": false,
+  "publicationApproved": false,
+  "assets": [
+    {
+      "file": "assets/choose-modal.png",
+      "sha256": "43444daba83df12e3ad0326232f0f6b57bcd0840d005ce33349f0683b02d847a",
+      "bytes": 84799,
+      "kind": "first-party product capture",
+      "license": "RecipeFix first-party UI capture, current public interface; recorded result locally fulfilled"
+    },
+    {
+      "file": "assets/choose.png",
+      "sha256": "ec2d7d778fec00b32490a8d73236717c1f792abdf2ffaa23defe3f478fefbda6",
+      "bytes": 222603,
+      "kind": "first-party product capture",
+      "license": "RecipeFix first-party UI capture, current public interface; recorded result locally fulfilled"
+    },
+    {
+      "file": "assets/fonts/InstrumentSerif-Regular.ttf",
+      "sha256": "498efd461f6ddfcb7a111bf9a565709d2085d48201d501ead960d93e84ffbb88",
+      "bytes": 70012,
+      "kind": "font or font license",
+      "license": "SIL Open Font License1.1; included license files"
+    },
+    {
+      "file": "assets/fonts/Inter-Regular.woff",
+      "sha256": "31656ddbb58d39790f910df827596106a5d91ce80dd4309a6aad91e08a90f9e4",
+      "bytes": 31196,
+      "kind": "font or font license",
+      "license": "SIL Open Font License1.1; included license files"
+    },
+    {
+      "file": "assets/fonts/Inter-SemiBold.woff",
+      "sha256": "a96e5ee7ab248008e5e6cc92dd561eceb892d19a10a537aa1b2e64f979351add",
+      "bytes": 31780,
+      "kind": "font or font license",
+      "license": "SIL Open Font License1.1; included license files"
+    },
+    {
+      "file": "assets/fonts/instrumentserif-OFL.txt",
+      "sha256": "b6b2292aa580937fb63796878d65a027a27f8c3db2d97601d0c34d9031f4ca17",
+      "bytes": 4404,
+      "kind": "font or font license",
+      "license": "SIL Open Font License1.1; included license files"
+    },
+    {
+      "file": "assets/fonts/inter-OFL.txt",
+      "sha256": "5dd548d31a85f756e01d63e00d7faf1e324103ed3e9102fcbbabf2cc2db6dd39",
+      "bytes": 4376,
+      "kind": "font or font license",
+      "license": "SIL Open Font License1.1; included license files"
+    },
+    {
+      "file": "assets/hero.jpg",
+      "sha256": "09633760cff8b5adc5199d4d89bbc787a13d17848f39072f86d2126e976f0077",
+      "bytes": 596098,
+      "kind": "Original recipe stock photo",
+      "license": "Unsplash License; photo1585937421612-70a008356fbe; provenance docs/RECIPEFIX_ORIGINALS.md in pinned product commit; not adapted food"
+    },
+    {
+      "file": "assets/ingredient.png",
+      "sha256": "761b05e38b78a99429b76a77ae738abbfb36234fdd8b60ef3fa4bdf7a1fd7012",
+      "bytes": 51939,
+      "kind": "first-party product capture",
+      "license": "RecipeFix first-party UI capture, current public interface; recorded result locally fulfilled"
+    },
+    {
+      "file": "assets/interaction-modal.mp4",
+      "sha256": "3666db41a0c5407ab0db4407a3cfee16cb5e25fbf340527e7a5d3fac1829e8b5",
+      "bytes": 130074,
+      "kind": "first-party product capture",
+      "license": "RecipeFix first-party UI capture, current public interface; recorded result locally fulfilled"
+    },
+    {
+      "file": "assets/interaction-viewport.mp4",
+      "sha256": "02bd1166d81972547921392c1d58ec90605ee934a584892ef51a37385326a315",
+      "bytes": 327329,
+      "kind": "first-party product capture",
+      "license": "RecipeFix first-party UI capture, current public interface; recorded result locally fulfilled"
+    },
+    {
+      "file": "assets/method.png",
+      "sha256": "9ba2fe1076413b6ca437e30a94383dee3c1cabde58236d25bced811e36972dae",
+      "bytes": 71615,
+      "kind": "first-party product capture",
+      "license": "RecipeFix first-party UI capture, current public interface; recorded result locally fulfilled"
+    },
+    {
+      "file": "assets/real-result.json",
+      "sha256": "572f681c851d3b0777e0c4ca15c781a0c573bab7c026f5b683d9c7f1b72ff473",
+      "bytes": 11036,
+      "kind": "recorded production result",
+      "license": "First-party exact response stored at pinned product source"
+    },
+    {
+      "file": "assets/result-title.png",
+      "sha256": "31d690804e3004aacc2600cfcfed9c1ff167ac3f8d5e73bd085de477cfa26cd1",
+      "bytes": 60221,
+      "kind": "first-party product capture",
+      "license": "RecipeFix first-party UI capture, current public interface; recorded result locally fulfilled"
+    },
+    {
+      "file": "assets/result.png",
+      "sha256": "a485d45c4d9c2d732c90cd5bc866866d40a684d8652fc0f9100f4c456ef4f93f",
+      "bytes": 1963149,
+      "kind": "first-party product capture",
+      "license": "RecipeFix first-party UI capture, current public interface; recorded result locally fulfilled"
+    },
+    {
+      "file": "assets/sound.wav",
+      "sha256": "e642a70191795cad6c1bbfa38a39a8b3a4ec61bca5dd0e144c4219336e8cdd37",
+      "bytes": 4416078,
+      "kind": "original authored sound bed",
+      "license": "Original procedural composition in scripts/make-sound.py; no third-party samples/provider generation; normalized\u221220LUFS"
+    }
+  ]
+}
