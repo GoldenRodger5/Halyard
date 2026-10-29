@@ -1,0 +1,94 @@
+{
+  "renderedAt": "2026-10-29T20:37:56.792Z",
+  "renderer": "Existing Playwright Chromium + Sharp; local fonts/assets; no network or paid calls",
+  "cards": [
+    {
+      "id": "more-dinner-ig-1",
+      "ideaId": "rf-more-dinner",
+      "platform": "instagram",
+      "width": 1080,
+      "height": 1350,
+      "path": "exports/more-dinner-ig-1.jpg"
+    },
+    {
+      "id": "more-dinner-ig-2",
+      "ideaId": "rf-more-dinner",
+      "platform": "instagram",
+      "width": 1080,
+      "height": 1350,
+      "path": "exports/more-dinner-ig-2.jpg"
+    },
+    {
+      "id": "more-dinner-ig-3",
+      "ideaId": "rf-more-dinner",
+      "platform": "instagram",
+      "width": 1080,
+      "height": 1350,
+      "path": "exports/more-dinner-ig-3.jpg"
+    },
+    {
+      "id": "more-dinner-ig-4",
+      "ideaId": "rf-more-dinner",
+      "platform": "instagram",
+      "width": 1080,
+      "height": 1350,
+      "path": "exports/more-dinner-ig-4.jpg"
+    },
+    {
+      "id": "more-dinner-ig-5",
+      "ideaId": "rf-more-dinner",
+      "platform": "instagram",
+      "width": 1080,
+      "height": 1350,
+      "path": "exports/more-dinner-ig-5.jpg"
+    },
+    {
+      "id": "more-dinner-x",
+      "ideaId": "rf-more-dinner",
+      "platform": "x",
+      "width": 1200,
+      "height": 675,
+      "path": "exports/more-dinner-x.jpg"
+    },
+    {
+      "id": "autumn-ig-1",
+      "ideaId": "rf-autumn-originals",
+      "platform": "instagram",
+      "width": 1080,
+      "height": 1350,
+      "path": "exports/autumn-ig-1.jpg"
+    },
+    {
+      "id": "autumn-ig-2",
+      "ideaId": "rf-autumn-originals",
+      "platform": "instagram",
+      "width": 1080,
+      "height": 1350,
+      "path": "exports/autumn-ig-2.jpg"
+    },
+    {
+      "id": "autumn-ig-3",
+      "ideaId": "rf-autumn-originals",
+      "platform": "instagram",
+      "width": 1080,
+      "height": 1350,
+      "path": "exports/autumn-ig-3.jpg"
+    },
+    {
+      "id": "autumn-ig-4",
+      "ideaId": "rf-autumn-originals",
+      "platform": "instagram",
+      "width": 1080,
+      "height": 1350,
+      "path": "exports/autumn-ig-4.jpg"
+    },
+    {
+      "id": "autumn-x",
+      "ideaId": "rf-autumn-originals",
+      "platform": "x",
+      "width": 1200,
+      "height": 675,
+      "path": "exports/autumn-x.jpg"
+    }
+  ]
+}
