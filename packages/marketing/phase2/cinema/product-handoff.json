@@ -1,6 +1,5 @@
 {
   "sourceBase": "dec955885cf1094ea2e747233e72d075dd32a89e",
-  "sourceCommitStatus": "Pin final focused root source/media commit in SOURCE_TABLE.md",
   "ideas": [
     {
       "id": "rf-more-dinner",
@@ -100,5 +99,6 @@
         "https://github.com/GoldenRodger5/recipe-fix/blob/3f32680f091d06ad9046bb95e4dfb55489d2c264/src/data/landingRealResult.ts"
       ]
     }
-  ]
+  ],
+  "sourceCommit": "8446432f6ef5834eb5818e6dd87d9dc83b3cb798"
 }

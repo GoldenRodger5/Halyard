@@ -29,5 +29,5 @@
     "byteRangeStatus": 206
   },
   "sourceAndStorage": "All large outputs/scratch on verified encrypted T9. No production RecipeFix/account/social publishing mutation.",
-  "sourcePinStatus": "See SOURCE_TABLE.md final focused root commit."
+  "sourceMediaCommit": "8446432f6ef5834eb5818e6dd87d9dc83b3cb798"
 }
