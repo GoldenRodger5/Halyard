@@ -1,0 +1,96 @@
+{
+  "schema": "recipefix-independent-cross-stream-review/v1",
+  "reviewedDate": "2026-10-29",
+  "reviewer": "Specialist B, independently reviewing A and C. B does not review its own editorial assets in this report.",
+  "scope": "Version-specific inspection of actual encoded A v1 and C v2 media. No A/C production files were edited by this reviewer. This report does not approve later revisions or public release.",
+  "reviews": [
+    {
+      "stream": "A — product video",
+      "version": "more-dinner-v1",
+      "mediaPath": "/Volumes/T9/Developer/Builds/recipefix-phase2-20261029/video/renders/more-dinner-v1.mp4",
+      "sha256": "f82adf74faf754c7a97b4520a3b289d2117ba1c9cc461d84cf9d67a9220c21af",
+      "durationSeconds": 23.061333,
+      "recommendation": "HOLD / REVISE as a flagship acquisition film. Show the materially improved motion direction for founder feedback; do not label it approved premium inventory.",
+      "strengths": [
+        "Place settings, a crowded sheet, the 9 + 9 split and sequential chamber movement now form a continuous cooking-space story.",
+        "The app appears within the physical scene, and the exact recorded method excerpt connects the visible batch plan to RecipeFix.",
+        "The CGI and historical-response scope remains visible. The last captured UI frame genuinely shows six servings and Dairy-Free selected; five is a valid intermediate state."
+      ],
+      "findings": [
+        {
+          "severity": "P1 — core creative quality",
+          "finding": "The uniform orange textured pieces still resemble cushions or nuggets rather than appetizing chicken. More narration or typography would not resolve this food-appeal limitation."
+        },
+        {
+          "severity": "P1 — physical staging",
+          "finding": "Around 17.8–19.5 seconds, the first sheet moves beneath the sauce pot. Native frames at 18.5 and 19.3 seconds show the pot apparently sitting on the sheet while food settles into it. This reads as object interpenetration or assembly rather than a clear transfer."
+        },
+        {
+          "severity": "Taste and readability limitation",
+          "finding": "The first two seconds establish place settings before food appears. The 1.5-second UI beat is economical, but the final six-serving setting is difficult to read at phone size before the camera pulls away."
+        }
+      ],
+      "boundedAdvice": "One finite staging correction could park the first sheet beside the pot with a visible gap and move pieces clearly across the rim. That correction would not establish food realism or satisfy the flagship quality bar on its own. Avoid repeated font polish.",
+      "p0SourceOrClippingDefectsFound": [],
+      "actualInspection": [
+        "Complete actual 390px browser playback, both muted and unmuted: 690 callbacks, 690 decoded frames and zero dropped frames in each run.",
+        "Entire decoded two-frames-per-second sequence, plus selected native and phone frames across the opening, app beat, split, broiler, transfer and ending.",
+        "Actual UI endpoint image ui-0045.png separately inspected to resolve the serving-setting question."
+      ],
+      "evidencePaths": [
+        "/Volumes/T9/Developer/Builds/recipefix-phase2-20261029/editorial/evidence/critic-more-dinner-v1/receipt.json",
+        "/Volumes/T9/Developer/Builds/recipefix-phase2-20261029/editorial/evidence/critic-more-dinner-v1-unmuted/receipt.json",
+        "/Volumes/T9/Developer/Builds/recipefix-phase2-20261029/editorial/evidence/critic-more-dinner-v1/native-18.5.png",
+        "/Volumes/T9/Developer/Builds/recipefix-phase2-20261029/editorial/evidence/critic-more-dinner-v1/native-19.3.png",
+        "/Volumes/T9/Developer/Builds/recipefix-phase2-20261029/editorial/evidence/critic-more-dinner-v1/critique.json",
+        "/Volumes/T9/Developer/Builds/recipefix-phase2-20261029/video/evidence/more-dinner-v1-contact.jpg"
+      ],
+      "laterRevisionStatus": "A is preparing a finite v2 pot/tray staging correction. This reviewer has not inspected or approved that later encoded version; root owns its final correction check. The food-quality HOLD remains."
+    },
+    {
+      "stream": "C — food science",
+      "version": "pineapple final-v2",
+      "mediaPath": "/Volumes/T9/Developer/Builds/recipefix-phase2-20261029/food/renders/final-v2/pineapple.mp4",
+      "sha256": "48796de42c68745d01da41bed061247a2428e10cb4e998ea5e145b84cc0e182a",
+      "durationSeconds": 11.562667,
+      "recommendation": "KEEP as a concise, useful food-science candidate for founder consideration. This is not an exceptional-cinema verdict or publication approval.",
+      "strengths": [
+        "The glossy moving gel is an appealing opening. Cutting and collapsing the network gives a visible cause and consequence.",
+        "Fresh versus canned pineapple has a practical cooking payoff. The shortened 3.5-second ending avoids the earlier extended static hold.",
+        "The independently read UGA lab source supports fresh pineapple inhibiting gelatin setting and heat during canning inactivating the relevant enzymes. The film labels its illustration and avoids claiming a real kitchen experiment."
+      ],
+      "findings": [
+        {
+          "severity": "Creative limitation",
+          "finding": "The large headline and diagram-led middle still feel like a polished classroom explainer. Pineapple appears visually only in the ending comparison. This is useful food content, not an exceptional action-led TikTok film."
+        },
+        {
+          "severity": "Readability limitation",
+          "finding": "Source off-white #fff9ee on pink #e82b6d measures approximately 4.01:1. This does not establish a blanket 4.5:1 normal-text contrast pass. The 23px native source footer is only about 8.3px at 390px width; caption citations remain important."
+        }
+      ],
+      "p0SourceOrClippingDefectsFound": [],
+      "actualInspection": [
+        "Independent complete muted 390px browser playback: 345 callbacks, 345 decoded frames and zero dropped frames.",
+        "Entire decoded one-frame-per-second sequence, explicit scene-boundary and ending phone frames, and native encoded frames at 1.9, 5.5 and 9.3 seconds.",
+        "UGA primary lab PDF independently read. AAC measured approximately -91 dB peak and mean, effectively silent."
+      ],
+      "sourceUrl": "https://extension.uga.edu/content/dam/extension/programs-and-services/science-behind-our-food/documents/tropicalfruitgelatinlab.pdf",
+      "evidencePaths": [
+        "/Volumes/T9/Developer/Builds/recipefix-phase2-20261029/editorial/evidence/critic-pineapple-v2/receipt.json",
+        "/Volumes/T9/Developer/Builds/recipefix-phase2-20261029/editorial/evidence/critic-pineapple-v2/critique.json",
+        "/Volumes/T9/Developer/Builds/recipefix-phase2-20261029/editorial/evidence/critic-pineapple-v2/native-5.5.png",
+        "/Volumes/T9/Developer/Builds/recipefix-phase2-20261029/editorial/evidence/critic-pineapple-v2/phone-8.02.png",
+        "/Volumes/T9/Developer/Builds/recipefix-phase2-20261029/food/evidence/final-v2-timeline.png"
+      ],
+      "laterRevisionStatus": "C is preparing a finite contrast/footer correction. This reviewer has not inspected or approved that later encoded version; root owns its final correction check. KEEP remains an advisory concept recommendation."
+    }
+  ],
+  "sensoryLimits": "Full actual browser transport and independently inspected temporal encoded frames are recorded. This is not a claim of human real-time audiovisual perception. No heard score, voice naturalness or musical-taste judgment is made. Narration remains held until the founder selects the actual clips.",
+  "approval": {
+    "founderApproved": false,
+    "publicationApproved": false,
+    "schedulingAuthorized": false
+  },
+  "productionChangesByReviewer": false
+}
