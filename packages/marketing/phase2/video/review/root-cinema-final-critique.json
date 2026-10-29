@@ -1,0 +1,144 @@
+{
+  "reviewType": "Independent final product-cut review; read-only production scope",
+  "asset": {
+    "path": "/Volumes/T9/Developer/Worktrees/halyard-recipefix-phase2-integration-20261029/packages/marketing/phase2/cinema/broiler-product-v2.mp4",
+    "sha256": "11e28be580f39fab0213c4ba39012d79e7e6f35728966bc3e3a1fc690b550d43",
+    "width": 1080,
+    "height": 1920,
+    "fps": 30,
+    "visualFrames": 360,
+    "visualDurationSeconds": 12,
+    "containerDurationSeconds": 12.053333,
+    "sizeBytes": 6378228
+  },
+  "decision": {
+    "recommendation": "KEEP candidate for founder review",
+    "publicationApproved": false,
+    "founderApproval": false,
+    "premiumOrExcellenceClaim": false,
+    "viralOrRetentionGuarantee": false,
+    "scope": "KEEP is a selection recommendation for these exact bytes. It does not lock a post, approve spending/voice, select an account/time or make the held earlier films publishable."
+  },
+  "whyKeep": [
+    "The recognizable marinated chicken, reflective foil and kitchen depth are materially stronger than the held orange-nugget primitive film. Food dominates the frame instead of becoming a small insert on an empty card.",
+    "A sheet entering the one oven while another waits makes the capacity story visible before the app proof; the video is relevant to the method claim rather than unrelated preparation footage.",
+    "The genuine app interaction reaches Dairy-Free and six servings, then the real endpoint is held. This is readable at 390px and fixes the earlier risk of ending on an intermediate setting.",
+    "The large exact method excerpt links the recorded adaptation to the visible plan. The CTA follows a compact action \u2192 setting \u2192 method sequence rather than several long fact slides."
+  ],
+  "actualObservedTimeline": [
+    {
+      "seconds": [
+        0,
+        2.4
+      ],
+      "event": "Food and foil fill the stage while Two more for dinner? poses a concrete scaling problem. Native motion appears immediately; no empty semantic opening."
+    },
+    {
+      "seconds": [
+        2.4,
+        5.2
+      ],
+      "event": "Same oven. Two sheets. accompanies one sheet entering the oven while another remains outside. The tray moves without a human hand and is visibly synthetic planning illustration."
+    },
+    {
+      "seconds": [
+        5.2,
+        6.7
+      ],
+      "event": "Actual RecipeFix modal changes Dairy-Free and servings through intermediate states. Intermediate five is valid action, not the endpoint claim."
+    },
+    {
+      "seconds": [
+        6.7,
+        7.7
+      ],
+      "event": "Genuine captured endpoint holds selected Dairy-Free and 6 servings. Both the six-serving label and numeric 6 control are visible in actual 390px samples."
+    },
+    {
+      "seconds": [
+        7.7,
+        9.5
+      ],
+      "event": "The method changes, too. plus actual source pixels broil one sheet at a time. Large enough to read at phone scale; no paragraph scroll."
+    },
+    {
+      "seconds": [
+        9.5,
+        12
+      ],
+      "event": "Make your recipe fit. and recipefix.app close over the same kitchen world. The 2.5s static ending is a normal CTA hold, not another lengthy explanatory scene."
+    }
+  ],
+  "sourceEndpoint": {
+    "sixVerifiedInActualExport": true,
+    "samplesSeconds": [
+      6.8,
+      7.4
+    ],
+    "scope": "Historical combined Dairy-Free 4\u21926 response, recorded Oct 21, 2026; not a fresh inference or filmed cooked/tasted result. Disclosure states recorded result and AI planning illustration. No nutrition number or appliance-detection claim observed.",
+    "productSourceCommit": "3f32680f091d06ad9046bb95e4dfb55489d2c264",
+    "captureBundle": "index-D18VC9ff.js",
+    "methodPhrase": "broil one sheet at a time"
+  },
+  "clippingAndCopy": {
+    "p0SourceOrTypographyFailureObserved": false,
+    "mainProof": "Dairy-Free controls, six-serving label/number, method phrase and CTA are not clipped and are readable at 390px. Copy stays concise.",
+    "minorCropIssue": "The lower Adapt recipe button is partially cropped by the UI card mask. It looks less finished than a clean card boundary, but the claimed six-serving proof is intact. This is a minor crop/craft defect rather than a reason to discard the whole candidate.",
+    "scopeNote": "This review did not operate the published app or prove a new adaptation. The actual export was inspected, not just its component source."
+  },
+  "remainingTasteLimits": [
+    "The self-propelled/hovering tray remains an obvious synthetic cue. Keep the planning-illustration disclosure; do not call this authentic kitchen footage or a physically cooked result.",
+    "This is a conventional compact product-ad structure, not an exceptional entertainment film. It is stronger enough to keep for founder selection, without claiming the audience will watch, like or convert.",
+    "Source/disclosure footer is legible in the native and 390px samples; actual TikTok/Instagram overlay placement was not tested."
+  ],
+  "inspection": {
+    "playback": [
+      {
+        "width": 390,
+        "duration": 12.053333,
+        "currentTime": 12.053333,
+        "ended": true,
+        "error": null,
+        "played": [
+          [
+            0,
+            12.053333
+          ]
+        ],
+        "scope": "Actual full browser transport and sampled actual native/phone frames; no auditory judgment."
+      },
+      {
+        "width": 1080,
+        "duration": 12.053333,
+        "currentTime": 12.053333,
+        "ended": true,
+        "error": null,
+        "played": [
+          [
+            0,
+            12.053333
+          ]
+        ],
+        "scope": "Actual full browser transport and sampled actual native/phone frames; no auditory judgment."
+      }
+    ],
+    "evidenceDirectory": "/Volumes/T9/Developer/Builds/recipefix-phase2-20261029/video/evidence/broiler-final-review",
+    "contactPath": "/Volumes/T9/Developer/Builds/recipefix-phase2-20261029/video/evidence/broiler-product-v2-contact.jpg",
+    "visualScope": "Whole-sequence decoded contact plus sampled actual native/phone frames across opening, tray motion, intermediate UI, held 6, method and ending. Complete browser transport reached ended=true at both sizes with no media errors.",
+    "audio": "Silent by design; no direct hearing or voice-quality claim."
+  },
+  "actions": {
+    "productionEdits": 0,
+    "productionRenders": 0,
+    "paidCalls": 0,
+    "accountOrPublishingActions": 0,
+    "artifact": "This hash-bound review JSON only. Root owns any integration or future selection."
+  },
+  "rootReportedFollowup": {
+    "version": "v3",
+    "change": "Root reports cropping the Other changes / Adapt recipe section entirely out, retaining Make it fit, selected Dairy-Free and complete six-serving controls.",
+    "concern": "Addresses the minor UI crop craft issue in component source.",
+    "verification": "Encoded v3 crop and complete playback verification pending with root. This reviewer has not inspected v3 bytes and grants no v3 hash-bound approval.",
+    "v2ReviewUnchanged": true
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "fps": 30,
+  "frames": 690,
+  "durationSeconds": 23,
+  "scene": "Original dimensional cooking-plan illustration",
+  "beats": [
+    {"frames": [0, 96], "event": "Four place settings become six; two additional settings slide in.", "audio": "Original plate clinks at1.5 and2.48s."},
+    {"frames": [96, 208], "event": "Camera moves into the kitchen as six additional illustrative pieces crowd the existing sheet.", "audio": "Authored damped impacts and original 96 BPM instrumental pulse."},
+    {"frames": [208, 278], "event": "Actual source capture changes Dairy-Free and four to six servings on a dimensional phone.", "audio": "Three authored quiet taps; no narration."},
+    {"frames": [278, 384], "event": "The same18 pieces redistribute across two sheets. Exact recorded method crop appears for1.6s.", "audio": "Synthetic illustrative cloth/foil swishes."},
+    {"frames": [384, 515], "event": "First sheet uses the one illustrated heat chamber and exits forward.", "audio": "Finite metal/foil cues; no claim of field-recorded cooking."},
+    {"frames": [515, 620], "event": "First-batch pieces transfer to sauce while second sheet enters the same chamber.", "audio": "Authored transfer texture and latch cue."},
+    {"frames": [620, 690], "event": "Camera reveals the continuing batch plan and recipefix.app CTA.", "audio": "Original instrumental resolution and fade."}
+  ],
+  "scope": "Actions and piece counts are illustrative. Not a full recipe, physical cooking result, precise elapsed cooking time, appliance detection or measured yield. Historical combined Dairy-Free 4→6 response, Oct 21, 2026."
+}

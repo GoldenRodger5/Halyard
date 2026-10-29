@@ -1,0 +1,102 @@
+{
+  "ideas": [
+    {
+      "id": "rf-more-dinner",
+      "title": "Two more for dinner. Same broiler.",
+      "category": "P02",
+      "targetAudience": "Home cooks adapting a dinner recipe for more people and a dairy-free request.",
+      "whyWatch": "Two extra places at dinner create a real capacity problem: more food, the same broiler space.",
+      "visibleEvent": "Four settings become six; illustrative marinated pieces crowd a sheet, split across two sheets, and take turns under one heat source. Actual app settings move on a screen in the scene.",
+      "payoff": "The recorded RecipeFix response adjusts the method to broil one sheet at a time and finish the chicken in sauce.",
+      "productBridge": "Open Chicken Tikka Masala on RecipeFix and choose Make it fit.",
+      "sourceUrls": [
+        "https://github.com/GoldenRodger5/recipe-fix/blob/3f32680f091d06ad9046bb95e4dfb55489d2c264/src/data/landingRealResult.ts"
+      ],
+      "authoringStatus": "founder_review"
+    }
+  ],
+  "variants": [
+    {
+      "id": "rf-more-dinner-tiktok-phase2-v2",
+      "ideaId": "rf-more-dinner",
+      "platform": "tiktok",
+      "format": "short_video",
+      "caption": "Two more for dinner. The broiler did not grow. In this recorded RecipeFix dairy-free 4→6 example, the quantities change—and so does the method: two uncrowded foil-lined sheets, broiled one at a time, then finished in sauce. CGI planning illustration, not a cooked result. Try Make it fit at recipefix.app.",
+      "media": [
+        {
+          "path": "packages/marketing/phase2/video/review/more-dinner-v2.mp4",
+          "kind": "video",
+          "sha256": "9c3d168defdde5f95a9a1c912b79d04320d50ccbb33567ce84c6d362009b4e4d",
+          "width": 1080,
+          "height": 1920,
+          "durationSeconds": 23,
+          "origin": "Original Blender planning illustration; actual first-party recorded UI and historical response; original authored music/synthetic illustrative foley; Remotion edit.",
+          "rights": "Original authored 3D/audio and first-party UI/source; Inter SIL OFL. No third-party footage in this full film. See rights.json.",
+          "altText": "Four dinner place settings become six. Orange stylized marinated pieces crowd a metal sheet. Actual RecipeFix settings change to Dairy-Free and six servings on a physical screen. The pieces split between two sheets which take turns in one illustrated broiler chamber; first-batch pieces move into sauce. Recipefix.app closes the film.",
+          "synthetic": true
+        }
+      ],
+      "targetUrl": "https://recipefix.app/original-recipes/chicken-tikka-masala?utm_source=tiktok&utm_medium=social&utm_campaign=rf_first_fortnight&utm_content=rf-more-dinner-tiktok-phase2-v2",
+      "cta": "Visit recipefix.app → Chicken Tikka Masala → Make it fit. Profile-link placement unverified.",
+      "disclosure": "CGI planning illustration, not a cooked or tasted result. Recorded combined Dairy-Free 4→6 response, Oct 21, 2026; actual UI capture uses the stored response, not a fresh live adaptation. Piece count is illustrative. Original synthetic foley/music; no generated voice.",
+      "sourceUrls": [
+        "https://github.com/GoldenRodger5/recipe-fix/blob/3f32680f091d06ad9046bb95e4dfb55489d2c264/src/data/landingRealResult.ts"
+      ]
+    },
+    {
+      "id": "rf-more-dinner-instagram-phase2-v2",
+      "ideaId": "rf-more-dinner",
+      "platform": "instagram",
+      "format": "reel",
+      "caption": "The headcount changed. The broiler space stayed the same. This recorded RecipeFix dairy-free 4→6 Chicken Tikka Masala response calls for two uncrowded sheets and one broiler batch at a time, then a sauce finish. CGI planning illustration; no cooked-result claim. Find Chicken Tikka Masala at recipefix.app → Make it fit.",
+      "media": [
+        {
+          "path": "packages/marketing/phase2/video/review/more-dinner-v2.mp4",
+          "kind": "video",
+          "sha256": "9c3d168defdde5f95a9a1c912b79d04320d50ccbb33567ce84c6d362009b4e4d",
+          "width": 1080,
+          "height": 1920,
+          "durationSeconds": 23,
+          "origin": "Original Blender planning illustration; actual first-party recorded UI and historical response; original authored music/synthetic illustrative foley; Remotion edit.",
+          "rights": "Original authored 3D/audio and first-party UI/source; Inter SIL OFL. No third-party footage in this full film. See rights.json.",
+          "altText": "Four dinner place settings become six. Orange stylized marinated pieces crowd a metal sheet. Actual RecipeFix settings change to Dairy-Free and six servings on a physical screen. The pieces split between two sheets which take turns in one illustrated broiler chamber; first-batch pieces move into sauce. Recipefix.app closes the film.",
+          "synthetic": true
+        }
+      ],
+      "targetUrl": "https://recipefix.app/original-recipes/chicken-tikka-masala?utm_source=instagram&utm_medium=social&utm_campaign=rf_first_fortnight&utm_content=rf-more-dinner-instagram-phase2-v2",
+      "cta": "Visit recipefix.app → Chicken Tikka Masala → Make it fit. Profile-link placement unverified.",
+      "disclosure": "CGI planning illustration, not a cooked or tasted result. Recorded combined Dairy-Free 4→6 response, Oct 21, 2026; actual UI capture uses the stored response, not a fresh live adaptation. Piece count is illustrative. Original synthetic foley/music; no generated voice.",
+      "sourceUrls": [
+        "https://github.com/GoldenRodger5/recipe-fix/blob/3f32680f091d06ad9046bb95e4dfb55489d2c264/src/data/landingRealResult.ts"
+      ]
+    },
+    {
+      "id": "rf-more-dinner-youtube-phase2-v2",
+      "ideaId": "rf-more-dinner",
+      "platform": "youtube",
+      "format": "short_video",
+      "caption": "More chicken, same broiler. This recorded RecipeFix 4→6 dairy-free adaptation changes both quantities and the cooking plan. Original CGI illustrates the batch sequence; it is not a cooked result. Try Chicken Tikka Masala → Make it fit at recipefix.app.",
+      "title": "More dinner. Same broiler. | RecipeFix",
+      "media": [
+        {
+          "path": "packages/marketing/phase2/video/review/more-dinner-v2.mp4",
+          "kind": "video",
+          "sha256": "9c3d168defdde5f95a9a1c912b79d04320d50ccbb33567ce84c6d362009b4e4d",
+          "width": 1080,
+          "height": 1920,
+          "durationSeconds": 23,
+          "origin": "Original Blender planning illustration; actual first-party recorded UI and historical response; original authored music/synthetic illustrative foley; Remotion edit.",
+          "rights": "Original authored 3D/audio and first-party UI/source; Inter SIL OFL. No third-party footage in this full film. See rights.json.",
+          "altText": "Four dinner place settings become six. Orange stylized marinated pieces crowd a metal sheet. Actual RecipeFix settings change to Dairy-Free and six servings on a physical screen. The pieces split between two sheets which take turns in one illustrated broiler chamber; first-batch pieces move into sauce. Recipefix.app closes the film.",
+          "synthetic": true
+        }
+      ],
+      "targetUrl": "https://recipefix.app/original-recipes/chicken-tikka-masala?utm_source=youtube&utm_medium=social&utm_campaign=rf_first_fortnight&utm_content=rf-more-dinner-youtube-phase2-v2",
+      "cta": "Visit recipefix.app → Chicken Tikka Masala → Make it fit. Profile-link placement unverified.",
+      "disclosure": "CGI planning illustration, not a cooked or tasted result. Recorded combined Dairy-Free 4→6 response, Oct 21, 2026; actual UI capture uses the stored response, not a fresh live adaptation. Piece count is illustrative. Original synthetic foley/music; no generated voice.",
+      "sourceUrls": [
+        "https://github.com/GoldenRodger5/recipe-fix/blob/3f32680f091d06ad9046bb95e4dfb55489d2c264/src/data/landingRealResult.ts"
+      ]
+    }
+  ]
+}
