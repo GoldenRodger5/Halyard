@@ -1,0 +1,92 @@
+{
+  "reviewDate": "2026-10-29",
+  "reviewer": "food_studio independent visual critic; no producer edits",
+  "decision": "BOUNDED_CORRECTIONS_VERIFIED_RETAIN_PICTURE_LOCK_FOR_SOUND_AUDITIONS",
+  "candidate": {
+    "path": "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/edit/picture-v2/dinner-picture-clean.mp4",
+    "sha256": "2ccef680712fce964c250c8e7afaeeb026beac283bc0924e3325106c0729751d",
+    "fullPlaybacks": [
+      {
+        "duration": 13.5,
+        "currentTime": 13.5,
+        "ended": true,
+        "muted": true,
+        "videoWidth": 1080,
+        "videoHeight": 1920,
+        "decodedFrames": 405,
+        "droppedFrames": 0,
+        "callbacks": 405,
+        "firstMediaTime": 0,
+        "lastMediaTime": 13.466667,
+        "elapsedSeconds": 13.55220000000298,
+        "viewport": {
+          "width": 360,
+          "height": 844
+        },
+        "errors": [],
+        "sound": "silent_by_design",
+        "subjectiveAudioJudgment": "not_applicable",
+        "reviewScope": "Actual complete muted browser playback; transport/frames and screenshot evidence, not founder approval."
+      },
+      {
+        "duration": 13.5,
+        "currentTime": 13.5,
+        "ended": true,
+        "muted": true,
+        "videoWidth": 1080,
+        "videoHeight": 1920,
+        "decodedFrames": 405,
+        "droppedFrames": 0,
+        "callbacks": 405,
+        "firstMediaTime": 0,
+        "lastMediaTime": 13.466667,
+        "elapsedSeconds": 13.55210000000149,
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "errors": [],
+        "sound": "silent_by_design",
+        "subjectiveAudioJudgment": "not_applicable",
+        "reviewScope": "Actual complete muted browser playback; transport/frames and screenshot evidence, not founder approval."
+      }
+    ]
+  },
+  "priorVersionReview": "packages/marketing/phase2b/editorial/independent-picture-review.json",
+  "verifiedCorrections": [
+    {
+      "finding": "The complete Chicken Tikka Masala source title and Serves 4 source crop remain inside the frame at both phone widths. The previous partly clipped 45-minute strip is omitted, not represented as newly verified timing.",
+      "evidence": [
+        "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/editorial/evidence/dinner-picture-v2-360/phone-2.png",
+        "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/editorial/evidence/dinner-picture-v2-390/phone-2.png"
+      ]
+    },
+    {
+      "finding": "The actual UI endpoint shows Dairy-Free selected and 6 servings at 3.9 seconds, readable at both widths.",
+      "evidence": [
+        "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/editorial/evidence/dinner-picture-v2-360/phone-3.9.png",
+        "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/editorial/evidence/dinner-picture-v2-390/phone-3.9.png"
+      ]
+    },
+    {
+      "finding": "The settled oven-tail crops add limited coherent camera motion. The prior self-propelling tray sequence is not reintroduced.",
+      "evidence": [
+        "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/editorial/evidence/dinner-picture-v2-390/contact-05s.jpg"
+      ]
+    }
+  ],
+  "remainingLimitations": [
+    "Most of the film after the opener remains still reframing and source-pixel cards, with actual UI interaction. This is a clearer product demo, not sustained native food action or a flagship cinematic certification.",
+    "The changed-step label, two-sheets quote, one-at-a-time quote and named CTA provide semantic proof but still create repeated reading beats.",
+    "The on-frame historical/artificial-illustration disclosure is secondary small copy; full source context remains necessary outside the film."
+  ],
+  "newP0Found": false,
+  "newP1Found": false,
+  "additionalProductionRequested": false,
+  "evidenceRoot": "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/editorial/evidence",
+  "soundScope": "Complete muted playback only. No subjective hearing, voice naturalness, pronunciation, music or sound-mix judgment. Audio-mixed exports require their own exact-file visual readback when delivered.",
+  "producerFilesEdited": false,
+  "additionalCashUSD": 0,
+  "providerCalls": 0,
+  "founderApprovalAsserted": false
+}
