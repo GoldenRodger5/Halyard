@@ -1,0 +1,197 @@
+{
+  "ideas": [
+    {
+      "id": "rf-more-dinner",
+      "title": "More dinner. Same broiler.",
+      "category": "P02",
+      "targetAudience": "Home cooks adapting a dinner recipe for more people and a dairy-free request.",
+      "whyWatch": "The quantity rises but the broiler does not; see the practical cooking plan respond.",
+      "visibleEvent": "A real serving-setting interaction and quantity change lead to two reflective foil-lined sheets taking turns in one illustrated active lane.",
+      "payoff": "The actual recorded RecipeFix response changes the method to keep the larger batch uncrowded.",
+      "productBridge": "Open the Chicken Tikka Masala Original and choose Make it fit.",
+      "sourceUrls": [
+        "https://github.com/GoldenRodger5/recipe-fix/blob/3f32680f091d06ad9046bb95e4dfb55489d2c264/src/data/landingRealResult.ts",
+        "https://www.pexels.com/video/a-person-frying-a-chicken-meat-4064770/",
+        "https://www.pexels.com/license/",
+        "https://unsplash.com/photos/a-bowl-of-creamy-chicken-tikka-masala-with-mint-leaves-GOw8q6bRTRM",
+        "https://unsplash.com/license"
+      ],
+      "authoringStatus": "founder_review"
+    }
+  ],
+  "variants": [
+    {
+      "id": "rf-more-dinner-tiktok-v4",
+      "ideaId": "rf-more-dinner",
+      "platform": "tiktok",
+      "format": "short_video",
+      "caption": "Two more people. Same broiler. RecipeFix changes the cooking plan as well as the quantities. Recorded dairy-free 4 \u2192 6 Chicken Tikka Masala example; cooking context and batch plan illustrated. Try Make it fit at recipefix.app.",
+      "media": [
+        {
+          "path": "packages/marketing/production-checkpoint/video/review/more-dinner-v4.mp4",
+          "kind": "video",
+          "sha256": "1b57548d78a57b5e6b30e293350d701ba698d769d3de617b8ca81fcc60f9c848",
+          "width": 1080,
+          "height": 1920,
+          "durationSeconds": 16,
+          "origin": "Remotion edit of first-party UI/historical RecipeFix result, licensed Pexels context, Unsplash serving inspiration and original Blender foil illustration/audio.",
+          "rights": "Pexels License; Unsplash License; first-party UI; original authored 3D/audio; Inter SIL OFL. See rights.json.",
+          "altText": "Chicken preparation context; real RecipeFix six-serving dairy-free settings;1\u00bd to2\u00bcpounds; actual broiler instruction; two empty foil-lined sheets take turns in an illustrated warm lane; serving inspiration and recipefix.app.",
+          "synthetic": true
+        }
+      ],
+      "targetUrl": "https://recipefix.app/original-recipes/chicken-tikka-masala?utm_source=tiktok&utm_medium=social&utm_campaign=rf_first_fortnight&utm_content=rf-more-dinner-tiktok-v4",
+      "cta": "Visit recipefix.app \u2192 Chicken Tikka Masala \u2192 Make it fit. Profile-link placement is not verified.",
+      "disclosure": "Recorded Dairy-Free 4 \u2192 6 result, Oct 21, 2026; cooking context/foil plan illustrated. Serving image is inspiration, not an adapted cooked result. Original authored CGI/foley; no generated narration.",
+      "sourceUrls": [
+        "https://github.com/GoldenRodger5/recipe-fix/blob/3f32680f091d06ad9046bb95e4dfb55489d2c264/src/data/landingRealResult.ts",
+        "https://www.pexels.com/video/a-person-frying-a-chicken-meat-4064770/",
+        "https://www.pexels.com/license/",
+        "https://unsplash.com/photos/a-bowl-of-creamy-chicken-tikka-masala-with-mint-leaves-GOw8q6bRTRM",
+        "https://unsplash.com/license"
+      ]
+    },
+    {
+      "id": "rf-more-dinner-instagram-v4",
+      "ideaId": "rf-more-dinner",
+      "platform": "instagram",
+      "format": "reel",
+      "caption": "When the headcount changes, pan space matters. This recorded RecipeFix dairy-free 4 \u2192 6 adaptation calls for two uncrowded foil-lined sheets, broiled one at a time, then finished in sauce. Cooking visuals are illustrative. Find Chicken Tikka Masala at recipefix.app and tap Make it fit.",
+      "media": [
+        {
+          "path": "packages/marketing/production-checkpoint/video/review/more-dinner-v4.mp4",
+          "kind": "video",
+          "sha256": "1b57548d78a57b5e6b30e293350d701ba698d769d3de617b8ca81fcc60f9c848",
+          "width": 1080,
+          "height": 1920,
+          "durationSeconds": 16,
+          "origin": "Remotion edit of first-party UI/historical RecipeFix result, licensed Pexels context, Unsplash serving inspiration and original Blender foil illustration/audio.",
+          "rights": "Pexels License; Unsplash License; first-party UI; original authored 3D/audio; Inter SIL OFL. See rights.json.",
+          "altText": "Chicken preparation context; real RecipeFix six-serving dairy-free settings;1\u00bd to2\u00bcpounds; actual broiler instruction; two empty foil-lined sheets take turns in an illustrated warm lane; serving inspiration and recipefix.app.",
+          "synthetic": true
+        }
+      ],
+      "targetUrl": "https://recipefix.app/original-recipes/chicken-tikka-masala?utm_source=instagram&utm_medium=social&utm_campaign=rf_first_fortnight&utm_content=rf-more-dinner-instagram-v4",
+      "cta": "Try the Original with your dinner constraints. Profile-link placement is not verified.",
+      "disclosure": "Recorded Dairy-Free 4 \u2192 6 result, Oct 21, 2026; cooking context/foil plan illustrated. Serving image is inspiration, not an adapted cooked result. Original authored CGI/foley; no generated narration.",
+      "sourceUrls": [
+        "https://github.com/GoldenRodger5/recipe-fix/blob/3f32680f091d06ad9046bb95e4dfb55489d2c264/src/data/landingRealResult.ts",
+        "https://www.pexels.com/video/a-person-frying-a-chicken-meat-4064770/",
+        "https://www.pexels.com/license/",
+        "https://unsplash.com/photos/a-bowl-of-creamy-chicken-tikka-masala-with-mint-leaves-GOw8q6bRTRM",
+        "https://unsplash.com/license"
+      ]
+    },
+    {
+      "id": "rf-more-dinner-youtube-v4",
+      "ideaId": "rf-more-dinner",
+      "platform": "youtube",
+      "format": "short_video",
+      "title": "Cooking for more? RecipeFix changes the broiler plan.",
+      "caption": "A recorded RecipeFix Chicken Tikka Masala adaptation changes dairy ingredients and scales 4 \u2192 6 servings. Chicken rises 1\u00bd \u2192 2\u00bc lb; the actual method calls for two foil-lined sheets, one at a time, then finishing in sauce. Stock/CGI cooking illustration and serving inspiration; no cooked-result claim. Follow the full recipe for doneness. Try the Original at recipefix.app.",
+      "media": [
+        {
+          "path": "packages/marketing/production-checkpoint/video/review/more-dinner-v4.mp4",
+          "kind": "video",
+          "sha256": "1b57548d78a57b5e6b30e293350d701ba698d769d3de617b8ca81fcc60f9c848",
+          "width": 1080,
+          "height": 1920,
+          "durationSeconds": 16,
+          "origin": "Remotion edit of first-party UI/historical RecipeFix result, licensed Pexels context, Unsplash serving inspiration and original Blender foil illustration/audio.",
+          "rights": "Pexels License; Unsplash License; first-party UI; original authored 3D/audio; Inter SIL OFL. See rights.json.",
+          "altText": "Chicken preparation context; real RecipeFix six-serving dairy-free settings;1\u00bd to2\u00bcpounds; actual broiler instruction; two empty foil-lined sheets take turns in an illustrated warm lane; serving inspiration and recipefix.app.",
+          "synthetic": true
+        }
+      ],
+      "targetUrl": "https://recipefix.app/original-recipes/chicken-tikka-masala?utm_source=youtube&utm_medium=social&utm_campaign=rf_first_fortnight&utm_content=rf-more-dinner-youtube-v4",
+      "cta": "Open Chicken Tikka Masala \u2192 Make it fit. Channel/profile links are not verified.",
+      "disclosure": "Recorded Dairy-Free 4 \u2192 6 result, Oct 21, 2026; cooking context/foil plan illustrated. Serving image is inspiration, not an adapted cooked result. Original authored CGI/foley; no generated narration.",
+      "sourceUrls": [
+        "https://github.com/GoldenRodger5/recipe-fix/blob/3f32680f091d06ad9046bb95e4dfb55489d2c264/src/data/landingRealResult.ts",
+        "https://www.pexels.com/video/a-person-frying-a-chicken-meat-4064770/",
+        "https://www.pexels.com/license/",
+        "https://unsplash.com/photos/a-bowl-of-creamy-chicken-tikka-masala-with-mint-leaves-GOw8q6bRTRM",
+        "https://unsplash.com/license"
+      ]
+    }
+  ],
+  "qualityReviews": [
+    {
+      "variantId": "rf-more-dinner-tiktok-v4",
+      "mediaHashes": [
+        "1b57548d78a57b5e6b30e293350d701ba698d769d3de617b8ca81fcc60f9c848"
+      ],
+      "checkedAt": "2026-10-29T20:37:20.368Z",
+      "visuallyReviewed": true,
+      "sound": "unverified",
+      "sourceAndRightsChecked": true,
+      "criticalDefects": [
+        "Direct human soundtrack listening remains unverified; no founder creative approval."
+      ],
+      "founderDecision": "unreviewed"
+    },
+    {
+      "variantId": "rf-more-dinner-instagram-v4",
+      "mediaHashes": [
+        "1b57548d78a57b5e6b30e293350d701ba698d769d3de617b8ca81fcc60f9c848"
+      ],
+      "checkedAt": "2026-10-29T20:37:20.371Z",
+      "visuallyReviewed": true,
+      "sound": "unverified",
+      "sourceAndRightsChecked": true,
+      "criticalDefects": [
+        "Direct human soundtrack listening remains unverified; no founder creative approval."
+      ],
+      "founderDecision": "unreviewed"
+    },
+    {
+      "variantId": "rf-more-dinner-youtube-v4",
+      "mediaHashes": [
+        "1b57548d78a57b5e6b30e293350d701ba698d769d3de617b8ca81fcc60f9c848"
+      ],
+      "checkedAt": "2026-10-29T20:37:20.371Z",
+      "visuallyReviewed": true,
+      "sound": "unverified",
+      "sourceAndRightsChecked": true,
+      "criticalDefects": [
+        "Direct human soundtrack listening remains unverified; no founder creative approval."
+      ],
+      "founderDecision": "unreviewed"
+    }
+  ],
+  "audio": {
+    "narration": false,
+    "source": "Original authored procedural foley, no samples",
+    "directHearing": false,
+    "proposal": "NARRATION.md"
+  },
+  "syntheticMedia": "Original CGI foil-sheet illustration and procedural audio; real licensed footage and first-party UI, no AI video provider output.",
+  "cost": {
+    "providerCalls": 0,
+    "newSubscriptions": 0,
+    "additionalSpendUsd": 0,
+    "localComputeCost": "not separately metered"
+  },
+  "source": {
+    "branch": "feat/recipefix-team-video-20261029",
+    "base": "96c20517",
+    "commit": null
+  },
+  "publication": {
+    "approved": false,
+    "account": null,
+    "scheduledAt": null,
+    "posts": 0
+  },
+  "validation": {
+    "ideaErrors": [],
+    "variantErrors": []
+  },
+  "qaEvidence": {
+    "phonePlayback": "packages/marketing/production-checkpoint/video/review/playback.json",
+    "contactSheet": "packages/marketing/production-checkpoint/video/review/contact.jpg",
+    "technical": "packages/marketing/production-checkpoint/video/review/probe.json",
+    "reviewNotes": "packages/marketing/production-checkpoint/video/QA.md",
+    "independentContext": "Root director and separate food specialist inspected the preceding finalstory and identified serving-image mismatch; V4 onlyswapsverifiedrealchicken-tikkaimage. ProducerplayedfullV4muted/unmutedandinspectednative/phoneframes. Noapprovalorsubjectivehearingimplied."
+  }
+}
