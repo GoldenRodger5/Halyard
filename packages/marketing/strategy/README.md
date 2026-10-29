@@ -1,3 +1,5 @@
+> **2026-10-29 newest founder visual-quality ruling:** [Cinematic image-first/motion-first creative reset](2026-10-29-CINEMATIC-VISUAL-QUALITY-RESET.md). PR #115 pineapple diagram is rejected as premium flagship TikTok/Reel/Short content despite source/test passes. NotebookLM Cinematic is the quality benchmark, not a paid subscription requirement; research current image/video generation and compare actual exports before more procedural 3D/clip-art.
+
 # RecipeFix Social Studio — October 28, 2026 planning index
 
 **Status updated October 29:** PR #104 A/B product films were founder-rejected; PR #105 produced a yolk-game and popcorn-science R&D pair (not approved for publishing). The next priority is a commercially connected, genuinely entertaining recipe-problem creative. No public posts, new subscriptions or provider account changes approved.
