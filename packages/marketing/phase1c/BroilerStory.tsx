@@ -42,7 +42,7 @@ export const BroilerStory:React.FC=()=>{
       <Tray x={mix(mix(540,780,split),540,second)} y={mix(mix(1080,1320,split),1050,second)} scale={mix(mix(.94,.48,split),.67,second)} count={0} label="2"/>
      </g>
      {crowded.map((pos,i)=>{const one=i<9,j=i%9,sc=one?mix(.48,.67,firstEnter):mix(.48,.67,second),px=one?mix(300,540,firstEnter)-firstExit*1100:mix(780,540,second),py=one?mix(1320,1050,firstEnter):mix(1320,1050,second);return <Chicken key={i} x={mix(540+pos.x*.94,px+(j%3-1)*155*sc,split)} y={mix(1080+pos.y*.94,py+(Math.floor(j/3)-1)*125*sc,split)} angle={mix(i*27,(i*37)%52-26,split)} scale={mix(1.5*.94,1.23*sc,split)}/>;})}
-     
+
     </>:<>
      <Tray x={220-ease((t-14)/1.1)*400} y={915} scale={.37} count={9} split/>
      <Tray x={840-ease((t-14.5)/1.1)*1300} y={915} scale={.37} count={9} split/>
