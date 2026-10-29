@@ -1,0 +1,77 @@
+{
+  "checkedAt": "2026-10-29T21:18:07.994Z",
+  "sourcePin": "a82f8bb9aff1cea7d5539156c807faa2602c9e29",
+  "recipeSource": "https://github.com/GoldenRodger5/recipe-fix/blob/a82f8bb9aff1cea7d5539156c807faa2602c9e29/src/data/recipefixOriginals.ts",
+  "recordSource": "https://github.com/GoldenRodger5/Halyard/blob/8d1417b862e17e794095e3951fd210cf771c56e8/packages/marketing/production-checkpoint/editorial/assets/historical-result.json",
+  "recipeOriginal": {
+    "ingredient": "3/4 cup plain whole-milk yogurt",
+    "marinadeInstruction": "Stir the yogurt, lemon juice, 1 tablespoon garam masala and 1 teaspoon salt together in a bowl. Add the chicken and turn to coat every piece. Leave it to marinate at room temperature for 20 minutes while you make the sauce."
+  },
+  "recordedEvidence": {
+    "path": "packages/marketing/phase2/editorial/assets/historical-result.json",
+    "sha256": "572f681c851d3b0777e0c4ca15c781a0c573bab7c026f5b683d9c7f1b72ff473",
+    "context": "Genuine recorded Oct 21, 2026 combined Dairy-Free and 4→6 request; recipe-only record preserved in prior source commit, not fresh inference.",
+    "ingredient": {
+      "original": "3/4 cup plain whole-milk yogurt",
+      "adapted": "1 cup plus 2 tablespoons plain unsweetened dairy-free coconut yogurt",
+      "changed": true,
+      "changeType": "both",
+      "changeReason": "Coconut yogurt provides an acidic, coating marinade without dairy; choose an unsweetened, unflavored variety."
+    },
+    "methodNote": "Stir the coconut yogurt smooth before coating the chicken; a thick, cultured variety clings better than a thin yogurt.",
+    "limits": "Original already stirred yogurt with other marinade ingredients. The specific smoothing/thick cultured texture note is the new associated guidance, not the invention of stirring. No physically validated texture or brand equivalence."
+  },
+  "tomatoFacts": [
+    {
+      "claim": "Whole tomatoes: room temperature out of direct sun; refrigerate only if unable to use before spoilage.",
+      "source": "https://spendsmart.extension.iastate.edu/produce-item/tomatoes/"
+    },
+    {
+      "claim": "Fully ripe tomatoes may be refrigerated for a few days, with declining flavor and texture.",
+      "source": "https://yardandgarden.extension.iastate.edu/how-to/growing-tomatoes-home-garden"
+    },
+    {
+      "claim": "Cut tomatoes: cover and refrigerate below 40°F within 2 hours.",
+      "source": "https://health.ucdavis.edu/blog/good-food/how-to-make-your-produce-last-longer/2025/09"
+    },
+    {
+      "claim": "Keep refrigerator at 40°F / 4°C or below; maximum 2 hours for perishables, 1 hour if air above 90°F.",
+      "source": "https://www.fda.gov/consumers/consumer-updates/are-you-storing-food-safely"
+    }
+  ],
+  "photos": [
+    {
+      "id": "red-tomatoes",
+      "officialPage": "https://unsplash.com/photos/red-tomato-on-brown-woven-basket-ygbpGC_CQME",
+      "imageUrl": "https://images.unsplash.com/photo-1588306457968-d862c58419ce?auto=format&fit=max&w=1800&q=90",
+      "photographer": "Praveen kumar Mathivanan",
+      "rights": "Free Unsplash License verified on official page",
+      "licenseUrl": "https://unsplash.com/license",
+      "path": "packages/marketing/phase2/editorial/assets/red-tomatoes.jpg",
+      "sha256": "3e8a1e61de6e03c99817c90362542f136f608eeeacc8d7a1a6ff8e5b313b0f90"
+    },
+    {
+      "id": "green-tomatoes",
+      "officialPage": "https://unsplash.com/photos/green-tomatoes-growing-on-a-vibrant-vine-c8ubnsOXu9o",
+      "imageUrl": "https://images.unsplash.com/photo-1747017463710-9ff53845ff30?auto=format&fit=max&w=1800&q=90",
+      "photographer": "Winston Chen",
+      "rights": "Free Unsplash License verified on official page",
+      "licenseUrl": "https://unsplash.com/license",
+      "path": "packages/marketing/phase2/editorial/assets/green-tomatoes.jpg",
+      "sha256": "4262e6525a5d9102b55491d1007026758e2b05a2b7c86aa2ea8f7090792dfe37"
+    },
+    {
+      "id": "coconut",
+      "officialPage": "https://unsplash.com/photos/a-person-holding-a-half-eaten-coconut-in-their-hands-gBxUqEpBPsI",
+      "imageUrl": "https://images.unsplash.com/photo-1582362731063-debbd3406f1d?auto=format&fit=max&w=1800&q=90",
+      "photographer": "Louis Hansel",
+      "rights": "Free Unsplash License verified on official page",
+      "licenseUrl": "https://unsplash.com/license",
+      "path": "packages/marketing/phase2/editorial/assets/coconut.jpg",
+      "sha256": "eb3142d5fcd415105ffc66ae2cb7a4ed1f1d9050515d85609ef41a7417fc228c"
+    }
+  ],
+  "fonts": "Bundled Inter + Instrument Serif under SIL OFL; license files in assets/fonts.",
+  "routeEvidence": "Original destination independently verified in previous checkpoint growth/destination-receipt.json (HTTP200, title, Make it fit); no fresh adaptation or account write in this stream.",
+  "rightsLimits": "Free Unsplash photo license verified on each official photo page. No depicted coconut yogurt brand, real product label, cooked adaptation, customer photo or publisher photo."
+}

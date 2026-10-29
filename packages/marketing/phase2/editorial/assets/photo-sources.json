@@ -1,0 +1,26 @@
+[
+  {
+    "id": "red-tomatoes",
+    "officialPage": "https://unsplash.com/photos/red-tomato-on-brown-woven-basket-ygbpGC_CQME",
+    "imageUrl": "https://images.unsplash.com/photo-1588306457968-d862c58419ce?auto=format&fit=max&w=1800&q=90",
+    "photographer": "Praveen kumar Mathivanan",
+    "rights": "Free Unsplash License verified on official page",
+    "licenseUrl": "https://unsplash.com/license"
+  },
+  {
+    "id": "green-tomatoes",
+    "officialPage": "https://unsplash.com/photos/green-tomatoes-growing-on-a-vibrant-vine-c8ubnsOXu9o",
+    "imageUrl": "https://images.unsplash.com/photo-1747017463710-9ff53845ff30?auto=format&fit=max&w=1800&q=90",
+    "photographer": "Winston Chen",
+    "rights": "Free Unsplash License verified on official page",
+    "licenseUrl": "https://unsplash.com/license"
+  },
+  {
+    "id": "coconut",
+    "officialPage": "https://unsplash.com/photos/a-person-holding-a-half-eaten-coconut-in-their-hands-gBxUqEpBPsI",
+    "imageUrl": "https://images.unsplash.com/photo-1582362731063-debbd3406f1d?auto=format&fit=max&w=1800&q=90",
+    "photographer": "Louis Hansel",
+    "rights": "Free Unsplash License verified on official page",
+    "licenseUrl": "https://unsplash.com/license"
+  }
+]

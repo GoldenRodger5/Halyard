@@ -1,0 +1,161 @@
+{
+  "checkedAt": "2026-10-29T21:18:07.995Z",
+  "contractErrors": [],
+  "geometry": [
+    {
+      "id": "marinade-ig-1",
+      "issues": []
+    },
+    {
+      "id": "marinade-ig-2",
+      "issues": []
+    },
+    {
+      "id": "marinade-ig-3",
+      "issues": []
+    },
+    {
+      "id": "marinade-ig-4",
+      "issues": []
+    },
+    {
+      "id": "marinade-x",
+      "issues": []
+    },
+    {
+      "id": "tomato-ig-1",
+      "issues": []
+    },
+    {
+      "id": "tomato-ig-2",
+      "issues": []
+    },
+    {
+      "id": "tomato-ig-3",
+      "issues": []
+    },
+    {
+      "id": "tomato-ig-4",
+      "issues": []
+    },
+    {
+      "id": "tomato-x",
+      "issues": []
+    }
+  ],
+  "media": [
+    {
+      "path": "packages/marketing/phase2/editorial/exports/marinade-ig-1.jpg",
+      "sha256": "14b307f6d16502a06c3360f1135dcbebac06cf958a55505c5f0732220f3f09f2",
+      "width": 1080,
+      "height": 1350
+    },
+    {
+      "path": "packages/marketing/phase2/editorial/exports/marinade-ig-2.jpg",
+      "sha256": "aa7873605cb4fb6cbd3eb0b6c95946b86b246de864091c7d41390f8f9655c016",
+      "width": 1080,
+      "height": 1350
+    },
+    {
+      "path": "packages/marketing/phase2/editorial/exports/marinade-ig-3.jpg",
+      "sha256": "c862fe123b626974b5e193061acb0c86f388be72cc45d70ad7402ac57fd6845c",
+      "width": 1080,
+      "height": 1350
+    },
+    {
+      "path": "packages/marketing/phase2/editorial/exports/marinade-ig-4.jpg",
+      "sha256": "8ff526efce19ceb1e521e577a7ce79f03833ba59a2d1e49a5d5daf1d98ceb324",
+      "width": 1080,
+      "height": 1350
+    },
+    {
+      "path": "packages/marketing/phase2/editorial/exports/marinade-x.jpg",
+      "sha256": "081707dfad755ade345956d090d0e74acbc400f1c29ea3a0a5039e62e3556fd1",
+      "width": 1200,
+      "height": 675
+    },
+    {
+      "path": "packages/marketing/phase2/editorial/exports/tomato-ig-1.jpg",
+      "sha256": "3a564bf2eef7bcb5d1de3f3266cb6d443fc107ddd801237b0122a5546b240374",
+      "width": 1080,
+      "height": 1350
+    },
+    {
+      "path": "packages/marketing/phase2/editorial/exports/tomato-ig-2.jpg",
+      "sha256": "398b5388d5b815a9d348a83b59fa36415a2aedda7c45e3fe6190c4dd40f07b18",
+      "width": 1080,
+      "height": 1350
+    },
+    {
+      "path": "packages/marketing/phase2/editorial/exports/tomato-ig-3.jpg",
+      "sha256": "f84ef20e35fc551ca920a4b09bedc9fe3bca0aa2913f602ad2759524ac2a27a4",
+      "width": 1080,
+      "height": 1350
+    },
+    {
+      "path": "packages/marketing/phase2/editorial/exports/tomato-ig-4.jpg",
+      "sha256": "3808d56a143c647ea4195de0fbc3ce62747c7ba09701e203b823947d7cb960d9",
+      "width": 1080,
+      "height": 1350
+    },
+    {
+      "path": "packages/marketing/phase2/editorial/exports/tomato-x.jpg",
+      "sha256": "6c668181d5731974fafac1058b686b5a7eff78219b5297602b498f9fd5636b05",
+      "width": 1200,
+      "height": 675
+    }
+  ],
+  "queueReadiness": [
+    {
+      "variantId": "rf-marinade-job-ig",
+      "ready": false,
+      "reasons": [
+        "a concrete schedule time is missing",
+        "RecipeFix-owned account unverified",
+        "founder creative verdict missing",
+        "exact founder approval missing or stale",
+        "provider capability/account not proven"
+      ],
+      "delivery": "unknown"
+    },
+    {
+      "variantId": "rf-marinade-job-x",
+      "ready": false,
+      "reasons": [
+        "a concrete schedule time is missing",
+        "RecipeFix-owned account unverified",
+        "founder creative verdict missing",
+        "exact founder approval missing or stale",
+        "provider capability/account not proven"
+      ],
+      "delivery": "unknown"
+    },
+    {
+      "variantId": "rf-tomato-clock-ig",
+      "ready": false,
+      "reasons": [
+        "a concrete schedule time is missing",
+        "RecipeFix-owned account unverified",
+        "founder creative verdict missing",
+        "exact founder approval missing or stale",
+        "provider capability/account not proven"
+      ],
+      "delivery": "unknown"
+    },
+    {
+      "variantId": "rf-tomato-clock-x",
+      "ready": false,
+      "reasons": [
+        "a concrete schedule time is missing",
+        "RecipeFix-owned account unverified",
+        "founder creative verdict missing",
+        "exact founder approval missing or stale",
+        "provider capability/account not proven"
+      ],
+      "delivery": "unknown"
+    }
+  ],
+  "review": "Producer inspected every final asset at 390px and native dimensions. Root independently inspected all 10 first exports, identified the same pill/temperature/X overlap and red-header defects, then reviewed the four corrected assets. Root found no remaining blocking overlap and independently confirmed the Iowa/UC/FDA sources. Eligible candidates for founder review, not exceptional or publish-approved; producer cannot approve itself.",
+  "sound": "not_applicable",
+  "notApproval": true
+}
