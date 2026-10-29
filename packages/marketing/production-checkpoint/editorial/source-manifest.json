@@ -1,0 +1,50 @@
+{
+  "sourcePin": "a82f8bb9aff1cea7d5539156c807faa2602c9e29",
+  "originalsData": "packages/marketing/data/originals.json",
+  "recipefixDocumentation": "https://github.com/GoldenRodger5/recipe-fix/blob/a82f8bb9aff1cea7d5539156c807faa2602c9e29/docs/RECIPEFIX_ORIGINALS.md",
+  "licenseUrl": "https://unsplash.com/license",
+  "photos": [
+    {
+      "id": "tikka-serving-inspiration",
+      "photoId": "1772730064951-89b427965dbc",
+      "source": "https://images.unsplash.com/photo-1772730064951-89b427965dbc",
+      "vendoredSource": "assets/tikka-serving-inspiration.jpg",
+      "officialPage": "https://unsplash.com/photos/a-bowl-of-creamy-chicken-tikka-masala-with-mint-leaves-GOw8q6bRTRM",
+      "photographer": "Mohammad Fahim (@dischef), published2026-03-05",
+      "sha256": "4c568912c6e9da036f6d05f2e8c444799d50e09c9c6b2049737ff9c12f28814e",
+      "rights": "Free Unsplash License verified by director from official page",
+      "note": "Human-shot chicken tikka serving inspiration by Mohammad Fahim; cream is visible, so this is not proof of the recorded Dairy-Free adaptation."
+    },
+    {
+      "id": "roasted-butternut-squash-soup",
+      "photoId": "1476718406336-bb5a9690ee2a",
+      "source": "https://images.unsplash.com/photo-1476718406336-bb5a9690ee2a",
+      "vendoredSource": "public/images/originals/roasted-butternut-squash-soup-4x3-1200.webp",
+      "officialPage": null,
+      "photographer": null,
+      "sha256": "70fbce44a0d63fe0df0d300dc6880374aeb715481905c6cd541c1dc247a700b6",
+      "rights": "Unsplash License; first-party RecipeFix cleared stock provenance at pinned commit",
+      "note": "Stock soup has a pale topping; no diet claim is made from it."
+    },
+    {
+      "id": "lemon-herb-roast-chicken",
+      "photoId": "1598103442097-8b74394b95c6",
+      "source": "https://images.unsplash.com/photo-1598103442097-8b74394b95c6",
+      "vendoredSource": "public/images/originals/lemon-herb-roast-chicken-4x3-1200.webp",
+      "officialPage": null,
+      "photographer": null,
+      "sha256": "87c932744d5d401f89d9435ae3c2dcd29dfc559551b29c348333d46fb6a8d015",
+      "rights": "Unsplash License; first-party RecipeFix cleared stock provenance at pinned commit",
+      "note": "Serving illustration of whole roast chicken, not a RecipeFix cooking test."
+    }
+  ],
+  "fonts": "Bundled Inter and Instrument Serif SIL OFL",
+  "historicalResponse": {
+    "source": "Prior safe October21 production response retained from Phase1C",
+    "path": "assets/historical-result.json",
+    "sha256": "572f681c851d3b0777e0c4ca15c781a0c573bab7c026f5b683d9c7f1b72ff473",
+    "privacy": "Recipe-only data; no customer records",
+    "limits": "Combined Dairy-Free and4 → 6 request. Not a new provider adaptation, kitchen test, nutrition result or universal scaling rule."
+  },
+  "routeEvidence": "route-verification.json; director independently confirmed exact public routes200/title/Make it fit; producer403 attempts retained."
+}
