@@ -2,7 +2,7 @@
 
 Checked October 29, 2026. **The current signed-in account has 50 daily free Flow credits remaining, explicitly used first. No motion job was submitted.** Further UI generation is paused at the director’s instruction while background API options are investigated.
 
-The [cinematic visual reset](https://github.com/GoldenRodger5/Halyard/blob/954c54617/packages/marketing/strategy/2026-10-29-CINEMATIC-VISUAL-QUALITY-RESET.md) is authoritative: the earlier pineapple film is rejected. My prior version-specific KEEP recommendation is historical advisory evidence, not acceptance of that film or authority to reuse its execution. This investigation sought a genuinely different macro-motion asset, not another primitive-animation revision.
+The [cinematic visual reset](https://github.com/GoldenRodger5/Halyard/blob/954c546/packages/marketing/strategy/2026-10-29-CINEMATIC-VISUAL-QUALITY-RESET.md) is authoritative: the earlier pineapple film is rejected. My prior version-specific KEEP recommendation is historical advisory evidence, not acceptance of that film or authority to reuse its execution. This investigation sought a genuinely different macro-motion asset, not another primitive-animation revision.
 
 ## Actual account and cost evidence
 
