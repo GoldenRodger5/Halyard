@@ -1,0 +1,24 @@
+{
+  "sourceForeground": "#fff9ee",
+  "sourceBackground": "#cb1c60",
+  "sourceContrast": 5.17173022997001,
+  "browserForeground": [
+    254,
+    249,
+    239
+  ],
+  "browserBackground": [
+    203,
+    28,
+    94
+  ],
+  "browserContrast": 5.17472510258822,
+  "normalTextMinimum": 4.5,
+  "passesNormalText": true,
+  "footerNativePx": 32,
+  "footerAt390pxWidth": 11.555555555555555,
+  "colorSpace": "bt709",
+  "intermediateFormat": "png",
+  "mediaSha256": "f94670effb8fedb0ea1530072c4a7129138dbd17be27973e033a5315d2073436",
+  "creativeStatus": "Founder-rejected baseline; contrast compliance is not creative approval."
+}

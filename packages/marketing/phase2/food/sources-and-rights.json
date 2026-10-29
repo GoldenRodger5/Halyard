@@ -40,11 +40,11 @@
     }
   ],
   "artwork": {
-    "origin": "All visible final art is original procedural3D or vector graphics created for this task. No publisher photographs/footage, downloaded models or generated-provider media.",
-    "gelatin": "Original mesh, scalloped form, studio lights/materials, lilac plate and60-frame procedural deformation/camera move. Stylized appearance is explicitly disclosed. No actual food cooked or measured.",
+    "origin": "All visible final art is original procedural 3D or vector graphics created for this task. No publisher photographs/footage, downloaded models or generated-provider media.",
+    "gelatin": "Original mesh, scalloped form, studio lights/materials, lilac plate and 60-frame procedural deformation/camera move. Stylized appearance is explicitly disclosed. No actual food cooked or measured.",
     "network": "Original vector protein-support metaphor with yellow scissors, visible severing and collapse. The pool illustrates loss of structure, not a filmed result or claim that an already-set dessert necessarily melts.",
     "icons": "Original unbranded fresh-pineapple and canned-pineapple explanatory symbols.",
-    "fonts": "Inter Regular/Semibold under SIL Open Font License1.1; font files and full license included. Instrument Serif files are prototype support only, not used in final frames."
+    "fonts": "Inter Regular/Semibold under SIL Open Font License 1.1; font files and full license included. Instrument Serif files are prototype support only, not used in final frames."
   },
   "audio": {
     "intent": "silent_by_design",
@@ -397,5 +397,11 @@
     "volume": "/Volumes/T9",
     "encryptedUUID": "B1ADFFB0-BCCF-441A-8086-365120C88DB7",
     "bulkyOutputs": "/Volumes/T9/Developer/Builds/recipefix-phase2-20261029/food"
+  },
+  "creativeDecision": {
+    "status": "STOP / founder-rejected baseline",
+    "sourceCommit": "954c546",
+    "sourcePath": "packages/marketing/strategy/2026-10-29-CINEMATIC-VISUAL-QUALITY-RESET.md",
+    "reason": "Founder rejects the exact pineapple film as flagship content. Palette/footer/encoding improvements do not reverse that decision. Preserve as R&D evidence, not qualified publishing inventory."
   }
 }

@@ -3,8 +3,8 @@
   "sourceCommit": "c14f5f7dc0eb9e3d36fbb04c71fc40d339b41783",
   "baseCommit": "dec955885cf1094ea2e747233e72d075dd32a89e",
   "mediaPath": "packages/marketing/phase2/food/exports/pineapple.mp4",
-  "mediaSha256": "48796de42c68745d01da41bed061247a2428e10cb4e998ea5e145b84cc0e182a",
-  "posterSha256": "3facbeb592e2927d3e71508da972bd9bd6a78a56ae2cf1d378f26a80e21cf6fe",
+  "mediaSha256": "f94670effb8fedb0ea1530072c4a7129138dbd17be27973e033a5315d2073436",
+  "posterSha256": "e980c6b165184ba0247f8b0fcd91d8cb16b3b538c7ba4083c30163cd01da68f3",
   "counts": {
     "newParents": 1,
     "films": 1,
@@ -14,7 +14,49 @@
   },
   "providerCalls": 0,
   "providerSpendUSD": 0,
-  "founderDecision": "unreviewed",
+  "founderDecision": "rejected",
   "publicationAuthorized": false,
-  "meaning": "Source/media commit pinned before this metadata receipt. No founder publication approval or audience outcome is implied."
+  "meaning": "Original creative source is pinned; exact final-v5 media hashes bind this accessibility revision. This receipt is not founder or publication approval.",
+  "priorMediaSha256": "48796de42c68745d01da41bed061247a2428e10cb4e998ea5e145b84cc0e182a",
+  "revision": "final-v5",
+  "sourceCommitScope": "Original creative/source baseline. The final-v5 accessibility patch is committed on the same PR115 branch; its exact commit is reported in the Git handoff, avoiding a circular self-commit claim.",
+  "accessibilityRevision": {
+    "baseCommit": "3f63b28",
+    "changes": [
+      "Science background pink #cb1c60 instead of #e82b6d",
+      "Source/disclosure footer32px instead of23px with shorter two-line text",
+      "Human-readable metadata spacing normalized",
+      "Explicit BT.709 with PNG intermediate frames preserves requested contrast through actual decoding and browser playback"
+    ],
+    "sourceAssetsChanged": false,
+    "timingChanged": false,
+    "previousMediaSha256": "48796de42c68745d01da41bed061247a2428e10cb4e998ea5e145b84cc0e182a",
+    "rejectedColorTagExportSha256": "a40d679a13bbbc464b986c53e6b2346cbde272aa2b460930435de639dbc5d4c0",
+    "encodingAttempts": [
+      {
+        "version": "final-v3",
+        "intermediate": "JPEG",
+        "colorSpaceTag": "bt470bg",
+        "outcome": "Rejected: Chrome pink shifted brighter than nominal; encoded evidence preserved."
+      },
+      {
+        "version": "final-v4",
+        "intermediate": "JPEG",
+        "colorSpaceTag": "bt709",
+        "outcome": "Rejected: residual JPEG intermediate color shift; evidence preserved."
+      },
+      {
+        "version": "final-v5",
+        "intermediate": "PNG",
+        "colorSpaceTag": "bt709",
+        "outcome": "Selected: decoded background RGB201,26,93; full phone pixel/readback recorded separately."
+      }
+    ]
+  },
+  "creativeDecision": {
+    "status": "STOP / founder-rejected baseline",
+    "sourceCommit": "954c546",
+    "sourcePath": "packages/marketing/strategy/2026-10-29-CINEMATIC-VISUAL-QUALITY-RESET.md",
+    "reason": "Founder rejects the exact pineapple film as flagship content. Palette/footer/encoding improvements do not reverse that decision. Preserve as R&D evidence, not qualified publishing inventory."
+  }
 }
