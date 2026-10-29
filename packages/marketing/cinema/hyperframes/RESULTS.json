@@ -1,0 +1,279 @@
+{
+  "status": "rendered for independent/founder review; not approved",
+  "engine": "hyperframes0.8.214",
+  "gsap": "3.15.0",
+  "localInstall": {
+    "packages": 78,
+    "reportedSeconds": 3,
+    "rootDependencyChange": false
+  },
+  "check": {
+    "initialSeconds": 5.78,
+    "finalSeconds": 4.517,
+    "lintErrors": 0,
+    "lintWarnings": 6,
+    "lintWarningReason": "Five single-file scene wrappers suggest subcomposition files for granular Studio editing. One duplicate-image-discovery warning sees repeated proof images; the actual appearances have distinct parent scene windows and were decoded/inspected.",
+    "runtimeErrors": 0,
+    "layoutErrors": 0,
+    "layoutWarnings": 2,
+    "layoutInfo": 5,
+    "layoutInfoReason": "Intended entering/exiting graphics and image overscan.",
+    "contrastErrors": 0,
+    "browserSkipped": false,
+    "layoutWarningReason": "At18.246\u201318.374 the layout detector counts outgoing method text behind the fully opaque incoming lime wipe. Actual snapshots/decoded frames show covered text rather than visible overprinting; retained as documented transitional findings, not suppressed."
+  },
+  "snapshots": {
+    "seconds": 3.118,
+    "frames": 7,
+    "actualDecodedFramesReviewed": 18,
+    "phoneWidth": 390
+  },
+  "render": {
+    "command": [
+      "/Volumes/T9/Developer/Builds/recipefix-product-cinema-20261028/hyperframes-tool/node_modules/.bin/hyperframes",
+      "render",
+      "/Volumes/T9/Developer/Builds/recipefix-product-cinema-20261028/hyperframes/project",
+      "--fps",
+      "30",
+      "--quality",
+      "delivery",
+      "--workers",
+      "2",
+      "--sdr",
+      "--frames-cache-dir",
+      "/Volumes/T9/Developer/Builds/recipefix-product-cinema-20261028/hyperframes/frame-cache",
+      "--output",
+      "/Volumes/T9/Developer/Builds/recipefix-product-cinema-20261028/hyperframes/candidate-b-v2.mp4"
+    ],
+    "exitCode": 0,
+    "elapsedSeconds": 19.664,
+    "providerCostUsd": 0,
+    "engine": "hyperframes0.8.214",
+    "gsap": "3.15.0",
+    "dimensions": [
+      1080,
+      1920
+    ],
+    "fps": 30,
+    "intendedSeconds": 23,
+    "engineReportedSeconds": 18.5
+  },
+  "export": {
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "codec_name": "h264",
+        "codec_type": "video",
+        "width": 1080,
+        "height": 1920,
+        "pix_fmt": "yuv420p",
+        "r_frame_rate": "30/1",
+        "nb_frames": "690"
+      },
+      {
+        "codec_name": "aac",
+        "codec_type": "audio",
+        "sample_rate": "48000",
+        "channels": 2,
+        "r_frame_rate": "0/0",
+        "nb_frames": "1080"
+      }
+    ],
+    "format": {
+      "duration": "23.000000",
+      "size": "5723173"
+    },
+    "sha256": "0abc477fe61a16fc2c8c27c38cfe3a2a50549e83a765044815005e84c439d204"
+  },
+  "audio": {
+    "meanDb": -21.8,
+    "peakDb": -10.3,
+    "source": "Shared original sound.wav normalized by root to\u221220LUFS/\u22122dBTP target; volume1, no narrator",
+    "completeAudioPlaybackByThisAgent": false
+  },
+  "cost": {
+    "paidProviderUsd": 0,
+    "newSubscriptions": 0,
+    "localElectricityNotMeasured": true
+  },
+  "preview": {
+    "url": "http://127.0.0.1:4319/#project/project",
+    "httpStatus": 200
+  },
+  "files": {
+    "video": "/Volumes/T9/Developer/Builds/recipefix-product-cinema-20261028/hyperframes/candidate-b-v2.mp4",
+    "phonePreview": "/Volumes/T9/Developer/Builds/recipefix-product-cinema-20261028/hyperframes/candidate-b-v2-390.mp4",
+    "contact": "/Volumes/T9/Developer/Builds/recipefix-product-cinema-20261028/hyperframes/contact-v2.jpg",
+    "keyframes": "/Volumes/T9/Developer/Builds/recipefix-product-cinema-20261028/hyperframes/keyframes-v2-390"
+  },
+  "revisionsBeforeFirstEncode": [
+    "Corrected actual viewport out of gray Playwright recording canvas, shared with both candidates.",
+    "Changed4s media assumption to exactly2.28s once, followed by genuine configuration still.",
+    "Widened intro tab to prevent text overflow.",
+    "Removed UI upward pan that occluded the subtitle.",
+    "Used explicit cropped screenshot views instead of shrinking whole UI pages.",
+    "Retained only narrow intentional overflow exemptions on actual image crops; no text/contrast gate weakened."
+  ],
+  "selfCritique": {
+    "strengths": [
+      "Immediate food/ingredient promise, bright palette and high-contrast hierarchy.",
+      "The ingredient quantity comparison and corresponding method are understandable at390px.",
+      "The actual RecipeFix note is visible alongside the editorial emphasis, with a recorded-result disclosure.",
+      "Local HTML iteration and actual render are fast in this one pilot."
+    ],
+    "weaknesses": [
+      "The middle is still a graphic/UI explanation rather than a filmed cooking event; the source proof requires reading.",
+      "Repeated persistent wordmark and two rectilinear proof panels can feel designed rather than native creator content.",
+      "Large platform-safe lower space feels flat in a standalone player.",
+      "CTA is clear but the generic phrase Your recipe. Rethought. could be more ownable.",
+      "Quiet score has no action-specific sound accents; audio quality/appeal requires full playback review."
+    ],
+    "decision": "Useful challenger for comparison, not a claim of premium quality or a technology winner. Root owns complete playback and independent reviewer/founder review."
+  },
+  "version": "v2",
+  "history": {
+    "v1": {
+      "status": "rendered for independent/founder review; not approved",
+      "engine": "hyperframes0.8.214",
+      "gsap": "3.15.0",
+      "localInstall": {
+        "packages": 78,
+        "reportedSeconds": 3,
+        "rootDependencyChange": false
+      },
+      "check": {
+        "initialSeconds": 5.78,
+        "finalSeconds": 4.517,
+        "lintErrors": 0,
+        "lintWarnings": 6,
+        "lintWarningReason": "Five single-file scene wrappers suggest subcomposition files for granular Studio editing. One duplicate-image-discovery warning sees repeated proof images; the actual appearances have distinct parent scene windows and were decoded/inspected.",
+        "runtimeErrors": 0,
+        "layoutErrors": 0,
+        "layoutWarnings": 2,
+        "layoutInfo": 5,
+        "layoutInfoReason": "Intended entering/exiting graphics and image overscan.",
+        "contrastErrors": 0,
+        "browserSkipped": false,
+        "layoutWarningReason": "At18.246\u201318.374 the layout detector counts outgoing method text behind the fully opaque incoming lime wipe. Actual snapshots/decoded frames show covered text rather than visible overprinting; retained as documented transitional findings, not suppressed."
+      },
+      "snapshots": {
+        "seconds": 3.118,
+        "frames": 7,
+        "actualDecodedFramesReviewed": 18,
+        "phoneWidth": 390
+      },
+      "render": {
+        "command": [
+          "/Volumes/T9/Developer/Builds/recipefix-product-cinema-20261028/hyperframes-tool/node_modules/.bin/hyperframes",
+          "render",
+          "/Volumes/T9/Developer/Builds/recipefix-product-cinema-20261028/hyperframes/project",
+          "--fps",
+          "30",
+          "--quality",
+          "delivery",
+          "--workers",
+          "2",
+          "--sdr",
+          "--frames-cache-dir",
+          "/Volumes/T9/Developer/Builds/recipefix-product-cinema-20261028/hyperframes/frame-cache",
+          "--output",
+          "/Volumes/T9/Developer/Builds/recipefix-product-cinema-20261028/hyperframes/candidate-b-v1.mp4"
+        ],
+        "exitCode": 0,
+        "elapsedSeconds": 26.224,
+        "providerCostUsd": 0,
+        "engine": "hyperframes0.8.214",
+        "gsap": "3.15.0",
+        "dimensions": [
+          1080,
+          1920
+        ],
+        "fps": 30,
+        "intendedSeconds": 23
+      },
+      "export": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 1080,
+            "height": 1920,
+            "pix_fmt": "yuv420p",
+            "r_frame_rate": "30/1",
+            "nb_frames": "690"
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "48000",
+            "channels": 2,
+            "r_frame_rate": "0/0",
+            "nb_frames": "1080"
+          }
+        ],
+        "format": {
+          "duration": "23.000000",
+          "size": "7225342"
+        },
+        "sha256": "58a14e0e91b95cd7793609b361ad9d7dba9a653d0f164997459dc22b5a38b992"
+      },
+      "audio": {
+        "meanDb": -21.8,
+        "peakDb": -10.3,
+        "source": "Shared original sound.wav normalized by root to\u221220LUFS/\u22122dBTP target; volume1, no narrator",
+        "completeAudioPlaybackByThisAgent": false
+      },
+      "cost": {
+        "paidProviderUsd": 0,
+        "newSubscriptions": 0,
+        "localElectricityNotMeasured": true
+      },
+      "preview": {
+        "url": "http://127.0.0.1:4319/#project/project",
+        "httpStatus": 200
+      },
+      "files": {
+        "video": "/Volumes/T9/Developer/Builds/recipefix-product-cinema-20261028/hyperframes/candidate-b-v1.mp4",
+        "phonePreview": "/Volumes/T9/Developer/Builds/recipefix-product-cinema-20261028/hyperframes/candidate-b-v1-390.mp4",
+        "contact": "/Volumes/T9/Developer/Builds/recipefix-product-cinema-20261028/hyperframes/contact-v1.jpg",
+        "keyframes": "/Volumes/T9/Developer/Builds/recipefix-product-cinema-20261028/hyperframes/keyframes-v1-390"
+      },
+      "revisionsBeforeFirstEncode": [
+        "Corrected actual viewport out of gray Playwright recording canvas, shared with both candidates.",
+        "Changed4s media assumption to exactly2.28s once, followed by genuine configuration still.",
+        "Widened intro tab to prevent text overflow.",
+        "Removed UI upward pan that occluded the subtitle.",
+        "Used explicit cropped screenshot views instead of shrinking whole UI pages.",
+        "Retained only narrow intentional overflow exemptions on actual image crops; no text/contrast gate weakened."
+      ],
+      "selfCritique": {
+        "strengths": [
+          "Immediate food/ingredient promise, bright palette and high-contrast hierarchy.",
+          "The ingredient quantity comparison and corresponding method are understandable at390px.",
+          "The actual RecipeFix note is visible alongside the editorial emphasis, with a recorded-result disclosure.",
+          "Local HTML iteration and actual render are fast in this one pilot."
+        ],
+        "weaknesses": [
+          "The middle is still a graphic/UI explanation rather than a filmed cooking event; the source proof requires reading.",
+          "Repeated persistent wordmark and two rectilinear proof panels can feel designed rather than native creator content.",
+          "Large platform-safe lower space feels flat in a standalone player.",
+          "CTA is clear but the generic phrase Your recipe. Rethought. could be more ownable.",
+          "Quiet score has no action-specific sound accents; audio quality/appeal requires full playback review."
+        ],
+        "decision": "Useful challenger for comparison, not a claim of premium quality or a technology winner. Root owns complete playback and independent reviewer/founder review."
+      }
+    }
+  },
+  "sourceHtmlSha256": "b66f48b349317917c4cb7318c784af362792dfdf6a435e9a1d5e2ebbb0dfe11c",
+  "revisionsAfterIndependentReview": [
+    "Replaced food/headline-only opening with actual ingredient\u2192changed-method screenshot proof from frame0, with a purposeful connecting arrow and no blank title entrance.",
+    "Kept outgoing method until incoming payoff is readable; seeded payoff headline without opacity0.",
+    "Copied the newly normalized common score and set gain1.0.",
+    "Preserved v1 output unchanged."
+  ],
+  "methodChangeNuance": "Whisk separated coconut cream smooth is the newly added adaptation-specific instruction. The Original already said to simmer gently, so that beat retains/reinforces guidance; it is not a new heat technique.",
+  "comparisonLimit": "Art directions differ. A preference does not establish that the engine caused the quality difference; Remotion can reproduce this graphic treatment. Render timings are single-host single-pilot measurements."
+}

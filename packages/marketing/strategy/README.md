@@ -1,6 +1,8 @@
 # RecipeFix Social Studio — October 28, 2026 planning index
 
-**Status: researched and phased; implementation pilots NOT started; no new paid services, no RecipeFix account connections, no public posts authorized.**
+**Status: Phase0 and Product Cinema Phase1A are rendered and independently reviewed for founder feedback. Other pilots have not started. No new paid services, RecipeFix account connections or public posts authorized.**
+
+[Watch the two candidates and actual comparison](../cinema/README.md). This is a completed local experiment, not creative/publication approval.
 
 These documents are the plan for founder-led creative collaboration and separately automated approved-post operations. They build on the existing Halyard source and the committed founder operating model, NOT a request to reboot the marketing system.
 
@@ -13,4 +15,4 @@ Precedence:
 - [Owner creative reset](../CREATIVE_RESET_2026-10-28.md): seven cuts and Roger narration rejected and on hold.
 - [Existing Halyard handoff](../HANDOFF.md), playbook and source remain reference implementations, not creative boundaries.
 
-**What to do next after founder approves starting experiments:** Phase 0 baseline/reference board, then Phase 1 *four differentiated, watched creative pilots*. Do not start from 30 list renders, build a new scheduler or automatically spend $12. Blotato/Buffer provider selection waits for real RecipeFix-owned account and capability evidence.
+**Next:** founder reviews the completed Product Cinema comparison, then scope the remaining differentiated pilots separately. Do not start from 30 list renders, build a new scheduler or automatically spend $12. Blotato/Buffer provider selection waits for real RecipeFix-owned account and capability evidence.

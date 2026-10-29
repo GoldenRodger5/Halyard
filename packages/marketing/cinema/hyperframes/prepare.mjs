@@ -1,0 +1,22 @@
+import {cpSync,copyFileSync,existsSync,mkdirSync,readFileSync,writeFileSync,constants} from 'node:fs';
+import {dirname,resolve,join} from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {execFileSync} from 'node:child_process';
+const here=dirname(fileURLToPath(import.meta.url));
+const assets=resolve(process.argv[2]||join(here,'../assets'));
+const out=resolve(process.argv[3]||'/Volumes/T9/Developer/Builds/recipefix-product-cinema-20261028/hyperframes/project');
+const tool=resolve(process.argv[4]||'/Volumes/T9/Developer/Builds/recipefix-product-cinema-20261028/hyperframes-tool');
+if(out.startsWith('/Volumes/T9/')){const info=execFileSync('diskutil',['info','/Volumes/T9'],{encoding:'utf8'});if(!/Mount Point:\s+\/Volumes\/T9\s/.test(info)||!/FileVault:\s+Yes/.test(info))throw Error('T9 must be mounted and encrypted before creating output directories.');}
+const required=['hero.jpg','choose.png','ingredient.png','method.png','result.png','interaction-viewport.mp4','sound.wav'];
+for(const file of required)if(!existsSync(join(assets,file)))throw Error('Source asset missing: '+file);
+const seconds=Number(execFileSync('ffprobe',['-v','error','-show_entries','format=duration','-of','default=nw=1:nk=1',join(assets,'interaction-viewport.mp4')],{encoding:'utf8'}).trim());
+if(seconds<2)throw Error('Actual interaction clip must provide at least two seconds; got '+seconds);
+mkdirSync(join(out,'assets/vendor'),{recursive:true});mkdirSync(join(out,'assets/fonts'),{recursive:true});
+for(const file of required)copyFileSync(join(assets,file),join(out,'assets',file),constants.COPYFILE_FICLONE);
+copyFileSync(join(here,'index.html'),join(out,'index.html'));
+copyFileSync(join(tool,'node_modules/gsap/dist/gsap.min.js'),join(out,'assets/vendor/gsap.min.js'));
+const fontRoot=resolve(here,'../../../render/assets/fonts');
+for(const file of ['Inter-Regular.woff','Inter-SemiBold.woff'])copyFileSync(join(fontRoot,file),join(out,'assets/fonts',file));
+const license=join(tool,'node_modules/gsap/LICENSE');if(existsSync(license))copyFileSync(license,join(out,'assets/vendor/GSAP-LICENSE.txt'));
+writeFileSync(join(out,'asset-contract.json'),JSON.stringify({source:assets,sourceType:'Recorded production result shown through a fixture-backed current RecipeFix UI; not a fresh live adaptation',required,interactionSeconds:seconds,render:{width:1080,height:1920,fps:30,seconds:23},narration:false,nutritionShown:false,ownerApproved:false},null,2)+'\n');
+console.log(out);

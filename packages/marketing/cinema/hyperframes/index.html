@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>RecipeFix · Cream out, method changed</title>
+<style>
+@font-face{font-family:CinemaInter;src:url('assets/fonts/Inter-Regular.woff');font-weight:400;font-display:block}
+@font-face{font-family:CinemaInter;src:url('assets/fonts/Inter-SemiBold.woff');font-weight:600 900;font-display:block}
+*{box-sizing:border-box}html,body{margin:0;width:1080px;height:1920px;overflow:hidden;background:#d8ef4b;font-family:CinemaInter,sans-serif;color:#122e25}
+#root,.scene,.stage{position:absolute;inset:0;width:1080px;height:1920px}.scene{overflow:hidden}.stage{overflow:hidden}
+.lime{background:#d8ef4b}.paper{background:#f6f3e9}.ink{background:#122e25;color:#f6f3e9}
+.wordmark{position:absolute;left:100px;top:250px;font-size:40px;font-weight:600;letter-spacing:-1.8px}.overline{font-size:30px;letter-spacing:3px;text-transform:uppercase;font-weight:600}.disclosure{position:absolute;left:100px;top:1394px;font-size:32px;line-height:40px;letter-spacing:0;font-weight:400}
+.headline{position:absolute;left:100px;top:365px;width:800px;font-weight:600;font-size:112px;line-height:.95;letter-spacing:-6px;margin:0}
+.hero-window{position:absolute;left:100px;top:680px;width:800px;height:610px;overflow:hidden;border-radius:260px 260px 16px 16px;background:#e2d6b8}.hero-window img{width:100%;height:100%;object-fit:cover}.photo-label{position:absolute;left:130px;top:1300px;font-size:30px}
+#intro-rule{position:absolute;left:100px;top:625px;width:800px;height:7px;background:#122e25}
+#intro-tab{position:absolute;left:100px;top:590px;width:420px;height:60px;background:#f6f3e9;font-size:30px;font-weight:600;padding:10px 20px;letter-spacing:-.7px}
+#choose-title{position:absolute;left:100px;top:360px;width:800px;margin:0;font-size:84px;line-height:1.02;letter-spacing:-4px;font-weight:600}
+#choose-label{position:absolute;left:100px;top:1340px;font-size:30px;letter-spacing:-.5px}
+#ui-camera{position:absolute;left:100px;top:555px;width:800px;height:760px;z-index:25;overflow:hidden;border-radius:22px}#ui-footage,#ui-still{position:absolute;inset:0;width:800px;height:760px;object-fit:cover;object-position:center bottom;background:#fff;border-radius:22px}
+#ingredient-label{position:absolute;left:100px;top:365px}
+#ingredient-title{position:absolute;left:100px;top:425px;width:800px;font-size:98px;line-height:1;letter-spacing:-5px;font-weight:600;margin:0}
+.ingredient{position:absolute;top:690px;height:400px;padding:38px 30px;overflow:hidden}.ingredient .name{font-size:49px;line-height:1.05;letter-spacing:-2px;font-weight:600}.ingredient .quantity{position:absolute;bottom:36px;left:30px;font-size:93px;letter-spacing:-6px;line-height:1;font-weight:600}
+#old-ingredient{left:100px;width:348px;background:#e7dfce}#new-ingredient{left:480px;width:420px;background:#d8ef4b}
+#new-ingredient .name{font-size:45px;line-height:1.08}#new-ingredient .quantity{font-size:102px}
+#ingredient-arrow{position:absolute;left:408px;top:840px;width:115px;height:110px;z-index:4;display:flex;align-items:center;justify-content:center;font-size:75px;background:#f6f3e9;border:4px solid #122e25;border-radius:60px}
+#ingredient-proof{position:absolute;left:100px;top:1140px;width:800px;height:188px;background:#fff;overflow:hidden;border:1px solid #cbd1c7;border-radius:10px}#ingredient-proof img{width:100%;height:auto;display:block}
+#method-kicker{position:absolute;left:100px;top:365px;color:#d8ef4b}
+#method-title{position:absolute;left:100px;top:420px;width:800px;font-size:92px;line-height:1.02;letter-spacing:-4.5px;font-weight:600;margin:0}
+.method-note{position:absolute;left:100px;top:660px;width:800px;min-height:225px;background:#d8ef4b;color:#122e25;padding:32px 38px}.method-note strong{display:block;font-size:72px;letter-spacing:-3.5px;line-height:1.02;font-weight:600}.method-note p{margin:20px 0 0;font-size:42px;line-height:1.2;letter-spacing:-1.1px}
+#method-proof{position:absolute;left:100px;top:965px;width:800px;height:402px;border-radius:12px;overflow:hidden;background:#fff}#method-proof img{width:100%;height:100%;object-fit:contain}
+#method-connector{position:absolute;left:130px;top:905px;width:6px;height:52px;background:#d8ef4b}
+#close-title{top:380px;font-size:122px;line-height:.96}#close-description{position:absolute;left:100px;top:690px;width:690px;font-size:51px;line-height:1.14;letter-spacing:-1.8px;font-weight:600}
+#result-crop{position:absolute;left:100px;top:830px;width:800px;height:380px;border-radius:12px;overflow:hidden;background:#fff;border:1px solid #b6c741}#result-crop img{position:absolute;bottom:0;left:0;width:100%;height:auto}
+#close-cta{position:absolute;left:100px;top:1240px;width:800px;border-top:5px solid #122e25;padding-top:24px;font-size:72px;letter-spacing:-3.5px;font-weight:600}
+#close-arrow{position:absolute;right:0;top:15px;font-size:84px}
+#intro-swap{position:absolute;left:100px;top:620px;width:800px;height:188px;overflow:hidden;border:1px solid #b6c741;border-radius:12px;background:#f6f3e9}#intro-swap img{width:100%;height:auto;display:block}#intro-bridge{position:absolute;left:100px;top:825px;width:800px;height:75px}#intro-method{position:absolute;left:100px;top:930px;width:800px;height:402px;border:1px solid #b6c741;border-radius:12px;overflow:hidden;background:#f6f3e9}#intro-method img{width:100%;height:100%;object-fit:contain}#intro-line1,#intro-line2{display:block}
+</style></head>
+<body><div id="root" data-composition-id="main" data-start="0" data-duration="23" data-width="1080" data-height="1920" data-fps="30">
+ <div id="intro-scene" class="scene clip" data-start="0" data-duration="3.4" data-track-index="0"><div id="intro-stage" class="stage lime">
+  <div class="wordmark">RecipeFix</div><h1 class="headline"><span id="intro-line1">New cream.</span><span id="intro-line2">New method.</span></h1>
+  <div id="intro-swap"><img data-layout-allow-overflow="true" src="assets/ingredient.png" alt="Actual ingredient change from heavy cream to coconut cream"></div>
+  <div id="intro-bridge"><svg width="800" height="75" viewBox="0 0 800 75" aria-hidden="true"><path id="intro-link" d="M400 0 V58 M380 38 L400 58 L420 38" fill="none" stroke="#122e25" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+  <div id="intro-method"><img src="assets/method.png" alt="Actual RecipeFix changed-this-step note linked to the ingredient change"></div><div class="disclosure">Recorded-result demo</div>
+ </div></div>
+ <div id="choose-scene" class="scene clip" data-start="3" data-duration="4" data-track-index="1"><div id="choose-stage" class="stage ink">
+  <div class="wordmark">RecipeFix</div><h2 id="choose-title">Make it fit.<br><span style="color:#d8ef4b">Dairy-free. For six.</span></h2><div id="choose-label">Your changes. One recipe.</div><div class="disclosure">Recorded-result demo</div>
+ </div></div>
+ <div id="ui-camera"><img id="ui-still" class="clip" data-start="3" data-duration="4" data-track-index="2" src="assets/choose.png" alt="Actual dairy-free six-serving configuration"><video id="ui-footage" class="clip" data-start="3" data-duration="2.28" data-media-start="0" data-track-index="2" src="assets/interaction-viewport.mp4" muted playsinline></video></div>
+ <div id="ingredient-scene" class="scene clip" data-start="7" data-duration="4.4" data-track-index="3"><div id="ingredient-stage" class="stage paper">
+  <div class="wordmark">RecipeFix</div><div id="ingredient-label" class="overline">01 / The ingredient</div><h2 id="ingredient-title">A different<br>kind of cream.</h2>
+  <div id="old-ingredient" class="ingredient"><div class="name">Heavy<br>cream</div><div class="quantity">½ cup</div></div><div id="new-ingredient" class="ingredient"><div class="name">Full-fat<br>coconut cream</div><div class="quantity">¾ cup</div></div><div id="ingredient-arrow">→</div>
+  <div id="ingredient-proof"><img data-layout-allow-overflow="true" src="assets/ingredient.png" alt="Actual RecipeFix changed ingredient row"></div><div class="disclosure">Recorded-result demo · scaled 4 → 6</div>
+ </div></div>
+ <div id="method-scene" class="scene clip" data-start="11" data-duration="7.4" data-track-index="4"><div id="method-stage" class="stage ink">
+  <div class="wordmark">RecipeFix</div><div id="method-kicker" class="overline">02 / The method</div><h2 id="method-title">The instructions<br>change with it.</h2>
+  <div id="method-note1" class="method-note"><strong>Whisk it smooth.</strong><p>Whisk separated coconut cream<br>smooth before adding.</p></div><div id="method-note2" class="method-note"><strong>Keep it gentle.</strong><p>Keep the sauce at a gentle simmer.</p></div>
+  <div id="method-connector"></div><div id="method-proof"><img src="assets/method.png" alt="Actual stored RecipeFix method and change note"></div><div class="disclosure">Recorded-result demo</div>
+ </div></div>
+ <div id="close-scene" class="scene clip" data-start="18" data-duration="5" data-track-index="5"><div id="close-stage" class="stage lime">
+  <div class="wordmark">RecipeFix</div><h2 id="close-title" class="headline">Your recipe.<br>Rethought.</h2><div id="close-description">Ingredients and method,<br>changed together.</div><div id="result-crop"><img data-layout-allow-overflow="true" src="assets/result.png" alt="Actual RecipeFix recipe result header"></div><div id="close-cta">recipefix.app <span id="close-arrow">↗</span></div><div class="disclosure">Recorded-result demo</div>
+ </div></div>
+ <audio id="original-score" class="clip" data-start="0" data-duration="23" data-track-index="6" data-volume="1" data-fade-in="0.1" data-fade-out="0.8" src="assets/sound.wav"></audio>
+</div>
+<script src="assets/vendor/gsap.min.js"></script><script>
+document.fonts.ready.then(()=>{
+ const tl=gsap.timeline({paused:true});
+ tl.fromTo('#intro-line1',{y:20},{y:0,duration:.5,ease:'power3.out'},0);
+ tl.fromTo('#intro-line2',{y:25},{y:0,duration:.6,ease:'power3.out'},0);
+ tl.fromTo('#intro-swap',{scale:.985},{scale:1,duration:.7,ease:'power3.out'},0);
+ tl.fromTo('#intro-method',{y:25,scale:.985},{y:0,scale:1,duration:.8,ease:'power3.out'},0);
+ tl.fromTo('#intro-link',{scaleY:.15,transformOrigin:'center top'},{scaleY:1,duration:.65,ease:'power3.out'},.1);
+
+ tl.fromTo('#intro-stage',{x:0},{x:-1080,duration:.38,ease:'power3.inOut'},3);
+ tl.fromTo('#choose-stage',{x:1080},{x:0,duration:.38,ease:'power3.inOut'},3);
+ tl.fromTo('#ui-camera',{scale:.87,opacity:0},{scale:1,opacity:1,duration:.48,ease:'power3.out'},3.12);
+ tl.fromTo('#choose-label',{y:35,opacity:0},{y:0,opacity:1,duration:.4,ease:'power3.out'},3.5);
+ tl.to('#ui-camera',{y:0,scale:1.01,duration:2.3,ease:'power1.inOut'},4.2);
+ tl.fromTo('#ingredient-title',{x:-130,opacity:0},{x:0,opacity:1,duration:.42,ease:'power3.out'},7);
+ tl.fromTo('#old-ingredient',{x:-430},{x:0,duration:.52,ease:'power3.out'},7.15);
+ tl.fromTo('#new-ingredient',{x:580},{x:0,duration:.62,ease:'power3.out'},7.35);
+ tl.fromTo('#ingredient-arrow',{scale:0,rotation:-30},{scale:1,rotation:0,duration:.35,ease:'back.out(1.25)'},7.7);
+ tl.fromTo('#ingredient-proof',{y:90,opacity:0},{y:0,opacity:1,duration:.45,ease:'power3.out'},8.1);
+ tl.fromTo('#ingredient-stage',{y:0},{y:-1920,duration:.42,ease:'power3.inOut'},11);
+ tl.fromTo('#method-stage',{y:1920},{y:0,duration:.42,ease:'power3.inOut'},11);
+ tl.fromTo('#method-note1',{x:850},{x:0,duration:.5,ease:'power3.out'},11.35);
+ tl.fromTo('#method-proof',{y:140,opacity:0},{y:0,opacity:1,duration:.55,ease:'power3.out'},11.65);
+ tl.fromTo('#method-connector',{scaleY:0,transformOrigin:'top center'},{scaleY:1,duration:.35,ease:'power2.out'},12);
+ tl.to('#method-note1',{x:-950,opacity:0,duration:.4,ease:'power3.in'},14.15);
+ tl.fromTo('#method-note2',{x:950,opacity:0},{x:0,opacity:1,duration:.5,ease:'power3.out'},14.4);
+ tl.to('#method-proof',{scale:1.025,duration:5.5,ease:'none'},12.1);
+ tl.fromTo('#close-stage',{x:1080},{x:0,duration:.38,ease:'power3.inOut'},18);
+ tl.fromTo('#close-title',{y:60},{y:0,duration:.6,ease:'power3.out'},18);
+ tl.fromTo('#close-description',{x:-80,opacity:0},{x:0,opacity:1,duration:.6,ease:'power3.out'},18.25);
+ tl.fromTo('#result-crop',{y:160,opacity:0},{y:0,opacity:1,duration:.65,ease:'power3.out'},18.4);
+ tl.fromTo('#close-cta',{y:60,opacity:0},{y:0,opacity:1,duration:.5,ease:'power3.out'},19);
+ tl.fromTo('#close-arrow',{x:-20,y:20},{x:0,y:0,duration:.5,ease:'power2.out'},19.3);
+ tl.to({}, {duration:.01},22.99);
+ window.__timelines=window.__timelines||{};window.__timelines.main=tl;
+});
+</script></body></html>

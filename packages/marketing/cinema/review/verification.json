@@ -1,0 +1,124 @@
+{
+  "date": "2026-10-28",
+  "base": "9f9b7005",
+  "finalCandidates": [
+    {
+      "candidate": "a",
+      "sourceRevision": "A4",
+      "file": "candidate-a.mp4",
+      "sha256": "f45d371963840af9ef1d887d61e1415c3d9c8bda8be009f64dc2040ce5505e7e",
+      "ffprobe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 1080,
+            "height": 1920,
+            "pix_fmt": "yuvj420p",
+            "color_range": "pc",
+            "r_frame_rate": "30/1",
+            "duration": "23.000000",
+            "nb_frames": "690",
+            "side_data_list": [
+              {}
+            ]
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "48000",
+            "channels": 2,
+            "r_frame_rate": "0/0",
+            "duration": "23.061333",
+            "nb_frames": "1081"
+          }
+        ],
+        "format": {
+          "duration": "23.061333",
+          "size": "5123968"
+        }
+      }
+    },
+    {
+      "candidate": "b",
+      "sourceRevision": "B2",
+      "file": "candidate-b.mp4",
+      "sha256": "0abc477fe61a16fc2c8c27c38cfe3a2a50549e83a765044815005e84c439d204",
+      "ffprobe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 1080,
+            "height": 1920,
+            "pix_fmt": "yuv420p",
+            "color_range": "tv",
+            "r_frame_rate": "30/1",
+            "duration": "23.000000",
+            "nb_frames": "690"
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "48000",
+            "channels": 2,
+            "r_frame_rate": "0/0",
+            "duration": "23.000000",
+            "nb_frames": "1080"
+          }
+        ],
+        "format": {
+          "duration": "23.000000",
+          "size": "5723173"
+        }
+      }
+    }
+  ],
+  "providerRequestsSent": 0,
+  "customerWrites": 0,
+  "paidMediaGenerations": 0,
+  "newSubscriptions": 0,
+  "publicPosts": 0,
+  "liveSchedules": 0,
+  "accountChanges": 0,
+  "schemaChanges": 0,
+  "recipefixAppChanges": 0,
+  "tests": {
+    "marketingRegression": "34/34 tests across6files passed",
+    "marketingTypeScript": "passed",
+    "cinemaTypeScript": "passed",
+    "criticalCopyActualFrames": "12/12 passed,24px minimum word height and4.5:1 contrast unchanged",
+    "JSAndPythonSyntax": "passed",
+    "encodedVideo": "Both23s/1080x1920/30fps/690H2644:2:0 frames with stereoAAC; A full-range yuvj420p, B yuv420p, actual metadata retained",
+    "hyperframes": "zero errors, warnings documented in RESULTS.md",
+    "finalIndependentPlayback": "A4 and B2 full muted/unmuted390px playback reached ended without media errors",
+    "reviewBoardPlayback": "Both muted, A unmuted and B unmuted all reached ended without media errors",
+    "audioLevels": "Both\u221220.0LUFS/about\u221210.3dBTP; no clipping",
+    "auditoryTasteAssessed": false
+  },
+  "retainedLimitations": [
+    "Current UI with exact recorded production response, not fresh live inference",
+    "Case-study/deck pacing remains founder taste decision",
+    "Brief A helper-line overlap at7s entrance, primary ingredient/amount clear",
+    "B has documented transient opaque-wipe overlap warnings",
+    "Different art direction prevents attributing preference causally to engine",
+    "A full-range4:2:0 and B limited-range4:2:0 both decoded correctly in browser; actual social-platform transcoding untested",
+    "Only relevant marketing suite ran, no unrelated DB/platform-wide suite claimed"
+  ],
+  "priorFailuresFixed": [
+    "A1 tiled first frame: reused installed Remotion browser and waited for local fonts",
+    "A3 tilted source badge4.37:1: A4 frontal hold passes same4.5:1 test",
+    "Review server root originally broke relative video paths: redirect corrected; actual final full playback verified"
+  ],
+  "storage": {
+    "initialInternalGiB": 109.85,
+    "finalInternalGiB": 110.39,
+    "finalT9FreeGiB": 299.43,
+    "mountedEncryptedT9Verified": true
+  },
+  "publicationApproved": false
+}
