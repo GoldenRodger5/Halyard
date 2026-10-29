@@ -1,6 +1,6 @@
 import React from 'react';
 import {AbsoluteFill,Img,staticFile,useCurrentFrame,interpolate,Easing} from 'remotion';
-const blue='#173fdb',orange='#ff6b28',white='#fff9ee',yellow='#ffcf00',pink='#e82b6d',black='#301021';
+const blue='#173fdb',orange='#ff6b28',white='#fff9ee',yellow='#ffcf00',pink='#cb1c60',black='#301021';
 const Label:React.FC<{children:React.ReactNode;color?:string}>=({children,color=white})=><div style={{position:'absolute',left:72,right:72,top:60,font:'600 25px Inter',letterSpacing:3,color}}>{children}</div>;
 const Big:React.FC<{children:React.ReactNode;top?:number;color?:string;size?:number}>=({children,top=155,color=white,size=112})=><div style={{position:'absolute',left:72,right:72,top,font:`600 ${size}px/.98 Inter`,letterSpacing:-5,color}}>{children}</div>;
 export const PanPrototype:React.FC<{reveal:boolean}>=({reveal})=><AbsoluteFill style={{background:blue}}>
@@ -84,6 +84,6 @@ export const PineappleMotion:React.FC=()=>{
    <div style={{position:'absolute',left:72,right:72,top:1485,font:'600 57px/1.1 Inter',letterSpacing:-1}}>Gelatin?<br/>Choose canned pineapple.</div>
    <div style={{position:'absolute',left:72,right:72,top:1680,font:'31px/1.3 Inter'}}>Follow the recipe’s fruit instructions.</div>
   </>}
-  <div style={{position:'absolute',left:72,right:72,top:1780,font:'23px/1.3 Inter',color:network?white:black}}>{network?'Original protein-network metaphor':'Original 3D and graphic illustration'} • not a kitchen test<br/>Sources: UGA Extension / Academy of Nutrition and Dietetics</div>
+  <div style={{position:'absolute',left:72,right:72,top:1780,font:'32px/1.3 Inter',color:network?white:black}}>{network?'Illustrated protein network':'Original 3D/graphic illustration'} · not a kitchen test<br/>Sources: UGA Extension / EatRight.org</div>
  </AbsoluteFill>
 };

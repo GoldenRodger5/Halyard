@@ -1,7 +1,9 @@
 {
-  "tag": "final-v2",
-  "renderSeconds": 9.926,
+  "tag": "final-v5",
+  "renderSeconds": 12.772,
   "providerCalls": 0,
   "providerSpendUSD": 0,
-  "newDependencies": 0
+  "newDependencies": 0,
+  "colorSpace": "bt709",
+  "imageFormat": "png"
 }

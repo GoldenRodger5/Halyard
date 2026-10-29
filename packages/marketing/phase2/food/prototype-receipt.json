@@ -48,11 +48,17 @@
       ]
     }
   ],
-  "founderDecision": "unreviewed",
+  "founderDecision": "rejected",
   "selection": {
     "selected": "rf-pineapple-gelatin",
     "unselected": "rf-pan-area",
     "directorReason": "The pineapple premise and original pink/lilac gelatin material offer a more distinctive entertainment/science slot. Pan circles are useful but ordinary; do not expand into filler.",
     "unselectedNotReady": true
+  },
+  "creativeDecision": {
+    "status": "STOP / founder-rejected baseline",
+    "sourceCommit": "954c546",
+    "sourcePath": "packages/marketing/strategy/2026-10-29-CINEMATIC-VISUAL-QUALITY-RESET.md",
+    "reason": "Founder rejects the exact pineapple film as flagship content. Palette/footer/encoding improvements do not reverse that decision. Preserve as R&D evidence, not qualified publishing inventory."
   }
 }
