@@ -1,0 +1,178 @@
+{
+  "reviewDate": "2026-10-29",
+  "reviewer": "food_studio independent visual/transport critic; no producer edits",
+  "decision": "FINAL_MIX_PICTURE_AND_TRANSPORT_VERIFIED_FOR_FOUNDER_REVIEW",
+  "exports": [
+    {
+      "kind": "narration",
+      "path": "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/audio/renders/recipefix-narration.mp4",
+      "sha256": "5e07e1a7e971fd06b4c260692783ea901017edfa633d0d004a9ad5df2b39e8b6",
+      "video": {
+        "codec": "h264",
+        "width": 1080,
+        "height": 1920,
+        "fps": 30,
+        "durationSeconds": 13.5,
+        "frames": 405
+      },
+      "audioStreamPresence": {
+        "codec": "aac",
+        "sampleRate": 48000,
+        "channels": 2,
+        "verification": "Independent ffprobe; not subjective listening."
+      },
+      "fullPlaybacks": [
+        {
+          "duration": 13.5,
+          "currentTime": 13.5,
+          "ended": true,
+          "muted": true,
+          "videoWidth": 1080,
+          "videoHeight": 1920,
+          "decodedFrames": 405,
+          "droppedFrames": 0,
+          "callbacks": 405,
+          "firstMediaTime": 0,
+          "lastMediaTime": 13.466667,
+          "elapsedSeconds": 13.76360000000149,
+          "viewport": {
+            "width": 360,
+            "height": 844
+          },
+          "errors": [],
+          "sound": "audio_stream_present_muted_for_visual_review",
+          "subjectiveAudioJudgment": "not_performed",
+          "reviewScope": "Actual complete muted browser playback; transport/frames and screenshot evidence, no hearing judgment or founder approval. Audio stream presence verified separately by ffprobe."
+        },
+        {
+          "duration": 13.5,
+          "currentTime": 13.5,
+          "ended": true,
+          "muted": true,
+          "videoWidth": 1080,
+          "videoHeight": 1920,
+          "decodedFrames": 405,
+          "droppedFrames": 0,
+          "callbacks": 405,
+          "firstMediaTime": 0,
+          "lastMediaTime": 13.466667,
+          "elapsedSeconds": 13.82430000000447,
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "errors": [],
+          "sound": "audio_stream_present_muted_for_visual_review",
+          "subjectiveAudioJudgment": "not_performed",
+          "reviewScope": "Actual complete muted browser playback; transport/frames and screenshot evidence, no hearing judgment or founder approval. Audio stream presence verified separately by ffprobe."
+        }
+      ],
+      "actualReadabilityEvidence": [
+        "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/editorial/evidence/final-narration-360/readability-four-states.png",
+        "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/editorial/evidence/final-narration-390/readability-four-states.png"
+      ]
+    },
+    {
+      "kind": "sound-only",
+      "path": "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/audio/renders/recipefix-sound-only.mp4",
+      "sha256": "8156954dd35a8635f6eeda72e2ee7f04ca141da4c00a43f8f1bbcc837a7c4f65",
+      "video": {
+        "codec": "h264",
+        "width": 1080,
+        "height": 1920,
+        "fps": 30,
+        "durationSeconds": 13.5,
+        "frames": 405
+      },
+      "audioStreamPresence": {
+        "codec": "aac",
+        "sampleRate": 48000,
+        "channels": 2,
+        "verification": "Independent ffprobe; not subjective listening."
+      },
+      "fullPlaybacks": [
+        {
+          "duration": 13.5,
+          "currentTime": 13.5,
+          "ended": true,
+          "muted": true,
+          "videoWidth": 1080,
+          "videoHeight": 1920,
+          "decodedFrames": 405,
+          "droppedFrames": 0,
+          "callbacks": 405,
+          "firstMediaTime": 0,
+          "lastMediaTime": 13.466667,
+          "elapsedSeconds": 13.78529999999702,
+          "viewport": {
+            "width": 360,
+            "height": 844
+          },
+          "errors": [],
+          "sound": "audio_stream_present_muted_for_visual_review",
+          "subjectiveAudioJudgment": "not_performed",
+          "reviewScope": "Actual complete muted browser playback; transport/frames and screenshot evidence, no hearing judgment or founder approval. Audio stream presence verified separately by ffprobe."
+        },
+        {
+          "duration": 13.5,
+          "currentTime": 13.5,
+          "ended": true,
+          "muted": true,
+          "videoWidth": 1080,
+          "videoHeight": 1920,
+          "decodedFrames": 405,
+          "droppedFrames": 0,
+          "callbacks": 405,
+          "firstMediaTime": 0,
+          "lastMediaTime": 13.466667,
+          "elapsedSeconds": 13.73180000000447,
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "errors": [],
+          "sound": "audio_stream_present_muted_for_visual_review",
+          "subjectiveAudioJudgment": "not_performed",
+          "reviewScope": "Actual complete muted browser playback; transport/frames and screenshot evidence, no hearing judgment or founder approval. Audio stream presence verified separately by ffprobe."
+        }
+      ],
+      "actualReadabilityEvidence": [
+        "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/editorial/evidence/final-sound-only-360/readability-four-states.png",
+        "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/editorial/evidence/final-sound-only-390/readability-four-states.png"
+      ]
+    }
+  ],
+  "lockedPicture": {
+    "path": "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/edit/picture-v2/dinner-picture-clean.mp4",
+    "sha256": "2ccef680712fce964c250c8e7afaeeb026beac283bc0924e3325106c0729751d"
+  },
+  "picturePayloadVerification": {
+    "method": "ffmpeg -map 0:v:0 -c copy -f hash -hash sha256; hashes video payload, independent of MP4 container and audio.",
+    "sha256AllThreeInputs": "6b2672acfce79a5236794d1fca2b7302f8a09f01c1db0c821fd8b0c0a65ca5c0",
+    "matchesLockedPicture": true
+  },
+  "visualReadback": "Complete actual muted playback at both phone widths for both exact files, plus actual source-title, selected 6 endpoint, method and CTA screenshots. Entire Chicken Tikka Masala title, Serves 4 crop, Dairy-Free selection and 6 servings remain visible; no clipped header regression, changed image sequence, new collision or damaged CTA found.",
+  "beforeAfterVerdict": {
+    "versusPR118": "The floating-tray action has been removed, actual UI is larger and clearer, the original 4-to-selected 6 request is readable, the two-sheets/one-at-a-time instruction is concrete, and the named recipe / Make it fit CTA is more useful than the generic ending. These are actual product-story improvements.",
+    "versusPictureV2": "No visual improvement or regression is attributed to adding audio. Encoded video payload is identical to picture v2.",
+    "remainingLimitation": "Sustained native food action remains limited; much of the film relies on still reframes and source strips. The finishing pass does not certify flagship cinema, retention, food preparation results or superiority of either audio mix."
+  },
+  "newP0VisualDefectFound": false,
+  "newP1VisualDefectFound": false,
+  "furtherCreativeIterationRequested": false,
+  "audioReviewBoundary": "Both exports were deliberately muted. No claim about voice naturalness, pronunciation, balance, music, foley, loudness comfort or preference. Presence of an AAC stream and successful playback do not establish sound quality. Founder listening remains necessary.",
+  "producerReportedAudioUsage": {
+    "takes": 1,
+    "includedCredits": 66,
+    "additionalCashUSD": 0,
+    "scope": "Parent supplied production usage; this independent visual review did not make an account/provider call or separately audit billing."
+  },
+  "thisReviewProviderCalls": 0,
+  "thisReviewAdditionalCashUSD": 0,
+  "producerMediaEdited": false,
+  "founderApprovalAsserted": false,
+  "priorVersionReviews": [
+    "packages/marketing/phase2b/editorial/independent-picture-review.json",
+    "packages/marketing/phase2b/editorial/independent-picture-v2-review.json"
+  ]
+}
