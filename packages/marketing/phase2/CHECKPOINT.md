@@ -1,6 +1,6 @@
 # Phase 2 — the image-first film and expanded editorial
 
-[Watch the new product film](http://127.0.0.1:4360/#product-proof) · [Open the complete gallery](http://127.0.0.1:4360/) · [Fourteen-day slate](CALENDAR.md)
+[Watch the new product film](http://127.0.0.1:4360/#product-proof) · [Open the complete gallery](http://127.0.0.1:4360/) · [Fourteen-day slate](CALENDAR.md) · [Draft PR118](https://github.com/GoldenRodger5/Halyard/pull/118)
 
 The new product cut is **12 seconds**, with actual image-to-video tray movement, genuine RecipeFix settings and the recorded method change. It replaces the toy-like orange CGI as the current dinner candidate. Two new carousels and X treatments are complete; salt and the seasonal edit retain their original bytes. The rejected science film remains an explicitly stopped baseline. The pineapple question/reveal cut is separate R&D.
 
