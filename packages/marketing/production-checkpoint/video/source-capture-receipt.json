@@ -1,0 +1,58 @@
+{
+  "mode": "Current live UI, exact recorded Oct21 production result fulfilled locally. No fresh adaptation.",
+  "date": "2026-10-29",
+  "viewport": [
+    390,
+    844
+  ],
+  "dpr": 3,
+  "recording": [
+    390,
+    844
+  ],
+  "events": [
+    {
+      "name": "original",
+      "at": 1.879
+    },
+    {
+      "name": "modal-four",
+      "at": 2.514
+    },
+    {
+      "name": "modal-six",
+      "at": 3.95
+    },
+    {
+      "name": "result",
+      "at": 4.63
+    },
+    {
+      "name": "broiler",
+      "at": 5.44
+    }
+  ],
+  "network": [
+    {
+      "function": "adapt-recipe",
+      "method": "POST",
+      "sentToProvider": false,
+      "recorded": true
+    },
+    {
+      "path": "/rest/v1/rpc/get_anon_usage_count",
+      "method": "POST",
+      "sentToProvider": false,
+      "blockedWrite": true
+    },
+    {
+      "function": "estimate-nutrition",
+      "method": "POST",
+      "sentToProvider": false,
+      "recorded": false
+    }
+  ],
+  "providerCalls": 0,
+  "customerWrites": 0,
+  "qaExcluded": true
+}
