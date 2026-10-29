@@ -1,0 +1,215 @@
+{
+  "schemaVersion": 1,
+  "producer": "food_studio",
+  "revision": "v3",
+  "status": "founder_review",
+  "ideas": [
+    {
+      "id": "rf-salt-volume",
+      "title": "Same spoon. Twice the salt.",
+      "category": "E04",
+      "targetAudience": "Home cooks following a recipe that names kosher salt by volume, especially when changing brands.",
+      "whyWatch": "Two dimensional spoons and a counterintuitive hook make an everyday seasoning mistake visible.",
+      "visibleEvent": "Swipe from an original studio illustration to the exact two-brand tablespoon chart comparison, then a practical substitution check.",
+      "payoff": "Learn why Diamond Crystal and Morton’s kosher salt cannot be casually exchanged spoon for spoon; use the recipe’s salt specification or stated grams.",
+      "productBridge": null,
+      "sourceUrls": [
+        "https://www.kingarthurbaking.com/learn/ingredient-weight-chart",
+        "https://www.kingarthurbaking.com/blog/2021/06/17/kosher-salt-best-salts-for-baking"
+      ],
+      "authoringStatus": "founder_review"
+    },
+    {
+      "id": "rf-allspice-quiz",
+      "title": "Allspice: one spice or a blend?",
+      "category": "C02",
+      "targetAudience": "Curious home cooks who encounter allspice in spice cakes, sauces or pickles.",
+      "whyWatch": "The familiar pantry name invites a plausible wrong answer; real fruit photography gives a visual clue.",
+      "visibleEvent": "Pick one spice or a blend, then swipe to a close fruit study and the reveal: one spice, one tree.",
+      "payoff": "Allspice is the dried unripe fruit of Pimenta dioica; its flavor can recall several spices while the ingredient itself is not a blend.",
+      "productBridge": null,
+      "sourceUrls": [
+        "https://www.spices.res.in/crops/allspice",
+        "https://www.nparks.gov.sg/florafaunaweb/flora/6/0/6085"
+      ],
+      "authoringStatus": "founder_review"
+    }
+  ],
+  "variants": [
+    {
+      "id": "rf-salt-volume-ig-carousel",
+      "ideaId": "rf-salt-volume",
+      "platform": "instagram",
+      "format": "carousel",
+      "title": "Same spoon. Twice the salt.",
+      "caption": "Same spoonful, different amount of salt. King Arthur Baking’s chart lists 1 tablespoon of Diamond Crystal kosher salt as 8 g, and Morton’s kosher salt as 16 g. These are published reference values, not a universal measured spoon conversion. Match the recipe’s salt specification, or use its stated gram weight. Original 3D illustration; no live weighing.\nSource: https://www.kingarthurbaking.com/learn/ingredient-weight-chart",
+      "media": [
+        {
+          "path": "packages/marketing/production-checkpoint/food/exports/salt-1.png",
+          "kind": "image",
+          "sha256": "ab8e47a1a9871542b882f4f70509455bcad508529eed9187d87f5fd40e7cc4b1",
+          "width": 1080,
+          "height": 1350,
+          "origin": "Original RecipeFix composition; original Blender3D spoon/salt illustration generated locally from scripts/salt_scene.py; Inter and Instrument Serif fonts.",
+          "rights": "Original procedural artwork; no third-party meshes/photos. Fonts licensed under SIL OFL1.1; license files included.",
+          "altText": "Two originally modeled metal tablespoons hold illustrative coarse salt crystals on a dark surface. Text: Same spoon. Twice the salt. One tablespoon isn’t one weight. Swipe for the chart.",
+          "synthetic": true
+        },
+        {
+          "path": "packages/marketing/production-checkpoint/food/exports/salt-2.png",
+          "kind": "image",
+          "sha256": "dc3af13e9dd6f98a4c6c5b753194b4f823acff1df5711796b93d620f14227bdc",
+          "width": 1080,
+          "height": 1350,
+          "origin": "Original RecipeFix composition; original Blender3D spoon/salt illustration generated locally from scripts/salt_scene.py; Inter and Instrument Serif fonts.",
+          "rights": "Original procedural artwork; no third-party meshes/photos. Fonts licensed under SIL OFL1.1; license files included.",
+          "altText": "King Arthur Baking’s published kosher salt chart comparison: Diamond Crystal, one tablespoon, 8 grams; Morton’s, one tablespoon, 16 grams. Same volume, different amounts of salt.",
+          "synthetic": true
+        },
+        {
+          "path": "packages/marketing/production-checkpoint/food/exports/salt-3.png",
+          "kind": "image",
+          "sha256": "46ba718d6f87dca3fb5497db5d9044542212d665e3336147bd290b0818879cc8",
+          "width": 1080,
+          "height": 1350,
+          "origin": "Original RecipeFix composition; original Blender3D spoon/salt illustration generated locally from scripts/salt_scene.py; Inter and Instrument Serif fonts.",
+          "rights": "Original procedural artwork; no third-party meshes/photos. Fonts licensed under SIL OFL1.1; license files included.",
+          "altText": "Before seasoning by the spoon, match the salt type and use the recipe’s weight if provided. A recipe may specify a different kosher salt brand; follow its stated grams rather than equal spoonfuls.",
+          "synthetic": true
+        }
+      ],
+      "cta": "Swipe for the brand comparison and recipe check.",
+      "sourceUrls": [
+        "https://www.kingarthurbaking.com/learn/ingredient-weight-chart",
+        "https://www.kingarthurbaking.com/blog/2021/06/17/kosher-salt-best-salts-for-baking"
+      ],
+      "disclosure": "Original illustrative 3D spoons and crystals; chart values attributed, not a photographed or measured demonstration. Silent by design."
+    },
+    {
+      "id": "rf-salt-volume-x-image",
+      "ideaId": "rf-salt-volume",
+      "platform": "x",
+      "format": "image",
+      "title": "Same tablespoon. Different salt.",
+      "caption": "King Arthur’s chart, per tablespoon: Diamond Crystal kosher salt 8 g; Morton’s kosher salt 16 g. Match your recipe’s salt type or stated grams. Original 3D illustration.\nhttps://www.kingarthurbaking.com/learn/ingredient-weight-chart",
+      "media": [
+        {
+          "path": "packages/marketing/production-checkpoint/food/exports/salt-x.png",
+          "kind": "image",
+          "sha256": "6fb0932b448763a32098dbb89b148e7b4a9adbe9d8d261c9492c62a7de749804",
+          "width": 1200,
+          "height": 675,
+          "origin": "Original RecipeFix composition; original Blender3D spoon/salt illustration generated locally from scripts/salt_scene.py; Inter and Instrument Serif fonts.",
+          "rights": "Original procedural artwork; no third-party meshes/photos. Fonts licensed under SIL OFL1.1; license files included.",
+          "altText": "Two originally modeled spoons of illustrative salt alongside King Arthur Baking’s chart values per tablespoon: Diamond Crystal kosher salt 8 grams; Morton’s kosher salt 16 grams.",
+          "synthetic": true
+        }
+      ],
+      "sourceUrls": [
+        "https://www.kingarthurbaking.com/learn/ingredient-weight-chart",
+        "https://www.kingarthurbaking.com/blog/2021/06/17/kosher-salt-best-salts-for-baking"
+      ],
+      "disclosure": "Original 3D illustration, not a live weighing. Silent by design."
+    },
+    {
+      "id": "rf-allspice-quiz-ig-carousel",
+      "ideaId": "rf-allspice-quiz",
+      "platform": "instagram",
+      "format": "carousel",
+      "title": "Allspice: one spice or a blend?",
+      "caption": "One spice. One tree. Allspice is the dried, unripe fruit of Pimenta dioica—not a spice blend. It can recall cinnamon, clove and nutmeg, and appears in baking, sauces and pickles.\nSources: https://www.spices.res.in/crops/allspice | https://www.nparks.gov.sg/florafaunaweb/flora/6/0/6085\nFruit photo: Brian Arthur, cropped/resized with background blending; CC BY2.5 https://creativecommons.org/licenses/by/2.5/ Original: https://commons.wikimedia.org/wiki/File:AllspiceSeeds.jpg",
+      "media": [
+        {
+          "path": "packages/marketing/production-checkpoint/food/exports/allspice-1.png",
+          "kind": "image",
+          "sha256": "a388752352c647731454dfaa4b03c41cbb3aecb4b3d2f12e6032322461a6ea01",
+          "width": 1080,
+          "height": 1350,
+          "origin": "Original editorial composition with cropped and multiply-blended Brian Arthur photograph via https://commons.wikimedia.org/wiki/File:AllspiceSeeds.jpg",
+          "rights": "Brian Arthur, CC BY2.5 selected from Commons multiple licensing. Crop, scale and background blend disclosed. https://creativecommons.org/licenses/by/2.5/ Original: https://commons.wikimedia.org/wiki/File:AllspiceSeeds.jpg. Fonts SIL OFL1.1.",
+          "altText": "A real photograph of dried brown allspice fruits with a pantry quiz: Allspice. One spice? Or a whole spice blend? Pick your answer, then swipe.",
+          "synthetic": false
+        },
+        {
+          "path": "packages/marketing/production-checkpoint/food/exports/allspice-2.png",
+          "kind": "image",
+          "sha256": "ccb1ad6afd477f38df52d5b9bdec7ded432ae47d2f365f1fa26d4d50426bc18f",
+          "width": 1080,
+          "height": 1350,
+          "origin": "Original editorial composition with cropped and multiply-blended Brian Arthur photograph via https://commons.wikimedia.org/wiki/File:AllspiceSeeds.jpg",
+          "rights": "Brian Arthur, CC BY2.5 selected from Commons multiple licensing. Crop, scale and background blend disclosed. https://creativecommons.org/licenses/by/2.5/ Original: https://commons.wikimedia.org/wiki/File:AllspiceSeeds.jpg. Fonts SIL OFL1.1.",
+          "altText": "A framed close study of real allspice fruits accompanies the answer: One spice. One tree. Allspice is the dried unripe fruit of Pimenta dioica; its flavor recalls cinnamon, clove and nutmeg.",
+          "synthetic": false
+        }
+      ],
+      "cta": "Pick an answer, then swipe for the reveal.",
+      "sourceUrls": [
+        "https://www.spices.res.in/crops/allspice",
+        "https://www.nparks.gov.sg/florafaunaweb/flora/6/0/6085",
+        "https://commons.wikimedia.org/wiki/File:AllspiceSeeds.jpg",
+        "https://creativecommons.org/licenses/by/2.5/"
+      ],
+      "disclosure": "Real CC BY2.5 licensed fruit photography; crops and background blending disclosed. No generated food photo. Silent by design."
+    },
+    {
+      "id": "rf-allspice-quiz-x-image",
+      "ideaId": "rf-allspice-quiz",
+      "platform": "x",
+      "format": "image",
+      "title": "Allspice isn’t a spice blend.",
+      "caption": "Allspice is one ingredient: dried unripe Pimenta dioica fruit.\nSource: https://www.spices.res.in/crops/allspice\nPhoto: Brian Arthur, cropped/blended. CC BY2.5: https://creativecommons.org/licenses/by/2.5/ Original: https://commons.wikimedia.org/wiki/File:AllspiceSeeds.jpg",
+      "media": [
+        {
+          "path": "packages/marketing/production-checkpoint/food/exports/allspice-x.png",
+          "kind": "image",
+          "sha256": "7c5f604fddff0185a14b63a2686b44855a7faf30f9c1cb69a8bf99450d2427a6",
+          "width": 1200,
+          "height": 675,
+          "origin": "Original editorial composition with cropped and multiply-blended Brian Arthur photograph via https://commons.wikimedia.org/wiki/File:AllspiceSeeds.jpg",
+          "rights": "Brian Arthur, CC BY2.5 selected from Commons multiple licensing. Crop, scale and background blend disclosed. https://creativecommons.org/licenses/by/2.5/ Original: https://commons.wikimedia.org/wiki/File:AllspiceSeeds.jpg. Fonts SIL OFL1.1.",
+          "altText": "Real dried allspice fruit photography and the reveal: Allspice isn’t a spice blend. It is the dried unripe fruit of Pimenta dioica. Photo Brian Arthur, CC BY2.5, cropped.",
+          "synthetic": false
+        }
+      ],
+      "sourceUrls": [
+        "https://www.spices.res.in/crops/allspice",
+        "https://www.nparks.gov.sg/florafaunaweb/flora/6/0/6085",
+        "https://commons.wikimedia.org/wiki/File:AllspiceSeeds.jpg",
+        "https://creativecommons.org/licenses/by/2.5/"
+      ],
+      "disclosure": "Real licensed allspice fruit photograph, cropped and background blended. Silent by design."
+    }
+  ],
+  "authoringFingerprints": {
+    "rf-salt-volume-ig-carousel": "5abc73e1279a5f1a66c3ac05f8d805ef5d8b3c6df1a47b18047e8620e55801d1",
+    "rf-salt-volume-x-image": "5586f620a662af28577c43a2120aa969860515a32c36e21b4f7093e47be6a1c1",
+    "rf-allspice-quiz-ig-carousel": "f4ebf4ff7bd62aaf89e79c44ca688f58cd3302b583f17713145d595d792b91e4",
+    "rf-allspice-quiz-x-image": "0455d35b3d746d4607fb8f9808b29363d357346ad2e85e6569c185e58889c56e"
+  },
+  "cost": {
+    "providerCalls": 0,
+    "providerSpendUSD": 0,
+    "newSubscriptions": 0,
+    "newDependencies": 0
+  },
+  "audio": "silent_by_design",
+  "founderDecision": "unreviewed",
+  "publication": {
+    "requested": false,
+    "accountVerified": false,
+    "schedule": null,
+    "published": false
+  },
+  "validation": {
+    "ideas": 2,
+    "variants": 4,
+    "errors": [],
+    "weightedXCharacters": {
+      "rf-salt-volume-x-image": 193,
+      "rf-allspice-quiz-x-image": 200
+    }
+  },
+  "rightsLimitations": [],
+  "sourcesAndRights": "sources-and-rights.json",
+  "reviewNotes": "QA.md"
+}

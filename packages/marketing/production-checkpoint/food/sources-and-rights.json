@@ -1,0 +1,114 @@
+{
+  "checkedAt": "2026-10-29",
+  "sources": [
+    {
+      "id": "salt-chart",
+      "url": "https://www.kingarthurbaking.com/learn/ingredient-weight-chart",
+      "publisher": "King Arthur Baking",
+      "type": "primary published reference chart",
+      "checked": "2026-10-29",
+      "supports": [
+        "Kosher Diamond Crystal: one tablespoon,8g.",
+        "Kosher Morton\u2019s: one tablespoon,16g.",
+        "Chart is a quick volume-to-weight reference; it is not our live weighing."
+      ],
+      "limits": [
+        "The post does not claim every spoonful weighs exactly this amount.",
+        "No sodium, nutrition, health or measured-cook outcome claims."
+      ]
+    },
+    {
+      "id": "salt-context",
+      "url": "https://www.kingarthurbaking.com/blog/2021/06/17/kosher-salt-best-salts-for-baking",
+      "publisher": "King Arthur Baking",
+      "type": "primary culinary publisher explanation",
+      "checked": "2026-10-29",
+      "supports": [
+        "Salt brands can differ in crystal form and weight per volume.",
+        "A recipe\u2019s salt specification matters when changing brands."
+      ]
+    },
+    {
+      "id": "allspice-identity-use",
+      "url": "https://www.spices.res.in/crops/allspice",
+      "publisher": "ICAR-Indian Institute of Spices Research",
+      "type": "primary crop research institute",
+      "checked": "2026-10-29",
+      "supports": [
+        "Allspice comes from dried unripe berries of Pimenta dioica.",
+        "Used in bakery products, sauces and pickles, among other foods."
+      ],
+      "limits": [
+        "No medicinal or health statements from the page are used."
+      ]
+    },
+    {
+      "id": "allspice-flavor",
+      "url": "https://www.nparks.gov.sg/florafaunaweb/flora/6/0/6085",
+      "publisher": "Singapore National Parks Board",
+      "type": "primary government botanical record",
+      "checked": "2026-10-29",
+      "supports": [
+        "Pimenta dioica is an allspice tree.",
+        "Flavor is described as recalling cinnamon, clove and nutmeg."
+      ],
+      "limits": [
+        "Flavor resemblance is sensory description, not a claim that three spices are added."
+      ]
+    }
+  ],
+  "assets": [
+    {
+      "path": "assets/allspice-berries.jpg",
+      "sha256": "536e0b86c3f621d2ea4fa71c1cf558ea59a4856863914b57308f583b3a8c7931",
+      "author": "Brian Arthur",
+      "source": "https://commons.wikimedia.org/wiki/File:AllspiceSeeds.jpg",
+      "licenseSelected": "CC BY2.5",
+      "licenseUrl": "https://creativecommons.org/licenses/by/2.5/",
+      "verification": "Commons file summary names photographer and describes dried fruits; licensing section explicitly allows selecting CC BY2.5 from multiple licenses. API metadata archived alongside local image.",
+      "edits": [
+        "Cropped to remove source ruler",
+        "Scaled",
+        "Multiply blended to cream paper background"
+      ],
+      "requiredAttribution": "Brian Arthur; linked source and CC BY2.5 license; crop/background changes disclosed in captions.",
+      "authenticity": "Real photograph of allspice fruits; filename calls them seeds but description identifies dried fruit. Not a newly cooked or measured result."
+    },
+    {
+      "path": "assets/salt-material.png",
+      "sha256": "084cca3a2627a9cb1193004318fd267f4afd5f83737e555343b1ceb420cb444a",
+      "author": "RecipeFix food_studio",
+      "origin": "Original local Blender scene; source scripts/salt_scene.py",
+      "rights": "Original meshes, procedural surface materials and studio lights. No proprietary mesh or publisher photo.",
+      "authenticity": "Synthetic illustrative spoons/crystals, no actual product photography, simulated scale or measured comparison. Scene counts, forms and fills are illustrative, not a density simulation."
+    }
+  ],
+  "fonts": {
+    "license": "SIL Open Font License1.1",
+    "files": [
+      {
+        "path": "assets/fonts/Inter-Regular.woff",
+        "sha256": "31656ddbb58d39790f910df827596106a5d91ce80dd4309a6aad91e08a90f9e4"
+      },
+      {
+        "path": "assets/fonts/Inter-SemiBold.woff",
+        "sha256": "a96e5ee7ab248008e5e6cc92dd561eceb892d19a10a537aa1b2e64f979351add"
+      },
+      {
+        "path": "assets/fonts/InstrumentSerif-Regular.ttf",
+        "sha256": "498efd461f6ddfcb7a111bf9a565709d2085d48201d501ead960d93e84ffbb88"
+      },
+      {
+        "path": "assets/fonts/inter-OFL.txt",
+        "sha256": "5dd548d31a85f756e01d63e00d7faf1e324103ed3e9102fcbbabf2cc2db6dd39"
+      },
+      {
+        "path": "assets/fonts/instrumentserif-OFL.txt",
+        "sha256": "b6b2292aa580937fb63796878d65a027a27f8c3db2d97601d0c34d9031f4ca17"
+      }
+    ]
+  },
+  "providerCalls": 0,
+  "providerSpendUSD": 0,
+  "unusedSourceNote": "The1915 historical plate was explored and rejected because globally clear reuse rights were not established. It does not appear in any revision3 export."
+}

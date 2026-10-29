@@ -1,0 +1,175 @@
+{
+  "checkedAt": "2026-10-29",
+  "media": [
+    {
+      "path": "assets/heat-context.mp4",
+      "sourceUrl": "https://www.pexels.com/video/a-person-frying-a-chicken-meat-4064770/",
+      "downloadUrl": "https://videos.pexels.com/video-files/4064770/4064770-hd_1920_1080_25fps.mp4",
+      "creator": "Steve B",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "rights": "Pexels License permits edited commercial promotional/social use; no endorsement claimed.",
+      "transformation": "HD source recompressed H264 CRF20; original audio removed; only opening tongs/pan context used.",
+      "visualScope": "Cooking context only. Does NOT depict the RecipeFix broiler method, the same recipe or an adapted cooked/tasted result."
+    },
+    {
+      "path": "assets/hero.jpg",
+      "sourceUrl": "https://unsplash.com/photos/a-bowl-of-creamy-chicken-tikka-masala-with-mint-leaves-GOw8q6bRTRM",
+      "downloadUrl": "https://images.unsplash.com/photo-1772730064951-89b427965dbc?auto=format&fit=max&w=1920&q=90",
+      "creator": "Mohammad Fahim (@dischef)",
+      "published": "2026-03-05",
+      "licenseUrl": "https://unsplash.com/license",
+      "rights": "Free Unsplash License; source and actual image verified by root integration and producer.",
+      "visualScope": "Chicken tikka masala serving inspiration, NOT the recorded adapted meal or dairy-free proof. Visible cream does not establish dietary suitability."
+    },
+    {
+      "path": "assets/foil-plan.mp4",
+      "sourceUrl": null,
+      "creator": "Original project-authored Blender geometry/material/light animation",
+      "rights": "Original authored CGI, no external meshes, textures or food models.",
+      "visualScope": "Empty-sheet capacity illustration with one warm lane. Not measured appliance detection or actual cooking footage.",
+      "resolution": "1080x1920,30fps,96frames; paced0.8x in finaledit."
+    }
+  ],
+  "productProof": {
+    "sourceRepository": "GoldenRodger5/recipe-fix",
+    "commit": "3f32680f091d06ad9046bb95e4dfb55489d2c264",
+    "file": "src/data/landingRealResult.ts",
+    "export": "LANDING_REAL_RESULT",
+    "recordedResultDate": "2026-10-21",
+    "currentCapturedUiBundle": "index-D18VC9ff.js",
+    "captureDate": "2026-10-29",
+    "sourceCaptureReceipt": "source-capture-receipt.json",
+    "request": "Dairy-Free,4→6servings",
+    "chicken": "1½→2¼lb",
+    "broiler": "Two foil-lined sheets, uncrowded; one at a time; transfer each batch to sauce. Full recipe specifies165F/74C.",
+    "providerCalls": 0,
+    "productionWrites": 0,
+    "freshInference": false
+  },
+  "audio": {
+    "source": "Original authored procedural sound, no third-party samples/music",
+    "rights": "Project-authored code/assets",
+    "subjectiveHearing": "unverified"
+  },
+  "costUsd": 0,
+  "newSubscriptions": 0,
+  "publicPosts": 0,
+  "allAssetHashes": [
+    {
+      "path": "assets/broil-line1.png",
+      "sha256": "f33383c94396c3e619f0b42009db6bf0fb8731fabde676224e323961c8aec36c",
+      "bytes": 4571
+    },
+    {
+      "path": "assets/broil-line2.png",
+      "sha256": "52378f98cf246e92c1ba27927683d1cba945990fdd299c3a5a2a51c975df9e66",
+      "bytes": 1888
+    },
+    {
+      "path": "assets/broiler-proof.png",
+      "sha256": "34c37efe2b2d322f943bc82c2a819252d55cd97f85ad19c0176a9d066884d739",
+      "bytes": 221111
+    },
+    {
+      "path": "assets/foil-plan.mp4",
+      "sha256": "2016b758cbedf3b8405d0bc1d1d51f01ed6309e97852eb00e8ea08b093e92581",
+      "bytes": 1511613
+    },
+    {
+      "path": "assets/foley.wav",
+      "sha256": "95587c7c889336f35ccef7985f30b95d8ff4e907d18f85f4dff9e728226b38e4",
+      "bytes": 3072078
+    },
+    {
+      "path": "assets/fonts/InstrumentSerif-Regular.ttf",
+      "sha256": "498efd461f6ddfcb7a111bf9a565709d2085d48201d501ead960d93e84ffbb88",
+      "bytes": 70012
+    },
+    {
+      "path": "assets/fonts/Inter-Regular.woff",
+      "sha256": "31656ddbb58d39790f910df827596106a5d91ce80dd4309a6aad91e08a90f9e4",
+      "bytes": 31196
+    },
+    {
+      "path": "assets/fonts/Inter-SemiBold.woff",
+      "sha256": "a96e5ee7ab248008e5e6cc92dd561eceb892d19a10a537aa1b2e64f979351add",
+      "bytes": 31780
+    },
+    {
+      "path": "assets/fonts/instrumentserif-OFL.txt",
+      "sha256": "b6b2292aa580937fb63796878d65a027a27f8c3db2d97601d0c34d9031f4ca17",
+      "bytes": 4404
+    },
+    {
+      "path": "assets/fonts/inter-OFL.txt",
+      "sha256": "5dd548d31a85f756e01d63e00d7faf1e324103ed3e9102fcbbabf2cc2db6dd39",
+      "bytes": 4376
+    },
+    {
+      "path": "assets/heat-context.mp4",
+      "sha256": "53e234cf5b142e3e83dad625c0df8311bcdb27350df3847dc805608fd59dec87",
+      "bytes": 14331738
+    },
+    {
+      "path": "assets/hero.jpg",
+      "sha256": "4c568912c6e9da036f6d05f2e8c444799d50e09c9c6b2049737ff9c12f28814e",
+      "bytes": 312217
+    },
+    {
+      "path": "assets/modal-action.mp4",
+      "sha256": "355006be3db3bd000d1a1e3e68dbd0a1c34ed6bec8644e417f1abf2f946e42b0",
+      "bytes": 164688
+    },
+    {
+      "path": "assets/modal-six.png",
+      "sha256": "ec2d7d778fec00b32490a8d73236717c1f792abdf2ffaa23defe3f478fefbda6",
+      "bytes": 222603
+    },
+    {
+      "path": "assets/real-result.json",
+      "sha256": "572f681c851d3b0777e0c4ca15c781a0c573bab7c026f5b683d9c7f1b72ff473",
+      "bytes": 11036
+    },
+    {
+      "path": "assets/ui-action.mp4",
+      "sha256": "27e528f522efca3c89adc1395fd6afb65d0c6bbf860b7070dce898addab1ffdb",
+      "bytes": 503960
+    }
+  ],
+  "uiExcerpt": {
+    "source": "assets/broiler-proof.png",
+    "method": "Two exact rectangular source-pixel crops, enlarged2x; line breaks excerpted for legibility, no words repainted.",
+    "crops": [
+      {
+        "path": "assets/broil-line1.png",
+        "rect": [
+          507,
+          541,
+          400,
+          58
+        ],
+        "words": "broil one sheet at"
+      },
+      {
+        "path": "assets/broil-line2.png",
+        "rect": [
+          0,
+          616,
+          147,
+          59
+        ],
+        "words": "a time"
+      }
+    ]
+  },
+  "uiInteraction": {
+    "path": "assets/modal-action.mp4",
+    "source": "assets/ui-action.mp4",
+    "rangeSeconds": [
+      0,
+      1.5
+    ],
+    "thenHold": "assets/modal-six.png",
+    "note": "Finaledit never includesresult/nutrition screen; sourcefullcapture preservedforprovenance."
+  }
+}

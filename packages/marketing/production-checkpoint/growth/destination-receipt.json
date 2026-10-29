@@ -1,0 +1,29 @@
+{
+  "checkedAt": "2026-10-29T20:34:41.742Z",
+  "results": [
+    {
+      "slug": "chicken-tikka-masala",
+      "status": 200,
+      "finalUrl": "https://recipefix.app/original-recipes/chicken-tikka-masala?rf_qa=1&utm_source=qa&utm_medium=social&utm_campaign=rf_first_fortnight&utm_content=destination_qa",
+      "recipeTitleVisible": true,
+      "makeItFitVisible": true,
+      "scope": "Read-only public page, QA parameters, no CTA submission/inference/customer write."
+    },
+    {
+      "slug": "roasted-butternut-squash-soup",
+      "status": 200,
+      "finalUrl": "https://recipefix.app/original-recipes/roasted-butternut-squash-soup?rf_qa=1&utm_source=qa&utm_medium=social&utm_campaign=rf_first_fortnight&utm_content=destination_qa",
+      "recipeTitleVisible": true,
+      "makeItFitVisible": true,
+      "scope": "Read-only public page, QA parameters, no CTA submission/inference/customer write."
+    },
+    {
+      "slug": "lemon-herb-roast-chicken",
+      "status": 200,
+      "finalUrl": "https://recipefix.app/original-recipes/lemon-herb-roast-chicken?rf_qa=1&utm_source=qa&utm_medium=social&utm_campaign=rf_first_fortnight&utm_content=destination_qa",
+      "recipeTitleVisible": true,
+      "makeItFitVisible": true,
+      "scope": "Read-only public page, QA parameters, no CTA submission/inference/customer write."
+    }
+  ]
+}

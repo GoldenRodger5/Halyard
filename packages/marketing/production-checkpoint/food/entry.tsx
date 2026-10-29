@@ -1,0 +1,7 @@
+import React,{useEffect,useState} from 'react';
+import {Composition,continueRender,delayRender,cancelRender,registerRoot,staticFile} from 'remotion';
+import{SaltCard,AllspiceCard,SaltX,AllspiceX}from'./Studio.js';
+const Fonts:React.FC<{children:React.ReactNode}>=({children})=>{const[h]=useState(()=>delayRender('Local font loading'));useEffect(()=>{const fs=[new FontFace('Inter',`url(${staticFile('fonts/Inter-Regular.woff')})`,{weight:'400'}),new FontFace('Inter',`url(${staticFile('fonts/Inter-SemiBold.woff')})`,{weight:'600'}),new FontFace('Instrument',`url(${staticFile('fonts/InstrumentSerif-Regular.ttf')})`)];Promise.all(fs.map(f=>f.load())).then(f=>{f.forEach(x=>document.fonts.add(x));continueRender(h)}).catch(cancelRender)},[h]);return <>{children}</>};
+const S:React.FC<{page:number}>=p=><Fonts><SaltCard {...p}/></Fonts>;const A:React.FC<{page:number}>=p=><Fonts><AllspiceCard {...p}/></Fonts>;const SX=()=> <Fonts><SaltX/></Fonts>;const AX=()=> <Fonts><AllspiceX/></Fonts>;
+const Root=()=> <>{[1,2,3].map(page=><Composition key={'s'+page} id={'Salt'+page} component={S} defaultProps={{page}} width={1080} height={1350} fps={30} durationInFrames={1}/>)}{[1,2].map(page=><Composition key={'a'+page} id={'Allspice'+page} component={A} defaultProps={{page}} width={1080} height={1350} fps={30} durationInFrames={1}/>)}<Composition id="SaltX" component={SX} width={1200} height={675} fps={30} durationInFrames={1}/><Composition id="AllspiceX" component={AX} width={1200} height={675} fps={30} durationInFrames={1}/></>;
+registerRoot(Root);

@@ -1,0 +1,28 @@
+[
+  {
+    "muted": true,
+    "ended": true,
+    "duration": 16.042667,
+    "currentTime": 16.042667,
+    "played": [
+      [
+        0,
+        16.042667
+      ]
+    ],
+    "perception": "transport+visual-frame review only; no direct auditory perception"
+  },
+  {
+    "muted": false,
+    "ended": true,
+    "duration": 16.042667,
+    "currentTime": 16.042667,
+    "played": [
+      [
+        0,
+        16.042667
+      ]
+    ],
+    "perception": "transport+visual-frame review only; no direct auditory perception"
+  }
+]

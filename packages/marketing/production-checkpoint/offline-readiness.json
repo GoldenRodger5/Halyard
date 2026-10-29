@@ -1,0 +1,158 @@
+{
+  "checkedAt": "2026-10-29T20:45:07.392Z",
+  "streams": [
+    "video",
+    "editorial",
+    "food"
+  ],
+  "parents": 4,
+  "variants": 11,
+  "readiness": [
+    {
+      "id": "rf-more-dinner-tiktok-v4",
+      "fingerprint": "04a8725c0d8bd0e149e5dd51843fdf56ba61ceac860be7b802e2fd877e4a147c",
+      "ready": false,
+      "reasons": [
+        "a concrete schedule time is missing",
+        "RecipeFix-owned account unverified",
+        "founder creative verdict missing",
+        "independent media/rights review incomplete",
+        "exact founder approval missing or stale",
+        "provider capability/account not proven"
+      ],
+      "delivery": "unknown"
+    },
+    {
+      "id": "rf-more-dinner-instagram-v4",
+      "fingerprint": "cf675efa65daa428d8cf972750f0f7e82107fc2c10898156c0e9a99d24b6dd3c",
+      "ready": false,
+      "reasons": [
+        "a concrete schedule time is missing",
+        "RecipeFix-owned account unverified",
+        "founder creative verdict missing",
+        "independent media/rights review incomplete",
+        "exact founder approval missing or stale",
+        "provider capability/account not proven"
+      ],
+      "delivery": "unknown"
+    },
+    {
+      "id": "rf-more-dinner-youtube-v4",
+      "fingerprint": "2563110162274f57c3b5e3cfe5222d2ba8faa2235122ed48ca74bf9b0ed0c071",
+      "ready": false,
+      "reasons": [
+        "a concrete schedule time is missing",
+        "RecipeFix-owned account unverified",
+        "founder creative verdict missing",
+        "independent media/rights review incomplete",
+        "exact founder approval missing or stale",
+        "provider capability/account not proven"
+      ],
+      "delivery": "unknown"
+    },
+    {
+      "id": "rf-more-dinner-ig-editorial",
+      "fingerprint": "c1a033497e9034bfab3612ab405a3752166e9f4b9f639a9756342fc77fd365b1",
+      "ready": false,
+      "reasons": [
+        "a concrete schedule time is missing",
+        "RecipeFix-owned account unverified",
+        "founder creative verdict missing",
+        "exact founder approval missing or stale",
+        "provider capability/account not proven"
+      ],
+      "delivery": "unknown"
+    },
+    {
+      "id": "rf-more-dinner-x-editorial",
+      "fingerprint": "762e69fba9afa77c8d7852fa13a162c77ecf97278d669ae7800bf1d644ea8419",
+      "ready": false,
+      "reasons": [
+        "a concrete schedule time is missing",
+        "RecipeFix-owned account unverified",
+        "founder creative verdict missing",
+        "exact founder approval missing or stale",
+        "provider capability/account not proven"
+      ],
+      "delivery": "unknown"
+    },
+    {
+      "id": "rf-autumn-originals-ig-editorial",
+      "fingerprint": "554dc4915fe56d63cf512c93e75e2748e12141c1309dcff587fb3dfad574dd75",
+      "ready": false,
+      "reasons": [
+        "a concrete schedule time is missing",
+        "RecipeFix-owned account unverified",
+        "founder creative verdict missing",
+        "exact founder approval missing or stale",
+        "provider capability/account not proven"
+      ],
+      "delivery": "unknown"
+    },
+    {
+      "id": "rf-autumn-originals-x-editorial",
+      "fingerprint": "ce48b7d9da152283394bbc5d5814fcf4d810b8f46f0a16a45673b65b97fd4b1f",
+      "ready": false,
+      "reasons": [
+        "a concrete schedule time is missing",
+        "RecipeFix-owned account unverified",
+        "founder creative verdict missing",
+        "exact founder approval missing or stale",
+        "provider capability/account not proven"
+      ],
+      "delivery": "unknown"
+    },
+    {
+      "id": "rf-salt-volume-ig-carousel",
+      "fingerprint": "5abc73e1279a5f1a66c3ac05f8d805ef5d8b3c6df1a47b18047e8620e55801d1",
+      "ready": false,
+      "reasons": [
+        "a concrete schedule time is missing",
+        "RecipeFix-owned account unverified",
+        "founder creative verdict missing",
+        "exact founder approval missing or stale",
+        "provider capability/account not proven"
+      ],
+      "delivery": "unknown"
+    },
+    {
+      "id": "rf-salt-volume-x-image",
+      "fingerprint": "5586f620a662af28577c43a2120aa969860515a32c36e21b4f7093e47be6a1c1",
+      "ready": false,
+      "reasons": [
+        "a concrete schedule time is missing",
+        "RecipeFix-owned account unverified",
+        "founder creative verdict missing",
+        "exact founder approval missing or stale",
+        "provider capability/account not proven"
+      ],
+      "delivery": "unknown"
+    },
+    {
+      "id": "rf-allspice-quiz-ig-carousel",
+      "fingerprint": "f4ebf4ff7bd62aaf89e79c44ca688f58cd3302b583f17713145d595d792b91e4",
+      "ready": false,
+      "reasons": [
+        "a concrete schedule time is missing",
+        "RecipeFix-owned account unverified",
+        "founder creative verdict missing",
+        "exact founder approval missing or stale",
+        "provider capability/account not proven"
+      ],
+      "delivery": "unknown"
+    },
+    {
+      "id": "rf-allspice-quiz-x-image",
+      "fingerprint": "0455d35b3d746d4607fb8f9808b29363d357346ad2e85e6569c185e58889c56e",
+      "ready": false,
+      "reasons": [
+        "a concrete schedule time is missing",
+        "RecipeFix-owned account unverified",
+        "founder creative verdict missing",
+        "exact founder approval missing or stale",
+        "provider capability/account not proven"
+      ],
+      "delivery": "unknown"
+    }
+  ]
+}

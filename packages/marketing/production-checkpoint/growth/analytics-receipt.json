@@ -1,0 +1,34 @@
+{
+  "checkedAt": "2026-10-29T20:32:30.649Z",
+  "method": "PostHog connected tool query-trends; read-only aggregate",
+  "projectId": 320087,
+  "projectScope": "Shared RecipeFix and KinoLog; pinned RecipeFix public configuration matched privately",
+  "dateRange": {
+    "from": "2026-10-22",
+    "to": "2026-10-29",
+    "timezone": "America/New_York",
+    "lastDayPartial": true
+  },
+  "filter": {
+    "type": "event",
+    "key": "product",
+    "operator": "exact",
+    "value": "recipefix"
+  },
+  "result": {
+    "recipe_recalibrated": 9,
+    "save_completed": 0,
+    "cook_mode_started": 0,
+    "subscribe_success_page_viewed": 0
+  },
+  "limits": [
+    "Event counts, not distinct people",
+    "Founder/QA activity not reliably excluded",
+    "No first-adaptation, repeat-use cohort or payment verification",
+    "cook_mode_started_from_adapt not queried",
+    "first_value_success source uses first-party RPC, not established as PostHog event"
+  ],
+  "rawAggregate": [
+    "Date|recipe_recalibrated|save_completed|cook_mode_started|subscribe_success_page_viewed\n2026-10-22|1|0|0|0\n2026-10-23|0|0|0|0\n2026-10-24|0|0|0|0\n2026-10-25|1|0|0|0\n2026-10-26|1|0|0|0\n2026-10-27|0|0|0|0\n2026-10-28|3|0|0|0\n2026-10-29 (partial)|3|0|0|0\n\nNote: rows marked \"(partial)\" cover an interval that is still in progress as of the query time, so their values are incomplete. Timezone: America/New_York."
+  ]
+}

@@ -1,0 +1,60 @@
+{
+  "checkedAt": "2026-10-29T20:39:24.792Z",
+  "parents": 3,
+  "variants": 7,
+  "viewports": [
+    360,
+    390
+  ],
+  "failures": [],
+  "playback": [
+    {
+      "muted": true,
+      "duration": 16.042667,
+      "ended": true,
+      "played": [
+        [
+          0,
+          16.042667
+        ]
+      ],
+      "quality": {
+        "total": 480,
+        "dropped": 0
+      },
+      "perception": "Continuous playback and sampled exported-frame inspection; audio quality not directly heard."
+    },
+    {
+      "muted": false,
+      "duration": 16.042667,
+      "ended": true,
+      "played": [
+        [
+          0,
+          16.042667
+        ]
+      ],
+      "quality": {
+        "total": 960,
+        "dropped": 0
+      },
+      "perception": "Continuous playback and sampled exported-frame inspection; audio quality not directly heard."
+    }
+  ],
+  "screenshots": [
+    "/Volumes/T9/Developer/Builds/recipefix-social-team-20261029/integration/evidence/rf-more-dinner-360.png",
+    "/Volumes/T9/Developer/Builds/recipefix-social-team-20261029/integration/evidence/rf-salt-volume-360.png",
+    "/Volumes/T9/Developer/Builds/recipefix-social-team-20261029/integration/evidence/rf-allspice-quiz-360.png",
+    "/Volumes/T9/Developer/Builds/recipefix-social-team-20261029/integration/evidence/rf-more-dinner-390.png",
+    "/Volumes/T9/Developer/Builds/recipefix-social-team-20261029/integration/evidence/rf-salt-volume-390.png",
+    "/Volumes/T9/Developer/Builds/recipefix-social-team-20261029/integration/evidence/rf-allspice-quiz-390.png",
+    "/Volumes/T9/Developer/Builds/recipefix-social-team-20261029/integration/evidence/film-0.5-390.png",
+    "/Volumes/T9/Developer/Builds/recipefix-social-team-20261029/integration/evidence/film-2.5-390.png",
+    "/Volumes/T9/Developer/Builds/recipefix-social-team-20261029/integration/evidence/film-4.5-390.png",
+    "/Volumes/T9/Developer/Builds/recipefix-social-team-20261029/integration/evidence/film-6.5-390.png",
+    "/Volumes/T9/Developer/Builds/recipefix-social-team-20261029/integration/evidence/film-8.5-390.png",
+    "/Volumes/T9/Developer/Builds/recipefix-social-team-20261029/integration/evidence/film-10.5-390.png",
+    "/Volumes/T9/Developer/Builds/recipefix-social-team-20261029/integration/evidence/film-12.5-390.png",
+    "/Volumes/T9/Developer/Builds/recipefix-social-team-20261029/integration/evidence/film-14.5-390.png"
+  ]
+}
