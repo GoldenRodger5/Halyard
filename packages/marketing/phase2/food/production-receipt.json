@@ -1,0 +1,20 @@
+{
+  "sourceBranch": "feat/recipefix-phase2-food-20261029",
+  "sourceCommit": "c14f5f7dc0eb9e3d36fbb04c71fc40d339b41783",
+  "baseCommit": "dec955885cf1094ea2e747233e72d075dd32a89e",
+  "mediaPath": "packages/marketing/phase2/food/exports/pineapple.mp4",
+  "mediaSha256": "48796de42c68745d01da41bed061247a2428e10cb4e998ea5e145b84cc0e182a",
+  "posterSha256": "3facbeb592e2927d3e71508da972bd9bd6a78a56ae2cf1d378f26a80e21cf6fe",
+  "counts": {
+    "newParents": 1,
+    "films": 1,
+    "variants": 3,
+    "selectedApproaches": 1,
+    "testedApproaches": 2
+  },
+  "providerCalls": 0,
+  "providerSpendUSD": 0,
+  "founderDecision": "unreviewed",
+  "publicationAuthorized": false,
+  "meaning": "Source/media commit pinned before this metadata receipt. No founder publication approval or audience outcome is implied."
+}
