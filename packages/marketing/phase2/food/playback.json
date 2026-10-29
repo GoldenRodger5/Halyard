@@ -1,0 +1,24 @@
+{
+  "duration": 11.562667,
+  "currentTime": 11.562667,
+  "ended": true,
+  "muted": true,
+  "videoWidth": 1080,
+  "videoHeight": 1920,
+  "decodedFrames": 345,
+  "droppedFrames": 0,
+  "callbacks": 345,
+  "firstMediaTime": 0,
+  "lastMediaTime": 11.466667,
+  "elapsedSeconds": 12.09129999999702,
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "errors": [],
+  "sound": "silent_by_design",
+  "subjectiveAudioJudgment": "not_applicable",
+  "reviewScope": "Actual complete muted browser playback; transport/frames and screenshot evidence, not founder approval.",
+  "mediaSha256": "f94670effb8fedb0ea1530072c4a7129138dbd17be27973e033a5315d2073436",
+  "creativeStatus": "Founder-rejected baseline"
+}

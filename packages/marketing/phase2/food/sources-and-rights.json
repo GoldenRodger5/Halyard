@@ -1,0 +1,407 @@
+{
+  "checkedAt": "2026-10-29",
+  "sources": [
+    {
+      "id": "uga-gelatin",
+      "url": "https://extension.uga.edu/content/dam/extension/programs-and-services/science-behind-our-food/documents/tropicalfruitgelatinlab.pdf",
+      "publisher": "University of Georgia Extension",
+      "title": "Tropical Fruit Gelatin Lab",
+      "author": "Eva McLanahan",
+      "readEvidence": "Primary PDF pages1 and4 read; explains fresh/frozen pineapple gelatin warning, protein-breaking enzymes, and heat denaturation in canning.",
+      "supports": [
+        "Fresh pineapple can prevent gelatin from setting.",
+        "Pineapple contains bromelain (the PDF spells it bromelin).",
+        "The heat of canning inactivates the enzymes."
+      ],
+      "limits": [
+        "We did not perform the experiment or reproduce the source\u2019s test-tube photographs.",
+        "The drawn network/scissors/pool is an explanatory metaphor; it is not actual molecular geometry or a physical simulation."
+      ]
+    },
+    {
+      "id": "academy-pineapple",
+      "url": "https://www.eatright.org/food/food-groups/fruits/all-about-pineapple",
+      "publisher": "Academy of Nutrition and Dietetics",
+      "title": "All About Pineapple",
+      "authors": [
+        "Bethany Oxender, MS, RDN",
+        "Kerry Neville, MS, RDN"
+      ],
+      "reviewedByPublisher": "2026-07-29",
+      "readEvidence": "Preparing/Using section read directly. It explains the effect of bromelain on gelatin and the effect of canning heat.",
+      "supports": [
+        "Bromelain in fresh pineapple breaks down gelatin proteins.",
+        "Canned pineapple is the practical choice for gelatin recipes."
+      ],
+      "limits": [
+        "No medicinal, nutrition or human-health claims used.",
+        "Not a guarantee for every dessert, gelling agent, fruit preparation or recipe."
+      ]
+    }
+  ],
+  "artwork": {
+    "origin": "All visible final art is original procedural 3D or vector graphics created for this task. No publisher photographs/footage, downloaded models or generated-provider media.",
+    "gelatin": "Original mesh, scalloped form, studio lights/materials, lilac plate and 60-frame procedural deformation/camera move. Stylized appearance is explicitly disclosed. No actual food cooked or measured.",
+    "network": "Original vector protein-support metaphor with yellow scissors, visible severing and collapse. The pool illustrates loss of structure, not a filmed result or claim that an already-set dessert necessarily melts.",
+    "icons": "Original unbranded fresh-pineapple and canned-pineapple explanatory symbols.",
+    "fonts": "Inter Regular/Semibold under SIL Open Font License 1.1; font files and full license included. Instrument Serif files are prototype support only, not used in final frames."
+  },
+  "audio": {
+    "intent": "silent_by_design",
+    "externalAudio": false,
+    "narration": false,
+    "music": false,
+    "encodedTrack": "Remotion emits an AAC silence track. Measured maximum/mean -91dB; this is not music/voice.",
+    "hearingClaim": "No subjective voice/music quality judgment made."
+  },
+  "assetFiles": [
+    {
+      "path": "assets/fonts/InstrumentSerif-Regular.ttf",
+      "sha256": "498efd461f6ddfcb7a111bf9a565709d2085d48201d501ead960d93e84ffbb88",
+      "bytes": 70012
+    },
+    {
+      "path": "assets/fonts/Inter-Regular.woff",
+      "sha256": "31656ddbb58d39790f910df827596106a5d91ce80dd4309a6aad91e08a90f9e4",
+      "bytes": 31196
+    },
+    {
+      "path": "assets/fonts/Inter-SemiBold.woff",
+      "sha256": "a96e5ee7ab248008e5e6cc92dd561eceb892d19a10a537aa1b2e64f979351add",
+      "bytes": 31780
+    },
+    {
+      "path": "assets/fonts/instrumentserif-OFL.txt",
+      "sha256": "b6b2292aa580937fb63796878d65a027a27f8c3db2d97601d0c34d9031f4ca17",
+      "bytes": 4404
+    },
+    {
+      "path": "assets/fonts/inter-OFL.txt",
+      "sha256": "5dd548d31a85f756e01d63e00d7faf1e324103ed3e9102fcbbabf2cc2db6dd39",
+      "bytes": 4376
+    },
+    {
+      "path": "assets/jelly-studio.png",
+      "sha256": "2bbedc3de6d04203c1ea77d57ff17e26567c65031f71d14ba775c1aeb15f2a1a",
+      "bytes": 1298113
+    },
+    {
+      "path": "assets/wobble/000.png",
+      "sha256": "97ab26717ec3c60850d6aaceb893c795c51d066bb473448378c5423ee8dcd8fc",
+      "bytes": 269826
+    },
+    {
+      "path": "assets/wobble/001.png",
+      "sha256": "c20dd18e69e2bf2d2cca23f3ca050e3d76980ccc5e67878a8e509cc2271a509c",
+      "bytes": 268847
+    },
+    {
+      "path": "assets/wobble/002.png",
+      "sha256": "8c54a99d1fc480156e18e93e7aba4bb1d297fbb10f8fd7ebdd29799fc408e493",
+      "bytes": 268503
+    },
+    {
+      "path": "assets/wobble/003.png",
+      "sha256": "f68d6ccd0578e3ec3edb9b295c2d2f3c087830e827f176d0476d763985159913",
+      "bytes": 266228
+    },
+    {
+      "path": "assets/wobble/004.png",
+      "sha256": "2a829f4832bc2a54a8663a5afc41c44dfa4b1f25d588c7b9a49c5e4d535681d7",
+      "bytes": 263782
+    },
+    {
+      "path": "assets/wobble/005.png",
+      "sha256": "c957bed6b731da88d3602ae9a427e66d9166a516e682123d6d74f0117e4d394c",
+      "bytes": 266379
+    },
+    {
+      "path": "assets/wobble/006.png",
+      "sha256": "8178f4af76ac8b31a13df77449b5d02545f17e15bae253ad8f5711bba269f527",
+      "bytes": 264617
+    },
+    {
+      "path": "assets/wobble/007.png",
+      "sha256": "ae3ef64569d332c4f7d49c36c5a0b4bfc64d27ab1dcda0424e2c9250689bcce6",
+      "bytes": 263535
+    },
+    {
+      "path": "assets/wobble/008.png",
+      "sha256": "94c290676c3dbcebc3e80c282951d4358576c840dd6c5ec11b6c0a39b98ffc63",
+      "bytes": 262451
+    },
+    {
+      "path": "assets/wobble/009.png",
+      "sha256": "d0a412d95fbe21fef6043ad7cd789b7f483cb603ad7e01ae0685e674e45b2d21",
+      "bytes": 261500
+    },
+    {
+      "path": "assets/wobble/010.png",
+      "sha256": "1cb925894baa972a2101942872b811588d42be0e77e42abfee5cf73515e7bb16",
+      "bytes": 262970
+    },
+    {
+      "path": "assets/wobble/011.png",
+      "sha256": "50bb9a28ce8fc9d68a7454e68635b8059f608541cebdeb84494a5db6a0f426b6",
+      "bytes": 263363
+    },
+    {
+      "path": "assets/wobble/012.png",
+      "sha256": "c3180d7adb27afa84d7417b18700252047fecca2b0eb618bf72b665588111b47",
+      "bytes": 264568
+    },
+    {
+      "path": "assets/wobble/013.png",
+      "sha256": "e9c8f1f052a14ddfd6bc32c0d0a9fb4a204f545e1de3a0f66266acc9da503c55",
+      "bytes": 266044
+    },
+    {
+      "path": "assets/wobble/014.png",
+      "sha256": "48ccb638dd3959cfd7011b3dc7c781e133e2b108dc5d67ea43ddb951e0e2c6cf",
+      "bytes": 265148
+    },
+    {
+      "path": "assets/wobble/015.png",
+      "sha256": "164a9211f7c1b8d8471f1b52d0537adbce05e1abe110a91557748d5c17c49cb9",
+      "bytes": 265808
+    },
+    {
+      "path": "assets/wobble/016.png",
+      "sha256": "3a9ddaa176b5d920da91f8a4c25662f103d437f371abdfc88ad25ca5c5a71d4a",
+      "bytes": 268547
+    },
+    {
+      "path": "assets/wobble/017.png",
+      "sha256": "3f2a2a041ef2b663e04fa34e80f0f39a25618eb75e2641a0dbfe8601ee7813c6",
+      "bytes": 268846
+    },
+    {
+      "path": "assets/wobble/018.png",
+      "sha256": "704c62498b2313bbfce9133358e4a5faf97bb2e2533488609eea1b76a3a049b9",
+      "bytes": 268286
+    },
+    {
+      "path": "assets/wobble/019.png",
+      "sha256": "81bbd6601aa9ab4392e8c254b0d5fa439480cb0dbd04d162ec4ee47b22c66211",
+      "bytes": 268623
+    },
+    {
+      "path": "assets/wobble/020.png",
+      "sha256": "836a5f26acc6fd0229209b44a435c490e1276d9fdc59cf001df563349ff620ec",
+      "bytes": 267832
+    },
+    {
+      "path": "assets/wobble/021.png",
+      "sha256": "45eb235905ee23efea083458355ebed39266596d60acbc2e708a99275db8ee96",
+      "bytes": 264544
+    },
+    {
+      "path": "assets/wobble/022.png",
+      "sha256": "dea9000bc350760e0d55649016aaec7a1c8348d7caef684172cd8dd0c1564735",
+      "bytes": 264420
+    },
+    {
+      "path": "assets/wobble/023.png",
+      "sha256": "52e549cae96d78305e2bdbc1aa027a3caff4aef7ad8b8d35693086093ccd5c92",
+      "bytes": 266410
+    },
+    {
+      "path": "assets/wobble/024.png",
+      "sha256": "8cd02fd3dc8aba1b80edb211463c6d153eaad76561251ce5995ebaa56bd9020a",
+      "bytes": 264710
+    },
+    {
+      "path": "assets/wobble/025.png",
+      "sha256": "e9f6a81320b5e6d8a959a2475470fea99ffcf4003b25848e824ba859a92d21d1",
+      "bytes": 264947
+    },
+    {
+      "path": "assets/wobble/026.png",
+      "sha256": "c1aeb3fcd13839419ee3a38c890b64c260e53acbc5b38946a1404987294e84d9",
+      "bytes": 263691
+    },
+    {
+      "path": "assets/wobble/027.png",
+      "sha256": "072ba5ea05808ea2d735352fc7e8dab7d4cd70dc46a7cb3d9ad94bb58898c4b3",
+      "bytes": 264305
+    },
+    {
+      "path": "assets/wobble/028.png",
+      "sha256": "9c4aaf8a43056f781123d97d27aebadc78808f4f0923762f818428b5253bfc6c",
+      "bytes": 263855
+    },
+    {
+      "path": "assets/wobble/029.png",
+      "sha256": "8c5357420ee36d548a84a43cfee31bee560cd7c452944daba3a1f797b01aa5f2",
+      "bytes": 265281
+    },
+    {
+      "path": "assets/wobble/030.png",
+      "sha256": "a614555bfd6014730d72af1a0a7a7be31dd2c0defd226da0788933919e063c6a",
+      "bytes": 265457
+    },
+    {
+      "path": "assets/wobble/031.png",
+      "sha256": "77fa00853639fd5ae99cb493e0a64c38726ea866e41327bf9d10c57a48a2658a",
+      "bytes": 265917
+    },
+    {
+      "path": "assets/wobble/032.png",
+      "sha256": "52a2c0d94d7fe85e9ae588c189e27ba101aad637b590b8e97987eea91a6d331b",
+      "bytes": 267400
+    },
+    {
+      "path": "assets/wobble/033.png",
+      "sha256": "d2784a8fb7ad9147a1fd816f4b01c031185b54438d9e2f8b8b6e6698a48a9d3e",
+      "bytes": 264530
+    },
+    {
+      "path": "assets/wobble/034.png",
+      "sha256": "a10e693862806b8c78243b5cc26cbe8087884df7d2f17aebbaf4f6c5810cdb22",
+      "bytes": 268417
+    },
+    {
+      "path": "assets/wobble/035.png",
+      "sha256": "95fddd41a15c1ba07c677115973b1b2ab201b4e54cd46f758c519178ef9af971",
+      "bytes": 269967
+    },
+    {
+      "path": "assets/wobble/036.png",
+      "sha256": "0ae3f257a0678707570068bef8dea138f8ade367fb3b5633d2cb27253eb171a9",
+      "bytes": 269166
+    },
+    {
+      "path": "assets/wobble/037.png",
+      "sha256": "3abd8472999887212659b91e0cd1f6ba5e1401a9486e4f9530a9bff31963a0c5",
+      "bytes": 269443
+    },
+    {
+      "path": "assets/wobble/038.png",
+      "sha256": "694121b21d4fa71e7de3967778e46597774c6131969b7c18b82d3f1238a45f53",
+      "bytes": 269561
+    },
+    {
+      "path": "assets/wobble/039.png",
+      "sha256": "b75d0fd47b474c3701aef532e843c90fe47fd919558f23a85cf84e6df8be255b",
+      "bytes": 267197
+    },
+    {
+      "path": "assets/wobble/040.png",
+      "sha256": "82c545bdfe2365bf142728bbfb7765c004ed1ef0147a125f45c24dff7d98ed98",
+      "bytes": 265850
+    },
+    {
+      "path": "assets/wobble/041.png",
+      "sha256": "8095100af97a5e3cff54daa0ad2a6c07063482a2a83f03437e2927f8707229b7",
+      "bytes": 267531
+    },
+    {
+      "path": "assets/wobble/042.png",
+      "sha256": "2c3109f26e81202c1058665fdc2a9c68eca5c82c27ac69ae59a8e0f59472aba9",
+      "bytes": 267144
+    },
+    {
+      "path": "assets/wobble/043.png",
+      "sha256": "2a1bbb8f3fa596fe432f9d8c23b965d73e8177f55853d70e14a12f2c3a2bbfd7",
+      "bytes": 265745
+    },
+    {
+      "path": "assets/wobble/044.png",
+      "sha256": "d09e78937641c1a461fb2453656afe891368b5188787db9903162e02800e66ce",
+      "bytes": 264097
+    },
+    {
+      "path": "assets/wobble/045.png",
+      "sha256": "5ab0cabbf16fe66f40285a83ee309c6bdd692c263798f6f4593ce87399f06569",
+      "bytes": 263996
+    },
+    {
+      "path": "assets/wobble/046.png",
+      "sha256": "a75434ebc32b7e4ec69ea1ca76c9dc2d54bd2f8f1b9828a968b3ff5490c51baa",
+      "bytes": 262576
+    },
+    {
+      "path": "assets/wobble/047.png",
+      "sha256": "b0d347c0c6fb2bcca26ec65c96d0ead53fe3f42d01a34fe3f6591b4fda94373c",
+      "bytes": 264247
+    },
+    {
+      "path": "assets/wobble/048.png",
+      "sha256": "cfca1126d488ed23bcf729d7e21cc1d35e23a449b366e010394572518f8df537",
+      "bytes": 264289
+    },
+    {
+      "path": "assets/wobble/049.png",
+      "sha256": "58a9421c2411a8ba9bdeb8bf93ac53e8170044927497dbc61cb9fb344d9a9cb2",
+      "bytes": 265460
+    },
+    {
+      "path": "assets/wobble/050.png",
+      "sha256": "4acb71324aee39f7064ed6848ad9bc67c45ad00d321c37395f70a5eead7fc5c7",
+      "bytes": 267627
+    },
+    {
+      "path": "assets/wobble/051.png",
+      "sha256": "e0ade9c5d26465552a40cfd592dec0c200c8e4ff3c8d1f000d3e069b8efa9cc8",
+      "bytes": 265526
+    },
+    {
+      "path": "assets/wobble/052.png",
+      "sha256": "e908c52d863d25789a91187522937bb7a307c041d3782b52c6edfa3b4c2321b4",
+      "bytes": 270565
+    },
+    {
+      "path": "assets/wobble/053.png",
+      "sha256": "7639c1ebc496a6ef9b05e4ed864f9b096d8cfb3121798d4351a087185bf146ea",
+      "bytes": 270088
+    },
+    {
+      "path": "assets/wobble/054.png",
+      "sha256": "2d8114641ad615b2484d7238a019e4662a8adedf047da7a2f1a916fa4f2bf8c6",
+      "bytes": 270882
+    },
+    {
+      "path": "assets/wobble/055.png",
+      "sha256": "0c131de95ee68009bb4d3bfe5d4dc909e45889bf07d26f48f09f90329fb22f2c",
+      "bytes": 270841
+    },
+    {
+      "path": "assets/wobble/056.png",
+      "sha256": "191fb821dc92dc292fe4b63e03b9f2df5dfb980652f33d48842c1d628b4f89ff",
+      "bytes": 270303
+    },
+    {
+      "path": "assets/wobble/057.png",
+      "sha256": "db705cf8a8fad180f6023a28d301ac4f4701fd57255213bcda2329d0e20b53d1",
+      "bytes": 268747
+    },
+    {
+      "path": "assets/wobble/058.png",
+      "sha256": "28a36eb7c71e8f97505611593bb0dbcbf153cb3eb1f9a1a545f90a4c9cd2b866",
+      "bytes": 265372
+    },
+    {
+      "path": "assets/wobble/059.png",
+      "sha256": "c5b10c3dbd9953636c128076db83edd454c5aef63029f2d8146a9efe8c6f8fb2",
+      "bytes": 266944
+    }
+  ],
+  "cost": {
+    "providerCalls": 0,
+    "providerSpendUSD": 0,
+    "newDependencies": 0,
+    "newSubscriptions": 0,
+    "localComputeAndCodingAgentUsage": "Not priced by this receipt."
+  },
+  "storage": {
+    "volume": "/Volumes/T9",
+    "encryptedUUID": "B1ADFFB0-BCCF-441A-8086-365120C88DB7",
+    "bulkyOutputs": "/Volumes/T9/Developer/Builds/recipefix-phase2-20261029/food"
+  },
+  "creativeDecision": {
+    "status": "STOP / founder-rejected baseline",
+    "sourceCommit": "954c546",
+    "sourcePath": "packages/marketing/strategy/2026-10-29-CINEMATIC-VISUAL-QUALITY-RESET.md",
+    "reason": "Founder rejects the exact pineapple film as flagship content. Palette/footer/encoding improvements do not reverse that decision. Preserve as R&D evidence, not qualified publishing inventory."
+  }
+}

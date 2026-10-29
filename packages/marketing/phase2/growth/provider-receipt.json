@@ -1,0 +1,56 @@
+{
+  "date": "2026-10-29",
+  "voice": {
+    "generation": "held by founder until visually locked clips are selected to post",
+    "generationCalls": 0,
+    "commercialEntitlementReadOnly": "existing ElevenLabs Starter active",
+    "includedCreditsAvailableAtRead": 32113,
+    "overageExtensionEnabled": false,
+    "newSubscriptionOrTopUp": false
+  },
+  "motion": {
+    "founderAuthorization": "one 5-second Kling Pro scene, cap9 existing credits, no trial/top-up/subscription/retry",
+    "model": "kling3_0",
+    "parameters": {
+      "duration": 5,
+      "mode": "pro",
+      "sound": "off",
+      "aspect_ratio": "9:16",
+      "count": 1,
+      "use_unlim": false
+    },
+    "quotedCredits": 8.75,
+    "submissionAttempts": 1,
+    "jobId": null,
+    "outcome": "Error starting generation: Requires plus plan or higher.",
+    "availableCreditsBefore": 10,
+    "availableCreditsAfter": 10,
+    "creditsConsumed": 0,
+    "newCashChargeUSD": 0,
+    "trialActivated": false,
+    "retryOrProviderSubstitution": false
+  },
+  "externalSocialAccountsChanged": false,
+  "postsOrSchedulesCreated": 0,
+  "customerRecordsReadOrWritten": 0,
+  "limitations": "Provider estimates are not a verified invoice. Existing subscriptions, coding-agent usage and local compute are outside incremental media receipts. Higgsfield trial/upgrade was not activated.",
+  "nativeImageTool": {
+    "generationCalls": 2,
+    "route": "built-in image_gen, not a paid API or new subscription",
+    "assets": [
+      "cinema/assets/fresh-pineapple-style.png",
+      "cinema/assets/canned-pineapple-style.png"
+    ],
+    "cashMetering": "No external API charge initiated; native tool usage is separate from the Higgsfield/ElevenLabs receipt."
+  },
+  "googleApiPilot": {
+    "founderApproval": "Up to $2 total, two images and one six-second video; expressly resumed after founder refill",
+    "successfulImageGenerations": 2,
+    "successfulVideoGenerations": 1,
+    "initialDeclinedImageAttempts": 1,
+    "automaticRetries": 0,
+    "estimateFile": "../cinema/usage-estimate.json",
+    "voices": "held",
+    "newSubscriptionOrTopUpByAgent": false
+  }
+}

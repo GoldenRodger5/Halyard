@@ -1,0 +1,63 @@
+{
+  "reviewNote": "KEEP as a founder-review product candidate: independent full-edit review found stronger food, a readable real six-serving endpoint and a clear method/CTA connection. The final UI crop cleanly isolates settings. Self-propelling tray remains an AI-illustration artifact; no cooked result or viral claim. Silent; voice held.",
+  "assets": [
+    {
+      "path": "packages/marketing/phase2/cinema/broiler-product-v3.mp4",
+      "kind": "video",
+      "sha256": "42439fcd73a3f614622de1e7cc929d1ca06cd340cd71189bdafd4d8cf4af41a7",
+      "width": 1080,
+      "height": 1920,
+      "origin": "Approved Google API pilot + original edit and first-party historical RecipeFix pixels",
+      "rights": "Generated Nano Banana2.1/Omni artwork, no external input photograph; first-party RecipeFix UI and pinned historical response; Inter SIL OFL. Model terms apply. No actual cooked/tasted result.",
+      "synthetic": true,
+      "altText": "Generated tray slides into one oven while another waits; genuine recorded RecipeFix six-serving dairy-free settings and method excerpt follow.",
+      "durationSeconds": 12
+    },
+    {
+      "path": "packages/marketing/phase2/cinema/assets/broiler-hero.mp4",
+      "kind": "video",
+      "sha256": "84e86a1b9131d8164fad20caee4cf79645574ae29bb65e03705627edb8ef5e90",
+      "width": 720,
+      "height": 1280,
+      "origin": "Approved Google API pilot + original edit and first-party historical RecipeFix pixels",
+      "rights": "Generated Nano Banana2.1/Omni artwork, no external input photograph; first-party RecipeFix UI and pinned historical response; Inter SIL OFL. Model terms apply. No actual cooked/tasted result.",
+      "synthetic": true,
+      "altText": "Original six-second generated planning shot, not a physically cooked result.",
+      "durationSeconds": 6
+    },
+    {
+      "path": "packages/marketing/phase2/cinema/assets/broiler-frame-1.jpg",
+      "kind": "image",
+      "sha256": "4bd686e2689d1c17ef128965fe7ab4a9c9a3fbd5f9b01839aee40475841b4bbd",
+      "width": 768,
+      "height": 1376,
+      "origin": "Approved Google API pilot + original edit and first-party historical RecipeFix pixels",
+      "rights": "Generated Nano Banana2.1/Omni artwork, no external input photograph; first-party RecipeFix UI and pinned historical response; Inter SIL OFL. Model terms apply. No actual cooked/tasted result.",
+      "synthetic": true,
+      "altText": "Generated marinated chicken on two foil-lined sheets beside a compact oven."
+    },
+    {
+      "path": "packages/marketing/phase2/cinema/assets/broiler-frame-2-rejected-endpoint.jpg",
+      "kind": "image",
+      "sha256": "909b2551f616b214de993192f06b4bcb7347f4e1dd3a9fc1033bb2a1e2365022",
+      "width": 768,
+      "height": 1376,
+      "origin": "Approved Google API pilot + original edit and first-party historical RecipeFix pixels",
+      "rights": "Generated Nano Banana2.1/Omni artwork, no external input photograph; first-party RecipeFix UI and pinned historical response; Inter SIL OFL. Model terms apply. No actual cooked/tasted result.",
+      "synthetic": true,
+      "altText": "Rejected exact endpoint reference because food spacing and darkness changed."
+    },
+    {
+      "path": "packages/marketing/phase2/cinema/broiler-product-v2.mp4",
+      "kind": "video",
+      "sha256": "11e28be580f39fab0213c4ba39012d79e7e6f35728966bc3e3a1fc690b550d43",
+      "width": 1080,
+      "height": 1920,
+      "origin": "Approved Google API pilot + original edit and first-party historical RecipeFix pixels",
+      "rights": "Generated Nano Banana2.1/Omni artwork, no external input photograph; first-party RecipeFix UI and pinned historical response; Inter SIL OFL. Model terms apply. No actual cooked/tasted result.",
+      "synthetic": true,
+      "altText": "Generated tray slides into one oven while another waits; genuine recorded RecipeFix six-serving dairy-free settings and method excerpt follow.",
+      "durationSeconds": 12
+    }
+  ]
+}

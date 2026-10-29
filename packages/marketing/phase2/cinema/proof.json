@@ -1,0 +1,48 @@
+{
+  "status": "Independently inspected R&D proof; material asset improvement, exact cut still HOLD",
+  "reviewNote": "Revised free question/reveal cut: canned appears at3.2 seconds, replacing the earlier long preparation hold. This remains a licensed-footage/generated-art illustration, not I2V or a filmed gelatin test. Review the timing; the science slot is not automatically approved.",
+  "assets": [
+    {
+      "path": "packages/marketing/phase2/cinema/contrast-cut/pineapple-contrast-cut-v1.mp4",
+      "kind": "video",
+      "sha256": "d7fc31b7963ad4bf85d142ac9c86b85efe90b847160a2c4f65b2d7c830c41346",
+      "origin": "Licensed Mateusz Feliksik Pexels preparation footage + built-in image generation; original edit",
+      "rights": "Pexels free modification/commercial-use license; generated artwork with no external image input; Inter SIL OFL. Sources and exact prompts in cinema records.",
+      "altText": "Fresh or canned pineapple for gelatin? Actual cutting, early canned reveal and a source-backed heat/enzyme explanation.",
+      "synthetic": true,
+      "width": 1080,
+      "height": 1920,
+      "durationSeconds": 10.5
+    },
+    {
+      "path": "packages/marketing/phase2/cinema/pineapple-proof-v1.mp4",
+      "kind": "video",
+      "sha256": "f4e5a0a9ef2bf72aa51f52c093d047ffe21baaee8425d326a36811175d816741",
+      "origin": "Licensed Mateusz Feliksik Pexels preparation footage + built-in image generation; original edit",
+      "rights": "Pexels free modification/commercial-use license; generated artwork with no external image input; Inter SIL OFL. Sources and exact prompts in cinema records.",
+      "altText": "Actual pineapple slicing followed by a generated canned-fruit and gelatin illustration.",
+      "synthetic": true,
+      "width": 1080,
+      "height": 1920,
+      "durationSeconds": 13
+    },
+    {
+      "path": "packages/marketing/phase2/cinema/assets/fresh-pineapple-style.png",
+      "kind": "image",
+      "sha256": "78e7d3f9cb2067c6d11b46824d322b0fedfa5fe75ca1c402b1ed5eacdd93b99c",
+      "origin": "Built-in image generation, not an actual photographed kitchen experiment",
+      "rights": "Pexels free modification/commercial-use license; generated artwork with no external image input; Inter SIL OFL. Sources and exact prompts in cinema records.",
+      "altText": "Generated photorealistic fresh pineapple wedge dripping above liquid in a glass bowl.",
+      "synthetic": true
+    },
+    {
+      "path": "packages/marketing/phase2/cinema/assets/canned-pineapple-style.png",
+      "kind": "image",
+      "sha256": "85436f95e615689639b1c395e428ac1d40be05ad40233b9d5e7896cbf746d9dd",
+      "origin": "Built-in image generation, not an actual photographed kitchen experiment",
+      "rights": "Pexels free modification/commercial-use license; generated artwork with no external image input; Inter SIL OFL. Sources and exact prompts in cinema records.",
+      "altText": "Generated photorealistic unbranded can of pineapple with an illustrative golden gelatin dessert.",
+      "synthetic": true
+    }
+  ]
+}

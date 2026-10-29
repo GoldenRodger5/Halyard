@@ -1,0 +1,33 @@
+{
+  "sharedMarketingTests": {
+    "passed": 52,
+    "total": 52,
+    "scope": "Shared contract/regression run earlier in this phase; shared source unchanged."
+  },
+  "typescript": "Scoped cinema/product, render, gallery adapter and specialists passed.",
+  "rootFinalProduct": {
+    "sha256": "42439fcd73a3f614622de1e7cc929d1ca06cd340cd71189bdafd4d8cf4af41a7",
+    "frames": 360,
+    "visualSeconds": 12,
+    "cropCorrection": "Final encoded7.2s frame shows complete Dairy-Free and six-serving controls; partial Adapt button is excluded cleanly.",
+    "fullTimelineInspected": true,
+    "mutedAndUnmutedEnded": true,
+    "droppedFrames": 0,
+    "encodedMaxAudioDb": -91,
+    "audioMeaning": "Effectively silent; no auditory-taste claim."
+  },
+  "gallery": {
+    "parents": 6,
+    "variants": 14,
+    "uniqueCurrentMedia": 21,
+    "viewports": [
+      360,
+      390
+    ],
+    "failures": [],
+    "unlistedMediaStatus": 404,
+    "byteRangeStatus": 206
+  },
+  "sourceAndStorage": "All large outputs/scratch on verified encrypted T9. No production RecipeFix/account/social publishing mutation.",
+  "sourceMediaCommit": "8446432f6ef5834eb5818e6dd87d9dc83b3cb798"
+}

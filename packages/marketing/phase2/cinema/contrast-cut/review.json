@@ -1,0 +1,135 @@
+{
+  "status": "R&D / unapproved editorial rewrite",
+  "media": {
+    "path": "packages/marketing/phase2/cinema/contrast-cut/pineapple-contrast-cut-v1.mp4",
+    "sha256": "d7fc31b7963ad4bf85d142ac9c86b85efe90b847160a2c4f65b2d7c830c41346",
+    "width": 1080,
+    "height": 1920,
+    "frames": 315,
+    "fps": 30,
+    "visualDurationSeconds": 10.5,
+    "containerDurationSeconds": 10.56
+  },
+  "storyChange": "Question becomes Fresh or canned for gelatin; canned reveal moves from 9.5s to 3.2s. Two actual preparation excerpts replace the long continuous hold. Practical answer repeats at ending.",
+  "timings": [
+    {
+      "seconds": [
+        0,
+        2.6
+      ],
+      "asset": "pineapple-preparation.mp4",
+      "sourceSeconds": [
+        0,
+        2.6
+      ],
+      "event": "Actual knife/ring movement; Fresh or canned? question."
+    },
+    {
+      "seconds": [
+        2.6,
+        3.2
+      ],
+      "asset": "fresh-pineapple-style.png",
+      "event": "Short fresh illustration insert, explicitly labeled."
+    },
+    {
+      "seconds": [
+        3.2,
+        4.4
+      ],
+      "asset": "canned-pineapple-style.png",
+      "event": "Early CANNED reveal for gelatin."
+    },
+    {
+      "seconds": [
+        4.4,
+        7
+      ],
+      "asset": "pineapple-preparation.mp4",
+      "sourceSeconds": [
+        5.4,
+        8
+      ],
+      "event": "Actual closer crop for brief enzyme explanation."
+    },
+    {
+      "seconds": [
+        7,
+        10.5
+      ],
+      "asset": "canned-pineapple-style.png",
+      "event": "Canned, please; canning heat explanation and recipe instruction."
+    }
+  ],
+  "sourceAssets": [
+    {
+      "path": "packages/marketing/phase2/cinema/assets/pineapple-preparation.mp4",
+      "sha256": "eaae28b048c181a0aa81e879c1412dd9aeb191344643c8e4587a1d9d76f121d2"
+    },
+    {
+      "path": "packages/marketing/phase2/cinema/assets/fresh-pineapple-style.png",
+      "sha256": "78e7d3f9cb2067c6d11b46824d322b0fedfa5fe75ca1c402b1ed5eacdd93b99c"
+    },
+    {
+      "path": "packages/marketing/phase2/cinema/assets/canned-pineapple-style.png",
+      "sha256": "85436f95e615689639b1c395e428ac1d40be05ad40233b9d5e7896cbf746d9dd"
+    },
+    {
+      "path": "packages/marketing/phase2/cinema/assets/Inter-SemiBold.woff",
+      "sha256": "a96e5ee7ab248008e5e6cc92dd561eceb892d19a10a537aa1b2e64f979351add"
+    }
+  ],
+  "rights": "Existing root-provided Pexels preparation license, existing generated artwork, Inter OFL; see ../proof.json. No additional asset generation or external image input.",
+  "scienceSources": [
+    "https://extension.uga.edu/content/dam/extension/programs-and-services/science-behind-our-food/documents/tropicalfruitgelatinlab.pdf",
+    "https://www.eatright.org/food/food-groups/fruits/all-about-pineapple"
+  ],
+  "renderReceipt": {
+    "width": 1080,
+    "height": 1920,
+    "frames": 315,
+    "fps": 30,
+    "renderSeconds": 38.455,
+    "externalGenerationCalls": 0,
+    "additionalCashUSD": 0,
+    "audio": "Silent; voice held. No new audio.",
+    "scope": "One free editorial rewrite from existing licensed preparation and two previously generated illustration PNGs. Not I2V, not a kitchen test, not flagship approval."
+  },
+  "playback": [
+    {
+      "width": 390,
+      "duration": 10.56,
+      "currentTime": 10.56,
+      "ended": true,
+      "error": null,
+      "played": [
+        [
+          0,
+          10.56
+        ]
+      ],
+      "scope": "Complete actual browser transport and sampled actual frames. Silent design, no auditory judgment."
+    },
+    {
+      "width": 1080,
+      "duration": 10.56,
+      "currentTime": 10.56,
+      "ended": true,
+      "error": null,
+      "played": [
+        [
+          0,
+          10.56
+        ]
+      ],
+      "scope": "Complete actual browser transport and sampled actual frames. Silent design, no auditory judgment."
+    }
+  ],
+  "critique": "Earlier question/reveal is a material editorial change. It does not create native motion in the still artwork or a real gelatin consequence shot. The middle mechanism caption is compressed shorthand. The final 3.5s remains a photo hold with reframing. No premium, retention or kitchen-test claim.",
+  "newGenerationCalls": 0,
+  "additionalCashUSD": 0,
+  "newAudio": false,
+  "voice": "Held; silent design",
+  "approval": false,
+  "rootStagedOrCommittedByWorker": false
+}

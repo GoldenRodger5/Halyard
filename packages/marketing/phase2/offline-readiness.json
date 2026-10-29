@@ -1,0 +1,197 @@
+{
+  "checkedAt": "2026-10-29T22:42:49.932Z",
+  "streams": [
+    "video",
+    "editorial",
+    "food"
+  ],
+  "parents": 6,
+  "variants": 14,
+  "readiness": [
+    {
+      "id": "rf-salt-volume-ig-carousel",
+      "fingerprint": "5abc73e1279a5f1a66c3ac05f8d805ef5d8b3c6df1a47b18047e8620e55801d1",
+      "ready": false,
+      "reasons": [
+        "a concrete schedule time is missing",
+        "RecipeFix-owned account unverified",
+        "founder creative verdict missing",
+        "exact founder approval missing or stale",
+        "provider capability/account not proven"
+      ],
+      "delivery": "unknown"
+    },
+    {
+      "id": "rf-salt-volume-x-image",
+      "fingerprint": "5586f620a662af28577c43a2120aa969860515a32c36e21b4f7093e47be6a1c1",
+      "ready": false,
+      "reasons": [
+        "a concrete schedule time is missing",
+        "RecipeFix-owned account unverified",
+        "founder creative verdict missing",
+        "exact founder approval missing or stale",
+        "provider capability/account not proven"
+      ],
+      "delivery": "unknown"
+    },
+    {
+      "id": "rf-autumn-originals-ig-editorial",
+      "fingerprint": "554dc4915fe56d63cf512c93e75e2748e12141c1309dcff587fb3dfad574dd75",
+      "ready": false,
+      "reasons": [
+        "a concrete schedule time is missing",
+        "RecipeFix-owned account unverified",
+        "founder creative verdict missing",
+        "exact founder approval missing or stale",
+        "provider capability/account not proven"
+      ],
+      "delivery": "unknown"
+    },
+    {
+      "id": "rf-autumn-originals-x-editorial",
+      "fingerprint": "ce48b7d9da152283394bbc5d5814fcf4d810b8f46f0a16a45673b65b97fd4b1f",
+      "ready": false,
+      "reasons": [
+        "a concrete schedule time is missing",
+        "RecipeFix-owned account unverified",
+        "founder creative verdict missing",
+        "exact founder approval missing or stale",
+        "provider capability/account not proven"
+      ],
+      "delivery": "unknown"
+    },
+    {
+      "id": "rf-more-dinner-tiktok-phase2-v2",
+      "fingerprint": "66f7cdbfd95914990fb3f50c39fb80587283118a128bad48113349de3f41ec48",
+      "ready": false,
+      "reasons": [
+        "a concrete schedule time is missing",
+        "RecipeFix-owned account unverified",
+        "founder creative verdict missing",
+        "exact founder approval missing or stale",
+        "provider capability/account not proven"
+      ],
+      "delivery": "unknown"
+    },
+    {
+      "id": "rf-more-dinner-instagram-phase2-v2",
+      "fingerprint": "fbb73a8f4153b8d90a86c215ae1d306d04afbb70cb6abb5ccedde92c27f75d35",
+      "ready": false,
+      "reasons": [
+        "a concrete schedule time is missing",
+        "RecipeFix-owned account unverified",
+        "founder creative verdict missing",
+        "exact founder approval missing or stale",
+        "provider capability/account not proven"
+      ],
+      "delivery": "unknown"
+    },
+    {
+      "id": "rf-more-dinner-youtube-phase2-v2",
+      "fingerprint": "a3630ff319ab2cca14f5cc0c791dcfaeff0181cb3549e2fa0d07a43e50ab85b1",
+      "ready": false,
+      "reasons": [
+        "a concrete schedule time is missing",
+        "RecipeFix-owned account unverified",
+        "founder creative verdict missing",
+        "exact founder approval missing or stale",
+        "provider capability/account not proven"
+      ],
+      "delivery": "unknown"
+    },
+    {
+      "id": "rf-marinade-job-ig",
+      "fingerprint": "972177ae80140b89a68c9f4e6835ffdc8f11d4ccfb0098b94650ff6f50712da7",
+      "ready": false,
+      "reasons": [
+        "a concrete schedule time is missing",
+        "RecipeFix-owned account unverified",
+        "founder creative verdict missing",
+        "exact founder approval missing or stale",
+        "provider capability/account not proven"
+      ],
+      "delivery": "unknown"
+    },
+    {
+      "id": "rf-marinade-job-x",
+      "fingerprint": "bff5d2755cc806cac6379f2bc9722cb6036e61847d29259cd86e5c3387db3654",
+      "ready": false,
+      "reasons": [
+        "a concrete schedule time is missing",
+        "RecipeFix-owned account unverified",
+        "founder creative verdict missing",
+        "exact founder approval missing or stale",
+        "provider capability/account not proven"
+      ],
+      "delivery": "unknown"
+    },
+    {
+      "id": "rf-tomato-clock-ig",
+      "fingerprint": "1127820ed8af76158047fa0491f91be2cb29ea76412564bdba0e1e85828bf639",
+      "ready": false,
+      "reasons": [
+        "a concrete schedule time is missing",
+        "RecipeFix-owned account unverified",
+        "founder creative verdict missing",
+        "exact founder approval missing or stale",
+        "provider capability/account not proven"
+      ],
+      "delivery": "unknown"
+    },
+    {
+      "id": "rf-tomato-clock-x",
+      "fingerprint": "a878e447926ce7607c6323a6809951e5acc3fab647a3747d9170b955574c50fd",
+      "ready": false,
+      "reasons": [
+        "a concrete schedule time is missing",
+        "RecipeFix-owned account unverified",
+        "founder creative verdict missing",
+        "exact founder approval missing or stale",
+        "provider capability/account not proven"
+      ],
+      "delivery": "unknown"
+    },
+    {
+      "id": "rf-pineapple-gelatin-ig-reel",
+      "fingerprint": "9483875be58196e1eb066278c7a3781f9aae87402531f544e7dd327bd8909c15",
+      "ready": false,
+      "reasons": [
+        "a concrete schedule time is missing",
+        "RecipeFix-owned account unverified",
+        "founder creative verdict missing",
+        "independent media/rights review incomplete",
+        "exact founder approval missing or stale",
+        "provider capability/account not proven"
+      ],
+      "delivery": "unknown"
+    },
+    {
+      "id": "rf-pineapple-gelatin-tiktok",
+      "fingerprint": "7a4e076fd09b287346406b3c94a75a9a90228345cd1aee4fb4b5ebb65a62ec5f",
+      "ready": false,
+      "reasons": [
+        "a concrete schedule time is missing",
+        "RecipeFix-owned account unverified",
+        "founder creative verdict missing",
+        "independent media/rights review incomplete",
+        "exact founder approval missing or stale",
+        "provider capability/account not proven"
+      ],
+      "delivery": "unknown"
+    },
+    {
+      "id": "rf-pineapple-gelatin-youtube-short",
+      "fingerprint": "990adc0672d93b7e4b1f1117f0c3c4c4cadca721483fb754a7614af3d3f73e1f",
+      "ready": false,
+      "reasons": [
+        "a concrete schedule time is missing",
+        "RecipeFix-owned account unverified",
+        "founder creative verdict missing",
+        "independent media/rights review incomplete",
+        "exact founder approval missing or stale",
+        "provider capability/account not proven"
+      ],
+      "delivery": "unknown"
+    }
+  ]
+}

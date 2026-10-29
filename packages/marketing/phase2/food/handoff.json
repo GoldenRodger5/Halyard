@@ -1,0 +1,163 @@
+{
+  "sourceCommit": "c14f5f7dc0eb9e3d36fbb04c71fc40d339b41783",
+  "sourceCommitScope": "Original creative/source baseline. The final-v5 accessibility patch is committed on the same PR115 branch; its exact commit is reported in the Git handoff, avoiding a circular self-commit claim.",
+  "creativeDecision": {
+    "status": "STOP / founder-rejected baseline",
+    "sourceCommit": "954c546",
+    "sourcePath": "packages/marketing/strategy/2026-10-29-CINEMATIC-VISUAL-QUALITY-RESET.md",
+    "reason": "Founder rejects the exact pineapple film as flagship content. Palette/footer/encoding improvements do not reverse that decision. Preserve as R&D evidence, not qualified publishing inventory."
+  },
+  "ideas": [
+    {
+      "id": "rf-pineapple-gelatin",
+      "title": "The pineapple that breaks dessert.",
+      "category": "E02",
+      "targetAudience": "Curious home cooks and dessert makers who use fruit in gelatin recipes.",
+      "whyWatch": "A glossy pink gelatin mould visibly wobbles beneath a counterintuitive pineapple hook, then its illustrated protein support is cut and collapses.",
+      "visibleEvent": "Original 3D gel geometry and camera move from frame 0. A scissors/protein-network metaphor progressively severs strands and collapses into a pool. A direct fresh-versus-canned ingredient scene delivers the recipe consequence.",
+      "payoff": "Fresh pineapple can prevent gelatin setting because bromelain breaks down gelatin proteins; canning heat inactivates the enzyme. Follow the gelatin recipe’s fruit instructions.",
+      "productBridge": null,
+      "sourceUrls": [
+        "https://extension.uga.edu/content/dam/extension/programs-and-services/science-behind-our-food/documents/tropicalfruitgelatinlab.pdf",
+        "https://www.eatright.org/food/food-groups/fruits/all-about-pineapple"
+      ],
+      "authoringStatus": "founder_review"
+    }
+  ],
+  "variants": [
+    {
+      "id": "rf-pineapple-gelatin-ig-reel",
+      "ideaId": "rf-pineapple-gelatin",
+      "platform": "instagram",
+      "format": "reel",
+      "title": "The pineapple that breaks dessert.",
+      "caption": "Fresh pineapple can stop gelatin from setting. Its bromelain enzymes break down gelatin proteins; the heat used in canning inactivates them.\nMaking a gelatin dessert? Use the fruit your recipe calls for.\nOriginal 3D and graphic illustration, not a kitchen test. Sources: UGA Extension; Academy of Nutrition and Dietetics.",
+      "media": [
+        {
+          "path": "packages/marketing/phase2/food/exports/pineapple.mp4",
+          "kind": "video",
+          "sha256": "f94670effb8fedb0ea1530072c4a7129138dbd17be27973e033a5315d2073436",
+          "width": 1080,
+          "height": 1920,
+          "durationSeconds": 11.562667,
+          "origin": "Original RecipeFix local Blender gelatin mesh/material/lighting and 60 frames of original geometry/camera animation. Original Remotion protein-network collapse and unbranded fruit/can graphics. No external food photographs or footage.",
+          "rights": "Original procedural meshes, animation and graphic artwork. Inter fonts under SIL Open Font License 1.1; font source/license included. No third-party models, music or narration. Scientific sources inform claims, not reused publisher imagery.",
+          "altText": "Glossy pink illustrated gelatin wobbles on a lilac plate. A bright pink protein-network metaphor is cut by yellow scissors, then collapses. Fresh pineapple is contrasted with canned pineapple: active bromelain versus heat-inactivated enzyme. Practical advice: choose canned pineapple for gelatin and follow the recipe’s fruit instructions.",
+          "synthetic": true
+        }
+      ],
+      "sourceUrls": [
+        "https://extension.uga.edu/content/dam/extension/programs-and-services/science-behind-our-food/documents/tropicalfruitgelatinlab.pdf",
+        "https://www.eatright.org/food/food-groups/fruits/all-about-pineapple"
+      ],
+      "disclosure": "Entire film is original synthetic 3D/graphic illustration. Network, scissors and pooling are an explanatory metaphor, not molecular simulation, measured experiment or a physically cooked RecipeFix result. Silent by design; no voice or music naturalness claim."
+    },
+    {
+      "id": "rf-pineapple-gelatin-tiktok",
+      "ideaId": "rf-pineapple-gelatin",
+      "platform": "tiktok",
+      "format": "short_video",
+      "title": "The pineapple that breaks dessert.",
+      "caption": "Fresh pineapple can sabotage gelatin. Canning heat inactivates the bromelain enzymes behind the problem. Follow the recipe’s fruit instructions. Original illustration, not a kitchen test. Sources: UGA Extension / Academy of Nutrition and Dietetics.",
+      "media": [
+        {
+          "path": "packages/marketing/phase2/food/exports/pineapple.mp4",
+          "kind": "video",
+          "sha256": "f94670effb8fedb0ea1530072c4a7129138dbd17be27973e033a5315d2073436",
+          "width": 1080,
+          "height": 1920,
+          "durationSeconds": 11.562667,
+          "origin": "Original RecipeFix local Blender gelatin mesh/material/lighting and 60 frames of original geometry/camera animation. Original Remotion protein-network collapse and unbranded fruit/can graphics. No external food photographs or footage.",
+          "rights": "Original procedural meshes, animation and graphic artwork. Inter fonts under SIL Open Font License 1.1; font source/license included. No third-party models, music or narration. Scientific sources inform claims, not reused publisher imagery.",
+          "altText": "Glossy pink illustrated gelatin wobbles on a lilac plate. A bright pink protein-network metaphor is cut by yellow scissors, then collapses. Fresh pineapple is contrasted with canned pineapple: active bromelain versus heat-inactivated enzyme. Practical advice: choose canned pineapple for gelatin and follow the recipe’s fruit instructions.",
+          "synthetic": true
+        }
+      ],
+      "sourceUrls": [
+        "https://extension.uga.edu/content/dam/extension/programs-and-services/science-behind-our-food/documents/tropicalfruitgelatinlab.pdf",
+        "https://www.eatright.org/food/food-groups/fruits/all-about-pineapple"
+      ],
+      "disclosure": "Entire film is original synthetic 3D/graphic illustration. Network, scissors and pooling are an explanatory metaphor, not molecular simulation, measured experiment or a physically cooked RecipeFix result. Silent by design; no voice or music naturalness claim."
+    },
+    {
+      "id": "rf-pineapple-gelatin-youtube-short",
+      "ideaId": "rf-pineapple-gelatin",
+      "platform": "youtube",
+      "format": "short_video",
+      "title": "Why fresh pineapple can stop gelatin setting",
+      "caption": "Fresh pineapple can stop gelatin from setting. Its bromelain enzymes break down gelatin proteins; the heat used in canning inactivates them.\nMaking a gelatin dessert? Use the fruit your recipe calls for.\nOriginal 3D and graphic illustration, not a kitchen test. Sources: UGA Extension; Academy of Nutrition and Dietetics.\nSources:\nhttps://extension.uga.edu/content/dam/extension/programs-and-services/science-behind-our-food/documents/tropicalfruitgelatinlab.pdf\nhttps://www.eatright.org/food/food-groups/fruits/all-about-pineapple",
+      "media": [
+        {
+          "path": "packages/marketing/phase2/food/exports/pineapple.mp4",
+          "kind": "video",
+          "sha256": "f94670effb8fedb0ea1530072c4a7129138dbd17be27973e033a5315d2073436",
+          "width": 1080,
+          "height": 1920,
+          "durationSeconds": 11.562667,
+          "origin": "Original RecipeFix local Blender gelatin mesh/material/lighting and 60 frames of original geometry/camera animation. Original Remotion protein-network collapse and unbranded fruit/can graphics. No external food photographs or footage.",
+          "rights": "Original procedural meshes, animation and graphic artwork. Inter fonts under SIL Open Font License 1.1; font source/license included. No third-party models, music or narration. Scientific sources inform claims, not reused publisher imagery.",
+          "altText": "Glossy pink illustrated gelatin wobbles on a lilac plate. A bright pink protein-network metaphor is cut by yellow scissors, then collapses. Fresh pineapple is contrasted with canned pineapple: active bromelain versus heat-inactivated enzyme. Practical advice: choose canned pineapple for gelatin and follow the recipe’s fruit instructions.",
+          "synthetic": true
+        }
+      ],
+      "sourceUrls": [
+        "https://extension.uga.edu/content/dam/extension/programs-and-services/science-behind-our-food/documents/tropicalfruitgelatinlab.pdf",
+        "https://www.eatright.org/food/food-groups/fruits/all-about-pineapple"
+      ],
+      "disclosure": "Entire film is original synthetic 3D/graphic illustration. Network, scissors and pooling are an explanatory metaphor, not molecular simulation, measured experiment or a physically cooked RecipeFix result. Silent by design; no voice or music naturalness claim."
+    }
+  ],
+  "schemaVersion": 1,
+  "producer": "food_studio",
+  "revision": "final-v5",
+  "status": "founder_rejected_baseline",
+  "poster": {
+    "path": "packages/marketing/phase2/food/exports/pineapple-poster.png",
+    "kind": "image",
+    "sha256": "e980c6b165184ba0247f8b0fcd91d8cb16b3b538c7ba4083c30163cd01da68f3",
+    "width": 1080,
+    "height": 1920,
+    "origin": "First decoded frame of the exact final film.",
+    "rights": "Original procedural meshes, animation and graphic artwork. Inter fonts under SIL Open Font License 1.1; font source/license included. No third-party models, music or narration. Scientific sources inform claims, not reused publisher imagery.",
+    "altText": "Pink illustrated gelatin on a lilac plate; title: The pineapple that breaks dessert. Fresh pineapple can stop gelatin from setting.",
+    "synthetic": true
+  },
+  "productionCounts": {
+    "newParents": 1,
+    "films": 1,
+    "variants": 3,
+    "selectedApproaches": 1,
+    "testedApproaches": 2
+  },
+  "audio": {
+    "intent": "silent_by_design",
+    "voice": null,
+    "music": null,
+    "effects": null
+  },
+  "cost": {
+    "providerCalls": 0,
+    "providerSpendUSD": 0,
+    "newDependencies": 0,
+    "newSubscriptions": 0
+  },
+  "founderDecision": "rejected",
+  "publication": {
+    "scheduled": false,
+    "published": false,
+    "account": null
+  },
+  "sourceBranch": "feat/recipefix-phase2-food-20261029",
+  "baseCommit": "dec9558",
+  "authoringFingerprints": {
+    "rf-pineapple-gelatin-ig-reel": "9483875be58196e1eb066278c7a3781f9aae87402531f544e7dd327bd8909c15",
+    "rf-pineapple-gelatin-tiktok": "7a4e076fd09b287346406b3c94a75a9a90228345cd1aee4fb4b5ebb65a62ec5f",
+    "rf-pineapple-gelatin-youtube-short": "990adc0672d93b7e4b1f1117f0c3c4c4cadca721483fb754a7614af3d3f73e1f"
+  },
+  "validation": {
+    "errors": []
+  },
+  "prototypeReceipt": "packages/marketing/phase2/food/prototype-receipt.json",
+  "sourcesAndRights": "packages/marketing/phase2/food/sources-and-rights.json",
+  "qa": "packages/marketing/phase2/food/QA.md"
+}

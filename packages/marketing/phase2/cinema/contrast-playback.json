@@ -1,0 +1,65 @@
+{
+  "checkedAt": "2026-10-29T22:40:44.567Z",
+  "parents": 6,
+  "variants": 14,
+  "viewports": [
+    360,
+    390
+  ],
+  "failures": [],
+  "playback": [
+    {
+      "sha256": "d7fc31b7963ad4bf85d142ac9c86b85efe90b847160a2c4f65b2d7c830c41346",
+      "muted": true,
+      "duration": 10.56,
+      "ended": true,
+      "played": [
+        [
+          0,
+          10.56
+        ]
+      ],
+      "quality": {
+        "total": 315,
+        "dropped": 0
+      },
+      "perception": "Continuous playback and sampled exported-frame inspection; audio quality not directly heard."
+    },
+    {
+      "sha256": "d7fc31b7963ad4bf85d142ac9c86b85efe90b847160a2c4f65b2d7c830c41346",
+      "muted": false,
+      "duration": 10.56,
+      "ended": true,
+      "played": [
+        [
+          0,
+          10.56
+        ]
+      ],
+      "quality": {
+        "total": 630,
+        "dropped": 0
+      },
+      "perception": "Continuous playback and sampled exported-frame inspection; audio quality not directly heard."
+    }
+  ],
+  "screenshots": [
+    "/Volumes/T9/Developer/Builds/recipefix-phase2-20261029/integration/evidence/contrast-final/rf-more-dinner-360.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2-20261029/integration/evidence/contrast-final/rf-marinade-job-360.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2-20261029/integration/evidence/contrast-final/rf-tomato-clock-360.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2-20261029/integration/evidence/contrast-final/rf-pineapple-gelatin-360.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2-20261029/integration/evidence/contrast-final/rf-salt-volume-360.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2-20261029/integration/evidence/contrast-final/rf-autumn-originals-360.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2-20261029/integration/evidence/contrast-final/rf-more-dinner-390.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2-20261029/integration/evidence/contrast-final/rf-marinade-job-390.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2-20261029/integration/evidence/contrast-final/rf-tomato-clock-390.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2-20261029/integration/evidence/contrast-final/rf-pineapple-gelatin-390.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2-20261029/integration/evidence/contrast-final/rf-salt-volume-390.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2-20261029/integration/evidence/contrast-final/rf-autumn-originals-390.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2-20261029/integration/evidence/contrast-final/film-d7fc31b7-0.5-390.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2-20261029/integration/evidence/contrast-final/film-d7fc31b7-2.5-390.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2-20261029/integration/evidence/contrast-final/film-d7fc31b7-4.5-390.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2-20261029/integration/evidence/contrast-final/film-d7fc31b7-6.5-390.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2-20261029/integration/evidence/contrast-final/film-d7fc31b7-8.5-390.png"
+  ]
+}

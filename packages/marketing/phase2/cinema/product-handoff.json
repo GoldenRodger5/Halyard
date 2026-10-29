@@ -1,0 +1,104 @@
+{
+  "sourceBase": "dec955885cf1094ea2e747233e72d075dd32a89e",
+  "ideas": [
+    {
+      "id": "rf-more-dinner",
+      "title": "Two more for dinner?",
+      "category": "P02",
+      "targetAudience": "Home cooks adapting a dinner recipe for more people and a dairy-free request.",
+      "whyWatch": "More guests create a real cooking-space constraint; quantities and method both matter.",
+      "visibleEvent": "An AI-illustrated foil sheet moves into one oven chamber while another waits; genuine recorded RecipeFix settings change four to six with Dairy-Free, followed by the exact method excerpt.",
+      "payoff": "The recorded RecipeFix response adjusts the method to broil one sheet at a time and finish the chicken in sauce.",
+      "productBridge": "Open Chicken Tikka Masala on RecipeFix and choose Make it fit.",
+      "sourceUrls": [
+        "https://github.com/GoldenRodger5/recipe-fix/blob/3f32680f091d06ad9046bb95e4dfb55489d2c264/src/data/landingRealResult.ts"
+      ],
+      "authoringStatus": "founder_review"
+    }
+  ],
+  "variants": [
+    {
+      "id": "rf-more-dinner-tiktok-phase2-v2",
+      "ideaId": "rf-more-dinner",
+      "platform": "tiktok",
+      "format": "short_video",
+      "caption": "Two more for dinner. The broiler did not grow. In this recorded RecipeFix dairy-free 4\u21926 example, the quantities change\u2014and so does the method: two uncrowded foil-lined sheets, broiled one at a time, then finished in sauce. CGI planning illustration, not a cooked result. Try Make it fit at recipefix.app.",
+      "media": [
+        {
+          "path": "packages/marketing/phase2/cinema/broiler-product-v3.mp4",
+          "kind": "video",
+          "sha256": "42439fcd73a3f614622de1e7cc929d1ca06cd340cd71189bdafd4d8cf4af41a7",
+          "width": 1080,
+          "height": 1920,
+          "origin": "Approved Google API pilot + original edit and first-party historical RecipeFix pixels",
+          "rights": "Generated Nano Banana 2.1/Omni artwork, no external input photograph; first-party RecipeFix UI and pinned historical response; Inter SIL OFL. Model terms apply. No actual cooked/tasted result.",
+          "synthetic": true,
+          "altText": "Generated tray slides into one oven while another waits; genuine recorded RecipeFix six-serving dairy-free settings and method excerpt follow.",
+          "durationSeconds": 12
+        }
+      ],
+      "targetUrl": "https://recipefix.app/original-recipes/chicken-tikka-masala?utm_source=tiktok&utm_medium=social&utm_campaign=rf_first_fortnight&utm_content=rf-more-dinner-tiktok-phase2-v2",
+      "cta": "Visit recipefix.app \u2192 Chicken Tikka Masala \u2192 Make it fit. Profile-link placement unverified.",
+      "disclosure": "AI planning illustration, not a cooked or tasted result. Self-propelling tray is an illustrative artifact. Genuine captured settings use the historical combined Dairy-Free 4\u21926 response recorded Oct 21, 2026, not a fresh live adaptation. Silent edit; narration held. Native generated shot720\u00d71280, composited export1080\u00d71920.",
+      "sourceUrls": [
+        "https://github.com/GoldenRodger5/recipe-fix/blob/3f32680f091d06ad9046bb95e4dfb55489d2c264/src/data/landingRealResult.ts"
+      ]
+    },
+    {
+      "id": "rf-more-dinner-instagram-phase2-v2",
+      "ideaId": "rf-more-dinner",
+      "platform": "instagram",
+      "format": "reel",
+      "caption": "The headcount changed. The broiler space stayed the same. This recorded RecipeFix dairy-free 4\u21926 Chicken Tikka Masala response calls for two uncrowded sheets and one broiler batch at a time, then a sauce finish. CGI planning illustration; no cooked-result claim. Find Chicken Tikka Masala at recipefix.app \u2192 Make it fit.",
+      "media": [
+        {
+          "path": "packages/marketing/phase2/cinema/broiler-product-v3.mp4",
+          "kind": "video",
+          "sha256": "42439fcd73a3f614622de1e7cc929d1ca06cd340cd71189bdafd4d8cf4af41a7",
+          "width": 1080,
+          "height": 1920,
+          "origin": "Approved Google API pilot + original edit and first-party historical RecipeFix pixels",
+          "rights": "Generated Nano Banana 2.1/Omni artwork, no external input photograph; first-party RecipeFix UI and pinned historical response; Inter SIL OFL. Model terms apply. No actual cooked/tasted result.",
+          "synthetic": true,
+          "altText": "Generated tray slides into one oven while another waits; genuine recorded RecipeFix six-serving dairy-free settings and method excerpt follow.",
+          "durationSeconds": 12
+        }
+      ],
+      "targetUrl": "https://recipefix.app/original-recipes/chicken-tikka-masala?utm_source=instagram&utm_medium=social&utm_campaign=rf_first_fortnight&utm_content=rf-more-dinner-instagram-phase2-v2",
+      "cta": "Visit recipefix.app \u2192 Chicken Tikka Masala \u2192 Make it fit. Profile-link placement unverified.",
+      "disclosure": "AI planning illustration, not a cooked or tasted result. Self-propelling tray is an illustrative artifact. Genuine captured settings use the historical combined Dairy-Free 4\u21926 response recorded Oct 21, 2026, not a fresh live adaptation. Silent edit; narration held. Native generated shot720\u00d71280, composited export1080\u00d71920.",
+      "sourceUrls": [
+        "https://github.com/GoldenRodger5/recipe-fix/blob/3f32680f091d06ad9046bb95e4dfb55489d2c264/src/data/landingRealResult.ts"
+      ]
+    },
+    {
+      "id": "rf-more-dinner-youtube-phase2-v2",
+      "ideaId": "rf-more-dinner",
+      "platform": "youtube",
+      "format": "short_video",
+      "caption": "More chicken, same broiler. This recorded RecipeFix 4\u21926 dairy-free adaptation changes both quantities and the cooking plan. Original CGI illustrates the batch sequence; it is not a cooked result. Try Chicken Tikka Masala \u2192 Make it fit at recipefix.app.",
+      "title": "More dinner. Same broiler. | RecipeFix",
+      "media": [
+        {
+          "path": "packages/marketing/phase2/cinema/broiler-product-v3.mp4",
+          "kind": "video",
+          "sha256": "42439fcd73a3f614622de1e7cc929d1ca06cd340cd71189bdafd4d8cf4af41a7",
+          "width": 1080,
+          "height": 1920,
+          "origin": "Approved Google API pilot + original edit and first-party historical RecipeFix pixels",
+          "rights": "Generated Nano Banana 2.1/Omni artwork, no external input photograph; first-party RecipeFix UI and pinned historical response; Inter SIL OFL. Model terms apply. No actual cooked/tasted result.",
+          "synthetic": true,
+          "altText": "Generated tray slides into one oven while another waits; genuine recorded RecipeFix six-serving dairy-free settings and method excerpt follow.",
+          "durationSeconds": 12
+        }
+      ],
+      "targetUrl": "https://recipefix.app/original-recipes/chicken-tikka-masala?utm_source=youtube&utm_medium=social&utm_campaign=rf_first_fortnight&utm_content=rf-more-dinner-youtube-phase2-v2",
+      "cta": "Visit recipefix.app \u2192 Chicken Tikka Masala \u2192 Make it fit. Profile-link placement unverified.",
+      "disclosure": "AI planning illustration, not a cooked or tasted result. Self-propelling tray is an illustrative artifact. Genuine captured settings use the historical combined Dairy-Free 4\u21926 response recorded Oct 21, 2026, not a fresh live adaptation. Silent edit; narration held. Native generated shot720\u00d71280, composited export1080\u00d71920.",
+      "sourceUrls": [
+        "https://github.com/GoldenRodger5/recipe-fix/blob/3f32680f091d06ad9046bb95e4dfb55489d2c264/src/data/landingRealResult.ts"
+      ]
+    }
+  ],
+  "sourceCommit": "8446432f6ef5834eb5818e6dd87d9dc83b3cb798"
+}
