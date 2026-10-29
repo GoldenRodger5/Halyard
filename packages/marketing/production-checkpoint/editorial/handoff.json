@@ -229,7 +229,7 @@
     }
   ],
   "producerQA": {
-    "checkedAt": "2026-10-29T20:44:10.715Z",
+    "checkedAt": "2026-10-29T20:44:16.086Z",
     "contractErrors": [],
     "geometry": [
       {
@@ -435,7 +435,7 @@
   "source": {
     "branch": "feat/recipefix-team-editorial-20261029",
     "baseCommit": "96c20517",
-    "sourceCommit": "96c2051717ee0c133cb592cd8c4725ab74f0352f",
+    "sourceCommit": "8d1417b862e17e794095e3951fd210cf771c56e8",
     "ownership": "packages/marketing/production-checkpoint/editorial/**"
   },
   "cost": {
