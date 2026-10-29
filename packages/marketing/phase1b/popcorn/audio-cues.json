@@ -1,0 +1,44 @@
+{
+  "fps": 30,
+  "durationFrames": 405,
+  "narration": false,
+  "intent": "Original restrained material sound; pressure creates musical progression. No claim of recorded real popcorn or laboratory timing.",
+  "events": [
+    {
+      "frame": 0,
+      "cue": "Low warm copper hum; slight dry kernel tick, no long empty fade-in"
+    },
+    {
+      "frame": 34,
+      "cue": "Small descending water bead/plink as camera enters"
+    },
+    {
+      "frame": 111,
+      "cue": "Soft rising steam texture starts; pulse frequency increases with visible movement"
+    },
+    {
+      "frame": 163,
+      "cue": "Restrained pressure resonance intensifies"
+    },
+    {
+      "frame": 215,
+      "cue": "Three dry shell tension ticks with opening crack"
+    },
+    {
+      "frame": 239,
+      "cue": "Very short near-silence/anticipation"
+    },
+    {
+      "frame": 250,
+      "cue": "One decisive original pop transient plus a brief airy release"
+    },
+    {
+      "frame": 294,
+      "cue": "Soft warm landing/resolution; pressure pulse ends"
+    },
+    {
+      "frame": 350,
+      "cue": "Air decays into quiet beauty beat; finish resolved rather than fading unresolved loop"
+    }
+  ]
+}

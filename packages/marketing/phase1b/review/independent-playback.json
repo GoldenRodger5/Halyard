@@ -1,0 +1,112 @@
+[
+  [
+    {
+      "id": "A",
+      "scale": "390px",
+      "mode": "muted",
+      "time": 15.061333,
+      "ended": true,
+      "duration": 15.061333,
+      "error": null
+    },
+    {
+      "id": "B",
+      "scale": "390px",
+      "mode": "muted",
+      "time": 13.546667,
+      "ended": true,
+      "duration": 13.546667,
+      "error": null
+    }
+  ],
+  {
+    "id": "A",
+    "scale": "390px",
+    "mode": "unmuted; auditory perception unavailable",
+    "time": 15.061333,
+    "ended": true,
+    "duration": 15.061333,
+    "error": null,
+    "played": [
+      [
+        0,
+        15.061333
+      ]
+    ]
+  },
+  {
+    "id": "B",
+    "scale": "390px",
+    "mode": "unmuted; auditory perception unavailable",
+    "time": 13.546667,
+    "ended": true,
+    "duration": 13.546667,
+    "error": null,
+    "played": [
+      [
+        0,
+        13.546667
+      ]
+    ]
+  },
+  {
+    "id": "A",
+    "scale": "native1080",
+    "mode": "muted",
+    "time": 15.061333,
+    "ended": true,
+    "duration": 15.061333,
+    "error": null,
+    "played": [
+      [
+        0,
+        15.061333
+      ]
+    ]
+  },
+  {
+    "id": "A",
+    "scale": "native1080",
+    "mode": "unmuted; auditory perception unavailable",
+    "time": 15.061333,
+    "ended": true,
+    "duration": 15.061333,
+    "error": null,
+    "played": [
+      [
+        0,
+        15.061333
+      ]
+    ]
+  },
+  {
+    "id": "B",
+    "scale": "native1080",
+    "mode": "muted",
+    "time": 13.546667,
+    "ended": true,
+    "duration": 13.546667,
+    "error": null,
+    "played": [
+      [
+        0,
+        13.546667
+      ]
+    ]
+  },
+  {
+    "id": "B",
+    "scale": "native1080",
+    "mode": "unmuted; auditory perception unavailable",
+    "time": 13.546667,
+    "ended": true,
+    "duration": 13.546667,
+    "error": null,
+    "played": [
+      [
+        0,
+        13.546667
+      ]
+    ]
+  }
+]

@@ -1,0 +1,122 @@
+{
+  "viewport": [
+    390,
+    844
+  ],
+  "visualSampling": "actual continuously playing players; key-time screenshots, not seeked stills",
+  "auditoryTasteAssessed": false,
+  "results": [
+    {
+      "mode": "both muted",
+      "players": [
+        {
+          "id": "egg",
+          "time": 15.061333,
+          "duration": 15.061333,
+          "ended": true,
+          "muted": true,
+          "videoWidth": 1080,
+          "videoHeight": 1920,
+          "error": null,
+          "played": [
+            [
+              0,
+              15.061333
+            ]
+          ]
+        },
+        {
+          "id": "popcorn",
+          "time": 13.546667,
+          "duration": 13.546667,
+          "ended": true,
+          "muted": true,
+          "videoWidth": 1080,
+          "videoHeight": 1920,
+          "error": null,
+          "played": [
+            [
+              0,
+              13.546667
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "Play game with sound",
+      "players": [
+        {
+          "id": "egg",
+          "time": 15.061333,
+          "duration": 15.061333,
+          "ended": true,
+          "muted": false,
+          "videoWidth": 1080,
+          "videoHeight": 1920,
+          "error": null,
+          "played": [
+            [
+              0,
+              15.061333
+            ]
+          ]
+        },
+        {
+          "id": "popcorn",
+          "time": 13.546667,
+          "duration": 13.546667,
+          "ended": true,
+          "muted": true,
+          "videoWidth": 1080,
+          "videoHeight": 1920,
+          "error": null,
+          "played": [
+            [
+              0,
+              13.546667
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "Play story with sound",
+      "players": [
+        {
+          "id": "egg",
+          "time": 15.061333,
+          "duration": 15.061333,
+          "ended": true,
+          "muted": false,
+          "videoWidth": 1080,
+          "videoHeight": 1920,
+          "error": null,
+          "played": [
+            [
+              0,
+              15.061333
+            ]
+          ]
+        },
+        {
+          "id": "popcorn",
+          "time": 13.546667,
+          "duration": 13.546667,
+          "ended": true,
+          "muted": false,
+          "videoWidth": 1080,
+          "videoHeight": 1920,
+          "error": null,
+          "played": [
+            [
+              0,
+              13.546667
+            ]
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": []
+}

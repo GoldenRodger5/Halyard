@@ -1,8 +1,8 @@
 # RecipeFix Social Studio — October 28, 2026 planning index
 
-**Status: Phase0 and Product Cinema Phase1A are rendered and independently reviewed for founder feedback. Other pilots have not started. No new paid services, RecipeFix account connections or public posts authorized.**
+**Status,October29: Phase1A A4/B2 and the proposed hybrid are founder-rejected for publication. Phase1B has two new, different, independently reviewed food pilots for founder consideration: a yolk game/comedy and an illustrated popcorn story. No public creative is approved; carousel/distribution work remains unstarted.**
 
-[Watch the two candidates and actual comparison](../cinema/README.md). This is a completed local experiment, not creative/publication approval.
+[Watch the new Phase1B films](../phase1b/README.md). [Preserved Phase1A technical experiment](../cinema/README.md) is rejected research, not selected inventory.
 
 These documents are the plan for founder-led creative collaboration and separately automated approved-post operations. They build on the existing Halyard source and the committed founder operating model, NOT a request to reboot the marketing system.
 
@@ -15,4 +15,4 @@ Precedence:
 - [Owner creative reset](../CREATIVE_RESET_2026-10-28.md): seven cuts and Roger narration rejected and on hold.
 - [Existing Halyard handoff](../HANDOFF.md), playbook and source remain reference implementations, not creative boundaries.
 
-**Next:** founder reviews the completed Product Cinema comparison, then scope the remaining differentiated pilots separately. Do not start from 30 list renders, build a new scheduler or automatically spend $12. Blotato/Buffer provider selection waits for real RecipeFix-owned account and capability evidence.
+**Next:** founder reviews the actual Phase1B game and story, then selects/rejects the creative direction before more production. Do not start from 30 list renders, build a new scheduler or automatically spend $12. Blotato/Buffer provider selection waits for real RecipeFix-owned account and capability evidence.

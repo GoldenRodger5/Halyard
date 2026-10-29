@@ -1,0 +1,93 @@
+{
+  "phase": "1B",
+  "date": "2026-10-29",
+  "timezone": "America/New_York",
+  "status": "FOUNDER_REVIEW_ONLY",
+  "publicationApproved": false,
+  "baseSource": "8b27eb3a358cf6c2d00952d0d0d02321853bd9d4",
+  "integrationPlan": "9f9b7005e399f61483d08626447354f70cc56998",
+  "providerCalls": 0,
+  "additionalProviderSpendUsd": 0,
+  "newSubscriptions": 0,
+  "referenceMediaIncluded": false,
+  "freshRecipeFixInference": false,
+  "productionWrites": false,
+  "factualSources": [
+    "https://www.acs.org/content/dam/acsorg/education/whatischemistry/adventuresinchemistry/secretscience/popcorn/secretscience-popcorn.pdf",
+    "https://www.popcorn.org/All-About-Popcorn/What-Makes-Popcorn-Pop"
+  ],
+  "facts": "Illustrative water/starch, pressure, hull rupture and expanded fluffy starch. No measured values or cooked adaptation claim.",
+  "assets": [
+    {
+      "path": "egg/YolkGame.tsx",
+      "bytes": 9102,
+      "sha256": "680cf8a022339d71674e8e23837928a057779024b0b9433e085e7554b4e3e199",
+      "rights": "Original procedural graphics/audio authored through AI-assisted code; no third-party media"
+    },
+    {
+      "path": "popcorn/PopcornStory.tsx",
+      "bytes": 16056,
+      "sha256": "b5bb16b0ca736d1352b868615a03862f530f701d8b329753fed49091dd779231",
+      "rights": "Original procedural graphics/audio authored through AI-assisted code; no third-party media"
+    },
+    {
+      "path": "entry.tsx",
+      "bytes": 1390,
+      "sha256": "a0a93a407160db9b5e78c0428359378dfc895c5ef3c720858c488345d4443351",
+      "rights": "Original procedural graphics/audio authored through AI-assisted code; no third-party media"
+    },
+    {
+      "path": "scripts/make-sound.py",
+      "bytes": 4608,
+      "sha256": "f845803be3150dd016ae7dcf99e0967f5c74628ef460150d9fd8106b7dd3561d",
+      "rights": "Original procedural graphics/audio authored through AI-assisted code; no third-party media"
+    },
+    {
+      "path": "assets/egg.wav",
+      "bytes": 2880078,
+      "sha256": "bb099c5793a4ec034b263d4944aeade7daf517c5c34d1511738182ae3d1c4e41",
+      "rights": "Original procedural graphics/audio authored through AI-assisted code; no third-party media"
+    },
+    {
+      "path": "assets/fonts/Inter-Regular.woff",
+      "bytes": 31196,
+      "sha256": "31656ddbb58d39790f910df827596106a5d91ce80dd4309a6aad91e08a90f9e4",
+      "rights": "SIL Open Font License"
+    },
+    {
+      "path": "assets/fonts/Inter-SemiBold.woff",
+      "bytes": 31780,
+      "sha256": "a96e5ee7ab248008e5e6cc92dd561eceb892d19a10a537aa1b2e64f979351add",
+      "rights": "SIL Open Font License"
+    },
+    {
+      "path": "assets/fonts/inter-OFL.txt",
+      "bytes": 4376,
+      "sha256": "5dd548d31a85f756e01d63e00d7faf1e324103ed3e9102fcbbabf2cc2db6dd39",
+      "rights": "SIL Open Font License"
+    },
+    {
+      "path": "assets/popcorn.wav",
+      "bytes": 2592078,
+      "sha256": "439b291cf7eea23d7b327690c84a5d3cb4bc82072443bef541c8d0796f1d8fe1",
+      "rights": "Original procedural graphics/audio authored through AI-assisted code; no third-party media"
+    },
+    {
+      "path": "review/egg.mp4",
+      "bytes": 2975870,
+      "sha256": "05b3016cdd9a8e0d6d4f1d475ae1b38a0afa345e07b84d9d48503e0c623304a5",
+      "rights": "Original procedural graphics/audio authored through AI-assisted code; no third-party media"
+    },
+    {
+      "path": "review/popcorn.mp4",
+      "bytes": 4836829,
+      "sha256": "2852f0b9488a4c9eb84f7606f520b1536f35d9ea192292229c4a3f0be8c58070",
+      "rights": "Original procedural graphics/audio authored through AI-assisted code; no third-party media"
+    }
+  ],
+  "soundReproductionVerified": {
+    "egg.wav": "bb099c5793a4ec034b263d4944aeade7daf517c5c34d1511738182ae3d1c4e41",
+    "popcorn.wav": "439b291cf7eea23d7b327690c84a5d3cb4bc82072443bef541c8d0796f1d8fe1",
+    "result": "Both regenerated/normalized WAVs byte-identical to reviewed source assets"
+  }
+}
