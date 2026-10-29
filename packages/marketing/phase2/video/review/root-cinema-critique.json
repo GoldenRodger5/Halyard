@@ -1,0 +1,168 @@
+{
+  "reviewType": "Independent read-only visual and story critique; not approval or production work",
+  "asset": {
+    "path": "/Volumes/T9/Developer/Worktrees/halyard-recipefix-phase2-integration-20261029/packages/marketing/phase2/cinema/pineapple-proof-v1.mp4",
+    "sha256": "f4e5a0a9ef2bf72aa51f52c093d047ffe21baaee8425d326a36811175d816741",
+    "visualDurationSeconds": 13,
+    "containerDurationSeconds": 13.056,
+    "frames": 390,
+    "fps": 30,
+    "width": 1080,
+    "height": 1920
+  },
+  "baseline": {
+    "path": "/Volumes/T9/Developer/Worktrees/halyard-recipefix-phase2-integration-20261029/packages/marketing/phase2/food/exports/pineapple.mp4",
+    "sha256": "f94670effb8fedb0ea1530072c4a7129138dbd17be27973e033a5315d2073436",
+    "status": "Founder-rejected C film; no reversal of rejection"
+  },
+  "inspection": {
+    "actualPlayback": [
+      {
+        "film": "root-proof",
+        "width": 390,
+        "duration": 13.056,
+        "currentTime": 13.056,
+        "ended": true,
+        "error": null,
+        "played": [
+          [
+            0,
+            13.056
+          ]
+        ],
+        "scope": "Full actual browser transport and sampled actual frames; no auditory judgment."
+      },
+      {
+        "film": "root-proof",
+        "width": 1080,
+        "duration": 13.056,
+        "currentTime": 13.056,
+        "ended": true,
+        "error": null,
+        "played": [
+          [
+            0,
+            13.056
+          ]
+        ],
+        "scope": "Full actual browser transport and sampled actual frames; no auditory judgment."
+      },
+      {
+        "film": "rejected-c",
+        "width": 390,
+        "duration": 11.562667,
+        "currentTime": 11.562667,
+        "ended": true,
+        "error": null,
+        "played": [
+          [
+            0,
+            11.562667
+          ]
+        ],
+        "scope": "Full actual browser transport and sampled actual frames; no auditory judgment."
+      },
+      {
+        "film": "rejected-c",
+        "width": 1080,
+        "duration": 11.562667,
+        "currentTime": 11.562667,
+        "ended": true,
+        "error": null,
+        "played": [
+          [
+            0,
+            11.562667
+          ]
+        ],
+        "scope": "Full actual browser transport and sampled actual frames; no auditory judgment."
+      }
+    ],
+    "evidenceDirectory": "/Volumes/T9/Developer/Builds/recipefix-phase2-20261029/video/evidence/root-proof-review",
+    "contactPath": "/Volumes/T9/Developer/Builds/recipefix-phase2-20261029/integration/cinema/proof-v2/contact.jpg",
+    "visualScope": "Decoded whole-sequence contact plus actual sampled native and 390px browser frames, including ending; complete browser transport at both scales. No direct auditory perception."
+  },
+  "verdict": {
+    "assetDirection": "Substantial improvement over rejected C: recognizable tactile fruit, genuine knife/ring action, photographic light, juice/fiber detail and more credible food scale. Support this real-food/image-first direction for further selection.",
+    "story": "Still a generic food-fact assembly rather than a distinctive finished cinematic story. The preparation action does not demonstrate the gelatin consequence; the last 3.5s is a generated still with camera-scale movement.",
+    "postingRecommendation": "Preserve as a visual-direction proof. Do not replace the rejected C baseline with this exact proof as an automatically approved flagship post.",
+    "premiumClaim": false,
+    "founderApproval": false,
+    "retentionOrEngagementClaim": false
+  },
+  "observedBeats": [
+    {
+      "seconds": [
+        0,
+        3
+      ],
+      "observation": "Immediate recognizable fresh pineapple and real knife contact. Ring fibers, moisture and practical cutting-board scale are materially more convincing than the rejected pink CG mould."
+    },
+    {
+      "seconds": [
+        3,
+        6
+      ],
+      "observation": "The next headline explains that fresh fruit can prevent setting, while the same preparation world continues. Readable at 390px."
+    },
+    {
+      "seconds": [
+        6,
+        9.5
+      ],
+      "observation": "Bromelain/protein copy introduces the cause, but visually the film continues slicing/preparing fruit. No gelatin failure or changed physical consequence appears."
+    },
+    {
+      "seconds": [
+        9.5,
+        13
+      ],
+      "observation": "Clear fresh-to-canned visual contrast and richer macro can/gelatin illustration. Fruit identity is convincing enough for an illustrative style frame, but it remains a still-image payoff with a small zoom, not new native video, I2V, a canning action or a kitchen test."
+    }
+  ],
+  "oneFiniteCreativeFlaw": {
+    "severity": "Creative P1; not a source/encoding failure",
+    "seconds": [
+      3,
+      9.5
+    ],
+    "issue": "Three fact captions sit over 9.5s of substantially the same preparation action. The answer arrives only with the can image at 9.5s. Asset craft improves strongly, but the middle retains the generic footage-plus-caption structure.",
+    "boundedNextEditIfSelected": "Trim redundant preparation and bring the fresh-versus-canned distinction earlier, around 5\u20136s, using the existing truthful footage/illustration. Preserve the no-kitchen-test disclosure; do not manufacture a filmed gelatin experiment. This is a proposed editorial change, not performed or required as a new production loop."
+  },
+  "comparisonNuance": "The rejected baseline had a more explicit causal network-collapse metaphor, despite weak food craft and icon-heavy art. The new proof wins food appearance and native action, but does not yet replace that causal visual explanation. Do not confuse better assets with a fully solved story.",
+  "phoneTypography": "Main copy, practical closing instruction and disclosure were legible on the actual 390px samples. No clipped headline, malformed type or missing media observed. Platform-overlay safety was not tested inside a live TikTok/Instagram UI.",
+  "sourceTruth": {
+    "scienceCheck": "The fresh/canned distinction, protein breakdown and canning heat explanation are supported by the primary UGA Extension lab and Academy of Nutrition and Dietetics page. This supports the written explanation, not the generated image as experimental evidence.",
+    "sources": [
+      {
+        "title": "UGA Extension \u2014 Tropical Fruit Gelatin Lab",
+        "url": "https://extension.uga.edu/content/dam/extension/programs-and-services/science-behind-our-food/documents/tropicalfruitgelatinlab.pdf"
+      },
+      {
+        "title": "Academy of Nutrition and Dietetics \u2014 All About Pineapple",
+        "url": "https://www.eatright.org/food/food-groups/fruits/all-about-pineapple"
+      }
+    ],
+    "rightsScope": "Preparation source/licensing supplied by root; no separate new license-clearance audit. No source media copied for production by this reviewer.",
+    "scopeLabelsObserved": [
+      "Prep footage + AI illustration",
+      "Not a kitchen test",
+      "Sources: UGA / EatRight"
+    ]
+  },
+  "audio": {
+    "intended": "Silent; voice held",
+    "aacTrackPresent": true,
+    "measuredMeanDb": -91.0,
+    "measuredMaxDb": -91.0,
+    "directHearing": false,
+    "judgment": "Signal is effectively silent. No voice or sound-quality claim."
+  },
+  "actions": {
+    "productionEdits": 0,
+    "renders": 0,
+    "paidCalls": 0,
+    "accountOrPublishingActions": 0,
+    "scope": "Review JSON only; screenshots and playback logs are analysis evidence on T9."
+  }
+}
