@@ -1,0 +1,68 @@
+{
+  "reviewDate": "2026-10-29",
+  "baseCommit": "fbcc2b1",
+  "reviewer": "food_studio producer/editorial reviewer; not founder approval",
+  "selectedParents": [
+    "rf-salt-volume",
+    "rf-autumn-originals",
+    "rf-marinade-job",
+    "rf-tomato-clock"
+  ],
+  "sourceHandoffs": [
+    "packages/marketing/production-checkpoint/food/handoff.json",
+    "packages/marketing/production-checkpoint/editorial/handoff.json",
+    "packages/marketing/phase2/editorial/handoff.json"
+  ],
+  "assetsReviewed": 19,
+  "imageWidths": [
+    360,
+    390
+  ],
+  "changedMediaAssets": 0,
+  "changedCopyOrAlt": 0,
+  "newVariants": 0,
+  "handoffOverride": "packages/marketing/phase2b/editorial/handoff-overrides.json",
+  "xCounts": [
+    {
+      "variantId": "rf-salt-volume-x-image",
+      "weightedPostLengths": [
+        193
+      ],
+      "within280": true
+    },
+    {
+      "variantId": "rf-autumn-originals-x-editorial",
+      "weightedPostLengths": [
+        234,
+        137
+      ],
+      "within280": true
+    },
+    {
+      "variantId": "rf-marinade-job-x",
+      "weightedPostLengths": [
+        241,
+        243
+      ],
+      "within280": true
+    },
+    {
+      "variantId": "rf-tomato-clock-x",
+      "weightedPostLengths": [
+        234,
+        225,
+        164
+      ],
+      "within280": true
+    }
+  ],
+  "countMethod": "URL replacement23 characters; Unicode weights1 for X ranges0\u201310FF/2000\u2013200D/2010\u2013201F/2032\u20132037,2 otherwise. These copy strings have no emoji-sequence ambiguity. No live post/API call.",
+  "rightsReview": "Original pinned manifests retained. Free Unsplash license reopened; no new assets. Salt original procedural artwork; historical recipe-only data and serving inspiration correctly scoped.",
+  "limitations": [
+    "Small source footers in X are secondary and not comfortable long reading at360px; linked captions carry full context.",
+    "Static feed review, not guaranteed full-screen Reel safe areas or engagement certification."
+  ],
+  "additionalCashUSD": 0,
+  "providerCalls": 0,
+  "accountOrPublishingWrites": false
+}
