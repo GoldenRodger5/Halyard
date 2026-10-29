@@ -1,0 +1,419 @@
+{
+  "schema": "recipefix-social-studio-specialist-handoff/v1",
+  "stream": "B-editorial-phase2",
+  "ideaCount": 2,
+  "newParentIdeas": 2,
+  "sharedParentIdeaIds": [],
+  "ideas": [
+    {
+      "id": "rf-marinade-job",
+      "title": "Your yogurt swap has a job to do.",
+      "category": "P06",
+      "targetAudience": "Home cooks choosing a dairy-free ingredient for a savory marinade.",
+      "whyWatch": "A yogurt swap sounds simple until the grocery shelf offers sweetened, flavored and thin options.",
+      "visibleEvent": "A coconut ingredient photograph opens a coral ingredient brief, a purposeful two-spoon texture comparison and the actual recorded method note.",
+      "payoff": "Know the specific plain, unsweetened coconut-yogurt brief and the thick/cultured texture note in this real RecipeFix example.",
+      "productBridge": "A genuine recorded ingredient replacement is paired with its associated method note; open the Chicken Tikka Masala Original and Make it fit for your own needs.",
+      "sourceUrls": [
+        "https://recipefix.app/original-recipes/chicken-tikka-masala",
+        "https://github.com/GoldenRodger5/recipe-fix/blob/a82f8bb9aff1cea7d5539156c807faa2602c9e29/src/data/recipefixOriginals.ts",
+        "https://github.com/GoldenRodger5/Halyard/blob/8d1417b862e17e794095e3951fd210cf771c56e8/packages/marketing/production-checkpoint/editorial/assets/historical-result.json"
+      ],
+      "authoringStatus": "founder_review"
+    },
+    {
+      "id": "rf-tomato-clock",
+      "title": "Counter or fridge? Ripeness first.",
+      "category": "E01",
+      "targetAudience": "Home cooks trying to use tomatoes at their best while storing cut produce safely.",
+      "whyWatch": "The usual never-refrigerate rule skips two different decisions: ripe fruit that will spoil and tomatoes that have been cut.",
+      "visibleEvent": "Two real tomato macro photographs become whole-underripe, whole-ripe and cut-produce decisions with a clear final change of rule.",
+      "payoff": "A practical storage decision based on ripeness and whether the tomato is whole or cut.",
+      "productBridge": null,
+      "sourceUrls": [
+        "https://spendsmart.extension.iastate.edu/produce-item/tomatoes/",
+        "https://yardandgarden.extension.iastate.edu/how-to/growing-tomatoes-home-garden",
+        "https://health.ucdavis.edu/blog/good-food/how-to-make-your-produce-last-longer/2025/09",
+        "https://www.fda.gov/consumers/consumer-updates/are-you-storing-food-safely"
+      ],
+      "authoringStatus": "founder_review"
+    }
+  ],
+  "variants": [
+    {
+      "id": "rf-marinade-job-ig",
+      "ideaId": "rf-marinade-job",
+      "platform": "instagram",
+      "format": "carousel",
+      "caption": "Your yogurt swap has a job to do.\n\nIn this recorded RecipeFix tikka example, whole-milk yogurt becomes plain unsweetened dairy-free coconut yogurt. The method adds a useful texture note: choose a thick, cultured variety, and stir it smooth before coating the chicken.\n\nOpen Chicken Tikka Masala → Make it fit. Set your needs and read the full adapted method before cooking.\n\nHistorical combined Dairy-Free + 6-serving request, October 21, 2026. This is one recorded suggestion, not a tested promise for every yogurt. Coconut photo: ingredient context by Louis Hansel / Unsplash; spoon textures are illustrative. No adapted meal was cooked or photographed.\n\n#IngredientSwaps #CookingTips #RecipeFix",
+      "media": [
+        {
+          "path": "packages/marketing/phase2/editorial/exports/marinade-ig-1.jpg",
+          "kind": "image",
+          "sha256": "14b307f6d16502a06c3360f1135dcbebac06cf958a55505c5f0732220f3f09f2",
+          "width": 1080,
+          "height": 1350,
+          "altText": "Your yogurt swap has a job to do. A licensed close-up of a split coconut introduces a real RecipeFix tikka marinade example. Coconut photograph is ingredient context, not coconut yogurt or an adapted meal. Recorded Dairy-Free plus six-serving example, October 21, 2026.",
+          "origin": "Local Playwright/Sharp editorial composition; real licensed ingredient photos and original illustrative geometry",
+          "rights": "Original AI-assisted editorial design and vector illustration, rendered locally; human-shot Unsplash photographs under Free Unsplash License; bundled SIL OFL fonts. No generated food photo, publisher image, customer media, physical experiment or exact cooked/adapted meal photo.",
+          "synthetic": true
+        },
+        {
+          "path": "packages/marketing/phase2/editorial/exports/marinade-ig-2.jpg",
+          "kind": "image",
+          "sha256": "aa7873605cb4fb6cbd3eb0b6c95946b86b246de864091c7d41390f8f9655c016",
+          "width": 1080,
+          "height": 1350,
+          "altText": "Milk out, the job stays. Original plain whole-milk yogurt changes to plain unsweetened dairy-free coconut yogurt in the recorded RecipeFix marinade. A designed editorial ingredient brief asks readers to check the ingredient list. It is not a product package.",
+          "origin": "Local Playwright/Sharp editorial composition; real licensed ingredient photos and original illustrative geometry",
+          "rights": "Original AI-assisted editorial design and vector illustration, rendered locally; human-shot Unsplash photographs under Free Unsplash License; bundled SIL OFL fonts. No generated food photo, publisher image, customer media, physical experiment or exact cooked/adapted meal photo.",
+          "synthetic": true
+        },
+        {
+          "path": "packages/marketing/phase2/editorial/exports/marinade-ig-3.jpg",
+          "kind": "image",
+          "sha256": "c862fe123b626974b5e193061acb0c86f388be72cc45d70ad7402ac57fd6845c",
+          "width": 1080,
+          "height": 1350,
+          "altText": "Thick beats thin, here. Original spoon illustrations compare a mounded texture with a thinner drip. The recorded method note says a thick, cultured variety clings better than a thin yogurt. The texture illustration is not a measured or photographed test.",
+          "origin": "Local Playwright/Sharp editorial composition; real licensed ingredient photos and original illustrative geometry",
+          "rights": "Original AI-assisted editorial design and vector illustration, rendered locally; human-shot Unsplash photographs under Free Unsplash License; bundled SIL OFL fonts. No generated food photo, publisher image, customer media, physical experiment or exact cooked/adapted meal photo.",
+          "synthetic": true
+        },
+        {
+          "path": "packages/marketing/phase2/editorial/exports/marinade-ig-4.jpg",
+          "kind": "image",
+          "sha256": "8ff526efce19ceb1e521e577a7ce79f03833ba59a2d1e49a5d5daf1d98ceb324",
+          "width": 1080,
+          "height": 1350,
+          "altText": "Stir, then coat. The actual recorded RecipeFix note says to stir the coconut yogurt smooth before coating the chicken. Open the Chicken Tikka Masala Original, choose Make it fit and read the full method.",
+          "origin": "Local Playwright/Sharp editorial composition; real licensed ingredient photos and original illustrative geometry",
+          "rights": "Original AI-assisted editorial design and vector illustration, rendered locally; human-shot Unsplash photographs under Free Unsplash License; bundled SIL OFL fonts. No generated food photo, publisher image, customer media, physical experiment or exact cooked/adapted meal photo.",
+          "synthetic": true
+        }
+      ],
+      "targetUrl": "https://recipefix.app/original-recipes/chicken-tikka-masala?utm_source=instagram&utm_medium=social&utm_campaign=rf_first_fortnight&utm_content=rf-marinade-job-ig",
+      "cta": "Open the Chicken Tikka Masala Original → Make it fit.",
+      "disclosure": "Historical recipe-only response, not fresh inference or a kitchen test. Coconut photography is ingredient context, not yogurt or the adapted dish. Original stirring already existed; this recorded note specifically adds smoothing and thick/cultured texture guidance.",
+      "sourceUrls": [
+        "https://recipefix.app/original-recipes/chicken-tikka-masala",
+        "https://github.com/GoldenRodger5/recipe-fix/blob/a82f8bb9aff1cea7d5539156c807faa2602c9e29/src/data/recipefixOriginals.ts",
+        "https://github.com/GoldenRodger5/Halyard/blob/8d1417b862e17e794095e3951fd210cf771c56e8/packages/marketing/production-checkpoint/editorial/assets/historical-result.json"
+      ]
+    },
+    {
+      "id": "rf-marinade-job-x",
+      "ideaId": "rf-marinade-job",
+      "platform": "x",
+      "format": "thread",
+      "caption": "A yogurt swap is also a texture choice.\n\nIn RecipeFix’s recorded tikka example: plain unsweetened coconut yogurt, a thick cultured variety, stirred smooth before coating the chicken.\n\nWhat ingredient swap taught you to read the method twice?",
+      "thread": [
+        "This is one historical Dairy-Free + 6-serving response (Oct 21, 2026), not a kitchen test or a universal yogurt substitution. Coconut photo: Louis Hansel / Unsplash, ingredient context.\n\nTry the Original → Make it fit:\nhttps://recipefix.app/original-recipes/chicken-tikka-masala?utm_source=x&utm_medium=social&utm_campaign=rf_first_fortnight&utm_content=rf-marinade-job-x"
+      ],
+      "media": [
+        {
+          "path": "packages/marketing/phase2/editorial/exports/marinade-x.jpg",
+          "kind": "image",
+          "sha256": "081707dfad755ade345956d090d0e74acbc400f1c29ea3a0a5039e62e3556fd1",
+          "width": 1200,
+          "height": 675,
+          "altText": "Native X graphic: a licensed coconut ingredient photograph sits beside the real RecipeFix coconut-yogurt brief, plain and unsweetened, with thick cultured texture and a recorded stir-smooth-before-coating note. Historical combined Dairy-Free and six-serving request, not a universal substitution test.",
+          "origin": "Local Playwright/Sharp editorial composition; real licensed ingredient photos and original illustrative geometry",
+          "rights": "Original AI-assisted editorial design and vector illustration, rendered locally; human-shot Unsplash photographs under Free Unsplash License; bundled SIL OFL fonts. No generated food photo, publisher image, customer media, physical experiment or exact cooked/adapted meal photo.",
+          "synthetic": true
+        }
+      ],
+      "targetUrl": "https://recipefix.app/original-recipes/chicken-tikka-masala?utm_source=x&utm_medium=social&utm_campaign=rf_first_fortnight&utm_content=rf-marinade-job-x",
+      "cta": "Optional real Original trial link in context reply.",
+      "disclosure": "Recorded ingredient and associated method note; not a novel stirring invention, fresh inference, cooked result, or promise of brand equivalence.",
+      "sourceUrls": [
+        "https://recipefix.app/original-recipes/chicken-tikka-masala",
+        "https://github.com/GoldenRodger5/recipe-fix/blob/a82f8bb9aff1cea7d5539156c807faa2602c9e29/src/data/recipefixOriginals.ts",
+        "https://github.com/GoldenRodger5/Halyard/blob/8d1417b862e17e794095e3951fd210cf771c56e8/packages/marketing/production-checkpoint/editorial/assets/historical-result.json"
+      ]
+    },
+    {
+      "id": "rf-tomato-clock-ig",
+      "ideaId": "rf-tomato-clock",
+      "platform": "instagram",
+      "format": "carousel",
+      "caption": "Counter or fridge? Start with ripeness — and whether it is still whole.\n\nWhole + underripe: let it ripen at room temperature, out of direct sunlight.\nWhole + ripe: use soon. If it will spoil first, refrigerate for a few days; texture and flavor can decline.\nCut: cover and refrigerate at 40°F / 4°C or colder within 2 hours. Above 90°F / 32°C, make that 1 hour. Refrigerate promptly; those are maximum limits, not waiting targets.\n\nStorage guidance: Iowa State University Extension, UC Davis Health and FDA; exact sources included in the review packet. Photos: Winston Chen and Praveen kumar Mathivanan / Unsplash. Photos are ingredient context; the cut tomato is an illustration.\n\n#KitchenTips #Tomatoes #FoodStorage",
+      "media": [
+        {
+          "path": "packages/marketing/phase2/editorial/exports/tomato-ig-1.jpg",
+          "kind": "image",
+          "sha256": "3a564bf2eef7bcb5d1de3f3266cb6d443fc107ddd801237b0122a5546b240374",
+          "width": 1080,
+          "height": 1350,
+          "altText": "Counter or fridge? First question: is it ripe? Licensed photographs of a green tomato on a vine and red tomatoes in a basket introduce different rules for whole and cut tomatoes.",
+          "origin": "Local Playwright/Sharp editorial composition; real licensed ingredient photos and original illustrative geometry",
+          "rights": "Original AI-assisted editorial design and vector illustration, rendered locally; human-shot Unsplash photographs under Free Unsplash License; bundled SIL OFL fonts. No generated food photo, publisher image, customer media, physical experiment or exact cooked/adapted meal photo.",
+          "synthetic": true
+        },
+        {
+          "path": "packages/marketing/phase2/editorial/exports/tomato-ig-2.jpg",
+          "kind": "image",
+          "sha256": "398b5388d5b815a9d348a83b59fa36415a2aedda7c45e3fe6190c4dd40f07b18",
+          "width": 1080,
+          "height": 1350,
+          "altText": "Whole and underripe: counter first. A green tomato photograph accompanies advice to ripen at room temperature away from direct sunlight. Source: Iowa State University Extension. The vine photo is ingredient context, not a demonstration of countertop storage.",
+          "origin": "Local Playwright/Sharp editorial composition; real licensed ingredient photos and original illustrative geometry",
+          "rights": "Original AI-assisted editorial design and vector illustration, rendered locally; human-shot Unsplash photographs under Free Unsplash License; bundled SIL OFL fonts. No generated food photo, publisher image, customer media, physical experiment or exact cooked/adapted meal photo.",
+          "synthetic": true
+        },
+        {
+          "path": "packages/marketing/phase2/editorial/exports/tomato-ig-3.jpg",
+          "kind": "image",
+          "sha256": "f84ef20e35fc551ca920a4b09bedc9fe3bca0aa2913f602ad2759524ac2a27a4",
+          "width": 1080,
+          "height": 1350,
+          "altText": "Whole and ripe, but not tonight? Use soon; if it will spoil first, refrigerate for a few days. A short pause has a flavor and texture tradeoff. Licensed red-tomato photo; source: Iowa State Extension.",
+          "origin": "Local Playwright/Sharp editorial composition; real licensed ingredient photos and original illustrative geometry",
+          "rights": "Original AI-assisted editorial design and vector illustration, rendered locally; human-shot Unsplash photographs under Free Unsplash License; bundled SIL OFL fonts. No generated food photo, publisher image, customer media, physical experiment or exact cooked/adapted meal photo.",
+          "synthetic": true
+        },
+        {
+          "path": "packages/marketing/phase2/editorial/exports/tomato-ig-4.jpg",
+          "kind": "image",
+          "sha256": "3808d56a143c647ea4195de0fbc3ce62747c7ba09701e203b823947d7cb960d9",
+          "width": 1080,
+          "height": 1350,
+          "altText": "Cut changes the rule. Cover and refrigerate cut tomatoes at 40 degrees Fahrenheit, 4 degrees Celsius or colder, within two hours; within one hour above 90 degrees Fahrenheit, 32 degrees Celsius. An original cut-tomato illustration sits beside the temperature. Counter advice on earlier cards is for whole tomatoes. Sources: UC Davis Health and FDA.",
+          "origin": "Local Playwright/Sharp editorial composition; real licensed ingredient photos and original illustrative geometry",
+          "rights": "Original AI-assisted editorial design and vector illustration, rendered locally; human-shot Unsplash photographs under Free Unsplash License; bundled SIL OFL fonts. No generated food photo, publisher image, customer media, physical experiment or exact cooked/adapted meal photo.",
+          "synthetic": true
+        }
+      ],
+      "cta": "Save the whole-versus-cut distinction for your next tomato haul.",
+      "disclosure": "Source-backed home storage guidance, not a shelf-life experiment. Green/red photos depict ingredients, not the same fruit before and after. No app claim or product CTA is forced.",
+      "sourceUrls": [
+        "https://spendsmart.extension.iastate.edu/produce-item/tomatoes/",
+        "https://yardandgarden.extension.iastate.edu/how-to/growing-tomatoes-home-garden",
+        "https://health.ucdavis.edu/blog/good-food/how-to-make-your-produce-last-longer/2025/09",
+        "https://www.fda.gov/consumers/consumer-updates/are-you-storing-food-safely"
+      ]
+    },
+    {
+      "id": "rf-tomato-clock-x",
+      "ideaId": "rf-tomato-clock",
+      "platform": "x",
+      "format": "thread",
+      "caption": "“Never refrigerate tomatoes” skips a useful distinction.\n\nWhole + underripe: counter, out of sun.\nWhole + ripe: use soon; chill if it will spoil first.\nCut: cover + refrigerate promptly.\n\nA storage decision, not a fridge loyalty test.",
+      "thread": [
+        "For cut tomatoes: 40°F / 4°C or colder, within 2 hours; within 1 hour above 90°F / 32°C. Maximum limits, not waiting targets.\n\nIowa State: https://spendsmart.extension.iastate.edu/produce-item/tomatoes/\nUC Davis: https://health.ucdavis.edu/blog/good-food/how-to-make-your-produce-last-longer/2025/09\nFDA: https://www.fda.gov/consumers/consumer-updates/are-you-storing-food-safely",
+        "Whole ripe tomatoes can spend a few days in the fridge, with a flavor/texture tradeoff. Source: https://yardandgarden.extension.iastate.edu/how-to/growing-tomatoes-home-garden\n\nPhoto: Praveen kumar Mathivanan / Unsplash."
+      ],
+      "media": [
+        {
+          "path": "packages/marketing/phase2/editorial/exports/tomato-x.jpg",
+          "kind": "image",
+          "sha256": "6c668181d5731974fafac1058b686b5a7eff78219b5297602b498f9fd5636b05",
+          "width": 1200,
+          "height": 675,
+          "altText": "Native storage decision graphic: whole and underripe tomatoes go on the counter out of direct sun; whole ripe tomatoes can be refrigerated if they will spoil first. Cut tomatoes need covered refrigeration at 40 degrees Fahrenheit, 4 degrees Celsius or colder, within two hours, or one hour above 90 degrees Fahrenheit, 32 degrees Celsius. Licensed tomato photograph. Sources: Iowa State, UC Davis and FDA.",
+          "origin": "Local Playwright/Sharp editorial composition; real licensed ingredient photos and original illustrative geometry",
+          "rights": "Original AI-assisted editorial design and vector illustration, rendered locally; human-shot Unsplash photographs under Free Unsplash License; bundled SIL OFL fonts. No generated food photo, publisher image, customer media, physical experiment or exact cooked/adapted meal photo.",
+          "synthetic": true
+        }
+      ],
+      "cta": "Read the practical whole-versus-cut storage distinction.",
+      "disclosure": "Licensed ingredient context photo; no laboratory, shelf-life or refrigeration experiment conducted.",
+      "sourceUrls": [
+        "https://spendsmart.extension.iastate.edu/produce-item/tomatoes/",
+        "https://yardandgarden.extension.iastate.edu/how-to/growing-tomatoes-home-garden",
+        "https://health.ucdavis.edu/blog/good-food/how-to-make-your-produce-last-longer/2025/09",
+        "https://www.fda.gov/consumers/consumer-updates/are-you-storing-food-safely"
+      ]
+    }
+  ],
+  "producerQA": {
+    "checkedAt": "2026-10-29T21:17:59.023Z",
+    "contractErrors": [],
+    "geometry": [
+      {
+        "id": "marinade-ig-1",
+        "issues": []
+      },
+      {
+        "id": "marinade-ig-2",
+        "issues": []
+      },
+      {
+        "id": "marinade-ig-3",
+        "issues": []
+      },
+      {
+        "id": "marinade-ig-4",
+        "issues": []
+      },
+      {
+        "id": "marinade-x",
+        "issues": []
+      },
+      {
+        "id": "tomato-ig-1",
+        "issues": []
+      },
+      {
+        "id": "tomato-ig-2",
+        "issues": []
+      },
+      {
+        "id": "tomato-ig-3",
+        "issues": []
+      },
+      {
+        "id": "tomato-ig-4",
+        "issues": []
+      },
+      {
+        "id": "tomato-x",
+        "issues": []
+      }
+    ],
+    "media": [
+      {
+        "path": "packages/marketing/phase2/editorial/exports/marinade-ig-1.jpg",
+        "sha256": "14b307f6d16502a06c3360f1135dcbebac06cf958a55505c5f0732220f3f09f2",
+        "width": 1080,
+        "height": 1350
+      },
+      {
+        "path": "packages/marketing/phase2/editorial/exports/marinade-ig-2.jpg",
+        "sha256": "aa7873605cb4fb6cbd3eb0b6c95946b86b246de864091c7d41390f8f9655c016",
+        "width": 1080,
+        "height": 1350
+      },
+      {
+        "path": "packages/marketing/phase2/editorial/exports/marinade-ig-3.jpg",
+        "sha256": "c862fe123b626974b5e193061acb0c86f388be72cc45d70ad7402ac57fd6845c",
+        "width": 1080,
+        "height": 1350
+      },
+      {
+        "path": "packages/marketing/phase2/editorial/exports/marinade-ig-4.jpg",
+        "sha256": "8ff526efce19ceb1e521e577a7ce79f03833ba59a2d1e49a5d5daf1d98ceb324",
+        "width": 1080,
+        "height": 1350
+      },
+      {
+        "path": "packages/marketing/phase2/editorial/exports/marinade-x.jpg",
+        "sha256": "081707dfad755ade345956d090d0e74acbc400f1c29ea3a0a5039e62e3556fd1",
+        "width": 1200,
+        "height": 675
+      },
+      {
+        "path": "packages/marketing/phase2/editorial/exports/tomato-ig-1.jpg",
+        "sha256": "3a564bf2eef7bcb5d1de3f3266cb6d443fc107ddd801237b0122a5546b240374",
+        "width": 1080,
+        "height": 1350
+      },
+      {
+        "path": "packages/marketing/phase2/editorial/exports/tomato-ig-2.jpg",
+        "sha256": "398b5388d5b815a9d348a83b59fa36415a2aedda7c45e3fe6190c4dd40f07b18",
+        "width": 1080,
+        "height": 1350
+      },
+      {
+        "path": "packages/marketing/phase2/editorial/exports/tomato-ig-3.jpg",
+        "sha256": "f84ef20e35fc551ca920a4b09bedc9fe3bca0aa2913f602ad2759524ac2a27a4",
+        "width": 1080,
+        "height": 1350
+      },
+      {
+        "path": "packages/marketing/phase2/editorial/exports/tomato-ig-4.jpg",
+        "sha256": "3808d56a143c647ea4195de0fbc3ce62747c7ba09701e203b823947d7cb960d9",
+        "width": 1080,
+        "height": 1350
+      },
+      {
+        "path": "packages/marketing/phase2/editorial/exports/tomato-x.jpg",
+        "sha256": "6c668181d5731974fafac1058b686b5a7eff78219b5297602b498f9fd5636b05",
+        "width": 1200,
+        "height": 675
+      }
+    ],
+    "queueReadiness": [
+      {
+        "variantId": "rf-marinade-job-ig",
+        "ready": false,
+        "reasons": [
+          "a concrete schedule time is missing",
+          "RecipeFix-owned account unverified",
+          "founder creative verdict missing",
+          "exact founder approval missing or stale",
+          "provider capability/account not proven"
+        ],
+        "delivery": "unknown"
+      },
+      {
+        "variantId": "rf-marinade-job-x",
+        "ready": false,
+        "reasons": [
+          "a concrete schedule time is missing",
+          "RecipeFix-owned account unverified",
+          "founder creative verdict missing",
+          "exact founder approval missing or stale",
+          "provider capability/account not proven"
+        ],
+        "delivery": "unknown"
+      },
+      {
+        "variantId": "rf-tomato-clock-ig",
+        "ready": false,
+        "reasons": [
+          "a concrete schedule time is missing",
+          "RecipeFix-owned account unverified",
+          "founder creative verdict missing",
+          "exact founder approval missing or stale",
+          "provider capability/account not proven"
+        ],
+        "delivery": "unknown"
+      },
+      {
+        "variantId": "rf-tomato-clock-x",
+        "ready": false,
+        "reasons": [
+          "a concrete schedule time is missing",
+          "RecipeFix-owned account unverified",
+          "founder creative verdict missing",
+          "exact founder approval missing or stale",
+          "provider capability/account not proven"
+        ],
+        "delivery": "unknown"
+      }
+    ],
+    "review": "Producer inspected every final asset at 390px and native dimensions. Root independently inspected all 10 first exports, identified the same pill/temperature/X overlap and red-header defects, then reviewed the four corrected assets. Root found no remaining blocking overlap and independently confirmed the Iowa/UC/FDA sources. Eligible candidates for founder review, not exceptional or publish-approved; producer cannot approve itself.",
+    "sound": "not_applicable",
+    "notApproval": true
+  },
+  "sourceManifest": "packages/marketing/phase2/editorial/source-manifest.json",
+  "source": {
+    "branch": "feat/recipefix-phase2-editorial-20261029",
+    "baseCommit": "dec9558",
+    "sourceCommit": "dec955885cf1094ea2e747233e72d075dd32a89e",
+    "ownership": "packages/marketing/phase2/editorial/**"
+  },
+  "cost": {
+    "additionalProviderUsd": 0,
+    "newSubscriptionsUsd": 0,
+    "paidCalls": 0,
+    "localComputeAndLabour": "unpriced"
+  },
+  "release": {
+    "founderDecision": "unreviewed",
+    "accountVerified": false,
+    "scheduledAt": null,
+    "publicationApproved": false,
+    "publisherInvoked": false
+  },
+  "preservedKeeps": [
+    "rf-autumn-originals unchanged in prior production-checkpoint path; carried by root integration",
+    "rf-salt-volume unchanged prior art; minor refinement owned by root"
+  ],
+  "limits": [
+    "Source-backed suggestions are not kitchen-tested substitution guarantees.",
+    "No production RecipeFix request, account setup or analytics ingestion performed.",
+    "No physical storage/texture experiment; ingredient photographs and original illustrations are clearly scoped."
+  ]
+}
