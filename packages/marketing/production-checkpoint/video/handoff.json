@@ -175,7 +175,7 @@
   "source": {
     "branch": "feat/recipefix-team-video-20261029",
     "base": "96c20517",
-    "commit": null
+    "commit": "a40f0c45290e2cb216df2426617c4da6fa563c09"
   },
   "publication": {
     "approved": false,
