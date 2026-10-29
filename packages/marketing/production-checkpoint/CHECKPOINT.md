@@ -4,6 +4,17 @@
 
 **Four parent ideas, eleven platform variants, one film, four carousels and four X graphics.** TikTok, Instagram Reel and YouTube Shorts use the same final film with different copy/title; they are not three films. The dinner carousel/X companions are the same parent as the film. The batch is produced for founder judgment, not approved creative inventory or a live publisher.
 
+## Teams and source handoff
+
+All streams began at `96c20517` on separate branches/worktrees. Their nonoverlapping commits are assembled on `feat/recipefix-team-integration-20261029` for review; no specialist or integration PR was merged into the active marketing branch. Root handled D and integration while three real Codex specialists produced A/B/C concurrently. C then independently critiqued A/B; root independently reviewed all three production streams.
+
+| Stream | Worktree under `/Volumes/T9/Developer/Worktrees/` | Source/media commit and PR |
+| --- | --- | --- |
+| A — video | `halyard-recipefix-team-video-20261029` | `a40f0c4`, metadata `49eb316` · [PR111](https://github.com/GoldenRodger5/Halyard/pull/111) |
+| B — editorial | `halyard-recipefix-team-editorial-20261029` | `8d1417b`, metadata `cebf428` · [PR112](https://github.com/GoldenRodger5/Halyard/pull/112) |
+| C — education/quiz | `halyard-recipefix-team-food-20261029` | `52501eb` · [PR110](https://github.com/GoldenRodger5/Halyard/pull/110) |
+| D + director/integration | `halyard-recipefix-team-integration-20261029` | Growth evidence `534a95d`, gallery/review `f06b7ab`; aggregate review branch |
+
 | Parent | Finished media | Director's actual critique |
 | --- | --- | --- |
 | More dinner. Same broiler. / P02 | 16-second 9:16 film; 5-card IG; X graphic + thread. A+B jointly serve one parent. | Quantity→method→physical batch sequence now has a real point. Reflective 3D sheets improve material/depth; the film still includes quiet UI/proof beats and illustrative stock context. It is an explanatory candidate, not a demonstrated entertainment breakthrough. The carousel is clearer than the old legal-document treatment but repeats its serving image. |
