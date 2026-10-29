@@ -1,0 +1,21 @@
+{
+  "checkedAt": "2026-10-29T20:40:08.621Z",
+  "parents": 4,
+  "variants": 11,
+  "viewports": [
+    360,
+    390
+  ],
+  "failures": [],
+  "playback": [],
+  "screenshots": [
+    "/Volumes/T9/Developer/Builds/recipefix-social-team-20261029/integration/evidence/final/rf-more-dinner-360.png",
+    "/Volumes/T9/Developer/Builds/recipefix-social-team-20261029/integration/evidence/final/rf-autumn-originals-360.png",
+    "/Volumes/T9/Developer/Builds/recipefix-social-team-20261029/integration/evidence/final/rf-salt-volume-360.png",
+    "/Volumes/T9/Developer/Builds/recipefix-social-team-20261029/integration/evidence/final/rf-allspice-quiz-360.png",
+    "/Volumes/T9/Developer/Builds/recipefix-social-team-20261029/integration/evidence/final/rf-more-dinner-390.png",
+    "/Volumes/T9/Developer/Builds/recipefix-social-team-20261029/integration/evidence/final/rf-autumn-originals-390.png",
+    "/Volumes/T9/Developer/Builds/recipefix-social-team-20261029/integration/evidence/final/rf-salt-volume-390.png",
+    "/Volumes/T9/Developer/Builds/recipefix-social-team-20261029/integration/evidence/final/rf-allspice-quiz-390.png"
+  ]
+}

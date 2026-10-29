@@ -1,0 +1,155 @@
+{
+  "reviewer": "/root \u2014 independent of A/B/C production",
+  "scope": "Every final card and X graphic; continuous 390px muted/unmuted film transport, sampled timeline and exported phone frames. No direct auditory perception or audience response data.",
+  "reviews": [
+    {
+      "variantId": "rf-more-dinner-tiktok-v4",
+      "mediaHashes": [
+        "1b57548d78a57b5e6b30e293350d701ba698d769d3de617b8ca81fcc60f9c848"
+      ],
+      "checkedAt": "2026-10-29T20:42:35.680876+00:00",
+      "visuallyReviewed": true,
+      "sound": "unverified",
+      "sourceAndRightsChecked": true,
+      "criticalDefects": [],
+      "founderDecision": "unreviewed"
+    },
+    {
+      "variantId": "rf-more-dinner-instagram-v4",
+      "mediaHashes": [
+        "1b57548d78a57b5e6b30e293350d701ba698d769d3de617b8ca81fcc60f9c848"
+      ],
+      "checkedAt": "2026-10-29T20:42:35.681052+00:00",
+      "visuallyReviewed": true,
+      "sound": "unverified",
+      "sourceAndRightsChecked": true,
+      "criticalDefects": [],
+      "founderDecision": "unreviewed"
+    },
+    {
+      "variantId": "rf-more-dinner-youtube-v4",
+      "mediaHashes": [
+        "1b57548d78a57b5e6b30e293350d701ba698d769d3de617b8ca81fcc60f9c848"
+      ],
+      "checkedAt": "2026-10-29T20:42:35.681060+00:00",
+      "visuallyReviewed": true,
+      "sound": "unverified",
+      "sourceAndRightsChecked": true,
+      "criticalDefects": [],
+      "founderDecision": "unreviewed"
+    },
+    {
+      "variantId": "rf-more-dinner-ig-editorial",
+      "mediaHashes": [
+        "16d4965fb784e6dfa1399175c99e25791a6d9ec28ca9be0d91ee3a9ff3878c8e",
+        "06b61ee27f7538d99b664785485b3c1a5a48267c9bab2546ef6058f9ff986e0d",
+        "43f4e15b70bf30b322356ac8befe8f0cb670f7941e4c7d4592487ac3fbc401d5",
+        "afda84ecb07c85848441fb11d325cb327d2e652a7a582e27b927a28060fdf5b8",
+        "94326ae09357867619a8d187c9126a5894435d93457588d153df440b0f3be4aa"
+      ],
+      "checkedAt": "2026-10-29T20:42:35.681065+00:00",
+      "visuallyReviewed": true,
+      "sound": "silent_by_design",
+      "sourceAndRightsChecked": true,
+      "criticalDefects": [],
+      "founderDecision": "unreviewed"
+    },
+    {
+      "variantId": "rf-more-dinner-x-editorial",
+      "mediaHashes": [
+        "79331e266a444fad9445b5335069429108f3d6306ee4304a916850dde31238fa"
+      ],
+      "checkedAt": "2026-10-29T20:42:35.681069+00:00",
+      "visuallyReviewed": true,
+      "sound": "silent_by_design",
+      "sourceAndRightsChecked": true,
+      "criticalDefects": [],
+      "founderDecision": "unreviewed"
+    },
+    {
+      "variantId": "rf-autumn-originals-ig-editorial",
+      "mediaHashes": [
+        "62b7380045de1742e602e8aaf97ed0582e1262c5ee32fd35494bf991c17f3261",
+        "d42a7ebcd8cdb0131568a887762bceeac1dc83dce9a27c44438f73b54127ccbc",
+        "39e2b2f234d099fcb6fe956c4ff1c8ed76d99fa595c6489908e2cb1f53f25e4f",
+        "21ad70fc7c139b6c5fd6438152c120b990e60ee367ab989d5d0a12a9e281f289"
+      ],
+      "checkedAt": "2026-10-29T20:42:35.681074+00:00",
+      "visuallyReviewed": true,
+      "sound": "silent_by_design",
+      "sourceAndRightsChecked": true,
+      "criticalDefects": [],
+      "founderDecision": "unreviewed"
+    },
+    {
+      "variantId": "rf-autumn-originals-x-editorial",
+      "mediaHashes": [
+        "b2b327e0ffe2ffb87fa7db66a02cc5df153942c0220e2f766600489a0d4843d6"
+      ],
+      "checkedAt": "2026-10-29T20:42:35.681077+00:00",
+      "visuallyReviewed": true,
+      "sound": "silent_by_design",
+      "sourceAndRightsChecked": true,
+      "criticalDefects": [],
+      "founderDecision": "unreviewed"
+    },
+    {
+      "variantId": "rf-salt-volume-ig-carousel",
+      "mediaHashes": [
+        "ab8e47a1a9871542b882f4f70509455bcad508529eed9187d87f5fd40e7cc4b1",
+        "dc3af13e9dd6f98a4c6c5b753194b4f823acff1df5711796b93d620f14227bdc",
+        "46ba718d6f87dca3fb5497db5d9044542212d665e3336147bd290b0818879cc8"
+      ],
+      "checkedAt": "2026-10-29T20:42:35.681081+00:00",
+      "visuallyReviewed": true,
+      "sound": "silent_by_design",
+      "sourceAndRightsChecked": true,
+      "criticalDefects": [],
+      "founderDecision": "unreviewed"
+    },
+    {
+      "variantId": "rf-salt-volume-x-image",
+      "mediaHashes": [
+        "6fb0932b448763a32098dbb89b148e7b4a9adbe9d8d261c9492c62a7de749804"
+      ],
+      "checkedAt": "2026-10-29T20:42:35.681085+00:00",
+      "visuallyReviewed": true,
+      "sound": "silent_by_design",
+      "sourceAndRightsChecked": true,
+      "criticalDefects": [],
+      "founderDecision": "unreviewed"
+    },
+    {
+      "variantId": "rf-allspice-quiz-ig-carousel",
+      "mediaHashes": [
+        "a388752352c647731454dfaa4b03c41cbb3aecb4b3d2f12e6032322461a6ea01",
+        "ccb1ad6afd477f38df52d5b9bdec7ded432ae47d2f365f1fa26d4d50426bc18f"
+      ],
+      "checkedAt": "2026-10-29T20:42:35.681089+00:00",
+      "visuallyReviewed": true,
+      "sound": "silent_by_design",
+      "sourceAndRightsChecked": true,
+      "criticalDefects": [],
+      "founderDecision": "unreviewed"
+    },
+    {
+      "variantId": "rf-allspice-quiz-x-image",
+      "mediaHashes": [
+        "7c5f604fddff0185a14b63a2686b44855a7faf30f9c1cb69a8bf99450d2427a6"
+      ],
+      "checkedAt": "2026-10-29T20:42:35.681092+00:00",
+      "visuallyReviewed": true,
+      "sound": "silent_by_design",
+      "sourceAndRightsChecked": true,
+      "criticalDefects": [],
+      "founderDecision": "unreviewed"
+    }
+  ],
+  "founderApproval": null,
+  "visualEvidence": "/Volumes/T9/Developer/Builds/recipefix-social-team-20261029/integration/evidence/final/gallery-check.json",
+  "videoEvidence": "/Volumes/T9/Developer/Builds/recipefix-social-team-20261029/integration/evidence/gallery-check.json",
+  "notes": [
+    "Independent C reviewed A/B drafts and caught food identity/quantity labeling weaknesses; root required actual fixes.",
+    "Root critiques are qualitative recommendations, never authenticated founder approval."
+  ]
+}
