@@ -1,0 +1,42 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import {createHash} from 'node:crypto';
+import {fileURLToPath} from 'node:url';
+import {validateIdea, validateVariant, fingerprintVariant, type CreativeIdea, type PlatformVariant, type CreativeAsset} from '../../../src/socialStudioContract';
+const home=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
+const render='/Volumes/T9/Developer/Builds/recipefix-social-team-20261029/food/renders/v3';
+const hash=(p:string)=>createHash('sha256').update(fs.readFileSync(p)).digest('hex');
+const saltSources=['https://www.kingarthurbaking.com/learn/ingredient-weight-chart','https://www.kingarthurbaking.com/blog/2021/06/17/kosher-salt-best-salts-for-baking'];
+const allspiceSources=['https://www.spices.res.in/crops/allspice','https://www.nparks.gov.sg/florafaunaweb/flora/6/0/6085'];
+const photo='https://commons.wikimedia.org/wiki/File:AllspiceSeeds.jpg';
+const license='https://creativecommons.org/licenses/by/2.5/';
+const ideas:CreativeIdea[]=[
+ {id:'rf-salt-volume',title:'Same spoon. Twice the salt.',category:'E04',targetAudience:'Home cooks following a recipe that names kosher salt by volume, especially when changing brands.',whyWatch:'Two dimensional spoons and a counterintuitive hook make an everyday seasoning mistake visible.',visibleEvent:'Swipe from an original studio illustration to the exact two-brand tablespoon chart comparison, then a practical substitution check.',payoff:'Learn why Diamond Crystal and Morton’s kosher salt cannot be casually exchanged spoon for spoon; use the recipe’s salt specification or stated grams.',productBridge:null,sourceUrls:saltSources,authoringStatus:'founder_review'},
+ {id:'rf-allspice-quiz',title:'Allspice: one spice or a blend?',category:'C02',targetAudience:'Curious home cooks who encounter allspice in spice cakes, sauces or pickles.',whyWatch:'The familiar pantry name invites a plausible wrong answer; real fruit photography gives a visual clue.',visibleEvent:'Pick one spice or a blend, then swipe to a close fruit study and the reveal: one spice, one tree.',payoff:'Allspice is the dried unripe fruit of Pimenta dioica; its flavor can recall several spices while the ingredient itself is not a blend.',productBridge:null,sourceUrls:allspiceSources,authoringStatus:'founder_review'},
+];
+const alts:Record<string,string>={
+ 'salt-1':'Two originally modeled metal tablespoons hold illustrative coarse salt crystals on a dark surface. Text: Same spoon. Twice the salt. One tablespoon isn’t one weight. Swipe for the chart.',
+ 'salt-2':'King Arthur Baking’s published kosher salt chart comparison: Diamond Crystal, one tablespoon, 8 grams; Morton’s, one tablespoon, 16 grams. Same volume, different amounts of salt.',
+ 'salt-3':'Before seasoning by the spoon, match the salt type and use the recipe’s weight if provided. A recipe may specify a different kosher salt brand; follow its stated grams rather than equal spoonfuls.',
+ 'allspice-1':'A real photograph of dried brown allspice fruits with a pantry quiz: Allspice. One spice? Or a whole spice blend? Pick your answer, then swipe.',
+ 'allspice-2':'A framed close study of real allspice fruits accompanies the answer: One spice. One tree. Allspice is the dried unripe fruit of Pimenta dioica; its flavor recalls cinnamon, clove and nutmeg.',
+ 'salt-x':'Two originally modeled spoons of illustrative salt alongside King Arthur Baking’s chart values per tablespoon: Diamond Crystal kosher salt 8 grams; Morton’s kosher salt 16 grams.',
+ 'allspice-x':'Real dried allspice fruit photography and the reveal: Allspice isn’t a spice blend. It is the dried unripe fruit of Pimenta dioica. Photo Brian Arthur, CC BY2.5, cropped.',
+};
+function asset(n:string):CreativeAsset{
+ const output=path.join(home,'exports',`${n}.png`); fs.copyFileSync(path.join(render,`${n}.png`),output);
+ const isSalt=n.startsWith('salt');
+ return {path:`packages/marketing/production-checkpoint/food/exports/${n}.png`,kind:'image',sha256:hash(output),width:n.endsWith('-x')?1200:1080,height:n.endsWith('-x')?675:1350,origin:isSalt?'Original RecipeFix composition; original Blender3D spoon/salt illustration generated locally from scripts/salt_scene.py; Inter and Instrument Serif fonts.':`Original editorial composition with cropped and multiply-blended Brian Arthur photograph via ${photo}`,rights:isSalt?'Original procedural artwork; no third-party meshes/photos. Fonts licensed under SIL OFL1.1; license files included.':`Brian Arthur, CC BY2.5 selected from Commons multiple licensing. Crop, scale and background blend disclosed. ${license} Original: ${photo}. Fonts SIL OFL1.1.`,altText:alts[n],synthetic:isSalt};
+}
+const saltIG='Same spoonful, different amount of salt. King Arthur Baking’s chart lists 1 tablespoon of Diamond Crystal kosher salt as 8 g, and Morton’s kosher salt as 16 g. These are published reference values, not a universal measured spoon conversion. Match the recipe’s salt specification, or use its stated gram weight. Original 3D illustration; no live weighing.\nSource: '+saltSources[0];
+const allIG='One spice. One tree. Allspice is the dried, unripe fruit of Pimenta dioica—not a spice blend. It can recall cinnamon, clove and nutmeg, and appears in baking, sauces and pickles.\nSources: '+allspiceSources.join(' | ')+'\nFruit photo: Brian Arthur, cropped/resized with background blending; CC BY2.5 '+license+' Original: '+photo;
+const variants:PlatformVariant[]=[
+ {id:'rf-salt-volume-ig-carousel',ideaId:'rf-salt-volume',platform:'instagram',format:'carousel',title:'Same spoon. Twice the salt.',caption:saltIG,media:[asset('salt-1'),asset('salt-2'),asset('salt-3')],cta:'Swipe for the brand comparison and recipe check.',sourceUrls:saltSources,disclosure:'Original illustrative 3D spoons and crystals; chart values attributed, not a photographed or measured demonstration. Silent by design.'},
+ {id:'rf-salt-volume-x-image',ideaId:'rf-salt-volume',platform:'x',format:'image',title:'Same tablespoon. Different salt.',caption:'King Arthur’s chart, per tablespoon: Diamond Crystal kosher salt 8 g; Morton’s kosher salt 16 g. Match your recipe’s salt type or stated grams. Original 3D illustration.\n'+saltSources[0],media:[asset('salt-x')],sourceUrls:saltSources,disclosure:'Original 3D illustration, not a live weighing. Silent by design.'},
+ {id:'rf-allspice-quiz-ig-carousel',ideaId:'rf-allspice-quiz',platform:'instagram',format:'carousel',title:'Allspice: one spice or a blend?',caption:allIG,media:[asset('allspice-1'),asset('allspice-2')],cta:'Pick an answer, then swipe for the reveal.',sourceUrls:[...allspiceSources,photo,license],disclosure:'Real CC BY2.5 licensed fruit photography; crops and background blending disclosed. No generated food photo. Silent by design.'},
+ {id:'rf-allspice-quiz-x-image',ideaId:'rf-allspice-quiz',platform:'x',format:'image',title:'Allspice isn’t a spice blend.',caption:'Allspice is one ingredient: dried unripe Pimenta dioica fruit.\nSource: '+allspiceSources[0]+'\nPhoto: Brian Arthur, cropped/blended. CC BY2.5: '+license+' Original: '+photo,media:[asset('allspice-x')],sourceUrls:[...allspiceSources,photo,license],disclosure:'Real licensed allspice fruit photograph, cropped and background blended. Silent by design.'},
+];
+const validation=[...ideas.flatMap(i=>validateIdea(i).map(e=>`${i.id}: ${e}`)),...variants.flatMap(v=>validateVariant(v).map(e=>`${v.id}: ${e}`))]; if(validation.length)throw Error(validation.join('\n'));
+const weightedX=Object.fromEntries(variants.filter(v=>v.platform==='x').map(v=>[v.id,v.caption.replace(/https?:\/\/\S+/g,'x'.repeat(23)).length]));if(Object.values(weightedX).some(n=>n>280))throw Error('X copy exceeds280 weighted characters');
+const out={schemaVersion:1,producer:'food_studio',revision:'v3',status:'founder_review',ideas,variants,authoringFingerprints:Object.fromEntries(variants.map(v=>[v.id,fingerprintVariant(v)])),cost:{providerCalls:0,providerSpendUSD:0,newSubscriptions:0,newDependencies:0},audio:'silent_by_design',founderDecision:'unreviewed',publication:{requested:false,accountVerified:false,schedule:null,published:false},validation:{ideas:2,variants:4,errors:validation,weightedXCharacters:weightedX},rightsLimitations:[],sourcesAndRights:'sources-and-rights.json',reviewNotes:'QA.md'};
+fs.writeFileSync(path.join(home,'handoff.json'),JSON.stringify(out,null,2)+'\n');console.log(JSON.stringify({ideas:ideas.length,variants:variants.length,weightedX,hashes:variants.flatMap(v=>v.media.map(m=>[m.path,m.sha256]))},null,2));
