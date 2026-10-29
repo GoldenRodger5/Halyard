@@ -75,3 +75,7 @@ The source-linked technical, editorial, and operations recommendation now lives 
 ## October 29 commercial category clarification
 
 The founder and product owner explicitly agree: RecipeFix social may be fun, distinctive and entertaining, but its ultimate purpose is growing a real cooking audience into useful first adaptations, repeat users and verified paid subscribers. See [current content categories and conversion strategy](strategy/2026-10-29-CONTENT-CATEGORIES-AND-GROWTH-STRATEGY.md) and [first 14-day pilot slate](strategy/2026-10-29-FIRST-FORTNIGHT-EDITORIAL-EXPERIMENT.md). Provisional test mix: ~50% actual recipe/product problems, 30% useful food, 20% games/history/trivia/humor/community, not a rigid constraint. PR #104 products were rejected; PR #105 yolk/popcorn are unpublished R&D, not evidence of paying-customer acquisition. No public content approval is inferred.
+
+## Production architecture checkpoint October 29
+
+[Reusable production architecture](strategy/2026-10-29-REUSABLE-SOCIAL-STUDIO-ARCHITECTURE.md) and [specialist streams](strategy/2026-10-29-SPECIALIST-PRODUCTION-WORKSTREAMS.md) describe the next implementation. An offline type/validation contract covers exactly four core networks, independent format/category selection and binding to a reviewed exact asset/copy/account/time fingerprint. It is NOT a working authenticated approval system or platform publishing integration; existing legacy live CLI is held pending proven RecipeFix-owned accounts, publisher integration and explicit founder authorization.
