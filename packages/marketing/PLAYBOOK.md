@@ -1,3 +1,5 @@
+> **OCT 29 BUSINESS-FIRST OVERRIDE:** The old 70%-games-first launch plan below is SUPERSEDED as the default. Read [current content categories](strategy/2026-10-29-CONTENT-CATEGORIES-AND-GROWTH-STRATEGY.md) and [first 14-day pilot](strategy/2026-10-29-FIRST-FORTNIGHT-EDITORIAL-EXPERIMENT.md). Test ~50% actual RecipeFix/recipe problems, ~30% useful food education/recipes, ~20% fun/community. Both entertaining creativity and a real path to product activation matter. PR #105 food games are research, not confirmed marketing performance.
+
 > **Strategic plan 2026-10-28:** [Social Studio deep research, diverse creative formats and phased delivery](strategy/README.md) supersedes any older implied requirement that the existing templates/robotic narrator suffice. Founder-approved 14-day creative batches remain the operating model.
 
 > **2026-10-28 operating model supersession:** [Founder-led 14-day content and operations](FOUNDER_OPERATING_MODEL_2026-10-28.md) replaces earlier auto-creator and auto-approval requirements. Collaborative creation, exact-batch founder approval, then automated supported posting/analytics and source-linked market research. Blotato remains under evaluation; external comments/replies/DMs require separate owner decisions.
@@ -30,6 +32,8 @@ The people who save "Which pantry staple usually contains wheat?" are the
 people who will paste a recipe into RecipeFix next week.
 
 ## 2. Content ladder: what to lead with
+
+**Historical section — superseded October 29, 2026.** The older games-first percentages and follower-stage assumptions below are retained for context, not a current execution mandate. Use the new commercial categories and observed conversion data.
 
 Do **not** lead with a product intro. A brand-new account opening with an
 ad gets shown to almost nobody, and the viewer review agrees (it marks hard

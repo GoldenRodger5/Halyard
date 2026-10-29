@@ -71,3 +71,7 @@ This document records **operating intent**, not completion. As of the October 28
 ## Expanded research and build phases
 
 The source-linked technical, editorial, and operations recommendation now lives in [the Social Studio planning index](strategy/README.md), which includes the ranked tool bakeoff, deliberately varied platform-native content, publisher options (including Blotato), research-agent requirements, phase-by-phase QA and budget/approval gates. This document remains the authority on founder involvement and automation boundaries. The research is NOT authorization to begin paid model experiments or public publishing.
+
+## October 29 commercial category clarification
+
+The founder and product owner explicitly agree: RecipeFix social may be fun, distinctive and entertaining, but its ultimate purpose is growing a real cooking audience into useful first adaptations, repeat users and verified paid subscribers. See [current content categories and conversion strategy](strategy/2026-10-29-CONTENT-CATEGORIES-AND-GROWTH-STRATEGY.md) and [first 14-day pilot slate](strategy/2026-10-29-FIRST-FORTNIGHT-EDITORIAL-EXPERIMENT.md). Provisional test mix: ~50% actual recipe/product problems, 30% useful food, 20% games/history/trivia/humor/community, not a rigid constraint. PR #104 products were rejected; PR #105 yolk/popcorn are unpublished R&D, not evidence of paying-customer acquisition. No public content approval is inferred.
