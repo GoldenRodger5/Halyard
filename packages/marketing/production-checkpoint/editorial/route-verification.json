@@ -1,0 +1,34 @@
+{
+  "producerHTTPAttempts": [
+    {
+      "url": "https://recipefix.app/original-recipes/chicken-tikka-masala",
+      "error": "HTTP Error 403: Forbidden"
+    },
+    {
+      "url": "https://recipefix.app/original-recipes/roasted-butternut-squash-soup",
+      "error": "HTTP Error 403: Forbidden"
+    },
+    {
+      "url": "https://recipefix.app/original-recipes/sweet-potato-black-bean-tacos",
+      "error": "HTTP Error 403: Forbidden"
+    },
+    {
+      "url": "https://recipefix.app/original-recipes/lemon-herb-roast-chicken",
+      "error": "HTTP Error 403: Forbidden"
+    }
+  ],
+  "directorIndependentReadback": {
+    "reportedAt": "2026-10-29",
+    "method": "Chromium390 read-only QA parameters; POST abort",
+    "routes": [
+      "chicken-tikka-masala",
+      "roasted-butternut-squash-soup",
+      "lemon-herb-roast-chicken"
+    ],
+    "status": 200,
+    "exactHeadingVisible": true,
+    "makeItFitVisible": true,
+    "receipt": "../growth/destination-receipt.json (director integration stream)",
+    "note": "Verified independently by director; producer403 fetches retained, not represented as producer success."
+  }
+}

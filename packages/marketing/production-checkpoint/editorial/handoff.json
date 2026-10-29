@@ -1,0 +1,462 @@
+{
+  "schema": "recipefix-social-studio-specialist-handoff/v1",
+  "stream": "B-editorial",
+  "ideaCount": 2,
+  "newParentIdeas": 1,
+  "sharedParentIdeaIds": [
+    "rf-more-dinner"
+  ],
+  "ideas": [
+    {
+      "id": "rf-more-dinner",
+      "title": "More dinner. Same broiler.",
+      "category": "P02",
+      "targetAudience": "Home cooks increasing a familiar dinner while accommodating dietary needs.",
+      "whyWatch": "The ingredient amount grows; the broiler does not. A concise visual plan shows the overlooked consequence.",
+      "visibleEvent": "Photographic dinner context gives way to exact quantity math, two tactile foil sheets in sequence, sauce finishing and a focused recipe invitation.",
+      "payoff": "Understand the specific real two-batch method, then know which Original to open and make fit.",
+      "productBridge": "Recorded RecipeFix Dairy-Free4 → 6 response changes chicken1½ → 2¼ lb and the associated broiler plan. Same parent idea as video stream A; not counted twice.",
+      "sourceUrls": [
+        "https://recipefix.app/original-recipes/chicken-tikka-masala"
+      ],
+      "authoringStatus": "founder_review"
+    },
+    {
+      "id": "rf-autumn-originals",
+      "title": "The cool-evening edit",
+      "category": "E05",
+      "targetAudience": "Food-interested home cooks choosing a warming bowl or a slower roast for an evening meal.",
+      "whyWatch": "Two different cooking moods with a real recipe and useful time commitment for each.",
+      "visibleEvent": "A plum-and-paper food collage opens into a soup choice, a roast choice, and a side-by-side decision.",
+      "payoff": "Choose soup or roast and find the named RecipeFix Original; optional Make it fit bridge.",
+      "productBridge": "Find authored Originals worth exploring; Make it fit is optional, with no fabricated adapted outcome.",
+      "sourceUrls": [
+        "https://recipefix.app/original-recipes/roasted-butternut-squash-soup",
+        "https://recipefix.app/original-recipes/lemon-herb-roast-chicken"
+      ],
+      "authoringStatus": "founder_review"
+    }
+  ],
+  "variants": [
+    {
+      "id": "rf-more-dinner-ig-editorial",
+      "ideaId": "rf-more-dinner",
+      "platform": "instagram",
+      "format": "carousel",
+      "caption": "More dinner. Same broiler.\n\nThis RecipeFix example takes Chicken Tikka Masala from 4 to 6: 1½ → 2¼ lb of chicken, two foil-lined sheets, broiled one at a time. Then each batch finishes in simmering sauce.\n\nTry the Chicken Tikka Masala Original → Make it fit. Set your needs and servings, and read the full method before cooking.\n\nRecorded Dairy-Free request, October 21, 2026. Licensed serving inspiration, not a cooking test.\n\n#CookingForMore #RecipeScaling #RecipeFix",
+      "media": [
+        {
+          "path": "packages/marketing/production-checkpoint/editorial/exports/more-dinner-ig-1.jpg",
+          "kind": "image",
+          "sha256": "16d4965fb784e6dfa1399175c99e25791a6d9ec28ca9be0d91ee3a9ff3878c8e",
+          "width": 1080,
+          "height": 1350,
+          "origin": "Locally rendered Playwright/Sharp editorial design from pinned licensed stock and original vector geometry",
+          "rights": "Original AI-assisted editorial layout; human-shot licensed Unsplash serving photography; seasonal sources from pinned RecipeFix Originals catalog and chicken tikka from the separately verified free source. Original procedural foil illustration where present. Fonts under bundled SIL OFL. No publisher/customer media; no photo of a cooked adaptation.",
+          "altText": "More dinner, same broiler. A licensed serving-inspiration curry photograph accompanies a four-to-six-serving RecipeFix dinner-plan story; it is not a cooked adaptation result.",
+          "synthetic": true
+        },
+        {
+          "path": "packages/marketing/production-checkpoint/editorial/exports/more-dinner-ig-2.jpg",
+          "kind": "image",
+          "sha256": "06b61ee27f7538d99b664785485b3c1a5a48267c9bab2546ef6058f9ff986e0d",
+          "width": 1080,
+          "height": 1350,
+          "origin": "Locally rendered Playwright/Sharp editorial design from pinned licensed stock and original vector geometry",
+          "rights": "Original AI-assisted editorial layout; human-shot licensed Unsplash serving photography; seasonal sources from pinned RecipeFix Originals catalog and chicken tikka from the separately verified free source. Original procedural foil illustration where present. Fonts under bundled SIL OFL. No publisher/customer media; no photo of a cooked adaptation.",
+          "altText": "For the recorded RecipeFix example, chicken changes from one and a half pounds for four servings to two and a quarter pounds for six. The broiler space stays the same. Curry photograph is serving inspiration.",
+          "synthetic": true
+        },
+        {
+          "path": "packages/marketing/production-checkpoint/editorial/exports/more-dinner-ig-3.jpg",
+          "kind": "image",
+          "sha256": "43f4e15b70bf30b322356ac8befe8f0cb670f7941e4c7d4592487ac3fbc401d5",
+          "width": 1080,
+          "height": 1350,
+          "origin": "Locally rendered Playwright/Sharp editorial design from pinned licensed stock and original vector geometry",
+          "rights": "Original AI-assisted editorial layout; human-shot licensed Unsplash serving photography; seasonal sources from pinned RecipeFix Originals catalog and chicken tikka from the separately verified free source. Original procedural foil illustration where present. Fonts under bundled SIL OFL. No publisher/customer media; no photo of a cooked adaptation.",
+          "altText": "Two original foil-sheet illustrations labelled one and two. The recorded six-serving plan says to broil one sheet at a time. Sheets are an illustrative arrangement, not measured trays.",
+          "synthetic": true
+        },
+        {
+          "path": "packages/marketing/production-checkpoint/editorial/exports/more-dinner-ig-4.jpg",
+          "kind": "image",
+          "sha256": "afda84ecb07c85848441fb11d325cb327d2e652a7a582e27b927a28060fdf5b8",
+          "width": 1080,
+          "height": 1350,
+          "origin": "Locally rendered Playwright/Sharp editorial design from pinned licensed stock and original vector geometry",
+          "rights": "Original AI-assisted editorial layout; human-shot licensed Unsplash serving photography; seasonal sources from pinned RecipeFix Originals catalog and chicken tikka from the separately verified free source. Original procedural foil illustration where present. Fonts under bundled SIL OFL. No publisher/customer media; no photo of a cooked adaptation.",
+          "altText": "Then into the sauce. Promptly finish each broiler batch in simmering sauce. The full recipe includes a 165 degrees Fahrenheit, 74 degrees Celsius internal check. Licensed curry serving inspiration is not cooking proof.",
+          "synthetic": true
+        },
+        {
+          "path": "packages/marketing/production-checkpoint/editorial/exports/more-dinner-ig-5.jpg",
+          "kind": "image",
+          "sha256": "94326ae09357867619a8d187c9126a5894435d93457588d153df440b0f3be4aa",
+          "width": 1080,
+          "height": 1350,
+          "origin": "Locally rendered Playwright/Sharp editorial design from pinned licensed stock and original vector geometry",
+          "rights": "Original AI-assisted editorial layout; human-shot licensed Unsplash serving photography; seasonal sources from pinned RecipeFix Originals catalog and chicken tikka from the separately verified free source. Original procedural foil illustration where present. Fonts under bundled SIL OFL. No publisher/customer media; no photo of a cooked adaptation.",
+          "altText": "Make it fit your table. Open the Chicken Tikka Masala Original and choose Make it fit; set needs and servings. Licensed serving inspiration appears behind a compact cream recipe invitation.",
+          "synthetic": true
+        }
+      ],
+      "targetUrl": "https://recipefix.app/original-recipes/chicken-tikka-masala?utm_source=instagram&utm_medium=social&utm_campaign=rf_first_fortnight&utm_content=rf-more-dinner-ig-editorial",
+      "cta": "Open the Chicken Tikka Masala Original → Make it fit.",
+      "disclosure": "Historical combined Dairy-Free and four-to-six response. The photographs are representative licensed serving inspiration and do not depict the exact authored recipe or an adapted result. Illustration is a plan, not measured appliance capacity.",
+      "sourceUrls": [
+        "https://recipefix.app/original-recipes/chicken-tikka-masala"
+      ]
+    },
+    {
+      "id": "rf-more-dinner-x-editorial",
+      "ideaId": "rf-more-dinner",
+      "platform": "x",
+      "format": "thread",
+      "caption": "More dinner. Same broiler.\n\nRecipeFix’s 4 → 6 tikka example changes both the chicken amount (1½ → 2¼ lb) and the plan: two sheets, one at a time, then finish in sauce.\n\nWhat’s your bottleneck when you cook for more?",
+      "thread": [
+        "Recorded Dairy-Free request, Oct 21, 2026; serving photo is illustrative, not a cooking test. Try the Original → Make it fit, then read the full method.\n\nhttps://recipefix.app/original-recipes/chicken-tikka-masala?utm_source=x&utm_medium=social&utm_campaign=rf_first_fortnight&utm_content=rf-more-dinner-x-editorial"
+      ],
+      "media": [
+        {
+          "path": "packages/marketing/production-checkpoint/editorial/exports/more-dinner-x.jpg",
+          "kind": "image",
+          "sha256": "79331e266a444fad9445b5335069429108f3d6306ee4304a916850dde31238fa",
+          "width": 1200,
+          "height": 675,
+          "origin": "Locally rendered Playwright/Sharp editorial design from pinned licensed stock and original vector geometry",
+          "rights": "Original AI-assisted editorial layout; human-shot licensed Unsplash serving photography; seasonal sources from pinned RecipeFix Originals catalog and chicken tikka from the separately verified free source. Original procedural foil illustration where present. Fonts under bundled SIL OFL. No publisher/customer media; no photo of a cooked adaptation.",
+          "altText": "A curry serving-inspiration photo beside the useful scaling note: four to six servings, chicken one and a half to two and a quarter pounds; two sheets, broil one at a time, then finish in sauce. Recorded Dairy-Free example, October 21, 2026. Footer is separated from artwork.",
+          "synthetic": true
+        }
+      ],
+      "targetUrl": "https://recipefix.app/original-recipes/chicken-tikka-masala?utm_source=x&utm_medium=social&utm_campaign=rf_first_fortnight&utm_content=rf-more-dinner-x-editorial",
+      "cta": "Optional trial link in source/context reply.",
+      "disclosure": "Recorded result; licensed serving inspiration; no physical cooking or nutrition achievement claim.",
+      "sourceUrls": [
+        "https://recipefix.app/original-recipes/chicken-tikka-masala"
+      ]
+    },
+    {
+      "id": "rf-autumn-originals-ig-editorial",
+      "ideaId": "rf-autumn-originals",
+      "platform": "instagram",
+      "format": "carousel",
+      "caption": "Some evenings call for a bowl. Some call for the whole roast.\n\nThe cool-evening edit:\n• Roasted Butternut Squash Soup — 60 minutes, serves 4. Roast the squash; add lemon at the finish.\n• Lemon Herb Roast Chicken — 90 minutes, serves 4, including a 15-minute rest.\n\nFind both in RecipeFix Originals. Open a recipe and choose Make it fit if you want to change needs or servings.\n\nLicensed serving inspiration. Full recipes in the app.\n\n#DinnerIdeas #AutumnCooking #RecipeFix",
+      "media": [
+        {
+          "path": "packages/marketing/production-checkpoint/editorial/exports/autumn-ig-1.jpg",
+          "kind": "image",
+          "sha256": "62b7380045de1742e602e8aaf97ed0582e1262c5ee32fd35494bf991c17f3261",
+          "width": 1080,
+          "height": 1350,
+          "origin": "Locally rendered Playwright/Sharp editorial design from pinned licensed stock and original vector geometry",
+          "rights": "Original AI-assisted editorial layout; human-shot licensed Unsplash serving photography; seasonal sources from pinned RecipeFix Originals catalog and chicken tikka from the separately verified free source. Original procedural foil illustration where present. Fonts under bundled SIL OFL. No publisher/customer media; no photo of a cooked adaptation.",
+          "altText": "For darker evenings: a bowl night or a roast night. Licensed soup and whole-roast-chicken serving photographs overlap like printed pictures on plum paper; swipe to choose two RecipeFix Originals.",
+          "synthetic": true
+        },
+        {
+          "path": "packages/marketing/production-checkpoint/editorial/exports/autumn-ig-2.jpg",
+          "kind": "image",
+          "sha256": "d42a7ebcd8cdb0131568a887762bceeac1dc83dce9a27c44438f73b54127ccbc",
+          "width": 1080,
+          "height": 1350,
+          "origin": "Locally rendered Playwright/Sharp editorial design from pinned licensed stock and original vector geometry",
+          "rights": "Original AI-assisted editorial layout; human-shot licensed Unsplash serving photography; seasonal sources from pinned RecipeFix Originals catalog and chicken tikka from the separately verified free source. Original procedural foil illustration where present. Fonts under bundled SIL OFL. No publisher/customer media; no photo of a cooked adaptation.",
+          "altText": "A bowl night: Roasted Butternut Squash Soup. The recipe roasts the squash and adds lemon at the finish. 60 minutes, serves four. The orange soup with seeds and a pale topping is licensed serving inspiration, not a photographed recipe test or a diet claim.",
+          "synthetic": true
+        },
+        {
+          "path": "packages/marketing/production-checkpoint/editorial/exports/autumn-ig-3.jpg",
+          "kind": "image",
+          "sha256": "39e2b2f234d099fcb6fe956c4ff1c8ed76d99fa595c6489908e2cb1f53f25e4f",
+          "width": 1080,
+          "height": 1350,
+          "origin": "Locally rendered Playwright/Sharp editorial design from pinned licensed stock and original vector geometry",
+          "rights": "Original AI-assisted editorial layout; human-shot licensed Unsplash serving photography; seasonal sources from pinned RecipeFix Originals catalog and chicken tikka from the separately verified free source. Original procedural foil illustration where present. Fonts under bundled SIL OFL. No publisher/customer media; no photo of a cooked adaptation.",
+          "altText": "A roast night: Lemon Herb Roast Chicken. 90 minutes, serves four, including a 15-minute rest. A whole-roast-chicken serving photograph accompanies the named Original; no kitchen-test claim.",
+          "synthetic": true
+        },
+        {
+          "path": "packages/marketing/production-checkpoint/editorial/exports/autumn-ig-4.jpg",
+          "kind": "image",
+          "sha256": "21ad70fc7c139b6c5fd6438152c120b990e60ee367ab989d5d0a12a9e281f289",
+          "width": 1080,
+          "height": 1350,
+          "origin": "Locally rendered Playwright/Sharp editorial design from pinned licensed stock and original vector geometry",
+          "rights": "Original AI-assisted editorial layout; human-shot licensed Unsplash serving photography; seasonal sources from pinned RecipeFix Originals catalog and chicken tikka from the separately verified free source. Original procedural foil illustration where present. Fonts under bundled SIL OFL. No publisher/customer media; no photo of a cooked adaptation.",
+          "altText": "Which evening are you cooking for? Soup and roast serving photographs make two choices. Find both in RecipeFix Originals, open a recipe and optionally Make it fit.",
+          "synthetic": true
+        }
+      ],
+      "targetUrl": "https://recipefix.app/original-recipes/roasted-butternut-squash-soup?utm_source=instagram&utm_medium=social&utm_campaign=rf_first_fortnight&utm_content=rf-autumn-originals-ig-editorial",
+      "cta": "Find the two named Originals; choose a recipe. Make it fit is optional.",
+      "disclosure": "RecipeFix-authored, not kitchen-tested. Times and servings are source recipe metadata, not a performance guarantee. Human-shot serving illustrations may differ in toppings; no dietary/nutrition claim is inferred from the photos.",
+      "sourceUrls": [
+        "https://recipefix.app/original-recipes/roasted-butternut-squash-soup",
+        "https://recipefix.app/original-recipes/lemon-herb-roast-chicken"
+      ]
+    },
+    {
+      "id": "rf-autumn-originals-x-editorial",
+      "ideaId": "rf-autumn-originals",
+      "platform": "x",
+      "format": "thread",
+      "caption": "For darker evenings: a bowl of roasted butternut squash soup, or a lemon-herb roast chicken?\n\nTwo RecipeFix Originals: 60 minutes for soup, 90 for the roast including its rest. Both serve 4.\n\nWhich kind of evening are you cooking for?",
+      "thread": [
+        "Explore the full recipes:\nSoup: https://recipefix.app/original-recipes/roasted-butternut-squash-soup?utm_source=x&utm_medium=social&utm_campaign=rf_first_fortnight&utm_content=rf-autumn-originals-x-editorial\nRoast: https://recipefix.app/original-recipes/lemon-herb-roast-chicken?utm_source=x&utm_medium=social&utm_campaign=rf_first_fortnight&utm_content=rf-autumn-originals-x-editorial\n\nLicensed serving inspiration; not kitchen-tested."
+      ],
+      "media": [
+        {
+          "path": "packages/marketing/production-checkpoint/editorial/exports/autumn-x.jpg",
+          "kind": "image",
+          "sha256": "b2b327e0ffe2ffb87fa7db66a02cc5df153942c0220e2f766600489a0d4843d6",
+          "width": 1200,
+          "height": 675,
+          "origin": "Locally rendered Playwright/Sharp editorial design from pinned licensed stock and original vector geometry",
+          "rights": "Original AI-assisted editorial layout; human-shot licensed Unsplash serving photography; seasonal sources from pinned RecipeFix Originals catalog and chicken tikka from the separately verified free source. Original procedural foil illustration where present. Fonts under bundled SIL OFL. No publisher/customer media; no photo of a cooked adaptation.",
+          "altText": "A bowl night or a roast night. Two licensed serving photographs, soup and whole roast chicken, accompany the question: which kind of evening are you cooking for? Two RecipeFix recipes, no measured cooking outcome.",
+          "synthetic": true
+        }
+      ],
+      "targetUrl": "https://recipefix.app/original-recipes/roasted-butternut-squash-soup?utm_source=x&utm_medium=social&utm_campaign=rf_first_fortnight&utm_content=rf-autumn-originals-x-editorial",
+      "cta": "Choose the named soup or roast link; optional Make it fit from the recipe.",
+      "disclosure": "Licensed serving photos, not actual RecipeFix kitchen tests. No diet/macro or cooked-adaptation achievement.",
+      "sourceUrls": [
+        "https://recipefix.app/original-recipes/roasted-butternut-squash-soup",
+        "https://recipefix.app/original-recipes/lemon-herb-roast-chicken"
+      ]
+    }
+  ],
+  "producerQA": {
+    "checkedAt": "2026-10-29T20:44:10.715Z",
+    "contractErrors": [],
+    "geometry": [
+      {
+        "id": "more-dinner-ig-1",
+        "textBoxes": 6,
+        "artBoxes": 1,
+        "footerArtIntersections": 0,
+        "issues": []
+      },
+      {
+        "id": "more-dinner-ig-2",
+        "textBoxes": 11,
+        "artBoxes": 1,
+        "footerArtIntersections": 0,
+        "issues": []
+      },
+      {
+        "id": "more-dinner-ig-3",
+        "textBoxes": 5,
+        "artBoxes": 2,
+        "footerArtIntersections": 0,
+        "issues": []
+      },
+      {
+        "id": "more-dinner-ig-4",
+        "textBoxes": 5,
+        "artBoxes": 1,
+        "footerArtIntersections": 0,
+        "issues": []
+      },
+      {
+        "id": "more-dinner-ig-5",
+        "textBoxes": 7,
+        "artBoxes": 1,
+        "footerArtIntersections": 0,
+        "issues": []
+      },
+      {
+        "id": "more-dinner-x",
+        "textBoxes": 6,
+        "artBoxes": 1,
+        "footerArtIntersections": 0,
+        "issues": []
+      },
+      {
+        "id": "autumn-ig-1",
+        "textBoxes": 4,
+        "artBoxes": 2,
+        "footerArtIntersections": 0,
+        "issues": []
+      },
+      {
+        "id": "autumn-ig-2",
+        "textBoxes": 5,
+        "artBoxes": 1,
+        "footerArtIntersections": 0,
+        "issues": []
+      },
+      {
+        "id": "autumn-ig-3",
+        "textBoxes": 5,
+        "artBoxes": 1,
+        "footerArtIntersections": 0,
+        "issues": []
+      },
+      {
+        "id": "autumn-ig-4",
+        "textBoxes": 7,
+        "artBoxes": 2,
+        "footerArtIntersections": 0,
+        "issues": []
+      },
+      {
+        "id": "autumn-x",
+        "textBoxes": 4,
+        "artBoxes": 2,
+        "footerArtIntersections": 0,
+        "issues": []
+      }
+    ],
+    "media": [
+      {
+        "path": "packages/marketing/production-checkpoint/editorial/exports/more-dinner-ig-1.jpg",
+        "sha256": "16d4965fb784e6dfa1399175c99e25791a6d9ec28ca9be0d91ee3a9ff3878c8e",
+        "width": 1080,
+        "height": 1350
+      },
+      {
+        "path": "packages/marketing/production-checkpoint/editorial/exports/more-dinner-ig-2.jpg",
+        "sha256": "06b61ee27f7538d99b664785485b3c1a5a48267c9bab2546ef6058f9ff986e0d",
+        "width": 1080,
+        "height": 1350
+      },
+      {
+        "path": "packages/marketing/production-checkpoint/editorial/exports/more-dinner-ig-3.jpg",
+        "sha256": "43f4e15b70bf30b322356ac8befe8f0cb670f7941e4c7d4592487ac3fbc401d5",
+        "width": 1080,
+        "height": 1350
+      },
+      {
+        "path": "packages/marketing/production-checkpoint/editorial/exports/more-dinner-ig-4.jpg",
+        "sha256": "afda84ecb07c85848441fb11d325cb327d2e652a7a582e27b927a28060fdf5b8",
+        "width": 1080,
+        "height": 1350
+      },
+      {
+        "path": "packages/marketing/production-checkpoint/editorial/exports/more-dinner-ig-5.jpg",
+        "sha256": "94326ae09357867619a8d187c9126a5894435d93457588d153df440b0f3be4aa",
+        "width": 1080,
+        "height": 1350
+      },
+      {
+        "path": "packages/marketing/production-checkpoint/editorial/exports/more-dinner-x.jpg",
+        "sha256": "79331e266a444fad9445b5335069429108f3d6306ee4304a916850dde31238fa",
+        "width": 1200,
+        "height": 675
+      },
+      {
+        "path": "packages/marketing/production-checkpoint/editorial/exports/autumn-ig-1.jpg",
+        "sha256": "62b7380045de1742e602e8aaf97ed0582e1262c5ee32fd35494bf991c17f3261",
+        "width": 1080,
+        "height": 1350
+      },
+      {
+        "path": "packages/marketing/production-checkpoint/editorial/exports/autumn-ig-2.jpg",
+        "sha256": "d42a7ebcd8cdb0131568a887762bceeac1dc83dce9a27c44438f73b54127ccbc",
+        "width": 1080,
+        "height": 1350
+      },
+      {
+        "path": "packages/marketing/production-checkpoint/editorial/exports/autumn-ig-3.jpg",
+        "sha256": "39e2b2f234d099fcb6fe956c4ff1c8ed76d99fa595c6489908e2cb1f53f25e4f",
+        "width": 1080,
+        "height": 1350
+      },
+      {
+        "path": "packages/marketing/production-checkpoint/editorial/exports/autumn-ig-4.jpg",
+        "sha256": "21ad70fc7c139b6c5fd6438152c120b990e60ee367ab989d5d0a12a9e281f289",
+        "width": 1080,
+        "height": 1350
+      },
+      {
+        "path": "packages/marketing/production-checkpoint/editorial/exports/autumn-x.jpg",
+        "sha256": "b2b327e0ffe2ffb87fa7db66a02cc5df153942c0220e2f766600489a0d4843d6",
+        "width": 1200,
+        "height": 675
+      }
+    ],
+    "queueReadiness": [
+      {
+        "variantId": "rf-more-dinner-ig-editorial",
+        "ready": false,
+        "reasons": [
+          "a concrete schedule time is missing",
+          "RecipeFix-owned account unverified",
+          "founder creative verdict missing",
+          "exact founder approval missing or stale",
+          "provider capability/account not proven"
+        ],
+        "delivery": "unknown"
+      },
+      {
+        "variantId": "rf-more-dinner-x-editorial",
+        "ready": false,
+        "reasons": [
+          "a concrete schedule time is missing",
+          "RecipeFix-owned account unverified",
+          "founder creative verdict missing",
+          "exact founder approval missing or stale",
+          "provider capability/account not proven"
+        ],
+        "delivery": "unknown"
+      },
+      {
+        "variantId": "rf-autumn-originals-ig-editorial",
+        "ready": false,
+        "reasons": [
+          "a concrete schedule time is missing",
+          "RecipeFix-owned account unverified",
+          "founder creative verdict missing",
+          "exact founder approval missing or stale",
+          "provider capability/account not proven"
+        ],
+        "delivery": "unknown"
+      },
+      {
+        "variantId": "rf-autumn-originals-x-editorial",
+        "ready": false,
+        "reasons": [
+          "a concrete schedule time is missing",
+          "RecipeFix-owned account unverified",
+          "founder creative verdict missing",
+          "exact founder approval missing or stale",
+          "provider capability/account not proven"
+        ],
+        "delivery": "unknown"
+      }
+    ],
+    "visualReview": "Producer inspected all final assets at390 and native. Director independently reviewed all11draft390assets and required serving-photo scope, lb spacing and X footer revision. Director subsequently reviewed the final chicken photo/quantity label and revised assets for founder consideration. Producer cannot approve itself.",
+    "notApproval": true
+  },
+  "sourceManifest": "packages/marketing/production-checkpoint/editorial/source-manifest.json",
+  "source": {
+    "branch": "feat/recipefix-team-editorial-20261029",
+    "baseCommit": "96c20517",
+    "sourceCommit": "96c2051717ee0c133cb592cd8c4725ab74f0352f",
+    "ownership": "packages/marketing/production-checkpoint/editorial/**"
+  },
+  "cost": {
+    "additionalProviderUsd": 0,
+    "newSubscriptionsUsd": 0,
+    "paidCalls": 0,
+    "localComputeAndLabour": "unpriced"
+  },
+  "release": {
+    "founderDecision": "unreviewed",
+    "accountVerified": false,
+    "scheduledAt": null,
+    "publicationApproved": false,
+    "publisherInvoked": false,
+    "profileLinksConfigured": false
+  },
+  "limits": [
+    "Photos are licensed serving inspiration, not the exact authored/physically tested meals.",
+    "RecipeFix Originals are not kitchen-tested; recipe times are source metadata.",
+    "Route200/title/Make it fit director verification does not establish account/profile setup or analytics ingestion.",
+    "Social/source attribution and real first adaptations/returns/paid joins are not proven by local art or a destination readback."
+  ],
+  "independentReview": "Director feedback applied; final precise verdict belongs to director/founder, not producer."
+}
