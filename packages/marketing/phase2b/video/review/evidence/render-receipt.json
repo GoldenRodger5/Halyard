@@ -1,0 +1,51 @@
+{
+  "tag": "picture-v2",
+  "frames": 405,
+  "fps": 30,
+  "width": 1080,
+  "height": 1920,
+  "renderSeconds": 35.262,
+  "newProviderCalls": 0,
+  "additionalCashUSD": 0,
+  "audio": "No audio track in clean picture master. Audio specialist owns final mix.",
+  "sourceVideoRanges": [
+    {
+      "sourceSeconds": [
+        0,
+        1
+      ],
+      "timelineSeconds": [
+        0,
+        1.5
+      ],
+      "rate": 0.6666666666666666
+    },
+    {
+      "sourceSeconds": [
+        5.2,
+        6
+      ],
+      "timelineSeconds": [
+        6.5,
+        8.1
+      ],
+      "rate": 0.5
+    },
+    {
+      "sourceSeconds": [
+        5.2,
+        6
+      ],
+      "timelineSeconds": [
+        10,
+        11.6
+      ],
+      "rate": 0.5
+    }
+  ],
+  "excludedSourceRangeSeconds": [
+    1,
+    5.2
+  ],
+  "scope": "All floating/travelling tray footage removed. Late settled camera footage is reused in two purposeful crops; no new cooking action or shot is claimed."
+}

@@ -1,0 +1,284 @@
+{
+  "ideas": [
+    {
+      "id": "rf-more-dinner",
+      "title": "Two more for dinner? Plan dinner for six.",
+      "category": "P02",
+      "targetAudience": "Home cooks scaling a dinner recipe for guests and a dairy-free request.",
+      "whyWatch": "More people are coming; the cooking space has not grown.",
+      "visibleEvent": "A food-led opening cuts through genuine Original Serves 4, six/Dairy-Free selection and actual recorded method changes; counter/oven states show the two-sheet capacity plan without floating movement.",
+      "payoff": "The recorded adaptation changes the method to two foil-lined sheets, broiled one at a time.",
+      "productBridge": "Open Chicken Tikka Masala and tap Make it fit.",
+      "sourceUrls": [
+        "https://github.com/GoldenRodger5/recipe-fix/blob/3f32680f091d06ad9046bb95e4dfb55489d2c264/src/data/landingRealResult.ts"
+      ],
+      "authoringStatus": "founder_review"
+    }
+  ],
+  "variants": [],
+  "variantScope": "Picture handoff only. A2/root supplies the paired full audio variants; this clean source is not another publishing idea or an approved post.",
+  "picture": {
+    "path": "packages/marketing/phase2b/video/review/dinner-picture-v2-clean.mp4",
+    "kind": "video",
+    "sha256": "2ccef680712fce964c250c8e7afaeeb026beac283bc0924e3325106c0729751d",
+    "width": 1080,
+    "height": 1920,
+    "durationSeconds": 13.5,
+    "origin": "Original professional edit of existing generated hero and genuine historical RecipeFix pixels.",
+    "rights": "Inherited Google pilot artwork; first-party app/source; Inter SIL OFL. See rights.json.",
+    "altText": "AI-illustrative marinated chicken on foil; genuine Chicken Tikka Masala Original serves 4; actual request for six servings and Dairy-Free; recorded changed-step and two-sheet method; editorial cut to one sheet already in oven and another waiting; specific Make it fit CTA.",
+    "synthetic": true
+  },
+  "pictureLock": {
+    "by": "Root production director",
+    "purpose": "Bounded in-context audio audition and founder comparison",
+    "founderCreativeApproval": false,
+    "publicationApproval": false,
+    "frames": 405,
+    "fps": 30,
+    "sha256": "2ccef680712fce964c250c8e7afaeeb026beac283bc0924e3325106c0729751d"
+  },
+  "destination": "https://recipefix.app/original-recipes/chicken-tikka-masala",
+  "cta": "Open Chicken Tikka Masala. Tap Make it fit.",
+  "routeVerification": "Root D: HTTP 200 correct title/Ingredients/Method and UTM persistence; all POSTs blocked. No new inference/account write.",
+  "cuesPath": "packages/marketing/phase2b/video/cues.json",
+  "audioHandoff": "A2 owns final no-VO/VO movies and attribution; exact same locked picture, no new picture version from A.",
+  "sourceCommit": "3f32680f091d06ad9046bb95e4dfb55489d2c264",
+  "sourceBase": "fbcc2b15a17178dc05598a864bfa7e3e22c1508f",
+  "assets": [
+    {
+      "path": "packages/marketing/phase2b/video/assets/Inter-SemiBold.woff",
+      "sha256": "a96e5ee7ab248008e5e6cc92dd561eceb892d19a10a537aa1b2e64f979351add",
+      "sizeBytes": 31780
+    },
+    {
+      "path": "packages/marketing/phase2b/video/assets/broil-line1.png",
+      "sha256": "f33383c94396c3e619f0b42009db6bf0fb8731fabde676224e323961c8aec36c",
+      "sizeBytes": 4571
+    },
+    {
+      "path": "packages/marketing/phase2b/video/assets/broil-line2.png",
+      "sha256": "52378f98cf246e92c1ba27927683d1cba945990fdd299c3a5a2a51c975df9e66",
+      "sizeBytes": 1888
+    },
+    {
+      "path": "packages/marketing/phase2b/video/assets/broiler-hero.mp4",
+      "sha256": "84e86a1b9131d8164fad20caee4cf79645574ae29bb65e03705627edb8ef5e90",
+      "sizeBytes": 4523987
+    },
+    {
+      "path": "packages/marketing/phase2b/video/assets/broiler-proof.png",
+      "sha256": "34c37efe2b2d322f943bc82c2a819252d55cd97f85ad19c0176a9d066884d739",
+      "sizeBytes": 221111
+    },
+    {
+      "path": "packages/marketing/phase2b/video/assets/capture-receipt.json",
+      "sha256": "7ec181aaa56f284a1e1871548155f5ad7ed7114673143397590c1f65da2a8f58",
+      "sizeBytes": 1014
+    },
+    {
+      "path": "packages/marketing/phase2b/video/assets/changed-step.png",
+      "sha256": "bc6e9b16496086572803b5ec9c27fd3c61c055276a228d59a86b343730bbda52",
+      "sizeBytes": 7207
+    },
+    {
+      "path": "packages/marketing/phase2b/video/assets/counter.jpg",
+      "sha256": "878d84dc31c4440bb939ef04e0de77c08074e985e81d592daa111643cc1d8cce",
+      "sizeBytes": 84562
+    },
+    {
+      "path": "packages/marketing/phase2b/video/assets/inter-OFL.txt",
+      "sha256": "5dd548d31a85f756e01d63e00d7faf1e324103ed3e9102fcbbabf2cc2db6dd39",
+      "sizeBytes": 4376
+    },
+    {
+      "path": "packages/marketing/phase2b/video/assets/make-it-fit.png",
+      "sha256": "9c1d8bda7dd77aafce10ad07aabcbe235179cda4192db2c9163e130413e890ba",
+      "sizeBytes": 7060
+    },
+    {
+      "path": "packages/marketing/phase2b/video/assets/original-header.png",
+      "sha256": "fcece8781900a067e79771e41f911ec3ea02b68e10d4803a3fe4f98aaeacba5a",
+      "sizeBytes": 30663
+    },
+    {
+      "path": "packages/marketing/phase2b/video/assets/original-name.png",
+      "sha256": "5619bbbb25e17535ef7e4d465a9fcf0f8254d04e256f56efa594bbdc3b776a87",
+      "sizeBytes": 16332
+    },
+    {
+      "path": "packages/marketing/phase2b/video/assets/original-serves.png",
+      "sha256": "ac60c760303e7fd4abcb0add8313d838d0ecf9c1c4112558ab72c9decdde888d",
+      "sizeBytes": 3877
+    },
+    {
+      "path": "packages/marketing/phase2b/video/assets/original-ui.png",
+      "sha256": "3fe05a04d024df1599303bfb364a134dd7270ecb62025513a31893927322303d",
+      "sizeBytes": 1238705
+    },
+    {
+      "path": "packages/marketing/phase2b/video/assets/oven-v1.jpg",
+      "sha256": "532a075fa53b7427e6547b83093f002350f308922716e32a2482bb7cc1d45415",
+      "sizeBytes": 70792
+    },
+    {
+      "path": "packages/marketing/phase2b/video/assets/oven.jpg",
+      "sha256": "08544b727e932f28e9d9844931e44e2cdf73a9d6316d152291ce7e6d6cda6dd9",
+      "sizeBytes": 69969
+    },
+    {
+      "path": "packages/marketing/phase2b/video/assets/real-result.json",
+      "sha256": "572f681c851d3b0777e0c4ca15c781a0c573bab7c026f5b683d9c7f1b72ff473",
+      "sizeBytes": 11036
+    },
+    {
+      "path": "packages/marketing/phase2b/video/assets/recipefix-settings.mp4",
+      "sha256": "355006be3db3bd000d1a1e3e68dbd0a1c34ed6bec8644e417f1abf2f946e42b0",
+      "sizeBytes": 164688
+    },
+    {
+      "path": "packages/marketing/phase2b/video/assets/settings-end.png",
+      "sha256": "cde9e9c59d1cf5903e5f43b74a40eb3f661aefbcc39137d30ad2cc6df9c54a79",
+      "sizeBytes": 180260
+    },
+    {
+      "path": "packages/marketing/phase2b/video/assets/two-sheets.png",
+      "sha256": "480fdbcc9621c7a703cf616d7df2090adf89662b822e0cc20d3b0c05e922088a",
+      "sizeBytes": 7524
+    }
+  ],
+  "sourceCodeHashes": {
+    "packages/marketing/phase2b/video/entry.tsx": "30b0559bc5969e457f6a03828e3aae7cf656a9b033e70826db5b0729d75f2a8a",
+    "packages/marketing/phase2b/video/render.mts": "f48318dc870bf43f02d0a91b9d800b74838f48b706b8cedc04bf83dc7e1fe4ff",
+    "packages/marketing/phase2b/video/prepare-assets.mjs": "41ba3aa0dcce651aeac73132092dfcafadb66c2e329972a31a80944716f58e66"
+  },
+  "cropRects": [
+    {
+      "input": "original-ui.png",
+      "output": "original-header.png",
+      "xywh": [
+        40,
+        440,
+        1090,
+        350
+      ]
+    },
+    {
+      "input": "original-header.png",
+      "output": "original-name.png",
+      "xywh": [
+        0,
+        76,
+        1000,
+        130
+      ]
+    },
+    {
+      "input": "original-header.png",
+      "output": "original-serves.png",
+      "xywh": [
+        346,
+        242,
+        265,
+        78
+      ]
+    },
+    {
+      "input": "original-ui.png",
+      "output": "make-it-fit.png",
+      "xywh": [
+        45,
+        1050,
+        1080,
+        170
+      ]
+    },
+    {
+      "input": "broiler-proof.png",
+      "output": "two-sheets.png",
+      "xywh": [
+        0,
+        460,
+        638,
+        70
+      ]
+    },
+    {
+      "input": "broiler-proof.png",
+      "output": "changed-step.png",
+      "xywh": [
+        92,
+        1100,
+        600,
+        76
+      ]
+    }
+  ],
+  "qa": {
+    "strictEntryTypeScript": "pass",
+    "marketingTypeScript": "pass",
+    "marketingVitest": {
+      "files": 7,
+      "tests": 52,
+      "passed": 52
+    },
+    "playback": [
+      {
+        "width": 360,
+        "duration": 13.5,
+        "currentTime": 13.5,
+        "ended": true,
+        "error": null,
+        "played": [
+          [
+            0,
+            13.5
+          ]
+        ],
+        "quality": {
+          "total": 405,
+          "dropped": 0
+        },
+        "scope": "Full actual browser transport and sampled rendered frames; clean picture master has no audio."
+      },
+      {
+        "width": 390,
+        "duration": 13.5,
+        "currentTime": 13.5,
+        "ended": true,
+        "error": null,
+        "played": [
+          [
+            0,
+            13.5
+          ]
+        ],
+        "quality": {
+          "total": 405,
+          "dropped": 0
+        },
+        "scope": "Full actual browser transport and sampled rendered frames; clean picture master has no audio."
+      },
+      {
+        "width": 1080,
+        "duration": 13.5,
+        "currentTime": 13.5,
+        "ended": true,
+        "error": null,
+        "played": [
+          [
+            0,
+            13.5
+          ]
+        ],
+        "quality": {
+          "total": 405,
+          "dropped": 0
+        },
+        "scope": "Full actual browser transport and sampled rendered frames; clean picture master has no audio."
+      }
+    ],
+    "auditoryJudgment": "Not applicable to no-audio picture. Founder listening needed for A2 mixes."
+  },
+  "criticalCreativeLimit": "Only a short safe opening and repeated settled tail have native food motion. The edit improves product clarity/physical credibility; it is not a new motion breakthrough. No new provider job or further primitive/caption loop is authorized."
+}

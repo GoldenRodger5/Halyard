@@ -1,0 +1,23 @@
+[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
+
+ RUN  v2.1.9 /Volumes/T9/Developer/Worktrees/halyard-recipefix-phase2b-edit-20261029
+
+ ✓ packages/marketing/src/socialStudioContract.test.ts (18 tests) 4ms
+ ✓ packages/marketing/src/publish.test.ts (3 tests) 2ms
+ ✓ packages/marketing/src/knowledge.test.ts (8 tests) 14ms
+ ✓ packages/marketing/src/critique.test.ts (4 tests) 2ms
+ ✓ packages/marketing/src/formats/quiz.test.ts (3 tests) 9ms
+ ✓ packages/marketing/src/formats/transform.test.ts (9 tests) 67ms
+ ✓ packages/marketing/src/qa/image.test.ts (7 tests) 9306ms
+   ✓ still QA on rendered files > passes a card that says what was intended, inside the safe zone 3864ms
+   ✓ still QA on rendered files > fails read-back when the file says something else (truncation, wrong string) 1335ms
+   ✓ still QA on rendered files > fails on a serialisation artefact drawn into the image 931ms
+   ✓ still QA on rendered files > fails when the intended text lands outside the safe zone 1435ms
+   ✓ still QA on rendered files > fails when two intended lines overprint each other 896ms
+   ✓ still QA on rendered files > a sweep over nothing intended is not a pass 844ms
+
+ Test Files  7 passed (7)
+      Tests  52 passed (52)
+   Start at  19:42:27
+   Duration  11.03s (transform 980ms, setup 74ms, collect 6.14s, tests 9.40s, environment 1ms, prepare 294ms)
+
