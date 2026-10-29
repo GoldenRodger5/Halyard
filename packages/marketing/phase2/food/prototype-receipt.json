@@ -1,0 +1,58 @@
+{
+  "status": "selected_pineapple_pan_held",
+  "providerCalls": 0,
+  "providerSpendUSD": 0,
+  "newDependencies": 0,
+  "candidates": [
+    {
+      "id": "rf-pineapple-gelatin",
+      "premise": "Fresh pineapple can sabotage a gelatin dessert; canned pineapple has been heat treated.",
+      "sourceUrls": [
+        "https://extension.uga.edu/content/dam/extension/programs-and-services/science-behind-our-food/documents/tropicalfruitgelatinlab.pdf",
+        "https://www.eatright.org/food/food-groups/fruits/all-about-pineapple"
+      ],
+      "evidence": "UGA lesson explains failure to solidify with fresh/frozen pineapple and enzyme inactivation during canning. Academy of Nutrition and Dietetics identifies bromelain, gelatin protein breakdown and canned-pineapple use.",
+      "media": "Original local Blender gelatin illustration; original animated protein-network/scissors metaphor, not a molecular simulation, measured experiment or cooked result.",
+      "actualPrototypeFiles": [
+        {
+          "path": "/Volumes/T9/Developer/Builds/recipefix-phase2-20261029/food/renders/proto-v1/PineCover.png",
+          "sha256": "ad88733642207d28d350eb90c870284fa3ff84bef8778071eb7a813a534ff08b"
+        },
+        {
+          "path": "/Volumes/T9/Developer/Builds/recipefix-phase2-20261029/food/renders/proto-v1/PineNetwork.png",
+          "sha256": "48ba8a77ebadc1c1430ae27442d1b703b7c9af4ab052a858a03440a4bc861fc2"
+        },
+        {
+          "path": "/Volumes/T9/Developer/Builds/recipefix-phase2-20261029/food/renders/proto-v1/pineapple.mp4",
+          "sha256": "13394249d819680d196d25a9bb29032ffa1990f47dd75bc96b09a8f8e390cda6"
+        }
+      ]
+    },
+    {
+      "id": "rf-pan-area",
+      "premise": "An 8-to-10-inch round pan swap increases diameter 25% but base area 56.25%; same batter depth requires attention to recipe and pan geometry.",
+      "sourceUrls": [
+        "https://www.kingarthurbaking.com/blog/2019/04/23/the-essential-alternative-baking-pan-sizes"
+      ],
+      "evidence": "King Arthur explains round pan area using radius squared times pi and requires pan depth context. Our nominal-area ratio is(10/8)^2=1.5625. No source photography or article text copied.",
+      "media": "Original proportionally drawn vector geometry; no real pans measured or actual cake yield claimed.",
+      "actualPrototypeFiles": [
+        {
+          "path": "/Volumes/T9/Developer/Builds/recipefix-phase2-20261029/food/renders/proto-v1/PanCover.png",
+          "sha256": "2bbc9a308a8045647e2b9e963d009fe112106b05d4c287a8ab125a242dbcfef5"
+        },
+        {
+          "path": "/Volumes/T9/Developer/Builds/recipefix-phase2-20261029/food/renders/proto-v1/PanReveal.png",
+          "sha256": "efb7144b450928881a4de8a17c8ab12b04165962b9fa34dd54bc3536db3f6535"
+        }
+      ]
+    }
+  ],
+  "founderDecision": "unreviewed",
+  "selection": {
+    "selected": "rf-pineapple-gelatin",
+    "unselected": "rf-pan-area",
+    "directorReason": "The pineapple premise and original pink/lilac gelatin material offer a more distinctive entertainment/science slot. Pan circles are useful but ordinary; do not expand into filler.",
+    "unselectedNotReady": true
+  }
+}
