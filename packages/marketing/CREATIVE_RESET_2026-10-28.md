@@ -1,3 +1,5 @@
+> **Founder supersession,October29,2026:** PR104 product-cinema A4/B2 are REJECTED for publication, and the small A/B hybrid suggestion is withdrawn. Preserve them as technical research; do not promote them to inventory. [Phase1B](phase1b/README.md) tests two different food-entertainment/story concepts. Its finished pilots are for founder consideration only; independent review is advisory.
+
 # RecipeFix creative reset: owner authority,2026-10-28
 
 The seven prior list cuts and Roger finished narration remain rejected and held. A technically valid export or AI review does not approve them. The fuller historical closeout and actual voice experiments remain preserved in the separate marketing-closeout worktree; this canonical pointer restores the path referenced by the Social Studio plan.
