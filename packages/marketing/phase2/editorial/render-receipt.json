@@ -1,0 +1,85 @@
+{
+  "renderedAt": "2026-10-29T21:15:21.869Z",
+  "cards": [
+    {
+      "id": "marinade-ig-1",
+      "ideaId": "rf-marinade-job",
+      "platform": "instagram",
+      "width": 1080,
+      "height": 1350,
+      "path": "exports/marinade-ig-1.jpg"
+    },
+    {
+      "id": "marinade-ig-2",
+      "ideaId": "rf-marinade-job",
+      "platform": "instagram",
+      "width": 1080,
+      "height": 1350,
+      "path": "exports/marinade-ig-2.jpg"
+    },
+    {
+      "id": "marinade-ig-3",
+      "ideaId": "rf-marinade-job",
+      "platform": "instagram",
+      "width": 1080,
+      "height": 1350,
+      "path": "exports/marinade-ig-3.jpg"
+    },
+    {
+      "id": "marinade-ig-4",
+      "ideaId": "rf-marinade-job",
+      "platform": "instagram",
+      "width": 1080,
+      "height": 1350,
+      "path": "exports/marinade-ig-4.jpg"
+    },
+    {
+      "id": "marinade-x",
+      "ideaId": "rf-marinade-job",
+      "platform": "x",
+      "width": 1200,
+      "height": 675,
+      "path": "exports/marinade-x.jpg"
+    },
+    {
+      "id": "tomato-ig-1",
+      "ideaId": "rf-tomato-clock",
+      "platform": "instagram",
+      "width": 1080,
+      "height": 1350,
+      "path": "exports/tomato-ig-1.jpg"
+    },
+    {
+      "id": "tomato-ig-2",
+      "ideaId": "rf-tomato-clock",
+      "platform": "instagram",
+      "width": 1080,
+      "height": 1350,
+      "path": "exports/tomato-ig-2.jpg"
+    },
+    {
+      "id": "tomato-ig-3",
+      "ideaId": "rf-tomato-clock",
+      "platform": "instagram",
+      "width": 1080,
+      "height": 1350,
+      "path": "exports/tomato-ig-3.jpg"
+    },
+    {
+      "id": "tomato-ig-4",
+      "ideaId": "rf-tomato-clock",
+      "platform": "instagram",
+      "width": 1080,
+      "height": 1350,
+      "path": "exports/tomato-ig-4.jpg"
+    },
+    {
+      "id": "tomato-x",
+      "ideaId": "rf-tomato-clock",
+      "platform": "x",
+      "width": 1200,
+      "height": 675,
+      "path": "exports/tomato-x.jpg"
+    }
+  ]
+}
