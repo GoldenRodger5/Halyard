@@ -1,0 +1,77 @@
+{
+  "size": 280889,
+  "width": 1024,
+  "height": 707,
+  "thumburl": "https://upload.wikimedia.org/wikipedia/commons/4/4d/AllspiceSeeds.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+  "thumbwidth": 1400,
+  "thumbheight": 967,
+  "thumbattribs": {
+    "src": "https://upload.wikimedia.org/wikipedia/commons/4/4d/AllspiceSeeds.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+    "decoding": "async",
+    "loading": "lazy",
+    "width": 1400,
+    "height": 967
+  },
+  "url": "https://upload.wikimedia.org/wikipedia/commons/4/4d/AllspiceSeeds.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+  "descriptionurl": "https://commons.wikimedia.org/wiki/File:AllspiceSeeds.jpg",
+  "descriptionshorturl": "https://commons.wikimedia.org/w/index.php?curid=2132055",
+  "extmetadata": {
+    "DateTime": {
+      "value": "2007-05-20 10:16:52",
+      "source": "mediawiki-metadata",
+      "hidden": ""
+    },
+    "ObjectName": {
+      "value": "AllspiceSeeds",
+      "source": "mediawiki-metadata"
+    },
+    "CommonsMetadataExtension": {
+      "value": 1.2,
+      "source": "extension",
+      "hidden": ""
+    },
+    "Categories": {
+      "value": "Taken with Canon EOS 300D|Files with no machine-readable author|Files with no machine-readable source|Allspice|License migration completed|Media missing infobox template|Self-published work|GFDL-en",
+      "source": "commons-categories",
+      "hidden": ""
+    },
+    "Assessments": {
+      "value": "",
+      "source": "commons-categories",
+      "hidden": ""
+    },
+    "LicenseShortName": {
+      "value": "CC BY 2.5",
+      "source": "commons-desc-page",
+      "hidden": ""
+    },
+    "UsageTerms": {
+      "value": "Creative Commons Attribution 2.5",
+      "source": "commons-desc-page"
+    },
+    "AttributionRequired": {
+      "value": "true",
+      "source": "commons-desc-page",
+      "hidden": ""
+    },
+    "LicenseUrl": {
+      "value": "https://creativecommons.org/licenses/by/2.5",
+      "source": "commons-desc-page"
+    },
+    "Copyrighted": {
+      "value": "True",
+      "source": "commons-desc-page",
+      "hidden": ""
+    },
+    "Restrictions": {
+      "value": "",
+      "source": "commons-desc-page",
+      "hidden": ""
+    },
+    "License": {
+      "value": "cc-by-2.5",
+      "source": "commons-templates",
+      "hidden": ""
+    }
+  }
+}
