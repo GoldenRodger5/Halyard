@@ -133,5 +133,12 @@
     "paidCalls": 0,
     "accountOrPublishingActions": 0,
     "artifact": "This hash-bound review JSON only. Root owns any integration or future selection."
+  },
+  "rootReportedFollowup": {
+    "version": "v3",
+    "change": "Root reports cropping the Other changes / Adapt recipe section entirely out, retaining Make it fit, selected Dairy-Free and complete six-serving controls.",
+    "concern": "Addresses the minor UI crop craft issue in component source.",
+    "verification": "Encoded v3 crop and complete playback verification pending with root. This reviewer has not inspected v3 bytes and grants no v3 hash-bound approval.",
+    "v2ReviewUnchanged": true
   }
 }
