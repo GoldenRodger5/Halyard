@@ -1,0 +1,15 @@
+{
+  "unchangedFrames": [
+    1,
+    514
+  ],
+  "unchangedFrameCount": 514,
+  "proof": "Same device/inode hardlinks; rerender starts515.",
+  "rerenderedFrames": [
+    515,
+    690
+  ],
+  "frames": 690,
+  "materialChanges": false,
+  "durationSeconds": 23
+}

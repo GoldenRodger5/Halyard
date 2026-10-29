@@ -1,0 +1,77 @@
+{
+  "status": "HOLD \u2014 review candidate, not approved to post",
+  "file": "packages/marketing/phase2/video/review/more-dinner-v2.mp4",
+  "sha256": "9c3d168defdde5f95a9a1c912b79d04320d50ccbb33567ce84c6d362009b4e4d",
+  "sizeBytes": 32466412,
+  "visualFrames": 690,
+  "fps": 30,
+  "visualDurationSeconds": 23,
+  "containerDurationSeconds": 23.061333,
+  "sourceCommit": "3f32680f091d06ad9046bb95e4dfb55489d2c264",
+  "sourcePin": "GoldenRodger5/recipe-fix/src/data/landingRealResult.ts",
+  "captureBundle": "index-D18VC9ff.js",
+  "implementationBase": "dec955885cf1094ea2e747233e72d075dd32a89e",
+  "implementationFileHashes": {
+    "packages/marketing/phase2/video/entry.tsx": "5e190153d4b09accd474f034d076d08c478065d859d224a1b6c4969f1cf40d61",
+    "packages/marketing/phase2/video/scripts/full-film.py": "1f8c37110259311831505bfa7586fafe216211eafef277a0f6304a1b6fe3669e",
+    "packages/marketing/phase2/video/scripts/kitchen-space.py": "a9a36884d9031b71eb769ae810050c1c70244de93e208f60696ea1e228a01a82",
+    "packages/marketing/phase2/video/scripts/revise-staging.py": "e67041d8e125d7ca8167576fab69a1fa436e7c0cc1ff05508ac0d0c40bb6b4b3",
+    "packages/marketing/phase2/video/scripts/sound.py": "7a8e32224884af938558d30c8977dcc941e62da7fc220a21ddc55a31b146b207"
+  },
+  "tools": {
+    "Blender": "5.2.2 LTS",
+    "Remotion": "4.0.507",
+    "FFmpeg": "7.1.1"
+  },
+  "audio": {
+    "integratedLufs": -19.12,
+    "truePeakDbtp": -2.49,
+    "audiblyReviewed": false,
+    "voice": null,
+    "source": "Original authored synthesis; no samples."
+  },
+  "playback": [
+    {
+      "name": "more-dinner-v2",
+      "muted": true,
+      "ended": true,
+      "currentTime": 23.061333,
+      "duration": 23.061333,
+      "played": [
+        [
+          0,
+          23.061333
+        ]
+      ],
+      "readyState": 4,
+      "networkState": 1,
+      "error": null,
+      "perception": "Browser playback through final visual frame, sampled decoded visual evidence; no direct auditory perception."
+    },
+    {
+      "name": "more-dinner-v2",
+      "muted": false,
+      "ended": true,
+      "currentTime": 23.061333,
+      "duration": 23.061333,
+      "played": [
+        [
+          0,
+          23.061333
+        ]
+      ],
+      "readyState": 4,
+      "networkState": 1,
+      "error": null,
+      "perception": "Browser playback through final visual frame, sampled decoded visual evidence; no direct auditory perception."
+    }
+  ],
+  "costUsd": 0,
+  "paidGenerationJobs": 0,
+  "newSubscriptions": 0,
+  "postingActions": 0,
+  "accountChanges": 0,
+  "founderApproval": false,
+  "sourceEvidenceAndRights": "../../rights.json",
+  "remainingCreativeBlock": "Food reads as artificial orange cushions/nuggets. Staging corrected; realistic appetite appeal not established."
+}
