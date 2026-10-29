@@ -1,0 +1,58 @@
+[
+  {
+    "scale": 390,
+    "mode": "muted",
+    "time": 18.154667,
+    "duration": 18.154667,
+    "ended": true,
+    "error": null,
+    "played": [
+      [
+        0,
+        18.154667
+      ]
+    ]
+  },
+  {
+    "scale": 390,
+    "mode": "unmuted; auditory perception unavailable",
+    "time": 18.154667,
+    "duration": 18.154667,
+    "ended": true,
+    "error": null,
+    "played": [
+      [
+        0,
+        18.154667
+      ]
+    ]
+  },
+  {
+    "scale": 1080,
+    "mode": "muted",
+    "time": 18.154667,
+    "duration": 18.154667,
+    "ended": true,
+    "error": null,
+    "played": [
+      [
+        0,
+        18.154667
+      ]
+    ]
+  },
+  {
+    "scale": 1080,
+    "mode": "unmuted; auditory perception unavailable",
+    "time": 18.154667,
+    "duration": 18.154667,
+    "ended": true,
+    "error": null,
+    "played": [
+      [
+        0,
+        18.154667
+      ]
+    ]
+  }
+]

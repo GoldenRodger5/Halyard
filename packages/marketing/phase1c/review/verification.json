@@ -1,0 +1,2977 @@
+{
+  "scope": "Actual exported media and source/readability verification, not creative approval",
+  "sourceMatchesPinnedProductionRecord": true,
+  "sourceRecord": {
+    "id": "LANDING_REAL_RESULT",
+    "kind": "stored_output",
+    "location": "git:recipe-fix@3f32680f091d06ad9046bb95e4dfb55489d2c264:src/data/landingRealResult.ts#LANDING_REAL_RESULT",
+    "sha256": "0968e762ca3eb6b3a63f3c859034a7749f2e167c681075269370c7e575fcff8b",
+    "provenance": "Verbatim production response stored in the product repo, captured 2026-10-21",
+    "licence": "first-party",
+    "disclosure": "Real RecipeFix result, captured 2026-10-21",
+    "capturedAt": "2026-10-21"
+  },
+  "video": {
+    "sha256": "cc517caff8d66a991c476f68dfe5805d129b601593ab02f45d8953bddc4d4f92",
+    "bytes": 2775929,
+    "probe": {
+      "streams": [
+        {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+          "profile": "High",
+          "codec_type": "video",
+          "codec_tag_string": "avc1",
+          "codec_tag": "0x31637661",
+          "width": 1080,
+          "height": 1920,
+          "coded_width": 1080,
+          "coded_height": 1920,
+          "closed_captions": 0,
+          "film_grain": 0,
+          "has_b_frames": 2,
+          "sample_aspect_ratio": "1:1",
+          "display_aspect_ratio": "9:16",
+          "pix_fmt": "yuvj420p",
+          "level": 40,
+          "color_range": "pc",
+          "color_space": "bt470bg",
+          "chroma_location": "center",
+          "field_order": "progressive",
+          "refs": 1,
+          "is_avc": "true",
+          "nal_length_size": "4",
+          "id": "0x1",
+          "r_frame_rate": "30/1",
+          "avg_frame_rate": "30/1",
+          "time_base": "1/90000",
+          "start_pts": 0,
+          "start_time": "0.000000",
+          "duration_ts": 1629000,
+          "duration": "18.100000",
+          "bit_rate": "898973",
+          "bits_per_raw_sample": "8",
+          "nb_frames": "543",
+          "extradata_size": 51,
+          "disposition": {
+            "default": 1,
+            "dub": 0,
+            "original": 0,
+            "comment": 0,
+            "lyrics": 0,
+            "karaoke": 0,
+            "forced": 0,
+            "hearing_impaired": 0,
+            "visual_impaired": 0,
+            "clean_effects": 0,
+            "attached_pic": 0,
+            "timed_thumbnails": 0,
+            "non_diegetic": 0,
+            "captions": 0,
+            "descriptions": 0,
+            "metadata": 0,
+            "dependent": 0,
+            "still_image": 0,
+            "multilayer": 0
+          },
+          "tags": {
+            "language": "und",
+            "handler_name": "VideoHandler",
+            "vendor_id": "[0][0][0][0]",
+            "encoder": "Lavc61.19.100 libx264"
+          },
+          "side_data_list": [
+            {
+              "side_data_type": "ICC Profile"
+            }
+          ]
+        },
+        {
+          "index": 1,
+          "codec_name": "aac",
+          "codec_long_name": "AAC (Advanced Audio Coding)",
+          "profile": "LC",
+          "codec_type": "audio",
+          "codec_tag_string": "mp4a",
+          "codec_tag": "0x6134706d",
+          "sample_fmt": "fltp",
+          "sample_rate": "48000",
+          "channels": 2,
+          "channel_layout": "stereo",
+          "bits_per_sample": 0,
+          "initial_padding": 0,
+          "id": "0x2",
+          "r_frame_rate": "0/0",
+          "avg_frame_rate": "0/0",
+          "time_base": "1/48000",
+          "start_pts": 0,
+          "start_time": "0.000000",
+          "duration_ts": 871424,
+          "duration": "18.154667",
+          "bit_rate": "317375",
+          "nb_frames": "851",
+          "extradata_size": 2,
+          "disposition": {
+            "default": 1,
+            "dub": 0,
+            "original": 0,
+            "comment": 0,
+            "lyrics": 0,
+            "karaoke": 0,
+            "forced": 0,
+            "hearing_impaired": 0,
+            "visual_impaired": 0,
+            "clean_effects": 0,
+            "attached_pic": 0,
+            "timed_thumbnails": 0,
+            "non_diegetic": 0,
+            "captions": 0,
+            "descriptions": 0,
+            "metadata": 0,
+            "dependent": 0,
+            "still_image": 0,
+            "multilayer": 0
+          },
+          "tags": {
+            "language": "und",
+            "handler_name": "SoundHandler",
+            "vendor_id": "[0][0][0][0]"
+          }
+        }
+      ],
+      "format": {
+        "filename": "/Volumes/T9/Developer/Worktrees/halyard-recipefix-acquisition-pilot-20261029/packages/marketing/phase1c/review/broiler.mp4",
+        "nb_streams": 2,
+        "nb_programs": 0,
+        "nb_stream_groups": 0,
+        "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+        "format_long_name": "QuickTime / MOV",
+        "start_time": "0.000000",
+        "duration": "18.154667",
+        "size": "2775929",
+        "bit_rate": "1223235",
+        "probe_score": 100,
+        "tags": {
+          "major_brand": "isom",
+          "minor_version": "512",
+          "compatible_brands": "isomiso2avc1mp41",
+          "encoder": "Lavf61.7.100",
+          "comment": "Made with Remotion 4.0.507"
+        }
+      }
+    },
+    "ebur128": "Summary:\n\n  Integrated loudness:\n    I:         -17.6 LUFS\n    Threshold: -28.1 LUFS\n\n  Loudness range:\n    LRA:         7.8 LU\n    Threshold: -39.2 LUFS\n    LRA low:   -22.2 LUFS\n    LRA high:  -14.4 LUFS\n\n  True peak:\n    Peak:       -2.0 dBFS"
+  },
+  "thresholds": {
+    "minWordHeight": 24,
+    "contrast": 4.5
+  },
+  "results": [
+    {
+      "name": "broiler",
+      "at": 1.2,
+      "intended": [
+        "More dinner.",
+        "Same broiler.",
+        "Chicken Tikka Masala",
+        "4",
+        "6 servings",
+        "Illustrated plan",
+        "recorded result",
+        "Oct 21, 2026"
+      ],
+      "canvas": {
+        "width": 1080,
+        "height": 1920
+      },
+      "safeBox": {
+        "x0": 90,
+        "y0": 240,
+        "x1": 920,
+        "y1": 1460
+      },
+      "passed": true,
+      "checks": [
+        {
+          "id": "still.canvas",
+          "passed": true,
+          "detail": "1080×1920",
+          "problems": []
+        },
+        {
+          "id": "still.text_readback",
+          "passed": true,
+          "detail": "8 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 23 words, file: 23 words, inverted: 36 words, rules removed: 23 words, white-text mask: 26 words, dark-text mask: 27 words)",
+          "problems": []
+        },
+        {
+          "id": "still.no_artefacts",
+          "passed": true,
+          "detail": "no [object Object] / undefined / NaN / braces read on the image",
+          "problems": []
+        },
+        {
+          "id": "still.safe_zone",
+          "passed": true,
+          "detail": "16 word boxes inside x 90–920, y 240–1460",
+          "problems": []
+        },
+        {
+          "id": "still.text_overlap",
+          "passed": true,
+          "detail": "no two intended lines overprint each other",
+          "problems": []
+        },
+        {
+          "id": "still.text_size",
+          "passed": true,
+          "detail": "every line's median OCR word height ≥ 24px",
+          "problems": []
+        },
+        {
+          "id": "still.contrast",
+          "passed": true,
+          "detail": "min 5.92:1 over 16 word boxes (WCAG AA 4.5:1)",
+          "problems": []
+        }
+      ],
+      "readBack": [
+        {
+          "line": "More dinner.",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "More",
+              "conf": 100,
+              "x": 108,
+              "y": 318,
+              "w": 222,
+              "h": 90
+            },
+            {
+              "text": "dinner.",
+              "conf": 100,
+              "x": 341,
+              "y": 319,
+              "w": 320,
+              "h": 91
+            }
+          ]
+        },
+        {
+          "line": "Same broiler.",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Same",
+              "conf": 100,
+              "x": 102,
+              "y": 425,
+              "w": 245,
+              "h": 91
+            },
+            {
+              "text": "broiler.",
+              "conf": 100,
+              "x": 358,
+              "y": 426,
+              "w": 323,
+              "h": 91
+            }
+          ]
+        },
+        {
+          "line": "Chicken Tikka Masala",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Chicken",
+              "conf": 100,
+              "x": 105,
+              "y": 573,
+              "w": 136,
+              "h": 35
+            },
+            {
+              "text": "Tikka",
+              "conf": 100,
+              "x": 246,
+              "y": 575,
+              "w": 98,
+              "h": 34
+            },
+            {
+              "text": "Masala",
+              "conf": 100,
+              "x": 348,
+              "y": 576,
+              "w": 127,
+              "h": 35
+            }
+          ]
+        },
+        {
+          "line": "4",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "4",
+              "conf": 100,
+              "x": 501,
+              "y": 577,
+              "w": 30,
+              "h": 34
+            }
+          ]
+        },
+        {
+          "line": "6 servings",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "servings",
+              "conf": 100,
+              "x": 611,
+              "y": 578,
+              "w": 153,
+              "h": 35
+            }
+          ]
+        },
+        {
+          "line": "Illustrated plan",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Illustrated",
+              "conf": 100,
+              "x": 97,
+              "y": 250,
+              "w": 161,
+              "h": 39
+            },
+            {
+              "text": "plan",
+              "conf": 100,
+              "x": 263,
+              "y": 251,
+              "w": 73,
+              "h": 38
+            }
+          ]
+        },
+        {
+          "line": "recorded result",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "recorded",
+              "conf": 100,
+              "x": 356,
+              "y": 251,
+              "w": 156,
+              "h": 38
+            },
+            {
+              "text": "result,",
+              "conf": 100,
+              "x": 517,
+              "y": 251,
+              "w": 102,
+              "h": 38
+            }
+          ]
+        },
+        {
+          "line": "Oct 21, 2026",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Oct",
+              "conf": 100,
+              "x": 624,
+              "y": 251,
+              "w": 63,
+              "h": 38
+            },
+            {
+              "text": "21,",
+              "conf": 100,
+              "x": 692,
+              "y": 251,
+              "w": 48,
+              "h": 38
+            },
+            {
+              "text": "2026",
+              "conf": 100,
+              "x": 746,
+              "y": 250,
+              "w": 88,
+              "h": 39
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "broiler",
+      "at": 5.4,
+      "intended": [
+        "Make it fit",
+        "the actual dinner.",
+        "Request: Dairy-Free · 6 servings",
+        "Current UI",
+        "recorded result",
+        "Oct 21, 2026"
+      ],
+      "canvas": {
+        "width": 1080,
+        "height": 1920
+      },
+      "safeBox": {
+        "x0": 90,
+        "y0": 240,
+        "x1": 920,
+        "y1": 1460
+      },
+      "passed": false,
+      "checks": [
+        {
+          "id": "still.canvas",
+          "passed": true,
+          "detail": "1080×1920",
+          "problems": []
+        },
+        {
+          "id": "still.text_readback",
+          "passed": true,
+          "detail": "6 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 48 words, file: 43 words, inverted: 43 words, rules removed: 44 words, white-text mask: 38 words, dark-text mask: 39 words)",
+          "problems": []
+        },
+        {
+          "id": "still.no_artefacts",
+          "passed": true,
+          "detail": "no [object Object] / undefined / NaN / braces read on the image",
+          "problems": []
+        },
+        {
+          "id": "still.safe_zone",
+          "passed": true,
+          "detail": "15 word boxes inside x 90–920, y 240–1460",
+          "problems": []
+        },
+        {
+          "id": "still.text_overlap",
+          "passed": true,
+          "detail": "no two intended lines overprint each other",
+          "problems": []
+        },
+        {
+          "id": "still.text_size",
+          "passed": true,
+          "detail": "every line's median OCR word height ≥ 24px",
+          "problems": []
+        },
+        {
+          "id": "still.contrast",
+          "passed": false,
+          "detail": "min 3.44:1 over 15 word boxes (WCAG AA 4.5:1)",
+          "problems": [
+            "\"Dairy-Free\" in \"Request: Dairy-Free · 6 servings\" measures 4.09:1",
+            "\"servings\" in \"Request: Dairy-Free · 6 servings\" measures 3.44:1"
+          ]
+        }
+      ],
+      "readBack": [
+        {
+          "line": "Make it fit",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Make",
+              "conf": 100,
+              "x": 100,
+              "y": 319,
+              "w": 193,
+              "h": 72
+            },
+            {
+              "text": "fit",
+              "conf": 100,
+              "x": 362,
+              "y": 317,
+              "w": 84,
+              "h": 71
+            }
+          ]
+        },
+        {
+          "line": "the actual dinner.",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "the",
+              "conf": 100,
+              "x": 96,
+              "y": 400,
+              "w": 118,
+              "h": 74
+            },
+            {
+              "text": "actual",
+              "conf": 100,
+              "x": 222,
+              "y": 402,
+              "w": 226,
+              "h": 75
+            },
+            {
+              "text": "dinner.",
+              "conf": 100,
+              "x": 456,
+              "y": 406,
+              "w": 250,
+              "h": 76
+            }
+          ]
+        },
+        {
+          "line": "Request: Dairy-Free · 6 servings",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Request:",
+              "conf": 100,
+              "x": 100,
+              "y": 1386,
+              "w": 169,
+              "h": 42
+            },
+            {
+              "text": "Dairy-Free",
+              "conf": 100,
+              "x": 616,
+              "y": 669,
+              "w": 143,
+              "h": 36
+            },
+            {
+              "text": "Gluten-Free",
+              "conf": 100,
+              "x": 357,
+              "y": 671,
+              "w": 156,
+              "h": 32
+            },
+            {
+              "text": "servings",
+              "conf": 100,
+              "x": 218,
+              "y": 974,
+              "w": 113,
+              "h": 32
+            }
+          ]
+        },
+        {
+          "line": "Current UI",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Current",
+              "conf": 100,
+              "x": 100,
+              "y": 250,
+              "w": 121,
+              "h": 39
+            }
+          ]
+        },
+        {
+          "line": "recorded result",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "recorded",
+              "conf": 100,
+              "x": 290,
+              "y": 251,
+              "w": 151,
+              "h": 38
+            },
+            {
+              "text": "result,",
+              "conf": 100,
+              "x": 446,
+              "y": 251,
+              "w": 102,
+              "h": 38
+            }
+          ]
+        },
+        {
+          "line": "Oct 21, 2026",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Oct",
+              "conf": 100,
+              "x": 553,
+              "y": 251,
+              "w": 63,
+              "h": 38
+            },
+            {
+              "text": "21,",
+              "conf": 100,
+              "x": 621,
+              "y": 251,
+              "w": 48,
+              "h": 38
+            },
+            {
+              "text": "2026",
+              "conf": 100,
+              "x": 675,
+              "y": 250,
+              "w": 89,
+              "h": 39
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "broiler",
+      "at": 7.5,
+      "intended": [
+        "The actual revised step:",
+        "Two sheets.",
+        "Broil one at a time.",
+        "Current UI",
+        "recorded result",
+        "Oct 21, 2026"
+      ],
+      "canvas": {
+        "width": 1080,
+        "height": 1920
+      },
+      "safeBox": {
+        "x0": 90,
+        "y0": 240,
+        "x1": 920,
+        "y1": 1460
+      },
+      "passed": true,
+      "checks": [
+        {
+          "id": "still.canvas",
+          "passed": true,
+          "detail": "1080×1920",
+          "problems": []
+        },
+        {
+          "id": "still.text_readback",
+          "passed": true,
+          "detail": "6 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 71 words, file: 72 words, inverted: 72 words, rules removed: 71 words, white-text mask: 16 words, dark-text mask: 72 words)",
+          "problems": []
+        },
+        {
+          "id": "still.no_artefacts",
+          "passed": true,
+          "detail": "no [object Object] / undefined / NaN / braces read on the image",
+          "problems": []
+        },
+        {
+          "id": "still.safe_zone",
+          "passed": true,
+          "detail": "15 word boxes inside x 90–920, y 240–1460",
+          "problems": []
+        },
+        {
+          "id": "still.text_overlap",
+          "passed": true,
+          "detail": "no two intended lines overprint each other",
+          "problems": []
+        },
+        {
+          "id": "still.text_size",
+          "passed": true,
+          "detail": "every line's median OCR word height ≥ 24px",
+          "problems": []
+        },
+        {
+          "id": "still.contrast",
+          "passed": true,
+          "detail": "min 6.05:1 over 15 word boxes (WCAG AA 4.5:1)",
+          "problems": []
+        }
+      ],
+      "readBack": [
+        {
+          "line": "The actual revised step:",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "The",
+              "conf": 100,
+              "x": 97,
+              "y": 573,
+              "w": 90,
+              "h": 47
+            },
+            {
+              "text": "actual",
+              "conf": 100,
+              "x": 192,
+              "y": 575,
+              "w": 152,
+              "h": 47
+            },
+            {
+              "text": "revised",
+              "conf": 100,
+              "x": 350,
+              "y": 577,
+              "w": 180,
+              "h": 47
+            },
+            {
+              "text": "step:",
+              "conf": 100,
+              "x": 535,
+              "y": 580,
+              "w": 131,
+              "h": 48
+            }
+          ]
+        },
+        {
+          "line": "Two sheets.",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "two",
+              "conf": 100,
+              "x": 97,
+              "y": 770,
+              "w": 70,
+              "h": 40
+            },
+            {
+              "text": "sheet",
+              "conf": 100,
+              "x": 697,
+              "y": 832,
+              "w": 115,
+              "h": 44
+            }
+          ]
+        },
+        {
+          "line": "Broil one at a time.",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Broil",
+              "conf": 100,
+              "x": 102,
+              "y": 1183,
+              "w": 129,
+              "h": 56
+            },
+            {
+              "text": "one",
+              "conf": 100,
+              "x": 237,
+              "y": 1186,
+              "w": 109,
+              "h": 56
+            },
+            {
+              "text": "time.",
+              "conf": 100,
+              "x": 466,
+              "y": 1190,
+              "w": 159,
+              "h": 57
+            }
+          ]
+        },
+        {
+          "line": "Current UI",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Current",
+              "conf": 100,
+              "x": 100,
+              "y": 250,
+              "w": 121,
+              "h": 39
+            }
+          ]
+        },
+        {
+          "line": "recorded result",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "recorded",
+              "conf": 100,
+              "x": 290,
+              "y": 251,
+              "w": 151,
+              "h": 38
+            },
+            {
+              "text": "result,",
+              "conf": 100,
+              "x": 446,
+              "y": 251,
+              "w": 102,
+              "h": 38
+            }
+          ]
+        },
+        {
+          "line": "Oct 21, 2026",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Oct",
+              "conf": 100,
+              "x": 553,
+              "y": 251,
+              "w": 63,
+              "h": 38
+            },
+            {
+              "text": "21,",
+              "conf": 100,
+              "x": 621,
+              "y": 251,
+              "w": 48,
+              "h": 38
+            },
+            {
+              "text": "2026",
+              "conf": 100,
+              "x": 675,
+              "y": 250,
+              "w": 89,
+              "h": 39
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "broiler",
+      "at": 10.5,
+      "intended": [
+        "Two sheets.",
+        "One at a time.",
+        "RecipeFix rewrote the broiler step.",
+        "Illustrated plan",
+        "recorded result",
+        "Oct 21, 2026"
+      ],
+      "canvas": {
+        "width": 1080,
+        "height": 1920
+      },
+      "safeBox": {
+        "x0": 90,
+        "y0": 240,
+        "x1": 920,
+        "y1": 1460
+      },
+      "passed": true,
+      "checks": [
+        {
+          "id": "still.canvas",
+          "passed": true,
+          "detail": "1080×1920",
+          "problems": []
+        },
+        {
+          "id": "still.text_readback",
+          "passed": true,
+          "detail": "6 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 19 words, file: 18 words, inverted: 26 words, rules removed: 24 words, white-text mask: 17 words, dark-text mask: 29 words)",
+          "problems": []
+        },
+        {
+          "id": "still.no_artefacts",
+          "passed": true,
+          "detail": "no [object Object] / undefined / NaN / braces read on the image",
+          "problems": []
+        },
+        {
+          "id": "still.safe_zone",
+          "passed": true,
+          "detail": "16 word boxes inside x 90–920, y 240–1460",
+          "problems": []
+        },
+        {
+          "id": "still.text_overlap",
+          "passed": true,
+          "detail": "no two intended lines overprint each other",
+          "problems": []
+        },
+        {
+          "id": "still.text_size",
+          "passed": true,
+          "detail": "every line's median OCR word height ≥ 24px",
+          "problems": []
+        },
+        {
+          "id": "still.contrast",
+          "passed": true,
+          "detail": "min 5.90:1 over 16 word boxes (WCAG AA 4.5:1)",
+          "problems": []
+        }
+      ],
+      "readBack": [
+        {
+          "line": "Two sheets.",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Two",
+              "conf": 100,
+              "x": 99,
+              "y": 319,
+              "w": 176,
+              "h": 80
+            },
+            {
+              "text": "sheets.",
+              "conf": 100,
+              "x": 284,
+              "y": 322,
+              "w": 311,
+              "h": 82
+            }
+          ]
+        },
+        {
+          "line": "One at a time.",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "One",
+              "conf": 100,
+              "x": 100,
+              "y": 415,
+              "w": 172,
+              "h": 86
+            },
+            {
+              "text": "time.",
+              "conf": 100,
+              "x": 433,
+              "y": 414,
+              "w": 220,
+              "h": 86
+            }
+          ]
+        },
+        {
+          "line": "RecipeFix rewrote the broiler step.",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "RecipeFix",
+              "conf": 100,
+              "x": 100,
+              "y": 1417,
+              "w": 166,
+              "h": 36
+            },
+            {
+              "text": "rewrote",
+              "conf": 100,
+              "x": 271,
+              "y": 1418,
+              "w": 135,
+              "h": 36
+            },
+            {
+              "text": "the",
+              "conf": 100,
+              "x": 410,
+              "y": 1418,
+              "w": 58,
+              "h": 36
+            },
+            {
+              "text": "broiler",
+              "conf": 100,
+              "x": 473,
+              "y": 1418,
+              "w": 117,
+              "h": 36
+            },
+            {
+              "text": "step.",
+              "conf": 100,
+              "x": 595,
+              "y": 1417,
+              "w": 91,
+              "h": 36
+            }
+          ]
+        },
+        {
+          "line": "Illustrated plan",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Illustrated",
+              "conf": 100,
+              "x": 97,
+              "y": 250,
+              "w": 161,
+              "h": 39
+            },
+            {
+              "text": "plan",
+              "conf": 100,
+              "x": 263,
+              "y": 251,
+              "w": 73,
+              "h": 38
+            }
+          ]
+        },
+        {
+          "line": "recorded result",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "recorded",
+              "conf": 100,
+              "x": 356,
+              "y": 251,
+              "w": 156,
+              "h": 38
+            },
+            {
+              "text": "result,",
+              "conf": 100,
+              "x": 517,
+              "y": 251,
+              "w": 102,
+              "h": 38
+            }
+          ]
+        },
+        {
+          "line": "Oct 21, 2026",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Oct",
+              "conf": 100,
+              "x": 624,
+              "y": 251,
+              "w": 63,
+              "h": 38
+            },
+            {
+              "text": "21,",
+              "conf": 100,
+              "x": 692,
+              "y": 251,
+              "w": 48,
+              "h": 38
+            },
+            {
+              "text": "2026",
+              "conf": 100,
+              "x": 746,
+              "y": 250,
+              "w": 88,
+              "h": 39
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "broiler",
+      "at": 14.6,
+      "intended": [
+        "Then finish",
+        "in the sauce.",
+        "Follow the full recipe for doneness.",
+        "Illustrated plan",
+        "recorded result",
+        "Oct 21, 2026"
+      ],
+      "canvas": {
+        "width": 1080,
+        "height": 1920
+      },
+      "safeBox": {
+        "x0": 90,
+        "y0": 240,
+        "x1": 920,
+        "y1": 1460
+      },
+      "passed": true,
+      "checks": [
+        {
+          "id": "still.canvas",
+          "passed": true,
+          "detail": "1080×1920",
+          "problems": []
+        },
+        {
+          "id": "still.text_readback",
+          "passed": true,
+          "detail": "6 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 19 words, file: 25 words, inverted: 25 words, rules removed: 26 words, white-text mask: 28 words, dark-text mask: 28 words)",
+          "problems": []
+        },
+        {
+          "id": "still.no_artefacts",
+          "passed": true,
+          "detail": "no [object Object] / undefined / NaN / braces read on the image",
+          "problems": []
+        },
+        {
+          "id": "still.safe_zone",
+          "passed": true,
+          "detail": "17 word boxes inside x 90–920, y 240–1460",
+          "problems": []
+        },
+        {
+          "id": "still.text_overlap",
+          "passed": true,
+          "detail": "no two intended lines overprint each other",
+          "problems": []
+        },
+        {
+          "id": "still.text_size",
+          "passed": true,
+          "detail": "every line's median OCR word height ≥ 24px",
+          "problems": []
+        },
+        {
+          "id": "still.contrast",
+          "passed": true,
+          "detail": "min 8.33:1 over 17 word boxes (WCAG AA 4.5:1)",
+          "problems": []
+        }
+      ],
+      "readBack": [
+        {
+          "line": "Then finish",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Then",
+              "conf": 100,
+              "x": 100,
+              "y": 321,
+              "w": 207,
+              "h": 77
+            },
+            {
+              "text": "finish",
+              "conf": 95.240776,
+              "x": 327,
+              "y": 321,
+              "w": 215,
+              "h": 72
+            }
+          ]
+        },
+        {
+          "line": "in the sauce.",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "the",
+              "conf": 100,
+              "x": 176,
+              "y": 424,
+              "w": 146,
+              "h": 74
+            },
+            {
+              "text": "sauce.",
+              "conf": 100,
+              "x": 331,
+              "y": 422,
+              "w": 280,
+              "h": 75
+            }
+          ]
+        },
+        {
+          "line": "Follow the full recipe for doneness.",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Follow",
+              "conf": 100,
+              "x": 100,
+              "y": 1417,
+              "w": 107,
+              "h": 36
+            },
+            {
+              "text": "the",
+              "conf": 100,
+              "x": 212,
+              "y": 1418,
+              "w": 58,
+              "h": 36
+            },
+            {
+              "text": "full",
+              "conf": 100,
+              "x": 275,
+              "y": 1418,
+              "w": 63,
+              "h": 36
+            },
+            {
+              "text": "recipe",
+              "conf": 100,
+              "x": 343,
+              "y": 1418,
+              "w": 107,
+              "h": 36
+            },
+            {
+              "text": "for",
+              "conf": 100,
+              "x": 455,
+              "y": 1418,
+              "w": 53,
+              "h": 36
+            },
+            {
+              "text": "doneness.",
+              "conf": 100,
+              "x": 514,
+              "y": 1417,
+              "w": 183,
+              "h": 36
+            }
+          ]
+        },
+        {
+          "line": "Illustrated plan",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Illustrated",
+              "conf": 100,
+              "x": 94,
+              "y": 250,
+              "w": 165,
+              "h": 39
+            },
+            {
+              "text": "plan",
+              "conf": 100,
+              "x": 265,
+              "y": 251,
+              "w": 73,
+              "h": 38
+            }
+          ]
+        },
+        {
+          "line": "recorded result",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "recorded",
+              "conf": 100,
+              "x": 358,
+              "y": 251,
+              "w": 151,
+              "h": 38
+            },
+            {
+              "text": "result,",
+              "conf": 100,
+              "x": 514,
+              "y": 251,
+              "w": 107,
+              "h": 38
+            }
+          ]
+        },
+        {
+          "line": "Oct 21, 2026",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Oct",
+              "conf": 100,
+              "x": 626,
+              "y": 251,
+              "w": 63,
+              "h": 38
+            },
+            {
+              "text": "21,",
+              "conf": 100,
+              "x": 694,
+              "y": 251,
+              "w": 48,
+              "h": 38
+            },
+            {
+              "text": "2026",
+              "conf": 100,
+              "x": 748,
+              "y": 250,
+              "w": 86,
+              "h": 39
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "broiler",
+      "at": 17,
+      "intended": [
+        "Cooking for more?",
+        "Try this recipe.",
+        "recipefix.app",
+        "Chicken Tikka Masala",
+        "Make it fit",
+        "Original recipe photo",
+        "Illustrated plan",
+        "recorded result",
+        "Oct 21, 2026"
+      ],
+      "canvas": {
+        "width": 1080,
+        "height": 1920
+      },
+      "safeBox": {
+        "x0": 90,
+        "y0": 240,
+        "x1": 920,
+        "y1": 1460
+      },
+      "passed": true,
+      "checks": [
+        {
+          "id": "still.canvas",
+          "passed": true,
+          "detail": "1080×1920",
+          "problems": []
+        },
+        {
+          "id": "still.text_readback",
+          "passed": true,
+          "detail": "9 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 26 words, file: 32 words, inverted: 30 words, rules removed: 30 words, white-text mask: 46 words, dark-text mask: 47 words)",
+          "problems": []
+        },
+        {
+          "id": "still.no_artefacts",
+          "passed": true,
+          "detail": "no [object Object] / undefined / NaN / braces read on the image",
+          "problems": []
+        },
+        {
+          "id": "still.safe_zone",
+          "passed": true,
+          "detail": "23 word boxes inside x 90–920, y 240–1460",
+          "problems": []
+        },
+        {
+          "id": "still.text_overlap",
+          "passed": true,
+          "detail": "no two intended lines overprint each other",
+          "problems": []
+        },
+        {
+          "id": "still.text_size",
+          "passed": true,
+          "detail": "every line's median OCR word height ≥ 24px",
+          "problems": []
+        },
+        {
+          "id": "still.contrast",
+          "passed": true,
+          "detail": "min 5.89:1 over 23 word boxes (WCAG AA 4.5:1)",
+          "problems": []
+        }
+      ],
+      "readBack": [
+        {
+          "line": "Cooking for more?",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Cooking",
+              "conf": 100,
+              "x": 99,
+              "y": 362,
+              "w": 342,
+              "h": 113
+            },
+            {
+              "text": "for",
+              "conf": 100,
+              "x": 453,
+              "y": 360,
+              "w": 137,
+              "h": 110
+            },
+            {
+              "text": "more?",
+              "conf": 100,
+              "x": 603,
+              "y": 356,
+              "w": 282,
+              "h": 113
+            }
+          ]
+        },
+        {
+          "line": "Try this recipe.",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Try",
+              "conf": 100,
+              "x": 99,
+              "y": 467,
+              "w": 136,
+              "h": 100
+            },
+            {
+              "text": "this",
+              "conf": 96.54467,
+              "x": 259,
+              "y": 473,
+              "w": 151,
+              "h": 75
+            },
+            {
+              "text": "recipe.",
+              "conf": 100,
+              "x": 417,
+              "y": 472,
+              "w": 308,
+              "h": 103
+            }
+          ]
+        },
+        {
+          "line": "recipefix.app",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "recipefix.app",
+              "conf": 100,
+              "x": 97,
+              "y": 1269,
+              "w": 425,
+              "h": 73
+            },
+            {
+              "text": "recipefix.app",
+              "conf": 100,
+              "x": 97,
+              "y": 1269,
+              "w": 425,
+              "h": 73
+            }
+          ]
+        },
+        {
+          "line": "Chicken Tikka Masala",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Chicken",
+              "conf": 100,
+              "x": 100,
+              "y": 1363,
+              "w": 136,
+              "h": 33
+            },
+            {
+              "text": "Tikka",
+              "conf": 100,
+              "x": 240,
+              "y": 1363,
+              "w": 96,
+              "h": 32
+            },
+            {
+              "text": "Masala",
+              "conf": 100,
+              "x": 340,
+              "y": 1362,
+              "w": 124,
+              "h": 32
+            }
+          ]
+        },
+        {
+          "line": "Make it fit",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Make",
+              "conf": 100,
+              "x": 512,
+              "y": 1361,
+              "w": 92,
+              "h": 32
+            },
+            {
+              "text": "fit",
+              "conf": 100,
+              "x": 640,
+              "y": 1361,
+              "w": 40,
+              "h": 32
+            }
+          ]
+        },
+        {
+          "line": "Original recipe photo",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Original",
+              "conf": 100,
+              "x": 133,
+              "y": 1121,
+              "w": 112,
+              "h": 31
+            },
+            {
+              "text": "recipe",
+              "conf": 100,
+              "x": 250,
+              "y": 1122,
+              "w": 93,
+              "h": 30
+            },
+            {
+              "text": "photo",
+              "conf": 100,
+              "x": 347,
+              "y": 1121,
+              "w": 85,
+              "h": 31
+            }
+          ]
+        },
+        {
+          "line": "Illustrated plan",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Ilustrated",
+              "conf": 100,
+              "x": 97,
+              "y": 250,
+              "w": 161,
+              "h": 39
+            },
+            {
+              "text": "plan",
+              "conf": 100,
+              "x": 263,
+              "y": 251,
+              "w": 73,
+              "h": 38
+            }
+          ]
+        },
+        {
+          "line": "recorded result",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "recorded",
+              "conf": 100,
+              "x": 356,
+              "y": 251,
+              "w": 156,
+              "h": 38
+            },
+            {
+              "text": "result,",
+              "conf": 100,
+              "x": 517,
+              "y": 251,
+              "w": 102,
+              "h": 38
+            }
+          ]
+        },
+        {
+          "line": "Oct 21, 2026",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Oct",
+              "conf": 100,
+              "x": 624,
+              "y": 251,
+              "w": 63,
+              "h": 38
+            },
+            {
+              "text": "21,",
+              "conf": 100,
+              "x": 692,
+              "y": 251,
+              "w": 48,
+              "h": 38
+            },
+            {
+              "text": "2026",
+              "conf": 100,
+              "x": 746,
+              "y": 250,
+              "w": 88,
+              "h": 39
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "ig-1",
+      "intended": [
+        "6 PEOPLE.",
+        "SAME BROILER.",
+        "A real RecipeFix example:"
+      ],
+      "canvas": {
+        "width": 1080,
+        "height": 1350
+      },
+      "safeBox": {
+        "x0": 60,
+        "y0": 110,
+        "x1": 1020,
+        "y1": 1305
+      },
+      "passed": true,
+      "checks": [
+        {
+          "id": "still.canvas",
+          "passed": true,
+          "detail": "1080×1350",
+          "problems": []
+        },
+        {
+          "id": "still.text_readback",
+          "passed": true,
+          "detail": "3 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 45 words, file: 56 words, inverted: 54 words, rules removed: 54 words, white-text mask: 0 words, dark-text mask: 67 words)",
+          "problems": []
+        },
+        {
+          "id": "still.no_artefacts",
+          "passed": true,
+          "detail": "no [object Object] / undefined / NaN / braces read on the image",
+          "problems": []
+        },
+        {
+          "id": "still.safe_zone",
+          "passed": true,
+          "detail": "6 word boxes inside x 60–1020, y 110–1305",
+          "problems": []
+        },
+        {
+          "id": "still.text_overlap",
+          "passed": true,
+          "detail": "no two intended lines overprint each other",
+          "problems": []
+        },
+        {
+          "id": "still.text_size",
+          "passed": true,
+          "detail": "every line's median OCR word height ≥ 24px",
+          "problems": []
+        },
+        {
+          "id": "still.contrast",
+          "passed": true,
+          "detail": "min 5.80:1 over 6 word boxes (WCAG AA 4.5:1)",
+          "problems": []
+        }
+      ],
+      "readBack": [
+        {
+          "line": "6 PEOPLE.",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "PEOPLE.",
+              "conf": 96.464394,
+              "x": 155,
+              "y": 156,
+              "w": 328,
+              "h": 67
+            }
+          ]
+        },
+        {
+          "line": "SAME BROILER.",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "SAME",
+              "conf": 96.292465,
+              "x": 82,
+              "y": 249,
+              "w": 234,
+              "h": 66
+            },
+            {
+              "text": "BROILER.",
+              "conf": 95.00399,
+              "x": 341,
+              "y": 249,
+              "w": 355,
+              "h": 66
+            }
+          ]
+        },
+        {
+          "line": "A real RecipeFix example:",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "real",
+              "conf": 100,
+              "x": 103,
+              "y": 1218,
+              "w": 65,
+              "h": 39
+            },
+            {
+              "text": "RecipeFix",
+              "conf": 100,
+              "x": 173,
+              "y": 1218,
+              "w": 149,
+              "h": 39
+            },
+            {
+              "text": "example:",
+              "conf": 100,
+              "x": 328,
+              "y": 1218,
+              "w": 140,
+              "h": 39
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "ig-2",
+      "intended": [
+        "The numbers",
+        "are half the job.",
+        "The quantity grows.",
+        "Your broiler space stays the same."
+      ],
+      "canvas": {
+        "width": 1080,
+        "height": 1350
+      },
+      "safeBox": {
+        "x0": 60,
+        "y0": 110,
+        "x1": 1020,
+        "y1": 1305
+      },
+      "passed": true,
+      "checks": [
+        {
+          "id": "still.canvas",
+          "passed": true,
+          "detail": "1080×1350",
+          "problems": []
+        },
+        {
+          "id": "still.text_readback",
+          "passed": true,
+          "detail": "4 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 55 words, file: 55 words, inverted: 55 words, rules removed: 54 words, white-text mask: 0 words, dark-text mask: 52 words)",
+          "problems": []
+        },
+        {
+          "id": "still.no_artefacts",
+          "passed": true,
+          "detail": "no [object Object] / undefined / NaN / braces read on the image",
+          "problems": []
+        },
+        {
+          "id": "still.safe_zone",
+          "passed": true,
+          "detail": "15 word boxes inside x 60–1020, y 110–1305",
+          "problems": []
+        },
+        {
+          "id": "still.text_overlap",
+          "passed": true,
+          "detail": "no two intended lines overprint each other",
+          "problems": []
+        },
+        {
+          "id": "still.text_size",
+          "passed": true,
+          "detail": "every line's median OCR word height ≥ 24px",
+          "problems": []
+        },
+        {
+          "id": "still.contrast",
+          "passed": true,
+          "detail": "min 11.87:1 over 15 word boxes (WCAG AA 4.5:1)",
+          "problems": []
+        }
+      ],
+      "readBack": [
+        {
+          "line": "The numbers",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "the",
+              "conf": 95.914574,
+              "x": 384,
+              "y": 249,
+              "w": 125,
+              "h": 66
+            },
+            {
+              "text": "numbers",
+              "conf": 96.298882,
+              "x": 254,
+              "y": 157,
+              "w": 344,
+              "h": 66
+            }
+          ]
+        },
+        {
+          "line": "are half the job.",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "are",
+              "conf": 100,
+              "x": 72,
+              "y": 234,
+              "w": 126,
+              "h": 101
+            },
+            {
+              "text": "half",
+              "conf": 95.31633,
+              "x": 225,
+              "y": 246,
+              "w": 144,
+              "h": 69
+            },
+            {
+              "text": "the",
+              "conf": 100,
+              "x": 375,
+              "y": 236,
+              "w": 126,
+              "h": 101
+            },
+            {
+              "text": "job.",
+              "conf": 100,
+              "x": 514,
+              "y": 236,
+              "w": 171,
+              "h": 102
+            }
+          ]
+        },
+        {
+          "line": "The quantity grows.",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "The",
+              "conf": 100,
+              "x": 77,
+              "y": 861,
+              "w": 78,
+              "h": 43
+            },
+            {
+              "text": "quantity",
+              "conf": 100,
+              "x": 159,
+              "y": 864,
+              "w": 165,
+              "h": 45
+            },
+            {
+              "text": "grows.",
+              "conf": 100,
+              "x": 328,
+              "y": 869,
+              "w": 146,
+              "h": 45
+            }
+          ]
+        },
+        {
+          "line": "Your broiler space stays the same.",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Your",
+              "conf": 100,
+              "x": 79,
+              "y": 918,
+              "w": 87,
+              "h": 41
+            },
+            {
+              "text": "broiler",
+              "conf": 100,
+              "x": 172,
+              "y": 919,
+              "w": 133,
+              "h": 41
+            },
+            {
+              "text": "space",
+              "conf": 100,
+              "x": 310,
+              "y": 920,
+              "w": 123,
+              "h": 41
+            },
+            {
+              "text": "stays",
+              "conf": 100,
+              "x": 438,
+              "y": 921,
+              "w": 102,
+              "h": 41
+            },
+            {
+              "text": "the",
+              "conf": 100,
+              "x": 546,
+              "y": 921,
+              "w": 71,
+              "h": 41
+            },
+            {
+              "text": "same.",
+              "conf": 100,
+              "x": 623,
+              "y": 922,
+              "w": 127,
+              "h": 42
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "ig-3",
+      "intended": [
+        "The new plan:",
+        "two sheets.",
+        "One sheet at a time.",
+        "Then finish each batch in the sauce."
+      ],
+      "canvas": {
+        "width": 1080,
+        "height": 1350
+      },
+      "safeBox": {
+        "x0": 60,
+        "y0": 110,
+        "x1": 1020,
+        "y1": 1305
+      },
+      "passed": true,
+      "checks": [
+        {
+          "id": "still.canvas",
+          "passed": true,
+          "detail": "1080×1350",
+          "problems": []
+        },
+        {
+          "id": "still.text_readback",
+          "passed": true,
+          "detail": "4 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 38 words, file: 39 words, inverted: 45 words, rules removed: 50 words, white-text mask: 3 words, dark-text mask: 46 words)",
+          "problems": []
+        },
+        {
+          "id": "still.no_artefacts",
+          "passed": true,
+          "detail": "no [object Object] / undefined / NaN / braces read on the image",
+          "problems": []
+        },
+        {
+          "id": "still.safe_zone",
+          "passed": true,
+          "detail": "14 word boxes inside x 60–1020, y 110–1305",
+          "problems": []
+        },
+        {
+          "id": "still.text_overlap",
+          "passed": true,
+          "detail": "no two intended lines overprint each other",
+          "problems": []
+        },
+        {
+          "id": "still.text_size",
+          "passed": true,
+          "detail": "every line's median OCR word height ≥ 24px",
+          "problems": []
+        },
+        {
+          "id": "still.contrast",
+          "passed": true,
+          "detail": "min 5.80:1 over 14 word boxes (WCAG AA 4.5:1)",
+          "problems": []
+        }
+      ],
+      "readBack": [
+        {
+          "line": "The new plan:",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "The",
+              "conf": 100,
+              "x": 73,
+              "y": 157,
+              "w": 154,
+              "h": 83
+            },
+            {
+              "text": "new",
+              "conf": 100,
+              "x": 237,
+              "y": 158,
+              "w": 174,
+              "h": 83
+            },
+            {
+              "text": "plan:",
+              "conf": 100,
+              "x": 422,
+              "y": 159,
+              "w": 208,
+              "h": 83
+            }
+          ]
+        },
+        {
+          "line": "two sheets.",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "two",
+              "conf": 100,
+              "x": 73,
+              "y": 245,
+              "w": 150,
+              "h": 76
+            },
+            {
+              "text": "sheets.",
+              "conf": 95.888191,
+              "x": 246,
+              "y": 249,
+              "w": 279,
+              "h": 66
+            }
+          ]
+        },
+        {
+          "line": "One sheet at a time.",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "One",
+              "conf": 100,
+              "x": 79,
+              "y": 971,
+              "w": 79,
+              "h": 38
+            },
+            {
+              "text": "sheet",
+              "conf": 100,
+              "x": 162,
+              "y": 972,
+              "w": 116,
+              "h": 38
+            },
+            {
+              "text": "time.",
+              "conf": 100,
+              "x": 361,
+              "y": 975,
+              "w": 122,
+              "h": 38
+            }
+          ]
+        },
+        {
+          "line": "Then finish each batch in the sauce.",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Then",
+              "conf": 100,
+              "x": 77,
+              "y": 1028,
+              "w": 100,
+              "h": 35
+            },
+            {
+              "text": "finish",
+              "conf": 100,
+              "x": 182,
+              "y": 1029,
+              "w": 113,
+              "h": 35
+            },
+            {
+              "text": "each",
+              "conf": 100,
+              "x": 300,
+              "y": 1030,
+              "w": 100,
+              "h": 35
+            },
+            {
+              "text": "batch",
+              "conf": 100,
+              "x": 405,
+              "y": 1030,
+              "w": 118,
+              "h": 35
+            },
+            {
+              "text": "the",
+              "conf": 100,
+              "x": 572,
+              "y": 1031,
+              "w": 70,
+              "h": 35
+            },
+            {
+              "text": "sauce.",
+              "conf": 100,
+              "x": 646,
+              "y": 1032,
+              "w": 137,
+              "h": 35
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "ig-4",
+      "intended": [
+        "It rewrote the",
+        "broiler step, too.",
+        "broil one sheet at a time",
+        "The full recipe then finishes the chicken"
+      ],
+      "canvas": {
+        "width": 1080,
+        "height": 1350
+      },
+      "safeBox": {
+        "x0": 60,
+        "y0": 110,
+        "x1": 1020,
+        "y1": 1305
+      },
+      "passed": true,
+      "checks": [
+        {
+          "id": "still.canvas",
+          "passed": true,
+          "detail": "1080×1350",
+          "problems": []
+        },
+        {
+          "id": "still.text_readback",
+          "passed": true,
+          "detail": "4 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 77 words, file: 77 words, inverted: 77 words, rules removed: 77 words, white-text mask: 0 words, dark-text mask: 77 words)",
+          "problems": []
+        },
+        {
+          "id": "still.no_artefacts",
+          "passed": true,
+          "detail": "no [object Object] / undefined / NaN / braces read on the image",
+          "problems": []
+        },
+        {
+          "id": "still.safe_zone",
+          "passed": true,
+          "detail": "16 word boxes inside x 60–1020, y 110–1305",
+          "problems": []
+        },
+        {
+          "id": "still.text_overlap",
+          "passed": true,
+          "detail": "no two intended lines overprint each other",
+          "problems": []
+        },
+        {
+          "id": "still.text_size",
+          "passed": true,
+          "detail": "every line's median OCR word height ≥ 24px",
+          "problems": []
+        },
+        {
+          "id": "still.contrast",
+          "passed": true,
+          "detail": "min 11.87:1 over 16 word boxes (WCAG AA 4.5:1)",
+          "problems": []
+        }
+      ],
+      "readBack": [
+        {
+          "line": "It rewrote the",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "rewrote",
+              "conf": 96.856041,
+              "x": 141,
+              "y": 161,
+              "w": 257,
+              "h": 54
+            },
+            {
+              "text": "the",
+              "conf": 96.521729,
+              "x": 413,
+              "y": 157,
+              "w": 110,
+              "h": 58
+            }
+          ]
+        },
+        {
+          "line": "broiler step, too.",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "broiler",
+              "conf": 100,
+              "x": 79,
+              "y": 238,
+              "w": 218,
+              "h": 84
+            },
+            {
+              "text": "step,",
+              "conf": 100,
+              "x": 307,
+              "y": 239,
+              "w": 166,
+              "h": 83
+            },
+            {
+              "text": "too.",
+              "conf": 100,
+              "x": 483,
+              "y": 240,
+              "w": 148,
+              "h": 84
+            }
+          ]
+        },
+        {
+          "line": "broil one sheet at a time",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "\"broil",
+              "conf": 100,
+              "x": 70,
+              "y": 652,
+              "w": 89,
+              "h": 41
+            },
+            {
+              "text": "one",
+              "conf": 100,
+              "x": 164,
+              "y": 652,
+              "w": 52,
+              "h": 41
+            },
+            {
+              "text": "sheet",
+              "conf": 100,
+              "x": 222,
+              "y": 652,
+              "w": 73,
+              "h": 41
+            },
+            {
+              "text": "time\"",
+              "conf": 100,
+              "x": 358,
+              "y": 652,
+              "w": 91,
+              "h": 41
+            }
+          ]
+        },
+        {
+          "line": "The full recipe then finishes the chicken",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "The",
+              "conf": 100,
+              "x": 78,
+              "y": 916,
+              "w": 63,
+              "h": 35
+            },
+            {
+              "text": "full",
+              "conf": 100,
+              "x": 145,
+              "y": 916,
+              "w": 54,
+              "h": 35
+            },
+            {
+              "text": "recipe",
+              "conf": 100,
+              "x": 204,
+              "y": 916,
+              "w": 103,
+              "h": 35
+            },
+            {
+              "text": "then",
+              "conf": 100,
+              "x": 311,
+              "y": 916,
+              "w": 76,
+              "h": 35
+            },
+            {
+              "text": "finishes",
+              "conf": 100,
+              "x": 393,
+              "y": 916,
+              "w": 130,
+              "h": 35
+            },
+            {
+              "text": "the",
+              "conf": 100,
+              "x": 528,
+              "y": 916,
+              "w": 58,
+              "h": 35
+            },
+            {
+              "text": "chicken",
+              "conf": 100,
+              "x": 590,
+              "y": 916,
+              "w": 129,
+              "h": 35
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "ig-5",
+      "intended": [
+        "Your dinner.",
+        "Your headcount.",
+        "Tap",
+        "Make it fit",
+        "recipefix.app"
+      ],
+      "canvas": {
+        "width": 1080,
+        "height": 1350
+      },
+      "safeBox": {
+        "x0": 60,
+        "y0": 110,
+        "x1": 1020,
+        "y1": 1305
+      },
+      "passed": true,
+      "checks": [
+        {
+          "id": "still.canvas",
+          "passed": true,
+          "detail": "1080×1350",
+          "problems": []
+        },
+        {
+          "id": "still.text_readback",
+          "passed": true,
+          "detail": "5 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 52 words, file: 52 words, inverted: 52 words, rules removed: 52 words, white-text mask: 0 words, dark-text mask: 52 words)",
+          "problems": []
+        },
+        {
+          "id": "still.no_artefacts",
+          "passed": true,
+          "detail": "no [object Object] / undefined / NaN / braces read on the image",
+          "problems": []
+        },
+        {
+          "id": "still.safe_zone",
+          "passed": true,
+          "detail": "9 word boxes inside x 60–1020, y 110–1305",
+          "problems": []
+        },
+        {
+          "id": "still.text_overlap",
+          "passed": true,
+          "detail": "no two intended lines overprint each other",
+          "problems": []
+        },
+        {
+          "id": "still.text_size",
+          "passed": true,
+          "detail": "every line's median OCR word height ≥ 24px",
+          "problems": []
+        },
+        {
+          "id": "still.contrast",
+          "passed": true,
+          "detail": "min 5.80:1 over 9 word boxes (WCAG AA 4.5:1)",
+          "problems": []
+        }
+      ],
+      "readBack": [
+        {
+          "line": "Your dinner.",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "your",
+              "conf": 100,
+              "x": 282,
+              "y": 731,
+              "w": 90,
+              "h": 56
+            },
+            {
+              "text": "dinner.",
+              "conf": 100,
+              "x": 272,
+              "y": 152,
+              "w": 280,
+              "h": 80
+            }
+          ]
+        },
+        {
+          "line": "Your headcount.",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Your",
+              "conf": 100,
+              "x": 75,
+              "y": 241,
+              "w": 184,
+              "h": 81
+            },
+            {
+              "text": "headcount.",
+              "conf": 93.315292,
+              "x": 298,
+              "y": 245,
+              "w": 420,
+              "h": 81
+            }
+          ]
+        },
+        {
+          "line": "Tap",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Tap",
+              "conf": 100,
+              "x": 132,
+              "y": 598,
+              "w": 71,
+              "h": 48
+            }
+          ]
+        },
+        {
+          "line": "Make it fit",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "\"Make",
+              "conf": 100,
+              "x": 208,
+              "y": 596,
+              "w": 124,
+              "h": 48
+            },
+            {
+              "text": "fit\".",
+              "conf": 100,
+              "x": 367,
+              "y": 594,
+              "w": 75,
+              "h": 48
+            }
+          ]
+        },
+        {
+          "line": "recipefix.app",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "recipefix.app",
+              "conf": 100,
+              "x": 77,
+              "y": 993,
+              "w": 354,
+              "h": 58
+            },
+            {
+              "text": "recipefix.app",
+              "conf": 100,
+              "x": 77,
+              "y": 993,
+              "w": 354,
+              "h": 58
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "x",
+      "intended": [
+        "More chicken.",
+        "A different batch plan.",
+        "Two uncrowded sheets.",
+        "Broil one at a time.",
+        "Finish each batch in the sauce."
+      ],
+      "canvas": {
+        "width": 1200,
+        "height": 675
+      },
+      "safeBox": {
+        "x0": 60,
+        "y0": 95,
+        "x1": 1140,
+        "y1": 650
+      },
+      "passed": true,
+      "checks": [
+        {
+          "id": "still.canvas",
+          "passed": true,
+          "detail": "1200×675",
+          "problems": []
+        },
+        {
+          "id": "still.text_readback",
+          "passed": true,
+          "detail": "5 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 43 words, file: 44 words, inverted: 45 words, rules removed: 44 words, white-text mask: 3 words, dark-text mask: 51 words)",
+          "problems": []
+        },
+        {
+          "id": "still.no_artefacts",
+          "passed": true,
+          "detail": "no [object Object] / undefined / NaN / braces read on the image",
+          "problems": []
+        },
+        {
+          "id": "still.safe_zone",
+          "passed": true,
+          "detail": "16 word boxes inside x 60–1140, y 95–650",
+          "problems": []
+        },
+        {
+          "id": "still.text_overlap",
+          "passed": true,
+          "detail": "no two intended lines overprint each other",
+          "problems": []
+        },
+        {
+          "id": "still.text_size",
+          "passed": true,
+          "detail": "every line's median OCR word height ≥ 24px",
+          "problems": []
+        },
+        {
+          "id": "still.contrast",
+          "passed": true,
+          "detail": "min 5.80:1 over 16 word boxes (WCAG AA 4.5:1)",
+          "problems": []
+        }
+      ],
+      "readBack": [
+        {
+          "line": "More chicken.",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "More",
+              "conf": 100,
+              "x": 67,
+              "y": 113,
+              "w": 141,
+              "h": 60
+            },
+            {
+              "text": "chicken.",
+              "conf": 100,
+              "x": 214,
+              "y": 117,
+              "w": 241,
+              "h": 62
+            }
+          ]
+        },
+        {
+          "line": "A different batch plan.",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "different",
+              "conf": 96.737465,
+              "x": 121,
+              "y": 183,
+              "w": 224,
+              "h": 48
+            },
+            {
+              "text": "batch",
+              "conf": 100,
+              "x": 348,
+              "y": 182,
+              "w": 157,
+              "h": 60
+            },
+            {
+              "text": "plan.",
+              "conf": 100,
+              "x": 513,
+              "y": 183,
+              "w": 148,
+              "h": 61
+            }
+          ]
+        },
+        {
+          "line": "Two uncrowded sheets.",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Two",
+              "conf": 100,
+              "x": 65,
+              "y": 403,
+              "w": 69,
+              "h": 29
+            },
+            {
+              "text": "uncrowded",
+              "conf": 100,
+              "x": 138,
+              "y": 404,
+              "w": 185,
+              "h": 30
+            },
+            {
+              "text": "sheets.",
+              "conf": 100,
+              "x": 326,
+              "y": 405,
+              "w": 125,
+              "h": 30
+            }
+          ]
+        },
+        {
+          "line": "Broil one at a time.",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Broil",
+              "conf": 100,
+              "x": 65,
+              "y": 445,
+              "w": 73,
+              "h": 32
+            },
+            {
+              "text": "one",
+              "conf": 100,
+              "x": 143,
+              "y": 446,
+              "w": 66,
+              "h": 31
+            },
+            {
+              "text": "time.",
+              "conf": 100,
+              "x": 278,
+              "y": 447,
+              "w": 89,
+              "h": 32
+            }
+          ]
+        },
+        {
+          "line": "Finish each batch in the sauce.",
+          "similarity": 1,
+          "missing": [],
+          "boxes": [
+            {
+              "text": "Finish",
+              "conf": 100,
+              "x": 64,
+              "y": 489,
+              "w": 96,
+              "h": 36
+            },
+            {
+              "text": "each",
+              "conf": 100,
+              "x": 165,
+              "y": 490,
+              "w": 83,
+              "h": 35
+            },
+            {
+              "text": "batch",
+              "conf": 100,
+              "x": 252,
+              "y": 491,
+              "w": 96,
+              "h": 35
+            },
+            {
+              "text": "the",
+              "conf": 100,
+              "x": 388,
+              "y": 493,
+              "w": 61,
+              "h": 35
+            },
+            {
+              "text": "sauce.",
+              "conf": 100,
+              "x": 454,
+              "y": 493,
+              "w": 116,
+              "h": 36
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "sourceUiLimitation": "At5.4s full-frame OCR attributes repeated words to the unchanged captured UI: Dairy-Free4.09:1 and muted servings3.44:1. This failure remains recorded. Core numeric control is dark; high-contrast editorial request annotation is independently checked below. No claim that every source-UI word meets4.5:1.",
+  "primaryAnnotationSupplement": {
+    "actualEncodedFrame": 5.4,
+    "crop": {
+      "left": 90,
+      "top": 1350,
+      "width": 830,
+      "height": 110
+    },
+    "exportPixelsUnchanged": true,
+    "passed": true,
+    "checks": [
+      {
+        "id": "still.canvas",
+        "passed": true,
+        "detail": "830×110",
+        "problems": []
+      },
+      {
+        "id": "still.text_readback",
+        "passed": true,
+        "detail": "1 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 5 words, file: 5 words, inverted: 5 words, rules removed: 5 words, white-text mask: 0 words, dark-text mask: 5 words)",
+        "problems": []
+      },
+      {
+        "id": "still.no_artefacts",
+        "passed": true,
+        "detail": "no [object Object] / undefined / NaN / braces read on the image",
+        "problems": []
+      },
+      {
+        "id": "still.safe_zone",
+        "passed": true,
+        "detail": "4 word boxes inside x 0–830, y 0–110",
+        "problems": []
+      },
+      {
+        "id": "still.text_overlap",
+        "passed": true,
+        "detail": "no two intended lines overprint each other",
+        "problems": []
+      },
+      {
+        "id": "still.text_size",
+        "passed": true,
+        "detail": "every line's median OCR word height ≥ 24px",
+        "problems": []
+      },
+      {
+        "id": "still.contrast",
+        "passed": true,
+        "detail": "min 8.48:1 over 4 word boxes (WCAG AA 4.5:1)",
+        "problems": []
+      }
+    ],
+    "readBack": [
+      {
+        "line": "Request: Dairy-Free · 6 servings",
+        "similarity": 1,
+        "missing": [],
+        "boxes": [
+          {
+            "text": "Request:",
+            "conf": 100,
+            "x": 10,
+            "y": 38,
+            "w": 170,
+            "h": 40
+          },
+          {
+            "text": "Dairy-Free",
+            "conf": 100,
+            "x": 185,
+            "y": 38,
+            "w": 215,
+            "h": 40
+          },
+          {
+            "text": "Dairy-Free",
+            "conf": 100,
+            "x": 185,
+            "y": 38,
+            "w": 215,
+            "h": 40
+          },
+          {
+            "text": "servings",
+            "conf": 100,
+            "x": 459,
+            "y": 38,
+            "w": 174,
+            "h": 40
+          }
+        ]
+      }
+    ]
+  },
+  "providerCalls": 0,
+  "providerCostUsd": 0,
+  "publicationApproved": false
+}

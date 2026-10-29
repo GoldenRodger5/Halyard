@@ -1,0 +1,76 @@
+{
+  "viewport": [
+    390,
+    844
+  ],
+  "media": [
+    {
+      "mode": "muted",
+      "duration": 18.154667,
+      "time": 18.154667,
+      "ended": true,
+      "muted": true,
+      "error": null,
+      "width": 1080,
+      "height": 1920,
+      "played": [
+        [
+          0,
+          18.154667
+        ]
+      ]
+    },
+    {
+      "mode": "unmuted",
+      "duration": 18.154667,
+      "time": 18.154667,
+      "ended": true,
+      "muted": false,
+      "error": null,
+      "width": 1080,
+      "height": 1920,
+      "played": [
+        [
+          0,
+          18.154667
+        ]
+      ]
+    }
+  ],
+  "slides": [
+    {
+      "src": "ig-1.png",
+      "alt": "Six people, same broiler. Chicken Tikka Masala Original recipe photo, with the real four-to-six dairy-free adaptation context.",
+      "width": 1080,
+      "height": 1350
+    },
+    {
+      "src": "ig-2.png",
+      "alt": "Chicken amount changes from one and a half to two and a quarter pounds for four to six servings. The broiler space stays the same.",
+      "width": 1080,
+      "height": 1350
+    },
+    {
+      "src": "ig-3.png",
+      "alt": "Two illustrated trays form a cooking sequence: broil one sheet at a time, then finish each batch in the sauce.",
+      "width": 1080,
+      "height": 1350
+    },
+    {
+      "src": "ig-4.png",
+      "alt": "Exact excerpts of the recorded RecipeFix broiler instruction and full sauce-finish/doneness context.",
+      "width": 1080,
+      "height": 1350
+    },
+    {
+      "src": "ig-5.png",
+      "alt": "Open the Chicken Tikka Masala Original, tap Make it fit, choose dietary needs and servings.",
+      "width": 1080,
+      "height": 1350
+    }
+  ],
+  "keyboardGalleryVerified": true,
+  "draftCopyLoaded": true,
+  "errors": [],
+  "auditoryTasteAssessed": false
+}

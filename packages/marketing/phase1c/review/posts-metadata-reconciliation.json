@@ -1,0 +1,11 @@
+{
+  "currentPostsSHA256": "c92213ed7da9e4e58741e58eae2c2733e51100dca64ccc741b4e64833af9aac2",
+  "priorSHA256ReconstructedByRemovingOnlyNewMetadata": "3caa1f2ac2daa455aa0995756c98a734665cfaf466acc5ef23e045b2ac896f75",
+  "addedKeys": [
+    "instagram.altText",
+    "x.altText",
+    "videoDescription"
+  ],
+  "captionThreadDestinationUnchanged": true,
+  "allMediaAndPlatformPlanHashesUnchanged": true
+}
