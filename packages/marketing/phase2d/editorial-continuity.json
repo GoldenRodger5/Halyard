@@ -1,0 +1,31 @@
+{
+  "scope": "Existing four editorial families remain independently reviewable, byte-exact; no regeneration or publication.",
+  "families": 4,
+  "variants": 8,
+  "distinctAssets": 19,
+  "hashes": {
+    "packages/marketing/production-checkpoint/food/exports/salt-1.png": "ab8e47a1a9871542b882f4f70509455bcad508529eed9187d87f5fd40e7cc4b1",
+    "packages/marketing/production-checkpoint/food/exports/salt-2.png": "dc3af13e9dd6f98a4c6c5b753194b4f823acff1df5711796b93d620f14227bdc",
+    "packages/marketing/production-checkpoint/food/exports/salt-3.png": "46ba718d6f87dca3fb5497db5d9044542212d665e3336147bd290b0818879cc8",
+    "packages/marketing/production-checkpoint/food/exports/salt-x.png": "6fb0932b448763a32098dbb89b148e7b4a9adbe9d8d261c9492c62a7de749804",
+    "packages/marketing/production-checkpoint/editorial/exports/autumn-ig-1.jpg": "62b7380045de1742e602e8aaf97ed0582e1262c5ee32fd35494bf991c17f3261",
+    "packages/marketing/production-checkpoint/editorial/exports/autumn-ig-2.jpg": "d42a7ebcd8cdb0131568a887762bceeac1dc83dce9a27c44438f73b54127ccbc",
+    "packages/marketing/production-checkpoint/editorial/exports/autumn-ig-3.jpg": "39e2b2f234d099fcb6fe956c4ff1c8ed76d99fa595c6489908e2cb1f53f25e4f",
+    "packages/marketing/production-checkpoint/editorial/exports/autumn-ig-4.jpg": "21ad70fc7c139b6c5fd6438152c120b990e60ee367ab989d5d0a12a9e281f289",
+    "packages/marketing/production-checkpoint/editorial/exports/autumn-x.jpg": "b2b327e0ffe2ffb87fa7db66a02cc5df153942c0220e2f766600489a0d4843d6",
+    "packages/marketing/phase2/editorial/exports/marinade-ig-1.jpg": "14b307f6d16502a06c3360f1135dcbebac06cf958a55505c5f0732220f3f09f2",
+    "packages/marketing/phase2/editorial/exports/marinade-ig-2.jpg": "aa7873605cb4fb6cbd3eb0b6c95946b86b246de864091c7d41390f8f9655c016",
+    "packages/marketing/phase2/editorial/exports/marinade-ig-3.jpg": "c862fe123b626974b5e193061acb0c86f388be72cc45d70ad7402ac57fd6845c",
+    "packages/marketing/phase2/editorial/exports/marinade-ig-4.jpg": "8ff526efce19ceb1e521e577a7ce79f03833ba59a2d1e49a5d5daf1d98ceb324",
+    "packages/marketing/phase2/editorial/exports/marinade-x.jpg": "081707dfad755ade345956d090d0e74acbc400f1c29ea3a0a5039e62e3556fd1",
+    "packages/marketing/phase2/editorial/exports/tomato-ig-1.jpg": "3a564bf2eef7bcb5d1de3f3266cb6d443fc107ddd801237b0122a5546b240374",
+    "packages/marketing/phase2/editorial/exports/tomato-ig-2.jpg": "398b5388d5b815a9d348a83b59fa36415a2aedda7c45e3fe6190c4dd40f07b18",
+    "packages/marketing/phase2/editorial/exports/tomato-ig-3.jpg": "f84ef20e35fc551ca920a4b09bedc9fe3bca0aa2913f602ad2759524ac2a27a4",
+    "packages/marketing/phase2/editorial/exports/tomato-ig-4.jpg": "3808d56a143c647ea4195de0fbc3ce62747c7ba09701e203b823947d7cb960d9",
+    "packages/marketing/phase2/editorial/exports/tomato-x.jpg": "6c668181d5731974fafac1058b686b5a7eff78219b5297602b498f9fd5636b05"
+  },
+  "priorWhole360390Review": "packages/marketing/phase2b/editorial/qa.json",
+  "founderReviewGallery": "http://127.0.0.1:4370/#rf-salt-volume",
+  "newCopies": 0,
+  "newSpendingUSD": 0
+}

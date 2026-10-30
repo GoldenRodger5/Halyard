@@ -1,0 +1,20 @@
+{
+  "checkedAtUTC": "2026-10-30T01:55:44.994439+00:00",
+  "httpStatus": 200,
+  "method": "GET model metadata only",
+  "generationRequests": 0,
+  "metadata": {
+    "name": "models/gemini-omni-1.1-flash",
+    "version": "001",
+    "displayName": "Gemini Omni 1.1 Flash",
+    "description": "Gemini Omni 1.1 Flash ",
+    "inputTokenLimit": 131072,
+    "outputTokenLimit": 65536,
+    "supportedGenerationMethods": [
+      "generateContent",
+      "countTokens"
+    ]
+  },
+  "billingBalanceVerified": false,
+  "accountScope": "API key accepted for model-metadata access; this does not prove current paid balance or a successful generation entitlement."
+}

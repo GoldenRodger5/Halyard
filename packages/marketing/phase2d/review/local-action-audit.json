@@ -1,0 +1,197 @@
+{
+  "scope": "Finite read-only local no-cost source audit for Phase2D spending gate, not new production or an authorization decision.",
+  "decision": "NO_QUALIFIED_EXISTING_SUPPORTED_LOADING_CLIP_IDENTIFIED",
+  "fullPlaybackSources": [
+    {
+      "label": "existing-hero",
+      "path": "packages/marketing/phase2c/assets/hero.mp4",
+      "sha256": "84e86a1b9131d8164fad20caee4cf79645574ae29bb65e03705627edb8ef5e90",
+      "fullActualPlayback": {
+        "duration": 6.037333,
+        "currentTime": 6.037333,
+        "ended": true,
+        "muted": true,
+        "videoWidth": 720,
+        "videoHeight": 1280,
+        "decodedFrames": 144,
+        "droppedFrames": 0,
+        "callbacks": 144,
+        "firstMediaTime": 0,
+        "lastMediaTime": 5.958333,
+        "elapsedSeconds": 6.284,
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "errors": [],
+        "sound": "audio_stream_present_muted_for_visual_review",
+        "subjectiveAudioJudgment": "not_performed",
+        "reviewScope": "Actual complete muted browser playback; transport/frames and screenshot evidence, no hearing judgment or founder approval."
+      },
+      "finding": "Existing generated hero has unsupported tray lift and settled state only; no visible supporting hand. Rights/source preserved under phase2c/source-receipt.json.",
+      "usableSupportedLoadingAction": false
+    },
+    {
+      "label": "licensed-heat-context",
+      "path": "packages/marketing/production-checkpoint/video/assets/heat-context.mp4",
+      "sha256": "53e234cf5b142e3e83dad625c0df8311bcdb27350df3847dc805608fd59dec87",
+      "fullActualPlayback": {
+        "duration": 18.48,
+        "currentTime": 18.48,
+        "ended": true,
+        "muted": true,
+        "videoWidth": 1920,
+        "videoHeight": 1080,
+        "decodedFrames": 462,
+        "droppedFrames": 0,
+        "callbacks": 462,
+        "firstMediaTime": 0,
+        "lastMediaTime": 18.44,
+        "elapsedSeconds": 18.49779999999702,
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "errors": [],
+        "sound": "no_audio_stream",
+        "subjectiveAudioJudgment": "not_performed",
+        "reviewScope": "Actual complete muted browser playback; transport/frames and screenshot evidence, no hearing judgment or founder approval."
+      },
+      "finding": "Chef turns breast pieces in a skillet on a gas stove. Real movement, different food method/world; no sheet or broiler load. Existing rights manifest identifies Pexels 4064770 / Steve B.",
+      "usableSupportedLoadingAction": false
+    },
+    {
+      "label": "licensed-marinade",
+      "path": "packages/marketing/phase2/video/assets/marinade.mp4",
+      "sha256": "62eb8016310a6e38289b50e3811d80c5660a9c7aa06a67d99af55310efb991c2",
+      "fullActualPlayback": {
+        "duration": 7,
+        "currentTime": 7,
+        "ended": true,
+        "muted": true,
+        "videoWidth": 1080,
+        "videoHeight": 1920,
+        "decodedFrames": 210,
+        "droppedFrames": 0,
+        "callbacks": 210,
+        "firstMediaTime": 0,
+        "lastMediaTime": 6.966667,
+        "elapsedSeconds": 7.03360000000149,
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "errors": [],
+        "sound": "no_audio_stream",
+        "subjectiveAudioJudgment": "not_performed",
+        "reviewScope": "Actual complete muted browser playback; transport/frames and screenshot evidence, no hearing judgment or founder approval."
+      },
+      "finding": "Hands mix larger chicken pieces outdoors in a bowl. Real coating action, no sheet/oven. Existing rights record identifies Pexels 34907667; no tested yogurt/substitution claim.",
+      "usableSupportedLoadingAction": false
+    },
+    {
+      "label": "cached-tray-original",
+      "path": "/Volumes/T9/Developer/Builds/recipefix-social-team-20261029/video/scratch/tray-original.mp4",
+      "sha256": "0df1bc6180370c74d9ec786d0801e142b9b6cbdf06ebcd7687227b4906d5520a",
+      "fullActualPlayback": {
+        "duration": 12.012,
+        "currentTime": 12.012,
+        "ended": true,
+        "muted": true,
+        "videoWidth": 3840,
+        "videoHeight": 2160,
+        "decodedFrames": 360,
+        "droppedFrames": 0,
+        "callbacks": 360,
+        "firstMediaTime": 0,
+        "lastMediaTime": 11.978633,
+        "elapsedSeconds": 12.09259999999404,
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "errors": [],
+        "sound": "no_audio_stream",
+        "subjectiveAudioJudgment": "not_performed",
+        "reviewScope": "Actual complete muted browser playback; transport/frames and screenshot evidence, no hearing judgment or founder approval."
+      },
+      "finding": "Woman seasons chicken in glass baking dish on a counter beside filming tripod. Full clip contains preparation, not broiler insertion; different world. No independently pinned matching license receipt found in bounded metadata audit, so not newly cleared.",
+      "usableSupportedLoadingAction": false
+    },
+    {
+      "label": "cached-macro-original",
+      "path": "/Volumes/T9/Developer/Builds/recipefix-phase2-20261029/video/scratch/macro-original.mp4",
+      "sha256": "298549f899585d980bb5f4a0ad22e348aeedd255ceafe445f2a703ebd1f62c4a",
+      "fullActualPlayback": {
+        "duration": 9.876667,
+        "currentTime": 9.876667,
+        "ended": true,
+        "muted": true,
+        "videoWidth": 2160,
+        "videoHeight": 3840,
+        "decodedFrames": 237,
+        "droppedFrames": 0,
+        "callbacks": 237,
+        "firstMediaTime": 0,
+        "lastMediaTime": 9.833333,
+        "elapsedSeconds": 10.16170000000298,
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "errors": [],
+        "sound": "audio_stream_present_muted_for_visual_review",
+        "subjectiveAudioJudgment": "not_performed",
+        "reviewScope": "Actual complete muted browser playback; transport/frames and screenshot evidence, no hearing judgment or founder approval."
+      },
+      "finding": "Liquid pours over sliced cooked-looking meat on a plate. No loading/batching action; not a source-true replacement for marinated raw chicken. No new rights clearance asserted.",
+      "usableSupportedLoadingAction": false
+    }
+  ],
+  "otherSampledSources": [
+    {
+      "path": "/Volumes/T9/Developer/Builds/recipefix-phase2-20261029/video/scratch/marinate-original.mp4",
+      "sha256": "849e127c689da1a7477e5d1af4fefe22cccb7c1de4fe988620b1bcc1d835b614",
+      "scope": "3-second interval contact covering 21.87 seconds; same outdoor bowl action, not a new oven clip. No claim of full browser playback.",
+      "evidence": "/Volumes/T9/Developer/Builds/recipefix-phase2d-20261029/review/evidence/raw-cache/marinate-original-contact.jpg"
+    },
+    {
+      "paths": [
+        "packages/marketing/production-checkpoint/video/assets/foil-plan.mp4",
+        "packages/marketing/phase2/video/assets/space-prototype.mp4",
+        "packages/marketing/phase2/video/assets/dimensional-v2.mp4"
+      ],
+      "scope": "Existing source/rights metadata and actual midpoint frames classify authored procedural empty-sheet/cartoon-broiler illustration, not hidden live support action. No full browser playback claim for these clips.",
+      "evidence": "/Volumes/T9/Developer/Builds/recipefix-phase2d-20261029/review/evidence/cgi-classification"
+    }
+  ],
+  "cacheAudit": {
+    "buildInventory": "packages/marketing/phase2d/review/build-cache-inventory.json",
+    "buildMediaCount": 102,
+    "buildRoots": 8,
+    "higgsfieldOrKlingMetadataHits": 0,
+    "interpretation": "No attributable usable Higgsfield/Kling loading output was verified. Absence of model-name metadata is not proof that no such model has ever been used.",
+    "olderHalyardDevCacheInventory": "packages/marketing/phase2d/review/dev-cache-inventory.json",
+    "devCacheVideos": 29,
+    "devCacheInspection": "One actual midpoint frame per file: skillet/steak/herbs/bread/recipe-card/UI subjects. No matching supported sheet/broiler action candidate identified; these 29 files were not all fully replayed. No license inferred from a cache filename.",
+    "devCacheEvidence": "/Volumes/T9/Developer/Builds/recipefix-phase2d-20261029/review/evidence/dev-cache/midpoint-inventory.png",
+    "googlePilotRaw": "/Volumes/T9/Developer/Builds/recipefix-phase2-20261029/integration/cinema/google-pilot/video-1.mp4",
+    "googlePilotRawSha256": "84e86a1b9131d8164fad20caee4cf79645574ae29bb65e03705627edb8ef5e90",
+    "googlePilotFinding": "Byte-identical to inherited hero, not another supported-action candidate."
+  },
+  "rightsRecordsRead": [
+    "packages/marketing/production-checkpoint/video/rights.json",
+    "packages/marketing/production-checkpoint/video/source-source-manifest.json",
+    "packages/marketing/phase2/video/rights.json",
+    "packages/marketing/phase2b/video/rights.json",
+    "packages/marketing/phase2c/source-receipt.json"
+  ],
+  "limits": "Audit covers the current packaged sources, eight relevant recipefix Build roots and the 29 older Halyard dev-cache videos. It is not a universal filesystem/media-library search. No fresh stock download or license purchase/search was performed. Existing source pages/license assertions are cited from preserved manifests; uncatalogued raw cache files are not automatically cleared.",
+  "oneShotStopCriteria": "packages/marketing/phase2d/review/ONE-SHOT-GATE.md",
+  "audioScope": "All actual playback was muted. No audible judgment.",
+  "newPaidOrGenerationRequests": 0,
+  "downloads": 0,
+  "additionalCashUSD": 0,
+  "gitMutations": false,
+  "producerOrOtherWorktreeEdits": false
+}

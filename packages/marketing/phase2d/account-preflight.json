@@ -1,0 +1,13 @@
+{
+  "checkedAtUTC": "2026-10-30T02:06:02.548941+00:00",
+  "method": "Read-only native Chrome AI Studio billing view",
+  "projectName": "Scrapbook",
+  "paidTierShown": "Paid2",
+  "prepaidCreditAtLeastOneUSD": true,
+  "autoReloadShown": "Off",
+  "verificationNoticeShown": true,
+  "noticeText": "Provide some info about yourself to continue.",
+  "scope": "No payment/identity verification, top-up, subscription or setting action performed. UI account view is evidence of funded paid project, not proof that the generation endpoint will admit this request. Key-metadata GET200 is separately recorded; exact key-to-project UI row mapping was not exposed by the current page.",
+  "sensitiveIdentifiersOrPaymentDetailsRecorded": false,
+  "generationRequestsSent": 0
+}

@@ -1,0 +1,234 @@
+[
+  {
+    "index": 1,
+    "path": "/Users/isaacmineo/PROJECT_2025/halyard-marketing-closeout-20261028/apps/web/public/dev-assets/broll-0ce46e0233acd196.mp4",
+    "sha256": "0ce46e0233acd19650052bd634110b7a3d56e1345bc3d49af82ab9cf09115ddb",
+    "durationSeconds": 13.133333,
+    "sampledSecond": 6.5666665,
+    "frame": "/Volumes/T9/Developer/Builds/recipefix-phase2d-20261029/review/evidence/dev-cache/frame-01.jpg"
+  },
+  {
+    "index": 2,
+    "path": "/Users/isaacmineo/PROJECT_2025/halyard-marketing-closeout-20261028/apps/web/public/dev-assets/broll-15fb90b7f8e3b16c.mp4",
+    "sha256": "15fb90b7f8e3b16c540f7ced03b8941fbd27bb756ece216d82ef05b93387222e",
+    "durationSeconds": 9.866667,
+    "sampledSecond": 4.9333335,
+    "frame": "/Volumes/T9/Developer/Builds/recipefix-phase2d-20261029/review/evidence/dev-cache/frame-02.jpg"
+  },
+  {
+    "index": 3,
+    "path": "/Users/isaacmineo/PROJECT_2025/halyard-marketing-closeout-20261028/apps/web/public/dev-assets/broll-37ec365486e07d17.mp4",
+    "sha256": "37ec365486e07d17bcd09635f19187d37780600f02ce961f2fd50640672a085e",
+    "durationSeconds": 10.266667,
+    "sampledSecond": 5.1333335,
+    "frame": "/Volumes/T9/Developer/Builds/recipefix-phase2d-20261029/review/evidence/dev-cache/frame-03.jpg"
+  },
+  {
+    "index": 4,
+    "path": "/Users/isaacmineo/PROJECT_2025/halyard-marketing-closeout-20261028/apps/web/public/dev-assets/broll-fb15def4c74dae36.mp4",
+    "sha256": "fb15def4c74dae36e82521c177023b40d7c833107774053a4743f8b1badd51f2",
+    "durationSeconds": 10.176833,
+    "sampledSecond": 5.0884165,
+    "frame": "/Volumes/T9/Developer/Builds/recipefix-phase2d-20261029/review/evidence/dev-cache/frame-04.jpg"
+  },
+  {
+    "index": 5,
+    "path": "/Users/isaacmineo/PROJECT_2025/halyard-marketing-closeout-20261028/apps/web/public/dev-assets/capture-4ee70233fe26a181.webm",
+    "sha256": "4ee70233fe26a18117fc8dcc917fb2616f6240a9f6b2e7c4986fb065ae670440",
+    "durationSeconds": 23.12,
+    "sampledSecond": 10,
+    "frame": "/Volumes/T9/Developer/Builds/recipefix-phase2d-20261029/review/evidence/dev-cache/frame-05.jpg"
+  },
+  {
+    "index": 6,
+    "path": "/Users/isaacmineo/PROJECT_2025/halyard-marketing-closeout-20261028/apps/web/public/dev-assets/capture-f5123875df1bfcf6.webm",
+    "sha256": "f5123875df1bfcf6633612b00b5bd191507b7ffd85736f64668b01ad1a51db72",
+    "durationSeconds": 24.04,
+    "sampledSecond": 10,
+    "frame": "/Volumes/T9/Developer/Builds/recipefix-phase2d-20261029/review/evidence/dev-cache/frame-06.jpg"
+  },
+  {
+    "index": 7,
+    "path": "/Users/isaacmineo/PROJECT_2025/halyard-marketing-closeout-20261028/apps/web/public/dev-assets/footage-15fb90b7f8e3b16c.mp4",
+    "sha256": "15fb90b7f8e3b16c540f7ced03b8941fbd27bb756ece216d82ef05b93387222e",
+    "durationSeconds": 9.866667,
+    "sampledSecond": 4.9333335,
+    "frame": "/Volumes/T9/Developer/Builds/recipefix-phase2d-20261029/review/evidence/dev-cache/frame-07.jpg"
+  },
+  {
+    "index": 8,
+    "path": "/Users/isaacmineo/PROJECT_2025/halyard-marketing-closeout-20261028/apps/web/public/dev-assets/footage-37ec365486e07d17.mp4",
+    "sha256": "37ec365486e07d17bcd09635f19187d37780600f02ce961f2fd50640672a085e",
+    "durationSeconds": 10.266667,
+    "sampledSecond": 5.1333335,
+    "frame": "/Volumes/T9/Developer/Builds/recipefix-phase2d-20261029/review/evidence/dev-cache/frame-08.jpg"
+  },
+  {
+    "index": 9,
+    "path": "/Users/isaacmineo/PROJECT_2025/halyard-marketing-closeout-20261028/apps/web/public/dev-assets/footage-cd71508011681c89.mp4",
+    "sha256": "cd71508011681c89dd10ce3c1adf5852a5a90d75ae37cfa6a2a48c768930c884",
+    "durationSeconds": 14.015,
+    "sampledSecond": 7.0075,
+    "frame": "/Volumes/T9/Developer/Builds/recipefix-phase2d-20261029/review/evidence/dev-cache/frame-09.jpg"
+  },
+  {
+    "index": 10,
+    "path": "/Users/isaacmineo/PROJECT_2025/halyard-marketing-closeout-20261028/apps/web/public/dev-assets/video-0aca1ef9f4676e19.mp4",
+    "sha256": "0aca1ef9f4676e19669b7869e47d3b35e5be894bc2f78bdf8760077ce19d73d2",
+    "durationSeconds": 29.6,
+    "sampledSecond": 10,
+    "frame": "/Volumes/T9/Developer/Builds/recipefix-phase2d-20261029/review/evidence/dev-cache/frame-10.jpg"
+  },
+  {
+    "index": 11,
+    "path": "/Users/isaacmineo/PROJECT_2025/halyard-marketing-closeout-20261028/apps/web/public/dev-assets/video-1441df91f2238975.mp4",
+    "sha256": "1441df91f2238975599e9582a78fa09d69b606fab03e3d1a3e2b2c515d016283",
+    "durationSeconds": 18.729002,
+    "sampledSecond": 9.364501,
+    "frame": "/Volumes/T9/Developer/Builds/recipefix-phase2d-20261029/review/evidence/dev-cache/frame-11.jpg"
+  },
+  {
+    "index": 12,
+    "path": "/Users/isaacmineo/PROJECT_2025/halyard-marketing-closeout-20261028/apps/web/public/dev-assets/video-2c5b1d508bd256c6.mp4",
+    "sha256": "2c5b1d508bd256c6764507179c8a1e0485603a0a347aab7a8b268549bee7ea58",
+    "durationSeconds": 31.966667,
+    "sampledSecond": 10,
+    "frame": "/Volumes/T9/Developer/Builds/recipefix-phase2d-20261029/review/evidence/dev-cache/frame-12.jpg"
+  },
+  {
+    "index": 13,
+    "path": "/Users/isaacmineo/PROJECT_2025/halyard-marketing-closeout-20261028/apps/web/public/dev-assets/video-2d345faea5feb04d.mp4",
+    "sha256": "2d345faea5feb04d86712bc1331811724c5372132ccc0d29c225c122ba32c024",
+    "durationSeconds": 19.278005,
+    "sampledSecond": 9.6390025,
+    "frame": "/Volumes/T9/Developer/Builds/recipefix-phase2d-20261029/review/evidence/dev-cache/frame-13.jpg"
+  },
+  {
+    "index": 14,
+    "path": "/Users/isaacmineo/PROJECT_2025/halyard-marketing-closeout-20261028/apps/web/public/dev-assets/video-2e00969af935a10e.mp4",
+    "sha256": "2e00969af935a10e79c0dcf9ee6fff005fb5ccdcda69d8290f3a7e8f805e1f4e",
+    "durationSeconds": 32.4,
+    "sampledSecond": 10,
+    "frame": "/Volumes/T9/Developer/Builds/recipefix-phase2d-20261029/review/evidence/dev-cache/frame-14.jpg"
+  },
+  {
+    "index": 15,
+    "path": "/Users/isaacmineo/PROJECT_2025/halyard-marketing-closeout-20261028/apps/web/public/dev-assets/video-30a9321058c4936c.mp4",
+    "sha256": "30a9321058c4936ca0f9bf24c59341e5767194a64f43970cc7c64f20e37bf9fb",
+    "durationSeconds": 29.666667,
+    "sampledSecond": 10,
+    "frame": "/Volumes/T9/Developer/Builds/recipefix-phase2d-20261029/review/evidence/dev-cache/frame-15.jpg"
+  },
+  {
+    "index": 16,
+    "path": "/Users/isaacmineo/PROJECT_2025/halyard-marketing-closeout-20261028/apps/web/public/dev-assets/video-37df60a1570af4d8.mp4",
+    "sha256": "37df60a1570af4d896271c4616fd21ccb8ba599fbe98777762da7860e815b7e1",
+    "durationSeconds": 27.767007,
+    "sampledSecond": 10,
+    "frame": "/Volumes/T9/Developer/Builds/recipefix-phase2d-20261029/review/evidence/dev-cache/frame-16.jpg"
+  },
+  {
+    "index": 17,
+    "path": "/Users/isaacmineo/PROJECT_2025/halyard-marketing-closeout-20261028/apps/web/public/dev-assets/video-455eac0d54ab15c6.mp4",
+    "sha256": "455eac0d54ab15c6fce9e2cd7218d38350aa83cac35cbfb87b11a40325a681a5",
+    "durationSeconds": 32.233333,
+    "sampledSecond": 10,
+    "frame": "/Volumes/T9/Developer/Builds/recipefix-phase2d-20261029/review/evidence/dev-cache/frame-17.jpg"
+  },
+  {
+    "index": 18,
+    "path": "/Users/isaacmineo/PROJECT_2025/halyard-marketing-closeout-20261028/apps/web/public/dev-assets/video-50ae99d4818e33f3.mp4",
+    "sha256": "50ae99d4818e33f3155eb11bf2358be999b9fd6acbb727da9b4ab3555f541aa2",
+    "durationSeconds": 29.8,
+    "sampledSecond": 10,
+    "frame": "/Volumes/T9/Developer/Builds/recipefix-phase2d-20261029/review/evidence/dev-cache/frame-18.jpg"
+  },
+  {
+    "index": 19,
+    "path": "/Users/isaacmineo/PROJECT_2025/halyard-marketing-closeout-20261028/apps/web/public/dev-assets/video-55969213959ad831.mp4",
+    "sha256": "55969213959ad83130d97d5dfa0740ba8bbdacd4810d98db5aa4077c0abe6326",
+    "durationSeconds": 29.4,
+    "sampledSecond": 10,
+    "frame": "/Volumes/T9/Developer/Builds/recipefix-phase2d-20261029/review/evidence/dev-cache/frame-19.jpg"
+  },
+  {
+    "index": 20,
+    "path": "/Users/isaacmineo/PROJECT_2025/halyard-marketing-closeout-20261028/apps/web/public/dev-assets/video-61b2e8ac3b55efe6.mp4",
+    "sha256": "61b2e8ac3b55efe6772351beb5edcbabef14b7fbfec5336887db4b6c0db08729",
+    "durationSeconds": 52.713991,
+    "sampledSecond": 10,
+    "frame": "/Volumes/T9/Developer/Builds/recipefix-phase2d-20261029/review/evidence/dev-cache/frame-20.jpg"
+  },
+  {
+    "index": 21,
+    "path": "/Users/isaacmineo/PROJECT_2025/halyard-marketing-closeout-20261028/apps/web/public/dev-assets/video-6539cb14b524bd8d.mp4",
+    "sha256": "6539cb14b524bd8d1c1d081f1da53126869b91fcd96e14109f46611952c4266a",
+    "durationSeconds": 18.133333,
+    "sampledSecond": 9.0666665,
+    "frame": "/Volumes/T9/Developer/Builds/recipefix-phase2d-20261029/review/evidence/dev-cache/frame-21.jpg"
+  },
+  {
+    "index": 22,
+    "path": "/Users/isaacmineo/PROJECT_2025/halyard-marketing-closeout-20261028/apps/web/public/dev-assets/video-9075a47572744646.mp4",
+    "sha256": "9075a47572744646542887f0246e4cc32f52be2fe915598009dcfe7cc25138e9",
+    "durationSeconds": 31.833333,
+    "sampledSecond": 10,
+    "frame": "/Volumes/T9/Developer/Builds/recipefix-phase2d-20261029/review/evidence/dev-cache/frame-22.jpg"
+  },
+  {
+    "index": 23,
+    "path": "/Users/isaacmineo/PROJECT_2025/halyard-marketing-closeout-20261028/apps/web/public/dev-assets/video-99ab55a5231d5db5.mp4",
+    "sha256": "99ab55a5231d5db5a8f91245bc11e60428454af6b392666175d064aff845213a",
+    "durationSeconds": 19.225011,
+    "sampledSecond": 9.6125055,
+    "frame": "/Volumes/T9/Developer/Builds/recipefix-phase2d-20261029/review/evidence/dev-cache/frame-23.jpg"
+  },
+  {
+    "index": 24,
+    "path": "/Users/isaacmineo/PROJECT_2025/halyard-marketing-closeout-20261028/apps/web/public/dev-assets/video-9e941c0d379be4ee.mp4",
+    "sha256": "9e941c0d379be4ee45194be0e6cedf878fb7548518ef715a048372057ff6611d",
+    "durationSeconds": 30.266667,
+    "sampledSecond": 10,
+    "frame": "/Volumes/T9/Developer/Builds/recipefix-phase2d-20261029/review/evidence/dev-cache/frame-24.jpg"
+  },
+  {
+    "index": 25,
+    "path": "/Users/isaacmineo/PROJECT_2025/halyard-marketing-closeout-20261028/apps/web/public/dev-assets/video-a56207012be02e2c.mp4",
+    "sha256": "a56207012be02e2c637c1389c8f7a2fcd0807588c7bfddd1d7f486d6ed2b9a2d",
+    "durationSeconds": 30.633333,
+    "sampledSecond": 10,
+    "frame": "/Volumes/T9/Developer/Builds/recipefix-phase2d-20261029/review/evidence/dev-cache/frame-25.jpg"
+  },
+  {
+    "index": 26,
+    "path": "/Users/isaacmineo/PROJECT_2025/halyard-marketing-closeout-20261028/apps/web/public/dev-assets/video-b117d5de4c09b7d1.mp4",
+    "sha256": "b117d5de4c09b7d1f6958e6dbeb10c93ee0ae9f6cde3997dee5c58ebf378d4ca",
+    "durationSeconds": 29.666667,
+    "sampledSecond": 10,
+    "frame": "/Volumes/T9/Developer/Builds/recipefix-phase2d-20261029/review/evidence/dev-cache/frame-26.jpg"
+  },
+  {
+    "index": 27,
+    "path": "/Users/isaacmineo/PROJECT_2025/halyard-marketing-closeout-20261028/apps/web/public/dev-assets/video-cb7507b0349f543a.mp4",
+    "sha256": "cb7507b0349f543a4caaf032c3ce9c71b8b880f8029b4374d3bcc04345817f50",
+    "durationSeconds": 29.666667,
+    "sampledSecond": 10,
+    "frame": "/Volumes/T9/Developer/Builds/recipefix-phase2d-20261029/review/evidence/dev-cache/frame-27.jpg"
+  },
+  {
+    "index": 28,
+    "path": "/Users/isaacmineo/PROJECT_2025/halyard-marketing-closeout-20261028/apps/web/public/dev-assets/video-f2d9ec187bbf24ed.mp4",
+    "sha256": "f2d9ec187bbf24ed1c0185a51ac2a5338b110cbd6af7466630d606521bc463a2",
+    "durationSeconds": 31.166667,
+    "sampledSecond": 10,
+    "frame": "/Volumes/T9/Developer/Builds/recipefix-phase2d-20261029/review/evidence/dev-cache/frame-28.jpg"
+  },
+  {
+    "index": 29,
+    "path": "/Users/isaacmineo/PROJECT_2025/halyard-marketing-closeout-20261028/apps/web/public/dev-assets/video-fe744e69d902c296.mp4",
+    "sha256": "fe744e69d902c2966f245681905c9f0cb7e37a0b3365a50819101386059fa62c",
+    "durationSeconds": 24.632993,
+    "sampledSecond": 10,
+    "frame": "/Volumes/T9/Developer/Builds/recipefix-phase2d-20261029/review/evidence/dev-cache/frame-29.jpg"
+  }
+]

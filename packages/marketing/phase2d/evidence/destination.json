@@ -1,0 +1,72 @@
+{
+  "checkedAt": "2026-10-30T02:15:25.581Z",
+  "findings": [
+    {
+      "requestedUrl": "https://recipefix.app/adapt?utm_source=tiktok&utm_medium=social&utm_campaign=rf_first_fortnight&utm_content=rf-more-dinner-phase2d-qa",
+      "finalUrl": "https://recipefix.app/adapt?utm_source=tiktok&utm_medium=social&utm_campaign=rf_first_fortnight&utm_content=rf-more-dinner-phase2d-qa",
+      "httpStatus": 200,
+      "title": "Recipe Converter · Adapt Any Recipe for Any Diet | RecipeFix",
+      "headings": [
+        "Adapt a recipe"
+      ],
+      "buttons": [
+        "",
+        "",
+        "Sign in",
+        "Sign up",
+        "Search",
+        "Link",
+        "Text",
+        "Photo",
+        "Fridge",
+        "Search",
+        "Gluten-Free",
+        "Dairy-Free",
+        "Nut-Free",
+        "Low-FODMAP",
+        "Vegan",
+        "Vegetarian",
+        "Halal",
+        "Paleo"
+      ],
+      "inputs": [
+        {
+          "type": "search",
+          "placeholder": "Search any recipe or describe what you want..."
+        }
+      ],
+      "attribution": {
+        "rf_attribution_last": {
+          "utm_source": "tiktok",
+          "utm_medium": "social",
+          "utm_campaign": "rf_first_fortnight",
+          "utm_content": "rf-more-dinner-phase2d-qa",
+          "landing_path": "/adapt"
+        },
+        "rf_attribution_first": {
+          "utm_source": "tiktok",
+          "utm_medium": "social",
+          "utm_campaign": "rf_first_fortnight",
+          "utm_content": "rf-more-dinner-phase2d-qa",
+          "landing_path": "/adapt"
+        }
+      },
+      "blockedWrites": [
+        {
+          "method": "POST",
+          "host": "yyeslynjoqhqcdlzpevq.supabase.co"
+        },
+        {
+          "method": "POST",
+          "host": "yyeslynjoqhqcdlzpevq.supabase.co"
+        },
+        {
+          "method": "POST",
+          "host": "recipefix.app"
+        }
+      ],
+      "screenshot": "/Volumes/T9/Developer/Builds/recipefix-phase2d-20261029/preflight/destination/adapt-390.png",
+      "limitation": "No adaptation, account creation, billing or social action submitted. Blocking writes and automation exclusion make this a route/UTM readback, not a live conversion join."
+    }
+  ]
+}
