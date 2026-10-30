@@ -1,0 +1,37 @@
+{
+  "pictureSha256": "2ccef680712fce964c250c8e7afaeeb026beac283bc0924e3325106c0729751d",
+  "incrementalVisualGenerationCalls": 0,
+  "incrementalVisualCashUSD": 0,
+  "inheritedPilotEstimateUSD": [
+    0.700682,
+    0.7458
+  ],
+  "inheritedEstimateIsInvoice": false,
+  "newGenerationAuthorized": false,
+  "sourceCommit": "3f32680f091d06ad9046bb95e4dfb55489d2c264",
+  "sourcePin": "https://github.com/GoldenRodger5/recipe-fix/blob/3f32680f091d06ad9046bb95e4dfb55489d2c264/src/data/landingRealResult.ts",
+  "captureBundle": "index-D18VC9ff.js",
+  "recordedResultDate": "2026-10-21",
+  "captureDate": "2026-10-29",
+  "sourceRights": [
+    {
+      "kind": "Existing Google image-conditioned hero",
+      "path": "assets/broiler-hero.mp4",
+      "native": "720x1280/24fps,6s",
+      "origin": "Previously authorized Google Nano Banana 2.1/Omni pilot. Existing asset reused; no new call. Model terms apply.",
+      "upscale": "1080x1920 export plus digital reframing; no native 4K claim."
+    },
+    {
+      "kind": "First-party RecipeFix UI and historical output",
+      "origin": "Actual current UI pixels with recorded combined Dairy-Free 4\u21926 result fulfilled locally. Capture receipt reports 0 provider calls/customer writes. No fabricated new inference or cooked/tasted output.",
+      "source": "https://github.com/GoldenRodger5/recipe-fix/blob/3f32680f091d06ad9046bb95e4dfb55489d2c264/src/data/landingRealResult.ts"
+    },
+    {
+      "kind": "Inter SemiBold font",
+      "license": "SIL Open Font License 1.1",
+      "path": "assets/inter-OFL.txt"
+    }
+  ],
+  "audio": "Clean picture has no audio track. A2 owns voice, licensed sound/music, spend/rights and final mixed exports.",
+  "scope": "AI planning illustration, not filmed cooking, a full recipe procedure, physical test, appliance detection or nutrition achievement."
+}

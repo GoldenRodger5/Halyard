@@ -1,0 +1,3 @@
+Command: ./node_modules/.bin/tsc -p packages/marketing/tsconfig.json --noEmit
+Exit: 0
+Compiler diagnostics: none
