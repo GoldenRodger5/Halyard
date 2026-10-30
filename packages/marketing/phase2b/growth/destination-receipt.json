@@ -1,0 +1,119 @@
+{
+  "checkedAt": "2026-10-29T23:34:40.112Z",
+  "findings": [
+    {
+      "requestedUrl": "https://recipefix.app/adapt?utm_source=tiktok&utm_medium=social&utm_campaign=rf_first_fortnight&utm_content=rf-more-dinner-phase2b-qa",
+      "finalUrl": "https://recipefix.app/adapt?utm_source=tiktok&utm_medium=social&utm_campaign=rf_first_fortnight&utm_content=rf-more-dinner-phase2b-qa",
+      "httpStatus": 200,
+      "title": "Recipe Converter · Adapt Any Recipe for Any Diet | RecipeFix",
+      "headings": [
+        "Adapt a recipe"
+      ],
+      "buttons": [
+        "",
+        "",
+        "Sign in",
+        "Sign up",
+        "Search",
+        "Link",
+        "Text",
+        "Photo",
+        "Fridge",
+        "Search",
+        "Gluten-Free",
+        "Dairy-Free",
+        "Nut-Free",
+        "Low-FODMAP",
+        "Vegan",
+        "Vegetarian",
+        "Halal",
+        "Paleo"
+      ],
+      "inputs": [
+        {
+          "type": "search",
+          "placeholder": "Search any recipe or describe what you want..."
+        }
+      ],
+      "attribution": {
+        "rf_attribution_last": {
+          "utm_source": "tiktok",
+          "utm_medium": "social",
+          "utm_campaign": "rf_first_fortnight",
+          "utm_content": "rf-more-dinner-phase2b-qa",
+          "landing_path": "/adapt"
+        },
+        "rf_attribution_first": {
+          "utm_source": "tiktok",
+          "utm_medium": "social",
+          "utm_campaign": "rf_first_fortnight",
+          "utm_content": "rf-more-dinner-phase2b-qa",
+          "landing_path": "/adapt"
+        }
+      },
+      "blockedWrites": [
+        {
+          "method": "POST",
+          "host": "yyeslynjoqhqcdlzpevq.supabase.co"
+        },
+        {
+          "method": "POST",
+          "host": "yyeslynjoqhqcdlzpevq.supabase.co"
+        },
+        {
+          "method": "POST",
+          "host": "recipefix.app"
+        }
+      ],
+      "screenshot": "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/integration/evidence/destinations/adapt-390.png",
+      "limitation": "No adaptation, account creation, billing or social action submitted. Blocking writes and automation exclusion make this a route/UTM readback, not a live conversion join."
+    },
+    {
+      "requestedUrl": "https://recipefix.app/original-recipes/chicken-tikka-masala?utm_source=tiktok&utm_medium=social&utm_campaign=rf_first_fortnight&utm_content=rf-more-dinner-phase2b-qa",
+      "finalUrl": "https://recipefix.app/original-recipes/chicken-tikka-masala?utm_source=tiktok&utm_medium=social&utm_campaign=rf_first_fortnight&utm_content=rf-more-dinner-phase2b-qa",
+      "httpStatus": 200,
+      "title": "Chicken Tikka Masala Recipe | RecipeFix",
+      "headings": [
+        "Chicken Tikka Masala",
+        "Ingredients",
+        "Method",
+        "Cook's notes",
+        "Cook this recipe another way"
+      ],
+      "buttons": [
+        "",
+        "Sign in",
+        "Sign up",
+        "",
+        "Make it fit",
+        "More info",
+        "Privacy choices"
+      ],
+      "inputs": [],
+      "attribution": {
+        "rf_attribution_last": {
+          "utm_source": "tiktok",
+          "utm_medium": "social",
+          "utm_campaign": "rf_first_fortnight",
+          "utm_content": "rf-more-dinner-phase2b-qa",
+          "landing_path": "/original-recipes/chicken-tikka-masala"
+        },
+        "rf_attribution_first": {
+          "utm_source": "tiktok",
+          "utm_medium": "social",
+          "utm_campaign": "rf_first_fortnight",
+          "utm_content": "rf-more-dinner-phase2b-qa",
+          "landing_path": "/original-recipes/chicken-tikka-masala"
+        }
+      },
+      "blockedWrites": [
+        {
+          "method": "POST",
+          "host": "recipefix.app"
+        }
+      ],
+      "screenshot": "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/integration/evidence/destinations/original-390.png",
+      "limitation": "No adaptation, account creation, billing or social action submitted. Blocking writes and automation exclusion make this a route/UTM readback, not a live conversion join."
+    }
+  ]
+}

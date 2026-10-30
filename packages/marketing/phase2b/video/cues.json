@@ -1,0 +1,116 @@
+{
+  "status": "Picture v2 locked by root for bounded in-context audio audition; no publication approval",
+  "composition": "DinnerPicture",
+  "fps": 30,
+  "frames": 405,
+  "durationSeconds": 13.5,
+  "script": "Two more for dinner? Six servings, dairy-free. Same little broiler. RecipeFix changes the plan, too: two sheets, one at a time. Open the recipe and tap Make it fit.",
+  "sections": [
+    {
+      "frames": [
+        0,
+        45
+      ],
+      "seconds": [
+        0,
+        1.5
+      ],
+      "picture": "Stable original hero source 0\u20131s at 2/3 rate, before any tray lift.",
+      "voice": "Two more for dinner?",
+      "audioIntent": "Restrained kitchen presence, no cooking-complete cue."
+    },
+    {
+      "frames": [
+        45,
+        78
+      ],
+      "seconds": [
+        1.5,
+        2.6
+      ],
+      "picture": "Genuine intact Original recipe title plus separate large Serves 4 crop. No time or nutrition excerpt.",
+      "voice": "",
+      "audioIntent": "Editorial cut; no invented UI event."
+    },
+    {
+      "frames": [
+        78,
+        138
+      ],
+      "seconds": [
+        2.6,
+        4.6
+      ],
+      "picture": "Actual Dairy-Free and six-serving selection, then genuine endpoint hold.",
+      "voice": "Six servings, dairy-free.",
+      "audioIntent": "Soft restrained taps may follow real captured selection."
+    },
+    {
+      "frames": [
+        138,
+        165
+      ],
+      "seconds": [
+        4.6,
+        5.5
+      ],
+      "picture": "Actual recorded RecipeFix changed this step badge, not a fake inference animation.",
+      "voice": "Same little broiler.",
+      "audioIntent": "Bridge into method; no cartoon notification sting."
+    },
+    {
+      "frames": [
+        165,
+        228
+      ],
+      "seconds": [
+        5.5,
+        7.6
+      ],
+      "picture": "Counter state, then editorial cut at 6.5s to settled native source 5.2\u20136s at half speed. Exact two-sheet source text.",
+      "voice": "RecipeFix changes the plan, too: two sheets,",
+      "audioIntent": "Licensed finite tray handling may support cut, not pretend continuous levitation."
+    },
+    {
+      "frames": [
+        228,
+        300
+      ],
+      "seconds": [
+        7.6,
+        10
+      ],
+      "picture": "Native tail continues until 8.1s, then endpoint camera focus on waiting second sheet with exact one-at-a-time pixels.",
+      "voice": "one at a time.",
+      "audioIntent": "Leave room to read method and see batching relationship."
+    },
+    {
+      "frames": [
+        300,
+        405
+      ],
+      "seconds": [
+        10,
+        13.5
+      ],
+      "picture": "Plan dinner for six; Open Chicken Tikka Masala; genuine Make it fit button/domain. Settled native source 5.2\u20136s reused 10\u201311.6s, then fixed endpoint.",
+      "voice": "Open the recipe and tap Make it fit.",
+      "audioIntent": "Satisfying restrained resolve; no claim of cooking/taste outcome."
+    }
+  ],
+  "narrationInstruction": "A2 may place phrases naturally and preserve breaths. Do not force individual words to every caption. Founder listening is required for naturalness.",
+  "destination": "https://recipefix.app/original-recipes/chicken-tikka-masala",
+  "sourceTruth": "Recorded combined Dairy-Free 4\u21926 result, Oct 21, 2026. Current UI captures show the historical fixture response; no fresh inference or production write.",
+  "scope": "Existing generated hero and genuine UI/result pixels only. No new media generation or authored audio by A. All floating source frames excluded.",
+  "picturePath": "packages/marketing/phase2b/video/review/dinner-picture-v2-clean.mp4",
+  "pictureSha256": "2ccef680712fce964c250c8e7afaeeb026beac283bc0924e3325106c0729751d",
+  "sourceMedia": {
+    "nativeWidth": 720,
+    "nativeHeight": 1280,
+    "sourceFps": 24,
+    "sourceSeconds": 6,
+    "outputWidth": 1080,
+    "outputHeight": 1920,
+    "note": "Upscaled existing Google pilot; not native 1080/4K. One-second safe opening and repeated 0.8s settled tail; no floating/travel source segment."
+  }
+}

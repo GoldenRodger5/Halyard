@@ -1,0 +1,29 @@
+{
+  "pictureLocked": true,
+  "lockAuthority": "Root independent visual lock, October 29, 2026; first v1 rejected for crop/stillness, v2 cleared for bounded voice audition.",
+  "picturePath": "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/edit/picture-v2/dinner-picture-clean.mp4",
+  "pictureSha256": "2ccef680712fce964c250c8e7afaeeb026beac283bc0924e3325106c0729751d",
+  "durationSeconds": 13.5,
+  "frames": 405,
+  "fps": 30,
+  "script": "Two more for dinner? Six servings, dairy-free. Same little broiler. Recipe Fix changes the plan, too: two sheets, one at a time. Open the recipe and tap Make it fit.",
+  "voiceId": "iP95p4xoKVk53GoZ742B",
+  "modelId": "eleven_v4",
+  "voiceAtSeconds": 0.9,
+  "musicSource": "music-excerpt.wav",
+  "musicStartSeconds": 0,
+  "foleyCues": [
+    {
+      "source": "tray-handling.mp3",
+      "sourceStartSeconds": 0.32,
+      "durationSeconds": 0.95,
+      "atSeconds": 6.43,
+      "gainDb": -7,
+      "intent": "Real tray handling aligned to the purposeful 6.5s match cut; not original synchronized production sound."
+    }
+  ],
+  "pictureRepositoryPath": "packages/marketing/phase2b/video/review/dinner-picture-v2-clean.mp4",
+  "voiceTimingNote": "Whole continuous take delayed 0.9 seconds, with no phrase splice or speed change. Provider-estimated CTA starts at 8.96 seconds in the raw take, so enters the picture CTA at 9.86 seconds.",
+  "pictureSourceCommit": "108cbdb48eb93c99d3bff871598defcf291f8bda",
+  "pictureReceiptCommit": "5e5d611e351f7797cb6061805eb28da1bb36b670"
+}

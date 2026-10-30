@@ -1,0 +1,40 @@
+{
+  "phase": "2B",
+  "recordedAt": "2026-10-30T00:04:01.897906+00:00",
+  "newAdditionalCashUSD": 0,
+  "newSubscriptionsOrTopups": 0,
+  "newVisualGenerationCalls": 0,
+  "narration": {
+    "takes": 1,
+    "includedCreditsObserved": 66,
+    "capIncludedCredits": 1500,
+    "maxAuthorizedTakes": 2,
+    "activeExistingTier": "starter",
+    "newCashUSD": 0,
+    "beforeCount": 6619,
+    "settledCount": 6685,
+    "includedRemaining": 32047,
+    "overageDisabled": true,
+    "creditExtension": 0,
+    "settledCheckedAtUTC": "2026-10-29T23:56:46.040160+00:00",
+    "usageReceipt": "packages/marketing/phase2b/audio/evidence/voice-usage.json",
+    "settledReceipt": "packages/marketing/phase2b/audio/entitlement-final.json",
+    "limitation": "Subscription counters initially lagged; later stable66-credit delta is observed usage, not a newly invoiced cash charge. Existing plan subscription cost is not included as new Phase2B spending."
+  },
+  "musicAndSfx": {
+    "newLicenseFeesUSD": 0,
+    "musicLicense": "CC BY4.0, required attribution in all video captions",
+    "effectsLicense": "CC0",
+    "receipt": "packages/marketing/phase2b/audio/sources.json"
+  },
+  "historicalGooglePilot": {
+    "newPhase2BCharge": false,
+    "estimatedPriorUsageUSD": [
+      0.7,
+      0.75
+    ],
+    "receipt": "packages/marketing/phase2/cinema/usage-estimate.json",
+    "limitation": "Historical usage estimate, not an invoice; source reused without a new provider call."
+  },
+  "approvalScope": "The explicit Phase2B brief permitted a tightly bounded included-credit audition under existing active entitlement, no new cash/plan. No new paid visual generation was authorized or executed. Human sound and creative approval remain unverified."
+}

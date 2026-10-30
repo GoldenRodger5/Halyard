@@ -1,0 +1,316 @@
+{
+  "checkedAt": "2026-10-29T23:58:49.205Z",
+  "parents": 5,
+  "variants": 11,
+  "viewports": [
+    360,
+    390
+  ],
+  "failures": [],
+  "playback": [
+    {
+      "sha256": "5e07e1a7e971fd06b4c260692783ea901017edfa633d0d004a9ad5df2b39e8b6",
+      "viewport": {
+        "width": 360,
+        "height": 844
+      },
+      "muted": true,
+      "duration": 13.5,
+      "ended": true,
+      "played": [
+        [
+          0,
+          13.5
+        ]
+      ],
+      "quality": {
+        "total": 405,
+        "dropped": 0
+      },
+      "perception": "Continuous playback and sampled exported-frame inspection; audio quality not directly heard."
+    },
+    {
+      "sha256": "5e07e1a7e971fd06b4c260692783ea901017edfa633d0d004a9ad5df2b39e8b6",
+      "viewport": {
+        "width": 360,
+        "height": 844
+      },
+      "muted": false,
+      "duration": 13.5,
+      "ended": true,
+      "played": [
+        [
+          0,
+          13.5
+        ]
+      ],
+      "quality": {
+        "total": 810,
+        "dropped": 0
+      },
+      "perception": "Continuous playback and sampled exported-frame inspection; audio quality not directly heard."
+    },
+    {
+      "sha256": "42439fcd73a3f614622de1e7cc929d1ca06cd340cd71189bdafd4d8cf4af41a7",
+      "viewport": {
+        "width": 360,
+        "height": 844
+      },
+      "muted": true,
+      "duration": 12.053333,
+      "ended": true,
+      "played": [
+        [
+          0,
+          12.053333
+        ]
+      ],
+      "quality": {
+        "total": 360,
+        "dropped": 0
+      },
+      "perception": "Continuous playback and sampled exported-frame inspection; audio quality not directly heard."
+    },
+    {
+      "sha256": "42439fcd73a3f614622de1e7cc929d1ca06cd340cd71189bdafd4d8cf4af41a7",
+      "viewport": {
+        "width": 360,
+        "height": 844
+      },
+      "muted": false,
+      "duration": 12.053333,
+      "ended": true,
+      "played": [
+        [
+          0,
+          12.053333
+        ]
+      ],
+      "quality": {
+        "total": 720,
+        "dropped": 0
+      },
+      "perception": "Continuous playback and sampled exported-frame inspection; audio quality not directly heard."
+    },
+    {
+      "sha256": "8156954dd35a8635f6eeda72e2ee7f04ca141da4c00a43f8f1bbcc837a7c4f65",
+      "viewport": {
+        "width": 360,
+        "height": 844
+      },
+      "muted": true,
+      "duration": 13.5,
+      "ended": true,
+      "played": [
+        [
+          0,
+          13.5
+        ]
+      ],
+      "quality": {
+        "total": 405,
+        "dropped": 0
+      },
+      "perception": "Continuous playback and sampled exported-frame inspection; audio quality not directly heard."
+    },
+    {
+      "sha256": "8156954dd35a8635f6eeda72e2ee7f04ca141da4c00a43f8f1bbcc837a7c4f65",
+      "viewport": {
+        "width": 360,
+        "height": 844
+      },
+      "muted": false,
+      "duration": 13.5,
+      "ended": true,
+      "played": [
+        [
+          0,
+          13.5
+        ]
+      ],
+      "quality": {
+        "total": 810,
+        "dropped": 0
+      },
+      "perception": "Continuous playback and sampled exported-frame inspection; audio quality not directly heard."
+    },
+    {
+      "sha256": "5e07e1a7e971fd06b4c260692783ea901017edfa633d0d004a9ad5df2b39e8b6",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "muted": true,
+      "duration": 13.5,
+      "ended": true,
+      "played": [
+        [
+          0,
+          13.5
+        ]
+      ],
+      "quality": {
+        "total": 405,
+        "dropped": 0
+      },
+      "perception": "Continuous playback and sampled exported-frame inspection; audio quality not directly heard."
+    },
+    {
+      "sha256": "5e07e1a7e971fd06b4c260692783ea901017edfa633d0d004a9ad5df2b39e8b6",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "muted": false,
+      "duration": 13.5,
+      "ended": true,
+      "played": [
+        [
+          0,
+          13.5
+        ]
+      ],
+      "quality": {
+        "total": 810,
+        "dropped": 0
+      },
+      "perception": "Continuous playback and sampled exported-frame inspection; audio quality not directly heard."
+    },
+    {
+      "sha256": "42439fcd73a3f614622de1e7cc929d1ca06cd340cd71189bdafd4d8cf4af41a7",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "muted": true,
+      "duration": 12.053333,
+      "ended": true,
+      "played": [
+        [
+          0,
+          12.053333
+        ]
+      ],
+      "quality": {
+        "total": 360,
+        "dropped": 1
+      },
+      "perception": "Continuous playback and sampled exported-frame inspection; audio quality not directly heard."
+    },
+    {
+      "sha256": "42439fcd73a3f614622de1e7cc929d1ca06cd340cd71189bdafd4d8cf4af41a7",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "muted": false,
+      "duration": 12.053333,
+      "ended": true,
+      "played": [
+        [
+          0,
+          12.053333
+        ]
+      ],
+      "quality": {
+        "total": 720,
+        "dropped": 1
+      },
+      "perception": "Continuous playback and sampled exported-frame inspection; audio quality not directly heard."
+    },
+    {
+      "sha256": "8156954dd35a8635f6eeda72e2ee7f04ca141da4c00a43f8f1bbcc837a7c4f65",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "muted": true,
+      "duration": 13.5,
+      "ended": true,
+      "played": [
+        [
+          0,
+          13.5
+        ]
+      ],
+      "quality": {
+        "total": 405,
+        "dropped": 0
+      },
+      "perception": "Continuous playback and sampled exported-frame inspection; audio quality not directly heard."
+    },
+    {
+      "sha256": "8156954dd35a8635f6eeda72e2ee7f04ca141da4c00a43f8f1bbcc837a7c4f65",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "muted": false,
+      "duration": 13.5,
+      "ended": true,
+      "played": [
+        [
+          0,
+          13.5
+        ]
+      ],
+      "quality": {
+        "total": 810,
+        "dropped": 0
+      },
+      "perception": "Continuous playback and sampled exported-frame inspection; audio quality not directly heard."
+    }
+  ],
+  "screenshots": [
+    "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/integration/evidence/final-gallery/rf-more-dinner-360.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/integration/evidence/final-gallery/rf-salt-volume-360.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/integration/evidence/final-gallery/rf-autumn-originals-360.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/integration/evidence/final-gallery/rf-marinade-job-360.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/integration/evidence/final-gallery/rf-tomato-clock-360.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/integration/evidence/final-gallery/film-5e07e1a7-0.5-360.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/integration/evidence/final-gallery/film-5e07e1a7-2.5-360.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/integration/evidence/final-gallery/film-5e07e1a7-4.5-360.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/integration/evidence/final-gallery/film-5e07e1a7-6.5-360.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/integration/evidence/final-gallery/film-5e07e1a7-8.5-360.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/integration/evidence/final-gallery/film-5e07e1a7-10.5-360.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/integration/evidence/final-gallery/film-5e07e1a7-12.5-360.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/integration/evidence/final-gallery/film-42439fcd-0.5-360.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/integration/evidence/final-gallery/film-42439fcd-2.5-360.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/integration/evidence/final-gallery/film-42439fcd-4.5-360.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/integration/evidence/final-gallery/film-42439fcd-6.5-360.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/integration/evidence/final-gallery/film-42439fcd-8.5-360.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/integration/evidence/final-gallery/film-42439fcd-10.5-360.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/integration/evidence/final-gallery/film-8156954d-0.5-360.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/integration/evidence/final-gallery/film-8156954d-2.5-360.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/integration/evidence/final-gallery/film-8156954d-4.5-360.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/integration/evidence/final-gallery/film-8156954d-6.5-360.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/integration/evidence/final-gallery/film-8156954d-8.5-360.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/integration/evidence/final-gallery/film-8156954d-10.5-360.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/integration/evidence/final-gallery/film-8156954d-12.5-360.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/integration/evidence/final-gallery/rf-more-dinner-390.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/integration/evidence/final-gallery/rf-salt-volume-390.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/integration/evidence/final-gallery/rf-autumn-originals-390.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/integration/evidence/final-gallery/rf-marinade-job-390.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/integration/evidence/final-gallery/rf-tomato-clock-390.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/integration/evidence/final-gallery/film-5e07e1a7-0.5-390.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/integration/evidence/final-gallery/film-5e07e1a7-2.5-390.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/integration/evidence/final-gallery/film-5e07e1a7-4.5-390.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/integration/evidence/final-gallery/film-5e07e1a7-6.5-390.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/integration/evidence/final-gallery/film-5e07e1a7-8.5-390.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/integration/evidence/final-gallery/film-5e07e1a7-10.5-390.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/integration/evidence/final-gallery/film-5e07e1a7-12.5-390.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/integration/evidence/final-gallery/film-42439fcd-0.5-390.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/integration/evidence/final-gallery/film-42439fcd-2.5-390.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/integration/evidence/final-gallery/film-42439fcd-4.5-390.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/integration/evidence/final-gallery/film-42439fcd-6.5-390.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/integration/evidence/final-gallery/film-42439fcd-8.5-390.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/integration/evidence/final-gallery/film-42439fcd-10.5-390.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/integration/evidence/final-gallery/film-8156954d-0.5-390.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/integration/evidence/final-gallery/film-8156954d-2.5-390.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/integration/evidence/final-gallery/film-8156954d-4.5-390.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/integration/evidence/final-gallery/film-8156954d-6.5-390.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/integration/evidence/final-gallery/film-8156954d-8.5-390.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/integration/evidence/final-gallery/film-8156954d-10.5-390.png",
+    "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/integration/evidence/final-gallery/film-8156954d-12.5-390.png"
+  ]
+}

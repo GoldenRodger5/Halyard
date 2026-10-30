@@ -1,0 +1,26 @@
+[
+  {
+    "label": "Recommended working direction — narration-led",
+    "path": "packages/marketing/phase2b/audio/renders/recipefix-narration.mp4",
+    "sha256": "5e07e1a7e971fd06b4c260692783ea901017edfa633d0d004a9ad5df2b39e8b6",
+    "width": 1080,
+    "height": 1920,
+    "durationSeconds": 13.5,
+    "kind": "video",
+    "origin": "Locked Phase 2B picture: existing Google AI hero plus genuine historical RecipeFix pixels; new licensed kitchen effects/music and bounded included-credit ElevenLabs Chris narration where marked.",
+    "rights": "Google-generated hero subject to original model terms; first-party RecipeFix UI/historical response; Inter SIL OFL; real kitchen SFX CC0; Dirt Rhodes by Kevin MacLeod CC BY 4.0 with required credit; active Starter commercial TTS rights subject to ElevenLabs terms. No actual cooked or tasted result.",
+    "role": "narration"
+  },
+  {
+    "label": "Sound-designed comparison — no narration",
+    "path": "packages/marketing/phase2b/audio/renders/recipefix-sound-only.mp4",
+    "sha256": "8156954dd35a8635f6eeda72e2ee7f04ca141da4c00a43f8f1bbcc837a7c4f65",
+    "width": 1080,
+    "height": 1920,
+    "durationSeconds": 13.5,
+    "kind": "video",
+    "origin": "Locked Phase 2B picture: existing Google AI hero plus genuine historical RecipeFix pixels; new licensed kitchen effects/music and bounded included-credit ElevenLabs Chris narration where marked.",
+    "rights": "Google-generated hero subject to original model terms; first-party RecipeFix UI/historical response; Inter SIL OFL; real kitchen SFX CC0; Dirt Rhodes by Kevin MacLeod CC BY 4.0 with required credit; active Starter commercial TTS rights subject to ElevenLabs terms. No actual cooked or tasted result.",
+    "role": "sound_only"
+  }
+]

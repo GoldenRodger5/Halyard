@@ -1,0 +1,56 @@
+[
+  {
+    "width": 360,
+    "duration": 13.5,
+    "currentTime": 13.5,
+    "ended": true,
+    "error": null,
+    "played": [
+      [
+        0,
+        13.5
+      ]
+    ],
+    "quality": {
+      "total": 405,
+      "dropped": 0
+    },
+    "scope": "Full actual browser transport and sampled rendered frames; clean picture master has no audio."
+  },
+  {
+    "width": 390,
+    "duration": 13.5,
+    "currentTime": 13.5,
+    "ended": true,
+    "error": null,
+    "played": [
+      [
+        0,
+        13.5
+      ]
+    ],
+    "quality": {
+      "total": 405,
+      "dropped": 0
+    },
+    "scope": "Full actual browser transport and sampled rendered frames; clean picture master has no audio."
+  },
+  {
+    "width": 1080,
+    "duration": 13.5,
+    "currentTime": 13.5,
+    "ended": true,
+    "error": null,
+    "played": [
+      [
+        0,
+        13.5
+      ]
+    ],
+    "quality": {
+      "total": 405,
+      "dropped": 0
+    },
+    "scope": "Full actual browser transport and sampled rendered frames; clean picture master has no audio."
+  }
+]

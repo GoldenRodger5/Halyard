@@ -1,0 +1,140 @@
+{
+  "ideas": [
+    {
+      "id": "rf-more-dinner",
+      "title": "Two more for dinner?",
+      "category": "P02",
+      "targetAudience": "Home cooks adapting a dinner recipe for more people and a dairy-free request.",
+      "whyWatch": "More guests create a real cooking-space constraint; quantities and method both matter.",
+      "visibleEvent": "Purposeful food match cuts exclude floating-tray movement; genuine four-to-six and Dairy-Free selection leads to the exact recorded two-sheet/one-at-a-time method and a specific Original recipe CTA.",
+      "payoff": "The recorded RecipeFix response adjusts the method to broil one sheet at a time and finish the chicken in sauce.",
+      "productBridge": "Open Chicken Tikka Masala on RecipeFix and choose Make it fit.",
+      "sourceUrls": [
+        "https://github.com/GoldenRodger5/recipe-fix/blob/3f32680f091d06ad9046bb95e4dfb55489d2c264/src/data/landingRealResult.ts"
+      ],
+      "authoringStatus": "founder_review"
+    }
+  ],
+  "variants": [
+    {
+      "id": "rf-more-dinner-tiktok-phase2b-vo-v1",
+      "ideaId": "rf-more-dinner",
+      "platform": "tiktok",
+      "format": "short_video",
+      "caption": "Two more for dinner. Same broiler.\n\nIn this recorded RecipeFix 4 → 6 Dairy-Free example, the method changes too: two foil-lined sheets, broiled one at a time, then a sauce finish. Open Chicken Tikka Masala → Make it fit.\n\nAI planning illustration, not a cooked result. Historical October 21, 2026 response, not fresh inference. AI narration.\n\nMusic: “Dirt Rhodes” — Kevin MacLeod (incompetech.com), https://www.incompetech.com/music/royalty-free/index.html?isrc=USUAN1100542 . Licensed CC BY 4.0: https://creativecommons.org/licenses/by/4.0/ . Excerpted, faded and mixed. No endorsement implied.",
+      "media": [
+        {
+          "path": "packages/marketing/phase2b/audio/renders/recipefix-narration.mp4",
+          "sha256": "5e07e1a7e971fd06b4c260692783ea901017edfa633d0d004a9ad5df2b39e8b6",
+          "width": 1080,
+          "height": 1920,
+          "durationSeconds": 13.5,
+          "kind": "video",
+          "origin": "Locked Phase 2B picture: existing Google AI hero plus genuine historical RecipeFix pixels; new licensed kitchen effects/music and bounded included-credit ElevenLabs Chris narration where marked.",
+          "rights": "Google-generated hero subject to original model terms; first-party RecipeFix UI/historical response; Inter SIL OFL; real kitchen SFX CC0; Dirt Rhodes by Kevin MacLeod CC BY 4.0 with required credit; active Starter commercial TTS rights subject to ElevenLabs terms. No actual cooked or tasted result.",
+          "synthetic": true,
+          "altText": "Two trays of AI-illustrated marinated chicken frame genuine RecipeFix four-to-six serving and Dairy-Free settings, a recorded method change to two sheets and one broiler batch at a time, and the real Make it fit button. Conversational synthetic narration and licensed music/kitchen effects accompany the edit."
+        }
+      ],
+      "targetUrl": "https://recipefix.app/original-recipes/chicken-tikka-masala?utm_source=tiktok&utm_medium=social&utm_campaign=rf_first_fortnight&utm_content=rf-more-dinner-tiktok-phase2b-vo-v1",
+      "cta": "Open Chicken Tikka Masala → Make it fit. Profile-link placement is unverified.",
+      "disclosure": "AI planning illustration, not a kitchen test or cooked/tasted result. Genuine historical combined Dairy-Free and 4 → 6 response, October 21, 2026, not fresh inference. Synthetic Chris narration. Generated hero native 720×1280 inside 1080×1920 edit. Founder has not listened or approved; account and publication details remain deferred.",
+      "sourceUrls": [
+        "https://github.com/GoldenRodger5/recipe-fix/blob/3f32680f091d06ad9046bb95e4dfb55489d2c264/src/data/landingRealResult.ts",
+        "https://freesound.org/people/RealSquink/sounds/851295/",
+        "https://bigsoundbank.com/electric-oven-s0102.html",
+        "https://www.incompetech.com/music/royalty-free/index.html?isrc=USUAN1100542"
+      ]
+    },
+    {
+      "id": "rf-more-dinner-instagram-phase2b-vo-v1",
+      "ideaId": "rf-more-dinner",
+      "platform": "instagram",
+      "format": "reel",
+      "caption": "Two more for dinner. Same broiler.\n\nIn this recorded RecipeFix 4 → 6 Dairy-Free example, the method changes too: two foil-lined sheets, broiled one at a time, then a sauce finish. Open Chicken Tikka Masala → Make it fit.\n\nAI planning illustration, not a cooked result. Historical October 21, 2026 response, not fresh inference. AI narration.\n\nMusic: “Dirt Rhodes” — Kevin MacLeod (incompetech.com), https://www.incompetech.com/music/royalty-free/index.html?isrc=USUAN1100542 . Licensed CC BY 4.0: https://creativecommons.org/licenses/by/4.0/ . Excerpted, faded and mixed. No endorsement implied.",
+      "media": [
+        {
+          "path": "packages/marketing/phase2b/audio/renders/recipefix-narration.mp4",
+          "sha256": "5e07e1a7e971fd06b4c260692783ea901017edfa633d0d004a9ad5df2b39e8b6",
+          "width": 1080,
+          "height": 1920,
+          "durationSeconds": 13.5,
+          "kind": "video",
+          "origin": "Locked Phase 2B picture: existing Google AI hero plus genuine historical RecipeFix pixels; new licensed kitchen effects/music and bounded included-credit ElevenLabs Chris narration where marked.",
+          "rights": "Google-generated hero subject to original model terms; first-party RecipeFix UI/historical response; Inter SIL OFL; real kitchen SFX CC0; Dirt Rhodes by Kevin MacLeod CC BY 4.0 with required credit; active Starter commercial TTS rights subject to ElevenLabs terms. No actual cooked or tasted result.",
+          "synthetic": true,
+          "altText": "Two trays of AI-illustrated marinated chicken frame genuine RecipeFix four-to-six serving and Dairy-Free settings, a recorded method change to two sheets and one broiler batch at a time, and the real Make it fit button. Conversational synthetic narration and licensed music/kitchen effects accompany the edit."
+        }
+      ],
+      "targetUrl": "https://recipefix.app/original-recipes/chicken-tikka-masala?utm_source=instagram&utm_medium=social&utm_campaign=rf_first_fortnight&utm_content=rf-more-dinner-instagram-phase2b-vo-v1",
+      "cta": "Open Chicken Tikka Masala → Make it fit. Profile-link placement is unverified.",
+      "disclosure": "AI planning illustration, not a kitchen test or cooked/tasted result. Genuine historical combined Dairy-Free and 4 → 6 response, October 21, 2026, not fresh inference. Synthetic Chris narration. Generated hero native 720×1280 inside 1080×1920 edit. Founder has not listened or approved; account and publication details remain deferred.",
+      "sourceUrls": [
+        "https://github.com/GoldenRodger5/recipe-fix/blob/3f32680f091d06ad9046bb95e4dfb55489d2c264/src/data/landingRealResult.ts",
+        "https://freesound.org/people/RealSquink/sounds/851295/",
+        "https://bigsoundbank.com/electric-oven-s0102.html",
+        "https://www.incompetech.com/music/royalty-free/index.html?isrc=USUAN1100542"
+      ]
+    },
+    {
+      "id": "rf-more-dinner-youtube-phase2b-vo-v1",
+      "ideaId": "rf-more-dinner",
+      "platform": "youtube",
+      "format": "short_video",
+      "caption": "Two more for dinner. Same broiler.\n\nIn this recorded RecipeFix 4 → 6 Dairy-Free example, the method changes too: two foil-lined sheets, broiled one at a time, then a sauce finish. Open Chicken Tikka Masala → Make it fit.\n\nAI planning illustration, not a cooked result. Historical October 21, 2026 response, not fresh inference. AI narration.\n\nMusic: “Dirt Rhodes” — Kevin MacLeod (incompetech.com), https://www.incompetech.com/music/royalty-free/index.html?isrc=USUAN1100542 . Licensed CC BY 4.0: https://creativecommons.org/licenses/by/4.0/ . Excerpted, faded and mixed. No endorsement implied.",
+      "media": [
+        {
+          "path": "packages/marketing/phase2b/audio/renders/recipefix-narration.mp4",
+          "sha256": "5e07e1a7e971fd06b4c260692783ea901017edfa633d0d004a9ad5df2b39e8b6",
+          "width": 1080,
+          "height": 1920,
+          "durationSeconds": 13.5,
+          "kind": "video",
+          "origin": "Locked Phase 2B picture: existing Google AI hero plus genuine historical RecipeFix pixels; new licensed kitchen effects/music and bounded included-credit ElevenLabs Chris narration where marked.",
+          "rights": "Google-generated hero subject to original model terms; first-party RecipeFix UI/historical response; Inter SIL OFL; real kitchen SFX CC0; Dirt Rhodes by Kevin MacLeod CC BY 4.0 with required credit; active Starter commercial TTS rights subject to ElevenLabs terms. No actual cooked or tasted result.",
+          "synthetic": true,
+          "altText": "Two trays of AI-illustrated marinated chicken frame genuine RecipeFix four-to-six serving and Dairy-Free settings, a recorded method change to two sheets and one broiler batch at a time, and the real Make it fit button. Conversational synthetic narration and licensed music/kitchen effects accompany the edit."
+        }
+      ],
+      "targetUrl": "https://recipefix.app/original-recipes/chicken-tikka-masala?utm_source=youtube&utm_medium=social&utm_campaign=rf_first_fortnight&utm_content=rf-more-dinner-youtube-phase2b-vo-v1",
+      "cta": "Open Chicken Tikka Masala → Make it fit. Profile-link placement is unverified.",
+      "disclosure": "AI planning illustration, not a kitchen test or cooked/tasted result. Genuine historical combined Dairy-Free and 4 → 6 response, October 21, 2026, not fresh inference. Synthetic Chris narration. Generated hero native 720×1280 inside 1080×1920 edit. Founder has not listened or approved; account and publication details remain deferred.",
+      "sourceUrls": [
+        "https://github.com/GoldenRodger5/recipe-fix/blob/3f32680f091d06ad9046bb95e4dfb55489d2c264/src/data/landingRealResult.ts",
+        "https://freesound.org/people/RealSquink/sounds/851295/",
+        "https://bigsoundbank.com/electric-oven-s0102.html",
+        "https://www.incompetech.com/music/royalty-free/index.html?isrc=USUAN1100542"
+      ],
+      "title": "Two more for dinner? The plan changes too | RecipeFix"
+    }
+  ],
+  "newParentIdeas": 0,
+  "parentNote": "Finishing variants of existing rf-more-dinner; comparisons are not extra ideas.",
+  "preferredAudio": "Narration is the typed candidate only, provisional pending founder listening.",
+  "narration": {
+    "script": "Two more for dinner? Six servings, dairy-free. Same little broiler. Recipe Fix changes the plan, too: two sheets, one at a time. Open the recipe and tap Make it fit.",
+    "voice": "Chris - Charming, Down-to-Earth",
+    "voiceId": "iP95p4xoKVk53GoZ742B",
+    "modelId": "eleven_v4",
+    "usageReceipt": "packages/marketing/phase2b/audio/evidence/voice-usage.json",
+    "captionPath": "packages/marketing/phase2b/audio/narration.vtt",
+    "timingReceipt": "packages/marketing/phase2b/audio/evidence/phrase-timing.json"
+  },
+  "pictureSha256": "2ccef680712fce964c250c8e7afaeeb026beac283bc0924e3325106c0729751d",
+  "pictureSource": "packages/marketing/phase2b/video/review/dinner-picture-v2-clean.mp4",
+  "audioReview": "unverified: founder must listen for naturalness, pronunciation and musical taste",
+  "founderDecision": "unreviewed",
+  "additionalCashUSD": 0,
+  "includedCreditsUsed": 66,
+  "sources": "packages/marketing/phase2b/audio/sources.json",
+  "creditFinalReceipt": "packages/marketing/phase2b/audio/entitlement-final.json",
+  "creditAccounting": "One full-script request. Immediate account counter lagged; delayed and final snapshots show 66 included credits consumed, 32,047 remaining. No new cash charge, overage, top-up or subscription change.",
+  "pictureSourceCommit": "108cbdb48eb93c99d3bff871598defcf291f8bda",
+  "pictureReceiptCommit": "5e5d611e351f7797cb6061805eb28da1bb36b670",
+  "source": {
+    "branch": "feat/recipefix-phase2b-audio-20261029",
+    "sourceMediaCommit": "fcb80bb4acfbe7b293e4eaf81d1cec69518a44a4",
+    "baseCommit": "fbcc2b1",
+    "scope": "Only packages/marketing/phase2b/audio/**; source/media commit pinned before this metadata-only update."
+  }
+}

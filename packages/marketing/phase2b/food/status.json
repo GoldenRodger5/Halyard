@@ -1,0 +1,35 @@
+{
+  "pineappleContrastCut": {
+    "status": "STOP_FURTHER_REFINEMENT_R_AND_D_HOLD",
+    "path": "packages/marketing/phase2/cinema/contrast-cut/pineapple-contrast-cut-v1.mp4",
+    "sha256": "d7fc31b7963ad4bf85d142ac9c86b85efe90b847160a2c4f65b2d7c830c41346",
+    "fullPlayback": {
+      "duration": 10.56,
+      "currentTime": 10.56,
+      "ended": true,
+      "muted": true,
+      "videoWidth": 1080,
+      "videoHeight": 1920,
+      "decodedFrames": 315,
+      "droppedFrames": 0,
+      "callbacks": 315,
+      "firstMediaTime": 0,
+      "lastMediaTime": 10.466667,
+      "elapsedSeconds": 11.25429999999702,
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "errors": [],
+      "sound": "silent_by_design",
+      "subjectiveAudioJudgment": "not_applicable",
+      "reviewScope": "Actual complete muted browser playback; transport/frames and screenshot evidence, not founder approval."
+    },
+    "coreFinding": "Real prep and earlier answer improve the old rejected grid; absent gelatin consequence and3.5-second still ending remain. Further caption/trim rescue stopped."
+  },
+  "oldScienceFilmStatus": "FOUNDER_REJECTED_PRESERVE_EXCLUDED",
+  "replacementConcept": "Research only; no appropriate existing transformation footage, no new variant.",
+  "additionalCashUSD": 0,
+  "providerCalls": 0,
+  "publishingApproval": false
+}
