@@ -1,0 +1,15 @@
+{
+  "tier": "starter",
+  "status": "active",
+  "character_count": 6619,
+  "character_limit": 38732,
+  "can_extend_character_limit": false,
+  "max_credit_limit_extension": 0,
+  "max_character_limit_extension": 0,
+  "allowed_to_extend_character_limit": false,
+  "includedRemaining": 32113,
+  "generationGuardPass": true,
+  "checkedAtUTC": "2026-10-29T23:30:12.522839+00:00",
+  "generationSubmitted": false,
+  "scope": "Read-only sanitized entitlement; no account identifiers, keys or billing details retained."
+}

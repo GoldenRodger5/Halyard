@@ -1,0 +1,68 @@
+{
+  "status": "complete",
+  "take": 1,
+  "baselineCharacterCount": 6619,
+  "before": {
+    "tier": "starter",
+    "status": "active",
+    "character_count": 6619,
+    "character_limit": 38732,
+    "can_extend_character_limit": false,
+    "max_credit_limit_extension": 0,
+    "includedRemaining": 32113
+  },
+  "estimatedCredits": 165,
+  "capIncludedCredits": 1500,
+  "voiceId": "iP95p4xoKVk53GoZ742B",
+  "request": {
+    "text": "Two more for dinner? Six servings, dairy-free. Same little broiler. Recipe Fix changes the plan, too: two sheets, one at a time. Open the recipe and tap Make it fit.",
+    "model_id": "eleven_v4",
+    "seed": 17483,
+    "voice_settings": {
+      "stability": 0.5,
+      "speed": 1.0
+    }
+  },
+  "pictureSha256": "2ccef680712fce964c250c8e7afaeeb026beac283bc0924e3325106c0729751d",
+  "submittedAtUTC": "2026-10-29T23:51:36.671652+00:00",
+  "additionalCashAuthorizedUSD": 0,
+  "after": {
+    "tier": "starter",
+    "status": "active",
+    "character_count": 6685,
+    "character_limit": 38732,
+    "can_extend_character_limit": false,
+    "max_credit_limit_extension": 0,
+    "checkedAtUTC": "2026-10-29T23:52:37.496887+00:00",
+    "includedRemaining": 32047
+  },
+  "measuredTakeCredits": 66,
+  "measuredCumulativeCredits": 66,
+  "audioSha256": "b7f75406e2129601aebca5d0370883d9b0d771518afaf1e123a7be6d531a4cff",
+  "audioPath": "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/audio/voice/take-1.mp3",
+  "alignmentPath": "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/audio/voice/take-1-alignment.json",
+  "requestId": "aUX37LvyxwQuiZYCOTaG",
+  "delayedAfter": {
+    "tier": "starter",
+    "status": "active",
+    "character_count": 6685,
+    "character_limit": 38732,
+    "can_extend_character_limit": false,
+    "max_credit_limit_extension": 0,
+    "checkedAtUTC": "2026-10-29T23:52:37.496887+00:00",
+    "includedRemaining": 32047
+  },
+  "measuredDelayedCumulativeCredits": 66,
+  "creditAccountingNote": "Immediate subscription snapshot lagged at zero delta. Delayed and later settled snapshots show 66 included credits consumed; both snapshots are retained. No invoice or cash charge is inferred from the account counter.",
+  "immediateAfter": {
+    "tier": "starter",
+    "status": "active",
+    "character_count": 6619,
+    "character_limit": 38732,
+    "can_extend_character_limit": false,
+    "max_credit_limit_extension": 0,
+    "includedRemaining": 32113
+  },
+  "immediateMeasuredTakeCredits": 0,
+  "usageProvisional": false
+}

@@ -1,0 +1,117 @@
+{
+  "status": "Technical/source checks passed; subjective audible quality and founder approval remain unverified.",
+  "pictureSha256": "2ccef680712fce964c250c8e7afaeeb026beac283bc0924e3325106c0729751d",
+  "fullDecodedPictureIdentical": {
+    "allFullDecodedVideoHashesIdentical": true,
+    "files": [
+      {
+        "file": "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/edit/picture-v2/dinner-picture-clean.mp4",
+        "decodedVideoSHA256": "f35bf8103dd7bbcbf5dd6a950c6ed19f6787e7c9723236c22ad491ab579617ef"
+      },
+      {
+        "file": "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/audio/renders/recipefix-narration.mp4",
+        "decodedVideoSHA256": "f35bf8103dd7bbcbf5dd6a950c6ed19f6787e7c9723236c22ad491ab579617ef"
+      },
+      {
+        "file": "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/audio/renders/recipefix-sound-only.mp4",
+        "decodedVideoSHA256": "f35bf8103dd7bbcbf5dd6a950c6ed19f6787e7c9723236c22ad491ab579617ef"
+      }
+    ]
+  },
+  "fullPlayback": {
+    "narration-390": {
+      "duration": 13.5,
+      "currentTime": 13.5,
+      "ended": true,
+      "muted": false,
+      "callbacks": 405,
+      "lastMediaTime": 13.466667,
+      "quality": {
+        "totalVideoFrames": 405,
+        "droppedVideoFrames": 0
+      },
+      "file": "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/audio/renders/recipefix-narration.mp4",
+      "sensoryLimit": "Actual full browser playback transport and independently inspected temporal frame sequence; no auditory taste judgment."
+    },
+    "sound-only-390": {
+      "duration": 13.5,
+      "currentTime": 13.5,
+      "ended": true,
+      "muted": false,
+      "callbacks": 405,
+      "lastMediaTime": 13.466667,
+      "quality": {
+        "totalVideoFrames": 405,
+        "droppedVideoFrames": 0
+      },
+      "file": "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/audio/renders/recipefix-sound-only.mp4",
+      "sensoryLimit": "Actual full browser playback transport and independently inspected temporal frame sequence; no auditory taste judgment."
+    },
+    "narration-360": {
+      "duration": 13.5,
+      "currentTime": 13.5,
+      "ended": true,
+      "muted": false,
+      "callbacks": 405,
+      "lastMediaTime": 13.466667,
+      "quality": {
+        "totalVideoFrames": 405,
+        "droppedVideoFrames": 0
+      },
+      "file": "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/audio/renders/recipefix-narration.mp4",
+      "sensoryLimit": "Actual full browser playback transport and independently inspected temporal frame sequence; no auditory taste judgment."
+    },
+    "sound-only-360": {
+      "duration": 13.5,
+      "currentTime": 13.5,
+      "ended": true,
+      "muted": false,
+      "callbacks": 405,
+      "lastMediaTime": 13.466667,
+      "quality": {
+        "totalVideoFrames": 405,
+        "droppedVideoFrames": 0
+      },
+      "file": "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/audio/renders/recipefix-sound-only.mp4",
+      "sensoryLimit": "Actual full browser playback transport and independently inspected temporal frame sequence; no auditory taste judgment."
+    }
+  },
+  "loudnessMethod": "FFmpeg loudnorm input analysis of final encoded AAC tracks. Signal measurements are not a listening review.",
+  "loudness": {
+    "narration": {
+      "sha256": "5e07e1a7e971fd06b4c260692783ea901017edfa633d0d004a9ad5df2b39e8b6",
+      "integratedLUFS": -16.39,
+      "truePeakDBTP": -1.49,
+      "loudnessRangeLU": 3.3,
+      "durationSeconds": 13.5,
+      "frames": 405
+    },
+    "sound-only": {
+      "sha256": "8156954dd35a8635f6eeda72e2ee7f04ca141da4c00a43f8f1bbcc837a7c4f65",
+      "integratedLUFS": -16.02,
+      "truePeakDBTP": -2.29,
+      "loudnessRangeLU": 3.0,
+      "durationSeconds": 13.5,
+      "frames": 405
+    }
+  },
+  "checks": {
+    "frozenIdeaAndVariantValidation": "1 existing parent / 3 native variants, zero issues",
+    "actualMediaHashes": "pass",
+    "decodedCaptionNewlinesAndMusicCredit": "pass",
+    "variantSpecificUTMs": "pass",
+    "noAccountOrScheduledTime": "pass",
+    "noKeyRetention": "pass, known Eleven key checked in memory against every owned artifact without printing it",
+    "directMarketingTypeScript": "pass: tsc --noEmit -p packages/marketing/tsconfig.json",
+    "marketingVitest": "52/52 tests,7/7 files passed",
+    "pythonSyntax": "pass for audition.py,mix.py,package.py"
+  },
+  "testHarnessNote": "Initial Node test invocation was unsuitable for Vitest imports; rerun with the existing Vitest runner passed all 52 tests. No dependency or test-source changes.",
+  "sensoryLimits": "Unmuted full browser transport, whole-film sampled frames and critical phone images inspected; no directly heard audio. Provider alignment is not independent ASR. Founder must judge naturalness, pronunciation, intelligibility and musical/effect taste.",
+  "founderDecision": "unreviewed",
+  "accountVerified": false,
+  "publishAuthorized": false,
+  "newProviderCashUSD": 0,
+  "observedIncludedCredits": 66,
+  "sourceScope": "Same existing rf-more-dinner parent, historical combined Dairy-Free 4→6 record; AI planning imagery, no cooked/tasted result."
+}

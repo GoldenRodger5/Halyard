@@ -1,0 +1,17 @@
+{
+  "allFullDecodedVideoHashesIdentical": true,
+  "files": [
+    {
+      "file": "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/edit/picture-v2/dinner-picture-clean.mp4",
+      "decodedVideoSHA256": "f35bf8103dd7bbcbf5dd6a950c6ed19f6787e7c9723236c22ad491ab579617ef"
+    },
+    {
+      "file": "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/audio/renders/recipefix-narration.mp4",
+      "decodedVideoSHA256": "f35bf8103dd7bbcbf5dd6a950c6ed19f6787e7c9723236c22ad491ab579617ef"
+    },
+    {
+      "file": "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/audio/renders/recipefix-sound-only.mp4",
+      "decodedVideoSHA256": "f35bf8103dd7bbcbf5dd6a950c6ed19f6787e7c9723236c22ad491ab579617ef"
+    }
+  ]
+}
