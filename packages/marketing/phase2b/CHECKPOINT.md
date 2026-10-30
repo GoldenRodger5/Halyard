@@ -44,9 +44,11 @@ The four retained editorial families contain 19 unchanged image assets and 8 nat
 
 No production RecipeFix change, account connection, schedule, publication, outreach, subscription, merge or historical bulk merge was performed. Existing source/media/worktrees/PRs are preserved. [Commercial readiness](growth/READINESS.md) includes fresh read-only destination/UTM results, source-level conversion distinctions and affordable provider research. It reports no campaign conversion, returning-cook or paid-customer result.
 
-## Founder decisions
+## Direction selected after founder delegation
 
-Listen to the two complete films and judge the voice, music and actual watchability. Choose a treatment or reject both; selection does not approve publication. Decide whether the remaining action limitation warrants a future actor/hand shot. Select supporting editorial pieces before expanding the batch. Accounts and exact future publication approval remain deferred as requested.
+On October 29, the founder delegated treatment selection to the director. **Use the narration-led cut as the working lead**, retaining sound-only as the comparison. The recommendation is based on storytelling: speech connects the guest-count problem, actual recipe-method change and next action while the product details move on screen. It is not a human listening verdict on the voice or music, and it does not approve publication.
+
+The next material visual improvement should be a believable hand/ovenmitt loading the tray or genuine kitchen batching action. Additional text, zooms or more voice auditions would not close that gap. No new shot, spending or major production wave is started by this direction choice. Accounts and exact future publication approval remain deferred as requested.
 
 The team stops here for founder creative/listening review before another major production wave.
 
