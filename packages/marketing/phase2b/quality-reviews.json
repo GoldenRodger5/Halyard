@@ -1,0 +1,145 @@
+[
+  {
+    "variantId": "rf-more-dinner-tiktok-phase2b-vo-v1",
+    "mediaHashes": [
+      "5e07e1a7e971fd06b4c260692783ea901017edfa633d0d004a9ad5df2b39e8b6"
+    ],
+    "checkedAt": "2026-10-29T23:59:03.546119+00:00",
+    "visuallyReviewed": true,
+    "sound": "unverified",
+    "sourceAndRightsChecked": true,
+    "criticalDefects": [],
+    "founderDecision": "unreviewed"
+  },
+  {
+    "variantId": "rf-more-dinner-instagram-phase2b-vo-v1",
+    "mediaHashes": [
+      "5e07e1a7e971fd06b4c260692783ea901017edfa633d0d004a9ad5df2b39e8b6"
+    ],
+    "checkedAt": "2026-10-29T23:59:03.546249+00:00",
+    "visuallyReviewed": true,
+    "sound": "unverified",
+    "sourceAndRightsChecked": true,
+    "criticalDefects": [],
+    "founderDecision": "unreviewed"
+  },
+  {
+    "variantId": "rf-more-dinner-youtube-phase2b-vo-v1",
+    "mediaHashes": [
+      "5e07e1a7e971fd06b4c260692783ea901017edfa633d0d004a9ad5df2b39e8b6"
+    ],
+    "checkedAt": "2026-10-29T23:59:03.546253+00:00",
+    "visuallyReviewed": true,
+    "sound": "unverified",
+    "sourceAndRightsChecked": true,
+    "criticalDefects": [],
+    "founderDecision": "unreviewed"
+  },
+  {
+    "variantId": "rf-salt-volume-ig-carousel",
+    "mediaHashes": [
+      "ab8e47a1a9871542b882f4f70509455bcad508529eed9187d87f5fd40e7cc4b1",
+      "dc3af13e9dd6f98a4c6c5b753194b4f823acff1df5711796b93d620f14227bdc",
+      "46ba718d6f87dca3fb5497db5d9044542212d665e3336147bd290b0818879cc8"
+    ],
+    "checkedAt": "2026-10-29T23:59:03.546255+00:00",
+    "visuallyReviewed": true,
+    "sound": "silent_by_design",
+    "sourceAndRightsChecked": true,
+    "criticalDefects": [],
+    "founderDecision": "unreviewed"
+  },
+  {
+    "variantId": "rf-salt-volume-x-image",
+    "mediaHashes": [
+      "6fb0932b448763a32098dbb89b148e7b4a9adbe9d8d261c9492c62a7de749804"
+    ],
+    "checkedAt": "2026-10-29T23:59:03.546257+00:00",
+    "visuallyReviewed": true,
+    "sound": "silent_by_design",
+    "sourceAndRightsChecked": true,
+    "criticalDefects": [],
+    "founderDecision": "unreviewed"
+  },
+  {
+    "variantId": "rf-autumn-originals-ig-editorial",
+    "mediaHashes": [
+      "62b7380045de1742e602e8aaf97ed0582e1262c5ee32fd35494bf991c17f3261",
+      "d42a7ebcd8cdb0131568a887762bceeac1dc83dce9a27c44438f73b54127ccbc",
+      "39e2b2f234d099fcb6fe956c4ff1c8ed76d99fa595c6489908e2cb1f53f25e4f",
+      "21ad70fc7c139b6c5fd6438152c120b990e60ee367ab989d5d0a12a9e281f289"
+    ],
+    "checkedAt": "2026-10-29T23:59:03.546258+00:00",
+    "visuallyReviewed": true,
+    "sound": "silent_by_design",
+    "sourceAndRightsChecked": true,
+    "criticalDefects": [],
+    "founderDecision": "unreviewed"
+  },
+  {
+    "variantId": "rf-autumn-originals-x-editorial",
+    "mediaHashes": [
+      "b2b327e0ffe2ffb87fa7db66a02cc5df153942c0220e2f766600489a0d4843d6"
+    ],
+    "checkedAt": "2026-10-29T23:59:03.546260+00:00",
+    "visuallyReviewed": true,
+    "sound": "silent_by_design",
+    "sourceAndRightsChecked": true,
+    "criticalDefects": [],
+    "founderDecision": "unreviewed"
+  },
+  {
+    "variantId": "rf-marinade-job-ig",
+    "mediaHashes": [
+      "14b307f6d16502a06c3360f1135dcbebac06cf958a55505c5f0732220f3f09f2",
+      "aa7873605cb4fb6cbd3eb0b6c95946b86b246de864091c7d41390f8f9655c016",
+      "c862fe123b626974b5e193061acb0c86f388be72cc45d70ad7402ac57fd6845c",
+      "8ff526efce19ceb1e521e577a7ce79f03833ba59a2d1e49a5d5daf1d98ceb324"
+    ],
+    "checkedAt": "2026-10-29T23:59:03.546261+00:00",
+    "visuallyReviewed": true,
+    "sound": "silent_by_design",
+    "sourceAndRightsChecked": true,
+    "criticalDefects": [],
+    "founderDecision": "unreviewed"
+  },
+  {
+    "variantId": "rf-marinade-job-x",
+    "mediaHashes": [
+      "081707dfad755ade345956d090d0e74acbc400f1c29ea3a0a5039e62e3556fd1"
+    ],
+    "checkedAt": "2026-10-29T23:59:03.546262+00:00",
+    "visuallyReviewed": true,
+    "sound": "silent_by_design",
+    "sourceAndRightsChecked": true,
+    "criticalDefects": [],
+    "founderDecision": "unreviewed"
+  },
+  {
+    "variantId": "rf-tomato-clock-ig",
+    "mediaHashes": [
+      "3a564bf2eef7bcb5d1de3f3266cb6d443fc107ddd801237b0122a5546b240374",
+      "398b5388d5b815a9d348a83b59fa36415a2aedda7c45e3fe6190c4dd40f07b18",
+      "f84ef20e35fc551ca920a4b09bedc9fe3bca0aa2913f602ad2759524ac2a27a4",
+      "3808d56a143c647ea4195de0fbc3ce62747c7ba09701e203b823947d7cb960d9"
+    ],
+    "checkedAt": "2026-10-29T23:59:03.546264+00:00",
+    "visuallyReviewed": true,
+    "sound": "silent_by_design",
+    "sourceAndRightsChecked": true,
+    "criticalDefects": [],
+    "founderDecision": "unreviewed"
+  },
+  {
+    "variantId": "rf-tomato-clock-x",
+    "mediaHashes": [
+      "6c668181d5731974fafac1058b686b5a7eff78219b5297602b498f9fd5636b05"
+    ],
+    "checkedAt": "2026-10-29T23:59:03.546265+00:00",
+    "visuallyReviewed": true,
+    "sound": "silent_by_design",
+    "sourceAndRightsChecked": true,
+    "criticalDefects": [],
+    "founderDecision": "unreviewed"
+  }
+]

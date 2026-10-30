@@ -1,0 +1,155 @@
+{
+  "parents": 5,
+  "variants": 11,
+  "blockedIdeaIds": [
+    "rf-pineapple-gelatin"
+  ],
+  "readiness": [
+    {
+      "id": "rf-salt-volume-ig-carousel",
+      "fingerprint": "5abc73e1279a5f1a66c3ac05f8d805ef5d8b3c6df1a47b18047e8620e55801d1",
+      "ready": false,
+      "reasons": [
+        "a concrete schedule time is missing",
+        "RecipeFix-owned account unverified",
+        "founder creative verdict missing",
+        "exact founder approval missing or stale",
+        "provider capability/account not proven"
+      ],
+      "delivery": "unknown"
+    },
+    {
+      "id": "rf-salt-volume-x-image",
+      "fingerprint": "5586f620a662af28577c43a2120aa969860515a32c36e21b4f7093e47be6a1c1",
+      "ready": false,
+      "reasons": [
+        "a concrete schedule time is missing",
+        "RecipeFix-owned account unverified",
+        "founder creative verdict missing",
+        "exact founder approval missing or stale",
+        "provider capability/account not proven"
+      ],
+      "delivery": "unknown"
+    },
+    {
+      "id": "rf-autumn-originals-ig-editorial",
+      "fingerprint": "554dc4915fe56d63cf512c93e75e2748e12141c1309dcff587fb3dfad574dd75",
+      "ready": false,
+      "reasons": [
+        "a concrete schedule time is missing",
+        "RecipeFix-owned account unverified",
+        "founder creative verdict missing",
+        "exact founder approval missing or stale",
+        "provider capability/account not proven"
+      ],
+      "delivery": "unknown"
+    },
+    {
+      "id": "rf-autumn-originals-x-editorial",
+      "fingerprint": "ce48b7d9da152283394bbc5d5814fcf4d810b8f46f0a16a45673b65b97fd4b1f",
+      "ready": false,
+      "reasons": [
+        "a concrete schedule time is missing",
+        "RecipeFix-owned account unverified",
+        "founder creative verdict missing",
+        "exact founder approval missing or stale",
+        "provider capability/account not proven"
+      ],
+      "delivery": "unknown"
+    },
+    {
+      "id": "rf-marinade-job-ig",
+      "fingerprint": "972177ae80140b89a68c9f4e6835ffdc8f11d4ccfb0098b94650ff6f50712da7",
+      "ready": false,
+      "reasons": [
+        "a concrete schedule time is missing",
+        "RecipeFix-owned account unverified",
+        "founder creative verdict missing",
+        "exact founder approval missing or stale",
+        "provider capability/account not proven"
+      ],
+      "delivery": "unknown"
+    },
+    {
+      "id": "rf-marinade-job-x",
+      "fingerprint": "bff5d2755cc806cac6379f2bc9722cb6036e61847d29259cd86e5c3387db3654",
+      "ready": false,
+      "reasons": [
+        "a concrete schedule time is missing",
+        "RecipeFix-owned account unverified",
+        "founder creative verdict missing",
+        "exact founder approval missing or stale",
+        "provider capability/account not proven"
+      ],
+      "delivery": "unknown"
+    },
+    {
+      "id": "rf-tomato-clock-ig",
+      "fingerprint": "1127820ed8af76158047fa0491f91be2cb29ea76412564bdba0e1e85828bf639",
+      "ready": false,
+      "reasons": [
+        "a concrete schedule time is missing",
+        "RecipeFix-owned account unverified",
+        "founder creative verdict missing",
+        "exact founder approval missing or stale",
+        "provider capability/account not proven"
+      ],
+      "delivery": "unknown"
+    },
+    {
+      "id": "rf-tomato-clock-x",
+      "fingerprint": "a878e447926ce7607c6323a6809951e5acc3fab647a3747d9170b955574c50fd",
+      "ready": false,
+      "reasons": [
+        "a concrete schedule time is missing",
+        "RecipeFix-owned account unverified",
+        "founder creative verdict missing",
+        "exact founder approval missing or stale",
+        "provider capability/account not proven"
+      ],
+      "delivery": "unknown"
+    },
+    {
+      "id": "rf-more-dinner-tiktok-phase2b-vo-v1",
+      "fingerprint": "50237b860dee5f8de75a4d03f99857795fafd79201a2665ad703f0296ef3d025",
+      "ready": false,
+      "reasons": [
+        "a concrete schedule time is missing",
+        "RecipeFix-owned account unverified",
+        "founder creative verdict missing",
+        "independent media/rights review incomplete",
+        "exact founder approval missing or stale",
+        "provider capability/account not proven"
+      ],
+      "delivery": "unknown"
+    },
+    {
+      "id": "rf-more-dinner-instagram-phase2b-vo-v1",
+      "fingerprint": "d26e9e8cf110b52069738cc061dc1ac1857a5dca229a931bfa349094b57feacd",
+      "ready": false,
+      "reasons": [
+        "a concrete schedule time is missing",
+        "RecipeFix-owned account unverified",
+        "founder creative verdict missing",
+        "independent media/rights review incomplete",
+        "exact founder approval missing or stale",
+        "provider capability/account not proven"
+      ],
+      "delivery": "unknown"
+    },
+    {
+      "id": "rf-more-dinner-youtube-phase2b-vo-v1",
+      "fingerprint": "71c56b42030f087c00ed6d6e9db4e938f41252a0e436eda12e03f44b27a4dd5a",
+      "ready": false,
+      "reasons": [
+        "a concrete schedule time is missing",
+        "RecipeFix-owned account unverified",
+        "founder creative verdict missing",
+        "independent media/rights review incomplete",
+        "exact founder approval missing or stale",
+        "provider capability/account not proven"
+      ],
+      "delivery": "unknown"
+    }
+  ]
+}

@@ -1,0 +1,79 @@
+{
+  "recordedAt": "2026-10-30T00:00:09.016733+00:00",
+  "marketingRegressions": {
+    "command": "TMPDIR=/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/integration/scratch ./node_modules/.bin/vitest run packages/marketing/src",
+    "testsPassed": 52,
+    "filesPassed": 7,
+    "seconds": 14.83,
+    "scope": "Observed earlier in this same Phase2B integration session; no shared marketing contract/source changes after the run. Avoided repeating the unchanged suite."
+  },
+  "directAdapterTypeScript": {
+    "command": "./node_modules/.bin/tsc --noEmit --target ES2022 --module NodeNext --moduleResolution NodeNext --skipLibCheck packages/marketing/phase2b/prepare-review.mts",
+    "exitCode": 0
+  },
+  "gallery": {
+    "receipt": "packages/marketing/phase2b/gallery-check.json",
+    "viewports": [
+      360,
+      390
+    ],
+    "failures": [],
+    "completePlaybackRuns": 12,
+    "newFilmDroppedFrames": 0,
+    "baselineNote": "PR118 baseline completed both widths/mute states. Browser reports1 cumulative dropped frame at390; new films report0. Frame counters are cumulative when the same element is replayed.",
+    "screenshotsRoot": "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/integration/evidence/final-gallery",
+    "soundJudgment": "Transport verified; not directly heard by an agent. Founder listening pending."
+  },
+  "editorial": {
+    "imageAssets": 19,
+    "viewports": [
+      360,
+      390
+    ],
+    "mediaChanged": 0,
+    "evidence": "packages/marketing/phase2b/editorial/qa.json"
+  },
+  "independentFinalVideo": {
+    "receipt": "packages/marketing/phase2b/editorial/independent-final-mix-review.json",
+    "completePhoneRuns": 4,
+    "framesEach": 405,
+    "droppedEach": 0,
+    "picturePayloadMatchesLockedMaster": true
+  },
+  "destinationCheck": {
+    "receipt": "packages/marketing/phase2b/growth/destination-receipt.json",
+    "routes": 2,
+    "allHttp200": true,
+    "nonGETHEADBlocked": true,
+    "utmFirstLastReadback": true,
+    "conversionJoinProven": false
+  },
+  "candidateGate": {
+    "parents": 5,
+    "variants": 11,
+    "ready": 0,
+    "rejectedScienceExcluded": true,
+    "accountsConnected": false,
+    "schedulesCreated": false,
+    "published": false
+  },
+  "limits": [
+    "No human auditory judgment was manufactured.",
+    "No live platform upload/compression or account capability certification.",
+    "Not a fresh adaptation, cooked/tasted recipe, measured engagement/return or paid-conversion test.",
+    "No new dependency/model install; existing dependency symlinks require direct binaries."
+  ],
+  "integratedDeliverySmoke": {
+    "scope": "After focused source/media cherry-picks, regenerated catalog using only this integration worktree; identical media hashes, no need to replay unchanged bytes again.",
+    "viewports": [
+      360,
+      390
+    ],
+    "failures": [],
+    "receiptOnT9": "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/integration/evidence/integrated-smoke/gallery-check.json",
+    "directTypeScriptRecheckExitCode": 0,
+    "assetHashCheck": "prepare-review.mts passed for all candidate and comparison media",
+    "secretPatternScan": "No credential-like key patterns found in new phase2b files; actual known Eleven key was separately checked in memory by A2.",
+    "stagedDiffCheck": "pass"
+  }
+}
