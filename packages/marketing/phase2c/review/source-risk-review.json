@@ -1,0 +1,48 @@
+{
+  "scope": "Read-only preparation for complete-film independent critique, not animatic or final approval. No producer assets edited.",
+  "brief": "/Users/isaacmineo/.codex/attachments/36117532-56d0-450d-add2-4413978c728e/Pasted text.txt",
+  "canonicalDirection": "packages/marketing/strategy/2026-10-29-COHESIVE-FILM-ART-DIRECTION.md",
+  "founderOverrideComment": 6511696287,
+  "hero": {
+    "path": "packages/marketing/phase2/cinema/assets/broiler-hero.mp4",
+    "sha256": "84e86a1b9131d8164fad20caee4cf79645574ae29bb65e03705627edb8ef5e90",
+    "fullPhonePlayback": {
+      "duration": 6.037333,
+      "currentTime": 6.037333,
+      "ended": true,
+      "muted": true,
+      "videoWidth": 720,
+      "videoHeight": 1280,
+      "decodedFrames": 144,
+      "droppedFrames": 0,
+      "callbacks": 144,
+      "firstMediaTime": 0,
+      "lastMediaTime": 5.958333,
+      "elapsedSeconds": 6.25080000000447,
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "errors": [],
+      "sound": "audio_stream_present_muted_for_visual_review",
+      "subjectiveAudioJudgment": "not_performed",
+      "reviewScope": "Actual complete muted browser playback; transport/frames and screenshot evidence, no hearing judgment or founder approval."
+    },
+    "actualContact": "/Volumes/T9/Developer/Builds/recipefix-phase2c-20261029/review/evidence/source-hero-390/contact-05s.jpg"
+  },
+  "storyAndCropRisks": [
+    "Around1.5\u20133seconds the source exposes the full lower rim lifting off the counter and traversing above the second sheet. Hiding support can work only if the retained geometry and trajectory plausibly permit an actor offscreen. A visible hand is not a mandatory requirement if the crop itself reads naturally.",
+    "One continuous progression should not turn the unresolved source lift into a continuous visibly unsupported loading action. Judge the actual whole crop, not the proposed coordinates.",
+    "Source opens with two prepared sheets already present. Do not imply a measured filmed increase in food or an observed successful cooked yield.",
+    "The physical solution needs the relationship between one waiting sheet and one oven batch. Words alone over the same food image can recreate the rejected section/card structure.",
+    "Existing voice can connect the factual method but cannot repair visibly impossible physics or supply a missing action. Tray effects should not falsely imply that a mechanical or cooking action was actually recorded."
+  ],
+  "baselineReferences": {
+    "PR118": "42439fcd73a3f614622de1e7cc929d1ca06cd340cd71189bdafd4d8cf4af41a7",
+    "PR123Narration": "5e07e1a7e971fd06b4c260692783ea901017edfa633d0d004a9ad5df2b39e8b6",
+    "previousCompleteReviews": "packages/marketing/phase2b/editorial/independent-final-mix-review.json"
+  },
+  "sensoryLimits": "Source playback was muted; no audible judgment. A completed decode/render does not certify premium craft. Complete animatic and final 360/390 critique remain pending exact exports.",
+  "newProviderCalls": 0,
+  "additionalCashUSD": 0
+}

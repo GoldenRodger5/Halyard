@@ -1,0 +1,18 @@
+{
+  "marketingRegression": {
+    "testsPassed": 52,
+    "filesPassed": 7,
+    "seconds": 13.01,
+    "command": "TMPDIR=/Volumes/T9/Developer/Builds/recipefix-phase2c-20261029/scratch ./node_modules/.bin/vitest run packages/marketing/src"
+  },
+  "typeScript": {
+    "strictCompositionAndRenderer": "pass; direct tsc --noEmit, strict/noUncheckedIndexedAccess",
+    "reviewAdapter": "pass; direct NodeNext tsc --noEmit"
+  },
+  "gallery": "evidence/gallery-check.json",
+  "nativePlayback": "evidence/native-playback.json",
+  "audio": "evidence/audio-mix-receipt.json",
+  "subjectiveAudioJudgment": "Not performed by an agent. Founder naturalness/music judgment remains unverified.",
+  "newPublishingVariants": 0,
+  "sharedSocialStudioContractsChanged": false
+}

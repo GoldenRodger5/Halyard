@@ -1,0 +1,76 @@
+{
+  "title": "The second tray",
+  "durationSeconds": 12.8,
+  "fps": 30,
+  "frames": 384,
+  "status": "Animatic gate before final full-quality render",
+  "story": "One kitchen, one forward progression: pull back from chicken to reveal more dinner and finite broiler space; stay with the tray in a tight texture bridge; reveal one sheet in the broiler and the second waiting. RecipeFix appears as the reason for that batch plan, then invites the viewer to open the recipe.",
+  "shots": [
+    {
+      "id": "reveal",
+      "timelineSeconds": [
+        0,
+        3.5
+      ],
+      "sourceSeconds": [
+        0,
+        1
+      ],
+      "action": "Continuous pullback from food texture to both foil-lined sheets and the same broiler. The source already contains both sheets; no invented quantity growth.",
+      "text": "Dinner 4 \u2192 6 \u00b7 Dairy-Free, small in the dark oven negative space after pullback.",
+      "connection": "The second sheet motivates staying with the first tray."
+    },
+    {
+      "id": "texture-bridge",
+      "timelineSeconds": [
+        3.5,
+        4.6
+      ],
+      "sourceSeconds": [
+        1.1,
+        1.686666666666667
+      ],
+      "action": "Tight moving food/foil detail. Crop removes the unsupported lower rim, counter and oven relationship during the source lift. This is an editorial bridge, not a claim to film a continuous loading action.",
+      "text": "None; existing narration explains the same broiler and changed plan.",
+      "connection": "Cut BEFORE the lower rim is exposed, explicitly omit loading, reveal the settled state at4.6s. Licensed tray contact moves to4.53s."
+    },
+    {
+      "id": "batch-plan",
+      "timelineSeconds": [
+        4.6,
+        9.2
+      ],
+      "sourceSeconds": [
+        4.8,
+        6
+      ],
+      "action": "Settled source4.8\u20136 plays once during4.6\u20137.6s; then the final frame continues the same restrained camera drift. One sheet occupies the broiler, one waits. This does not show a supported loading action.",
+      "text": "1 now / 2 next; restrained RecipeFix attribution in empty counter space.",
+      "connection": "Camera continues to empty counter negative space for brand/CTA; no card or background change."
+    },
+    {
+      "id": "resolve",
+      "timelineSeconds": [
+        9.2,
+        12.8
+      ],
+      "source": "Hold the final settled frame; one continuous camera drift, no repeated motion loop.",
+      "action": "Both sheet states remain visible behind a small brand/recipe invitation on empty counter.",
+      "text": "RecipeFix \u00b7 Open Chicken Tikka Masala \u00b7 recipefix.app",
+      "connection": "Existing complete narration finishes naturally; licensed bed resolves."
+    }
+  ],
+  "publicFilmForbiddenAssets": [
+    "original-name.png",
+    "original-serves.png",
+    "recipefix-settings.mp4",
+    "changed-step.png",
+    "broil-line1.png",
+    "broil-line2.png",
+    "make-it-fit.png"
+  ],
+  "audio": "Remix existing full Chris take at0.35s, original speed; existing licensed bed/ambience/finite tray recording with cue moved to4.53s. No new synthesis. CTA provider timing~9.31s matches9.2s payoff.",
+  "productFacts": "Historical combined Dairy-Free 4\u21926 response, Oct21,2026. Two foil-lined sheets broiled one at a time; batches finish in sauce. No sauce action is invented. Ingredient1\u00bd\u21922\u00bclb remains internal proof, not a measured visual yield.",
+  "risk": "Tight cropping may still fail to conceal unsupported tray physics; entire animatic must be independently judged before finishing. Slow source retiming may look underactive. If these fail, do not certify premium; document missing physical action.",
+  "finiteGateCorrection": "Independent critic rejected exposed unsupported rim in v1/v2. Final editorial option cuts macro at4.6s, no further tracking-crop loop. Full new rendering only after exact animatic-v3 gate."
+}

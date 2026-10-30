@@ -1,0 +1,13 @@
+# Independent complete-film critique
+
+**REVISE against the premium/flagship bar; KEEP the cohesive direction and this exact comparison.** This is not a request for another crop, caption or creative version in this phase, and it does not approve publication.
+
+Reviewed exact final SHA256 `4fba7efcd930896be83fe8262c70341ac4c8d7e233ce0ee0dd1572f0f4f68dcc`: 12.8 seconds, 384 frames, 1080×1920. Complete actual playback at 360px and 390px reached the end with 384 decoded frames and 0 dropped at both widths. The PR118 baseline and both PR123 audio variants were also independently replayed completely at 390px; all ended without errors or drops. Exact hashes, playback receipts and actual image evidence are in `final-film-review.json`. Playback was muted throughout; no audible quality verdict is made.
+
+The new film is a substantial structural improvement. Food remains the subject in one kitchen rather than becoming a background for unrelated app formats. The dinner brief, texture insert, settled oven and waiting tray connect visually. The finite 4.6-second state cut avoids the exposed unsupported lift without pretending to show a continuous supported load. The now/next leaders communicate a useful batch order. The recipe invitation belongs to the same scene. There are no new P0/P1 technical or truth defects in this export.
+
+It is still short of exceptional food cinema. The 3x macro remains visibly soft at phone size. After 7.6 seconds, the 12.8-second film mainly holds the same food/oven state with camera drift. There is no actor, completed loading action, second-batch performance or satisfying new food event at the ending. Those are material creative limitations, not defects to relabel P1. A higher output raster cannot recover source detail or manufacture that performance.
+
+Muted, the batch-order lesson is clearer than RecipeFix's adaptive intelligence. A stranger can understand dinner 4→6 and one sheet now/one next, but the named-recipe invitation may read as recipe promotion. The known script explains that RecipeFix changes the plan; this review cannot establish whether it is heard clearly or sounds natural. The old PR123 cut was more explicit about the app operation but much less cohesive. Its sound-only comparison shares that same old picture, so neither old audio version receives a sound-preference verdict here.
+
+Preserve the honest scope: generated planning illustration of a historical combined Dairy-Free 4→6 response, not cooked/tested output, appliance detection or fresh inference. Keep source/history/AI context in the actual caption/metadata and required platform labels. No extra generation, new shot approval, public action or producer edit was made by this critic. Founder creative and listening review remains final.

@@ -1,0 +1,218 @@
+{
+  "reviewer": "food_studio independent complete-film critic; no producer edits",
+  "premiumBarRecommendation": "REVISE",
+  "directionRecommendation": "KEEP",
+  "exactFilm": {
+    "path": "/Volumes/T9/Developer/Builds/recipefix-phase2c-20261029/final-v1/second-tray.mp4",
+    "sha256": "4fba7efcd930896be83fe8262c70341ac4c8d7e233ce0ee0dd1572f0f4f68dcc",
+    "containerDurationSeconds": 12.8,
+    "frames": 384,
+    "fps": 30,
+    "compositionRaster": [
+      1080,
+      1920
+    ],
+    "sourceHeroRaster": [
+      720,
+      1280
+    ],
+    "audioStream": {
+      "codec": "aac",
+      "sampleRate": 48000,
+      "channels": 2,
+      "scope": "Independent ffprobe presence only, not hearing."
+    },
+    "fullPlaybacks": [
+      {
+        "duration": 12.8,
+        "currentTime": 12.8,
+        "ended": true,
+        "muted": true,
+        "videoWidth": 1080,
+        "videoHeight": 1920,
+        "decodedFrames": 384,
+        "droppedFrames": 0,
+        "callbacks": 384,
+        "firstMediaTime": 0,
+        "lastMediaTime": 12.766667,
+        "elapsedSeconds": 13.18480000000447,
+        "viewport": {
+          "width": 360,
+          "height": 844
+        },
+        "errors": [],
+        "sound": "audio_stream_present_muted_for_visual_review",
+        "subjectiveAudioJudgment": "not_performed",
+        "reviewScope": "Actual complete muted browser playback; transport/frames and screenshot evidence, no hearing judgment or founder approval."
+      },
+      {
+        "duration": 12.8,
+        "currentTime": 12.8,
+        "ended": true,
+        "muted": true,
+        "videoWidth": 1080,
+        "videoHeight": 1920,
+        "decodedFrames": 384,
+        "droppedFrames": 0,
+        "callbacks": 384,
+        "firstMediaTime": 0,
+        "lastMediaTime": 12.766667,
+        "elapsedSeconds": 13.18489999999851,
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "errors": [],
+        "sound": "audio_stream_present_muted_for_visual_review",
+        "subjectiveAudioJudgment": "not_performed",
+        "reviewScope": "Actual complete muted browser playback; transport/frames and screenshot evidence, no hearing judgment or founder approval."
+      }
+    ],
+    "completeHalfSecondContact": "/Volumes/T9/Developer/Builds/recipefix-phase2c-20261029/review/evidence/final-v1-390/contact-05s.jpg",
+    "phoneStoryEvidence": [
+      "/Volumes/T9/Developer/Builds/recipefix-phase2c-20261029/review/evidence/final-v1-360/full-story-phone.png",
+      "/Volumes/T9/Developer/Builds/recipefix-phase2c-20261029/review/evidence/final-v1-390/full-story-phone.png"
+    ]
+  },
+  "comparisonMedia": [
+    {
+      "label": "PR118",
+      "path": "packages/marketing/phase2/cinema/broiler-product-v3.mp4",
+      "sha256": "42439fcd73a3f614622de1e7cc929d1ca06cd340cd71189bdafd4d8cf4af41a7",
+      "refreshedComplete390Playback": {
+        "duration": 12.053333,
+        "currentTime": 12.053333,
+        "ended": true,
+        "muted": true,
+        "videoWidth": 1080,
+        "videoHeight": 1920,
+        "decodedFrames": 360,
+        "droppedFrames": 0,
+        "callbacks": 360,
+        "firstMediaTime": 0,
+        "lastMediaTime": 11.966667,
+        "elapsedSeconds": 12.32839999999851,
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "errors": [],
+        "sound": "audio_stream_present_muted_for_visual_review",
+        "subjectiveAudioJudgment": "not_performed",
+        "reviewScope": "Actual complete muted browser playback; transport/frames and screenshot evidence, no hearing judgment or founder approval."
+      }
+    },
+    {
+      "label": "PR123 narration",
+      "path": "packages/marketing/phase2b/audio/renders/recipefix-narration.mp4",
+      "sha256": "5e07e1a7e971fd06b4c260692783ea901017edfa633d0d004a9ad5df2b39e8b6",
+      "refreshedComplete390Playback": {
+        "duration": 13.5,
+        "currentTime": 13.5,
+        "ended": true,
+        "muted": true,
+        "videoWidth": 1080,
+        "videoHeight": 1920,
+        "decodedFrames": 405,
+        "droppedFrames": 0,
+        "callbacks": 405,
+        "firstMediaTime": 0,
+        "lastMediaTime": 13.466667,
+        "elapsedSeconds": 13.79470000000298,
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "errors": [],
+        "sound": "audio_stream_present_muted_for_visual_review",
+        "subjectiveAudioJudgment": "not_performed",
+        "reviewScope": "Actual complete muted browser playback; transport/frames and screenshot evidence, no hearing judgment or founder approval."
+      }
+    },
+    {
+      "label": "PR123 sound-only",
+      "path": "packages/marketing/phase2b/audio/renders/recipefix-sound-only.mp4",
+      "sha256": "8156954dd35a8635f6eeda72e2ee7f04ca141da4c00a43f8f1bbcc837a7c4f65",
+      "refreshedComplete390Playback": {
+        "duration": 13.5,
+        "currentTime": 13.5,
+        "ended": true,
+        "muted": true,
+        "videoWidth": 1080,
+        "videoHeight": 1920,
+        "decodedFrames": 405,
+        "droppedFrames": 0,
+        "callbacks": 405,
+        "firstMediaTime": 0,
+        "lastMediaTime": 13.466667,
+        "elapsedSeconds": 13.7165,
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "errors": [],
+        "sound": "audio_stream_present_muted_for_visual_review",
+        "subjectiveAudioJudgment": "not_performed",
+        "reviewScope": "Actual complete muted browser playback; transport/frames and screenshot evidence, no hearing judgment or founder approval."
+      }
+    }
+  ],
+  "completeFilmVerdict": "The final is substantially more coherent than PR118 and PR123: the same kitchen, food, light and camera language carry the dinner brief into a now/next batch plan and recipe invitation. No website screenshot, modal, giant source strip, separate title card or persistent audit footer interrupts the scene. The 4.6-second state cut omits an unsupported loading performance honestly. It is the right structural direction. It does not yet satisfy the requested exceptional/premium food-action bar.",
+  "beforeAfter": {
+    "PR118": "Retains rich food material while removing the source visibly unsupported tray travel. Native action is less ambitious but the state cut is more credible. No abrupt app-modal interruption remains.",
+    "PR123Narration": "Removes the sequence of original-title crops, settings modal, changed-step source strip and screenshot CTA. The food stays primary instead of becoming wallpaper. The old version was more explicit about what to tap and exactly which setting changed; the new muted product contribution is less explicit.",
+    "PR123SoundOnly": "Its picture is the same source-card picture as old narration; the same visual comparison applies. It was inspected fully muted, so this review does not rank the old soundtrack or the new mix."
+  },
+  "criteria": [
+    {
+      "aspect": "First-second interest",
+      "finding": "Appetizing marinated-food detail and pullback are present immediately. The concrete dinner 4-to-6 brief arrives after the opening moment; this is visual interest, not a proven attention/retention result."
+    },
+    {
+      "aspect": "Flow and visual language",
+      "finding": "The texture insert and deliberate settled-state cut belong to the same kitchen. Camera/food/light remain consistent; no disconnected media format returns."
+    },
+    {
+      "aspect": "Meaningful action",
+      "finding": "A short retimed source progression leads to the oven/waiting-sheet state. After 7.6 seconds the scene is held with camera drift through the 12.8-second ending. There is no visible actor, completed load, second batch action or sauce finish."
+    },
+    {
+      "aspect": "Typography and phone readability",
+      "finding": "Dinner 4-to-6/Dairy-Free, 1 now/2 next, RecipeFix, named recipe and domain were read at 360 and 390. No clipping, accidental wrap, covered core subject or new collision found. Short leaders identify the tray relationship without becoming UI cards."
+    },
+    {
+      "aspect": "Problem and solution",
+      "finding": "The move from more dinner to one tray now/one next is understandable as a batching plan. A measured quantity increase, oven-dimension detection or physical test is not shown or claimed."
+    },
+    {
+      "aspect": "Muted RecipeFix benefit",
+      "finding": "Understated. A muted stranger can read the dinner brief and batch order, but may read the ending as a recipe promotion rather than recognize an adaptive-recipe tool. The known narration script makes the app contribution explicit; this is script knowledge, not heard intelligibility."
+    },
+    {
+      "aspect": "Ending",
+      "finding": "The in-scene named-recipe invitation is restrained and readable. It is quiet, with no new performed food event or cooking payoff. It provides a concrete place to go but limited visual demonstration of the reason to try adaptation."
+    },
+    {
+      "aspect": "Product truth",
+      "finding": "The scene represents historical combined Dairy-Free 4-to-6/two-sheets/one-at-a-time behavior. No fresh inference, actual cooked/tasted outcome, allergen certification, oven vision or invented nutrition is asserted. Required illustration/history/source context must remain in caption/metadata and platform labels."
+    },
+    {
+      "aspect": "Sound",
+      "finding": "Both final full runs were muted. No conclusion about naturalness, intelligibility, pronunciation, narration pacing as heard, music taste, foley realism, balance or enjoyable audiovisual integration."
+    }
+  ],
+  "p0TechnicalOrTruthDefectsFound": [],
+  "p1TechnicalOrTruthDefectsFound": [],
+  "materialCreativeWeaknesses": [
+    "The 3x food insert is visibly soft at both phone widths. 1080 output does not restore source detail; the higher-quality render does not remove this limitation.",
+    "The latter scene has little new food action; camera drift and fading labels carry most of its progression.",
+    "Muted adaptation benefit and reason to try RecipeFix are weaker than the physical batch-order lesson.",
+    "The ending lacks a performed food payoff. No invented cooked result should be added to compensate."
+  ],
+  "recommendationMeaning": "Preserve and show this exact film as the cohesive comparison, with REVISE against premium/flagship approval. This is not a request for more crop/caption versions in the current phase. No new P1 is manufactured from a material taste/action weakness.",
+  "remainingAssetGap": "A believable supported loading/batching performance in this same visual world would raise the ceiling. This review neither authorizes a new shot nor proposes a paid call or another production loop.",
+  "approvalBoundary": "Founder creative and listening approval remains outstanding. Successful rendering, transport, 384 decoded frames or a new 1080 file do not certify premium craft.",
+  "producerFilmOrSourceEdits": false,
+  "providerCalls": 0,
+  "additionalCashUSD": 0
+}

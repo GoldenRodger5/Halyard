@@ -1,0 +1,22 @@
+{
+  "duration": 12.8,
+  "currentTime": 12.8,
+  "ended": true,
+  "muted": true,
+  "videoWidth": 1080,
+  "videoHeight": 1920,
+  "decodedFrames": 384,
+  "droppedFrames": 0,
+  "callbacks": 384,
+  "firstMediaTime": 0,
+  "lastMediaTime": 12.766667,
+  "elapsedSeconds": 13.02590000000596,
+  "viewport": {
+    "width": 1080,
+    "height": 1920
+  },
+  "errors": [],
+  "sound": "audio_stream_present_muted_for_visual_review",
+  "subjectiveAudioJudgment": "not_performed",
+  "reviewScope": "Actual complete muted browser playback; transport/frames and screenshot evidence, no hearing judgment or founder approval."
+}
