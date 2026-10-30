@@ -1,0 +1,85 @@
+{
+  "status": "Actual sound-only and narration films exported from root-locked picture v2; one full-script Chris take generated, no second take. Founder auditory review remains pending.",
+  "newLicenseFeesUSD": 0,
+  "sources": [
+    {
+      "file": "tray-handling.mp3",
+      "title": "Metal Oven Tray Handling",
+      "author": "RealSquink",
+      "page": "https://freesound.org/people/RealSquink/sounds/851295/",
+      "download": "https://cdn.freesound.org/previews/851/851295_12262933-hq.mp3",
+      "license": "CC0 1.0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "scope": "Public high-quality MP3 preview of the licensed field recording; no account or restricted original download. Intended cut-aligned tray contact/handling foley, not purported production sound.",
+      "checkedOn": "2026-10-29",
+      "localResearchAsset": "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/audio/assets/tray-handling.mp3",
+      "sha256": "c5ddfd8bde5b70e2215dbeb5d96f0e125d3e01fef6da43602eabe3660261725a",
+      "includedInFinalMix": true,
+      "repositoryAsset": "packages/marketing/phase2b/audio/assets/tray-handling.mp3"
+    },
+    {
+      "file": "oven-door.mp3",
+      "title": "Oven door",
+      "author": "edhutschek",
+      "page": "https://freesound.org/people/edhutschek/sounds/214355/",
+      "download": "https://cdn.freesound.org/previews/214/214355_2444153-hq.mp3",
+      "license": "CC0 1.0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "scope": "Public high-quality MP3 preview. Source includes door open, tray handling and door close; do not place closing sound where picture does not close the door.",
+      "checkedOn": "2026-10-29",
+      "localResearchAsset": "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/audio/assets/oven-door.mp3",
+      "sha256": "59e17e74e77cf1101c589e201d8a72790ea4d964d93d0384c4ab1689756f45ed",
+      "includedInFinalMix": false
+    },
+    {
+      "file": "oven-ambience.mp3",
+      "title": "Electric oven",
+      "author": "Joseph SARDIN / BigSoundBank",
+      "page": "https://bigsoundbank.com/electric-oven-s0102.html",
+      "download": "https://bigsoundbank.com/UPLOAD/mp3/0102.mp3?v=d",
+      "license": "CC0 1.0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "scope": "Real oven ventilation recording; quiet environmental texture, not evidence that the depicted AI oven is operating or cooking.",
+      "checkedOn": "2026-10-29",
+      "localResearchAsset": "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/audio/assets/oven-ambience.mp3",
+      "sha256": "330702ce71ed340cfec5cf21a71c0f16fc095927d01ec4b3e8c42784ab221976",
+      "includedInFinalMix": true,
+      "repositoryAsset": "packages/marketing/phase2b/audio/assets/oven-ambience.mp3"
+    },
+    {
+      "file": "dirt-rhodes.mp3",
+      "title": "Dirt Rhodes",
+      "author": "Kevin MacLeod",
+      "page": "https://www.incompetech.com/music/royalty-free/index.html?isrc=USUAN1100542",
+      "download": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Dirt%20Rhodes.mp3",
+      "license": "CC BY 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+      "scope": "Optional excerpt of instrumental recording; official catalog lists 82bpm and drum kit/electric piano/piano. Not directly heard by agent. Use is conditional on carrying attribution/source/license and noting edits.",
+      "checkedOn": "2026-10-29",
+      "localResearchAsset": "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/audio/assets/dirt-rhodes.mp3",
+      "sha256": "e1275490a4d0ee25f635fec21b2c4a641966f08c87c070cc646dc51962d5b947",
+      "catalogUrl": "https://www.incompetech.com/music/royalty-free/pieces.json",
+      "licensePage": "https://incompetech.com/music/royalty-free/licenses/",
+      "verification": "Live public catalog entry matched title, filename, ISRC, instruments and 82 bpm; live license page generates free Creative Commons Attribution 4.0 credit. Public MP3 downloaded and probed as 120.058778 seconds of stereo MP3.",
+      "includedInFinalMix": true,
+      "repositoryExcerpt": {
+        "path": "packages/marketing/phase2b/audio/assets/music-excerpt.wav",
+        "sha256": "1263cc386055d206fbbacafa4a2375b92595171109038ad0b2fc0b1d7b24650c",
+        "sourceStartSeconds": 0,
+        "durationSeconds": 18,
+        "changes": "First 18 seconds decoded from licensed MP3 to 48kHz stereo 24-bit PCM; final film adds fades, gain and mixing. Required music attribution applies."
+      }
+    }
+  ],
+  "requiredMusicCredit": "“Dirt Rhodes” — Kevin MacLeod (incompetech.com), https://www.incompetech.com/music/royalty-free/index.html?isrc=USUAN1100542 . Licensed CC BY 4.0: https://creativecommons.org/licenses/by/4.0/ . Excerpted, faded and mixed. No endorsement implied.",
+  "optionalSfxCredit": "Kitchen effects: RealSquink and edhutschek / Freesound; Joseph SARDIN / BigSoundBank; CC0.",
+  "restrictions": "No claim that these effects were recorded with RecipeFix footage. No source sound/music identity, naturalness or taste judgment from waveform analysis. No music-free rights claim if CC BY track is used without required credit.",
+  "rebuildNote": "Original CC0 tray/ambience assets are portable in this subtree. Full optional music/door sources remain research files on T9; only the used licensed music excerpt and final mixed films will be packaged. No isolated voice sample is the founder-facing deliverable.",
+  "voiceLicense": {
+    "source": "https://elevenlabs.io/docs/overview/administration/billing",
+    "plan": "Existing active Starter",
+    "scope": "Commercial output rights under paid-plan terms; one premade Chris voice, no clone, creation, subscription change or top-up. AI narration remains disclosed.",
+    "currentEntitlement": "entitlement-before.json",
+    "providerTerms": "https://elevenlabs.io/terms-of-use"
+  }
+}

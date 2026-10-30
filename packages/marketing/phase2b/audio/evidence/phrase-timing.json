@@ -1,0 +1,35 @@
+{
+  "source": "Provider-estimated alignment of requested text, not an independent auditory transcript. Whole take delayed 0.9 seconds without splicing or speed change.",
+  "segments": [
+    {
+      "text": "Two more for dinner?",
+      "startSeconds": 0.9,
+      "endSeconds": 1.78
+    },
+    {
+      "text": "Six servings, dairy-free.",
+      "startSeconds": 2.18,
+      "endSeconds": 4.0600000000000005
+    },
+    {
+      "text": "Same little broiler.",
+      "startSeconds": 4.26,
+      "endSeconds": 5.340000000000001
+    },
+    {
+      "text": "Recipe Fix changes the plan, too:",
+      "startSeconds": 5.62,
+      "endSeconds": 7.78
+    },
+    {
+      "text": "two sheets, one at a time.",
+      "startSeconds": 7.86,
+      "endSeconds": 9.66
+    },
+    {
+      "text": "Open the recipe and tap Make it fit.",
+      "startSeconds": 9.860000000000001,
+      "endSeconds": 12.18
+    }
+  ]
+}

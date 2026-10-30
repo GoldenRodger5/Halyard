@@ -1,0 +1,14 @@
+{
+  "tier": "starter",
+  "status": "active",
+  "character_count": 6685,
+  "character_limit": 38732,
+  "can_extend_character_limit": false,
+  "max_credit_limit_extension": 0,
+  "includedRemaining": 32047,
+  "checkedAtUTC": "2026-10-29T23:56:46.040160+00:00",
+  "observedTotalIncludedCreditDelta": 66,
+  "additionalCashUSD": 0,
+  "totalTtsRequests": 1,
+  "overageDisabled": true
+}
