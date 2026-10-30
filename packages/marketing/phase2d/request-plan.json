@@ -1,0 +1,72 @@
+{
+  "phase": "2D",
+  "authorization": "REQUIRED_SEPARATE_FOUNDER_APPROVAL_NOT_RECEIVED",
+  "generationRequestsSent": 0,
+  "requestLimit": 1,
+  "automaticRetries": 0,
+  "subscriptionOrTopupAllowed": false,
+  "budgetCapUSD": 1,
+  "model": "gemini-omni-1.1-flash",
+  "endpoint": "https://generativelanguage.googleapis.com/v1beta/interactions",
+  "reference": {
+    "path": "packages/marketing/phase2/cinema/assets/broiler-frame-1.jpg",
+    "sha256": "4bd686e2689d1c17ef128965fe7ab4a9c9a3fbd5f9b01839aee40475841b4bbd",
+    "mimeType": "image/jpeg",
+    "byteLength": 886445
+  },
+  "body": {
+    "model": "gemini-omni-1.1-flash",
+    "input": [
+      {
+        "type": "text",
+        "text": "Use the supplied image as the exact first-frame and continuity reference. One continuous six-second portrait food-planning illustration in this SAME kitchen: same compact open broiler, cool slate counter, warm upper light, two identical foil-lined baking sheets and richly red-spice-marinated chicken pieces. Keep the camera axis, food arrangement, materials and lighting consistent.\n\nThe foreground sheet is loaded by a visible, believable oven-mitted hand, NOT by invisible force. From frame lower-right, a single oven-mitted hand and wrist enter and visibly contact the underside of the foreground sheet at its near right edge before any sheet movement. The mitt supports the sheet's weight throughout the lift and level forward movement. The sheet moves smoothly onto the existing broiler rack with believable clearance. The hand releases only after the rack fully supports the sheet, then withdraws through the open doorway without passing through metal or food. The second prepared sheet remains motionless outside on the same counter and stays clearly visible. End with one sheet supported by the rack and the other waiting outside. Let the camera move only gently enough to preserve both sheet states.\n\nRealistic mitt/wrist anatomy and contact, stable food attached to its own sheet, no floating cookware, no extra hands, no hand/oven/foil intersections, no shrinking or stretching tray, no duplicated or rearranged chicken, no morphing, no teleportation, no new trays or appliances. Preserve the marinated appearance with NO raw-to-cooked color change, steam, completed meal or temperature/safety claim. No cuts, text, logos, website/interface, narration, dialogue or music. This is AI-generated planning illustration of an adapted batch plan, not filmed cooking or a kitchen test."
+      },
+      {
+        "type": "image",
+        "mime_type": "image/jpeg",
+        "data": "<exact base64 bytes of the hash-pinned reference; materialized in memory only>"
+      }
+    ],
+    "background": true,
+    "store": true,
+    "generation_config": {
+      "max_output_tokens": 40000,
+      "video_config": {
+        "task": "image_to_video"
+      }
+    },
+    "response_format": {
+      "type": "video",
+      "aspect_ratio": "9:16",
+      "resolution": "720p",
+      "duration": "6s",
+      "delivery": "inline"
+    }
+  },
+  "budget": {
+    "priceSource": "https://ai.google.dev/gemini-api/docs/pricing#gemini-omni-flash",
+    "priceCheckedClientDate": "2026-10-29",
+    "inputUSDPerMillion": 1.5,
+    "highestOutputUSDPerMillion": 17.5,
+    "textOutputUSDPerMillion": 9,
+    "videoTokensPer720pSecond": 5792,
+    "nominalVideoTokens": 34752,
+    "nominalVideoUSD": 0.60816,
+    "maxOutputTokens": 40000,
+    "conservativeBillableInputTokenReserve": 20000,
+    "inputReserveUSD": 0.03,
+    "outputCeilingUSD": 0.7,
+    "conservativeModeledMaximumUSD": 0.73,
+    "maximumRequestReserveUSD": 1.0,
+    "toolsGroundingPreviousInteractionAllowed": false,
+    "note": "40000 total output ceiling is tighter than the earlier45000 proposal. Fresh tokenizer count plus allowance must fit the20000 billable-input reserve before the approved POST. No retry or extra output. This is a bounded model-usage calculation, not a guarantee of creative quality."
+  },
+  "stopConditions": [
+    "No approval: no generation POST.",
+    "Reference, request, pricing or model-access drift: stop before spending.",
+    "Input/token reserve or one-dollar budget cannot be established: stop before spending.",
+    "Any prior submission marker, uncertain outcome,402/403/error, malformed or multiple video outputs: stop; no second candidate.",
+    "Distorted hand, unsupported tray, collision, food morphing or materially wrong scene: reject shot and stop.",
+    "If one complete editing pass is still ordinary/static/artificial/commercially weak: recommend PIVOT; no major rewrite or model search."
+  ]
+}
