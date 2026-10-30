@@ -1,3 +1,5 @@
+> **October 29 founder correction:** High-resolution image-first visuals alone did not fix the ad. Follow [cohesive film art direction](2026-10-29-COHESIVE-FILM-ART-DIRECTION.md): one uninterrupted audiovisual story, truthful adapted-recipe information art-directed directly into the scene; do not force tiny website screenshot inserts or oversized caption cards.
+
 # RecipeFix Social Studio — Cinematic Visual Quality Reset
 
 **Founder decision:** October 29, 2026. **Status:** research-backed creative requirement, not a new subscription, AI spend, account connection, public posting or approval.
