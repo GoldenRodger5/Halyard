@@ -2,6 +2,8 @@
 
 **Recommendation: REVISE against the premium bar. Keep this cohesive direction and the full comparison for founder review.** The finished film is substantially more connected than PR118/123. It does not yet establish exceptional food cinema: the short macro is visibly soft, much of the latter scene is held/camera drift, and the muted product benefit is understated. No further crop/font loop was started after the final export.
 
+Integrated [draft PR124](https://github.com/GoldenRodger5/Halyard/pull/124). Source/media commit: `7c640f85db11aa5697df9593c5e5072251c96c47`; later documentation only links this review. No merge or publication approval is implied.
+
 ## Watch the actual export
 
 - [Full new film](http://127.0.0.1:4380/media/4fba7efcd930896be83fe8262c70341ac4c8d7e233ce0ee0dd1572f0f4f68dcc.mp4): 12.8 seconds, 384 frames,1080×1920/30fps, H.264/AAC stereo.
