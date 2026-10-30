@@ -1,0 +1,83 @@
+{
+  "role": "sound-only",
+  "pictureSha256": "2ccef680712fce964c250c8e7afaeeb026beac283bc0924e3325106c0729751d",
+  "videoPath": "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/audio/renders/recipefix-sound-only.mp4",
+  "sha256": "8156954dd35a8635f6eeda72e2ee7f04ca141da4c00a43f8f1bbcc837a7c4f65",
+  "masterPath": "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/audio/renders/sound-only-master.wav",
+  "voicePath": null,
+  "pictureUnchanged": "Video stream copied without re-encoding; verify decoded frame hashes separately.",
+  "rawMixLoudness": {
+    "input_i": "-18.65",
+    "input_tp": "-4.95",
+    "input_lra": "3.10",
+    "input_thresh": "-28.65",
+    "output_i": "-15.23",
+    "output_tp": "-1.50",
+    "output_lra": "3.10",
+    "output_thresh": "-25.23",
+    "normalization_type": "dynamic",
+    "target_offset": "-0.77"
+  },
+  "encodedLoudness": {
+    "input_i": "-16.02",
+    "input_tp": "-2.29",
+    "input_lra": "3.00",
+    "input_thresh": "-26.02",
+    "output_i": "-15.23",
+    "output_tp": "-1.50",
+    "output_lra": "3.10",
+    "output_thresh": "-25.23",
+    "normalization_type": "dynamic",
+    "target_offset": "-0.77"
+  },
+  "probe": {
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "codec_type": "video",
+        "width": 1080,
+        "height": 1920,
+        "r_frame_rate": "30/1",
+        "nb_frames": "405"
+      },
+      {
+        "codec_type": "audio",
+        "sample_rate": "48000",
+        "r_frame_rate": "0/0",
+        "nb_frames": "634"
+      }
+    ],
+    "format": {
+      "duration": "13.500000"
+    }
+  },
+  "cuePlan": {
+    "pictureLocked": true,
+    "lockAuthority": "Root independent visual lock, October 29, 2026; first v1 rejected for crop/stillness, v2 cleared for bounded voice audition.",
+    "picturePath": "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/edit/picture-v2/dinner-picture-clean.mp4",
+    "pictureSha256": "2ccef680712fce964c250c8e7afaeeb026beac283bc0924e3325106c0729751d",
+    "durationSeconds": 13.5,
+    "frames": 405,
+    "fps": 30,
+    "script": "Two more for dinner? Six servings, dairy-free. Same little broiler. Recipe Fix changes the plan, too: two sheets, one at a time. Open the recipe and tap Make it fit.",
+    "voiceId": "iP95p4xoKVk53GoZ742B",
+    "modelId": "eleven_v4",
+    "voiceAtSeconds": 0.9,
+    "musicSource": "music-excerpt.wav",
+    "musicStartSeconds": 0,
+    "foleyCues": [
+      {
+        "source": "tray-handling.mp3",
+        "sourceStartSeconds": 0.32,
+        "durationSeconds": 0.95,
+        "atSeconds": 6.43,
+        "gainDb": -7,
+        "intent": "Real tray handling aligned to the purposeful 6.5s match cut; not original synchronized production sound."
+      }
+    ],
+    "pictureRepositoryPath": "packages/marketing/phase2b/video/review/dinner-picture-v2-clean.mp4",
+    "voiceTimingNote": "Whole continuous take delayed 0.9 seconds, with no phrase splice or speed change. Provider-estimated CTA starts at 8.96 seconds in the raw take, so enters the picture CTA at 9.86 seconds."
+  },
+  "sensoryLimit": "Signal/timing measurements only; founder must actually listen."
+}

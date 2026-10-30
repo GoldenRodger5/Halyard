@@ -1,0 +1,14 @@
+{
+  "duration": 13.5,
+  "currentTime": 13.5,
+  "ended": true,
+  "muted": false,
+  "callbacks": 405,
+  "lastMediaTime": 13.466667,
+  "quality": {
+    "totalVideoFrames": 405,
+    "droppedVideoFrames": 0
+  },
+  "file": "/Volumes/T9/Developer/Builds/recipefix-phase2b-20261029/audio/renders/recipefix-sound-only.mp4",
+  "sensoryLimit": "Actual full browser playback transport and independently inspected temporal frame sequence; no auditory taste judgment."
+}
