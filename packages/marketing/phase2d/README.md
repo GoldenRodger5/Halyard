@@ -2,6 +2,8 @@
 
 **Status: the exact one-shot request is prepared. Separate founder spending approval has not been received. No paid generation POST has been sent and no Phase2D action shot or new complete film exists yet.**
 
+[Draft PR125](https://github.com/GoldenRodger5/Halyard/pull/125) contains the reviewable preparation; initial source commit `411f02109df04f80466a09d7ebc07a11333d8105`. The later guard-test clock fixture avoids date-dependent test failures without weakening the live freshness gate.
+
 The [Phase2D brief](</Users/isaacmineo/.codex/attachments/5040e0bb-05f2-4465-a6ff-31b4ac1fa00a/Pasted text.txt>) explicitly says: **“This new paid request is not yet authorized.”** It requires preparing the request and stopping at the spending gate. The earlier completed $2 pilot is not reused as permission.
 
 ## Review the concrete request

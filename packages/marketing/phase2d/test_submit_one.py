@@ -7,6 +7,7 @@ from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch
+import datetime
 
 SPEC = importlib.util.spec_from_file_location('action', Path(__file__).with_name('submit_one.py'))
 action = importlib.util.module_from_spec(SPEC)
@@ -14,6 +15,17 @@ SPEC.loader.exec_module(action)
 
 
 class SpendingGuards(unittest.TestCase):
+    def setUp(self):
+        # Test financial/duplicate-call behavior without depending on today's date.
+        real_datetime = datetime.datetime
+        checks = [json.loads((action.HERE / name).read_text()) for name in
+                  ['model-preflight.json', 'token-preflight.json', 'pricing-preflight.json']]
+        fresh = max(real_datetime.fromisoformat(c.get('checkedAtUTC', c.get('verifiedAtUTC'))) for c in checks)
+        clock = patch.object(action.datetime, 'datetime', wraps=real_datetime)
+        self.addCleanup(clock.stop)
+        mocked_clock = clock.start()
+        mocked_clock.now.return_value = fresh + datetime.timedelta(seconds=1)
+
     def test_no_approval_never_calls_provider(self):
         with patch.object(action.legacy, 'load_key') as key, patch.object(action.legacy, 'request') as post:
             with self.assertRaises(RuntimeError):
