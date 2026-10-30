@@ -130,5 +130,11 @@
   "creditFinalReceipt": "packages/marketing/phase2b/audio/entitlement-final.json",
   "creditAccounting": "One full-script request. Immediate account counter lagged; delayed and final snapshots show 66 included credits consumed, 32,047 remaining. No new cash charge, overage, top-up or subscription change.",
   "pictureSourceCommit": "108cbdb48eb93c99d3bff871598defcf291f8bda",
-  "pictureReceiptCommit": "5e5d611e351f7797cb6061805eb28da1bb36b670"
+  "pictureReceiptCommit": "5e5d611e351f7797cb6061805eb28da1bb36b670",
+  "source": {
+    "branch": "feat/recipefix-phase2b-audio-20261029",
+    "sourceMediaCommit": "fcb80bb4acfbe7b293e4eaf81d1cec69518a44a4",
+    "baseCommit": "fbcc2b1",
+    "scope": "Only packages/marketing/phase2b/audio/**; source/media commit pinned before this metadata-only update."
+  }
 }
