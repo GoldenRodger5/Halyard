@@ -1,0 +1,46 @@
+{
+  "scope": "Independent complete animatic v3 gate; no production edits or generation.",
+  "decision": "PROCEED_ONE_FINAL_QUALITY_RENDER_ONLY",
+  "notApproval": "Not premium certification, founder acceptance, approved inventory or publication permission.",
+  "media": {
+    "path": "/Volumes/T9/Developer/Builds/recipefix-phase2c-20261029/animatic-v3/second-tray.mp4",
+    "sha256": "e4d26c26fd44bcbcd65f37b8d77037adea4179bf2bf453b9359294744072b1a9",
+    "full390Playback": {
+      "duration": 12.8,
+      "currentTime": 12.8,
+      "ended": true,
+      "muted": true,
+      "videoWidth": 540,
+      "videoHeight": 960,
+      "decodedFrames": 384,
+      "droppedFrames": 0,
+      "callbacks": 384,
+      "firstMediaTime": 0,
+      "lastMediaTime": 12.766667,
+      "elapsedSeconds": 13.001,
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "errors": [],
+      "sound": "audio_stream_present_muted_for_visual_review",
+      "subjectiveAudioJudgment": "not_performed",
+      "reviewScope": "Actual complete muted browser playback; transport/frames and screenshot evidence, no hearing judgment or founder approval."
+    },
+    "actualContact": "/Volumes/T9/Developer/Builds/recipefix-phase2c-20261029/review/evidence/animatic-v3-390/contact-05s.jpg"
+  },
+  "wholeSequenceJudgment": "A coherent food/oven world now carries the dinner brief into a practical now/next batch relationship and named-recipe invitation. Compared with PR118 and PR123 the app tutorial and caption/source-card interruptions are gone. The 4.6-second state cut is deliberate and understandable: it omits loading instead of pretending the source performs a continuous supported load.",
+  "resolvedPriorBlocker": "The late macro exposed unsupported lower rim is removed. Actual phone frames around 4.0, 4.6 and 5 seconds show food detail followed by the settled oven state; no new full-rim/counter-gap reveal survives the bridge.",
+  "remainingWeaknesses": [
+    "Short 3x macro remains soft; full-quality encoding may reduce preview loss but cannot restore missing source detail.",
+    "Most of the latter scene relies on a held frame and camera drift, not sustained native food action.",
+    "The RecipeFix intelligence is understated muted; viewers see a dinner brief and batch order, while the known script makes the product contribution more explicit.",
+    "The quiet ending is a recipe invitation, not a performed cooking payoff. No cooked/tested result should be implied."
+  ],
+  "actionGapAssessment": "Believable supported loading or performed batching would materially raise the craft ceiling, but the honest state-cut story no longer requires showing that absent performance. No material missing-action blocker to this one final comparison render was found.",
+  "furtherCreativeVersionsRequested": false,
+  "sensoryLimits": "Complete actual muted playback; no hearing claim for narration naturalness, intelligibility, synchronization, foley realism or music. Final exact 360/390 media still requires separate whole-export visual review.",
+  "providerCalls": 0,
+  "additionalCashUSD": 0,
+  "producerAssetsEdited": false
+}

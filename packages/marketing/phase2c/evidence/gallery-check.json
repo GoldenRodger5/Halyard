@@ -1,0 +1,54 @@
+{
+  "checkedAt": "2026-10-30T01:16:26.979Z",
+  "failures": [],
+  "playback": [
+    {
+      "width": 360,
+      "sha256": "4fba7efcd930896be83fe8262c70341ac4c8d7e233ce0ee0dd1572f0f4f68dcc",
+      "ended": true,
+      "duration": 12.8,
+      "time": 12.8,
+      "muted": true,
+      "totalFramesCumulative": 384,
+      "droppedFramesCumulative": 0,
+      "sensoryLimit": "Unmuted transport is not an agent hearing or taste judgment."
+    },
+    {
+      "width": 360,
+      "sha256": "4fba7efcd930896be83fe8262c70341ac4c8d7e233ce0ee0dd1572f0f4f68dcc",
+      "ended": true,
+      "duration": 12.8,
+      "time": 12.8,
+      "muted": false,
+      "totalFramesCumulative": 768,
+      "droppedFramesCumulative": 0,
+      "sensoryLimit": "Unmuted transport is not an agent hearing or taste judgment."
+    },
+    {
+      "width": 390,
+      "sha256": "4fba7efcd930896be83fe8262c70341ac4c8d7e233ce0ee0dd1572f0f4f68dcc",
+      "ended": true,
+      "duration": 12.8,
+      "time": 12.8,
+      "muted": true,
+      "totalFramesCumulative": 384,
+      "droppedFramesCumulative": 0,
+      "sensoryLimit": "Unmuted transport is not an agent hearing or taste judgment."
+    },
+    {
+      "width": 390,
+      "sha256": "4fba7efcd930896be83fe8262c70341ac4c8d7e233ce0ee0dd1572f0f4f68dcc",
+      "ended": true,
+      "duration": 12.8,
+      "time": 12.8,
+      "muted": false,
+      "totalFramesCumulative": 768,
+      "droppedFramesCumulative": 0,
+      "sensoryLimit": "Unmuted transport is not an agent hearing or taste judgment."
+    }
+  ],
+  "publicScreenshotsInFilm": false,
+  "publishingVariantsAdded": 0,
+  "reviewAssets": 8,
+  "evidenceRoot": "/Volumes/T9/Developer/Builds/recipefix-phase2c-20261029/evidence/gallery"
+}

@@ -1,0 +1,23 @@
+{
+  "phase": "2C",
+  "newCashUSD": 0,
+  "newVisualGenerationCalls": 0,
+  "newVoiceRequests": 0,
+  "newVoiceCredits": 0,
+  "newSubscriptionsOrTopups": 0,
+  "newLicenseFeesUSD": 0,
+  "inheritedVoiceCredits": {
+    "credits": 66,
+    "phase": "2B",
+    "chargedAgain": false
+  },
+  "inheritedGooglePilot": {
+    "estimatedUSD": [
+      0.700682,
+      0.7458
+    ],
+    "chargedAgain": false,
+    "invoiceVerified": false
+  },
+  "futureActionShot": "Proposal only; separate authorization required. No request sent."
+}

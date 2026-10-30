@@ -1,0 +1,55 @@
+{
+  "baseCommit": "5f4c79e0477da5214a9e483de67619909a1c3996",
+  "canonicalMarketingHead": "2026ab21253ed91ef0b6a9eff39dff2313c72094",
+  "founderOverride": "https://github.com/GoldenRodger5/Halyard/pull/123#issuecomment-6511696287",
+  "files": [
+    {
+      "path": "packages/marketing/phase2c/assets/hero.mp4",
+      "sha256": "84e86a1b9131d8164fad20caee4cf79645574ae29bb65e03705627edb8ef5e90"
+    },
+    {
+      "path": "packages/marketing/phase2c/assets/settled.jpg",
+      "sha256": "08544b727e932f28e9d9844931e44e2cdf73a9d6316d152291ce7e6d6cda6dd9"
+    },
+    {
+      "path": "packages/marketing/phase2c/assets/Inter-SemiBold.woff",
+      "sha256": "a96e5ee7ab248008e5e6cc92dd561eceb892d19a10a537aa1b2e64f979351add"
+    },
+    {
+      "path": "packages/marketing/phase2b/video/assets/real-result.json",
+      "sha256": "572f681c851d3b0777e0c4ca15c781a0c573bab7c026f5b683d9c7f1b72ff473"
+    },
+    {
+      "path": "packages/marketing/phase2b/audio/assets/narrator-chris-take-1.mp3",
+      "sha256": "b7f75406e2129601aebca5d0370883d9b0d771518afaf1e123a7be6d531a4cff"
+    },
+    {
+      "path": "packages/marketing/phase2b/audio/assets/music-excerpt.wav",
+      "sha256": "1263cc386055d206fbbacafa4a2375b92595171109038ad0b2fc0b1d7b24650c"
+    },
+    {
+      "path": "packages/marketing/phase2b/audio/assets/tray-handling.mp3",
+      "sha256": "c5ddfd8bde5b70e2215dbeb5d96f0e125d3e01fef6da43602eabe3660261725a"
+    },
+    {
+      "path": "packages/marketing/phase2b/audio/assets/oven-ambience.mp3",
+      "sha256": "330702ce71ed340cfec5cf21a71c0f16fc095927d01ec4b3e8c42784ab221976"
+    },
+    {
+      "path": "packages/marketing/strategy/2026-10-29-COHESIVE-FILM-ART-DIRECTION.md",
+      "sha256": "2fade537ab6a9fb6c2a3d6281b9dfd2b76e8f73ccf79ec7593d43fa8629a64b1"
+    },
+    {
+      "path": "packages/marketing/phase2c/assets/inter-OFL.txt",
+      "sha256": "5dd548d31a85f756e01d63e00d7faf1e324103ed3e9102fcbbabf2cc2db6dd39"
+    }
+  ],
+  "publicFilmSceneAssets": [
+    "hero.mp4",
+    "settled.jpg",
+    "Inter-SemiBold.woff"
+  ],
+  "productTruth": "Historical October21,2026 combined Dairy-Free4\u21926, chicken1\u00bd\u21922\u00bclb, two foil-lined sheets, broil one at a time, finish batches in sauce. Ingredient weights and sauce are not depicted as measured/performed outcomes.",
+  "visualScope": "AI planning illustration; no actual cooking/tasting, new inference or appliance-dimension detection. Public scene imports no screenshot/button/settings assets.",
+  "licenses": "Existing Google terms and first-party RecipeFix historical record; Inter OFL; CC0 kitchen effects; Dirt Rhodes CC BY4.0 with attribution in review socialCaption. Existing Chris TTS under original active Starter entitlement."
+}

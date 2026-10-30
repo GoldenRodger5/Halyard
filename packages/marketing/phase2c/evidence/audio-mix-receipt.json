@@ -1,0 +1,78 @@
+{
+  "role": "narration",
+  "pictureSha256": "ec22b8f1d12433695d86808cd08ee6feeca1fb3b433051e4748e7dd4f062c81e",
+  "videoPath": "/Volumes/T9/Developer/Builds/recipefix-phase2c-20261029/final-v1/mix/recipefix-narration.mp4",
+  "sha256": "4fba7efcd930896be83fe8262c70341ac4c8d7e233ce0ee0dd1572f0f4f68dcc",
+  "masterPath": "/Volumes/T9/Developer/Builds/recipefix-phase2c-20261029/final-v1/mix/narration-master.wav",
+  "voicePath": "/Volumes/T9/Developer/Worktrees/halyard-recipefix-phase2c-cohesive-20261029/packages/marketing/phase2b/audio/assets/narrator-chris-take-1.mp3",
+  "pictureUnchanged": "Video stream copied without re-encoding; verify decoded frame hashes separately.",
+  "rawMixLoudness": {
+    "input_i": "-18.01",
+    "input_tp": "-1.87",
+    "input_lra": "3.90",
+    "input_thresh": "-28.06",
+    "output_i": "-16.54",
+    "output_tp": "-1.50",
+    "output_lra": "1.50",
+    "output_thresh": "-26.67",
+    "normalization_type": "dynamic",
+    "target_offset": "0.54"
+  },
+  "encodedLoudness": {
+    "input_i": "-16.57",
+    "input_tp": "-1.40",
+    "input_lra": "3.70",
+    "input_thresh": "-26.63",
+    "output_i": "-16.44",
+    "output_tp": "-1.73",
+    "output_lra": "1.40",
+    "output_thresh": "-26.57",
+    "normalization_type": "dynamic",
+    "target_offset": "0.44"
+  },
+  "probe": {
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "codec_type": "video",
+        "width": 1080,
+        "height": 1920,
+        "r_frame_rate": "30/1",
+        "nb_frames": "384"
+      },
+      {
+        "codec_type": "audio",
+        "sample_rate": "48000",
+        "r_frame_rate": "0/0",
+        "nb_frames": "601"
+      }
+    ],
+    "format": {
+      "duration": "12.800000"
+    }
+  },
+  "cuePlan": {
+    "pictureLocked": true,
+    "renderInputOnly": true,
+    "picturePath": "/Volumes/T9/Developer/Builds/recipefix-phase2c-20261029/final-v1/picture.mp4",
+    "pictureSha256": "ec22b8f1d12433695d86808cd08ee6feeca1fb3b433051e4748e7dd4f062c81e",
+    "durationSeconds": 12.8,
+    "frames": 384,
+    "fps": 30,
+    "voiceAtSeconds": 0.35,
+    "musicSource": "music-excerpt.wav",
+    "musicStartSeconds": 0,
+    "foleyCues": [
+      {
+        "source": "tray-handling.mp3",
+        "sourceStartSeconds": 0.32,
+        "durationSeconds": 0.95,
+        "atSeconds": 4.53,
+        "gainDb": -7
+      }
+    ],
+    "authority": "Phase2C render-input hash only; not picture acceptance, founder approval or new synthesis."
+  },
+  "sensoryLimit": "Signal/timing measurements only; founder must actually listen."
+}

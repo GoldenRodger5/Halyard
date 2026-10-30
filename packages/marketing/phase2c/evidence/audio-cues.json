@@ -1,0 +1,22 @@
+{
+  "pictureLocked": true,
+  "renderInputOnly": true,
+  "picturePath": "/Volumes/T9/Developer/Builds/recipefix-phase2c-20261029/final-v1/picture.mp4",
+  "pictureSha256": "ec22b8f1d12433695d86808cd08ee6feeca1fb3b433051e4748e7dd4f062c81e",
+  "durationSeconds": 12.8,
+  "frames": 384,
+  "fps": 30,
+  "voiceAtSeconds": 0.35,
+  "musicSource": "music-excerpt.wav",
+  "musicStartSeconds": 0,
+  "foleyCues": [
+    {
+      "source": "tray-handling.mp3",
+      "sourceStartSeconds": 0.32,
+      "durationSeconds": 0.95,
+      "atSeconds": 4.53,
+      "gainDb": -7
+    }
+  ],
+  "authority": "Phase2C render-input hash only; not picture acceptance, founder approval or new synthesis."
+}

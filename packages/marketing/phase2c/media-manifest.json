@@ -1,0 +1,63 @@
+{
+  "status": "Review only. No new publishing variants or founder approval.",
+  "baseCommit": "5f4c79e0477da5214a9e483de67619909a1c3996",
+  "canonicalMarketingHead": "2026ab21253ed91ef0b6a9eff39dff2313c72094",
+  "files": [
+    {
+      "path": "packages/marketing/phase2c/renders/second-tray.mp4",
+      "sha256": "4fba7efcd930896be83fe8262c70341ac4c8d7e233ce0ee0dd1572f0f4f68dcc",
+      "width": 1080,
+      "height": 1920,
+      "formatDurationSeconds": "12.800000"
+    },
+    {
+      "path": "packages/marketing/phase2c/renders/animatic.mp4",
+      "sha256": "e4d26c26fd44bcbcd65f37b8d77037adea4179bf2bf453b9359294744072b1a9",
+      "width": 540,
+      "height": 960,
+      "formatDurationSeconds": "12.800000"
+    },
+    {
+      "path": "packages/marketing/phase2/cinema/broiler-product-v3.mp4",
+      "sha256": "42439fcd73a3f614622de1e7cc929d1ca06cd340cd71189bdafd4d8cf4af41a7",
+      "width": 1080,
+      "height": 1920,
+      "formatDurationSeconds": "12.053333"
+    },
+    {
+      "path": "packages/marketing/phase2b/audio/renders/recipefix-narration.mp4",
+      "sha256": "5e07e1a7e971fd06b4c260692783ea901017edfa633d0d004a9ad5df2b39e8b6",
+      "width": 1080,
+      "height": 1920,
+      "formatDurationSeconds": "13.500000"
+    },
+    {
+      "path": "packages/marketing/phase2b/audio/renders/recipefix-sound-only.mp4",
+      "sha256": "8156954dd35a8635f6eeda72e2ee7f04ca141da4c00a43f8f1bbcc837a7c4f65",
+      "width": 1080,
+      "height": 1920,
+      "formatDurationSeconds": "13.500000"
+    },
+    {
+      "path": "packages/marketing/phase2b/video/assets/original-serves.png",
+      "sha256": "ac60c760303e7fd4abcb0add8313d838d0ecf9c1c4112558ab72c9decdde888d",
+      "width": 265,
+      "height": 78,
+      "formatDurationSeconds": null
+    },
+    {
+      "path": "packages/marketing/phase2b/video/assets/settings-end.png",
+      "sha256": "cde9e9c59d1cf5903e5f43b74a40eb3f661aefbcc39137d30ad2cc6df9c54a79",
+      "width": 390,
+      "height": 844,
+      "formatDurationSeconds": null
+    },
+    {
+      "path": "packages/marketing/phase2b/video/assets/broiler-proof.png",
+      "sha256": "34c37efe2b2d322f943bc82c2a819252d55cd97f85ad19c0176a9d066884d739",
+      "width": 942,
+      "height": 1485,
+      "formatDurationSeconds": null
+    }
+  ]
+}
