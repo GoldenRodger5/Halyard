@@ -1,3 +1,5 @@
+> **LATEST CREATIVE DIRECTION, October 29:** [Cohesive film art direction](2026-10-29-COHESIVE-FILM-ART-DIRECTION.md) is mandatory for product-led shorts: one movie, integrated visuals, truthful dramatized product intelligence, no jarring app-screenshot cards or distracting captions. Previous image-first reset remains useful but is not sufficient alone.
+
 > **2026-10-29 newest founder visual-quality ruling:** [Cinematic image-first/motion-first creative reset](2026-10-29-CINEMATIC-VISUAL-QUALITY-RESET.md). PR #115 pineapple diagram is rejected as premium flagship TikTok/Reel/Short content despite source/test passes. NotebookLM Cinematic is the quality benchmark, not a paid subscription requirement; research current image/video generation and compare actual exports before more procedural 3D/clip-art.
 
 # RecipeFix Social Studio — October 28, 2026 planning index
