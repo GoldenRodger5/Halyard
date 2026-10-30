@@ -2,6 +2,8 @@
 
 One substantial finishing pass is complete. **The new 13.5-second films improve product clarity, remove the self-propelling tray sequence, show a more specific action and contain an actual soundtrack. They are founder review candidates, not approved advertisements.** The image-first source remains valuable, but the edit still lacks sustained food action. Sound naturalness and musical taste remain unverified until direct human listening.
 
+Integrated [draft PR123](https://github.com/GoldenRodger5/Halyard/pull/123), source/media commit `1b96d036f7c208c0f188f340f3b662ac6ef10b4f`; [specialist branches and commit map](BRANCHES.md). No merge/publication approval is implied.
+
 ## Watch the actual output
 
 - [Founder gallery on this Mac](http://127.0.0.1:4370/#sound-comparison): both complete films, retained editorial posts and PR118 before/after.
