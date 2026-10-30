@@ -1,0 +1,984 @@
+{
+  "schema": 1,
+  "id": "slides-swaps-dairy-free",
+  "made_at": "2026-10-27T04:47:38.474Z",
+  "assets": [
+    {
+      "id": "brand/recipefix-mark-512.png",
+      "provenance": "recipe-fix a82f8bb9:LAUNCH_KIT/assets/brand/recipefix-mark-512.png",
+      "licence": "first-party brand mark",
+      "sha256": "fcebd5205fadf3dfdddff83e288253498d98d06fa8c08b43444c3c06fb2cc84f"
+    },
+    {
+      "id": "LANDING_REAL_RESULT",
+      "provenance": "git:recipe-fix@a82f8bb9aff1cea7d5539156c807faa2602c9e29:src/data/landingRealResult.ts#LANDING_REAL_RESULT: Verbatim production response stored in the product repo, captured 2026-10-21",
+      "licence": "first-party",
+      "sha256": "0968e762ca3eb6b3a63f3c859034a7749f2e167c681075269370c7e575fcff8b"
+    },
+    {
+      "id": "shot-recipefix-v2-still-1-result-header-what-changed-900.png",
+      "provenance": "RecipeFix UI at commit e68b1404 (the live tree on 2026-10-26), local production build with a simulated backend; the adaptation shown is the verbatim stored production result captured 2026-10-21 (runs/2026-10-26/captures-v2/capture.json); crop {\"left\":24,\"top\":1955,\"width\":1122,\"height\":240} → 900×193",
+      "licence": "first-party capture",
+      "sha256": "e27c6207b22a7daaa55f981ebb8b90cecb7999bc8933da2c870ae6f6770657e0"
+    },
+    {
+      "id": "shot-recipefix-v2-still-6-swapped-coconut-yogurt-row-opened-900.png",
+      "provenance": "RecipeFix UI at commit e68b1404 (the live tree on 2026-10-26), local production build with a simulated backend; the adaptation shown is the verbatim stored production result captured 2026-10-21 (runs/2026-10-26/captures-v2/capture.json); crop {\"left\":24,\"top\":1021,\"width\":1122,\"height\":740} → 900×594",
+      "licence": "first-party capture",
+      "sha256": "5e89da151d18a04217805f7347e3060ab49699c783ab4b837435d03efe321aff"
+    },
+    {
+      "id": "shot-recipefix-v2-still-1-result-header-what-changed-680.png",
+      "provenance": "RecipeFix UI at commit e68b1404 (the live tree on 2026-10-26), local production build with a simulated backend; the adaptation shown is the verbatim stored production result captured 2026-10-21 (runs/2026-10-26/captures-v2/capture.json); crop {\"left\":24,\"top\":1955,\"width\":1122,\"height\":240} → 680×145",
+      "licence": "first-party capture",
+      "sha256": "e27c6207b22a7daaa55f981ebb8b90cecb7999bc8933da2c870ae6f6770657e0"
+    },
+    {
+      "id": "shot-recipefix-v2-still-6-swapped-coconut-yogurt-row-opened-680.png",
+      "provenance": "RecipeFix UI at commit e68b1404 (the live tree on 2026-10-26), local production build with a simulated backend; the adaptation shown is the verbatim stored production result captured 2026-10-21 (runs/2026-10-26/captures-v2/capture.json); crop {\"left\":24,\"top\":1021,\"width\":1122,\"height\":740} → 680×448",
+      "licence": "first-party capture",
+      "sha256": "5e89da151d18a04217805f7347e3060ab49699c783ab4b837435d03efe321aff"
+    }
+  ],
+  "cost_usd": 0,
+  "format": "slides-swaps",
+  "summary": "Dairy-free swap guide: Whole-milk yogurt → Coconut yogurt, Butter → Vegan butter, Heavy cream → Coconut cream, Heavy cream → Soy cooking cream",
+  "outputs": {
+    "slides": [
+      "runs/2026-10-27/slides-swaps-dairy-free/slides/ig-01-cover.jpg",
+      "runs/2026-10-27/slides-swaps-dairy-free/slides/ig-02-proof.jpg",
+      "runs/2026-10-27/slides-swaps-dairy-free/slides/ig-03-swap1.jpg",
+      "runs/2026-10-27/slides-swaps-dairy-free/slides/ig-04-swap2.jpg",
+      "runs/2026-10-27/slides-swaps-dairy-free/slides/ig-05-swap3.jpg",
+      "runs/2026-10-27/slides-swaps-dairy-free/slides/ig-06-swap4.jpg",
+      "runs/2026-10-27/slides-swaps-dairy-free/slides/ig-07-expect.jpg",
+      "runs/2026-10-27/slides-swaps-dairy-free/slides/ig-08-close.jpg"
+    ],
+    "tiktok_slides": [
+      "runs/2026-10-27/slides-swaps-dairy-free/slides/tiktok-01-cover.jpg",
+      "runs/2026-10-27/slides-swaps-dairy-free/slides/tiktok-02-proof.jpg",
+      "runs/2026-10-27/slides-swaps-dairy-free/slides/tiktok-03-swap1.jpg",
+      "runs/2026-10-27/slides-swaps-dairy-free/slides/tiktok-04-swap2.jpg",
+      "runs/2026-10-27/slides-swaps-dairy-free/slides/tiktok-05-swap3.jpg",
+      "runs/2026-10-27/slides-swaps-dairy-free/slides/tiktok-06-swap4.jpg",
+      "runs/2026-10-27/slides-swaps-dairy-free/slides/tiktok-07-expect.jpg",
+      "runs/2026-10-27/slides-swaps-dairy-free/slides/tiktok-08-close.jpg"
+    ]
+  },
+  "posts": {
+    "instagram_carousel": {
+      "platform": "instagram",
+      "kind": "carousel",
+      "media": [
+        "runs/2026-10-27/slides-swaps-dairy-free/slides/ig-01-cover.jpg",
+        "runs/2026-10-27/slides-swaps-dairy-free/slides/ig-02-proof.jpg",
+        "runs/2026-10-27/slides-swaps-dairy-free/slides/ig-03-swap1.jpg",
+        "runs/2026-10-27/slides-swaps-dairy-free/slides/ig-04-swap2.jpg",
+        "runs/2026-10-27/slides-swaps-dairy-free/slides/ig-05-swap3.jpg",
+        "runs/2026-10-27/slides-swaps-dairy-free/slides/ig-06-swap4.jpg",
+        "runs/2026-10-27/slides-swaps-dairy-free/slides/ig-07-expect.jpg",
+        "runs/2026-10-27/slides-swaps-dairy-free/slides/ig-08-close.jpg"
+      ],
+      "text": "The ingredient swaps were the easy part of making this tikka masala dairy-free. What matters is what you do differently with each one: stir the coconut yogurt smooth, let it drip so the chicken chars, whisk the coconut cream and keep it at a gentle simmer. Real RecipeFix result (captured 2026-10-21), scaled 4 to 6 servings. The starting recipe is a RecipeFix Original, an AI-written home recipe. Save this for your next dairy-free curry.\n\n#dairyfree #dairyfreerecipes #tikkamasala #cookingtips #recipefix"
+    },
+    "tiktok_photos": {
+      "platform": "tiktok",
+      "kind": "carousel",
+      "media": [
+        "runs/2026-10-27/slides-swaps-dairy-free/slides/tiktok-01-cover.jpg",
+        "runs/2026-10-27/slides-swaps-dairy-free/slides/tiktok-02-proof.jpg",
+        "runs/2026-10-27/slides-swaps-dairy-free/slides/tiktok-03-swap1.jpg",
+        "runs/2026-10-27/slides-swaps-dairy-free/slides/tiktok-04-swap2.jpg",
+        "runs/2026-10-27/slides-swaps-dairy-free/slides/tiktok-05-swap3.jpg",
+        "runs/2026-10-27/slides-swaps-dairy-free/slides/tiktok-06-swap4.jpg",
+        "runs/2026-10-27/slides-swaps-dairy-free/slides/tiktok-07-expect.jpg",
+        "runs/2026-10-27/slides-swaps-dairy-free/slides/tiktok-08-close.jpg"
+      ],
+      "title": "4 dairy-free swaps and what to do differently with each",
+      "text": "The ingredient swaps were the easy part of making this tikka masala dairy-free. What matters is what you do differently with each one: stir the coconut yogurt smooth, let it drip so the chicken chars, whisk the coconut cream and keep it at a gentle simmer. Real RecipeFix result (captured 2026-10-21), scaled 4 to 6 servings. The starting recipe is a RecipeFix Original, an AI-written home recipe. Save this for your next dairy-free curry.\n\n#dairyfree #dairyfreerecipes #tikkamasala #cookingtips #recipefix"
+    },
+    "x": {
+      "platform": "x",
+      "kind": "image",
+      "media": [
+        "runs/2026-10-27/slides-swaps-dairy-free/slides/ig-01-cover.jpg",
+        "runs/2026-10-27/slides-swaps-dairy-free/slides/ig-03-swap1.jpg",
+        "runs/2026-10-27/slides-swaps-dairy-free/slides/ig-04-swap2.jpg",
+        "runs/2026-10-27/slides-swaps-dairy-free/slides/ig-05-swap3.jpg"
+      ],
+      "text": "The dairy-free swaps were the easy part. What matters is what you do differently with each one.\n\nFrom a real RecipeFix result, a tikka masala scaled 4 to 6 servings.\n\n#dairyfree #cookingtips #recipefix",
+      "thread": [
+        "Coconut yogurt for whole-milk yogurt: Stir the coconut yogurt smooth before coating the chicken; a thick, cultured variety clings better than a thin yogurt. Let excess coconut yogurt drip off so the coating chars rather than pools.",
+        "Vegan butter for butter: Check that the vegan butter contains no milk derivatives.",
+        "Coconut cream for heavy cream: Whisk separated coconut cream smooth before adding and keep the sauce at a gentle simmer. Choose plain unsweetened coconut cream, not sweetened cream of coconut.",
+        "Soy cooking cream for heavy cream: Keep the sauce at a gentle simmer rather than a hard boil after adding soy cooking cream.",
+        "Starting recipe: a RecipeFix Original, an AI-written home recipe. Real RecipeFix result, captured Oct 21, 2026."
+      ]
+    },
+    "threads": {
+      "platform": "threads",
+      "kind": "image",
+      "media": [
+        "runs/2026-10-27/slides-swaps-dairy-free/slides/ig-01-cover.jpg",
+        "runs/2026-10-27/slides-swaps-dairy-free/slides/ig-03-swap1.jpg",
+        "runs/2026-10-27/slides-swaps-dairy-free/slides/ig-04-swap2.jpg",
+        "runs/2026-10-27/slides-swaps-dairy-free/slides/ig-05-swap3.jpg"
+      ],
+      "text": "The dairy-free swaps were the easy part. What matters is what you do differently with each one.\n\nFrom a real RecipeFix result, a tikka masala scaled 4 to 6 servings.\n\n#dairyfree #cookingtips #recipefix",
+      "thread": [
+        "Coconut yogurt for whole-milk yogurt: Stir the coconut yogurt smooth before coating the chicken; a thick, cultured variety clings better than a thin yogurt. Let excess coconut yogurt drip off so the coating chars rather than pools.",
+        "Vegan butter for butter: Check that the vegan butter contains no milk derivatives.",
+        "Coconut cream for heavy cream: Whisk separated coconut cream smooth before adding and keep the sauce at a gentle simmer. Choose plain unsweetened coconut cream, not sweetened cream of coconut.",
+        "Soy cooking cream for heavy cream: Keep the sauce at a gentle simmer rather than a hard boil after adding soy cooking cream.",
+        "Starting recipe: a RecipeFix Original, an AI-written home recipe. Real RecipeFix result, captured Oct 21, 2026."
+      ]
+    }
+  },
+  "sources": [
+    {
+      "name": "Stored real RecipeFix result (LANDING_REAL_RESULT), captured 2026-10-21",
+      "url": "git:recipe-fix@a82f8bb9:src/data/landingRealResult.ts",
+      "quote": "Stir the coconut yogurt smooth before coating the chicken; a thick, cultured variety clings better than a thin yogurt. | Let excess coconut yogurt drip off so the coating chars rather than pools. | Check that the vegan butter contains no milk derivatives. | Whisk separated coconut cream smooth before adding and keep the sauce at a gentle simmer. | Choose plain unsweetened coconut cream, not sweetened cream of coconut. | Keep the sauce at a gentle simmer rather than a hard boil after adding soy cooking cream."
+    }
+  ],
+  "claims": [
+    "proof.tikka_method_changes",
+    "core.rewrites_steps",
+    "core.reasons"
+  ],
+  "qa": {
+    "passed": true,
+    "checks": [
+      {
+        "id": "proof.verbatim",
+        "passed": true,
+        "detail": "every quote is a verbatim substring of the stored result (src/data/landingRealResult.ts @ a82f8bb9, captured 2026-10-21)",
+        "problems": []
+      },
+      {
+        "id": "ig-1:file",
+        "passed": true,
+        "detail": "jpeg 1080×1350",
+        "problems": []
+      },
+      {
+        "id": "ig-1-cover:still.canvas",
+        "passed": true,
+        "detail": "1080×1350",
+        "problems": []
+      },
+      {
+        "id": "ig-1-cover:still.text_readback",
+        "passed": true,
+        "detail": "5 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 37 words, file: 51 words, inverted: 56 words, rules removed: 51 words, white-text mask: 14 words, dark-text mask: 47 words)",
+        "problems": []
+      },
+      {
+        "id": "ig-1-cover:still.no_artefacts",
+        "passed": true,
+        "detail": "no [object Object] / undefined / NaN / braces read on the image",
+        "problems": []
+      },
+      {
+        "id": "ig-1-cover:still.safe_zone",
+        "passed": true,
+        "detail": "35 word boxes inside x 60–1020, y 60–1290",
+        "problems": []
+      },
+      {
+        "id": "ig-1-cover:still.text_overlap",
+        "passed": true,
+        "detail": "no two intended lines overprint each other",
+        "problems": []
+      },
+      {
+        "id": "ig-1-cover:still.text_size",
+        "passed": true,
+        "detail": "every line's median OCR word height ≥ 22px",
+        "problems": []
+      },
+      {
+        "id": "ig-1-cover:still.contrast",
+        "passed": true,
+        "detail": "min 5.38:1 over 35 word boxes (WCAG AA 4.5:1)",
+        "problems": []
+      },
+      {
+        "id": "ig-2:file",
+        "passed": true,
+        "detail": "jpeg 1080×1350",
+        "problems": []
+      },
+      {
+        "id": "ig-2-proof:still.canvas",
+        "passed": true,
+        "detail": "1080×1350",
+        "problems": []
+      },
+      {
+        "id": "ig-2-proof:still.text_readback",
+        "passed": true,
+        "detail": "4 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 76 words, file: 73 words, inverted: 73 words, rules removed: 73 words, white-text mask: 39 words, dark-text mask: 87 words)",
+        "problems": []
+      },
+      {
+        "id": "ig-2-proof:still.no_artefacts",
+        "passed": true,
+        "detail": "no [object Object] / undefined / NaN / braces read on the image",
+        "problems": []
+      },
+      {
+        "id": "ig-2-proof:still.safe_zone",
+        "passed": true,
+        "detail": "25 word boxes inside x 60–1020, y 60–1290",
+        "problems": []
+      },
+      {
+        "id": "ig-2-proof:still.text_overlap",
+        "passed": true,
+        "detail": "no two intended lines overprint each other",
+        "problems": []
+      },
+      {
+        "id": "ig-2-proof:still.text_size",
+        "passed": true,
+        "detail": "every line's median OCR word height ≥ 22px",
+        "problems": []
+      },
+      {
+        "id": "ig-2-proof:still.contrast",
+        "passed": true,
+        "detail": "min 6.74:1 over 25 word boxes (WCAG AA 4.5:1)",
+        "problems": []
+      },
+      {
+        "id": "ig-3:file",
+        "passed": true,
+        "detail": "jpeg 1080×1350",
+        "problems": []
+      },
+      {
+        "id": "ig-3-swap1:still.canvas",
+        "passed": true,
+        "detail": "1080×1350",
+        "problems": []
+      },
+      {
+        "id": "ig-3-swap1:still.text_readback",
+        "passed": true,
+        "detail": "12 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 89 words, file: 92 words, inverted: 87 words, rules removed: 86 words, white-text mask: 51 words, dark-text mask: 94 words)",
+        "problems": []
+      },
+      {
+        "id": "ig-3-swap1:still.no_artefacts",
+        "passed": true,
+        "detail": "no [object Object] / undefined / NaN / braces read on the image",
+        "problems": []
+      },
+      {
+        "id": "ig-3-swap1:still.safe_zone",
+        "passed": true,
+        "detail": "82 word boxes inside x 60–1020, y 60–1290",
+        "problems": []
+      },
+      {
+        "id": "ig-3-swap1:still.text_overlap",
+        "passed": true,
+        "detail": "no two intended lines overprint each other",
+        "problems": []
+      },
+      {
+        "id": "ig-3-swap1:still.text_size",
+        "passed": true,
+        "detail": "every line's median OCR word height ≥ 22px",
+        "problems": []
+      },
+      {
+        "id": "ig-3-swap1:still.contrast",
+        "passed": true,
+        "detail": "min 4.61:1 over 82 word boxes (WCAG AA 4.5:1)",
+        "problems": []
+      },
+      {
+        "id": "ig-4:file",
+        "passed": true,
+        "detail": "jpeg 1080×1350",
+        "problems": []
+      },
+      {
+        "id": "ig-4-swap2:still.canvas",
+        "passed": true,
+        "detail": "1080×1350",
+        "problems": []
+      },
+      {
+        "id": "ig-4-swap2:still.text_readback",
+        "passed": true,
+        "detail": "11 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 56 words, file: 54 words, inverted: 54 words, rules removed: 53 words, white-text mask: 20 words, dark-text mask: 54 words)",
+        "problems": []
+      },
+      {
+        "id": "ig-4-swap2:still.no_artefacts",
+        "passed": true,
+        "detail": "no [object Object] / undefined / NaN / braces read on the image",
+        "problems": []
+      },
+      {
+        "id": "ig-4-swap2:still.safe_zone",
+        "passed": true,
+        "detail": "50 word boxes inside x 60–1020, y 60–1290",
+        "problems": []
+      },
+      {
+        "id": "ig-4-swap2:still.text_overlap",
+        "passed": true,
+        "detail": "no two intended lines overprint each other",
+        "problems": []
+      },
+      {
+        "id": "ig-4-swap2:still.text_size",
+        "passed": true,
+        "detail": "every line's median OCR word height ≥ 22px",
+        "problems": []
+      },
+      {
+        "id": "ig-4-swap2:still.contrast",
+        "passed": true,
+        "detail": "min 4.61:1 over 50 word boxes (WCAG AA 4.5:1)",
+        "problems": []
+      },
+      {
+        "id": "ig-5:file",
+        "passed": true,
+        "detail": "jpeg 1080×1350",
+        "problems": []
+      },
+      {
+        "id": "ig-5-swap3:still.canvas",
+        "passed": true,
+        "detail": "1080×1350",
+        "problems": []
+      },
+      {
+        "id": "ig-5-swap3:still.text_readback",
+        "passed": true,
+        "detail": "12 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 70 words, file: 71 words, inverted: 67 words, rules removed: 67 words, white-text mask: 38 words, dark-text mask: 71 words)",
+        "problems": []
+      },
+      {
+        "id": "ig-5-swap3:still.no_artefacts",
+        "passed": true,
+        "detail": "no [object Object] / undefined / NaN / braces read on the image",
+        "problems": []
+      },
+      {
+        "id": "ig-5-swap3:still.safe_zone",
+        "passed": true,
+        "detail": "63 word boxes inside x 60–1020, y 60–1290",
+        "problems": []
+      },
+      {
+        "id": "ig-5-swap3:still.text_overlap",
+        "passed": true,
+        "detail": "no two intended lines overprint each other",
+        "problems": []
+      },
+      {
+        "id": "ig-5-swap3:still.text_size",
+        "passed": true,
+        "detail": "every line's median OCR word height ≥ 22px",
+        "problems": []
+      },
+      {
+        "id": "ig-5-swap3:still.contrast",
+        "passed": true,
+        "detail": "min 4.63:1 over 63 word boxes (WCAG AA 4.5:1)",
+        "problems": []
+      },
+      {
+        "id": "ig-6:file",
+        "passed": true,
+        "detail": "jpeg 1080×1350",
+        "problems": []
+      },
+      {
+        "id": "ig-6-swap4:still.canvas",
+        "passed": true,
+        "detail": "1080×1350",
+        "problems": []
+      },
+      {
+        "id": "ig-6-swap4:still.text_readback",
+        "passed": true,
+        "detail": "12 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 75 words, file: 71 words, inverted: 73 words, rules removed: 71 words, white-text mask: 32 words, dark-text mask: 71 words)",
+        "problems": []
+      },
+      {
+        "id": "ig-6-swap4:still.no_artefacts",
+        "passed": true,
+        "detail": "no [object Object] / undefined / NaN / braces read on the image",
+        "problems": []
+      },
+      {
+        "id": "ig-6-swap4:still.safe_zone",
+        "passed": true,
+        "detail": "66 word boxes inside x 60–1020, y 60–1290",
+        "problems": []
+      },
+      {
+        "id": "ig-6-swap4:still.text_overlap",
+        "passed": true,
+        "detail": "no two intended lines overprint each other",
+        "problems": []
+      },
+      {
+        "id": "ig-6-swap4:still.text_size",
+        "passed": true,
+        "detail": "every line's median OCR word height ≥ 22px",
+        "problems": []
+      },
+      {
+        "id": "ig-6-swap4:still.contrast",
+        "passed": true,
+        "detail": "min 4.61:1 over 66 word boxes (WCAG AA 4.5:1)",
+        "problems": []
+      },
+      {
+        "id": "ig-7:file",
+        "passed": true,
+        "detail": "jpeg 1080×1350",
+        "problems": []
+      },
+      {
+        "id": "ig-7-expect:still.canvas",
+        "passed": true,
+        "detail": "1080×1350",
+        "problems": []
+      },
+      {
+        "id": "ig-7-expect:still.text_readback",
+        "passed": true,
+        "detail": "4 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 37 words, file: 37 words, inverted: 37 words, rules removed: 37 words, white-text mask: 37 words, dark-text mask: 0 words)",
+        "problems": []
+      },
+      {
+        "id": "ig-7-expect:still.no_artefacts",
+        "passed": true,
+        "detail": "no [object Object] / undefined / NaN / braces read on the image",
+        "problems": []
+      },
+      {
+        "id": "ig-7-expect:still.safe_zone",
+        "passed": true,
+        "detail": "35 word boxes inside x 60–1020, y 60–1290",
+        "problems": []
+      },
+      {
+        "id": "ig-7-expect:still.text_overlap",
+        "passed": true,
+        "detail": "no two intended lines overprint each other",
+        "problems": []
+      },
+      {
+        "id": "ig-7-expect:still.text_size",
+        "passed": true,
+        "detail": "every line's median OCR word height ≥ 22px",
+        "problems": []
+      },
+      {
+        "id": "ig-7-expect:still.contrast",
+        "passed": true,
+        "detail": "min 5.29:1 over 35 word boxes (WCAG AA 4.5:1)",
+        "problems": []
+      },
+      {
+        "id": "ig-8:file",
+        "passed": true,
+        "detail": "jpeg 1080×1350",
+        "problems": []
+      },
+      {
+        "id": "ig-8-close:still.canvas",
+        "passed": true,
+        "detail": "1080×1350",
+        "problems": []
+      },
+      {
+        "id": "ig-8-close:still.text_readback",
+        "passed": true,
+        "detail": "3 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 20 words, file: 24 words, inverted: 21 words, rules removed: 24 words, white-text mask: 1 words, dark-text mask: 23 words)",
+        "problems": []
+      },
+      {
+        "id": "ig-8-close:still.no_artefacts",
+        "passed": true,
+        "detail": "no [object Object] / undefined / NaN / braces read on the image",
+        "problems": []
+      },
+      {
+        "id": "ig-8-close:still.safe_zone",
+        "passed": true,
+        "detail": "19 word boxes inside x 60–1020, y 60–1290",
+        "problems": []
+      },
+      {
+        "id": "ig-8-close:still.text_overlap",
+        "passed": true,
+        "detail": "no two intended lines overprint each other",
+        "problems": []
+      },
+      {
+        "id": "ig-8-close:still.text_size",
+        "passed": true,
+        "detail": "every line's median OCR word height ≥ 22px",
+        "problems": []
+      },
+      {
+        "id": "ig-8-close:still.contrast",
+        "passed": true,
+        "detail": "min 4.69:1 over 19 word boxes (WCAG AA 4.5:1)",
+        "problems": []
+      },
+      {
+        "id": "tiktok-1:file",
+        "passed": true,
+        "detail": "jpeg 1080×1920",
+        "problems": []
+      },
+      {
+        "id": "tiktok-1-cover:still.canvas",
+        "passed": true,
+        "detail": "1080×1920",
+        "problems": []
+      },
+      {
+        "id": "tiktok-1-cover:still.text_readback",
+        "passed": true,
+        "detail": "5 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 37 words, file: 56 words, inverted: 65 words, rules removed: 58 words, white-text mask: 16 words, dark-text mask: 68 words)",
+        "problems": []
+      },
+      {
+        "id": "tiktok-1-cover:still.no_artefacts",
+        "passed": true,
+        "detail": "no [object Object] / undefined / NaN / braces read on the image",
+        "problems": []
+      },
+      {
+        "id": "tiktok-1-cover:still.safe_zone",
+        "passed": true,
+        "detail": "35 word boxes inside x 120–900, y 270–1250",
+        "problems": []
+      },
+      {
+        "id": "tiktok-1-cover:still.text_overlap",
+        "passed": true,
+        "detail": "no two intended lines overprint each other",
+        "problems": []
+      },
+      {
+        "id": "tiktok-1-cover:still.text_size",
+        "passed": true,
+        "detail": "every line's median OCR word height ≥ 22px",
+        "problems": []
+      },
+      {
+        "id": "tiktok-1-cover:still.contrast",
+        "passed": true,
+        "detail": "min 5.38:1 over 35 word boxes (WCAG AA 4.5:1)",
+        "problems": []
+      },
+      {
+        "id": "tiktok-2:file",
+        "passed": true,
+        "detail": "jpeg 1080×1920",
+        "problems": []
+      },
+      {
+        "id": "tiktok-2-proof:still.canvas",
+        "passed": true,
+        "detail": "1080×1920",
+        "problems": []
+      },
+      {
+        "id": "tiktok-2-proof:still.text_readback",
+        "passed": true,
+        "detail": "4 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 77 words, file: 82 words, inverted: 80 words, rules removed: 81 words, white-text mask: 27 words, dark-text mask: 91 words)",
+        "problems": []
+      },
+      {
+        "id": "tiktok-2-proof:still.no_artefacts",
+        "passed": true,
+        "detail": "no [object Object] / undefined / NaN / braces read on the image",
+        "problems": []
+      },
+      {
+        "id": "tiktok-2-proof:still.safe_zone",
+        "passed": true,
+        "detail": "25 word boxes inside x 120–900, y 270–1250",
+        "problems": []
+      },
+      {
+        "id": "tiktok-2-proof:still.text_overlap",
+        "passed": true,
+        "detail": "no two intended lines overprint each other",
+        "problems": []
+      },
+      {
+        "id": "tiktok-2-proof:still.text_size",
+        "passed": true,
+        "detail": "every line's median OCR word height ≥ 22px",
+        "problems": []
+      },
+      {
+        "id": "tiktok-2-proof:still.contrast",
+        "passed": true,
+        "detail": "min 5.71:1 over 25 word boxes (WCAG AA 4.5:1)",
+        "problems": []
+      },
+      {
+        "id": "tiktok-3:file",
+        "passed": true,
+        "detail": "jpeg 1080×1920",
+        "problems": []
+      },
+      {
+        "id": "tiktok-3-swap1:still.canvas",
+        "passed": true,
+        "detail": "1080×1920",
+        "problems": []
+      },
+      {
+        "id": "tiktok-3-swap1:still.text_readback",
+        "passed": true,
+        "detail": "12 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 90 words, file: 101 words, inverted: 94 words, rules removed: 90 words, white-text mask: 52 words, dark-text mask: 110 words)",
+        "problems": []
+      },
+      {
+        "id": "tiktok-3-swap1:still.no_artefacts",
+        "passed": true,
+        "detail": "no [object Object] / undefined / NaN / braces read on the image",
+        "problems": []
+      },
+      {
+        "id": "tiktok-3-swap1:still.safe_zone",
+        "passed": true,
+        "detail": "82 word boxes inside x 120–900, y 270–1250",
+        "problems": []
+      },
+      {
+        "id": "tiktok-3-swap1:still.text_overlap",
+        "passed": true,
+        "detail": "no two intended lines overprint each other",
+        "problems": []
+      },
+      {
+        "id": "tiktok-3-swap1:still.text_size",
+        "passed": true,
+        "detail": "every line's median OCR word height ≥ 22px",
+        "problems": []
+      },
+      {
+        "id": "tiktok-3-swap1:still.contrast",
+        "passed": true,
+        "detail": "min 4.64:1 over 82 word boxes (WCAG AA 4.5:1)",
+        "problems": []
+      },
+      {
+        "id": "tiktok-4:file",
+        "passed": true,
+        "detail": "jpeg 1080×1920",
+        "problems": []
+      },
+      {
+        "id": "tiktok-4-swap2:still.canvas",
+        "passed": true,
+        "detail": "1080×1920",
+        "problems": []
+      },
+      {
+        "id": "tiktok-4-swap2:still.text_readback",
+        "passed": true,
+        "detail": "11 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 56 words, file: 61 words, inverted: 63 words, rules removed: 60 words, white-text mask: 21 words, dark-text mask: 68 words)",
+        "problems": []
+      },
+      {
+        "id": "tiktok-4-swap2:still.no_artefacts",
+        "passed": true,
+        "detail": "no [object Object] / undefined / NaN / braces read on the image",
+        "problems": []
+      },
+      {
+        "id": "tiktok-4-swap2:still.safe_zone",
+        "passed": true,
+        "detail": "50 word boxes inside x 120–900, y 270–1250",
+        "problems": []
+      },
+      {
+        "id": "tiktok-4-swap2:still.text_overlap",
+        "passed": true,
+        "detail": "no two intended lines overprint each other",
+        "problems": []
+      },
+      {
+        "id": "tiktok-4-swap2:still.text_size",
+        "passed": true,
+        "detail": "every line's median OCR word height ≥ 22px",
+        "problems": []
+      },
+      {
+        "id": "tiktok-4-swap2:still.contrast",
+        "passed": true,
+        "detail": "min 4.64:1 over 50 word boxes (WCAG AA 4.5:1)",
+        "problems": []
+      },
+      {
+        "id": "tiktok-5:file",
+        "passed": true,
+        "detail": "jpeg 1080×1920",
+        "problems": []
+      },
+      {
+        "id": "tiktok-5-swap3:still.canvas",
+        "passed": true,
+        "detail": "1080×1920",
+        "problems": []
+      },
+      {
+        "id": "tiktok-5-swap3:still.text_readback",
+        "passed": true,
+        "detail": "12 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 70 words, file: 79 words, inverted: 76 words, rules removed: 87 words, white-text mask: 39 words, dark-text mask: 78 words)",
+        "problems": []
+      },
+      {
+        "id": "tiktok-5-swap3:still.no_artefacts",
+        "passed": true,
+        "detail": "no [object Object] / undefined / NaN / braces read on the image",
+        "problems": []
+      },
+      {
+        "id": "tiktok-5-swap3:still.safe_zone",
+        "passed": true,
+        "detail": "63 word boxes inside x 120–900, y 270–1250",
+        "problems": []
+      },
+      {
+        "id": "tiktok-5-swap3:still.text_overlap",
+        "passed": true,
+        "detail": "no two intended lines overprint each other",
+        "problems": []
+      },
+      {
+        "id": "tiktok-5-swap3:still.text_size",
+        "passed": true,
+        "detail": "every line's median OCR word height ≥ 22px",
+        "problems": []
+      },
+      {
+        "id": "tiktok-5-swap3:still.contrast",
+        "passed": true,
+        "detail": "min 4.63:1 over 63 word boxes (WCAG AA 4.5:1)",
+        "problems": []
+      },
+      {
+        "id": "tiktok-6:file",
+        "passed": true,
+        "detail": "jpeg 1080×1920",
+        "problems": []
+      },
+      {
+        "id": "tiktok-6-swap4:still.canvas",
+        "passed": true,
+        "detail": "1080×1920",
+        "problems": []
+      },
+      {
+        "id": "tiktok-6-swap4:still.text_readback",
+        "passed": true,
+        "detail": "12 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 75 words, file: 79 words, inverted: 85 words, rules removed: 81 words, white-text mask: 33 words, dark-text mask: 85 words)",
+        "problems": []
+      },
+      {
+        "id": "tiktok-6-swap4:still.no_artefacts",
+        "passed": true,
+        "detail": "no [object Object] / undefined / NaN / braces read on the image",
+        "problems": []
+      },
+      {
+        "id": "tiktok-6-swap4:still.safe_zone",
+        "passed": true,
+        "detail": "66 word boxes inside x 120–900, y 270–1250",
+        "problems": []
+      },
+      {
+        "id": "tiktok-6-swap4:still.text_overlap",
+        "passed": true,
+        "detail": "no two intended lines overprint each other",
+        "problems": []
+      },
+      {
+        "id": "tiktok-6-swap4:still.text_size",
+        "passed": true,
+        "detail": "every line's median OCR word height ≥ 22px",
+        "problems": []
+      },
+      {
+        "id": "tiktok-6-swap4:still.contrast",
+        "passed": true,
+        "detail": "min 4.64:1 over 66 word boxes (WCAG AA 4.5:1)",
+        "problems": []
+      },
+      {
+        "id": "tiktok-7:file",
+        "passed": true,
+        "detail": "jpeg 1080×1920",
+        "problems": []
+      },
+      {
+        "id": "tiktok-7-expect:still.canvas",
+        "passed": true,
+        "detail": "1080×1920",
+        "problems": []
+      },
+      {
+        "id": "tiktok-7-expect:still.text_readback",
+        "passed": true,
+        "detail": "4 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 37 words, file: 47 words, inverted: 44 words, rules removed: 64 words, white-text mask: 40 words, dark-text mask: 21 words)",
+        "problems": []
+      },
+      {
+        "id": "tiktok-7-expect:still.no_artefacts",
+        "passed": true,
+        "detail": "no [object Object] / undefined / NaN / braces read on the image",
+        "problems": []
+      },
+      {
+        "id": "tiktok-7-expect:still.safe_zone",
+        "passed": true,
+        "detail": "35 word boxes inside x 120–900, y 270–1250",
+        "problems": []
+      },
+      {
+        "id": "tiktok-7-expect:still.text_overlap",
+        "passed": true,
+        "detail": "no two intended lines overprint each other",
+        "problems": []
+      },
+      {
+        "id": "tiktok-7-expect:still.text_size",
+        "passed": true,
+        "detail": "every line's median OCR word height ≥ 22px",
+        "problems": []
+      },
+      {
+        "id": "tiktok-7-expect:still.contrast",
+        "passed": true,
+        "detail": "min 5.29:1 over 35 word boxes (WCAG AA 4.5:1)",
+        "problems": []
+      },
+      {
+        "id": "tiktok-8:file",
+        "passed": true,
+        "detail": "jpeg 1080×1920",
+        "problems": []
+      },
+      {
+        "id": "tiktok-8-close:still.canvas",
+        "passed": true,
+        "detail": "1080×1920",
+        "problems": []
+      },
+      {
+        "id": "tiktok-8-close:still.text_readback",
+        "passed": true,
+        "detail": "3 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 20 words, file: 44 words, inverted: 35 words, rules removed: 42 words, white-text mask: 1 words, dark-text mask: 37 words)",
+        "problems": []
+      },
+      {
+        "id": "tiktok-8-close:still.no_artefacts",
+        "passed": true,
+        "detail": "no [object Object] / undefined / NaN / braces read on the image",
+        "problems": []
+      },
+      {
+        "id": "tiktok-8-close:still.safe_zone",
+        "passed": true,
+        "detail": "19 word boxes inside x 120–900, y 270–1250",
+        "problems": []
+      },
+      {
+        "id": "tiktok-8-close:still.text_overlap",
+        "passed": true,
+        "detail": "no two intended lines overprint each other",
+        "problems": []
+      },
+      {
+        "id": "tiktok-8-close:still.text_size",
+        "passed": true,
+        "detail": "every line's median OCR word height ≥ 22px",
+        "problems": []
+      },
+      {
+        "id": "tiktok-8-close:still.contrast",
+        "passed": true,
+        "detail": "min 4.65:1 over 19 word boxes (WCAG AA 4.5:1)",
+        "problems": []
+      },
+      {
+        "id": "photo.aspect:photo-chicken-tikka-masala-1080x760.jpg",
+        "passed": true,
+        "detail": "crop 1600×1126 (aspect 1.4210) drawn at 1080×760 (1.4211); downscale only",
+        "problems": []
+      },
+      {
+        "id": "photo.aspect:photo-chicken-tikka-masala-344x344.jpg",
+        "passed": true,
+        "detail": "crop 1600×1600 (aspect 1.0000) drawn at 344×344 (1.0000); downscale only",
+        "problems": []
+      },
+      {
+        "id": "photo.aspect:photo-chicken-tikka-masala-1080x820.jpg",
+        "passed": true,
+        "detail": "crop 1600×1215 (aspect 1.3169) drawn at 1080×820 (1.3171); downscale only",
+        "problems": []
+      },
+      {
+        "id": "photo.aspect:photo-chicken-tikka-masala-284x284.jpg",
+        "passed": true,
+        "detail": "crop 1600×1600 (aspect 1.0000) drawn at 284×284 (1.0000); downscale only",
+        "problems": []
+      },
+      {
+        "id": "photo.aspect:photo-chicken-tikka-masala-1080x630.jpg",
+        "passed": true,
+        "detail": "crop 1600×933 (aspect 1.7149) drawn at 1080×630 (1.7143); downscale only",
+        "problems": []
+      },
+      {
+        "id": "payload.counts",
+        "passed": true,
+        "detail": "8 Instagram slides, 8 TikTok photos, 4 X images",
+        "problems": []
+      },
+      {
+        "id": "copy.platform_rules",
+        "passed": true,
+        "detail": "lengths, X titles, no link in the X post, 3–5 hashtags incl. #recipefix, no forbidden claims, no bait, reads human",
+        "problems": []
+      },
+      {
+        "id": "knowledge.product_posts",
+        "passed": true,
+        "detail": "pack ad17c991 has a release receipt",
+        "problems": []
+      }
+    ]
+  },
+  "disclosures": {
+    "ai_voice": false,
+    "tiktok_is_aigc": false,
+    "photos": "Stock photo of the original dairy recipe, not the adapted dish",
+    "starting_recipe": "Starting recipe: a RecipeFix Original, an AI-written home recipe",
+    "proof": "Real RecipeFix result, captured 2026-10-21",
+    "knowledge_commit": "ad17c99162a47c769abfb70cd62f0bfb2f2e31e3"
+  }
+}

@@ -1,0 +1,269 @@
+{
+  "accepted": {
+    "slides": [
+      {
+        "role": "cover",
+        "kicker": "Tikka masala, dairy-free, 4→6",
+        "headline": "The dairy swap was easy. The steps changed.",
+        "photo_label": "Original recipe licensed stock photo, not adapted dish",
+        "claim_ids": [
+          "proof.tikka_method_changes"
+        ],
+        "fact_ids": [
+          "scale"
+        ]
+      },
+      {
+        "role": "swaps",
+        "kicker": "Ingredient list",
+        "headline": "The list was the easy part",
+        "rows": [
+          {
+            "before": "3/4 cup whole-milk yogurt",
+            "after": "1 cup + 2 Tbsp coconut yogurt"
+          },
+          {
+            "before": "2 Tbsp butter",
+            "after": "3 Tbsp vegan butter"
+          },
+          {
+            "before": "1/2 cup heavy cream",
+            "after": "3/4 cup full-fat coconut cream"
+          }
+        ],
+        "claim_ids": [],
+        "fact_ids": []
+      },
+      {
+        "role": "method",
+        "kicker": "Broiler space",
+        "headline": "More chicken did not mean longer broiling",
+        "instinct": "50% more chicken, so 50% longer broil",
+        "rewrite": "Two batches, 8 to 10 minutes per batch",
+        "why": "Uncrowded chicken keeps the char that balances the creamy sauce",
+        "source": "steps[4].updated_note, steps[4].instruction, explanations[2]",
+        "claim_ids": [
+          "proof.tikka_method_changes"
+        ],
+        "fact_ids": [
+          "scale",
+          "broil_time"
+        ]
+      },
+      {
+        "role": "method",
+        "kicker": "Sauce reduction",
+        "headline": "Do not multiply the simmer",
+        "instinct": "Scale 10 to 15 minutes by the batch size",
+        "rewrite": "Start checking at 10 minutes, then use the spoon trail",
+        "why": "A wider pan evaporates liquid faster",
+        "source": "steps[3].updated_note, steps[3].instruction",
+        "claim_ids": [
+          "proof.tikka_method_changes"
+        ],
+        "fact_ids": [
+          "reduce_time"
+        ]
+      },
+      {
+        "role": "method",
+        "kicker": "Marinade",
+        "headline": "Coconut yogurt needs a drip",
+        "instinct": "Move coated chicken straight to the tray",
+        "rewrite": "Let excess coconut yogurt drip off first",
+        "why": "The coating chars rather than pools",
+        "source": "steps[4].updated_note, steps[0].updated_note",
+        "claim_ids": [
+          "proof.tikka_method_changes"
+        ],
+        "fact_ids": []
+      },
+      {
+        "role": "method",
+        "kicker": "Coconut cream",
+        "headline": "Simmer gently, then check the chicken",
+        "instinct": "Stretch the final simmer for the larger batch",
+        "rewrite": "Whisk smooth, simmer gently, check several pieces",
+        "why": "Separated coconut cream smooths out; chicken still has to reach 165°F",
+        "source": "steps[5].updated_note, steps[5].instruction",
+        "claim_ids": [
+          "proof.tikka_method_changes"
+        ],
+        "fact_ids": [
+          "temp"
+        ]
+      },
+      {
+        "role": "proof",
+        "kicker": "Proof",
+        "headline": "Real RecipeFix changed-step note",
+        "recap": [
+          "More food needs more space",
+          "Watch texture, not math",
+          "Simmer cream gently"
+        ],
+        "claim_ids": [
+          "proof.tikka_method_changes",
+          "core.rewrites_steps",
+          "core.reasons"
+        ],
+        "fact_ids": []
+      }
+    ],
+    "caption": "One swap can move the whole method. In this dairy-free chicken tikka masala, scaled from 4 to 6 servings, the ingredient list is simple: coconut yogurt, vegan butter, coconut cream. The steps are where cooks get burned. More chicken needs more broiler space, not a longer blast. A wider pan means you start checking the sauce at 10 minutes and look for the spoon trail. Coconut cream wants a gentle simmer. Chicken still needs 165°F in the thickest pieces. This is a real RecipeFix result, so the changed step comes with the reason.\nLink in bio for the original chicken tikka masala.",
+    "hashtags": [
+      "dairyfreecooking",
+      "tikkamasala",
+      "recipescaling",
+      "cookingtips"
+    ],
+    "caption_claim_ids": [
+      "proof.tikka_method_changes",
+      "core.rewrites_steps",
+      "core.reasons"
+    ],
+    "caption_fact_ids": [
+      "scale",
+      "reduce_time",
+      "temp"
+    ]
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "model": "gpt-5.5",
+      "costUsd": 0.069073,
+      "raw": "{\n  \"slides\": [\n    {\n      \"role\": \"cover\",\n      \"kicker\": \"Tikka masala, dairy-free, 4→6\",\n      \"headline\": \"The dairy swap was easy. The steps changed.\",\n      \"photo_label\": \"Original recipe licensed stock photo, not adapted dish\",\n      \"claim_ids\": [\n        \"proof.tikka_method_changes\"\n      ],\n      \"fact_ids\": [\n        \"scale\"\n      ]\n    },\n    {\n      \"role\": \"swaps\",\n      \"kicker\": \"Ingredient list\",\n      \"headline\": \"The list was the easy part\",\n      \"rows\": [\n        {\n          \"before\": \"3/4 cup whole-milk yogurt\",\n          \"after\": \"1 cup + 2 Tbsp coconut yogurt\"\n        },\n        {\n          \"before\": \"2 Tbsp butter\",\n          \"after\": \"3 Tbsp vegan butter\"\n        },\n        {\n          \"before\": \"1/2 cup heavy cream\",\n          \"after\": \"3/4 cup full-fat coconut cream\"\n        }\n      ],\n      \"claim_ids\": [],\n      \"fact_ids\": []\n    },\n    {\n      \"role\": \"method\",\n      \"kicker\": \"Broiler space\",\n      \"headline\": \"More chicken did not mean longer broiling\",\n      \"instinct\": \"50% more chicken, so 50% longer broil\",\n      \"rewrite\": \"Two batches, 8 to 10 minutes per batch\",\n      \"why\": \"Uncrowded chicken keeps the char that balances the creamy sauce\",\n      \"source\": \"steps[4].updated_note, steps[4].instruction, explanations[2]\",\n      \"claim_ids\": [\n        \"proof.tikka_method_changes\"\n      ],\n      \"fact_ids\": [\n        \"scale\",\n        \"broil_time\"\n      ]\n    },\n    {\n      \"role\": \"method\",\n      \"kicker\": \"Sauce reduction\",\n      \"headline\": \"Do not multiply the simmer\",\n      \"instinct\": \"Scale 10 to 15 minutes by the batch size\",\n      \"rewrite\": \"Start checking at 10 minutes, then use the spoon trail\",\n      \"why\": \"A wider pan evaporates liquid faster\",\n      \"source\": \"steps[3].updated_note, steps[3].instruction\",\n      \"claim_ids\": [\n        \"proof.tikka_method_changes\"\n      ],\n      \"fact_ids\": [\n        \"reduce_time\"\n      ]\n    },\n    {\n      \"role\": \"method\",\n      \"kicker\": \"Marinade\",\n      \"headline\": \"Coconut yogurt needs a drip\",\n      \"instinct\": \"Move coated chicken straight to the tray\",\n      \"rewrite\": \"Let excess coconut yogurt drip off first\",\n      \"why\": \"The coating chars rather than pools\",\n      \"source\": \"steps[4].updated_note, steps[0].updated_note\",\n      \"claim_ids\": [\n        \"proof.tikka_method_changes\"\n      ],\n      \"fact_ids\": []\n    },\n    {\n      \"role\": \"method\",\n      \"kicker\": \"Coconut cream\",\n      \"headline\": \"Simmer gently, then check the chicken\",\n      \"instinct\": \"Stretch the final simmer for the larger batch\",\n      \"rewrite\": \"Whisk smooth, simmer gently, check several pieces\",\n      \"why\": \"Separated coconut cream smooths out; chicken still has to reach 165°F\",\n      \"source\": \"steps[5].updated_note, steps[5].instruction\",\n      \"claim_ids\": [\n        \"proof.tikka_method_changes\"\n      ],\n      \"fact_ids\": [\n        \"temp\"\n      ]\n    },\n    {\n      \"role\": \"proof\",\n      \"kicker\": \"Proof\",\n      \"headline\": \"Real RecipeFix changed-step note\",\n      \"recap\": [\n        \"More food needs more space\",\n        \"Watch texture, not math\",\n        \"Simmer cream gently\"\n      ],\n      \"claim_ids\": [\n        \"proof.tikka_method_changes\",\n        \"core.rewrites_steps\",\n        \"core.reasons\"\n      ],\n      \"fact_ids\": []\n    }\n  ],\n  \"caption\": \"One swap can move the whole method. In this dairy-free chicken tikka masala, scaled from 4 to 6 servings, the ingredient list is simple: coconut yogurt, vegan butter, coconut cream. The steps are where cooks get burned. More chicken needs more broiler space, not a longer blast. A wider pan means you start checking the sauce at 10 minutes and look for the spoon trail. Coconut cream wants a gentle simmer. Chicken still needs 165°F in the thickest pieces. This is a real RecipeFix result, so the changed step comes with the reason.\\nLink in bio for the original chicken tikka masala.\",\n  \"hashtags\": [\n    \"dairyfreecooking\",\n    \"tikkamasala\",\n    \"recipescaling\",\n    \"cookingtips\"\n  ],\n  \"caption_claim_ids\": [\n    \"proof.tikka_method_changes\",\n    \"core.rewrites_steps\",\n    \"core.reasons\"\n  ],\n  \"caption_fact_ids\": [\n    \"scale\",\n    \"reduce_time\",\n    \"temp\"\n  ]\n}",
+      "parsed": {
+        "slides": [
+          {
+            "role": "cover",
+            "kicker": "Tikka masala, dairy-free, 4→6",
+            "headline": "The dairy swap was easy. The steps changed.",
+            "photo_label": "Original recipe licensed stock photo, not adapted dish",
+            "claim_ids": [
+              "proof.tikka_method_changes"
+            ],
+            "fact_ids": [
+              "scale"
+            ]
+          },
+          {
+            "role": "swaps",
+            "kicker": "Ingredient list",
+            "headline": "The list was the easy part",
+            "rows": [
+              {
+                "before": "3/4 cup whole-milk yogurt",
+                "after": "1 cup + 2 Tbsp coconut yogurt"
+              },
+              {
+                "before": "2 Tbsp butter",
+                "after": "3 Tbsp vegan butter"
+              },
+              {
+                "before": "1/2 cup heavy cream",
+                "after": "3/4 cup full-fat coconut cream"
+              }
+            ],
+            "claim_ids": [],
+            "fact_ids": []
+          },
+          {
+            "role": "method",
+            "kicker": "Broiler space",
+            "headline": "More chicken did not mean longer broiling",
+            "instinct": "50% more chicken, so 50% longer broil",
+            "rewrite": "Two batches, 8 to 10 minutes per batch",
+            "why": "Uncrowded chicken keeps the char that balances the creamy sauce",
+            "source": "steps[4].updated_note, steps[4].instruction, explanations[2]",
+            "claim_ids": [
+              "proof.tikka_method_changes"
+            ],
+            "fact_ids": [
+              "scale",
+              "broil_time"
+            ]
+          },
+          {
+            "role": "method",
+            "kicker": "Sauce reduction",
+            "headline": "Do not multiply the simmer",
+            "instinct": "Scale 10 to 15 minutes by the batch size",
+            "rewrite": "Start checking at 10 minutes, then use the spoon trail",
+            "why": "A wider pan evaporates liquid faster",
+            "source": "steps[3].updated_note, steps[3].instruction",
+            "claim_ids": [
+              "proof.tikka_method_changes"
+            ],
+            "fact_ids": [
+              "reduce_time"
+            ]
+          },
+          {
+            "role": "method",
+            "kicker": "Marinade",
+            "headline": "Coconut yogurt needs a drip",
+            "instinct": "Move coated chicken straight to the tray",
+            "rewrite": "Let excess coconut yogurt drip off first",
+            "why": "The coating chars rather than pools",
+            "source": "steps[4].updated_note, steps[0].updated_note",
+            "claim_ids": [
+              "proof.tikka_method_changes"
+            ],
+            "fact_ids": []
+          },
+          {
+            "role": "method",
+            "kicker": "Coconut cream",
+            "headline": "Simmer gently, then check the chicken",
+            "instinct": "Stretch the final simmer for the larger batch",
+            "rewrite": "Whisk smooth, simmer gently, check several pieces",
+            "why": "Separated coconut cream smooths out; chicken still has to reach 165°F",
+            "source": "steps[5].updated_note, steps[5].instruction",
+            "claim_ids": [
+              "proof.tikka_method_changes"
+            ],
+            "fact_ids": [
+              "temp"
+            ]
+          },
+          {
+            "role": "proof",
+            "kicker": "Proof",
+            "headline": "Real RecipeFix changed-step note",
+            "recap": [
+              "More food needs more space",
+              "Watch texture, not math",
+              "Simmer cream gently"
+            ],
+            "claim_ids": [
+              "proof.tikka_method_changes",
+              "core.rewrites_steps",
+              "core.reasons"
+            ],
+            "fact_ids": []
+          }
+        ],
+        "caption": "One swap can move the whole method. In this dairy-free chicken tikka masala, scaled from 4 to 6 servings, the ingredient list is simple: coconut yogurt, vegan butter, coconut cream. The steps are where cooks get burned. More chicken needs more broiler space, not a longer blast. A wider pan means you start checking the sauce at 10 minutes and look for the spoon trail. Coconut cream wants a gentle simmer. Chicken still needs 165°F in the thickest pieces. This is a real RecipeFix result, so the changed step comes with the reason.\nLink in bio for the original chicken tikka masala.",
+        "hashtags": [
+          "dairyfreecooking",
+          "tikkamasala",
+          "recipescaling",
+          "cookingtips"
+        ],
+        "caption_claim_ids": [
+          "proof.tikka_method_changes",
+          "core.rewrites_steps",
+          "core.reasons"
+        ],
+        "caption_fact_ids": [
+          "scale",
+          "reduce_time",
+          "temp"
+        ]
+      },
+      "problems": []
+    }
+  ]
+}

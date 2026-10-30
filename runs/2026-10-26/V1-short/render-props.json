@@ -1,0 +1,433 @@
+{
+  "shots": [
+    {
+      "kind": "photo-hook",
+      "start": 0,
+      "end": 78
+    },
+    {
+      "kind": "clip",
+      "start": 78,
+      "end": 161,
+      "src": "recipefix-v2-clip1-result-swapped-yogurt.mp4",
+      "from": 1.6,
+      "crop": {
+        "x": 24,
+        "w": 1122,
+        "y": 600
+      },
+      "cropYEnd": 760
+    },
+    {
+      "kind": "clip",
+      "start": 161,
+      "end": 333,
+      "src": "recipefix-v2-clip1-result-swapped-yogurt.mp4",
+      "from": 3.15,
+      "crop": {
+        "x": 24,
+        "w": 1122,
+        "y": 640
+      },
+      "cropYEnd": 800
+    },
+    {
+      "kind": "clip",
+      "start": 333,
+      "end": 412,
+      "src": "recipefix-v2-clip2-method-step-notes.mp4",
+      "from": 2.5,
+      "crop": {
+        "x": 24,
+        "w": 1122,
+        "y": 840
+      },
+      "cropYEnd": 1000
+    },
+    {
+      "kind": "still",
+      "start": 412,
+      "end": 491,
+      "src": "recipefix-v2-still-3-step5-broil-marinated-chicken.png",
+      "from": 0,
+      "crop": {
+        "x": 24,
+        "w": 1122,
+        "y": 681
+      },
+      "cropYEnd": 921
+    },
+    {
+      "kind": "still",
+      "start": 491,
+      "end": 569,
+      "src": "recipefix-v2-still-3-step5-broil-marinated-chicken.png",
+      "from": 0,
+      "crop": {
+        "x": 24,
+        "w": 1122,
+        "y": 1063
+      },
+      "cropYEnd": 1303
+    },
+    {
+      "kind": "clip",
+      "start": 569,
+      "end": 651,
+      "src": "recipefix-v2-clip2-method-step-notes.mp4",
+      "from": 0,
+      "crop": {
+        "x": 24,
+        "w": 1122,
+        "y": 520
+      },
+      "cropYEnd": 680
+    },
+    {
+      "kind": "still",
+      "start": 651,
+      "end": 733,
+      "src": "recipefix-v2-still-2-step4-reduce-tomato-sauce.png",
+      "from": 0,
+      "crop": {
+        "x": 24,
+        "w": 1122,
+        "y": 905
+      },
+      "cropYEnd": 1145
+    },
+    {
+      "kind": "still",
+      "start": 733,
+      "end": 814,
+      "src": "recipefix-v2-still-2-step4-reduce-tomato-sauce.png",
+      "from": 0,
+      "crop": {
+        "x": 24,
+        "w": 1122,
+        "y": 607
+      },
+      "cropYEnd": 847
+    },
+    {
+      "kind": "clip",
+      "start": 814,
+      "end": 925,
+      "src": "recipefix-v2-clip2-method-step-notes.mp4",
+      "from": 6.3,
+      "crop": {
+        "x": 24,
+        "w": 1122,
+        "y": 520
+      },
+      "cropYEnd": 680
+    },
+    {
+      "kind": "still",
+      "start": 925,
+      "end": 1003,
+      "src": "recipefix-v2-still-4-step6-finish-creamy-sauce.png",
+      "from": 0,
+      "crop": {
+        "x": 24,
+        "w": 1122,
+        "y": 905
+      },
+      "cropYEnd": 1145
+    },
+    {
+      "kind": "clip",
+      "start": 1003,
+      "end": 1087,
+      "src": "recipefix-v2-clip4-cook-mode-timer.mp4",
+      "from": 0.2,
+      "crop": {
+        "x": 24,
+        "w": 1122,
+        "y": 300
+      },
+      "cropYEnd": 460
+    },
+    {
+      "kind": "clip",
+      "start": 1087,
+      "end": 1179,
+      "src": "recipefix-v2-clip4-cook-mode-timer.mp4",
+      "from": 3,
+      "crop": {
+        "x": 24,
+        "w": 1122,
+        "y": 300
+      },
+      "cropYEnd": 1150
+    },
+    {
+      "kind": "clip",
+      "start": 1179,
+      "end": 1286,
+      "src": "recipefix-v2-clip4-cook-mode-timer.mp4",
+      "from": 6.1,
+      "crop": {
+        "x": 24,
+        "w": 1122,
+        "y": 1150
+      },
+      "cropYEnd": 1310
+    },
+    {
+      "kind": "photo-close",
+      "start": 1286,
+      "end": 1408
+    }
+  ],
+  "heads": [
+    {
+      "start": 78,
+      "end": 161,
+      "text": "Same dish, now for 6"
+    },
+    {
+      "start": 161,
+      "end": 333,
+      "text": "Amounts scale: × 1.5"
+    },
+    {
+      "start": 333,
+      "end": 412,
+      "text": "Batches, not more time"
+    },
+    {
+      "start": 412,
+      "end": 491,
+      "text": "Batches, not more time"
+    },
+    {
+      "start": 491,
+      "end": 569,
+      "text": "Batches, not more time"
+    },
+    {
+      "start": 569,
+      "end": 651,
+      "text": "Check at 10 minutes"
+    },
+    {
+      "start": 651,
+      "end": 733,
+      "text": "Check at 10 minutes"
+    },
+    {
+      "start": 733,
+      "end": 814,
+      "text": "Check at 10 minutes"
+    },
+    {
+      "start": 814,
+      "end": 925,
+      "text": "Keep it a gentle simmer"
+    },
+    {
+      "start": 925,
+      "end": 1003,
+      "text": "Keep it a gentle simmer"
+    },
+    {
+      "start": 1003,
+      "end": 1087,
+      "text": "Cook Mode, rewritten too"
+    },
+    {
+      "start": 1087,
+      "end": 1179,
+      "text": "Cook Mode, rewritten too"
+    },
+    {
+      "start": 1179,
+      "end": 1286,
+      "text": "Scale the food, not the clock"
+    }
+  ],
+  "hook": {
+    "kicker": "Scale up",
+    "text": "Cooking for 6? Don't add 50% to the time."
+  },
+  "close": {
+    "kicker": "Takeaway",
+    "text": "Batches, not minutes. Cues, not clocks."
+  },
+  "captions": [
+    {
+      "start": 0,
+      "end": 40,
+      "text": "Scaling a recipe up?"
+    },
+    {
+      "start": 65,
+      "end": 111,
+      "text": "Multiply the ingredients."
+    },
+    {
+      "start": 111,
+      "end": 137,
+      "text": "Not the minutes."
+    },
+    {
+      "start": 165,
+      "end": 201,
+      "text": "Amounts do scale."
+    },
+    {
+      "start": 222,
+      "end": 241,
+      "text": "One and a half"
+    },
+    {
+      "start": 241,
+      "end": 282,
+      "text": "pounds of chicken becomes"
+    },
+    {
+      "start": 282,
+      "end": 301,
+      "text": "two and a quarter"
+    },
+    {
+      "start": 301,
+      "end": 316,
+      "text": "pounds."
+    },
+    {
+      "start": 336,
+      "end": 373,
+      "text": "Broiling fifty percent"
+    },
+    {
+      "start": 373,
+      "end": 412,
+      "text": "more chicken does not"
+    },
+    {
+      "start": 412,
+      "end": 453,
+      "text": "mean fifty percent longer."
+    },
+    {
+      "start": 478,
+      "end": 517,
+      "text": "Use two batches,"
+    },
+    {
+      "start": 517,
+      "end": 540,
+      "text": "eight to ten minutes"
+    },
+    {
+      "start": 540,
+      "end": 551,
+      "text": "each."
+    },
+    {
+      "start": 572,
+      "end": 609,
+      "text": "A wider pan reduces"
+    },
+    {
+      "start": 609,
+      "end": 627,
+      "text": "faster."
+    },
+    {
+      "start": 651,
+      "end": 681,
+      "text": "Start checking at ten"
+    },
+    {
+      "start": 681,
+      "end": 696,
+      "text": "minutes."
+    },
+    {
+      "start": 717,
+      "end": 737,
+      "text": "It is done when"
+    },
+    {
+      "start": 737,
+      "end": 767,
+      "text": "a spoon dragged through"
+    },
+    {
+      "start": 767,
+      "end": 793,
+      "text": "leaves a trail."
+    },
+    {
+      "start": 818,
+      "end": 856,
+      "text": "Swapped in coconut cream?"
+    },
+    {
+      "start": 885,
+      "end": 917,
+      "text": "Whisk it smooth,"
+    },
+    {
+      "start": 917,
+      "end": 946,
+      "text": "then keep the sauce"
+    },
+    {
+      "start": 946,
+      "end": 978,
+      "text": "at a gentle simmer."
+    },
+    {
+      "start": 1007,
+      "end": 1034,
+      "text": "This is a real"
+    },
+    {
+      "start": 1034,
+      "end": 1072,
+      "text": "RecipeFix result."
+    },
+    {
+      "start": 1093,
+      "end": 1132,
+      "text": "It rewrote these steps,"
+    },
+    {
+      "start": 1132,
+      "end": 1162,
+      "text": "and said why."
+    },
+    {
+      "start": 1183,
+      "end": 1215,
+      "text": "Scale the food,"
+    },
+    {
+      "start": 1215,
+      "end": 1239,
+      "text": "not the clock."
+    },
+    {
+      "start": 1272,
+      "end": 1309,
+      "text": "Batches for space."
+    },
+    {
+      "start": 1333,
+      "end": 1371,
+      "text": "Cues for doneness."
+    }
+  ],
+  "audio": "vo.mp3",
+  "photo": "original.jpg",
+  "photoLabel": "Photo: the original recipe, made with dairy (licensed stock)",
+  "screenLabel": "Real app screen · local build",
+  "data": {
+    "from": 4,
+    "to": 6
+  }
+}

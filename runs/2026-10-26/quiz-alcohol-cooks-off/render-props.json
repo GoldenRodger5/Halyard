@@ -1,0 +1,39 @@
+{
+  "label": "Myth or fact",
+  "questions": [
+    {
+      "question": "Wine simmered in a sauce for 1 hour. How much alcohol is left?",
+      "options": [
+        "None",
+        "About 5%",
+        "About 25%",
+        "About 75%"
+      ],
+      "correct": 2,
+      "why": "USDA measured about 25% left after an hour of simmering, and still about 5% after two and a half hours.",
+      "source": "USDA Nutrient Retention Factors, Release 6",
+      "photo": "photo-creamy-tuscan-chicken-16x9.jpg",
+      "start": 0,
+      "countdownAt": 202,
+      "revealAt": 352,
+      "whyAt": 385,
+      "end": 627,
+      "audio": {
+        "question": null,
+        "answer": null,
+        "why": null
+      }
+    }
+  ],
+  "close": {
+    "start": 627,
+    "tie": "Cooking halal or without wine? RecipeFix swaps it out and rewrites the steps.",
+    "audio": null,
+    "photo": "photo-creamy-tuscan-chicken-16x9.jpg"
+  },
+  "sfx": {
+    "tick": "sfx-tick.wav",
+    "reveal": "sfx-reveal.wav",
+    "whoosh": "sfx-whoosh.wav"
+  }
+}

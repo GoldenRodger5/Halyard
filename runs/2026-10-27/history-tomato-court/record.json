@@ -1,0 +1,358 @@
+{
+  "schema": 1,
+  "id": "history-tomato-court",
+  "format": "history",
+  "summary": "1893: A tomato went to the Supreme Court over a 10% tax.",
+  "made_at": "2026-10-27T15:14:39.068Z",
+  "outputs": {
+    "video": "runs/2026-10-27/history-tomato-court/history-tomato-court.mp4"
+  },
+  "posts": {
+    "tiktok": {
+      "platform": "tiktok",
+      "kind": "video",
+      "media": [
+        "runs/2026-10-27/history-tomato-court/history-tomato-court.mp4"
+      ],
+      "text": "Is a tomato a fruit or a vegetable? In 1893 the Supreme Court agreed a tomato is botanically a fruit. Then it ruled it a vegetable anyway, for tax reasons.\n\nFruit or vegetable, cook it your way. RecipeFix rewrites the cooking steps, not just the ingredient list.\n\n#foodhistory #tomatoes #supremecourt #recipefix",
+      "ai_voice": true,
+      "cover_ms": 1500
+    },
+    "instagram_reel": {
+      "platform": "instagram",
+      "kind": "video",
+      "media": [
+        "runs/2026-10-27/history-tomato-court/history-tomato-court.mp4"
+      ],
+      "text": "Is a tomato a fruit or a vegetable? In 1893 the Supreme Court agreed a tomato is botanically a fruit. Then it ruled it a vegetable anyway, for tax reasons.\n\nSource: Nix v. Hedden, 149 U.S. 304 (1893)\n\nFruit or vegetable, cook it your way. RecipeFix rewrites the cooking steps, not just the ingredient list.\n\n#foodhistory #tomatoes #supremecourt #recipefix",
+      "ai_voice": true
+    },
+    "youtube": {
+      "platform": "youtube",
+      "kind": "video",
+      "media": [
+        "runs/2026-10-27/history-tomato-court/history-tomato-court.mp4"
+      ],
+      "title": "1893: A tomato went to the Supreme Court over a 10% tax #shorts",
+      "text": "Is a tomato a fruit or a vegetable? In 1893 the Supreme Court agreed a tomato is botanically a fruit. Then it ruled it a vegetable anyway, for tax reasons.\n\nSources:\nhttps://www.law.cornell.edu/supremecourt/text/149/304\n\nFruit or vegetable, cook it your way. RecipeFix rewrites the cooking steps, not just the ingredient list. https://recipefix.app",
+      "ai_voice": true
+    },
+    "x": {
+      "platform": "x",
+      "kind": "video",
+      "media": [
+        "runs/2026-10-27/history-tomato-court/history-tomato-court.mp4"
+      ],
+      "text": "Is a tomato a fruit or a vegetable? In 1893 the Supreme Court agreed a tomato is botanically a fruit. Then it ruled it a vegetable anyway, for tax reasons.",
+      "thread": [
+        "Source: Nix v. Hedden\n\nFruit or vegetable, cook it your way. RecipeFix rewrites the cooking steps, not just the ingredient list."
+      ]
+    },
+    "threads": {
+      "platform": "threads",
+      "kind": "video",
+      "media": [
+        "runs/2026-10-27/history-tomato-court/history-tomato-court.mp4"
+      ],
+      "text": "Is a tomato a fruit or a vegetable? In 1893 the Supreme Court agreed a tomato is botanically a fruit. Then it ruled it a vegetable anyway, for tax reasons.",
+      "thread": [
+        "Source: Nix v. Hedden\n\nFruit or vegetable, cook it your way. RecipeFix rewrites the cooking steps, not just the ingredient list."
+      ]
+    }
+  },
+  "sources": [
+    {
+      "name": "Nix v. Hedden, 149 U.S. 304 (1893), Legal Information Institute",
+      "url": "https://www.law.cornell.edu/supremecourt/text/149/304",
+      "quote": "Botanically speaking, tomatoes are the fruit of a vine, just as are cucumbers, squashes, beans, and peas."
+    },
+    {
+      "name": "Nix v. Hedden, the tariff act (statement of the case)",
+      "url": "https://www.law.cornell.edu/supremecourt/text/149/304",
+      "quote": "vegetables in their natural state, or in salt or brine … ten per centum ad valorem … Fruits, green, ripe, or dried, not specially enumerated or provided for in this act"
+    },
+    {
+      "name": "Nix v. Hedden, the parties and the reasoning",
+      "url": "https://www.law.cornell.edu/supremecourt/text/149/304",
+      "quote": "John Nix, John W. Nix, George W. Nix, and Frank W. Nix … to recover back duties paid under protest on tomatoes imported by the plaintiff from the West Indies in the spring of 1886 … Edward L. Hedden, collector of the port of New York … usually served at dinner in, with, or after the soup, fish, or meats which constitute the principal part of the repast, and not, like fruits generally, as dessert"
+    }
+  ],
+  "claims": [
+    "core.rewrites_steps"
+  ],
+  "assets": [
+    {
+      "id": "brand/recipefix-mark-512.png",
+      "provenance": "recipe-fix a82f8bb9:LAUNCH_KIT/assets/brand/recipefix-mark-512.png",
+      "licence": "first-party brand mark",
+      "sha256": "fcebd5205fadf3dfdddff83e288253498d98d06fa8c08b43444c3c06fb2cc84f"
+    }
+  ],
+  "qa": {
+    "passed": true,
+    "checks": [
+      {
+        "id": "video.size",
+        "passed": true,
+        "detail": "7.9 MB (≤ 40 MB)",
+        "problems": []
+      },
+      {
+        "id": "video.duration",
+        "passed": true,
+        "detail": "22.2 s (target 18–30 s: short holds read as a story, long ones as a lecture)",
+        "problems": []
+      },
+      {
+        "id": "audio.loudness",
+        "passed": true,
+        "detail": "-14.4 LUFS, peak -1.8 dBFS",
+        "problems": []
+      },
+      {
+        "id": "audio.transcript",
+        "passed": true,
+        "detail": "WER 6.9% between script and whisper of the export",
+        "problems": [
+          "heard: 1893, a tomato went to the Supreme Court over a 10% tax. Imported vegetables were taxed, fruit came in free. So an importer, John Nick's, sued. Tomatoes are fruit, he argued. The court agreed. Botanically speaking, tomatoes are the fruit of a vine. Then it ruled them vegetables anyway. They're serve"
+        ]
+      },
+      {
+        "id": "voice.alignment",
+        "passed": true,
+        "detail": "57 script words, 57 timed words from the voice",
+        "problems": []
+      },
+      {
+        "id": "hook:still.canvas",
+        "passed": true,
+        "detail": "1080×1920",
+        "problems": []
+      },
+      {
+        "id": "hook:still.text_readback",
+        "passed": true,
+        "detail": "2 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 19 words, file: 16 words, inverted: 16 words, rules removed: 16 words, white-text mask: 0 words, dark-text mask: 16 words)",
+        "problems": []
+      },
+      {
+        "id": "hook:still.no_artefacts",
+        "passed": true,
+        "detail": "no [object Object] / undefined / NaN / braces read on the image",
+        "problems": []
+      },
+      {
+        "id": "hook:still.safe_zone",
+        "passed": true,
+        "detail": "10 word boxes inside x 120–900, y 270–1250",
+        "problems": []
+      },
+      {
+        "id": "hook:still.text_overlap",
+        "passed": true,
+        "detail": "no two intended lines overprint each other",
+        "problems": []
+      },
+      {
+        "id": "hook:still.text_size",
+        "passed": true,
+        "detail": "every line's median OCR word height ≥ 22px",
+        "problems": []
+      },
+      {
+        "id": "hook:still.contrast",
+        "passed": true,
+        "detail": "min 4.87:1 over 10 word boxes (WCAG AA 4.5:1)",
+        "problems": []
+      },
+      {
+        "id": "b2-ledger:still.canvas",
+        "passed": true,
+        "detail": "1080×1920",
+        "problems": []
+      },
+      {
+        "id": "b2-ledger:still.text_readback",
+        "passed": true,
+        "detail": "5 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 15 words, file: 15 words, inverted: 16 words, rules removed: 13 words, white-text mask: 0 words, dark-text mask: 13 words)",
+        "problems": []
+      },
+      {
+        "id": "b2-ledger:still.no_artefacts",
+        "passed": true,
+        "detail": "no [object Object] / undefined / NaN / braces read on the image",
+        "problems": []
+      },
+      {
+        "id": "b2-ledger:still.safe_zone",
+        "passed": true,
+        "detail": "7 word boxes inside x 120–900, y 270–1250",
+        "problems": []
+      },
+      {
+        "id": "b2-ledger:still.text_overlap",
+        "passed": true,
+        "detail": "no two intended lines overprint each other",
+        "problems": []
+      },
+      {
+        "id": "b2-ledger:still.text_size",
+        "passed": true,
+        "detail": "every line's median OCR word height ≥ 22px",
+        "problems": []
+      },
+      {
+        "id": "b2-ledger:still.contrast",
+        "passed": true,
+        "detail": "min 5.11:1 over 7 word boxes (WCAG AA 4.5:1)",
+        "problems": []
+      },
+      {
+        "id": "b3-versus:still.canvas",
+        "passed": true,
+        "detail": "1080×1920",
+        "problems": []
+      },
+      {
+        "id": "b3-versus:still.text_readback",
+        "passed": true,
+        "detail": "3 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 13 words, file: 12 words, inverted: 12 words, rules removed: 12 words, white-text mask: 0 words, dark-text mask: 12 words)",
+        "problems": []
+      },
+      {
+        "id": "b3-versus:still.no_artefacts",
+        "passed": true,
+        "detail": "no [object Object] / undefined / NaN / braces read on the image",
+        "problems": []
+      },
+      {
+        "id": "b3-versus:still.safe_zone",
+        "passed": true,
+        "detail": "6 word boxes inside x 120–900, y 270–1250",
+        "problems": []
+      },
+      {
+        "id": "b3-versus:still.text_overlap",
+        "passed": true,
+        "detail": "no two intended lines overprint each other",
+        "problems": []
+      },
+      {
+        "id": "b3-versus:still.text_size",
+        "passed": true,
+        "detail": "every line's median OCR word height ≥ 22px",
+        "problems": []
+      },
+      {
+        "id": "b3-versus:still.contrast",
+        "passed": true,
+        "detail": "min 11.79:1 over 6 word boxes (WCAG AA 4.5:1)",
+        "problems": []
+      },
+      {
+        "id": "b4-quote:still.canvas",
+        "passed": true,
+        "detail": "1080×1920",
+        "problems": []
+      },
+      {
+        "id": "b4-quote:still.text_readback",
+        "passed": true,
+        "detail": "1 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 15 words, file: 7 words, inverted: 14 words, rules removed: 7 words, white-text mask: 9 words, dark-text mask: 14 words)",
+        "problems": []
+      },
+      {
+        "id": "b4-quote:still.no_artefacts",
+        "passed": true,
+        "detail": "no [object Object] / undefined / NaN / braces read on the image",
+        "problems": []
+      },
+      {
+        "id": "b4-quote:still.safe_zone",
+        "passed": true,
+        "detail": "7 word boxes inside x 120–900, y 270–1250",
+        "problems": []
+      },
+      {
+        "id": "b4-quote:still.text_overlap",
+        "passed": true,
+        "detail": "no two intended lines overprint each other",
+        "problems": []
+      },
+      {
+        "id": "b4-quote:still.text_size",
+        "passed": true,
+        "detail": "every line's median OCR word height ≥ 22px",
+        "problems": []
+      },
+      {
+        "id": "b4-quote:still.contrast",
+        "passed": true,
+        "detail": "min 16.72:1 over 7 word boxes (WCAG AA 4.5:1)",
+        "problems": []
+      },
+      {
+        "id": "b5-stamp:still.canvas",
+        "passed": true,
+        "detail": "1080×1920",
+        "problems": []
+      },
+      {
+        "id": "b5-stamp:still.text_readback",
+        "passed": true,
+        "detail": "1 lines held to read-back, min similarity 1.00; 1 single-glyph lines checked by eye only (OCR vision: 14 words, file: 4 words, inverted: 4 words, rules removed: 16 words, white-text mask: 7 words, dark-text mask: 4 words)",
+        "problems": []
+      },
+      {
+        "id": "b5-stamp:still.no_artefacts",
+        "passed": true,
+        "detail": "no [object Object] / undefined / NaN / braces read on the image",
+        "problems": []
+      },
+      {
+        "id": "b5-stamp:still.safe_zone",
+        "passed": true,
+        "detail": "5 word boxes inside x 120–900, y 270–1250",
+        "problems": []
+      },
+      {
+        "id": "b5-stamp:still.text_overlap",
+        "passed": true,
+        "detail": "no two intended lines overprint each other",
+        "problems": []
+      },
+      {
+        "id": "b5-stamp:still.text_size",
+        "passed": true,
+        "detail": "every line's median OCR word height ≥ 22px",
+        "problems": []
+      },
+      {
+        "id": "b5-stamp:still.contrast",
+        "passed": true,
+        "detail": "min 16.73:1 over 5 word boxes (WCAG AA 4.5:1)",
+        "problems": []
+      },
+      {
+        "id": "copy.platform_rules",
+        "passed": true,
+        "detail": "caption lengths, YouTube title, no X links, 3–5 hashtags incl. #recipefix, no forbidden claims, no bait, no health claims, reads human",
+        "problems": []
+      },
+      {
+        "id": "knowledge.product_posts",
+        "passed": true,
+        "detail": "pack ad17c991 has a release receipt",
+        "problems": []
+      }
+    ]
+  },
+  "cost_usd": 0.5392400000000002,
+  "disclosures": {
+    "ai_voice": true,
+    "tiktok_is_aigc": true,
+    "photos": "licensed stock Originals photo as mood; not the historical dish",
+    "knowledge_commit": "ad17c99162a47c769abfb70cd62f0bfb2f2e31e3",
+    "verified": "2026-10-26T00:00:00.000Z"
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "verdict": "revise",
+  "scores": {
+    "stop": 6,
+    "stay": 6,
+    "engage": 4,
+    "human": 6
+  },
+  "cringe": [
+    "The tiny 'licensed stock' / RecipeFix disclaimer makes it feel like a tool demo, not a food brand post.",
+    "'Recipe Fixed #1' feels a bit software-y and AI-generated rather than appetizing or editorial.",
+    "The cover asks a quiz but then sits almost unchanged for 4 seconds, which feels slow and padded.",
+    "The final legal-style note is too small and overly technical for a social recipe post."
+  ],
+  "pro_team_would_post": false,
+  "would_leave_at": "around 10-12s, once the broiler explanation starts feeling over-explained",
+  "first_impression": "Useful recipe-scaling idea with a decent visual system, but it feels more like an AI recipe-correction product demo than a polished food-brand social post.",
+  "problems": [
+    "The first frame is text-heavy and not especially appetizing despite the food image.",
+    "The opening quiz stays on screen too long with no new payoff until 4s.",
+    "The food photography appears to be stock and is called out as stock, which lowers trust and brand polish.",
+    "There is too much instructional text per frame, especially on the swaps and final save slide.",
+    "The broiler section repeats the same point for several seconds, making the middle drag.",
+    "The typography and boxed UI elements feel templated/game-like rather than warm, premium, or food-led.",
+    "The ending disclaimer is tiny and reads like legal/product copy, not social content.",
+    "Engagement prompt is mostly cognitive, not emotional; viewers may learn the answer but have little reason to comment or share."
+  ],
+  "fixes": [
+    "Open with a tighter hook: 'Scaling tikka masala to 6? Don’t crowd the broiler.' over a close-up food shot.",
+    "Cut the static quiz intro from 4 seconds to 1.5-2 seconds max.",
+    "Use original food footage or remove the visible stock-photo disclosure from the creative if licensing allows; keep credits out of the main visual if required.",
+    "Make the answer reveal faster: show 'Use two sheets' by 5-6s, then one quick visual explanation.",
+    "Reduce each slide to one main takeaway; move detailed reasoning to caption or carousel notes.",
+    "Replace the legal-style RecipeFix note with a cleaner brand-safe line like 'Adjusted for 6 servings; ingredient swaps + broiler spacing updated.'",
+    "Make the final save card larger and simpler: 'For 6: coconut yogurt, vegan butter, coconut cream, two trays under the broiler.'",
+    "Add more appetizing motion or texture: sauce stir, chicken on tray, broiler browning, plated result.",
+    "Soften the UI style with fewer boxes and less outline-heavy quiz formatting to make it feel less templated.",
+    "Consider a stronger comment prompt: 'Would you choose coconut cream or cashew cream?'"
+  ],
+  "model": "gpt-5.5",
+  "cost_usd": 0.01811,
+  "at": "2026-10-27T10:27:34.471Z"
+}

@@ -1,0 +1,199 @@
+# Food history stories: the ONLY source of what the HistoryShort narrator says.
+#
+# Every beat's `say` is narrated verbatim (ElevenLabs) and captioned word by
+# word from the voice's own character timings. Every number and name that is
+# said or shown is backed by a `sources[].quote` that was read on the page on
+# `verified`. No model writes or paraphrases any of it.
+#
+# Rules (knowledge pack no.safety, owner 2026-10-26): no medical or safety
+# claims. A historical claim someone made is reported as their claim
+# ("he said", "claimed"), never as ours.
+#
+# Beat kinds (video/HistoryShort.tsx):
+#   hook   the year rolls back from today and lands; `screen` is the headline
+#   photo  Ken Burns on the Original's photo, sepia blooming to colour; optional `chip`
+#   ledger ruled paper rows (`rows`: [label, value])
+#   quote  a typed archival card; `quote` must be verbatim from a source
+#   place  a pin and a place name (`place`, `sub`)
+#   list   items stamp in one at a time (`items`)
+#   versus two names facing off (`left`, `right`)
+#   stamp  a rubber stamp slams onto the page (`stamp`); the payoff. The source lower third shows here.
+#
+# `photo` names a RecipeFix Original whose licensed stock photo is used. It is
+# mood (tomatoes for a tomato story; baking for a baking story), never
+# presented as the historical dish.
+
+stories:
+  - id: tomato-court
+    kicker: "Food history"
+    year: 1893
+    photo: garlic-shrimp-spaghetti
+    focus: "62% 38%"
+    beats:
+      - kind: hook
+        say: "1893. A tomato went to the Supreme Court, over a ten percent tax."
+        screen: "A tomato went to the Supreme Court over a 10% tax."
+      - kind: ledger
+        say: "Imported vegetables were taxed. Fruit came in free."
+        title: "Tariff act of 1883"
+        rows: [["Vegetables", "10%"], ["Fruit", "Free"]]
+      - kind: versus
+        say: "So an importer, John Nix, sued. Tomatoes are fruit, he argued."
+        left: "John Nix"
+        right: "The tax man"
+      - kind: quote
+        say: "The Court agreed. Botanically speaking, tomatoes are the fruit of a vine."
+        quote: "Botanically speaking, tomatoes are the fruit of a vine"
+      - kind: stamp
+        say: "Then it ruled them vegetables anyway. They're served at dinner, not as dessert."
+        stamp: "Vegetable"
+    source:
+      short: "Nix v. Hedden, 149 U.S. 304 (1893)"
+    sources:
+      - name: "Nix v. Hedden, 149 U.S. 304 (1893), Legal Information Institute"
+        url: "https://www.law.cornell.edu/supremecourt/text/149/304"
+        quote: "Botanically speaking, tomatoes are the fruit of a vine, just as are cucumbers, squashes, beans, and peas."
+      - name: "Nix v. Hedden, the tariff act (statement of the case)"
+        url: "https://www.law.cornell.edu/supremecourt/text/149/304"
+        quote: "vegetables in their natural state, or in salt or brine … ten per centum ad valorem … Fruits, green, ripe, or dried, not specially enumerated or provided for in this act"
+      - name: "Nix v. Hedden, the parties and the reasoning"
+        url: "https://www.law.cornell.edu/supremecourt/text/149/304"
+        quote: "John Nix, John W. Nix, George W. Nix, and Frank W. Nix … to recover back duties paid under protest on tomatoes imported by the plaintiff from the West Indies in the spring of 1886 … Edward L. Hedden, collector of the port of New York … usually served at dinner in, with, or after the soup, fish, or meats which constitute the principal part of the repast, and not, like fruits generally, as dessert"
+    verified: 2026-10-26
+    tie: "Fruit or vegetable, cook it your way. RecipeFix rewrites the cooking steps, not just the ingredient list."
+    claims: [core.rewrites_steps]
+    search: "Is a tomato a fruit or a vegetable?"
+    caption: "In 1893 the Supreme Court agreed a tomato is botanically a fruit. Then it ruled it a vegetable anyway, for tax reasons."
+    tags: [foodhistory, tomatoes, supremecourt, recipefix]
+
+  - id: tomato-pills
+    kicker: "Food history"
+    year: 1835
+    # The tomatoes have to be visible: the cherry tomatoes in this pan, framed tight on the right.
+    photo: garlic-shrimp-spaghetti
+    focus: "78% 40%"
+    beats:
+      - kind: hook
+        say: "1835. America met the tomato pill."
+        screen: "America met the tomato pill."
+      - kind: photo
+        say: "A doctor named John Cook Bennett told a lecture hall in Ohio that tomatoes could treat indigestion."
+        chip: "Willoughby University, Ohio"
+      - kind: quote
+        say: "He told people to eat them raw, cooked, or in catsup."
+        quote: "raw, cooked, or “in catsup.”"
+      - kind: quote
+        say: "Then came the pills, sold in pharmacies with a jingle. Tomato pills will cure all your ills."
+        quote: "tomato pills will cure all your ills"
+      - kind: stamp
+        say: "Later investigations found the pills contained no tomato at all."
+        stamp: "No tomato"
+    source:
+      short: "Popular Science, ketchup as medicine"
+    sources:
+      - name: "Popular Science, Ketchup was once a medicine"
+        url: "https://www.popsci.com/science/ketchup-history-medicine/"
+        quote: "In 1835, doctor A.J. Holcombe introduced the first \"tomato pills\" in Glassboro, Alabama."
+      - name: "Popular Science, on John Cook Bennett"
+        url: "https://www.popsci.com/science/ketchup-history-medicine/"
+        quote: "During an inaugural lecture at Willoughby University in Ohio, Bennett declared that tomatoes … could treat diarrhea, bilious attacks, and indigestion. He urged people to eat tomatoes raw, cooked, or \"in catsup.\""
+      - name: "Popular Science, on the pills"
+        url: "https://www.popsci.com/science/ketchup-history-medicine/"
+        quote: "these capsules were sold in pharmacies and grocery stores … and promoted with the jingle \"tomato pills will cure all your ills.\" … criticized tomato pills—which later investigations found contained no tomato at all."
+    verified: 2026-10-26
+    tie: "Cooking for six instead of four? RecipeFix scales it, in measurements you can actually use."
+    claims: [core.scaling]
+    search: "Were tomato pills real?"
+    caption: "Before it was a condiment, the tomato had a short career as a pill. It did not end well."
+    tags: [foodhistory, ketchup, tomatoes, recipefix]
+
+  - id: caesar-tijuana
+    kicker: "Food history"
+    year: 1924
+    photo: salmon-cucumber-salsa
+    focus: "50% 62%"
+    photo_at: close
+    beats:
+      - kind: hook
+        say: "1924. Caesar salad was invented in Mexico, not Italy."
+        screen: "Caesar salad was invented in Mexico, not Italy."
+      - kind: place
+        say: "Caesar Cardini, an Italian immigrant, ran a restaurant in Tijuana."
+        place: "Tijuana"
+        sub: "Caesar's Place, 1924"
+      - kind: versus
+        say: "It was packed with Californians escaping Prohibition."
+        left: "California"
+        right: "Tijuana"
+        arrow: true
+      - kind: list
+        say: "He reportedly made the salad from what he had in the kitchen. Romaine, garlic oil, Worcestershire, lemons, eggs and Parmesan."
+        title: "What he had in the kitchen"
+        items: ["Romaine", "Garlic oil", "Worcestershire", "Lemons", "Eggs", "Parmesan"]
+      - kind: stamp
+        say: "And he left the leaves whole, so you ate it with your fingers."
+        quote: "used only the tender, inner leaves of Romaine lettuce and left them whole"
+        stamp: "Finger food"
+    source:
+      short: "AP, Caesar salad turns 100 (2024)"
+    sources:
+      - name: "Associated Press via FOX6, Caesar salad turns 100"
+        url: "https://fox6now.com/news/caesar-salad-origins-100th-birthday"
+        quote: "Italian immigrant Caesar Cardini reportedly invented the salad on July 4, 1924 … at his restaurant, Caesar's Place, in Tijuana, Mexico."
+      - name: "Associated Press via FOX6, the crowd and the kitchen"
+        url: "https://fox6now.com/news/caesar-salad-origins-100th-birthday"
+        quote: "flooded with customers from California who had crossed into Tijuana to escape Prohibition … Romaine lettuce, garlic-flavored oil, Worcestershire sauce, lemons, eggs and Parmesan cheese"
+      - name: "Associated Press via FOX6, the leaves"
+        url: "https://fox6now.com/news/caesar-salad-origins-100th-birthday"
+        quote: "used only the tender, inner leaves of Romaine lettuce and left them whole … intending diners to pick them up with their fingers."
+    verified: 2026-10-26
+    tie: "Making dinner dairy-free tonight? RecipeFix rewrites the cooking steps, not just the ingredient list."
+    claims: [core.rewrites_steps, core.diets]
+    search: "Where was Caesar salad invented?"
+    caption: "Caesar salad turned 100 in 2024. It was born in Tijuana, and you were meant to eat it with your hands."
+    tags: [foodhistory, caesarsalad, tijuana, recipefix]
+
+  - id: state-cookie
+    kicker: "Food history"
+    year: 1997
+    photo: classic-banana-bread
+    focus: "50% 55%"
+    photo_at: close
+    beats:
+      - kind: hook
+        say: "1997. Massachusetts lawmakers fought over a cookie."
+        screen: "Massachusetts lawmakers fought over a cookie."
+      - kind: place
+        say: "A third-grade class in Somerset proposed the chocolate chip cookie as the official state cookie."
+        place: "Somerset"
+        sub: "A third-grade class"
+      - kind: ledger
+        say: "It was invented in 1930, at the Toll House Restaurant in Whitman."
+        title: "The chocolate chip cookie"
+        rows: [["Invented", "1930"], ["Where", "Whitman"]]
+      - kind: versus
+        say: "Governor William Weld opposed the bill. At the signing, he asked the kids if they preferred Fig Newtons."
+        left: "Chocolate chip"
+        right: "Fig Newton"
+      - kind: stamp
+        say: "Most of them picked the Toll House. I guess I'll sign this bill then, he said."
+        quote: "I guess I'll sign this bill then"
+        stamp: "Signed"
+    source:
+      short: "CBS News; Mass. Gen. Laws c. 2, § 42"
+    sources:
+      - name: "CBS News Boston, 5 things you didn't know about Massachusetts' official state cookie"
+        url: "https://www.cbsnews.com/boston/news/5-things-you-didnt-know-about-massachusetts-official-state-1/"
+        quote: "In 1997, a debate raged on and many among the state's legislature were at odds -- over a cookie. … A third-grade class in Somerset proposed the chocolate chip cookie, which was invented in 1930 at the Toll House Restaurant in Whitman"
+      - name: "CBS News Boston, Governor Weld"
+        url: "https://www.cbsnews.com/boston/news/5-things-you-didnt-know-about-massachusetts-official-state-1/"
+        quote: "Opponents included then-Governor William Weld. … he asked the crowd of children who had gathered for the signing whether they preferred Newtons, but most of them picked the tollhouse. \"I guess I'll sign this bill then,\" Weld replied."
+      - name: "Massachusetts General Laws, Chapter 2, Section 42"
+        url: "https://law.counselstack.com/statute/ma/2/42"
+        quote: "The chocolate chip cookie shall be the official cookie of the commonwealth."
+    verified: 2026-10-26
+    tie: "Baking tonight? Make it gluten-free or vegan. RecipeFix rewrites the cooking steps, not just the ingredient list."
+    claims: [core.rewrites_steps, core.diets]
+    search: "What is the official state cookie of Massachusetts?"
+    caption: "Massachusetts has an official state cookie because a third-grade class asked for one. The governor wanted Fig Newtons."
+    tags: [foodhistory, chocolatechipcookies, massachusetts, recipefix]

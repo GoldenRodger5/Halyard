@@ -1,0 +1,92 @@
+[
+  {
+    "id": "D6-x-image-I5",
+    "media": "runs/2026-10-26/I5-ig-carousel/slides/03-method.jpg",
+    "passed": true,
+    "checks": [
+      {
+        "id": "claims.correspondence",
+        "passed": true,
+        "detail": "1 lines cite claims",
+        "problems": []
+      },
+      {
+        "id": "claims.forbidden",
+        "passed": true,
+        "detail": "37 forbidden examples checked",
+        "problems": []
+      },
+      {
+        "id": "facts.numbers_traced",
+        "passed": true,
+        "detail": "6 numbers checked",
+        "problems": []
+      },
+      {
+        "id": "claims.narrative",
+        "passed": true,
+        "detail": "first-person / audience claims need learnings.md",
+        "problems": []
+      },
+      {
+        "id": "copy.slop_filter",
+        "passed": true,
+        "detail": "0 errors, 0 warnings",
+        "problems": []
+      },
+      {
+        "id": "copy.on_screen_typography",
+        "passed": true,
+        "detail": "no em dashes, ellipses, or serialisation artefacts on screen",
+        "problems": []
+      }
+    ],
+    "knowledge_commit": "e756660ef6e26ff0f3a798fb6256934ef1d4ec95",
+    "product_posts_paused": "state.json.unreceipted_deploy is set (seen 2026-10-26T19:04:21Z): No release receipt in docs/management names the live tree. Claims were verified by behaviour and source on this date."
+  },
+  {
+    "id": "D6-reels-V1",
+    "media": "runs/2026-10-26/V1-short/V1-short.mp4",
+    "passed": true,
+    "checks": [
+      {
+        "id": "claims.correspondence",
+        "passed": true,
+        "detail": "1 lines cite claims",
+        "problems": []
+      },
+      {
+        "id": "claims.forbidden",
+        "passed": true,
+        "detail": "37 forbidden examples checked",
+        "problems": []
+      },
+      {
+        "id": "facts.numbers_traced",
+        "passed": true,
+        "detail": "0 numbers checked",
+        "problems": []
+      },
+      {
+        "id": "claims.narrative",
+        "passed": true,
+        "detail": "first-person / audience claims need learnings.md",
+        "problems": []
+      },
+      {
+        "id": "copy.slop_filter",
+        "passed": true,
+        "detail": "0 errors, 0 warnings",
+        "problems": []
+      },
+      {
+        "id": "copy.on_screen_typography",
+        "passed": true,
+        "detail": "no em dashes, ellipses, or serialisation artefacts on screen",
+        "problems": []
+      }
+    ],
+    "knowledge_commit": "e756660ef6e26ff0f3a798fb6256934ef1d4ec95",
+    "product_posts_paused": "state.json.unreceipted_deploy is set (seen 2026-10-26T19:04:21Z): No release receipt in docs/management names the live tree. Claims were verified by behaviour and source on this date."
+  }
+]

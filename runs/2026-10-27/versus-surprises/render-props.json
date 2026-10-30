@@ -1,0 +1,135 @@
+{
+  "label": "This or that",
+  "rounds": [
+    {
+      "question": "More vitamin C?",
+      "unit": "mg",
+      "basis": "per 100 g, raw",
+      "left": {
+        "name": "Orange",
+        "sub": "raw",
+        "value": 53.2,
+        "color": "#F28C28"
+      },
+      "right": {
+        "name": "Red bell pepper",
+        "sub": "raw",
+        "value": 128,
+        "color": "#C8322B"
+      },
+      "winner": 1,
+      "ratio": "2.4×",
+      "why": "Gram for gram, about 2.4 times the vitamin C of an orange.",
+      "source": "USDA FoodData Central",
+      "start": 0,
+      "countdownAt": 15,
+      "revealAt": 104,
+      "whyAt": 116,
+      "end": 202,
+      "audio": {
+        "q": "vo-q1.mp3",
+        "a": "vo-a1.mp3"
+      }
+    },
+    {
+      "question": "More potassium?",
+      "unit": "mg",
+      "basis": "per 100 g",
+      "left": {
+        "name": "Banana",
+        "sub": "raw",
+        "value": 358,
+        "color": "#E8B923"
+      },
+      "right": {
+        "name": "Baked potato",
+        "sub": "with skin",
+        "value": 535,
+        "color": "#86592F"
+      },
+      "winner": 1,
+      "ratio": "1.5×",
+      "why": "A baked potato, skin on, has about 50% more per 100 g.",
+      "source": "USDA FoodData Central",
+      "start": 202,
+      "countdownAt": 217,
+      "revealAt": 304,
+      "whyAt": 316,
+      "end": 420,
+      "audio": {
+        "q": "vo-q2.mp3",
+        "a": "vo-a2.mp3"
+      }
+    },
+    {
+      "question": "More sugar?",
+      "unit": "g",
+      "basis": "per 100 g",
+      "left": {
+        "name": "Ketchup",
+        "sub": "",
+        "value": 21.3,
+        "color": "#B3261E"
+      },
+      "right": {
+        "name": "Cola",
+        "sub": "regular",
+        "value": 9.94,
+        "color": "#3B2418"
+      },
+      "winner": 0,
+      "ratio": "2.1×",
+      "why": "Gram for gram, ketchup has about twice the sugar of regular cola.",
+      "source": "USDA FoodData Central",
+      "start": 420,
+      "countdownAt": 435,
+      "revealAt": 508,
+      "whyAt": 520,
+      "end": 599,
+      "audio": {
+        "q": "vo-q3.mp3",
+        "a": "vo-a3.mp3"
+      }
+    }
+  ],
+  "recap": {
+    "start": 599,
+    "title": "Per 100 g, the winners",
+    "rows": [
+      {
+        "winner": "Red bell pepper",
+        "loser": "Orange",
+        "metric": "vitamin C",
+        "wv": 128,
+        "lv": 53.2,
+        "unit": "mg",
+        "color": "#C8322B"
+      },
+      {
+        "winner": "Baked potato",
+        "loser": "Banana",
+        "metric": "potassium",
+        "wv": 535,
+        "lv": 358,
+        "unit": "mg",
+        "color": "#86592F"
+      },
+      {
+        "winner": "Ketchup",
+        "loser": "Cola",
+        "metric": "sugar",
+        "wv": 21.3,
+        "lv": 9.94,
+        "unit": "g",
+        "color": "#B3261E"
+      }
+    ],
+    "source": "USDA FoodData Central"
+  },
+  "sfx": {
+    "tick": "sfx-tick.wav",
+    "reveal": "sfx-reveal.wav",
+    "whoosh": "sfx-whoosh.wav",
+    "thud": "sfx-thud.wav"
+  }
+}

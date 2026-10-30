@@ -1,0 +1,458 @@
+{
+  "schema": 1,
+  "id": "versus-surprises",
+  "format": "versus",
+  "summary": "More vitamin C? Orange vs Red bell pepper / More potassium? Banana vs Baked potato / More sugar? Ketchup vs Cola",
+  "made_at": "2026-10-27T15:10:49.891Z",
+  "outputs": {
+    "video": "runs/2026-10-27/versus-surprises/versus-surprises.mp4"
+  },
+  "posts": {
+    "tiktok": {
+      "platform": "tiktok",
+      "kind": "video",
+      "media": [
+        "runs/2026-10-27/versus-surprises/versus-surprises.mp4"
+      ],
+      "text": "Which has more vitamin C, an orange or a bell pepper? Orange or red bell pepper, banana or baked potato, ketchup or cola. Three seconds each, numbers per 100 g from USDA FoodData Central.\n\nTell RecipeFix how you eat. It rewrites the cooking steps, not just the ingredient list.\n\n#foodfacts #nutrition #thisorthat #recipefix",
+      "ai_voice": true,
+      "cover_ms": 300
+    },
+    "instagram_reel": {
+      "platform": "instagram",
+      "kind": "video",
+      "media": [
+        "runs/2026-10-27/versus-surprises/versus-surprises.mp4"
+      ],
+      "text": "Which has more vitamin C, an orange or a bell pepper? Orange or red bell pepper, banana or baked potato, ketchup or cola. Three seconds each, numbers per 100 g from USDA FoodData Central.\n\nNumbers per 100 g: USDA FoodData Central, SR Legacy.\n\nTell RecipeFix how you eat. It rewrites the cooking steps, not just the ingredient list.\n\n#foodfacts #nutrition #thisorthat #recipefix",
+      "ai_voice": true
+    },
+    "youtube": {
+      "platform": "youtube",
+      "kind": "video",
+      "media": [
+        "runs/2026-10-27/versus-surprises/versus-surprises.mp4"
+      ],
+      "title": "Orange or red bell pepper, banana or baked potato, ketchup or cola? #shorts",
+      "text": "Which has more vitamin C, an orange or a bell pepper? Orange or red bell pepper, banana or baked potato, ketchup or cola. Three seconds each, numbers per 100 g from USDA FoodData Central.\n\nMore vitamin C: Red bell pepper (128 mg vs 53.2 mg per 100 g)\nMore potassium: Baked potato (535 mg vs 358 mg per 100 g)\nMore sugar: Ketchup (21.3 g vs 9.94 g per 100 g)\n\nNumbers per 100 g, USDA FoodData Central, SR Legacy:\nhttps://fdc.nal.usda.gov/food-details/169097/nutrients\nhttps://fdc.nal.usda.gov/food-details/170108/nutrients\nhttps://fdc.nal.usda.gov/food-details/173944/nutrients\nhttps://fdc.nal.usda.gov/food-details/170093/nutrients\nhttps://fdc.nal.usda.gov/food-details/168556/nutrients\nhttps://fdc.nal.usda.gov/food-details/174852/nutrients\n\nTell RecipeFix how you eat. It rewrites the cooking steps, not just the ingredient list. https://recipefix.app",
+      "ai_voice": true
+    },
+    "x": {
+      "platform": "x",
+      "kind": "video",
+      "media": [
+        "runs/2026-10-27/versus-surprises/versus-surprises.mp4"
+      ],
+      "text": "Which has more vitamin C, an orange or a bell pepper? Orange or red bell pepper, banana or baked potato, ketchup or cola. Three seconds each, numbers per 100 g from USDA FoodData Central.",
+      "thread": [
+        "More vitamin C: Red bell pepper (128 mg vs 53.2 mg per 100 g)\nMore potassium: Baked potato (535 mg vs 358 mg per 100 g)\nMore sugar: Ketchup (21.3 g vs 9.94 g per 100 g)\n\nPer 100 g, USDA FoodData Central, SR Legacy."
+      ]
+    },
+    "threads": {
+      "platform": "threads",
+      "kind": "video",
+      "media": [
+        "runs/2026-10-27/versus-surprises/versus-surprises.mp4"
+      ],
+      "text": "Which has more vitamin C, an orange or a bell pepper? Orange or red bell pepper, banana or baked potato, ketchup or cola. Three seconds each, numbers per 100 g from USDA FoodData Central.",
+      "thread": [
+        "More vitamin C: Red bell pepper (128 mg vs 53.2 mg per 100 g)\nMore potassium: Baked potato (535 mg vs 358 mg per 100 g)\nMore sugar: Ketchup (21.3 g vs 9.94 g per 100 g)\n\nPer 100 g, USDA FoodData Central, SR Legacy.",
+        "Tell RecipeFix how you eat. It rewrites the cooking steps, not just the ingredient list."
+      ]
+    }
+  },
+  "sources": [
+    {
+      "name": "USDA FoodData Central, SR Legacy: Oranges, raw, all commercial varieties (FDC 169097)",
+      "url": "https://fdc.nal.usda.gov/food-details/169097/nutrients",
+      "quote": "Vitamin C, total ascorbic acid 53.2 MG"
+    },
+    {
+      "name": "USDA FoodData Central, SR Legacy: Peppers, sweet, red, raw (FDC 170108)",
+      "url": "https://fdc.nal.usda.gov/food-details/170108/nutrients",
+      "quote": "Vitamin C, total ascorbic acid 128 MG"
+    },
+    {
+      "name": "USDA FoodData Central, SR Legacy: Bananas, raw (FDC 173944)",
+      "url": "https://fdc.nal.usda.gov/food-details/173944/nutrients",
+      "quote": "Potassium, K 358 MG"
+    },
+    {
+      "name": "USDA FoodData Central, SR Legacy: Potatoes, baked, flesh and skin, without salt (FDC 170093)",
+      "url": "https://fdc.nal.usda.gov/food-details/170093/nutrients",
+      "quote": "Potassium, K 535 MG"
+    },
+    {
+      "name": "USDA FoodData Central, SR Legacy: Catsup (FDC 168556)",
+      "url": "https://fdc.nal.usda.gov/food-details/168556/nutrients",
+      "quote": "Total Sugars 21.3 G"
+    },
+    {
+      "name": "USDA FoodData Central, SR Legacy: Beverages, carbonated, cola, regular (FDC 174852)",
+      "url": "https://fdc.nal.usda.gov/food-details/174852/nutrients",
+      "quote": "Total Sugars 9.94 G"
+    }
+  ],
+  "claims": [
+    "core.rewrites_steps"
+  ],
+  "assets": [
+    {
+      "id": "brand/recipefix-mark-512.png",
+      "provenance": "recipe-fix a82f8bb9:LAUNCH_KIT/assets/brand/recipefix-mark-512.png",
+      "licence": "first-party brand mark",
+      "sha256": "fcebd5205fadf3dfdddff83e288253498d98d06fa8c08b43444c3c06fb2cc84f"
+    }
+  ],
+  "qa": {
+    "passed": true,
+    "checks": [
+      {
+        "id": "video.size",
+        "passed": true,
+        "detail": "5.0 MB (≤ 40 MB)",
+        "problems": []
+      },
+      {
+        "id": "video.duration",
+        "passed": true,
+        "detail": "22.9 s (target 15–26 s for three rounds)",
+        "problems": []
+      },
+      {
+        "id": "audio.loudness",
+        "passed": true,
+        "detail": "-15 LUFS, peak -2 dBFS",
+        "problems": []
+      },
+      {
+        "id": "audio.transcript",
+        "passed": true,
+        "detail": "WER 0.0% between script and whisper of the export",
+        "problems": [
+          "heard: Vitamin C. Orange or Red Bell Pepper Red Bell Pepper. More than twice as much Potassium. Banana. Or baked potato. The potato. 535 to 358. Sugar. Ketchup. Or cola. Ketchup. About twice as much."
+        ]
+      },
+      {
+        "id": "facts.agree",
+        "passed": true,
+        "detail": "winner, ratio and wording computed from the FDC numbers",
+        "problems": []
+      },
+      {
+        "id": "r1-question:still.canvas",
+        "passed": true,
+        "detail": "1080×1920",
+        "problems": []
+      },
+      {
+        "id": "r1-question:still.text_readback",
+        "passed": true,
+        "detail": "5 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 22 words, file: 14 words, inverted: 15 words, rules removed: 14 words, white-text mask: 27 words, dark-text mask: 18 words)",
+        "problems": []
+      },
+      {
+        "id": "r1-question:still.no_artefacts",
+        "passed": true,
+        "detail": "no [object Object] / undefined / NaN / braces read on the image",
+        "problems": []
+      },
+      {
+        "id": "r1-question:still.safe_zone",
+        "passed": true,
+        "detail": "12 word boxes inside x 120–900, y 270–1250",
+        "problems": []
+      },
+      {
+        "id": "r1-question:still.text_overlap",
+        "passed": true,
+        "detail": "no two intended lines overprint each other",
+        "problems": []
+      },
+      {
+        "id": "r1-question:still.text_size",
+        "passed": true,
+        "detail": "every line's median OCR word height ≥ 22px",
+        "problems": []
+      },
+      {
+        "id": "r1-question:still.contrast",
+        "passed": true,
+        "detail": "min 5.22:1 over 12 word boxes (WCAG AA 4.5:1)",
+        "problems": []
+      },
+      {
+        "id": "r1-answer:still.canvas",
+        "passed": true,
+        "detail": "1080×1920",
+        "problems": []
+      },
+      {
+        "id": "r1-answer:still.text_readback",
+        "passed": true,
+        "detail": "4 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 43 words, file: 39 words, inverted: 39 words, rules removed: 39 words, white-text mask: 57 words, dark-text mask: 31 words)",
+        "problems": []
+      },
+      {
+        "id": "r1-answer:still.no_artefacts",
+        "passed": true,
+        "detail": "no [object Object] / undefined / NaN / braces read on the image",
+        "problems": []
+      },
+      {
+        "id": "r1-answer:still.safe_zone",
+        "passed": true,
+        "detail": "17 word boxes inside x 120–900, y 270–1250",
+        "problems": []
+      },
+      {
+        "id": "r1-answer:still.text_overlap",
+        "passed": true,
+        "detail": "no two intended lines overprint each other",
+        "problems": []
+      },
+      {
+        "id": "r1-answer:still.text_size",
+        "passed": true,
+        "detail": "every line's median OCR word height ≥ 22px",
+        "problems": []
+      },
+      {
+        "id": "r1-answer:still.contrast",
+        "passed": true,
+        "detail": "min 5.27:1 over 17 word boxes (WCAG AA 4.5:1)",
+        "problems": []
+      },
+      {
+        "id": "r2-question:still.canvas",
+        "passed": true,
+        "detail": "1080×1920",
+        "problems": []
+      },
+      {
+        "id": "r2-question:still.text_readback",
+        "passed": true,
+        "detail": "5 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 22 words, file: 14 words, inverted: 17 words, rules removed: 14 words, white-text mask: 27 words, dark-text mask: 16 words)",
+        "problems": []
+      },
+      {
+        "id": "r2-question:still.no_artefacts",
+        "passed": true,
+        "detail": "no [object Object] / undefined / NaN / braces read on the image",
+        "problems": []
+      },
+      {
+        "id": "r2-question:still.safe_zone",
+        "passed": true,
+        "detail": "10 word boxes inside x 120–900, y 270–1250",
+        "problems": []
+      },
+      {
+        "id": "r2-question:still.text_overlap",
+        "passed": true,
+        "detail": "no two intended lines overprint each other",
+        "problems": []
+      },
+      {
+        "id": "r2-question:still.text_size",
+        "passed": true,
+        "detail": "every line's median OCR word height ≥ 22px",
+        "problems": []
+      },
+      {
+        "id": "r2-question:still.contrast",
+        "passed": true,
+        "detail": "min 5.79:1 over 10 word boxes (WCAG AA 4.5:1)",
+        "problems": []
+      },
+      {
+        "id": "r2-answer:still.canvas",
+        "passed": true,
+        "detail": "1080×1920",
+        "problems": []
+      },
+      {
+        "id": "r2-answer:still.text_readback",
+        "passed": true,
+        "detail": "4 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 41 words, file: 38 words, inverted: 37 words, rules removed: 38 words, white-text mask: 46 words, dark-text mask: 36 words)",
+        "problems": []
+      },
+      {
+        "id": "r2-answer:still.no_artefacts",
+        "passed": true,
+        "detail": "no [object Object] / undefined / NaN / braces read on the image",
+        "problems": []
+      },
+      {
+        "id": "r2-answer:still.safe_zone",
+        "passed": true,
+        "detail": "16 word boxes inside x 120–900, y 270–1250",
+        "problems": []
+      },
+      {
+        "id": "r2-answer:still.text_overlap",
+        "passed": true,
+        "detail": "no two intended lines overprint each other",
+        "problems": []
+      },
+      {
+        "id": "r2-answer:still.text_size",
+        "passed": true,
+        "detail": "every line's median OCR word height ≥ 22px",
+        "problems": []
+      },
+      {
+        "id": "r2-answer:still.contrast",
+        "passed": true,
+        "detail": "min 5.89:1 over 16 word boxes (WCAG AA 4.5:1)",
+        "problems": []
+      },
+      {
+        "id": "r3-question:still.canvas",
+        "passed": true,
+        "detail": "1080×1920",
+        "problems": []
+      },
+      {
+        "id": "r3-question:still.text_readback",
+        "passed": true,
+        "detail": "5 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 19 words, file: 13 words, inverted: 11 words, rules removed: 13 words, white-text mask: 35 words, dark-text mask: 12 words)",
+        "problems": []
+      },
+      {
+        "id": "r3-question:still.no_artefacts",
+        "passed": true,
+        "detail": "no [object Object] / undefined / NaN / braces read on the image",
+        "problems": []
+      },
+      {
+        "id": "r3-question:still.safe_zone",
+        "passed": true,
+        "detail": "9 word boxes inside x 120–900, y 270–1250",
+        "problems": []
+      },
+      {
+        "id": "r3-question:still.text_overlap",
+        "passed": true,
+        "detail": "no two intended lines overprint each other",
+        "problems": []
+      },
+      {
+        "id": "r3-question:still.text_size",
+        "passed": true,
+        "detail": "every line's median OCR word height ≥ 22px",
+        "problems": []
+      },
+      {
+        "id": "r3-question:still.contrast",
+        "passed": true,
+        "detail": "min 6.50:1 over 9 word boxes (WCAG AA 4.5:1)",
+        "problems": []
+      },
+      {
+        "id": "r3-answer:still.canvas",
+        "passed": true,
+        "detail": "1080×1920",
+        "problems": []
+      },
+      {
+        "id": "r3-answer:still.text_readback",
+        "passed": true,
+        "detail": "4 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 35 words, file: 31 words, inverted: 31 words, rules removed: 31 words, white-text mask: 61 words, dark-text mask: 31 words)",
+        "problems": []
+      },
+      {
+        "id": "r3-answer:still.no_artefacts",
+        "passed": true,
+        "detail": "no [object Object] / undefined / NaN / braces read on the image",
+        "problems": []
+      },
+      {
+        "id": "r3-answer:still.safe_zone",
+        "passed": true,
+        "detail": "19 word boxes inside x 120–900, y 270–1250",
+        "problems": []
+      },
+      {
+        "id": "r3-answer:still.text_overlap",
+        "passed": true,
+        "detail": "no two intended lines overprint each other",
+        "problems": []
+      },
+      {
+        "id": "r3-answer:still.text_size",
+        "passed": true,
+        "detail": "every line's median OCR word height ≥ 22px",
+        "problems": []
+      },
+      {
+        "id": "r3-answer:still.contrast",
+        "passed": true,
+        "detail": "min 6.04:1 over 19 word boxes (WCAG AA 4.5:1)",
+        "problems": []
+      },
+      {
+        "id": "recap:still.canvas",
+        "passed": true,
+        "detail": "1080×1920",
+        "problems": []
+      },
+      {
+        "id": "recap:still.text_readback",
+        "passed": true,
+        "detail": "4 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 40 words, file: 40 words, inverted: 40 words, rules removed: 42 words, white-text mask: 43 words, dark-text mask: 38 words)",
+        "problems": []
+      },
+      {
+        "id": "recap:still.no_artefacts",
+        "passed": true,
+        "detail": "no [object Object] / undefined / NaN / braces read on the image",
+        "problems": []
+      },
+      {
+        "id": "recap:still.safe_zone",
+        "passed": true,
+        "detail": "10 word boxes inside x 120–900, y 270–1250",
+        "problems": []
+      },
+      {
+        "id": "recap:still.text_overlap",
+        "passed": true,
+        "detail": "no two intended lines overprint each other",
+        "problems": []
+      },
+      {
+        "id": "recap:still.text_size",
+        "passed": true,
+        "detail": "every line's median OCR word height ≥ 22px",
+        "problems": []
+      },
+      {
+        "id": "recap:still.contrast",
+        "passed": true,
+        "detail": "min 17.53:1 over 10 word boxes (WCAG AA 4.5:1)",
+        "problems": []
+      },
+      {
+        "id": "copy.platform_rules",
+        "passed": true,
+        "detail": "caption lengths, YouTube title, no X links, 3–5 hashtags incl. #recipefix, no forbidden claims, no bait, no health claims, reads human",
+        "problems": []
+      },
+      {
+        "id": "knowledge.product_posts",
+        "passed": true,
+        "detail": "pack ad17c991 has a release receipt",
+        "problems": []
+      }
+    ]
+  },
+  "cost_usd": 0.30352,
+  "disclosures": {
+    "ai_voice": true,
+    "tiktok_is_aigc": true,
+    "photos": "none: tiles are type and colour",
+    "knowledge_commit": "ad17c99162a47c769abfb70cd62f0bfb2f2e31e3",
+    "verified": "2026-10-26T00:00:00.000Z"
+  }
+}

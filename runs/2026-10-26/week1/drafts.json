@@ -1,0 +1,39 @@
+{
+  "note": "First-week drafts (CONTENT_PLAN_14_DAYS days 1–6) the lean lane can stand behind today. UNPUBLISHED. Each is gated by copyGate; each reuses a QA-passed asset rather than a new render.",
+  "drafts": [
+    {
+      "id": "D6-x-image-I5",
+      "day": 6,
+      "platform": "x",
+      "idea": "I5",
+      "media": "runs/2026-10-26/I5-ig-carousel/slides/03-method.jpg",
+      "media_note": "Slide 3 of the QA-passed carousel (1080×1350; X accepts 4:5). A platform variant, not the same post: single image + its own copy.",
+      "text": "Scaling a curry from 4 to 6 servings? Don't add 50% to the broil time. Broil in two batches, 8 to 10 minutes each, so uncrowded chicken keeps its char. Real RecipeFix result, Oct 21.",
+      "hashtags": [],
+      "link_reply": "The full recipe it started from: https://recipefix.app/original-recipes/chicken-tikka-masala?utm_source=x&utm_medium=social&utm_campaign=transformation&utm_content=D6-x-image-I5",
+      "claim_ids": ["proof.tikka_method_changes"],
+      "fact_ids": ["scale", "broil_time"]
+    },
+    {
+      "id": "D6-reels-V1",
+      "day": 6,
+      "platform": "instagram",
+      "idea": "V1",
+      "media": "runs/2026-10-26/V1-short/V1-short.mp4",
+      "media_note": "Same QA-passed master as the TikTok cut (text inside the intersection of both safe areas). Reels-specific caption; set the AI-voice label.",
+      "text": "Cooking for more people than the recipe serves? The ingredients scale. The clock mostly doesn't. Broil in batches at the same time per batch, and take a wider pan off the heat when a spoon dragged through the sauce leaves a trail. Save this for the holidays.",
+      "hashtags": ["recipescaling", "cookingtips", "dairyfree", "tikkamasala"],
+      "claim_ids": ["proof.tikka_method_changes"],
+      "fact_ids": []
+    }
+  ],
+  "not_drafted": [
+    { "day": 1, "platform": "tiktok", "idea": "I1", "why": "Needs founder footage (pans, ruler); no footage exists. The 117 vs 64 sq in geometry is verifiable but the bake-time line is ⚑ untested." },
+    { "day": 1, "platform": "x", "idea": "I2", "why": "Egg weight (USDA ~50 g) not verified from a primary source this session: USDA FDC/FSIS fetches were blocked. Draft only after the number is checked." },
+    { "day": 2, "platform": "instagram", "idea": "I1", "why": "Slide 1 needs a real photo of the two pans (brand rule); none exists." },
+    { "day": 3, "platform": "tiktok+x", "idea": "I3", "why": "USDA FSIS turkey figures not re-verified (403 from fsis.usda.gov); founder footage absent." },
+    { "day": 4, "platform": "instagram+x", "idea": "I4", "why": "Cornstarch ratio is ⚑ in the plan (needs King Arthur / Serious Eats citation); not verified." },
+    { "day": 5, "platform": "tiktok", "idea": "I10", "why": "Possible from the existing capture, but it would repeat V1's proof beat in the same week; better as week 2 with founder hands holding the phone." },
+    { "day": 5, "platform": "x", "idea": "I8", "why": "Worcestershire ingredient list not verified from the brand page (redirected)." }
+  ]
+}

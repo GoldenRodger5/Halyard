@@ -1,0 +1,201 @@
+{
+  "series": "Recipe Fixed #1",
+  "hook": {
+    "title": "Dairy-free tikka masala",
+    "question": "Cooking it for 6: what changes in the broiler step?",
+    "options": [
+      "Broil it longer",
+      "Use two sheets"
+    ],
+    "answer": 1,
+    "servings": {
+      "from": 4,
+      "to": 6
+    },
+    "photo": "photo-chicken-tikka-masala-16x9.jpg",
+    "end": 108
+  },
+  "swaps": {
+    "rows": [
+      {
+        "from": "3/4 cup plain whole-milk yogurt",
+        "to": "1 cup plus 2 tablespoons plain unsweetened dairy-free coconut yogurt",
+        "why": "an acidic, coating marinade without dairy"
+      },
+      {
+        "from": "2 tablespoons butter",
+        "to": "3 tablespoons vegan butter",
+        "why": "supplies the fat needed to soften the onion"
+      },
+      {
+        "from": "1/2 cup heavy cream",
+        "to": "3/4 cup full-fat coconut cream",
+        "why": "restores the sauce's richness without dairy"
+      }
+    ],
+    "rowAt": [
+      110,
+      134,
+      158
+    ],
+    "start": 108,
+    "end": 224
+  },
+  "step": {
+    "title": "Broil the Marinated Chicken",
+    "before": [
+      {
+        "text": "…",
+        "kind": "gap"
+      },
+      {
+        "text": "spread",
+        "kind": "same"
+      },
+      {
+        "text": "it",
+        "kind": "del"
+      },
+      {
+        "text": "on",
+        "kind": "same"
+      },
+      {
+        "text": "a",
+        "kind": "del"
+      },
+      {
+        "text": "foil-lined baking",
+        "kind": "same"
+      },
+      {
+        "text": "sheet",
+        "kind": "del"
+      },
+      {
+        "text": "…",
+        "kind": "gap"
+      },
+      {
+        "text": "Broil for",
+        "kind": "same"
+      },
+      {
+        "text": "8 to 10 minutes",
+        "kind": "keep"
+      },
+      {
+        "text": "…",
+        "kind": "gap"
+      }
+    ],
+    "after": [
+      {
+        "text": "…",
+        "kind": "gap"
+      },
+      {
+        "text": "spread",
+        "kind": "same"
+      },
+      {
+        "text": "in a single uncrowded layer",
+        "kind": "ins"
+      },
+      {
+        "text": "on",
+        "kind": "same"
+      },
+      {
+        "text": "two",
+        "kind": "ins"
+      },
+      {
+        "text": "foil-lined baking",
+        "kind": "same"
+      },
+      {
+        "text": "sheets",
+        "kind": "ins"
+      },
+      {
+        "text": "…",
+        "kind": "gap"
+      },
+      {
+        "text": "broil",
+        "kind": "same"
+      },
+      {
+        "text": "one sheet at a time",
+        "kind": "ins"
+      },
+      {
+        "text": "for",
+        "kind": "same"
+      },
+      {
+        "text": "8 to 10 minutes",
+        "kind": "keep"
+      },
+      {
+        "text": "…",
+        "kind": "gap"
+      }
+    ],
+    "why": "Allow two broiler batches at this size, keeping the cooking time per batch unchanged",
+    "takeaway": "Two sheets, one at a time. Same 8 to 10 minutes.",
+    "beforeHead": "As written: one sheet.",
+    "answer": "B",
+    "start": 224,
+    "end": 434,
+    "beforeIn": 226,
+    "strike": 236,
+    "afterIn": 268,
+    "sweep": 278,
+    "keepAt": 330,
+    "whyAt": 344
+  },
+  "result": {
+    "name": "Chicken Tikka Masala with Coconut Cream",
+    "servings": {
+      "from": 4,
+      "to": 6
+    },
+    "photo": "photo-chicken-tikka-masala.jpg",
+    "photoLabel": "Photo: the Original recipe (licensed stock)",
+    "start": 434,
+    "end": 506
+  },
+  "close": {
+    "start": 506,
+    "save": "Save this: 3 dairy-free swaps + 1 step",
+    "swaps": [
+      [
+        "whole-milk yogurt",
+        "coconut yogurt"
+      ],
+      [
+        "butter",
+        "vegan butter"
+      ],
+      [
+        "heavy cream",
+        "coconut cream"
+      ]
+    ],
+    "tips": [
+      "For 6: two sheets, broil one at a time, 8 to 10 minutes each."
+    ],
+    "tie": "RecipeFix rewrites the cooking steps, not just the ingredient list.",
+    "note": "Real RecipeFix result, captured 2026-10-21. Recipe: a RecipeFix Original."
+  },
+  "sfx": {
+    "tick": "sfx-tick.wav",
+    "reveal": "sfx-reveal.wav",
+    "whoosh": "sfx-whoosh.wav",
+    "scribble": "sfx-scribble.wav",
+    "swipe": "sfx-swipe.wav"
+  },
+  "audio": null
+}

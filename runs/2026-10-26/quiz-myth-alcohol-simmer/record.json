@@ -1,0 +1,243 @@
+{
+  "schema": 1,
+  "id": "quiz-myth-alcohol-simmer",
+  "format": "quiz",
+  "summary": "Simmer wine in a sauce for an hour and the alcohol is gone.",
+  "made_at": "2026-10-27T02:17:54.336Z",
+  "outputs": {
+    "video": "runs/2026-10-26/quiz-myth-alcohol-simmer/quiz-myth-alcohol-simmer.mp4"
+  },
+  "posts": {
+    "tiktok": {
+      "platform": "tiktok",
+      "kind": "video",
+      "media": [
+        "runs/2026-10-26/quiz-myth-alcohol-simmer/quiz-myth-alcohol-simmer.mp4"
+      ],
+      "text": "Myth or fact? Most recipes imply one answer. USDA measured another.\n\n#cookingtips #foodscience #kitchenmyths #recipefix",
+      "ai_voice": false
+    },
+    "instagram_reel": {
+      "platform": "instagram",
+      "kind": "video",
+      "media": [
+        "runs/2026-10-26/quiz-myth-alcohol-simmer/quiz-myth-alcohol-simmer.mp4"
+      ],
+      "text": "Myth or fact? Most recipes imply one answer. USDA measured another.\n\nAnswer: Myth. USDA measured about 25% of the alcohol still there after an hour of simmering, and about 5% after two and a half hours.\nSource: USDA Nutrient Retention Factors, Release 6\n\nSave this before you cook with wine again.\n\n#cookingtips #foodscience #kitchenmyths #recipefix",
+      "ai_voice": false
+    },
+    "youtube": {
+      "platform": "youtube",
+      "kind": "video",
+      "media": [
+        "runs/2026-10-26/quiz-myth-alcohol-simmer/quiz-myth-alcohol-simmer.mp4"
+      ],
+      "title": "Simmer wine in a sauce for an hour and the alcohol is gone. #shorts",
+      "text": "Answer: Myth. USDA measured about 25% of the alcohol still there after an hour of simmering, and about 5% after two and a half hours.\nSource: USDA Nutrient Retention Factors, Release 6 (https://www.ars.usda.gov/ARSUserFiles/80400525/Data/retn/retn06.pdf)\n\nCooking halal or without wine? RecipeFix swaps it out and rewrites the steps. https://recipefix.app",
+      "ai_voice": false
+    },
+    "x": {
+      "platform": "x",
+      "kind": "video",
+      "media": [
+        "runs/2026-10-26/quiz-myth-alcohol-simmer/quiz-myth-alcohol-simmer.mp4"
+      ],
+      "text": "Myth or fact? Most recipes imply one answer. USDA measured another.",
+      "thread": [
+        "Answer: Myth\n\nUSDA measured about 25% of the alcohol still there after an hour of simmering, and about 5% after two and a half hours.\n\nSource: USDA Nutrient Retention Factors, Release 6"
+      ]
+    },
+    "threads": {
+      "platform": "threads",
+      "kind": "video",
+      "media": [
+        "runs/2026-10-26/quiz-myth-alcohol-simmer/quiz-myth-alcohol-simmer.mp4"
+      ],
+      "text": "Myth or fact? Most recipes imply one answer. USDA measured another.",
+      "thread": [
+        "Answer: Myth\n\nUSDA measured about 25% of the alcohol still there after an hour of simmering, and about 5% after two and a half hours.\n\nSource: USDA Nutrient Retention Factors, Release 6"
+      ]
+    }
+  },
+  "sources": [
+    {
+      "name": "USDA Table of Nutrient Retention Factors, Release 6",
+      "url": "https://www.ars.usda.gov/ARSUserFiles/80400525/Data/retn/retn06.pdf",
+      "quote": "ALC BEV,STIRRED,BKD/SIMMRD 1 HR … 25; ALC BEV,STIRRED,BKD/SIMMRD 2.5 HR … 5"
+    }
+  ],
+  "claims": [
+    "core.diets",
+    "core.rewrites_steps"
+  ],
+  "assets": [
+    {
+      "id": "brand/recipefix-mark-512.png",
+      "provenance": "recipe-fix a82f8bb9:LAUNCH_KIT/assets/brand/recipefix-mark-512.png",
+      "licence": "first-party brand mark",
+      "sha256": "fcebd5205fadf3dfdddff83e288253498d98d06fa8c08b43444c3c06fb2cc84f"
+    }
+  ],
+  "qa": {
+    "passed": true,
+    "checks": [
+      {
+        "id": "video.duration",
+        "passed": true,
+        "detail": "23.8 s (target 8–25 s)",
+        "problems": []
+      },
+      {
+        "id": "audio.loudness",
+        "passed": true,
+        "detail": "-30.5 LUFS, peak -18.4 dBFS (silent cut: ticks and chime only, not held to −14)",
+        "problems": []
+      },
+      {
+        "id": "q1-question:still.canvas",
+        "passed": true,
+        "detail": "1080×1920",
+        "problems": []
+      },
+      {
+        "id": "q1-question:still.text_readback",
+        "passed": true,
+        "detail": "2 intended lines, min similarity 1.00 (OCR vision: 18 words, file: 23 words, inverted: 27 words, rules removed: 23 words, white-text mask: 17 words, dark-text mask: 21 words); 0 struck lines held to their recorded lower bar",
+        "problems": []
+      },
+      {
+        "id": "q1-question:still.no_artefacts",
+        "passed": true,
+        "detail": "no [object Object] / undefined / NaN / braces read on the image",
+        "problems": []
+      },
+      {
+        "id": "q1-question:still.safe_zone",
+        "passed": true,
+        "detail": "11 word boxes inside x 120–900, y 270–1250",
+        "problems": []
+      },
+      {
+        "id": "q1-question:still.text_overlap",
+        "passed": true,
+        "detail": "no two intended lines overprint each other",
+        "problems": []
+      },
+      {
+        "id": "q1-question:still.text_size",
+        "passed": true,
+        "detail": "every line's median OCR word height ≥ 22px",
+        "problems": []
+      },
+      {
+        "id": "q1-question:still.contrast",
+        "passed": true,
+        "detail": "min 6.01:1 over 11 word boxes (WCAG AA 4.5:1)",
+        "problems": []
+      },
+      {
+        "id": "q1-answer:still.canvas",
+        "passed": true,
+        "detail": "1080×1920",
+        "problems": []
+      },
+      {
+        "id": "q1-answer:still.text_readback",
+        "passed": true,
+        "detail": "3 intended lines, min similarity 1.00 (OCR vision: 47 words, file: 22 words, inverted: 60 words, rules removed: 22 words, white-text mask: 47 words, dark-text mask: 54 words); 0 struck lines held to their recorded lower bar",
+        "problems": []
+      },
+      {
+        "id": "q1-answer:still.no_artefacts",
+        "passed": true,
+        "detail": "no [object Object] / undefined / NaN / braces read on the image",
+        "problems": []
+      },
+      {
+        "id": "q1-answer:still.safe_zone",
+        "passed": true,
+        "detail": "37 word boxes inside x 120–900, y 270–1250",
+        "problems": []
+      },
+      {
+        "id": "q1-answer:still.text_overlap",
+        "passed": true,
+        "detail": "no two intended lines overprint each other",
+        "problems": []
+      },
+      {
+        "id": "q1-answer:still.text_size",
+        "passed": true,
+        "detail": "every line's median OCR word height ≥ 22px",
+        "problems": []
+      },
+      {
+        "id": "q1-answer:still.contrast",
+        "passed": true,
+        "detail": "min 5.31:1 over 37 word boxes (WCAG AA 4.5:1)",
+        "problems": []
+      },
+      {
+        "id": "close:still.canvas",
+        "passed": true,
+        "detail": "1080×1920",
+        "problems": []
+      },
+      {
+        "id": "close:still.text_readback",
+        "passed": true,
+        "detail": "2 intended lines, min similarity 1.00 (OCR vision: 15 words, file: 17 words, inverted: 15 words, rules removed: 15 words, white-text mask: 14 words, dark-text mask: 13 words); 0 struck lines held to their recorded lower bar",
+        "problems": []
+      },
+      {
+        "id": "close:still.no_artefacts",
+        "passed": true,
+        "detail": "no [object Object] / undefined / NaN / braces read on the image",
+        "problems": []
+      },
+      {
+        "id": "close:still.safe_zone",
+        "passed": true,
+        "detail": "13 word boxes inside x 120–900, y 270–1250",
+        "problems": []
+      },
+      {
+        "id": "close:still.text_overlap",
+        "passed": true,
+        "detail": "no two intended lines overprint each other",
+        "problems": []
+      },
+      {
+        "id": "close:still.text_size",
+        "passed": true,
+        "detail": "every line's median OCR word height ≥ 22px",
+        "problems": []
+      },
+      {
+        "id": "close:still.contrast",
+        "passed": true,
+        "detail": "min 13.71:1 over 13 word boxes (WCAG AA 4.5:1)",
+        "problems": []
+      },
+      {
+        "id": "copy.platform_rules",
+        "passed": true,
+        "detail": "caption lengths, no X links, no forbidden claims, no bait, reads human (no em dashes, no stock AI phrasing)",
+        "problems": []
+      },
+      {
+        "id": "knowledge.product_posts",
+        "passed": true,
+        "detail": "pack ad17c991 has a release receipt",
+        "problems": []
+      }
+    ]
+  },
+  "cost_usd": 0,
+  "disclosures": {
+    "ai_voice": false,
+    "tiktok_is_aigc": false,
+    "photos": "licensed stock behind the card; not the dish discussed",
+    "knowledge_commit": "ad17c99162a47c769abfb70cd62f0bfb2f2e31e3"
+  }
+}
