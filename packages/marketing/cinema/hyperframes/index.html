@@ -29,7 +29,7 @@
 #close-title{top:380px;font-size:122px;line-height:.96}#close-description{position:absolute;left:100px;top:690px;width:690px;font-size:51px;line-height:1.14;letter-spacing:-1.8px;font-weight:600}
 #result-crop{position:absolute;left:100px;top:830px;width:800px;height:380px;border-radius:12px;overflow:hidden;background:#fff;border:1px solid #b6c741}#result-crop img{position:absolute;bottom:0;left:0;width:100%;height:auto}
 #close-cta{position:absolute;left:100px;top:1240px;width:800px;border-top:5px solid #122e25;padding-top:24px;font-size:72px;letter-spacing:-3.5px;font-weight:600}
-#close-arrow{position:absolute;right:0;top:15px;font-size:84px}
+#close-arrow{position:absolute;right:0;top:2px;font-size:66px;line-height:1}
 #intro-swap{position:absolute;left:100px;top:620px;width:800px;height:188px;overflow:hidden;border:1px solid #b6c741;border-radius:12px;background:#f6f3e9}#intro-swap img{width:100%;height:auto;display:block}#intro-bridge{position:absolute;left:100px;top:825px;width:800px;height:75px}#intro-method{position:absolute;left:100px;top:930px;width:800px;height:402px;border:1px solid #b6c741;border-radius:12px;overflow:hidden;background:#f6f3e9}#intro-method img{width:100%;height:100%;object-fit:contain}#intro-line1,#intro-line2{display:block}
 </style></head>
 <body><div id="root" data-composition-id="main" data-start="0" data-duration="23" data-width="1080" data-height="1920" data-fps="30">
@@ -45,16 +45,16 @@
  <div id="ui-camera"><img id="ui-still" class="clip" data-start="3" data-duration="4" data-track-index="2" src="assets/choose.png" alt="Actual dairy-free six-serving configuration"><video id="ui-footage" class="clip" data-start="3" data-duration="2.28" data-media-start="0" data-track-index="2" src="assets/interaction-viewport.mp4" muted playsinline></video></div>
  <div id="ingredient-scene" class="scene clip" data-start="7" data-duration="4.4" data-track-index="3"><div id="ingredient-stage" class="stage paper">
   <div class="wordmark">RecipeFix</div><div id="ingredient-label" class="overline">01 / The ingredient</div><h2 id="ingredient-title">A different<br>kind of cream.</h2>
-  <div id="old-ingredient" class="ingredient"><div class="name">Heavy<br>cream</div><div class="quantity">½ cup</div></div><div id="new-ingredient" class="ingredient"><div class="name">Full-fat<br>coconut cream</div><div class="quantity">¾ cup</div></div><div id="ingredient-arrow">→</div>
+  <div id="old-ingredient" class="ingredient"><div class="name">Heavy<br>cream</div><div class="quantity">½ cup</div></div><div id="new-ingredient" class="ingredient" data-layout-allow-overflow="true"><div class="name">Full-fat<br>coconut cream</div><div class="quantity">¾ cup</div></div><div id="ingredient-arrow">→</div>
   <div id="ingredient-proof"><img data-layout-allow-overflow="true" src="assets/ingredient.png" alt="Actual RecipeFix changed ingredient row"></div><div class="disclosure">Recorded-result demo · scaled 4 → 6</div>
  </div></div>
  <div id="method-scene" class="scene clip" data-start="11" data-duration="7.4" data-track-index="4"><div id="method-stage" class="stage ink">
-  <div class="wordmark">RecipeFix</div><div id="method-kicker" class="overline">02 / The method</div><h2 id="method-title">The instructions<br>change with it.</h2>
-  <div id="method-note1" class="method-note"><strong>Whisk it smooth.</strong><p>Whisk separated coconut cream<br>smooth before adding.</p></div><div id="method-note2" class="method-note"><strong>Keep it gentle.</strong><p>Keep the sauce at a gentle simmer.</p></div>
-  <div id="method-connector"></div><div id="method-proof"><img src="assets/method.png" alt="Actual stored RecipeFix method and change note"></div><div class="disclosure">Recorded-result demo</div>
+  <div class="wordmark" data-layout-allow-overlap="true">RecipeFix</div><div id="method-kicker" class="overline">02 / The method</div><h2 id="method-title" data-layout-allow-overlap="true">The instructions<br>change with it.</h2>
+  <div id="method-note1" class="method-note"><strong>Whisk it smooth.</strong><p>Whisk separated coconut cream<br>smooth before adding.</p></div><div id="method-note2" class="method-note"><strong data-layout-allow-overlap="true">Keep it gentle.</strong><p>Keep the sauce at a gentle simmer.</p></div>
+  <div id="method-connector"></div><div id="method-proof"><img src="assets/method.png" alt="Actual stored RecipeFix method and change note"></div><div class="disclosure" data-layout-allow-overlap="true">Recorded-result demo</div>
  </div></div>
  <div id="close-scene" class="scene clip" data-start="18" data-duration="5" data-track-index="5"><div id="close-stage" class="stage lime">
-  <div class="wordmark">RecipeFix</div><h2 id="close-title" class="headline">Your recipe.<br>Rethought.</h2><div id="close-description">Ingredients and method,<br>changed together.</div><div id="result-crop"><img data-layout-allow-overflow="true" src="assets/result.png" alt="Actual RecipeFix recipe result header"></div><div id="close-cta">recipefix.app <span id="close-arrow">↗</span></div><div class="disclosure">Recorded-result demo</div>
+  <div class="wordmark">RecipeFix</div><h2 id="close-title" class="headline" data-layout-allow-overlap="true">Your recipe.<br>Rethought.</h2><div id="close-description" data-layout-allow-overlap="true">Ingredients and method,<br>changed together.</div><div id="result-crop"><img data-layout-allow-overflow="true" src="assets/result.png" alt="Actual RecipeFix recipe result header"></div><div id="close-cta">recipefix.app <span id="close-arrow">↗</span></div><div class="disclosure">Recorded-result demo</div>
  </div></div>
  <audio id="original-score" class="clip" data-start="0" data-duration="23" data-track-index="6" data-volume="1" data-fade-in="0.1" data-fade-out="0.8" src="assets/sound.wav"></audio>
 </div>
