@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { nativeReviewPage } from "./native-review";
+import { nativeReviewPage, reviewPostKey } from "./native-review";
 import { nativeJson } from "./native-json";
 
 const campaign = "campaign",
@@ -102,5 +102,113 @@ describe("exact native reward review", () => {
         JSON.stringify({ message: 'a string containing "id": is inert' }),
       ),
     ).not.toBeNull();
+  });
+  it.each([
+    [
+      "youtube",
+      "https://www.youtube.com/watch?v=abcdefghijk",
+      [
+        "https://www.youtube.com/watch?v=abcdefghijk",
+        "https://youtube.com/watch?v=abcdefghijk",
+        "https://www.youtube.com/shorts/abcdefghijk",
+        "https://m.youtube.com/shorts/abcdefghijk/",
+      ],
+    ],
+    [
+      "instagram",
+      "https://www.instagram.com/reel/Cx_Ab-12/",
+      [
+        "https://www.instagram.com/reel/Cx_Ab-12/",
+        "https://www.instagram.com/reel/Cx_Ab-12",
+        "https://instagram.com/p/Cx_Ab-12/",
+      ],
+    ],
+  ])(
+    "matches %s by normalised media id across stored URL forms",
+    (platform, publicUrl, stored) => {
+      for (const postUrl of stored)
+        expect(
+          nativeReviewPage(
+            page([{ ...row, socialMediaPost: { postUrl } }]),
+            campaign,
+            publicUrl,
+            "self",
+            platform,
+          ),
+        ).toMatchObject({
+          status: "PAGE",
+          matched: [{ remote_id: "submission" }],
+        });
+    },
+  );
+  it.each([
+    [
+      "youtube",
+      "https://www.youtube.com/watch?v=abcdefghijk",
+      "https://www.youtube.com/watch?v=abcdefghijx",
+    ],
+    [
+      "youtube",
+      "https://www.youtube.com/shorts/abcdefghijk",
+      "https://www.youtube.com/watch?v=abcdefghijk&v=zzzzzzzzzzz",
+    ],
+    [
+      "youtube",
+      "https://www.youtube.com/watch?v=abcdefghijk",
+      "https://evil.example/watch?v=abcdefghijk",
+    ],
+    [
+      "instagram",
+      "https://www.instagram.com/reel/Cx_Ab-12/",
+      "https://www.instagram.com/reel/Cx_Ab-13/",
+    ],
+    [
+      "instagram",
+      "https://www.instagram.com/reel/Cx_Ab-12/",
+      "https://www.instagram.com/reel/Cx_Ab-12/extra",
+    ],
+    ["instagram", "https://www.instagram.com/reel/Cx_Ab-12/", url],
+  ])(
+    "does not match a %s row with a different media id or host",
+    (platform, publicUrl, postUrl) => {
+      expect(
+        nativeReviewPage(
+          page([{ ...row, socialMediaPost: { postUrl } }]),
+          campaign,
+          publicUrl,
+          "self",
+          platform,
+        ),
+      ).toMatchObject({ status: "PAGE", matched: [] });
+    },
+  );
+  it("keeps a foreign-user Instagram/YouTube row unknown, never matched", () => {
+    for (const [platform, postUrl] of [
+      ["youtube", "https://www.youtube.com/watch?v=abcdefghijk"],
+      ["instagram", "https://www.instagram.com/reel/Cx_Ab-12/"],
+    ] as const)
+      expect(
+        nativeReviewPage(
+          page([{ ...row, userId: "foreign", socialMediaPost: { postUrl } }]),
+          campaign,
+          postUrl,
+          "self",
+          platform,
+        ).status,
+      ).toBe("UNKNOWN");
+  });
+  it("gives no identity to URLs outside the supported forms", () => {
+    for (const [platform, value] of [
+      ["youtube", "https://www.youtube.com/watch?v=short"],
+      ["youtube", "https://user:pw@www.youtube.com/watch?v=abcdefghijk"],
+      ["youtube", "https://www.youtube.com:8443/shorts/abcdefghijk"],
+      ["youtube", "http://www.youtube.com/watch?v=abcdefghijk"],
+      ["youtube", "https://www.youtube.com/channel/abcdefghijk"],
+      ["instagram", "https://www.instagram.com/creator/"],
+      ["instagram", "https://instagram.example/reel/Cx_Ab-12/"],
+      ["twitter", "https://x.com/a/status/1"],
+    ] as const)
+      expect(reviewPostKey(platform, value)).toBeNull();
+    expect(reviewPostKey("tiktok", url)).toBe(url);
   });
 });

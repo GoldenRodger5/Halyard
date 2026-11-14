@@ -3,7 +3,11 @@ import { responseShape } from "./response-shape";
 import { nativeEnrollmentEvidence } from "./native-enrollment";
 import crypto from "node:crypto";
 import { nativeSubmissionPage } from "./native-submission";
-import { nativeReviewPage, type NativeReview } from "./native-review";
+import {
+  nativeReviewPage,
+  reviewPostKey,
+  type NativeReview,
+} from "./native-review";
 import { nativeJson } from "./native-json";
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@supabase/supabase-js";
@@ -426,14 +430,18 @@ async function readReview(
   const unknown = (reason: string) => ({ status: "UNKNOWN" as const, reason });
   const url = new URL(publicUrl);
   const handle = accountKey.startsWith("@") ? accountKey.slice(1) : accountKey;
+  // TikTok URLs name the account, so the handle must match. Instagram/YouTube URLs carry no handle: the account is
+  // bound only by the probed exact platform account and the same-row authenticated userId below.
   if (
-    platform !== "tiktok" ||
-    !["www.tiktok.com", "tiktok.com"].includes(url.hostname) ||
-    url.username ||
-    url.password ||
-    url.port ||
-    !/^\/@[A-Za-z0-9_.]+\/video\/\d+$/.test(url.pathname) ||
-    url.pathname.split("/")[1] !== `@${handle}`
+    platform === "tiktok"
+      ? !["www.tiktok.com", "tiktok.com"].includes(url.hostname) ||
+        url.username ||
+        url.password ||
+        url.port ||
+        !/^\/@[A-Za-z0-9_.]+\/video\/\d+$/.test(url.pathname) ||
+        url.pathname.split("/")[1] !== `@${handle}`
+      : !["instagram", "youtube"].includes(platform) ||
+        reviewPostKey(platform, publicUrl) === null
   )
     return unknown("CONTENT_REWARDS_REVIEW_ACCOUNT_URL_MISMATCH");
   const signal = AbortSignal.timeout(16_000);
@@ -459,7 +467,13 @@ async function readReview(
       campaignId,
       true,
     );
-    const result = nativeReviewPage(raw, campaignId, publicUrl, scope.userId);
+    const result = nativeReviewPage(
+      raw,
+      campaignId,
+      publicUrl,
+      scope.userId,
+      platform,
+    );
     if (result.status === "UNKNOWN") return result;
     for (const row of result.matched) {
       const old = matched.get(row.remote_id);
@@ -747,8 +761,36 @@ async function inspectContract(
               }
             }
           }
+          // Field NAMES (never values) present on rejected rows, one nested level deep, so a native rejection-reason
+          // field can be proven before read_review exposes one. The shape diagnostic is truncated before nested keys.
+          const rejectedFields = new Map<string, number>();
+          const fieldName = (key: string) =>
+            /^[A-Za-z_][A-Za-z0-9_]{0,49}$/.test(key) &&
+            !/token|cookie|auth|secret|password|nonce|session|credential|email|csrf|(?:^|_)key$/i.test(
+              key,
+            );
+          for (const value of review.data) {
+            const row = value as Record<string, unknown> | null;
+            if (
+              !row ||
+              typeof row !== "object" ||
+              row.reviewStatus !== "rejected"
+            )
+              continue;
+            for (const [key, inner] of Object.entries(row).slice(0, 60)) {
+              if (!fieldName(key)) continue;
+              const paths = [key];
+              if (inner && typeof inner === "object" && !Array.isArray(inner))
+                for (const nested of Object.keys(inner).slice(0, 40))
+                  if (fieldName(nested)) paths.push(key + "." + nested);
+              for (const path of paths)
+                if (rejectedFields.has(path) || rejectedFields.size < 120)
+                  rejectedFields.set(path, (rejectedFields.get(path) ?? 0) + 1);
+            }
+          }
           observed = {
             ...observed,
+            native_rejected_row_fields: Object.fromEntries(rejectedFields),
             review_status_counts: counts,
             native_review_vocabulary: vocabulary,
             native_submission_vocabulary: nativeStates,

@@ -292,6 +292,44 @@ it("native review diagnostics expose bounded enum counts without submission URLs
   ).toEqual({ NATIVE_UNVERIFIED: 1 });
   expect(JSON.stringify(body)).not.toContain("do-not-export");
 });
+it("names fields present on rejected rows without exporting their values", async () => {
+  const native = nativeFetcher();
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (value: unknown, init?: RequestInit) =>
+      new URL(String(value)).pathname.endsWith("/submission/submissions")
+        ? listing([
+            {
+              id: "s",
+              campaignId: campaign,
+              url: "https://private.example/do-not-export",
+              reviewStatus: "rejected",
+              reviewerNote: "private-reason-text",
+              accessToken: "never-name-this",
+            },
+            {
+              id: "t",
+              campaignId: campaign,
+              reviewStatus: "approved",
+              other: 1,
+            },
+          ])
+        : native(value, init),
+    ),
+  );
+  const body = await (await POST(probeRequest("inspect_contract"))).json();
+  const fields =
+    body.result.evidence.submissions.observed.native_rejected_row_fields;
+  expect(fields).toMatchObject({
+    reviewerNote: 1,
+    reviewStatus: 1,
+    "socialMediaPost.postUrl": 1,
+  });
+  expect(fields).not.toHaveProperty("accessToken");
+  expect(fields).not.toHaveProperty("other");
+  expect(JSON.stringify(body)).not.toContain("private-reason-text");
+  expect(JSON.stringify(body)).not.toContain("do-not-export");
+});
 function nativeFetcher(joinReadback = false) {
   let sent = false;
   return vi.fn(async (value: unknown, init?: RequestInit) => {
@@ -314,6 +352,23 @@ function nativeFetcher(joinReadback = false) {
             username: "creator",
             status: "active",
             verificationSource: "bio",
+          },
+          // Instagram/YouTube accounts may carry their own username; the caller's account_key selects it per platform.
+          {
+            id: "account-ig",
+            userId: "self",
+            platform: "instagram",
+            username: "creator.ig",
+            status: "active",
+            verificationSource: "oauth",
+          },
+          {
+            id: "account-yt",
+            userId: "self",
+            platform: "youtube",
+            username: "creator-yt",
+            status: "active",
+            verificationSource: "oauth",
           },
         ],
       };
@@ -523,7 +578,11 @@ const reviewRow = {
   status: "pending",
   flagged: false,
 };
-const reviewRequest = (publicUrl = reviewUrl, accountKey = "@creator") =>
+const reviewRequest = (
+  publicUrl = reviewUrl,
+  accountKey = "@creator",
+  platform = "tiktok",
+) =>
   new NextRequest(
     "https://halyard.example/api/internal/momentcircuit-v2/content-rewards",
     {
@@ -536,7 +595,7 @@ const reviewRequest = (publicUrl = reviewUrl, accountKey = "@creator") =>
         action: "read_review",
         campaign_id: campaign,
         account_key: accountKey,
-        platform: "tiktok",
+        platform,
         public_url: publicUrl,
       }),
     },
@@ -644,3 +703,142 @@ it("trusts NOT_FOUND only from a completed listing and binds the row to the auth
     "UNKNOWN",
   );
 });
+
+const igUrl = "https://www.instagram.com/reel/Cx_Ab-12/";
+const ytId = "abcdefghijk";
+it.each([
+  ["instagram", "creator.ig", igUrl, "https://www.instagram.com/reel/Cx_Ab-12"],
+  ["instagram", "@creator.ig", "https://instagram.com/p/Cx_Ab-12", igUrl],
+  [
+    "youtube",
+    "creator-yt",
+    `https://www.youtube.com/shorts/${ytId}`,
+    `https://www.youtube.com/watch?v=${ytId}`,
+  ],
+  [
+    "youtube",
+    "creator-yt",
+    `https://www.youtube.com/watch?v=${ytId}`,
+    `https://youtube.com/shorts/${ytId}/`,
+  ],
+])(
+  "reads a %s review bound by the probed account and same-row user, across stored URL forms",
+  async (platform, accountKey, publicUrl, stored) => {
+    vi.stubEnv("MOMENTCIRCUIT_V2_CR_MUTATIONS_ENABLED", "false");
+    const f = reviewFetcher([
+      listing([
+        { ...reviewRow, url: reviewUrl, id: "tiktok-row" },
+        {
+          ...reviewRow,
+          url: stored,
+          reviewStatus: "rejected",
+          status: "rejected",
+        },
+      ]),
+    ]);
+    vi.stubGlobal("fetch", f);
+    const b = await (
+      await POST(reviewRequest(publicUrl, accountKey, platform))
+    ).json();
+    expect(b.result).toEqual({
+      status: "COMPLETE",
+      campaign_id: campaign,
+      account_key: accountKey,
+      platform,
+      public_url: publicUrl,
+      remote_id: "s-review",
+      native_review_status: "rejected",
+      native_status: "rejected",
+      flagged: false,
+      captured_at: expect.any(String),
+    });
+    expect(f.mock.calls.every((c) => (c[1]?.method ?? "GET") === "GET")).toBe(
+      true,
+    );
+  },
+);
+it.each([
+  ["instagram", igUrl],
+  ["youtube", `https://www.youtube.com/watch?v=${ytId}`],
+])(
+  "keeps a %s row owned by another authenticated user UNKNOWN",
+  async (platform, publicUrl) => {
+    vi.stubGlobal(
+      "fetch",
+      reviewFetcher([
+        listing([{ ...reviewRow, userId: "foreign", url: publicUrl }]),
+      ]),
+    );
+    const accountKey = platform === "instagram" ? "creator.ig" : "creator-yt";
+    expect(
+      (
+        await (
+          await POST(reviewRequest(publicUrl, accountKey, platform))
+        ).json()
+      ).result.status,
+    ).toBe("UNKNOWN");
+  },
+);
+it.each([
+  ["instagram", "creator", igUrl],
+  ["youtube", "creator", `https://www.youtube.com/watch?v=${ytId}`],
+])(
+  "does not read %s submissions when account_key is not that platform's connected account",
+  async (platform, accountKey, publicUrl) => {
+    const f = reviewFetcher([listing([{ ...reviewRow, url: publicUrl }])]);
+    vi.stubGlobal("fetch", f);
+    expect(
+      (
+        await (
+          await POST(reviewRequest(publicUrl, accountKey, platform))
+        ).json()
+      ).result.reason,
+    ).toBe("CONTENT_REWARDS_REVIEW_ACCOUNT_UNPROVEN");
+    expect(
+      f.mock.calls.some((c) =>
+        String(c[0]).includes("/submission/submissions"),
+      ),
+    ).toBe(false);
+  },
+);
+it.each([
+  ["instagram", igUrl, "https://www.instagram.com/reel/Cx_Ab-13/"],
+  [
+    "youtube",
+    `https://www.youtube.com/shorts/${ytId}`,
+    "https://www.youtube.com/watch?v=abcdefghijx",
+  ],
+])(
+  "does not match a %s row with a different media id",
+  async (platform, publicUrl, stored) => {
+    vi.stubGlobal(
+      "fetch",
+      reviewFetcher([listing([{ ...reviewRow, url: stored }])]),
+    );
+    const accountKey = platform === "instagram" ? "creator.ig" : "creator-yt";
+    expect(
+      (
+        await (
+          await POST(reviewRequest(publicUrl, accountKey, platform))
+        ).json()
+      ).result.status,
+    ).toBe("NOT_FOUND");
+  },
+);
+it.each([
+  ["instagram", reviewUrl],
+  ["instagram", "https://www.instagram.com/creator.ig/"],
+  ["youtube", "https://www.youtube.com/channel/abcdefghijk"],
+  ["youtube", "https://evil.example/watch?v=abcdefghijk"],
+])(
+  "sends no provider request for unsupported %s review URL %s",
+  async (platform, publicUrl) => {
+    const f = reviewFetcher([]);
+    vi.stubGlobal("fetch", f);
+    expect(
+      (await (await POST(reviewRequest(publicUrl, "creator", platform))).json())
+        .result.reason,
+    ).toBe("CONTENT_REWARDS_REVIEW_ACCOUNT_URL_MISMATCH");
+    expect(f).not.toHaveBeenCalled();
+  },
+);
