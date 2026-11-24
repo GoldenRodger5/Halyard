@@ -1,0 +1,69 @@
+{
+  "_provenance": {
+    "server": "RecipeFix OAuth MCP server, <supabase>/functions/v1/mcp (the only RecipeFix MCP server since 2026-10-20; mcp-service was retired in RecipeFix 56b07dea and returns 404 NOT_FOUND)",
+    "captured_at": "2026-10-26T19:01:32Z",
+    "captured_by": "tools/list as served to a signed-in OAuth client (Claude connector), copied verbatim",
+    "mcp_build": "9d0df50d5725",
+    "mcp_version": "0.4.0",
+    "source_of_truth": "recipe-fix src/lib/mcp/tools/*.ts (zod inputSchema). zod .object() STRIPS undeclared keys, so any key Halyard sends that is not declared here is silently discarded by the server.",
+    "refresh": "Re-capture when health.build changes. The contract test fails on any key Halyard sends that is not declared, and on any missing required key."
+  },
+  "tools": {
+    "adapt_recipe": {
+      "type": "object",
+      "properties": {
+        "dietary": { "type": "array", "items": { "type": "string", "minLength": 1, "maxLength": 40 }, "maxItems": 10 },
+        "persist": { "type": "boolean", "default": true },
+        "servings": { "type": "integer", "minimum": 1, "maximum": 50 },
+        "swaps": { "type": "string", "maxLength": 500 },
+        "text": { "type": "string", "minLength": 20 },
+        "url": { "type": "string", "format": "uri" }
+      }
+    },
+    "get_changelog": {
+      "type": "object",
+      "properties": { "limit": { "type": "integer", "minimum": 1, "maximum": 50, "default": 10 } }
+    },
+    "list_before_after_examples": {
+      "type": "object",
+      "properties": { "diet": { "type": "string", "enum": ["gluten-free", "vegan", "dairy-free", "keto", "nut-free"] } }
+    },
+    "get_popular_transformations": {
+      "type": "object",
+      "properties": {
+        "days": { "type": "integer", "minimum": 1, "maximum": 365, "default": 30 },
+        "limit": { "type": "integer", "minimum": 1, "maximum": 50, "default": 20 }
+      }
+    },
+    "get_discover_recipes": {
+      "type": "object",
+      "properties": {
+        "category": { "type": "string", "enum": ["Breakfast", "Lunch", "Dinner", "Snacks"] },
+        "scope": { "type": "string", "enum": ["current_week", "all"], "default": "current_week" }
+      }
+    },
+    "search_recipes": {
+      "type": "object",
+      "required": ["query"],
+      "properties": {
+        "dietary": { "type": "array", "items": { "type": "string", "minLength": 1, "maxLength": 40 }, "maxItems": 10 },
+        "page": { "type": "integer", "minimum": 1, "maximum": 10, "default": 1 },
+        "query": { "type": "string", "minLength": 2, "maxLength": 200 }
+      }
+    },
+    "estimate_nutrition": {
+      "type": "object",
+      "required": ["ingredients", "servings"],
+      "properties": {
+        "ingredients": { "type": "array", "items": { "type": "string", "minLength": 1, "maxLength": 300 }, "minItems": 1, "maxItems": 80 },
+        "instructions": { "type": "array", "items": { "type": "string", "minLength": 1, "maxLength": 5000 }, "maxItems": 100 },
+        "recipeName": { "type": "string", "maxLength": 300 },
+        "servings": { "type": "integer", "minimum": 1, "maximum": 99 }
+      }
+    },
+    "health": { "type": "object", "properties": {} }
+  },
+  "not_served": {
+    "list_adaptation_history": "Exists on the OAuth server but returns ONLY the signed-in account's own history, so it is not a product-activity signal. It was denied outright by the retired mcp-service. Halyard must not use it as product activity."
+  }
+}

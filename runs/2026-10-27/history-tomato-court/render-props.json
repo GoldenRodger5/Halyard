@@ -1,0 +1,334 @@
+{
+  "kicker": "Food history",
+  "year": 1893,
+  "fromYear": 2026,
+  "photo": "photo-garlic-shrimp-spaghetti-16x9.jpg",
+  "closePhoto": "photo-garlic-shrimp-spaghetti.jpg",
+  "focus": "62% 38%",
+  "beats": [
+    {
+      "kind": "hook",
+      "start": 0,
+      "end": 141,
+      "screen": "A tomato went to the Supreme Court over a 10% tax."
+    },
+    {
+      "kind": "ledger",
+      "start": 141,
+      "end": 240,
+      "title": "Tariff act of 1883",
+      "rows": [
+        {
+          "label": "Vegetables",
+          "value": "10%",
+          "at": 161
+        },
+        {
+          "label": "Fruit",
+          "value": "Free",
+          "at": 199
+        }
+      ]
+    },
+    {
+      "kind": "versus",
+      "start": 240,
+      "end": 378,
+      "left": "John Nix",
+      "right": "The tax man",
+      "rightAt": 309
+    },
+    {
+      "kind": "quote",
+      "start": 378,
+      "end": 505,
+      "quote": "Botanically speaking, tomatoes are the fruit of a vine",
+      "quoteWords": [
+        423,
+        439,
+        460,
+        474,
+        478,
+        481,
+        487,
+        489,
+        491
+      ]
+    },
+    {
+      "kind": "stamp",
+      "start": 505,
+      "end": 664,
+      "stamp": "Vegetable",
+      "stampAt": 530
+    }
+  ],
+  "cues": [
+    {
+      "start": 145,
+      "end": 160,
+      "words": [
+        {
+          "text": "Imported",
+          "at": 147
+        }
+      ]
+    },
+    {
+      "start": 159,
+      "end": 176,
+      "words": [
+        {
+          "text": "vegetables",
+          "at": 161
+        },
+        {
+          "text": "were",
+          "at": 173
+        }
+      ]
+    },
+    {
+      "start": 175,
+      "end": 191,
+      "words": [
+        {
+          "text": "taxed.",
+          "at": 177
+        }
+      ]
+    },
+    {
+      "start": 197,
+      "end": 213,
+      "words": [
+        {
+          "text": "Fruit",
+          "at": 199
+        },
+        {
+          "text": "came",
+          "at": 206
+        },
+        {
+          "text": "in",
+          "at": 211
+        }
+      ]
+    },
+    {
+      "start": 212,
+      "end": 225,
+      "words": [
+        {
+          "text": "free.",
+          "at": 214
+        }
+      ]
+    },
+    {
+      "start": 244,
+      "end": 267,
+      "words": [
+        {
+          "text": "So",
+          "at": 246
+        },
+        {
+          "text": "an",
+          "at": 251
+        },
+        {
+          "text": "importer,",
+          "at": 254
+        }
+      ]
+    },
+    {
+      "start": 268,
+      "end": 289,
+      "words": [
+        {
+          "text": "John",
+          "at": 270
+        },
+        {
+          "text": "Nix,",
+          "at": 278
+        }
+      ]
+    },
+    {
+      "start": 290,
+      "end": 304,
+      "words": [
+        {
+          "text": "sued.",
+          "at": 292
+        }
+      ]
+    },
+    {
+      "start": 317,
+      "end": 339,
+      "words": [
+        {
+          "text": "Tomatoes",
+          "at": 319
+        },
+        {
+          "text": "are",
+          "at": 333
+        }
+      ]
+    },
+    {
+      "start": 338,
+      "end": 349,
+      "words": [
+        {
+          "text": "fruit,",
+          "at": 340
+        }
+      ]
+    },
+    {
+      "start": 349,
+      "end": 367,
+      "words": [
+        {
+          "text": "he",
+          "at": 351
+        },
+        {
+          "text": "argued.",
+          "at": 354
+        }
+      ]
+    },
+    {
+      "start": 382,
+      "end": 407,
+      "words": [
+        {
+          "text": "The",
+          "at": 384
+        },
+        {
+          "text": "Court",
+          "at": 389
+        },
+        {
+          "text": "agreed.",
+          "at": 395
+        }
+      ]
+    },
+    {
+      "start": 509,
+      "end": 525,
+      "words": [
+        {
+          "text": "Then",
+          "at": 511
+        },
+        {
+          "text": "it",
+          "at": 517
+        },
+        {
+          "text": "ruled",
+          "at": 520
+        }
+      ]
+    },
+    {
+      "start": 524,
+      "end": 542,
+      "words": [
+        {
+          "text": "them",
+          "at": 526
+        },
+        {
+          "text": "vegetables",
+          "at": 530
+        }
+      ]
+    },
+    {
+      "start": 542,
+      "end": 558,
+      "words": [
+        {
+          "text": "anyway.",
+          "at": 544
+        }
+      ]
+    },
+    {
+      "start": 567,
+      "end": 585,
+      "words": [
+        {
+          "text": "They're",
+          "at": 569
+        },
+        {
+          "text": "served",
+          "at": 575
+        },
+        {
+          "text": "at",
+          "at": 583
+        }
+      ]
+    },
+    {
+      "start": 584,
+      "end": 596,
+      "words": [
+        {
+          "text": "dinner,",
+          "at": 586
+        }
+      ]
+    },
+    {
+      "start": 596,
+      "end": 625,
+      "words": [
+        {
+          "text": "not",
+          "at": 598
+        },
+        {
+          "text": "as",
+          "at": 603
+        },
+        {
+          "text": "dessert.",
+          "at": 606
+        }
+      ]
+    }
+  ],
+  "source": "Nix v. Hedden, 149 U.S. 304 (1893)",
+  "close": {
+    "start": 664,
+    "tie": "Fruit or vegetable, cook it your way. RecipeFix rewrites the cooking steps, not just the ingredient list.",
+    "words": []
+  },
+  "audio": {
+    "file": "vo-story.mp3",
+    "at": 6,
+    "splitAt": 664,
+    "pause": 0,
+    "rate": 1.2
+  },
+  "sfx": {
+    "whoosh": "sfx-whoosh.wav",
+    "stamp": "sfx-thud.wav",
+    "tick": "sfx-tick.wav"
+  }
+}

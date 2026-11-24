@@ -1,0 +1,120 @@
+{
+  "slides": [
+    {
+      "role": "cover",
+      "kicker": "Tikka masala, dairy-free, 4\u21926",
+      "headline": "The dairy swap was easy. The steps changed.",
+      "photo_label": "Stock photo of the original dairy recipe, not the adapted dish",
+      "claim_ids": [
+        "proof.tikka_method_changes"
+      ],
+      "fact_ids": [
+        "scale"
+      ]
+    },
+    {
+      "role": "swaps",
+      "kicker": "Ingredient list",
+      "headline": "The list was the easy part",
+      "rows": [
+        {
+          "before": "3/4 cup whole-milk yogurt",
+          "after": "1 cup + 2 Tbsp coconut yogurt"
+        },
+        {
+          "before": "2 Tbsp butter",
+          "after": "3 Tbsp vegan butter"
+        },
+        {
+          "before": "1/2 cup heavy cream",
+          "after": "3/4 cup full-fat coconut cream"
+        }
+      ],
+      "claim_ids": [],
+      "fact_ids": []
+    },
+    {
+      "role": "method",
+      "kicker": "Broiler space",
+      "headline": "Twice the sheets, not twice the time",
+      "rewrite": "Two batches, 8 to 10 minutes per batch",
+      "why": "Uncrowded chicken keeps the char that balances the creamy sauce",
+      "source": "steps[4].updated_note, steps[4].instruction, explanations[2]",
+      "claim_ids": [
+        "proof.tikka_method_changes"
+      ],
+      "fact_ids": [
+        "broil_time",
+        "original_broil",
+        "scale"
+      ],
+      "as_written": "Spread it on a foil-lined baking sheet. Broil for 8 to 10 minutes."
+    },
+    {
+      "role": "method",
+      "kicker": "Sauce reduction",
+      "headline": "Do not multiply the simmer",
+      "rewrite": "Check at 10 minutes. Done when a spoon leaves a trail",
+      "why": "A wider pan evaporates liquid faster",
+      "source": "steps[3].updated_note, steps[3].instruction",
+      "claim_ids": [
+        "proof.tikka_method_changes"
+      ],
+      "fact_ids": [
+        "original_reduce",
+        "reduce_time"
+      ],
+      "as_written": "Cook uncovered for 10 to 12 minutes, until the sauce leaves a trail."
+    },
+    {
+      "role": "method",
+      "kicker": "Coconut cream",
+      "headline": "Gentle simmer, then check",
+      "rewrite": "Whisk smooth, simmer gently, check several pieces",
+      "why": "Separated coconut cream smooths out; chicken still has to reach 165\u00b0F",
+      "source": "steps[5].updated_note, steps[5].instruction",
+      "claim_ids": [
+        "proof.tikka_method_changes"
+      ],
+      "fact_ids": [
+        "original_finish",
+        "temp"
+      ],
+      "as_written": "Stir the cream into the sauce. Simmer gently for 5 minutes."
+    },
+    {
+      "role": "proof",
+      "kicker": "Proof",
+      "headline": "What the app actually said",
+      "recap": [
+        "More food needs more space",
+        "Watch texture, not math",
+        "Simmer cream gently"
+      ],
+      "claim_ids": [
+        "proof.tikka_method_changes",
+        "core.rewrites_steps",
+        "core.reasons"
+      ],
+      "fact_ids": []
+    }
+  ],
+  "caption": "One swap can move the whole method. In this dairy-free chicken tikka masala, scaled from 4 to 6 servings, the ingredient list is simple: coconut yogurt, vegan butter, coconut cream. The steps are where cooks get burned. More chicken needs more broiler space, not a longer blast. A wider pan means you start checking the sauce at 10 minutes and stop when a spoon dragged through leaves a clear trail. Coconut cream wants a gentle simmer. Chicken still needs 165\u00b0F in the thickest pieces. This is a real RecipeFix result, so the changed step comes with the reason.\nLink in bio for the starting recipe: a RecipeFix Original, an AI-written home recipe.",
+  "hashtags": [
+    "dairyfreecooking",
+    "tikkamasala",
+    "recipescaling",
+    "cookingtips"
+  ],
+  "caption_claim_ids": [
+    "content.originals",
+    "core.reasons",
+    "core.rewrites_steps",
+    "proof.tikka_method_changes"
+  ],
+  "caption_fact_ids": [
+    "reduce_time",
+    "scale",
+    "temp"
+  ]
+}

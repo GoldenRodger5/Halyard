@@ -1,0 +1,16 @@
+# Regenerable or bulky intermediates of the lean marketing lane. The exported
+# media, run records, previews, copy, critique and the ledger are committed.
+*/*/qa-frames/
+*/*/public/fonts/
+*/*/vo-16k.wav
+*.webm
+
+# Lean lane formats: copied inputs and QA scratch frames are reproducible, not records.
+*/quiz-*/public/
+*/recipe-*/public/
+*/app-*/public/
+*/*/qa-frames/
+_cache/
+_calibration/
+*/history-*/public/
+*/versus-*/public/

@@ -1,0 +1,150 @@
+{
+  "schema": 1,
+  "id": "image-myth-flambe",
+  "made_at": "2026-10-27T04:30:51.884Z",
+  "assets": [
+    {
+      "id": "brand/recipefix-mark-512.png",
+      "provenance": "recipe-fix a82f8bb9:LAUNCH_KIT/assets/brand/recipefix-mark-512.png",
+      "licence": "first-party brand mark",
+      "sha256": "fcebd5205fadf3dfdddff83e288253498d98d06fa8c08b43444c3c06fb2cc84f"
+    }
+  ],
+  "cost_usd": 0,
+  "format": "image",
+  "summary": "Setting the pan on fire burns off all the alcohol.",
+  "outputs": {
+    "slides": [
+      "runs/2026-10-27/image-myth-flambe/slides/image-01-question.jpg"
+    ]
+  },
+  "posts": {
+    "instagram": {
+      "platform": "instagram",
+      "kind": "image",
+      "media": [
+        "runs/2026-10-27/image-myth-flambe/slides/image-01-question.jpg"
+      ],
+      "text": "The flames look like they take it all.\nGuess first, the answer is below.\n\n\nAnswer: Myth\n\nUSDA found about 75% of the alcohol still in the food after flaming.\n\nSource: USDA Nutrient Retention Factors, Release 6\n\nCooking halal or without wine? RecipeFix swaps it out and rewrites the steps.\n\n#cookingtips #foodscience #kitchenmyths #recipefix"
+    },
+    "x": {
+      "platform": "x",
+      "kind": "image",
+      "media": [
+        "runs/2026-10-27/image-myth-flambe/slides/image-01-question.jpg"
+      ],
+      "text": "The flames look like they take it all. Answer in the reply.\n\n#cookingtips #foodscience #recipefix",
+      "thread": [
+        "Answer: Myth\n\nUSDA found about 75% of the alcohol still in the food after flaming.\n\nSource: USDA Nutrient Retention Factors, Release 6"
+      ]
+    },
+    "threads": {
+      "platform": "threads",
+      "kind": "image",
+      "media": [
+        "runs/2026-10-27/image-myth-flambe/slides/image-01-question.jpg"
+      ],
+      "text": "The flames look like they take it all. Answer in the reply.\n\n#cookingtips #foodscience #recipefix",
+      "thread": [
+        "Answer: Myth\n\nUSDA found about 75% of the alcohol still in the food after flaming.\n\nSource: USDA Nutrient Retention Factors, Release 6",
+        "Cooking halal or without wine? RecipeFix swaps it out and rewrites the steps."
+      ]
+    },
+    "x_text": {
+      "platform": "x",
+      "kind": "text",
+      "media": [],
+      "text": "Myth or fact: \"Setting the pan on fire burns off all the alcohol.\"\n\nAnswer in the reply.\n\n#cookingtips #foodscience #recipefix",
+      "thread": [
+        "Answer: Myth\n\nUSDA found about 75% of the alcohol still in the food after flaming.\n\nSource: USDA Nutrient Retention Factors, Release 6"
+      ]
+    }
+  },
+  "sources": [
+    {
+      "name": "USDA Table of Nutrient Retention Factors, Release 6",
+      "url": "https://www.ars.usda.gov/ARSUserFiles/80400525/Data/retn/retn06.pdf",
+      "quote": "ALC BEV,FLAMED … 75"
+    }
+  ],
+  "claims": [
+    "core.diets",
+    "core.rewrites_steps"
+  ],
+  "qa": {
+    "passed": true,
+    "checks": [
+      {
+        "id": "image-1:file",
+        "passed": true,
+        "detail": "jpeg 1080×1350",
+        "problems": []
+      },
+      {
+        "id": "image-1-question:still.canvas",
+        "passed": true,
+        "detail": "1080×1350",
+        "problems": []
+      },
+      {
+        "id": "image-1-question:still.text_readback",
+        "passed": true,
+        "detail": "5 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 19 words, file: 24 words, inverted: 22 words, rules removed: 22 words, white-text mask: 17 words, dark-text mask: 21 words)",
+        "problems": []
+      },
+      {
+        "id": "image-1-question:still.no_artefacts",
+        "passed": true,
+        "detail": "no [object Object] / undefined / NaN / braces read on the image",
+        "problems": []
+      },
+      {
+        "id": "image-1-question:still.safe_zone",
+        "passed": true,
+        "detail": "17 word boxes inside x 60–1020, y 60–1290",
+        "problems": []
+      },
+      {
+        "id": "image-1-question:still.text_overlap",
+        "passed": true,
+        "detail": "no two intended lines overprint each other",
+        "problems": []
+      },
+      {
+        "id": "image-1-question:still.text_size",
+        "passed": true,
+        "detail": "every line's median OCR word height ≥ 22px",
+        "problems": []
+      },
+      {
+        "id": "image-1-question:still.contrast",
+        "passed": true,
+        "detail": "min 5.39:1 over 17 word boxes (WCAG AA 4.5:1)",
+        "problems": []
+      },
+      {
+        "id": "photo.aspect:photo-lemon-herb-roast-chicken-1080x640.jpg",
+        "passed": true,
+        "detail": "crop 1600×948 (aspect 1.6878) drawn at 1080×640 (1.6875); downscale only",
+        "problems": []
+      },
+      {
+        "id": "copy.platform_rules",
+        "passed": true,
+        "detail": "lengths, X titles, no link in the X post, 3–5 hashtags incl. #recipefix, no forbidden claims, no bait, reads human",
+        "problems": []
+      },
+      {
+        "id": "knowledge.product_posts",
+        "passed": true,
+        "detail": "pack ad17c991 has a release receipt",
+        "problems": []
+      }
+    ]
+  },
+  "disclosures": {
+    "ai_voice": false,
+    "photos": "licensed stock RecipeFix Originals photo as mood; not the dish discussed",
+    "knowledge_commit": "ad17c99162a47c769abfb70cd62f0bfb2f2e31e3"
+  }
+}

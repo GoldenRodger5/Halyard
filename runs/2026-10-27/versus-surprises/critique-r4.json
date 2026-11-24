@@ -1,0 +1,89 @@
+{
+  "verdict": "revise",
+  "scores": {
+    "stop": 6,
+    "stay": 4,
+    "engage": 3,
+    "human": 6
+  },
+  "cringe": [
+    "The 3-second countdown for every comparison feels padded and repetitive.",
+    "Frame 7 appears to say “BANAN” instead of “BANANA,” which looks like a layout/crop mistake.",
+    "The RecipeFix promo in the caption feels unrelated and ad-like compared with the food-fact content.",
+    "The format feels like a Canva-style template repeated three times rather than something especially crafted."
+  ],
+  "pro_team_would_post": false,
+  "would_leave_at": "2.0 s",
+  "first_impression": "Clean-looking nutrition trivia, but it feels too slow and templated for three simple facts.",
+  "problems": [
+    "The hook is not strong enough visually; the first frame is neat but not surprising or thumb-stopping.",
+    "Three separate countdowns make the video feel much longer than the payoff deserves.",
+    "The same split-screen layout repeats with little variation, so once I understand the format there is no new visual reason to stay.",
+    "Some text is small, especially the source and explanatory copy, and may be hard to read on mobile with platform UI.",
+    "The banana label appears clipped/mistyped as “BANAN” in one frame.",
+    "The round 3 transition has a near-empty frame at 14.0s, which feels like dead air.",
+    "The ketchup vs cola comparison may trigger comments about serving size/context because ketchup per 100g is not how most people consume it.",
+    "The caption’s RecipeFix plug feels bolted on and makes the post feel like an ad rather than a native food fact post."
+  ],
+  "fixes": [
+    "Cut each question to 1 second max before revealing the answer; remove the 3-2-1 countdowns or use a single fast tap-to-reveal animation.",
+    "Open with the most surprising fact first, e.g. “Ketchup has more sugar than cola per 100g?” or “Red pepper beats orange for vitamin C.”",
+    "Fix the banana text so it never crops; check all safe margins for TikTok/Reels UI.",
+    "Vary the reveal layouts slightly between rounds or use food cutouts/photos to make each comparison feel fresh.",
+    "Make the key numbers larger and reduce the explanatory paragraph to one short line.",
+    "Remove the empty-feeling transition at 14.0s; go directly into the ketchup vs cola slide.",
+    "Add a small context note for ketchup: “per 100g, not typical serving.”",
+    "Move the RecipeFix promo out of this caption or make the post clearly part of a branded series with a softer CTA.",
+    "Shorten the whole video to around 10–12 seconds: three quick questions, three reveals, one summary card."
+  ],
+  "samples": [
+    {
+      "scores": {
+        "stop": 6,
+        "stay": 4,
+        "engage": 3,
+        "human": 6
+      },
+      "cringe": [
+        "The 3-second countdown for every comparison feels padded and repetitive.",
+        "Frame 7 appears to say “BANAN” instead of “BANANA,” which looks like a layout/crop mistake.",
+        "The RecipeFix promo in the caption feels unrelated and ad-like compared with the food-fact content.",
+        "The format feels like a Canva-style template repeated three times rather than something especially crafted."
+      ],
+      "pro_team_would_post": false
+    },
+    {
+      "scores": {
+        "stop": 6,
+        "stay": 4,
+        "engage": 3,
+        "human": 6
+      },
+      "cringe": [
+        "Three-second countdown for each question feels slow and padded for Shorts/TikTok.",
+        "The RecipeFix promo in the caption feels bolted on and unrelated to the food-fact game.",
+        "No actual food imagery, just big initials, makes it feel templated and a little sterile.",
+        "Some text is very small, especially sources and explanatory callouts.",
+        "Frame around 14s feels like an empty/unfinished transition before the ketchup/cola round."
+      ],
+      "pro_team_would_post": false
+    },
+    {
+      "scores": {
+        "stop": 6,
+        "stay": 6,
+        "engage": 4,
+        "human": 6
+      },
+      "cringe": [
+        "The format feels like a polished template rather than a distinct brand/personality piece.",
+        "Three-second countdowns for each question make the video feel slower than the payoff deserves.",
+        "The RecipeFix CTA in the caption feels bolted on and unrelated to the food-fact game."
+      ],
+      "pro_team_would_post": false
+    }
+  ],
+  "model": "gpt-5.5",
+  "cost_usd": 0.05227,
+  "at": "2026-10-27T15:01:40.414Z"
+}

@@ -1,11 +1,15 @@
 /**
  * A very small MCP client over streamable HTTP.
  *
- * v1 §12 open item 6 flags that RecipeFix's existing MCP OAuth flow is built for
- * interactive clients and "a machine-to-machine path may need adding". Halyard
- * therefore authenticates with a static bearer token (RECIPEFIX_MCP_TOKEN)
- * rather than an interactive OAuth dance — if the server does not yet accept
- * one, that is a change in the RecipeFix repo, not here.
+ * Authenticates with a bearer token (RECIPEFIX_MCP_TOKEN). 2026-10-26: the
+ * static service token this was written for belonged to RecipeFix's
+ * `mcp-service`, which was retired on 2026-10-20 and now answers 404. The only
+ * RecipeFix server is `<supabase>/functions/v1/mcp`, which accepts ONLY an
+ * OAuth access token issued to a registered client (it checks the client_id
+ * claim) — there is no headless path. So RECIPEFIX_MCP_URL must point at
+ * `/functions/v1/mcp` and the token must be an OAuth access token for a
+ * dedicated RecipeFix test account; until one exists, the marketing lane reads
+ * proof from stored real outputs and committed tool snapshots instead.
  *
  * Only `initialize`, `tools/list` and `tools/call` are implemented, because that
  * is all a server-side consumer needs.

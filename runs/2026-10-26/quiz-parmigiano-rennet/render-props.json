@@ -1,0 +1,38 @@
+{
+  "label": "Vegetarian quiz",
+  "questions": [
+    {
+      "question": "Is real Parmigiano Reggiano vegetarian?",
+      "options": [
+        "Yes",
+        "No",
+        "Only when aged"
+      ],
+      "correct": 1,
+      "why": "Its EU protected recipe requires calf rennet. Look for hard cheeses made with microbial or vegetable rennet.",
+      "source": "EU PDO specification, Parmigiano Reggiano",
+      "photo": "photo-crispy-chicken-parmesan-16x9.jpg",
+      "start": 0,
+      "countdownAt": 108,
+      "revealAt": 258,
+      "whyAt": 291,
+      "end": 503,
+      "audio": {
+        "question": null,
+        "answer": null,
+        "why": null
+      }
+    }
+  ],
+  "close": {
+    "start": 503,
+    "tie": "Cooking vegetarian? RecipeFix swaps the cheese and tells you why.",
+    "audio": null,
+    "photo": "photo-crispy-chicken-parmesan-16x9.jpg"
+  },
+  "sfx": {
+    "tick": "sfx-tick.wav",
+    "reveal": "sfx-reveal.wav",
+    "whoosh": "sfx-whoosh.wav"
+  }
+}

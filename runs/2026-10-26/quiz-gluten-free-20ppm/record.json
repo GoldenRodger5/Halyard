@@ -1,0 +1,243 @@
+{
+  "schema": 1,
+  "id": "quiz-gluten-free-20ppm",
+  "format": "quiz",
+  "summary": "A US gluten-free label allows how much gluten?",
+  "made_at": "2026-10-27T02:09:19.096Z",
+  "outputs": {
+    "video": "runs/2026-10-26/quiz-gluten-free-20ppm/quiz-gluten-free-20ppm.mp4"
+  },
+  "posts": {
+    "tiktok": {
+      "platform": "tiktok",
+      "kind": "video",
+      "media": [
+        "runs/2026-10-26/quiz-gluten-free-20ppm/quiz-gluten-free-20ppm.mp4"
+      ],
+      "text": "Gluten-free on a US label doesn't mean zero. Do you know the number? You get 5 seconds.\n\n#glutenfree #foodlabels #foodtok #recipefix",
+      "ai_voice": false
+    },
+    "instagram_reel": {
+      "platform": "instagram",
+      "kind": "video",
+      "media": [
+        "runs/2026-10-26/quiz-gluten-free-20ppm/quiz-gluten-free-20ppm.mp4"
+      ],
+      "text": "Gluten-free on a US label doesn't mean zero. Do you know the number? You get 5 seconds.\n\nAnswer: Under 20 ppm. Gluten-free on a US label doesn't mean zero. The FDA rule caps it below 20 parts per million.\nSource: FDA, Gluten-Free Labeling Q&A\n\nSave this for your next grocery run.\n\n#glutenfree #foodlabels #foodtok #recipefix",
+      "ai_voice": false
+    },
+    "youtube": {
+      "platform": "youtube",
+      "kind": "video",
+      "media": [
+        "runs/2026-10-26/quiz-gluten-free-20ppm/quiz-gluten-free-20ppm.mp4"
+      ],
+      "title": "A US gluten-free label allows how much gluten? #shorts",
+      "text": "Answer: Under 20 ppm. Gluten-free on a US label doesn't mean zero. The FDA rule caps it below 20 parts per million.\nSource: FDA, Gluten-Free Labeling Q&A (https://www.fda.gov/food/nutrition-food-labeling-and-critical-foods/questions-and-answers-gluten-free-food-labeling-final-rule)\n\nCooking gluten-free? RecipeFix rewrites your recipe, steps included. https://recipefix.app",
+      "ai_voice": false
+    },
+    "x": {
+      "platform": "x",
+      "kind": "video",
+      "media": [
+        "runs/2026-10-26/quiz-gluten-free-20ppm/quiz-gluten-free-20ppm.mp4"
+      ],
+      "text": "Gluten-free on a US label doesn't mean zero. Do you know the number? You get 5 seconds.",
+      "thread": [
+        "Answer: B) Under 20 ppm\n\nGluten-free on a US label doesn't mean zero. The FDA rule caps it below 20 parts per million.\n\nSource: FDA, Gluten-Free Labeling Q&A"
+      ]
+    },
+    "threads": {
+      "platform": "threads",
+      "kind": "video",
+      "media": [
+        "runs/2026-10-26/quiz-gluten-free-20ppm/quiz-gluten-free-20ppm.mp4"
+      ],
+      "text": "Gluten-free on a US label doesn't mean zero. Do you know the number? You get 5 seconds.",
+      "thread": [
+        "Answer: B) Under 20 ppm\n\nGluten-free on a US label doesn't mean zero. The FDA rule caps it below 20 parts per million.\n\nSource: FDA, Gluten-Free Labeling Q&A"
+      ]
+    }
+  },
+  "sources": [
+    {
+      "name": "U.S. FDA",
+      "url": "https://www.fda.gov/food/nutrition-food-labeling-and-critical-foods/questions-and-answers-gluten-free-food-labeling-final-rule",
+      "quote": "any unavoidable presence of gluten in the food must be less than 20 ppm"
+    }
+  ],
+  "claims": [
+    "core.diets",
+    "core.rewrites_steps"
+  ],
+  "assets": [
+    {
+      "id": "brand/recipefix-mark-512.png",
+      "provenance": "recipe-fix a82f8bb9:LAUNCH_KIT/assets/brand/recipefix-mark-512.png",
+      "licence": "first-party brand mark",
+      "sha256": "fcebd5205fadf3dfdddff83e288253498d98d06fa8c08b43444c3c06fb2cc84f"
+    }
+  ],
+  "qa": {
+    "passed": true,
+    "checks": [
+      {
+        "id": "video.duration",
+        "passed": true,
+        "detail": "23.4 s (target 8–25 s)",
+        "problems": []
+      },
+      {
+        "id": "audio.loudness",
+        "passed": true,
+        "detail": "-30.9 LUFS, peak -18.4 dBFS (silent cut: ticks and chime only, not held to −14)",
+        "problems": []
+      },
+      {
+        "id": "q1-question:still.canvas",
+        "passed": true,
+        "detail": "1080×1920",
+        "problems": []
+      },
+      {
+        "id": "q1-question:still.text_readback",
+        "passed": true,
+        "detail": "5 intended lines, min similarity 1.00 (OCR vision: 23 words, file: 26 words, inverted: 13 words, rules removed: 30 words, white-text mask: 10 words, dark-text mask: 16 words); 0 struck lines held to their recorded lower bar",
+        "problems": []
+      },
+      {
+        "id": "q1-question:still.no_artefacts",
+        "passed": true,
+        "detail": "no [object Object] / undefined / NaN / braces read on the image",
+        "problems": []
+      },
+      {
+        "id": "q1-question:still.safe_zone",
+        "passed": true,
+        "detail": "18 word boxes inside x 120–900, y 270–1250",
+        "problems": []
+      },
+      {
+        "id": "q1-question:still.text_overlap",
+        "passed": true,
+        "detail": "no two intended lines overprint each other",
+        "problems": []
+      },
+      {
+        "id": "q1-question:still.text_size",
+        "passed": true,
+        "detail": "every line's median OCR word height ≥ 22px",
+        "problems": []
+      },
+      {
+        "id": "q1-question:still.contrast",
+        "passed": true,
+        "detail": "min 6.90:1 over 18 word boxes (WCAG AA 4.5:1)",
+        "problems": []
+      },
+      {
+        "id": "q1-answer:still.canvas",
+        "passed": true,
+        "detail": "1080×1920",
+        "problems": []
+      },
+      {
+        "id": "q1-answer:still.text_readback",
+        "passed": true,
+        "detail": "4 intended lines, min similarity 1.00 (OCR vision: 36 words, file: 24 words, inverted: 51 words, rules removed: 21 words, white-text mask: 35 words, dark-text mask: 44 words); 0 struck lines held to their recorded lower bar",
+        "problems": []
+      },
+      {
+        "id": "q1-answer:still.no_artefacts",
+        "passed": true,
+        "detail": "no [object Object] / undefined / NaN / braces read on the image",
+        "problems": []
+      },
+      {
+        "id": "q1-answer:still.safe_zone",
+        "passed": true,
+        "detail": "30 word boxes inside x 120–900, y 270–1250",
+        "problems": []
+      },
+      {
+        "id": "q1-answer:still.text_overlap",
+        "passed": true,
+        "detail": "no two intended lines overprint each other",
+        "problems": []
+      },
+      {
+        "id": "q1-answer:still.text_size",
+        "passed": true,
+        "detail": "every line's median OCR word height ≥ 22px",
+        "problems": []
+      },
+      {
+        "id": "q1-answer:still.contrast",
+        "passed": true,
+        "detail": "min 5.61:1 over 30 word boxes (WCAG AA 4.5:1)",
+        "problems": []
+      },
+      {
+        "id": "close:still.canvas",
+        "passed": true,
+        "detail": "1080×1920",
+        "problems": []
+      },
+      {
+        "id": "close:still.text_readback",
+        "passed": true,
+        "detail": "2 intended lines, min similarity 1.00 (OCR vision: 10 words, file: 9 words, inverted: 10 words, rules removed: 12 words, white-text mask: 10 words, dark-text mask: 10 words); 0 struck lines held to their recorded lower bar",
+        "problems": []
+      },
+      {
+        "id": "close:still.no_artefacts",
+        "passed": true,
+        "detail": "no [object Object] / undefined / NaN / braces read on the image",
+        "problems": []
+      },
+      {
+        "id": "close:still.safe_zone",
+        "passed": true,
+        "detail": "11 word boxes inside x 120–900, y 270–1250",
+        "problems": []
+      },
+      {
+        "id": "close:still.text_overlap",
+        "passed": true,
+        "detail": "no two intended lines overprint each other",
+        "problems": []
+      },
+      {
+        "id": "close:still.text_size",
+        "passed": true,
+        "detail": "every line's median OCR word height ≥ 22px",
+        "problems": []
+      },
+      {
+        "id": "close:still.contrast",
+        "passed": true,
+        "detail": "min 13.65:1 over 11 word boxes (WCAG AA 4.5:1)",
+        "problems": []
+      },
+      {
+        "id": "copy.platform_rules",
+        "passed": true,
+        "detail": "caption lengths, no X links, no forbidden claims, no bait, reads human (no em dashes, no stock AI phrasing)",
+        "problems": []
+      },
+      {
+        "id": "knowledge.product_posts",
+        "passed": true,
+        "detail": "pack ad17c991 has a release receipt",
+        "problems": []
+      }
+    ]
+  },
+  "cost_usd": 0.0401,
+  "disclosures": {
+    "ai_voice": false,
+    "tiktok_is_aigc": false,
+    "photos": "licensed stock behind the card; not the dish discussed",
+    "knowledge_commit": "ad17c99162a47c769abfb70cd62f0bfb2f2e31e3"
+  }
+}

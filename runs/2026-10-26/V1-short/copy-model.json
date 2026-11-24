@@ -1,0 +1,185 @@
+{
+  "accepted": {
+    "beats": [
+      {
+        "role": "hook",
+        "kicker": "Scale up",
+        "on_screen": "4 → 6: multiply ingredients, not minutes",
+        "vo": "Four to six servings. Multiply the ingredients, not the minutes.",
+        "source": "FACT scale",
+        "claim_ids": [],
+        "fact_ids": [
+          "scale"
+        ]
+      },
+      {
+        "role": "amounts",
+        "kicker": "Amounts",
+        "on_screen": "1½ lb chicken → 2¼ lb",
+        "vo": "Amounts do scale. One and a half pounds of chicken becomes two and a quarter pounds.",
+        "source": "ingredients[0], FACT scale",
+        "claim_ids": [],
+        "fact_ids": [
+          "scale"
+        ]
+      },
+      {
+        "role": "broil",
+        "kicker": "Broil",
+        "on_screen": "More chicken needs batches, not time",
+        "vo": "Broiling fifty percent more chicken does not mean fifty percent longer. Use two batches, eight to ten minutes each.",
+        "source": "steps[4].instruction, steps[4].updated_note, explanations[2]",
+        "claim_ids": [],
+        "fact_ids": [
+          "broil_time"
+        ]
+      },
+      {
+        "role": "reduce",
+        "kicker": "Reduce",
+        "on_screen": "Start checking at 10 min. Watch the trail",
+        "vo": "A wider pan can reduce faster. Start checking at ten minutes. Stop by the spoon trail.",
+        "source": "steps[3].instruction, steps[3].updated_note",
+        "claim_ids": [],
+        "fact_ids": [
+          "reduce_time"
+        ]
+      },
+      {
+        "role": "simmer",
+        "kicker": "Simmer",
+        "on_screen": "Coconut cream: gentle simmer",
+        "vo": "For coconut cream, go gentle. Whisk it smooth if separated. Keep a gentle simmer.",
+        "source": "steps[5].updated_note",
+        "claim_ids": [],
+        "fact_ids": []
+      },
+      {
+        "role": "proof",
+        "kicker": "Proof",
+        "on_screen": "Real result. Oct 21 2026. Local app UI",
+        "vo": "Real RecipeFix result, captured October twenty first. Local build of the live UI. It changed amounts and affected steps.",
+        "source": "proof.tikka_method_changes",
+        "claim_ids": [
+          "proof.tikka_method_changes",
+          "core.rewrites_steps"
+        ],
+        "fact_ids": []
+      },
+      {
+        "role": "close",
+        "kicker": "Takeaway",
+        "on_screen": "Batches. Cues. Not clocks.",
+        "vo": "Scale the food. Do not scale the clock. Use batches for space, and cues for doneness.",
+        "source": "steps[3].updated_note, steps[4].updated_note, explanations[2]",
+        "claim_ids": [],
+        "fact_ids": []
+      }
+    ],
+    "caption": "Scaling up is usually a space problem, not a timer problem. Give food room, and use visible cues like a spoon trail.",
+    "hashtags": [
+      "recipeScaling",
+      "broiling",
+      "homeCooking",
+      "cookingTips"
+    ],
+    "caption_claim_ids": [],
+    "caption_fact_ids": []
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "model": "gpt-5.5",
+      "costUsd": 0.062744,
+      "raw": "{\n  \"beats\": [\n    {\n      \"role\": \"hook\",\n      \"kicker\": \"Scale up\",\n      \"on_screen\": \"4 → 6: multiply ingredients, not minutes\",\n      \"vo\": \"Four to six servings. Multiply the ingredients, not the minutes.\",\n      \"source\": \"FACT scale\",\n      \"claim_ids\": [],\n      \"fact_ids\": [\"scale\"]\n    },\n    {\n      \"role\": \"amounts\",\n      \"kicker\": \"Amounts\",\n      \"on_screen\": \"1½ lb chicken → 2¼ lb\",\n      \"vo\": \"Amounts do scale. One and a half pounds of chicken becomes two and a quarter pounds.\",\n      \"source\": \"ingredients[0], FACT scale\",\n      \"claim_ids\": [],\n      \"fact_ids\": [\"scale\"]\n    },\n    {\n      \"role\": \"broil\",\n      \"kicker\": \"Broil\",\n      \"on_screen\": \"More chicken needs batches, not time\",\n      \"vo\": \"Broiling fifty percent more chicken does not mean fifty percent longer. Use two batches, eight to ten minutes each.\",\n      \"source\": \"steps[4].instruction, steps[4].updated_note, explanations[2]\",\n      \"claim_ids\": [],\n      \"fact_ids\": [\"broil_time\"]\n    },\n    {\n      \"role\": \"reduce\",\n      \"kicker\": \"Reduce\",\n      \"on_screen\": \"Start checking at 10 min. Watch the trail\",\n      \"vo\": \"A wider pan can reduce faster. Start checking at ten minutes. Stop by the spoon trail.\",\n      \"source\": \"steps[3].instruction, steps[3].updated_note\",\n      \"claim_ids\": [],\n      \"fact_ids\": [\"reduce_time\"]\n    },\n    {\n      \"role\": \"simmer\",\n      \"kicker\": \"Simmer\",\n      \"on_screen\": \"Coconut cream: gentle simmer\",\n      \"vo\": \"For coconut cream, go gentle. Whisk it smooth if separated. Keep a gentle simmer.\",\n      \"source\": \"steps[5].updated_note\",\n      \"claim_ids\": [],\n      \"fact_ids\": []\n    },\n    {\n      \"role\": \"proof\",\n      \"kicker\": \"Proof\",\n      \"on_screen\": \"Real result. Oct 21 2026. Local app UI\",\n      \"vo\": \"Real RecipeFix result, captured October twenty first. Local build of the live UI. It changed amounts and affected steps.\",\n      \"source\": \"proof.tikka_method_changes\",\n      \"claim_ids\": [\"proof.tikka_method_changes\", \"core.rewrites_steps\"],\n      \"fact_ids\": []\n    },\n    {\n      \"role\": \"close\",\n      \"kicker\": \"Takeaway\",\n      \"on_screen\": \"Batches. Cues. Not clocks.\",\n      \"vo\": \"Scale the food. Do not scale the clock. Use batches for space, and cues for doneness.\",\n      \"source\": \"steps[3].updated_note, steps[4].updated_note, explanations[2]\",\n      \"claim_ids\": [],\n      \"fact_ids\": []\n    }\n  ],\n  \"caption\": \"Scaling up is usually a space problem, not a timer problem. Give food room, and use visible cues like a spoon trail.\",\n  \"hashtags\": [\"recipeScaling\", \"broiling\", \"homeCooking\", \"cookingTips\"],\n  \"caption_claim_ids\": [],\n  \"caption_fact_ids\": []\n}",
+      "parsed": {
+        "beats": [
+          {
+            "role": "hook",
+            "kicker": "Scale up",
+            "on_screen": "4 → 6: multiply ingredients, not minutes",
+            "vo": "Four to six servings. Multiply the ingredients, not the minutes.",
+            "source": "FACT scale",
+            "claim_ids": [],
+            "fact_ids": [
+              "scale"
+            ]
+          },
+          {
+            "role": "amounts",
+            "kicker": "Amounts",
+            "on_screen": "1½ lb chicken → 2¼ lb",
+            "vo": "Amounts do scale. One and a half pounds of chicken becomes two and a quarter pounds.",
+            "source": "ingredients[0], FACT scale",
+            "claim_ids": [],
+            "fact_ids": [
+              "scale"
+            ]
+          },
+          {
+            "role": "broil",
+            "kicker": "Broil",
+            "on_screen": "More chicken needs batches, not time",
+            "vo": "Broiling fifty percent more chicken does not mean fifty percent longer. Use two batches, eight to ten minutes each.",
+            "source": "steps[4].instruction, steps[4].updated_note, explanations[2]",
+            "claim_ids": [],
+            "fact_ids": [
+              "broil_time"
+            ]
+          },
+          {
+            "role": "reduce",
+            "kicker": "Reduce",
+            "on_screen": "Start checking at 10 min. Watch the trail",
+            "vo": "A wider pan can reduce faster. Start checking at ten minutes. Stop by the spoon trail.",
+            "source": "steps[3].instruction, steps[3].updated_note",
+            "claim_ids": [],
+            "fact_ids": [
+              "reduce_time"
+            ]
+          },
+          {
+            "role": "simmer",
+            "kicker": "Simmer",
+            "on_screen": "Coconut cream: gentle simmer",
+            "vo": "For coconut cream, go gentle. Whisk it smooth if separated. Keep a gentle simmer.",
+            "source": "steps[5].updated_note",
+            "claim_ids": [],
+            "fact_ids": []
+          },
+          {
+            "role": "proof",
+            "kicker": "Proof",
+            "on_screen": "Real result. Oct 21 2026. Local app UI",
+            "vo": "Real RecipeFix result, captured October twenty first. Local build of the live UI. It changed amounts and affected steps.",
+            "source": "proof.tikka_method_changes",
+            "claim_ids": [
+              "proof.tikka_method_changes",
+              "core.rewrites_steps"
+            ],
+            "fact_ids": []
+          },
+          {
+            "role": "close",
+            "kicker": "Takeaway",
+            "on_screen": "Batches. Cues. Not clocks.",
+            "vo": "Scale the food. Do not scale the clock. Use batches for space, and cues for doneness.",
+            "source": "steps[3].updated_note, steps[4].updated_note, explanations[2]",
+            "claim_ids": [],
+            "fact_ids": []
+          }
+        ],
+        "caption": "Scaling up is usually a space problem, not a timer problem. Give food room, and use visible cues like a spoon trail.",
+        "hashtags": [
+          "recipeScaling",
+          "broiling",
+          "homeCooking",
+          "cookingTips"
+        ],
+        "caption_claim_ids": [],
+        "caption_fact_ids": []
+      },
+      "problems": []
+    }
+  ]
+}

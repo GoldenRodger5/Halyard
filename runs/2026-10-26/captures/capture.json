@@ -1,0 +1,181 @@
+{
+  "subject": "RecipeFix /adapt result, phone viewport: Chicken Tikka Masala (RecipeFix Original), Dairy-Free, 4 -> 6 servings",
+  "captured_at": "2026-10-26",
+  "recipefix_commit": "8c44a5b4",
+  "worktree": "/Users/isaacmineo/PROJECT_2025/recipe-fix-capture-8c44a5b4 (detached at 8c44a5b4, unmodified)",
+  "what_is_real": [
+    "All UI is the real RecipeFix web app at commit 8c44a5b4 (the tree production web serves), run locally with npx vite --mode production on 127.0.0.1:8531; no DOM injected or restyled.",
+    "The adaptation payload is the verbatim stored production adapt-recipe response captured 2026-10-21 (src/data/landingRealResult.ts), including the step notes, swaps, scaled amounts and nutrition shown.",
+    "The request the UI sent was produced by real taps on the landing composer: {mode: link, url: recipefix.app/original-recipes/chicken-tikka-masala, dietary: [Dairy-Free], servings: 6, stream: true}.",
+    "Video frames are Chromium's own compositor frames (CDP Page.startScreencast) at device pixels."
+  ],
+  "what_is_simulated": [
+    "Backend transport: every *.supabase.co request is answered in-process by scripts/journey.mjs (auth guest, PostgREST, edge functions). Nothing reached Supabase or any model provider.",
+    "Auth: guest session; anon usage count is a local counter.",
+    "Stream timing: the SSE events are re-paced by the harness over ~4-5 s; the working card says 'Usually about 20 seconds' (true of production) but finishes in ~5 s here. Do not present the on-screen duration as real latency.",
+    "estimate-nutrition is aborted by the harness (the nutrition panel shows the payload's own estimate).",
+    "Pacing, holds and the eased scrolls are scripted (rAF window.scrollTo)."
+  ],
+  "viewport": {
+    "css": [
+      390,
+      844
+    ],
+    "deviceScaleFactor_video": 2,
+    "video_px": [
+      780,
+      1688
+    ],
+    "deviceScaleFactor_png": 3,
+    "png_px": [
+      1170,
+      2532
+    ],
+    "userAgent": "iPhone Safari 18 UA (journey.mjs 'phone' surface)",
+    "isMobile": true,
+    "hasTouch": true,
+    "colorScheme": "light"
+  },
+  "video": {
+    "files": [
+      "recipefix-adapt-phone.mp4 (H.264 High, yuv420p, 60 fps CFR, CRF 12)",
+      "recipefix-adapt-phone.webm (VP9, yuv420p, 60 fps, CRF 18)"
+    ],
+    "duration_s": 37.97,
+    "source_frames": "804 variable-rate screencast frames resampled to exact 60 fps by timestamp (frame held until next)",
+    "why_not_playwright_recordVideo": "recordVideo captured at CSS-px size (390x844) padded with grey inside a 780x1688 frame (and 500x757 with system Chrome's default window), ~0.7 Mbit/s VP8 - unusable. Replaced with CDP screencast in Chrome launched with --window-size=390,844 --force-device-scale-factor=2."
+  },
+  "timeline_video_seconds": {
+    "landing_and_composer_fill": [
+      0.0,
+      6.3
+    ],
+    "transition_artifact_blank_then_orange_outline": [
+      6.3,
+      6.75
+    ],
+    "working_state_simulated_stream": [
+      6.4,
+      11.5
+    ],
+    "result_top_photo_fading_in": [
+      11.5,
+      13.0
+    ],
+    "result_top_held_photo_title_DairyFree_Serves6": [
+      13.0,
+      14.9
+    ],
+    "header_title_DairyFree_Serves6_and_What_RecipeFix_changed_4_to_6": [
+      16.05,
+      18.86
+    ],
+    "ingredient_list_fast_pass": [
+      18.9,
+      20.25
+    ],
+    "step4_note_Start_checking_at_10_minutes_readable": [
+      20.25,
+      24.39
+    ],
+    "step5_note_Allow_two_broiler_batches_readable": [
+      25.5,
+      28.5
+    ],
+    "step6_note_keep_the_sauce_at_a_gentle_simmer_readable": [
+      29.62,
+      32.62
+    ],
+    "scroll_back_to_top": [
+      33.22,
+      34.83
+    ],
+    "result_top_held_again": [
+      34.83,
+      37.97
+    ]
+  },
+  "tomato_line_visible_video_seconds": [
+    [
+      19.42,
+      19.6
+    ],
+    [
+      34.05,
+      34.2
+    ]
+  ],
+  "tomato_line_note": "'1½ (14.5-oz) can crushed tomatoes' is on screen only while scrolling (~0.18 s and ~0.15 s, motion). It is never held. Measured per animation frame in-page.",
+  "changed_line_marking": {
+    "steps": "A rewritten step keeps its full instruction and gets a pale saffron box below it: info icon + 'RecipeFix changed this step' in rust bold, then the note text. No strike-through or diff of the step text. Summary line near top: 'What RecipeFix changed: 3 ingredients swapped, 15 amounts scaled from 4 to 6 servings, 5 steps rewritten'.",
+    "ingredients": "Swapped lines are set in rust text with a 'Swapped' pill and a disclosure chevron (coconut yogurt, vegan butter, coconut cream; the coconut cream row also shows a Coconut cream / Soy cooking cream toggle). Scaled-only lines (e.g. 2¼ pounds chicken) carry no mark at all.",
+    "header": "The header shows 'Dairy-Free' and a 'Serves [- 6 +]' stepper; it does not show '4 -> 6' itself - that appears only in the 'What RecipeFix changed' line."
+  },
+  "console_errors_video_run": [
+    {
+      "t": 11.58,
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "t": 25.16,
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "t": 25.16,
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "t": 25.16,
+      "text": "Failed to load resource: net::ERR_FAILED"
+    }
+  ],
+  "console_errors_explained": "All 'Failed to load resource: net::ERR_FAILED': t~11.6 = harness abort of estimate-nutrition; t~25 = three publisher images (loveandlemons, recipetineats, cafedelites) for a lazily loaded section further down the page, blocked by the capture's external-request guard. That section is never scrolled into frame. No pageerrors.",
+  "network": {
+    "requests_leaving_localhost_attempted": [
+      "cafedelites.com",
+      "cdn.loveandlemons.com",
+      "www.recipetineats.com",
+      "yyeslynjoqhqcdlzpevq.supabase.co"
+    ],
+    "supabase": "all fulfilled/aborted in-process by Playwright route (never sent to network)",
+    "blocked_by_guard": [
+      "https://cdn.loveandlemons.com/wp-content/uploads/opengraph/2020/12/baked-ziti-recipe.jpg",
+      "https://www.recipetineats.com/tachyon/2020/11/Crispy-Salmon-in-skillet.jpg",
+      "https://cafedelites.com/wp-content/uploads/2015/04/Italian-Chicken-Sundried-Tomato-and-Rice-43.jpg"
+    ],
+    "openai_or_other_model_providers": "none attempted",
+    "production_calls": "none"
+  },
+  "commands": [
+    "git -C /Users/isaacmineo/PROJECT_2025/recipe-fix worktree add --detach recipe-fix-capture-8c44a5b4 8c44a5b4  # landed inside the founder checkout by mistake (relative path); immediately moved with: git worktree move /Users/isaacmineo/PROJECT_2025/recipe-fix/recipe-fix-capture-8c44a5b4 /Users/isaacmineo/PROJECT_2025/recipe-fix-capture-8c44a5b4",
+    "cd /Users/isaacmineo/PROJECT_2025/recipe-fix-capture-8c44a5b4 && npm ci",
+    "npx vite --mode production --port 8531 --strictPort --host 127.0.0.1",
+    "CHROME_ARGS='--window-size=390,844 --force-device-scale-factor=2' CHROME_PATH='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' node capture.mjs --mode=video --out=./video4",
+    "CHROME_PATH='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' node capture.mjs --mode=shots --out=./shots",
+    "python3: resample screencast frames by timestamp into seq60/s%05d.png (symlinks)",
+    "ffmpeg -framerate 60 -i seq60/s%05d.png -vf format=yuv420p -c:v libx264 -preset slow -crf 12 -profile:v high -movflags +faststart recipefix-adapt-phone.mp4",
+    "ffmpeg -framerate 60 -i seq60/s%05d.png -vf format=yuv420p -c:v libvpx-vp9 -crf 18 -b:v 0 -row-mt 1 -deadline good -cpu-used 2 recipefix-adapt-phone.webm"
+  ],
+  "tooling": "tooling/capture.mjs (runner) + tooling/journey-capture.mjs (copy of scripts/journey.mjs; only import paths and ROOT changed, see tooling/journey-capture.diff). Chrome 'Google Chrome' system install; playwright-core 1.56.1.",
+  "screenshots": {
+    "recipefix-adapt-a1-result-top.png": "photo, title, Dairy-Free, Serves 6, nutrition",
+    "recipefix-adapt-a2-result-header-dairyfree-4to6.png": "title, Dairy-Free, Serves 6, actions, 'What RecipeFix changed ... from 4 to 6 servings, 5 steps rewritten'",
+    "recipefix-adapt-b1-tomato-sauce-note.png": "step 4 + 'Start checking at 10 minutes...' note (tomato INGREDIENT line not in frame)",
+    "recipefix-adapt-b2-broiler-note.png": "step 5 + 'Allow two broiler batches...' note",
+    "recipefix-adapt-b3-gentle-simmer-note.png": "step 6 + 'Whisk separated coconut cream smooth ... keep the sauce at a gentle simmer...' note",
+    "recipefix-adapt-c-swapped-ingredient-row.png": "clip: '3/4 cup full-fat coconut cream' Swapped row + Coconut/Soy toggle"
+  },
+  "sha256": {
+    "recipefix-adapt-a1-result-top.png": "1cd837d2710c7a0a9116bdcfb087be309cf781158b1a9d505e9f8b5592fdcbe9",
+    "recipefix-adapt-a2-result-header-dairyfree-4to6.png": "43c004e61094f97a0edb462147f14fcba9ddf44d0af2c509bfe4ddf327629916",
+    "recipefix-adapt-b1-tomato-sauce-note.png": "d63721df7ce78f45850a30963c357ffa08d4812382ab5e0bf7eadf5d9899b529",
+    "recipefix-adapt-b2-broiler-note.png": "cfbba863b5c27f7f90761464f093983590395988300ac54da9860220006e177b",
+    "recipefix-adapt-b3-gentle-simmer-note.png": "8a6074eecd00adcbd87cc8f0243b04da95d926fa2bd303e497c848eb0b635243",
+    "recipefix-adapt-c-swapped-ingredient-row.png": "7ffaa069b5c973df588fd5993d0b13264ed30afac09067d3d6d534f959728847",
+    "recipefix-adapt-phone.mp4": "ee6e70be805f1a19a7386c362d6da5d02c03045c90562492071f3e866618373f",
+    "recipefix-adapt-phone.webm": "81a9b8283d81c5ae6fb275682117a57587d3df254b16fd963535eb86d07d1954",
+    "tooling/capture.mjs": "0a12e536cc2172624c824c6b2d6c6bbf684ab8b59aafda990af018c122ac1f27",
+    "tooling/journey-capture.diff": "9a3383489a2bff12f5a329ffd530b4f9d25ecec8a4956e6bdb6958fe6ccff229",
+    "tooling/journey-capture.mjs": "c79d2bad623eae43e60bf45f4e3a5423a58373fa90150a1b4df736d962097cf5"
+  }
+}

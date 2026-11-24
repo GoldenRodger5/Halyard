@@ -1,0 +1,553 @@
+{
+ "source": {
+  "repo": "recipe-fix",
+  "commit": "a82f8bb9aff1cea7d5539156c807faa2602c9e29",
+  "file": "src/data/recipefixOriginals.ts",
+  "note": "RecipeFix Originals: written by RecipeFix, NOT kitchen-tested (claim content.originals; never say tested). Photos: licensed stock (Unsplash/Pexels), docs/RECIPEFIX_ORIGINALS.md."
+ },
+ "originals": [
+  {
+   "id": "creamy-tuscan-chicken",
+   "title": "Creamy Tuscan Chicken",
+   "servings": 4,
+   "totalMinutes": 35,
+   "mealType": "dinner",
+   "diets": [
+    "Gluten-Free",
+    "Nut-Free"
+   ],
+   "ingredientGroups": [
+    {
+     "title": "For the chicken",
+     "items": [
+      "4 boneless, skinless chicken thighs (about 1 1/4 lb)",
+      "3/4 teaspoon kosher salt",
+      "1/2 teaspoon black pepper",
+      "1 teaspoon Italian seasoning",
+      "1 tablespoon olive oil"
+     ]
+    },
+    {
+     "title": "For the sauce",
+     "items": [
+      "1 tablespoon butter",
+      "4 cloves garlic, minced",
+      "1/2 cup oil-packed sun-dried tomatoes, drained and sliced",
+      "1 cup heavy cream",
+      "3/4 cup finely grated parmesan",
+      "3 cups baby spinach"
+     ]
+    }
+   ],
+   "methodSections": [
+    {
+     "title": "Sear the chicken",
+     "steps": [
+      "Pat the chicken thighs dry with paper towels and season both sides with the salt, pepper and Italian seasoning.",
+      "Heat the olive oil in a large skillet over medium-high heat until it shimmers. Lay the chicken in smooth-side down and leave it undisturbed for 5 to 6 minutes, until it releases easily and is deep golden underneath.",
+      "Turn the chicken and sear the second side for 3 minutes. It will not be cooked through yet; it finishes in the sauce. Move it to a plate."
+     ]
+    },
+    {
+     "title": "Make the sauce",
+     "steps": [
+      "Lower the heat to medium and add the butter. When it melts, add the garlic and sun-dried tomatoes and stir for about 1 minute, until the garlic is fragrant but not browned.",
+      "Pour in the cream and scrape up the browned bits from the bottom of the pan with a wooden spoon. Simmer gently for 3 to 4 minutes, stirring now and then, until the cream has reduced slightly and coats the back of the spoon.",
+      "Turn the heat to low and stir in the parmesan a handful at a time, letting each addition melt before adding the next. Keep the heat low from here on: a hard boil can make the cheese grainy.",
+      "Add the spinach a handful at a time and stir until it just wilts, about 1 minute."
+     ]
+    },
+    {
+     "title": "Finish",
+     "steps": [
+      "Return the chicken and any juices from the plate to the pan. Cook at a gentle simmer for 5 to 7 minutes, spooning the sauce over the chicken, until an instant-read thermometer in the thickest piece reads 165°F (74°C).",
+      "Taste the sauce and add salt only if it needs it; the parmesan is already salty. If the sauce has thickened too much, loosen it with a splash of water. Serve hot, with plenty of sauce spooned over each piece."
+     ]
+    }
+   ],
+   "notes": [
+    "Chicken breasts work too. Slice two large breasts in half horizontally into thin cutlets so they cook in about the same time, and check for 165°F (74°C) before serving.",
+    "Serve over rice, polenta or mashed potatoes, which catch the sauce.",
+    "A spoonful of oil from the sun-dried tomato jar can stand in for the olive oil and adds flavor.",
+    "Leftovers keep, covered, in the fridge for up to 3 days. Reheat gently over low heat with a splash of water; the sauce thickens as it cools."
+   ]
+  },
+  {
+   "id": "lemon-herb-roast-chicken",
+   "title": "Lemon Herb Roast Chicken",
+   "servings": 4,
+   "totalMinutes": 90,
+   "mealType": "dinner",
+   "diets": [
+    "Gluten-Free",
+    "Dairy-Free",
+    "Nut-Free",
+    "Paleo",
+    "Whole30"
+   ],
+   "ingredientGroups": [
+    {
+     "title": null,
+     "items": [
+      "1 whole chicken, about 4 lb",
+      "1 lemon",
+      "4 sprigs rosemary",
+      "6 sprigs thyme",
+      "3 tablespoons olive oil",
+      "2 teaspoons kosher salt",
+      "1/2 teaspoon black pepper",
+      "6 cloves garlic, unpeeled and lightly crushed"
+     ]
+    }
+   ],
+   "methodSections": [
+    {
+     "title": "Prepare the chicken",
+     "steps": [
+      "Heat the oven to 425°F (220°C) with a rack in the middle. Remove any giblets from the chicken and pat it very dry inside and out with paper towels; dry skin is what browns and crisps.",
+      "Finely grate the zest from the lemon, then cut the lemon in half. Strip the leaves from 1 rosemary sprig and 3 thyme sprigs and chop them finely. Stir the zest and chopped herbs into the olive oil with the salt and pepper.",
+      "Set the chicken breast-side up in a large ovenproof skillet or small roasting pan. Gently loosen the skin over the breast with your fingers, spoon about a third of the herb oil underneath, and rub the rest all over the outside.",
+      "Tuck the lemon halves, garlic and remaining herb sprigs into the cavity. Tie the legs together with kitchen string and tuck the wing tips under the body so they don't scorch."
+     ]
+    },
+    {
+     "title": "Roast",
+     "steps": [
+      "Roast for 60 to 70 minutes, until the skin is deep golden and an instant-read thermometer reads 165°F (74°C) in the thickest part of the breast and of the thigh, not touching bone. If the skin browns too quickly, cover the breast loosely with foil."
+     ]
+    },
+    {
+     "title": "Rest and carve",
+     "steps": [
+      "Tip the chicken so the juices in the cavity run into the pan, then move it to a cutting board. Rest it uncovered for 15 minutes; it carves more cleanly, and uncovered, the skin stays crisp.",
+      "Meanwhile, tilt the pan and spoon off most of the clear fat, leaving the browned juices. Pull the lemon halves and garlic from the cavity with tongs, squeeze the lemon juice into the pan, and stir to loosen the browned bits.",
+      "Carve the chicken into legs, thighs, wings and sliced breast. Squeeze the soft garlic from its skins over the meat and spoon the pan juices over everything to serve."
+     ]
+    }
+   ],
+   "notes": [
+    "For crisper skin and more deeply seasoned meat, salt the chicken up to a day ahead and refrigerate it uncovered on a plate. Make the herb oil without the salt and rub it on just before roasting.",
+    "The timing is for a 4-lb bird. A larger or smaller chicken will take longer or less; go by the thermometer rather than the clock.",
+    "Leftovers keep, covered, in the fridge for up to 3 days. Save the carcass for stock."
+   ]
+  },
+  {
+   "id": "sweet-potato-black-bean-tacos",
+   "title": "Sweet Potato Black Bean Tacos",
+   "servings": 4,
+   "totalMinutes": 40,
+   "mealType": "dinner",
+   "diets": [
+    "Gluten-Free",
+    "Dairy-Free",
+    "Vegan",
+    "Vegetarian",
+    "Nut-Free",
+    "Halal"
+   ],
+   "ingredientGroups": [
+    {
+     "title": "For the filling",
+     "items": [
+      "2 medium sweet potatoes (about 1 1/2 lb), peeled and cut into 1/2-inch cubes",
+      "2 tablespoons olive oil, divided",
+      "1 teaspoon smoked paprika",
+      "1 teaspoon ground cumin",
+      "3/4 teaspoon kosher salt, divided",
+      "1 clove garlic, minced",
+      "1 (15-oz) can black beans, drained and rinsed",
+      "1/4 cup water",
+      "1 lime, halved"
+     ]
+    },
+    {
+     "title": "To serve",
+     "items": [
+      "8 small corn tortillas",
+      "1 ripe avocado",
+      "1/4 cup chopped cilantro",
+      "1 lime, cut into wedges"
+     ]
+    }
+   ],
+   "methodSections": [
+    {
+     "title": "Roast the sweet potatoes",
+     "steps": [
+      "Heat the oven to 425°F (220°C) and line a large rimmed baking sheet with parchment paper.",
+      "Toss the sweet potatoes with 1 tablespoon of the oil, the smoked paprika, cumin and 1/2 teaspoon of the salt. Spread them out in a single layer with a little space between the pieces; crowded cubes steam instead of browning.",
+      "Roast for 20 to 25 minutes, turning once halfway, until the cubes are tender when pierced with a knife and browned at the edges."
+     ]
+    },
+    {
+     "title": "Make the beans",
+     "steps": [
+      "While the sweet potatoes roast, warm the remaining oil in a small saucepan over medium heat. Add the garlic and stir for 30 seconds, until fragrant.",
+      "Add the black beans, water and the remaining salt. Simmer for 4 to 5 minutes, mashing about a third of the beans against the side of the pan, until the mixture is thick and creamy. Squeeze in the juice of the halved lime and take the pan off the heat."
+     ]
+    },
+    {
+     "title": "Warm the tortillas and assemble",
+     "steps": [
+      "Warm the tortillas one at a time in a dry skillet over medium-high heat for 30 to 60 seconds a side, until soft and lightly charred in spots. Stack them in a clean kitchen towel to keep warm.",
+      "Halve, pit and slice the avocado just before serving so it doesn't brown.",
+      "Spread a spoonful of the beans down the middle of each tortilla and top with the sweet potatoes, avocado and cilantro. Serve with the lime wedges for squeezing over."
+     ]
+    }
+   ],
+   "notes": [
+    "Most corn tortillas are gluten-free, but some brands add wheat flour. Check the label if you need them strictly gluten-free.",
+    "Corn tortillas crack when they are cold. If they still split after warming, stack two per taco.",
+    "Butternut squash can replace the sweet potatoes; cut it the same size and roast it the same way.",
+    "The roasted sweet potatoes and the beans keep separately in the fridge for up to 4 days. Reheat the beans with a splash of water and crisp the sweet potatoes in a hot skillet."
+   ]
+  },
+  {
+   "id": "salmon-cucumber-salsa",
+   "title": "Pan-Seared Salmon with Cucumber Salsa",
+   "servings": 2,
+   "totalMinutes": 25,
+   "mealType": "dinner",
+   "diets": [
+    "Gluten-Free",
+    "Dairy-Free",
+    "Nut-Free",
+    "Halal",
+    "Paleo",
+    "Whole30"
+   ],
+   "ingredientGroups": [
+    {
+     "title": "For the salsa",
+     "items": [
+      "1/2 English cucumber, finely diced",
+      "1 ripe tomato, seeded and finely diced",
+      "1/4 small red onion, finely diced",
+      "1 tablespoon chopped dill",
+      "1 lemon",
+      "Pinch of kosher salt"
+     ]
+    },
+    {
+     "title": "For the salmon",
+     "items": [
+      "2 skin-on salmon fillets (5 to 6 oz each, about 1 inch thick)",
+      "1/2 teaspoon kosher salt",
+      "1/4 teaspoon black pepper",
+      "1 tablespoon olive oil",
+      "2 cups baby spinach"
+     ]
+    }
+   ],
+   "methodSections": [
+    {
+     "title": "Make the salsa",
+     "steps": [
+      "Stir together the cucumber, tomato, red onion and dill in a bowl. Cut the lemon in half, squeeze in the juice of one half, add the pinch of salt and toss. Cut the other half into wedges for serving.",
+      "Leave the salsa to stand while you cook the salmon, so the salt draws out a little juice and the flavors blend. Drain off any liquid that pools before serving."
+     ]
+    },
+    {
+     "title": "Cook the salmon",
+     "steps": [
+      "Pat the salmon very dry with paper towels, especially the skin, and season both sides with the salt and pepper.",
+      "Heat the oil in a large nonstick or well-seasoned skillet over medium-high heat until it shimmers. Lay the fillets in skin-side down and press each one gently with a spatula for the first 10 seconds so the skin stays flat against the pan.",
+      "Cook without moving the fillets for 5 to 6 minutes, until the skin is crisp and releases easily and the flesh has turned opaque about three-quarters of the way up the sides.",
+      "Flip and cook for 1 to 2 minutes more, until the center just flakes when pressed and an instant-read thermometer reads 145°F (63°C). Move the salmon to a plate, skin-side up so the skin stays crisp."
+     ]
+    },
+    {
+     "title": "Finish",
+     "steps": [
+      "Lower the heat to medium, add the spinach to the pan and toss for 30 to 60 seconds, just until wilted.",
+      "Divide the spinach between two plates, set the salmon on top skin-side up, and spoon the salsa alongside. Serve with the lemon wedges."
+     ]
+    }
+   ],
+   "notes": [
+    "Skinless fillets work too. Sear the rounded side first for about 3 minutes, then flip and cook for 2 to 3 minutes more.",
+    "Arctic char or steelhead trout fillets cook the same way.",
+    "The salsa is best the day it is made; the cucumber softens and weeps as it sits."
+   ]
+  },
+  {
+   "id": "chicken-tikka-masala",
+   "title": "Chicken Tikka Masala",
+   "servings": 4,
+   "totalMinutes": 45,
+   "mealType": "dinner",
+   "diets": [
+    "Gluten-Free",
+    "Nut-Free"
+   ],
+   "ingredientGroups": [
+    {
+     "title": "For the chicken",
+     "items": [
+      "1 1/2 lb boneless, skinless chicken thighs, cut into 1 1/2-inch pieces",
+      "3/4 cup plain whole-milk yogurt",
+      "1 tablespoon lemon juice",
+      "1 tablespoon garam masala",
+      "1 teaspoon kosher salt"
+     ]
+    },
+    {
+     "title": "For the sauce",
+     "items": [
+      "2 tablespoons butter",
+      "1 large onion, finely chopped",
+      "1/2 teaspoon kosher salt, plus more to taste",
+      "4 cloves garlic, minced",
+      "1 tablespoon finely grated fresh ginger",
+      "1 tablespoon garam masala",
+      "1 teaspoon ground cumin",
+      "1 teaspoon paprika",
+      "1/2 teaspoon ground turmeric",
+      "1 (14.5-oz) can crushed tomatoes",
+      "1/2 cup heavy cream"
+     ]
+    },
+    {
+     "title": "To serve",
+     "items": [
+      "4 cups cooked basmati rice",
+      "2 tablespoons chopped cilantro"
+     ]
+    }
+   ],
+   "methodSections": [
+    {
+     "title": "Marinate the chicken",
+     "steps": [
+      "Stir the yogurt, lemon juice, 1 tablespoon garam masala and 1 teaspoon salt together in a bowl. Add the chicken and turn to coat every piece. Leave it to marinate at room temperature for 20 minutes while you make the sauce."
+     ]
+    },
+    {
+     "title": "Make the sauce",
+     "steps": [
+      "Melt the butter in a large, deep skillet or Dutch oven over medium heat. Add the onion and 1/2 teaspoon salt and cook, stirring occasionally, for 8 to 10 minutes, until soft and golden at the edges.",
+      "Add the garlic and ginger and cook, stirring, for 1 minute. Stir in the remaining garam masala, the cumin, paprika and turmeric and cook for 30 seconds more, stirring constantly so the spices toast without scorching.",
+      "Pour in the crushed tomatoes and scrape up any browned bits from the bottom of the pan. Bring to a gentle simmer, then lower the heat and cook uncovered for 10 to 12 minutes, stirring now and then, until the sauce thickens enough to leave a trail when you drag a spoon through it."
+     ]
+    },
+    {
+     "title": "Char the chicken",
+     "steps": [
+      "While the sauce simmers, heat the broiler with a rack about 6 inches below the element. Lift the chicken from the marinade, letting the excess drip off, spread it on a foil-lined baking sheet and discard the leftover marinade. Broil for 8 to 10 minutes, turning once, until charred in spots; it finishes cooking in the sauce."
+     ]
+    },
+    {
+     "title": "Finish",
+     "steps": [
+      "Stir the cream into the sauce, then add the chicken and any juices from the baking sheet. Simmer gently for 5 minutes, until the chicken is cooked through and an instant-read thermometer in the thickest piece reads 165°F (74°C).",
+      "Taste and add more salt if needed. If the sauce is thicker than you like, loosen it with a splash of water. Serve over the rice, scattered with the cilantro."
+     ]
+    }
+   ],
+   "notes": [
+    "For deeper flavor, cover the marinating chicken and refrigerate it for up to 24 hours.",
+    "No broiler? Brown the chicken in a hot, lightly oiled skillet in two batches, 2 to 3 minutes a side, then finish it in the sauce as above.",
+    "For a smoother sauce, purée it with an immersion blender before adding the cream.",
+    "For more heat, add 1/4 teaspoon cayenne with the other spices.",
+    "Start the rice before the sauce: about 1 1/3 cups of uncooked basmati makes 4 cups cooked.",
+    "Keeps, covered, in the fridge for up to 3 days. Reheat gently, adding a splash of water if the sauce has thickened."
+   ]
+  },
+  {
+   "id": "garlic-shrimp-spaghetti",
+   "title": "Garlic Shrimp Spaghetti",
+   "servings": 4,
+   "totalMinutes": 25,
+   "mealType": "dinner",
+   "diets": [
+    "Dairy-Free",
+    "Nut-Free"
+   ],
+   "ingredientGroups": [
+    {
+     "title": "For the pasta",
+     "items": [
+      "1/2 teaspoon kosher salt, plus more for the pasta water",
+      "12 oz spaghetti"
+     ]
+    },
+    {
+     "title": "For the shrimp and sauce",
+     "items": [
+      "1 lb large shrimp, peeled and deveined",
+      "1 lemon",
+      "1/4 cup olive oil",
+      "6 cloves garlic, thinly sliced",
+      "1/2 teaspoon chili flakes",
+      "1 1/2 cups cherry tomatoes, halved",
+      "1/3 cup chopped flat-leaf parsley"
+     ]
+    }
+   ],
+   "methodSections": [
+    {
+     "title": "Start the pasta",
+     "steps": [
+      "Bring a large pot of water to a boil and salt it generously. While it heats, pat the shrimp dry and season them with 1/2 teaspoon salt, then finely grate the zest from the lemon and cut the lemon in half.",
+      "Add the spaghetti to the boiling water, stir for the first minute so the strands don't stick, and cook until al dente, about a minute less than the package says."
+     ]
+    },
+    {
+     "title": "Make the sauce",
+     "steps": [
+      "Meanwhile, put the oil, garlic and chili flakes in a large, cold skillet and set it over medium-low heat. Cook, stirring often, for 4 to 6 minutes, until the garlic is pale gold. Starting in cold oil and heating slowly keeps the garlic from burning and turning bitter.",
+      "Raise the heat to medium-high and add the shrimp in a single layer. Cook for 1 to 2 minutes, until pink underneath, then turn them, add the tomatoes and cook for 1 to 2 minutes more, until the shrimp are just opaque and the tomatoes start to soften."
+     ]
+    },
+    {
+     "title": "Bring it together",
+     "steps": [
+      "Scoop out 1 cup of the pasta cooking water, then drain the spaghetti and add it to the skillet with 1/2 cup of the reserved water, the lemon zest and the juice of half the lemon.",
+      "Toss over medium heat for about 1 minute, until the oil and water come together into a light sauce that clings to the pasta and the shrimp are opaque throughout. Add more pasta water a splash at a time if it looks dry.",
+      "Toss in the parsley, taste, and add more salt or a squeeze from the remaining lemon half if needed. Serve right away."
+     ]
+    }
+   ],
+   "notes": [
+    "Frozen shrimp are fine. Thaw them overnight in the fridge, or in a colander under cold running water for about 10 minutes, then pat them dry.",
+    "If the garlic starts to brown before the shrimp go in, pull the pan off the heat for a moment; browned garlic turns bitter.",
+    "The starch in the pasta water is what turns the oil into a sauce, so don't skip saving it.",
+    "If the sauce is ready before the pasta, take the skillet off the heat; the shrimp finish cooking when everything is tossed together.",
+    "Best eaten straight away; the shrimp toughen when reheated."
+   ]
+  },
+  {
+   "id": "roasted-butternut-squash-soup",
+   "title": "Roasted Butternut Squash Soup",
+   "servings": 4,
+   "totalMinutes": 60,
+   "mealType": "lunch",
+   "diets": [
+    "Gluten-Free",
+    "Dairy-Free",
+    "Vegan",
+    "Vegetarian",
+    "Nut-Free",
+    "Halal",
+    "Paleo",
+    "Whole30"
+   ],
+   "ingredientGroups": [
+    {
+     "title": "For the soup",
+     "items": [
+      "1 medium butternut squash (about 3 lb), peeled, seeded and cut into 1-inch cubes",
+      "1 onion, cut into 8 wedges",
+      "4 cloves garlic, unpeeled",
+      "3 tablespoons olive oil",
+      "1 teaspoon kosher salt, plus more to taste",
+      "1/4 teaspoon black pepper",
+      "3 cups vegetable stock, plus more as needed",
+      "1/2 cup canned coconut milk, plus more to serve",
+      "1/4 teaspoon ground nutmeg",
+      "2 teaspoons lemon juice"
+     ]
+    },
+    {
+     "title": "To serve",
+     "items": [
+      "1/4 cup toasted pumpkin seeds"
+     ]
+    }
+   ],
+   "methodSections": [
+    {
+     "title": "Roast the vegetables",
+     "steps": [
+      "Heat the oven to 425°F (220°C). Line a large rimmed baking sheet with parchment paper; use two sheets if the squash won't fit in a single layer.",
+      "Toss the squash, onion and garlic with the olive oil, 1 teaspoon salt and the pepper, then spread them out in a single layer, tucking the garlic under the squash so it doesn't burn. Crowded squash steams instead of caramelizing.",
+      "Roast for 30 to 40 minutes, turning the pieces once halfway, until the squash is completely tender when pierced and browned at the edges."
+     ]
+    },
+    {
+     "title": "Blend",
+     "steps": [
+      "Squeeze the roasted garlic from its skins and discard the skins. Put the garlic and the rest of the roasted vegetables in a large pot with the stock, coconut milk and nutmeg.",
+      "Purée with an immersion blender until very smooth. If you use a countertop blender, work in batches, fill the jar no more than halfway, and remove the center cap from the lid and cover the opening with a folded towel so steam can escape."
+     ]
+    },
+    {
+     "title": "Finish",
+     "steps": [
+      "Bring the soup to a gentle simmer over medium heat and cook for 5 minutes, stirring often so it doesn't catch on the bottom. Thin it with more stock, a little at a time, if it's thicker than you like.",
+      "Stir in the lemon juice, then taste and add more salt as needed; squash soup usually needs more than you expect.",
+      "Ladle into bowls, swirl a little extra coconut milk over each, and scatter with the pumpkin seeds."
+     ]
+    }
+   ],
+   "notes": [
+    "To make peeling easier, pierce the squash a few times and microwave it for 2 to 3 minutes to soften the skin, then trim both ends and peel with a sturdy vegetable peeler.",
+    "To toast raw pumpkin seeds, stir them in a dry skillet over medium heat for 3 to 4 minutes, until they puff and start to pop.",
+    "If you need the soup strictly gluten-free or Whole30, check the stock's label: some contain wheat or added sugar.",
+    "The soup keeps in the fridge for up to 4 days and freezes well for up to 3 months. It thickens as it chills; thin it with stock or water when you reheat."
+   ]
+  },
+  {
+   "id": "blueberry-banana-french-toast",
+   "title": "Blueberry Banana French Toast",
+   "servings": 4,
+   "totalMinutes": 25,
+   "mealType": "breakfast",
+   "diets": [
+    "Vegetarian",
+    "Nut-Free"
+   ],
+   "ingredientGroups": [
+    {
+     "title": "For the French toast",
+     "items": [
+      "4 large eggs",
+      "1/2 teaspoon ground cinnamon",
+      "Pinch of kosher salt",
+      "1 cup whole milk",
+      "1 teaspoon vanilla extract",
+      "8 slices brioche, about 3/4 inch thick, preferably a day old",
+      "3 tablespoons butter, divided"
+     ]
+    },
+    {
+     "title": "To serve",
+     "items": [
+      "1 cup blueberries",
+      "2 ripe bananas, sliced",
+      "Maple syrup"
+     ]
+    }
+   ],
+   "methodSections": [
+    {
+     "title": "Get ready",
+     "steps": [
+      "Heat the oven to 200°F (95°C) and set a wire rack on a baking sheet inside it to keep the first batch warm.",
+      "Whisk the eggs, cinnamon and salt in a wide, shallow dish until smooth; cinnamon clumps if it goes straight into milk. Whisk in the milk and vanilla until no streaks of egg white remain."
+     ]
+    },
+    {
+     "title": "Cook the French toast",
+     "steps": [
+      "Melt half the butter in a large nonstick skillet over medium heat. It should sizzle gently rather than brown; if the pan is too hot, the outside scorches before the center sets.",
+      "Dip 4 slices of brioche in the egg mixture for about 10 seconds a side, just long enough to soak through without falling apart, and let the excess drip back into the dish.",
+      "Cook the slices for 2 to 3 minutes, until deep golden underneath, then turn and cook for 2 to 3 minutes more, until the second side is golden and the center feels springy rather than wet when pressed.",
+      "Move the cooked slices to the rack in the oven. Melt the remaining butter in the skillet and repeat with the rest of the brioche."
+     ]
+    },
+    {
+     "title": "Serve",
+     "steps": [
+      "Top the French toast with the blueberries and banana and serve with maple syrup."
+     ]
+    }
+   ],
+   "notes": [
+    "Day-old bread soaks up the egg mixture without turning soggy. If your brioche is very fresh, dry the slices in the warm oven for 10 minutes before soaking.",
+    "Challah works in place of brioche. Thick-cut sandwich bread does too; give it a quicker dip.",
+    "To make ahead, cool the cooked slices on a rack, freeze them in a single layer, then bag them. Reheat from frozen in a toaster."
+   ]
+  }
+ ]
+}

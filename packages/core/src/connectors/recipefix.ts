@@ -99,10 +99,37 @@ export interface RecipeFixConnectorOptions extends Omit<McpClientOptions, 'clien
 /** Tools the health check probes, and what each one gates. */
 export const RECIPEFIX_TOOLS: Array<{ name: string; required: boolean; gates: string }> = [
   { name: 'adapt_recipe', required: true, gates: 'all generated content' },
-  { name: 'list_adaptation_history', required: false, gates: 'product-activity signals' },
+  /*
+   * 2026-10-26. `list_adaptation_history` was here, gating "product-activity
+   * signals". The retired `mcp-service` denied it outright, and on the OAuth
+   * server that replaced it it returns only the signed-in account's OWN
+   * history — one person's testing, not product activity. The aggregate,
+   * test-account-excluded ranking is `get_popular_transformations`.
+   */
+  { name: 'get_popular_transformations', required: false, gates: 'product-activity signals (admin accounts only)' },
+  { name: 'get_changelog', required: false, gates: 'shipped-change signals' },
+  { name: 'list_before_after_examples', required: false, gates: 'published swap examples for copy' },
   { name: 'estimate_nutrition', required: false, gates: 'macro callouts only' },
   { name: 'search_recipes', required: false, gates: 'idea seeding from real recipes' },
 ];
+
+/**
+ * A free-text cooking request for `adapt_recipe`'s `swaps` field, if the
+ * caller stated one.
+ *
+ * 2026-10-26. This connector used to send `notes: spec.intent`. The server's
+ * schema has no `notes` (it is `swaps`), and zod `.object()` strips undeclared
+ * keys, so the field never arrived — and the existing test asserted that it
+ * was sent, which locked the defect in. Renaming it is not the fix either:
+ * `spec.intent` is a MARKETING angle ("show the vinegar change"), and `swaps`
+ * is passed to the model as a COOKING instruction, so forwarding it would bend
+ * the adaptation toward the post. Only an explicit `params.swaps` travels.
+ */
+function requestedSwaps(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  return trimmed ? trimmed.slice(0, 500) : undefined;
+}
 
 /**
  * The adaptation itself, whichever shape the server sent it in.
@@ -209,11 +236,19 @@ export class RecipeFixConnector implements ProductConnector {
     // Nutrition is enrichment, never a dependency. `estimate_nutrition` returns
     // non-2xx in production today, and a post about a bread swap does not need
     // macros to be worth publishing.
-    if (spec.params.withNutrition === true && !recipe.nutrition) {
+    /*
+     * 2026-10-26: the schema REQUIRES `servings` and names the title
+     * `recipeName`; this sent `recipe` and no servings, so every call was a
+     * validation error that the catch below swallowed. No serving count, no
+     * call: a per-serving estimate needs its denominator.
+     */
+    const servings = recipe.servings?.adapted ?? recipe.servings?.original;
+    if (spec.params.withNutrition === true && !recipe.nutrition && typeof servings === 'number') {
       try {
         recipe.nutrition = await this.client.callToolJson('estimate_nutrition', {
-          recipe: recipe.recipeName,
-          ingredients: recipe.ingredients.map((i) => i.adapted),
+          recipeName: recipe.recipeName.slice(0, 300),
+          ingredients: recipe.ingredients.map((i) => i.adapted).slice(0, 80),
+          servings: Math.min(99, Math.max(1, Math.round(servings))),
         });
       } catch {
         // Deliberately swallowed. The artifact is still complete without it.
@@ -423,7 +458,13 @@ export class RecipeFixConnector implements ProductConnector {
             ...(typeof spec.params.servings === 'number'
               ? { servings: spec.params.servings }
               : {}),
-            notes: spec.intent,
+            ...(requestedSwaps(spec.params.swaps) ? { swaps: requestedSwaps(spec.params.swaps) } : {}),
+            /*
+             * A marketing sample is never the operator's own recipe history.
+             * Still metered on the OAuth server unless the account is a
+             * RecipeFix test/admin account (RecipeFix docs/MCP.md).
+             */
+            persist: false,
           }),
         );
       } catch (err) {
@@ -440,33 +481,77 @@ export class RecipeFixConnector implements ProductConnector {
     );
   }
 
+  /**
+   * Product activity, as the aggregate the product publishes about itself.
+   *
+   * 2026-10-26: was `list_adaptation_history`, which the retired mcp-service
+   * denied and which the OAuth server answers with ONE account's history.
+   * `get_popular_transformations` is anonymised, excludes test accounts, and
+   * is restricted to administrator accounts — a non-admin token gets an error,
+   * which surfaces here as unavailable rather than as an empty success.
+   */
   async listRecentActivity(since: Date): Promise<ActivityItem[]> {
+    const days = Math.min(365, Math.max(1, Math.ceil((Date.now() - since.getTime()) / 86_400_000)));
     try {
       const raw = await this.client.callToolJson<{
-        adaptations?: Array<{
-          id: string;
-          created_at: string;
-          recipe_name: string;
-          dietary?: string[];
-        }>;
-      }>('list_adaptation_history', { since: since.toISOString(), limit: 50 });
-
-      return (raw.adaptations ?? []).map((a) => ({
-        id: a.id,
-        occurredAt: new Date(a.created_at),
-        kind: 'adaptation',
-        summary: `${a.recipe_name}${a.dietary?.length ? ` → ${a.dietary.join(', ')}` : ''}`,
-        raw: a,
+        window_days?: number;
+        transformations?: Array<{ transformation: string; count: number; previous_count?: number; trend?: string }>;
+      }>('get_popular_transformations', { days, limit: 20 });
+      const observedAt = new Date();
+      return (raw.transformations ?? []).map((t) => ({
+        id: `transformation:${t.transformation}:${days}d:${observedAt.toISOString().slice(0, 10)}`,
+        occurredAt: observedAt,
+        kind: 'transformation_trend',
+        summary: `${t.transformation}: ${t.count} in ${days} days${t.trend ? ` (${t.trend})` : ''}`,
+        raw: t,
       }));
     } catch (err) {
       throw new ConnectorUnavailableError(this.id, (err as Error).message);
     }
   }
 
+  /**
+   * 2026-10-26: was a hard-coded `[]` with the comment "RecipeFix exposes no
+   * changelog tool today". It does. Today the tool returns no entries and says
+   * so; reading it means the day RecipeFix starts keeping one, this source
+   * starts producing signals without a Halyard change.
+   */
   async getChangelog(): Promise<ChangelogEntry[]> {
-    // RecipeFix exposes no changelog tool today. Returning empty is correct and
-    // honest; the signal collector simply produces nothing from this source.
-    return [];
+    const raw = await this.client.callToolJson<{
+      entries?: Array<{ version?: string; title?: string; body?: string; released_at?: string }>;
+    }>('get_changelog', { limit: 20 });
+    return (raw.entries ?? [])
+      .filter((e) => e.title && e.released_at && !Number.isNaN(Date.parse(e.released_at)))
+      .map((e) => ({
+        version: e.version ?? e.released_at!.slice(0, 10),
+        releasedAt: new Date(e.released_at!),
+        title: e.title!,
+        body: e.body ?? '',
+      }));
+  }
+
+  /**
+   * Hand-authored, already-published before/after swaps per diet. The tool's
+   * own description calls them raw material for marketing copy; every row
+   * carries the converter page it is published on.
+   */
+  async listBeforeAfterExamples(
+    diet?: 'gluten-free' | 'vegan' | 'dairy-free' | 'keto' | 'nut-free',
+  ): Promise<
+    Array<{
+      diet: string;
+      title: string;
+      summary?: string;
+      swaps: Array<{ from: string; to: string; ratio?: string; why?: string }>;
+      technique_change: string | null;
+      url: string;
+    }>
+  > {
+    const raw = await this.client.callToolJson<{ examples?: unknown[] }>(
+      'list_before_after_examples',
+      diet ? { diet } : {},
+    );
+    return (raw.examples ?? []) as never;
   }
 
   /**

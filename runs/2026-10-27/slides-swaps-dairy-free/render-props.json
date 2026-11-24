@@ -1,0 +1,220 @@
+{
+  "feed": [
+    {
+      "kind": "cover",
+      "kicker": "Dairy-free swap guide",
+      "headline": "Dairy-free swaps that keep the dish working",
+      "sub": "4 swaps from one real tikka masala, and what to do differently with each",
+      "photo": "photo-chicken-tikka-masala-1080x760.jpg",
+      "photoLabel": "Stock photo of the original dairy recipe, not the adapted dish"
+    },
+    {
+      "kind": "proof",
+      "kicker": "The real result",
+      "headline": "Chicken tikka masala, dairy-free, 4 to 6 servings",
+      "shots": [
+        {
+          "src": "shot-recipefix-v2-still-1-result-header-what-changed-900.png",
+          "w": 900,
+          "h": 193
+        },
+        {
+          "src": "shot-recipefix-v2-still-6-swapped-coconut-yogurt-row-opened-900.png",
+          "w": 900,
+          "h": 594
+        }
+      ],
+      "lines": [
+        "Real RecipeFix result, captured Oct 21, 2026",
+        "Starting recipe: a RecipeFix Original, an AI-written home recipe"
+      ]
+    },
+    {
+      "kind": "swap",
+      "n": 1,
+      "total": 4,
+      "from": "Whole-milk yogurt",
+      "to": "Coconut yogurt",
+      "asWritten": "3/4 cup plain whole-milk yogurt",
+      "adapted": "1 cup plus 2 tablespoons plain unsweetened dairy-free coconut yogurt",
+      "servesFrom": 4,
+      "servesTo": 6,
+      "why": "Coconut yogurt provides an acidic, coating marinade without dairy; choose an unsweetened, unflavored variety.",
+      "steps": [
+        "Stir the coconut yogurt smooth before coating the chicken; a thick, cultured variety clings better than a thin yogurt.",
+        "Let excess coconut yogurt drip off so the coating chars rather than pools."
+      ]
+    },
+    {
+      "kind": "swap",
+      "n": 2,
+      "total": 4,
+      "stepsLabel": "What to check",
+      "from": "Butter",
+      "to": "Vegan butter",
+      "asWritten": "2 tablespoons butter",
+      "adapted": "3 tablespoons vegan butter",
+      "servesFrom": 4,
+      "servesTo": 6,
+      "why": "Vegan butter supplies the fat needed to soften the onion and bloom the spices without dairy.",
+      "steps": [
+        "Check that the vegan butter contains no milk derivatives."
+      ]
+    },
+    {
+      "kind": "swap",
+      "n": 3,
+      "total": 4,
+      "from": "Heavy cream",
+      "to": "Coconut cream",
+      "asWritten": "1/2 cup heavy cream",
+      "adapted": "3/4 cup full-fat coconut cream",
+      "servesFrom": 4,
+      "servesTo": 6,
+      "why": "Coconut cream restores the sauce's richness without dairy.",
+      "steps": [
+        "Whisk separated coconut cream smooth before adding and keep the sauce at a gentle simmer.",
+        "Choose plain unsweetened coconut cream, not sweetened cream of coconut."
+      ]
+    },
+    {
+      "kind": "swap",
+      "n": 4,
+      "total": 4,
+      "label": "Or, if you don't want coconut",
+      "from": "Heavy cream",
+      "to": "Soy cooking cream",
+      "asWritten": "1/2 cup heavy cream",
+      "adapted": "3/4 cup unsweetened dairy-free soy cooking cream",
+      "servesFrom": 4,
+      "servesTo": 6,
+      "why": "Soy cooking cream tastes more neutral, while coconut cream gives a richer body.",
+      "steps": [
+        "Keep the sauce at a gentle simmer rather than a hard boil after adding soy cooking cream."
+      ]
+    },
+    {
+      "kind": "expect",
+      "title": "What to expect",
+      "lines": [
+        "The finished dish will have a gentle coconut flavor rather than dairy's more neutral richness.",
+        "The larger batch needs more broiler space, not longer broiling per piece."
+      ]
+    },
+    {
+      "kind": "close",
+      "tie": "Swapping an ingredient? RecipeFix rewrites the steps to match, and every change comes with its reason.",
+      "save": "Save this guide",
+      "photo": "photo-chicken-tikka-masala-344x344.jpg"
+    }
+  ],
+  "tall": [
+    {
+      "kind": "cover",
+      "kicker": "Dairy-free swap guide",
+      "headline": "Dairy-free swaps that keep the dish working",
+      "sub": "4 swaps from one real tikka masala, and what to do differently with each",
+      "photo": "photo-chicken-tikka-masala-1080x820.jpg",
+      "photoLabel": "Stock photo of the original dairy recipe, not the adapted dish"
+    },
+    {
+      "kind": "proof",
+      "kicker": "The real result",
+      "headline": "Chicken tikka masala, dairy-free, 4 to 6 servings",
+      "shots": [
+        {
+          "src": "shot-recipefix-v2-still-1-result-header-what-changed-680.png",
+          "w": 680,
+          "h": 145
+        },
+        {
+          "src": "shot-recipefix-v2-still-6-swapped-coconut-yogurt-row-opened-680.png",
+          "w": 680,
+          "h": 448
+        }
+      ],
+      "lines": [
+        "Real RecipeFix result, captured Oct 21, 2026",
+        "Starting recipe: a RecipeFix Original, an AI-written home recipe"
+      ]
+    },
+    {
+      "kind": "swap",
+      "n": 1,
+      "total": 4,
+      "from": "Whole-milk yogurt",
+      "to": "Coconut yogurt",
+      "asWritten": "3/4 cup plain whole-milk yogurt",
+      "adapted": "1 cup plus 2 tablespoons plain unsweetened dairy-free coconut yogurt",
+      "servesFrom": 4,
+      "servesTo": 6,
+      "why": "Coconut yogurt provides an acidic, coating marinade without dairy; choose an unsweetened, unflavored variety.",
+      "steps": [
+        "Stir the coconut yogurt smooth before coating the chicken; a thick, cultured variety clings better than a thin yogurt.",
+        "Let excess coconut yogurt drip off so the coating chars rather than pools."
+      ]
+    },
+    {
+      "kind": "swap",
+      "n": 2,
+      "total": 4,
+      "stepsLabel": "What to check",
+      "from": "Butter",
+      "to": "Vegan butter",
+      "asWritten": "2 tablespoons butter",
+      "adapted": "3 tablespoons vegan butter",
+      "servesFrom": 4,
+      "servesTo": 6,
+      "why": "Vegan butter supplies the fat needed to soften the onion and bloom the spices without dairy.",
+      "steps": [
+        "Check that the vegan butter contains no milk derivatives."
+      ]
+    },
+    {
+      "kind": "swap",
+      "n": 3,
+      "total": 4,
+      "from": "Heavy cream",
+      "to": "Coconut cream",
+      "asWritten": "1/2 cup heavy cream",
+      "adapted": "3/4 cup full-fat coconut cream",
+      "servesFrom": 4,
+      "servesTo": 6,
+      "why": "Coconut cream restores the sauce's richness without dairy.",
+      "steps": [
+        "Whisk separated coconut cream smooth before adding and keep the sauce at a gentle simmer.",
+        "Choose plain unsweetened coconut cream, not sweetened cream of coconut."
+      ]
+    },
+    {
+      "kind": "swap",
+      "n": 4,
+      "total": 4,
+      "label": "Or, if you don't want coconut",
+      "from": "Heavy cream",
+      "to": "Soy cooking cream",
+      "asWritten": "1/2 cup heavy cream",
+      "adapted": "3/4 cup unsweetened dairy-free soy cooking cream",
+      "servesFrom": 4,
+      "servesTo": 6,
+      "why": "Soy cooking cream tastes more neutral, while coconut cream gives a richer body.",
+      "steps": [
+        "Keep the sauce at a gentle simmer rather than a hard boil after adding soy cooking cream."
+      ]
+    },
+    {
+      "kind": "expect",
+      "title": "What to expect",
+      "lines": [
+        "The finished dish will have a gentle coconut flavor rather than dairy's more neutral richness.",
+        "The larger batch needs more broiler space, not longer broiling per piece."
+      ]
+    },
+    {
+      "kind": "close",
+      "tie": "Swapping an ingredient? RecipeFix rewrites the steps to match, and every change comes with its reason.",
+      "save": "Save this guide",
+      "photo": "photo-chicken-tikka-masala-284x284.jpg"
+    }
+  ]
+}

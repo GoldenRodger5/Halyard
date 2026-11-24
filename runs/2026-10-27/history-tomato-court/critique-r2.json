@@ -1,0 +1,93 @@
+{
+  "verdict": "revise",
+  "scores": {
+    "stop": 6,
+    "stay": 5,
+    "engage": 3,
+    "human": 6
+  },
+  "cringe": [
+    "Cover frame shows a broken mid-animation number instead of a clean hook, which looks accidental.",
+    "The same title card effectively sits for about 4 seconds before the story moves.",
+    "The pasta/skillet image feels generic and not historically connected to the tomato court case.",
+    "Caption turns into a product pitch for RecipeFix, making the post feel like an ad after a decent history hook.",
+    "Some phrasing feels simplified to the point of stiffness: “Then it ruled it a vegetable anyway, for tax reasons.”"
+  ],
+  "pro_team_would_post": false,
+  "would_leave_at": "3.0 s",
+  "first_impression": "Nice vintage editorial look, but it starts too slowly and feels more like a templated history explainer than a sharp food-brand post.",
+  "problems": [
+    "The cover is not publication-ready because the giant year appears mid-transition as a weird, unreadable number.",
+    "Too much time is spent on the 1893 setup with almost no new information in the first four seconds.",
+    "The pacing is slow for Shorts/Reels; several frames reveal one word at a time without enough payoff.",
+    "The food image looks like modern pasta with tomatoes, not tomatoes/imports/Supreme Court, so it feels like stock filler.",
+    "The story logic is slightly muddy: it says the Court agreed tomatoes are fruit, then jumps to vegetable without clearly explaining common-use classification fast enough.",
+    "Small source text at the bottom is hard to read and may be covered by platform UI.",
+    "The final brand tie-in in the caption is not visually earned in the video and makes the post feel like a disguised ad.",
+    "The layout repeats the same beige background, red highlight blocks, and centered text rhythm for too long."
+  ],
+  "fixes": [
+    "Export a clean cover frame with the full year ‘1893’ visible, not a transition frame.",
+    "Make the first frame a stronger hook: ‘The Supreme Court once ruled a tomato was a vegetable’ or ‘A tomato went to the Supreme Court over taxes.’",
+    "Cut the opening hold to under 1 second and get to the tariff conflict immediately.",
+    "Use more relevant imagery: tomatoes in crates, an old customs document, a court engraving, or a simple illustrated tomato with tax labels instead of generic pasta.",
+    "Condense the narrative to 10–14 seconds: hook, 10% vegetable tariff, fruit was free, importer sued, Court said botanical fruit but legal vegetable.",
+    "Replace word-by-word captions with full short lines so viewers can read faster.",
+    "Move or enlarge the source citation so it is legible and not in the platform-button danger zone.",
+    "Add a sharper final beat on-screen, e.g. ‘Botany lost. Taxes won.’ instead of relying on the caption for payoff.",
+    "If promoting RecipeFix, make the CTA subtler and food-native, or put it only in the profile/comment rather than the main caption."
+  ],
+  "samples": [
+    {
+      "scores": {
+        "stop": 6,
+        "stay": 4,
+        "engage": 3,
+        "human": 6
+      },
+      "cringe": [
+        "Cover frame shows a broken mid-animation number instead of a clean hook, which looks accidental.",
+        "The same title card effectively sits for about 4 seconds before the story moves.",
+        "The pasta/skillet image feels generic and not historically connected to the tomato court case.",
+        "Caption turns into a product pitch for RecipeFix, making the post feel like an ad after a decent history hook.",
+        "Some phrasing feels simplified to the point of stiffness: “Then it ruled it a vegetable anyway, for tax reasons.”"
+      ],
+      "pro_team_would_post": false
+    },
+    {
+      "scores": {
+        "stop": 6,
+        "stay": 5,
+        "engage": 3,
+        "human": 6
+      },
+      "cringe": [
+        "The cover/first seconds sit on the same title card for too long before anything happens.",
+        "The pasta photo feels generic and not especially tomato-focused, like a stock food image dropped into a history template.",
+        "The caption turns into an obvious product ad for RecipeFix, but the video itself does not earn or integrate that pitch.",
+        "The quote card is low-contrast for several seconds, making it feel like a template animation rather than intentional design.",
+        "The tiny icon/logo at top right reads like unexplained app branding or a UI artifact."
+      ],
+      "pro_team_would_post": false
+    },
+    {
+      "scores": {
+        "stop": 4,
+        "stay": 5,
+        "engage": 3,
+        "human": 6
+      },
+      "cringe": [
+        "Cover frame is caught on a broken-looking date animation, so the first thing viewers see is confusing gibberish instead of a hook.",
+        "The pacing is too slow for a simple fact; it takes 5 seconds before new information appears.",
+        "The food image feels generic/stock and not specifically tied to tomatoes or the court case.",
+        "The RecipeFix caption makes the post feel like an ad even though the video itself is trying to be food-history editorial.",
+        "Some text reveals are awkwardly fragmented: “vegetables were / Fruit came in / free,” “Tomatoes are / he argued,” etc."
+      ],
+      "pro_team_would_post": false
+    }
+  ],
+  "model": "gpt-5.5",
+  "cost_usd": 0.05547,
+  "at": "2026-10-27T14:44:33.763Z"
+}

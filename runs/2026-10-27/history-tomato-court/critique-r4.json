@@ -1,0 +1,92 @@
+{
+  "verdict": "revise",
+  "scores": {
+    "stop": 6,
+    "stay": 5,
+    "engage": 3,
+    "human": 6
+  },
+  "cringe": [
+    "The food photo looks like generic shrimp pasta, not a tomato/Supreme Court visual, so it feels like stock filler.",
+    "The word-by-word red caption styling feels templated and slightly AI-social-video-ish.",
+    "The pacing is too slow for a simple fact; the first title card sits for several seconds with almost no new information.",
+    "Caption turns into a RecipeFix promo, but the video itself never lands that connection, so it feels tacked on.",
+    "Some quote text is very low contrast while fading in, making it feel unfinished rather than intentional."
+  ],
+  "pro_team_would_post": false,
+  "would_leave_at": "around 8-9s, when the tariff setup ends and the random stock pasta image appears",
+  "first_impression": "Nice-looking historical trivia card, but it moves too slowly and feels like a templated fact video with a loosely attached food-app ad.",
+  "problems": [
+    "The hook is visually elegant but static for too long; viewers get the full premise immediately and then wait.",
+    "The story lacks visual escalation until late, so the middle feels like animated captions rather than a video.",
+    "The pasta image does not clearly support the tomato tax/Supreme Court story and may confuse viewers.",
+    "The ending stops on the legal punchline but does not connect back to RecipeFix or provide a satisfying branded payoff.",
+    "Small source text and pale quote text reduce readability on mobile.",
+    "The cover says the whole fact already, lowering curiosity to keep watching."
+  ],
+  "fixes": [
+    "Make the cover more curiosity-driven, e.g. “The Supreme Court taxed tomatoes as vegetables” or “A tomato lost in court.”",
+    "Cut the runtime to 10-14 seconds and remove repeated static seconds.",
+    "Use stronger tomato-specific visuals: tomato crates, vintage produce invoice, customs/tariff stamp, courtroom engraving, botanical diagram.",
+    "Reveal the twist faster: fruit = free, vegetable = 10%, tomato importer sues, court says fruit botanically but vegetable in common cooking.",
+    "Replace the generic pasta shot or crop it around obvious tomatoes only.",
+    "Add a final branded bridge on-screen: “Botany says fruit. Dinner says vegetable. RecipeFix adapts recipes to how you actually cook.”",
+    "Increase contrast on quote text and source labels; keep all text large enough for mobile.",
+    "Use fewer karaoke-style word highlights and more editorial hierarchy so it feels designed rather than auto-captioned."
+  ],
+  "samples": [
+    {
+      "scores": {
+        "stop": 6,
+        "stay": 5,
+        "engage": 3,
+        "human": 6
+      },
+      "cringe": [
+        "The food photo looks like generic shrimp pasta, not a tomato/Supreme Court visual, so it feels like stock filler.",
+        "The word-by-word red caption styling feels templated and slightly AI-social-video-ish.",
+        "The pacing is too slow for a simple fact; the first title card sits for several seconds with almost no new information.",
+        "Caption turns into a RecipeFix promo, but the video itself never lands that connection, so it feels tacked on.",
+        "Some quote text is very low contrast while fading in, making it feel unfinished rather than intentional."
+      ],
+      "pro_team_would_post": false
+    },
+    {
+      "scores": {
+        "stop": 7,
+        "stay": 5,
+        "engage": 3,
+        "human": 6
+      },
+      "cringe": [
+        "The opening holds almost the same static frame for 4 seconds, which feels padded for a short-form feed.",
+        "Karaoke-style red word highlights feel templated and slightly AI/social-video-factory.",
+        "The food photo looks like shrimp pasta, not a tomato/legal/history visual, so it reads as random stock food imagery.",
+        "The RecipeFix caption tie-in feels bolted on and ad-like rather than naturally connected to the history fact.",
+        "Tiny source text and tiny top-right icon are hard to read and feel like decorative filler.",
+        "The story takes 22 seconds to deliver one punchline that could land in 8-10 seconds."
+      ],
+      "pro_team_would_post": false
+    },
+    {
+      "scores": {
+        "stop": 6,
+        "stay": 4,
+        "engage": 3,
+        "human": 6
+      },
+      "cringe": [
+        "The pacing is painfully slow for one simple fact; the first title card sits for 4 seconds with no new payoff.",
+        "Using a generic pasta/shrimp image to illustrate a Supreme Court tomato tariff case feels off and slightly stock/AI-adjacent.",
+        "The little RecipeFix sales pitch in the caption makes the post feel like a disguised ad, but the video itself never earns or connects to it.",
+        "The highlighted word-by-word captions feel templated and overused.",
+        "The quote card text is too faint for several seconds, which looks like a rendering/design mistake rather than suspense.",
+        "The ending lands on a source bar instead of a punchline, CTA, tomato visual, or brand moment."
+      ],
+      "pro_team_would_post": false
+    }
+  ],
+  "model": "gpt-5.5",
+  "cost_usd": 0.05396,
+  "at": "2026-10-27T15:01:19.647Z"
+}

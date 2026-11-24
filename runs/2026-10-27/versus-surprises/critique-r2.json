@@ -1,0 +1,90 @@
+{
+  "verdict": "revise",
+  "scores": {
+    "stop": 6,
+    "stay": 4,
+    "engage": 3,
+    "human": 6
+  },
+  "cringe": [
+    "The pacing feels padded: viewers wait several seconds on a static matchup before anything happens.",
+    "The RecipeFix promo in the caption feels bolted on and ad-like, not connected to the food-fact post.",
+    "The big decorative letters and repeated split-screen layout start to feel templated after the first round.",
+    "The countdown is confusing because it appears late and slows the payoff instead of building tension."
+  ],
+  "pro_team_would_post": false,
+  "would_leave_at": "around 3.0 s, when the first screen still has not revealed anything",
+  "first_impression": "Clean-looking nutrition trivia, but it feels too slow and template-driven for a short-form feed.",
+  "problems": [
+    "The hook is only moderately strong because the first frame is a static infographic with no surprising visual or immediate payoff.",
+    "Each round takes too long; the viewer waits 4-5 seconds before seeing the answer.",
+    "The same layout repeats three times, making the middle of the video feel predictable.",
+    "Some type is very small, especially source text and the per-100g labels.",
+    "The final summary slide is useful but visually quiet and may be missed after a long buildup.",
+    "No actual food imagery, motion, or human touch makes it feel more like a Canva template than a brand social post.",
+    "The caption's RecipeFix CTA reads like an unrelated product ad."
+  ],
+  "fixes": [
+    "Reveal each answer faster: show the matchup for 1 second, then animate the winner and numbers immediately.",
+    "Cut total length to 10-14 seconds, or make it a carousel where each slide has one clean question and answer.",
+    "Make the first frame more provocative, e.g. 'A red pepper beats an orange at vitamin C' or 'Which “healthy” guess is wrong?'",
+    "Add real food cutouts or simple ingredient photography to make it feel more tactile and less templated.",
+    "Vary the three rounds visually with different winner animations, scale changes, or quick result cards instead of the same split-screen every time.",
+    "Increase the size of the key numbers and reduce tiny secondary labels.",
+    "Move sources to a readable final slide or caption rather than tiny text on every result card.",
+    "Either remove the RecipeFix promo or tie it directly to the post with a softer CTA, e.g. 'Want nutrition notes while adapting recipes? Try RecipeFix.'"
+  ],
+  "samples": [
+    {
+      "scores": {
+        "stop": 6,
+        "stay": 4,
+        "engage": 3,
+        "human": 6
+      },
+      "cringe": [
+        "The pacing feels padded: viewers wait several seconds on a static matchup before anything happens.",
+        "The RecipeFix promo in the caption feels bolted on and ad-like, not connected to the food-fact post.",
+        "The big decorative letters and repeated split-screen layout start to feel templated after the first round.",
+        "The countdown is confusing because it appears late and slows the payoff instead of building tension."
+      ],
+      "pro_team_would_post": false
+    },
+    {
+      "scores": {
+        "stop": 6,
+        "stay": 4,
+        "engage": 3,
+        "human": 6
+      },
+      "cringe": [
+        "The pacing is way too slow for the payoff: viewers stare at the same static matchup for 4-5 seconds before anything happens.",
+        "The countdown feels like filler rather than tension, especially repeated across all three rounds.",
+        "The final transition at 24s is messy: “Per 100 g, the winners” overlaps the previous slide and looks broken/mid-template.",
+        "The RecipeFix promo in the caption feels disconnected from the nutrition quiz and makes it read like a disguised ad.",
+        "Some phrasing is stiff/AI-ish, like “Gram for gram” repeated in the same explainer-card format.",
+        "The ketchup vs cola comparison may invite nitpicks because people don’t consume ketchup and cola in comparable 100 g servings, even though the slide says per 100 g."
+      ],
+      "pro_team_would_post": false
+    },
+    {
+      "scores": {
+        "stop": 6,
+        "stay": 4,
+        "engage": 3,
+        "human": 6
+      },
+      "cringe": [
+        "The RecipeFix plug in the caption feels unrelated and ad-like.",
+        "The first comparison sits almost unchanged for 4 seconds before anything happens.",
+        "The countdown feels slow and a bit gimmicky for such simple facts.",
+        "Frame 24 has messy overlapping transition text that looks broken/templated.",
+        "Tiny source/type at the top and bottom is hard to read on mobile."
+      ],
+      "pro_team_would_post": false
+    }
+  ],
+  "model": "gpt-5.5",
+  "cost_usd": 0.05955,
+  "at": "2026-10-27T14:44:54.720Z"
+}

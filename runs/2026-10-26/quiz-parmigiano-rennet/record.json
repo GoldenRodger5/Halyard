@@ -1,0 +1,249 @@
+{
+  "schema": 1,
+  "id": "quiz-parmigiano-rennet",
+  "format": "quiz",
+  "summary": "Is real Parmigiano Reggiano vegetarian?",
+  "made_at": "2026-10-27T02:12:33.179Z",
+  "outputs": {
+    "video": "runs/2026-10-26/quiz-parmigiano-rennet/quiz-parmigiano-rennet.mp4"
+  },
+  "posts": {
+    "tiktok": {
+      "platform": "tiktok",
+      "kind": "video",
+      "media": [
+        "runs/2026-10-26/quiz-parmigiano-rennet/quiz-parmigiano-rennet.mp4"
+      ],
+      "text": "This one surprises a lot of vegetarians. Answer and source in the video.\n\n#vegetarian #cheese #foodtok #recipefix",
+      "ai_voice": false
+    },
+    "instagram_reel": {
+      "platform": "instagram",
+      "kind": "video",
+      "media": [
+        "runs/2026-10-26/quiz-parmigiano-rennet/quiz-parmigiano-rennet.mp4"
+      ],
+      "text": "This one surprises a lot of vegetarians. Answer and source in the video.\n\nAnswer: No. Its EU protected recipe requires calf rennet. Look for hard cheeses made with microbial or vegetable rennet.\nSource: EU PDO specification, Parmigiano Reggiano\n\nSave this for your next cheese run.\n\n#vegetarian #cheese #foodtok #recipefix",
+      "ai_voice": false
+    },
+    "youtube": {
+      "platform": "youtube",
+      "kind": "video",
+      "media": [
+        "runs/2026-10-26/quiz-parmigiano-rennet/quiz-parmigiano-rennet.mp4"
+      ],
+      "title": "Is real Parmigiano Reggiano vegetarian? #shorts",
+      "text": "Answer: No. Its EU protected recipe requires calf rennet. Look for hard cheeses made with microbial or vegetable rennet.\nSource: EU PDO specification, Parmigiano Reggiano (https://www.gob.mx/cms/uploads/attachment/file/245696/IT_Parmigiano_Reggiano.pdf)\n\nCooking vegetarian? RecipeFix swaps the cheese and tells you why. https://recipefix.app",
+      "ai_voice": false
+    },
+    "x": {
+      "platform": "x",
+      "kind": "video",
+      "media": [
+        "runs/2026-10-26/quiz-parmigiano-rennet/quiz-parmigiano-rennet.mp4"
+      ],
+      "text": "This one surprises a lot of vegetarians. Answer and source in the video.",
+      "thread": [
+        "Answer: B) No\n\nIts EU protected recipe requires calf rennet. Look for hard cheeses made with microbial or vegetable rennet.\n\nSource: EU PDO specification, Parmigiano Reggiano"
+      ]
+    },
+    "threads": {
+      "platform": "threads",
+      "kind": "video",
+      "media": [
+        "runs/2026-10-26/quiz-parmigiano-rennet/quiz-parmigiano-rennet.mp4"
+      ],
+      "text": "This one surprises a lot of vegetarians. Answer and source in the video.",
+      "thread": [
+        "Answer: B) No\n\nIts EU protected recipe requires calf rennet. Look for hard cheeses made with microbial or vegetable rennet.\n\nSource: EU PDO specification, Parmigiano Reggiano"
+      ]
+    }
+  },
+  "sources": [
+    {
+      "name": "EU PDO specification, Parmigiano Reggiano",
+      "url": "https://www.gob.mx/cms/uploads/attachment/file/245696/IT_Parmigiano_Reggiano.pdf",
+      "quote": "Cow's milk, salt, calf rennet."
+    }
+  ],
+  "claims": [
+    "core.diets",
+    "core.reasons"
+  ],
+  "assets": [
+    {
+      "id": "brand/recipefix-mark-512.png",
+      "provenance": "recipe-fix a82f8bb9:LAUNCH_KIT/assets/brand/recipefix-mark-512.png",
+      "licence": "first-party brand mark",
+      "sha256": "fcebd5205fadf3dfdddff83e288253498d98d06fa8c08b43444c3c06fb2cc84f"
+    },
+    {
+      "id": "photo-crispy-chicken-parmesan-16x9.jpg",
+      "provenance": "recipe-fix a82f8bb9:public/images/originals/crispy-chicken-parmesan-16x9.webp",
+      "licence": "Licensed stock (Unsplash/Pexels) per RecipeFix docs/RECIPEFIX_ORIGINALS.md; never \"our photo\"",
+      "sha256": "9507b95f91cba1b60749f65757677f15ae81191898f47cf14cc3b7192111a75c"
+    }
+  ],
+  "qa": {
+    "passed": true,
+    "checks": [
+      {
+        "id": "video.duration",
+        "passed": true,
+        "detail": "20.3 s (target 8–25 s)",
+        "problems": []
+      },
+      {
+        "id": "audio.loudness",
+        "passed": true,
+        "detail": "-30.5 LUFS, peak -18.4 dBFS (silent cut: ticks and chime only, not held to −14)",
+        "problems": []
+      },
+      {
+        "id": "q1-question:still.canvas",
+        "passed": true,
+        "detail": "1080×1920",
+        "problems": []
+      },
+      {
+        "id": "q1-question:still.text_readback",
+        "passed": true,
+        "detail": "4 intended lines, min similarity 1.00 (OCR vision: 12 words, file: 11 words, inverted: 17 words, rules removed: 10 words, white-text mask: 10 words, dark-text mask: 19 words); 1 struck lines held to their recorded lower bar",
+        "problems": []
+      },
+      {
+        "id": "q1-question:still.no_artefacts",
+        "passed": true,
+        "detail": "no [object Object] / undefined / NaN / braces read on the image",
+        "problems": []
+      },
+      {
+        "id": "q1-question:still.safe_zone",
+        "passed": true,
+        "detail": "8 word boxes inside x 120–900, y 270–1250",
+        "problems": []
+      },
+      {
+        "id": "q1-question:still.text_overlap",
+        "passed": true,
+        "detail": "no two intended lines overprint each other",
+        "problems": []
+      },
+      {
+        "id": "q1-question:still.text_size",
+        "passed": true,
+        "detail": "every line's median OCR word height ≥ 22px",
+        "problems": []
+      },
+      {
+        "id": "q1-question:still.contrast",
+        "passed": true,
+        "detail": "min 9.69:1 over 8 word boxes (WCAG AA 4.5:1)",
+        "problems": []
+      },
+      {
+        "id": "q1-answer:still.canvas",
+        "passed": true,
+        "detail": "1080×1920",
+        "problems": []
+      },
+      {
+        "id": "q1-answer:still.text_readback",
+        "passed": true,
+        "detail": "4 intended lines, min similarity 1.00 (OCR vision: 31 words, file: 15 words, inverted: 42 words, rules removed: 12 words, white-text mask: 35 words, dark-text mask: 50 words); 1 struck lines held to their recorded lower bar",
+        "problems": []
+      },
+      {
+        "id": "q1-answer:still.no_artefacts",
+        "passed": true,
+        "detail": "no [object Object] / undefined / NaN / braces read on the image",
+        "problems": []
+      },
+      {
+        "id": "q1-answer:still.safe_zone",
+        "passed": true,
+        "detail": "24 word boxes inside x 120–900, y 270–1250",
+        "problems": []
+      },
+      {
+        "id": "q1-answer:still.text_overlap",
+        "passed": true,
+        "detail": "no two intended lines overprint each other",
+        "problems": []
+      },
+      {
+        "id": "q1-answer:still.text_size",
+        "passed": true,
+        "detail": "every line's median OCR word height ≥ 22px",
+        "problems": []
+      },
+      {
+        "id": "q1-answer:still.contrast",
+        "passed": true,
+        "detail": "min 5.51:1 over 24 word boxes (WCAG AA 4.5:1)",
+        "problems": []
+      },
+      {
+        "id": "close:still.canvas",
+        "passed": true,
+        "detail": "1080×1920",
+        "problems": []
+      },
+      {
+        "id": "close:still.text_readback",
+        "passed": true,
+        "detail": "2 intended lines, min similarity 1.00 (OCR vision: 12 words, file: 12 words, inverted: 12 words, rules removed: 13 words, white-text mask: 11 words, dark-text mask: 10 words); 0 struck lines held to their recorded lower bar",
+        "problems": []
+      },
+      {
+        "id": "close:still.no_artefacts",
+        "passed": true,
+        "detail": "no [object Object] / undefined / NaN / braces read on the image",
+        "problems": []
+      },
+      {
+        "id": "close:still.safe_zone",
+        "passed": true,
+        "detail": "12 word boxes inside x 120–900, y 270–1250",
+        "problems": []
+      },
+      {
+        "id": "close:still.text_overlap",
+        "passed": true,
+        "detail": "no two intended lines overprint each other",
+        "problems": []
+      },
+      {
+        "id": "close:still.text_size",
+        "passed": true,
+        "detail": "every line's median OCR word height ≥ 22px",
+        "problems": []
+      },
+      {
+        "id": "close:still.contrast",
+        "passed": true,
+        "detail": "min 9.67:1 over 12 word boxes (WCAG AA 4.5:1)",
+        "problems": []
+      },
+      {
+        "id": "copy.platform_rules",
+        "passed": true,
+        "detail": "caption lengths, no X links, no forbidden claims, no bait, reads human (no em dashes, no stock AI phrasing)",
+        "problems": []
+      },
+      {
+        "id": "knowledge.product_posts",
+        "passed": true,
+        "detail": "pack ad17c991 has a release receipt",
+        "problems": []
+      }
+    ]
+  },
+  "cost_usd": 0,
+  "disclosures": {
+    "ai_voice": false,
+    "tiktok_is_aigc": false,
+    "photos": "licensed stock behind the card; not the dish discussed",
+    "knowledge_commit": "ad17c99162a47c769abfb70cd62f0bfb2f2e31e3"
+  }
+}

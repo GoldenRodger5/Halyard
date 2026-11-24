@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node", "vitest/globals"],
+    "jsx": "react-jsx",
+    "paths": {
+      "@halyard/core": ["../core/src/index.ts"],
+      "@halyard/core/*": ["../core/src/*"],
+      "@halyard/render": ["../render/src/index.ts"],
+      "@halyard/render/*": ["../render/src/*"],
+      "@halyard/db": ["../db/src/index.ts"],
+      "@halyard/db/*": ["../db/src/*"]
+    }
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx", "video/**/*.tsx", "video/**/*.ts"]
+}

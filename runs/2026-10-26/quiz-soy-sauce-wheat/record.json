@@ -1,0 +1,243 @@
+{
+  "schema": 1,
+  "id": "quiz-soy-sauce-wheat",
+  "format": "quiz",
+  "summary": "Which one usually contains wheat?",
+  "made_at": "2026-10-27T02:07:53.613Z",
+  "outputs": {
+    "video": "runs/2026-10-26/quiz-soy-sauce-wheat/quiz-soy-sauce-wheat.mp4"
+  },
+  "posts": {
+    "tiktok": {
+      "platform": "tiktok",
+      "kind": "video",
+      "media": [
+        "runs/2026-10-26/quiz-soy-sauce-wheat/quiz-soy-sauce-wheat.mp4"
+      ],
+      "text": "Check the bottle before your next stir fry. Answer and source in the video.\n\n#glutenfree #foodtok #cookingtips #recipefix",
+      "ai_voice": false
+    },
+    "instagram_reel": {
+      "platform": "instagram",
+      "kind": "video",
+      "media": [
+        "runs/2026-10-26/quiz-soy-sauce-wheat/quiz-soy-sauce-wheat.mp4"
+      ],
+      "text": "Check the bottle before your next stir fry. Answer and source in the video.\n\nAnswer: Soy sauce. Traditional soy sauce is brewed with wheat. Tamari made without wheat is the usual swap.\nSource: Celiac Disease Foundation, Sources of Gluten\n\nSave this for your next grocery run.\n\n#glutenfree #foodtok #cookingtips #recipefix",
+      "ai_voice": false
+    },
+    "youtube": {
+      "platform": "youtube",
+      "kind": "video",
+      "media": [
+        "runs/2026-10-26/quiz-soy-sauce-wheat/quiz-soy-sauce-wheat.mp4"
+      ],
+      "title": "Which one usually contains wheat? #shorts",
+      "text": "Answer: Soy sauce. Traditional soy sauce is brewed with wheat. Tamari made without wheat is the usual swap.\nSource: Celiac Disease Foundation, Sources of Gluten (https://celiac.org/gluten-free-living/what-is-gluten/sources-of-gluten/)\n\nGluten-free fried rice? RecipeFix swaps the soy sauce and rewrites the steps. https://recipefix.app",
+      "ai_voice": false
+    },
+    "x": {
+      "platform": "x",
+      "kind": "video",
+      "media": [
+        "runs/2026-10-26/quiz-soy-sauce-wheat/quiz-soy-sauce-wheat.mp4"
+      ],
+      "text": "Check the bottle before your next stir fry. Answer and source in the video.",
+      "thread": [
+        "Answer: A) Soy sauce\n\nTraditional soy sauce is brewed with wheat. Tamari made without wheat is the usual swap.\n\nSource: Celiac Disease Foundation, Sources of Gluten"
+      ]
+    },
+    "threads": {
+      "platform": "threads",
+      "kind": "video",
+      "media": [
+        "runs/2026-10-26/quiz-soy-sauce-wheat/quiz-soy-sauce-wheat.mp4"
+      ],
+      "text": "Check the bottle before your next stir fry. Answer and source in the video.",
+      "thread": [
+        "Answer: A) Soy sauce\n\nTraditional soy sauce is brewed with wheat. Tamari made without wheat is the usual swap.\n\nSource: Celiac Disease Foundation, Sources of Gluten"
+      ]
+    }
+  },
+  "sources": [
+    {
+      "name": "Celiac Disease Foundation",
+      "url": "https://celiac.org/gluten-free-living/what-is-gluten/sources-of-gluten/",
+      "quote": "Soy sauce (though tamari made without wheat is gluten-free)"
+    }
+  ],
+  "claims": [
+    "core.diets",
+    "core.rewrites_steps"
+  ],
+  "assets": [
+    {
+      "id": "brand/recipefix-mark-512.png",
+      "provenance": "recipe-fix a82f8bb9:LAUNCH_KIT/assets/brand/recipefix-mark-512.png",
+      "licence": "first-party brand mark",
+      "sha256": "fcebd5205fadf3dfdddff83e288253498d98d06fa8c08b43444c3c06fb2cc84f"
+    }
+  ],
+  "qa": {
+    "passed": true,
+    "checks": [
+      {
+        "id": "video.duration",
+        "passed": true,
+        "detail": "20.5 s (target 8–25 s)",
+        "problems": []
+      },
+      {
+        "id": "audio.loudness",
+        "passed": true,
+        "detail": "-30.9 LUFS, peak -18.4 dBFS (silent cut: ticks and chime only, not held to −14)",
+        "problems": []
+      },
+      {
+        "id": "q1-question:still.canvas",
+        "passed": true,
+        "detail": "1080×1920",
+        "problems": []
+      },
+      {
+        "id": "q1-question:still.text_readback",
+        "passed": true,
+        "detail": "6 intended lines, min similarity 1.00 (OCR vision: 16 words, file: 15 words, inverted: 30 words, rules removed: 20 words, white-text mask: 7 words, dark-text mask: 18 words); 0 struck lines held to their recorded lower bar",
+        "problems": []
+      },
+      {
+        "id": "q1-question:still.no_artefacts",
+        "passed": true,
+        "detail": "no [object Object] / undefined / NaN / braces read on the image",
+        "problems": []
+      },
+      {
+        "id": "q1-question:still.safe_zone",
+        "passed": true,
+        "detail": "16 word boxes inside x 120–900, y 270–1250",
+        "problems": []
+      },
+      {
+        "id": "q1-question:still.text_overlap",
+        "passed": true,
+        "detail": "no two intended lines overprint each other",
+        "problems": []
+      },
+      {
+        "id": "q1-question:still.text_size",
+        "passed": true,
+        "detail": "every line's median OCR word height ≥ 22px",
+        "problems": []
+      },
+      {
+        "id": "q1-question:still.contrast",
+        "passed": true,
+        "detail": "min 8.04:1 over 16 word boxes (WCAG AA 4.5:1)",
+        "problems": []
+      },
+      {
+        "id": "q1-answer:still.canvas",
+        "passed": true,
+        "detail": "1080×1920",
+        "problems": []
+      },
+      {
+        "id": "q1-answer:still.text_readback",
+        "passed": true,
+        "detail": "3 intended lines, min similarity 1.00 (OCR vision: 31 words, file: 20 words, inverted: 40 words, rules removed: 35 words, white-text mask: 31 words, dark-text mask: 40 words); 0 struck lines held to their recorded lower bar",
+        "problems": []
+      },
+      {
+        "id": "q1-answer:still.no_artefacts",
+        "passed": true,
+        "detail": "no [object Object] / undefined / NaN / braces read on the image",
+        "problems": []
+      },
+      {
+        "id": "q1-answer:still.safe_zone",
+        "passed": true,
+        "detail": "24 word boxes inside x 120–900, y 270–1250",
+        "problems": []
+      },
+      {
+        "id": "q1-answer:still.text_overlap",
+        "passed": true,
+        "detail": "no two intended lines overprint each other",
+        "problems": []
+      },
+      {
+        "id": "q1-answer:still.text_size",
+        "passed": true,
+        "detail": "every line's median OCR word height ≥ 22px",
+        "problems": []
+      },
+      {
+        "id": "q1-answer:still.contrast",
+        "passed": true,
+        "detail": "min 5.58:1 over 24 word boxes (WCAG AA 4.5:1)",
+        "problems": []
+      },
+      {
+        "id": "close:still.canvas",
+        "passed": true,
+        "detail": "1080×1920",
+        "problems": []
+      },
+      {
+        "id": "close:still.text_readback",
+        "passed": true,
+        "detail": "2 intended lines, min similarity 1.00 (OCR vision: 14 words, file: 14 words, inverted: 14 words, rules removed: 14 words, white-text mask: 14 words, dark-text mask: 14 words); 0 struck lines held to their recorded lower bar",
+        "problems": []
+      },
+      {
+        "id": "close:still.no_artefacts",
+        "passed": true,
+        "detail": "no [object Object] / undefined / NaN / braces read on the image",
+        "problems": []
+      },
+      {
+        "id": "close:still.safe_zone",
+        "passed": true,
+        "detail": "15 word boxes inside x 120–900, y 270–1250",
+        "problems": []
+      },
+      {
+        "id": "close:still.text_overlap",
+        "passed": true,
+        "detail": "no two intended lines overprint each other",
+        "problems": []
+      },
+      {
+        "id": "close:still.text_size",
+        "passed": true,
+        "detail": "every line's median OCR word height ≥ 22px",
+        "problems": []
+      },
+      {
+        "id": "close:still.contrast",
+        "passed": true,
+        "detail": "min 13.73:1 over 15 word boxes (WCAG AA 4.5:1)",
+        "problems": []
+      },
+      {
+        "id": "copy.platform_rules",
+        "passed": true,
+        "detail": "caption lengths, no X links, no forbidden claims, no bait, reads human (no em dashes, no stock AI phrasing)",
+        "problems": []
+      },
+      {
+        "id": "knowledge.product_posts",
+        "passed": true,
+        "detail": "pack ad17c991 has a release receipt",
+        "problems": []
+      }
+    ]
+  },
+  "cost_usd": 0.0379,
+  "disclosures": {
+    "ai_voice": false,
+    "tiktok_is_aigc": false,
+    "photos": "licensed stock behind the card; not the dish discussed",
+    "knowledge_commit": "ad17c99162a47c769abfb70cd62f0bfb2f2e31e3"
+  }
+}

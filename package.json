@@ -35,7 +35,8 @@
     "demo:tiktok": "playwright test --config playwright.demo.config.ts; node scripts/encode-demo.mjs",
     "demo:login": "node scripts/demo-login.mjs",
     "demo:screen": "node scripts/demo-screen.mjs",
-    "verify": "./scripts/verify"
+    "verify": "./scripts/verify",
+    "mk": "tsx packages/marketing/src/cli.ts"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",

@@ -1,0 +1,39 @@
+{
+  "label": "Gluten-free quiz",
+  "questions": [
+    {
+      "question": "Which one usually contains wheat?",
+      "options": [
+        "Soy sauce",
+        "Rice vinegar",
+        "Maple syrup",
+        "Corn tortillas"
+      ],
+      "correct": 0,
+      "why": "Traditional soy sauce is brewed with wheat. Tamari made without wheat is the usual swap.",
+      "source": "Celiac Disease Foundation, Sources of Gluten",
+      "photo": "photo-weeknight-vegetable-fried-rice-16x9.jpg",
+      "start": 0,
+      "countdownAt": 136,
+      "revealAt": 286,
+      "whyAt": 319,
+      "end": 511,
+      "audio": {
+        "question": null,
+        "answer": null,
+        "why": null
+      }
+    }
+  ],
+  "close": {
+    "start": 511,
+    "tie": "Gluten-free fried rice? RecipeFix swaps the soy sauce and rewrites the steps.",
+    "audio": null,
+    "photo": "photo-weeknight-vegetable-fried-rice-16x9.jpg"
+  },
+  "sfx": {
+    "tick": "sfx-tick.wav",
+    "reveal": "sfx-reveal.wav",
+    "whoosh": "sfx-whoosh.wav"
+  }
+}

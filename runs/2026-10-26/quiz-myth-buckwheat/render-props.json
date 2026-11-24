@@ -1,0 +1,37 @@
+{
+  "label": "Gluten-free quiz",
+  "questions": [
+    {
+      "question": "Buckwheat is a kind of wheat.",
+      "options": [
+        "Myth",
+        "Fact"
+      ],
+      "correct": 0,
+      "why": "Buckwheat is a seed from the rhubarb family, not wheat, and it's naturally gluten-free.",
+      "source": "Celiac Disease Foundation, Buckwheat",
+      "photo": "photo-fluffy-buttermilk-pancakes-16x9.jpg",
+      "start": 0,
+      "countdownAt": 89,
+      "revealAt": 239,
+      "whyAt": 272,
+      "end": 454,
+      "audio": {
+        "question": null,
+        "answer": null,
+        "why": null
+      }
+    }
+  ],
+  "close": {
+    "start": 454,
+    "tie": "Cooking gluten-free? RecipeFix rewrites your recipe, steps included.",
+    "audio": null,
+    "photo": "photo-fluffy-buttermilk-pancakes-16x9.jpg"
+  },
+  "sfx": {
+    "tick": "sfx-tick.wav",
+    "reveal": "sfx-reveal.wav",
+    "whoosh": "sfx-whoosh.wav"
+  }
+}

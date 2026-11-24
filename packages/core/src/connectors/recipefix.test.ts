@@ -64,11 +64,16 @@ describe('RecipeFixConnector', () => {
       params: { url: 'https://example.test/bread', dietary: ['gluten_free'] },
     });
 
+    /*
+     * This used to assert `notes: <intent>` was sent — a field the server's
+     * schema does not declare and zod strips. The marketing intent is not a
+     * cooking request, so nothing derived from it is sent; see
+     * recipefix.contract.test.ts for the schema-level check.
+     */
     expect(callToolJson).toHaveBeenCalledWith('adapt_recipe', {
       url: 'https://example.test/bread',
       dietary: ['gluten_free'],
-      servings: undefined,
-      notes: 'gluten-free artisan bread, show the vinegar change',
+      persist: false,
     });
     expect(artifact.headline).toContain('Artisan Bread');
   });

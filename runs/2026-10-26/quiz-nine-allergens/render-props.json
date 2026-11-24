@@ -1,0 +1,39 @@
+{
+  "label": "Food label quiz",
+  "questions": [
+    {
+      "question": "How many major food allergens must US labels declare?",
+      "options": [
+        "8",
+        "9",
+        "12",
+        "14"
+      ],
+      "correct": 1,
+      "why": "Sesame became the ninth on January 1, 2023, joining milk, eggs, fish, shellfish, tree nuts, peanuts, wheat and soy.",
+      "source": "FDA, Food Allergies",
+      "photo": "photo-classic-banana-bread-16x9.jpg",
+      "start": 0,
+      "countdownAt": 136,
+      "revealAt": 286,
+      "whyAt": 319,
+      "end": 551,
+      "audio": {
+        "question": null,
+        "answer": null,
+        "why": null
+      }
+    }
+  ],
+  "close": {
+    "start": 551,
+    "tie": "Cooking nut-free? RecipeFix rewrites your recipe, steps included.",
+    "audio": null,
+    "photo": "photo-classic-banana-bread-16x9.jpg"
+  },
+  "sfx": {
+    "tick": "sfx-tick.wav",
+    "reveal": "sfx-reveal.wav",
+    "whoosh": "sfx-whoosh.wav"
+  }
+}

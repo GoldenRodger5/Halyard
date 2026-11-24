@@ -1,0 +1,94 @@
+{
+  "verdict": "revise",
+  "scores": {
+    "stop": 5,
+    "stay": 5,
+    "engage": 3,
+    "human": 6
+  },
+  "cringe": [
+    "Cover frame appears glitched/half-transitioned with broken red numbers instead of a clean 1893 hook.",
+    "The pacing is very slow for one simple fact; it takes 5 seconds to get past the title card.",
+    "The pasta/shrimp image feels like generic stock food and not specifically tomatoes or court/history.",
+    "The tiny top-right icon looks like a stray UI/app badge and adds to the templated feel.",
+    "Several text reveals are too faint mid-animation, making the viewer work to read them.",
+    "The brand payoff only exists in the caption, so the video itself feels like disconnected trivia rather than a food-brand post."
+  ],
+  "pro_team_would_post": false,
+  "would_leave_at": "around 7.0 s, once the tariff setup is still unfolding slowly",
+  "first_impression": "Nice vintage editorial styling, but the video feels slow, overly templated, and not food-brand polished enough yet.",
+  "problems": [
+    "The first frame does not clearly read as 1893 because the large red number is caught in a messy transition.",
+    "The hook is interesting, but the opening holds too long with almost no new information.",
+    "The story is clear eventually, but each phrase is stretched over too many seconds.",
+    "The food image does not support the tomato debate strongly enough and looks like a random recipe photo.",
+    "Important explanatory text is sometimes pale grey during reveals and low-contrast against the beige background.",
+    "There is no visual tomato hero moment, no Supreme Court/courtroom cue beyond text, and no RecipeFix/product connection inside the video.",
+    "The final frame just sits on the stamped image and source, with no satisfying end card or reason to act."
+  ],
+  "fixes": [
+    "Make the cover a clean static hook: 'In 1893, the Supreme Court ruled a tomato was a vegetable.' with a strong tomato visual.",
+    "Cut the runtime to 12-15 seconds; combine beats instead of revealing one word at a time.",
+    "Open with the conflict immediately: 'Fruit was tax-free. Vegetables were taxed 10%. So an importer sued.'",
+    "Replace the generic pasta/shrimp image with a close-up tomato crate, market illustration, vintage produce label, or courtroom/tomato collage.",
+    "Increase contrast on all grey text or avoid showing unreadably faded text during transitions.",
+    "Remove or explain the tiny top-right icon if it is not a brand mark.",
+    "Add an on-video brand bridge at the end, e.g. 'Fruit or veg, RecipeFix adapts the steps to how you cook.'",
+    "End with a sharper final card or CTA, not just the source bar lingering."
+  ],
+  "samples": [
+    {
+      "scores": {
+        "stop": 6,
+        "stay": 5,
+        "engage": 3,
+        "human": 6
+      },
+      "cringe": [
+        "Cover looks glitched: the giant red number appears as broken/abstract characters before resolving, which reads like a render error rather than intentional motion.",
+        "The pacing is too slow for a simple fact; multiple seconds are spent on the same title card and quote reveal.",
+        "The food photo feels like generic pasta stock imagery, not a tomato/import court story, and it repeats too much.",
+        "Tiny legal source text is hard to read on mobile.",
+        "The caption turns into a product ad for RecipeFix, but the video itself never earns or integrates that pivot.",
+        "Some word-by-word subtitle emphasis feels templated and slightly AI-social-video-ish."
+      ],
+      "pro_team_would_post": false
+    },
+    {
+      "scores": {
+        "stop": 5,
+        "stay": 4,
+        "engage": 3,
+        "human": 6
+      },
+      "cringe": [
+        "Cover frame appears glitched/half-transitioned with broken red numbers instead of a clean 1893 hook.",
+        "The pacing is very slow for one simple fact; it takes 5 seconds to get past the title card.",
+        "The pasta/shrimp image feels like generic stock food and not specifically tomatoes or court/history.",
+        "The tiny top-right icon looks like a stray UI/app badge and adds to the templated feel.",
+        "Several text reveals are too faint mid-animation, making the viewer work to read them.",
+        "The brand payoff only exists in the caption, so the video itself feels like disconnected trivia rather than a food-brand post."
+      ],
+      "pro_team_would_post": false
+    },
+    {
+      "scores": {
+        "stop": 4,
+        "stay": 5,
+        "engage": 3,
+        "human": 6
+      },
+      "cringe": [
+        "Cover frame shows a broken/transitioning number instead of a clean hook, so it looks like a render mistake.",
+        "The same pasta/tomato dish photo is used as evidence/decoration for too long and feels like generic stock food imagery.",
+        "The pacing is very slow for a simple fact; it takes about 20 seconds to reach the actual twist.",
+        "The tiny source bar is hard to read and feels performative rather than useful.",
+        "The RecipeFix/product connection is only in the caption, so the video itself feels disconnected from the brand."
+      ],
+      "pro_team_would_post": false
+    }
+  ],
+  "model": "gpt-5.5",
+  "cost_usd": 0.05975,
+  "at": "2026-10-27T14:35:46.598Z"
+}

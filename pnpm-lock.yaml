@@ -208,6 +208,46 @@ importers:
         specifier: ^5.7.3
         version: 5.9.3
 
+  packages/marketing:
+    dependencies:
+      '@fontsource/lilita-one':
+        specifier: 5.2.5
+        version: 5.2.5
+      '@halyard/core':
+        specifier: workspace:*
+        version: link:../core
+      '@halyard/render':
+        specifier: workspace:*
+        version: link:../render
+      '@remotion/bundler':
+        specifier: ^4.0.507
+        version: 4.0.507(@swc/helpers@0.5.15)(lightningcss@1.32.0)(postcss@8.5.26)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      '@remotion/renderer':
+        specifier: ^4.0.507
+        version: 4.0.507(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      js-yaml:
+        specifier: ^4.1.0
+        version: 4.3.1
+      react:
+        specifier: ^19.0.0
+        version: 19.2.8
+      remotion:
+        specifier: ^4.0.507
+        version: 4.0.507(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      sharp:
+        specifier: ^0.33.5
+        version: 0.33.5
+    devDependencies:
+      '@types/js-yaml':
+        specifier: ^4.0.9
+        version: 4.0.9
+      '@types/react':
+        specifier: ^19.0.7
+        version: 19.2.18
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+
   packages/render:
     dependencies:
       '@halyard/core':
@@ -794,6 +834,9 @@ packages:
   '@eslint/plugin-kit@0.4.1':
     resolution: {integrity: sha512-43/qtrDUokr7LJqoF2c3+RInu/t4zfrpYdoSDfYyhg52rwLV6TnOvdG4fXm7IkSB3wErkcmJS9iEhjVtOSEjjA==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+
+  '@fontsource/lilita-one@5.2.5':
+    resolution: {integrity: sha512-TkBlCDDJtYz+2g4yC55ZfQsAdQkgCrPz2VZAA8L+KJputlXy2+TQ2s5qH2Kdx48BGg71RkWateCCHLUtltgEbw==}
 
   '@humanfs/core@0.19.2':
     resolution: {integrity: sha512-UhXNm+CFMWcbChXywFwkmhqjs3PRCmcSa/hfBgLIb7oQ5HNb1wS0icWsGtSAUNgefHeI+eBrA8I1fxmbHsGdvA==}
@@ -1788,6 +1831,9 @@ packages:
 
   '@types/estree@1.0.9':
     resolution: {integrity: sha512-GhdPgy1el4/ImP05X05Uw4cw2/M93BCUmnEvWZNStlCzEKME4Fkk+YpoA5OiHNQmoS7Cafb8Xa3Pya8m1Qrzeg==}
+
+  '@types/js-yaml@4.0.9':
+    resolution: {integrity: sha512-k4MGaQl5TGo/iipqb2UDG2UwjXziSWkh0uysQelTlJpX1qGlpUZYm8PnO4DxG1qBomtJUdYJ6qR6xdIah10JLg==}
 
   '@types/json-schema@7.0.15':
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
@@ -3604,6 +3650,8 @@ snapshots:
       '@eslint/core': 0.17.0
       levn: 0.4.1
 
+  '@fontsource/lilita-one@5.2.5': {}
+
   '@humanfs/core@0.19.2':
     dependencies:
       '@humanfs/types': 0.15.0
@@ -4392,6 +4440,8 @@ snapshots:
       '@types/json-schema': 7.0.15
 
   '@types/estree@1.0.9': {}
+
+  '@types/js-yaml@4.0.9': {}
 
   '@types/json-schema@7.0.15': {}
 

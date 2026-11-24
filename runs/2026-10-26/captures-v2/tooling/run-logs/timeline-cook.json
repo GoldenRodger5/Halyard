@@ -1,0 +1,67 @@
+{
+ "frames": 598,
+ "duration_s": 9.967,
+ "timeline": [
+  {
+   "t": 0.3,
+   "label": "tap-cook"
+  },
+  {
+   "t": 0.384,
+   "label": "cook-intro-visible (Ready to cook)"
+  },
+  {
+   "t": 1.783,
+   "label": "tap-start-cooking"
+  },
+  {
+   "t": 2.321,
+   "label": "step1-visible"
+  },
+  {
+   "t": 3.328,
+   "label": "tap-next (step 1 'Gather your ingredients' has no timer)"
+  },
+  {
+   "t": 4.287,
+   "label": "step2-visible"
+  },
+  {
+   "t": 5.111,
+   "label": "scroll-to-timer-start"
+  },
+  {
+   "t": 6.121,
+   "label": "scroll-to-timer-end"
+  },
+  {
+   "t": 6.726,
+   "label": "tap-start-timer",
+   "timerLabel": "Start 20:00 timerTap to start"
+  }
+ ],
+ "segments": [
+  {
+   "type": "rt",
+   "clip_s": [
+    0.0,
+    5.117
+   ]
+  },
+  {
+   "type": "step",
+   "clip_s": [
+    5.117,
+    6.117
+   ]
+  },
+  {
+   "type": "rt",
+   "clip_s": [
+    6.117,
+    9.967
+   ]
+  }
+ ],
+ "tomato_visible_clip_s": []
+}

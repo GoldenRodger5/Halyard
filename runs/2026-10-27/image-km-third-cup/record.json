@@ -1,0 +1,149 @@
+{
+  "schema": 1,
+  "id": "image-km-third-cup",
+  "made_at": "2026-10-27T04:34:34.063Z",
+  "assets": [
+    {
+      "id": "brand/recipefix-mark-512.png",
+      "provenance": "recipe-fix a82f8bb9:LAUNCH_KIT/assets/brand/recipefix-mark-512.png",
+      "licence": "first-party brand mark",
+      "sha256": "fcebd5205fadf3dfdddff83e288253498d98d06fa8c08b43444c3c06fb2cc84f"
+    }
+  ],
+  "cost_usd": 0,
+  "format": "image",
+  "summary": "How many tablespoons are in 1/3 cup?",
+  "outputs": {
+    "slides": [
+      "runs/2026-10-27/image-km-third-cup/slides/image-01-question.jpg"
+    ]
+  },
+  "posts": {
+    "instagram": {
+      "platform": "instagram",
+      "kind": "image",
+      "media": [
+        "runs/2026-10-27/image-km-third-cup/slides/image-01-question.jpg"
+      ],
+      "text": "The hard one. Most people say 5.\nGuess first, the answer is below.\n\n\nAnswer: C) 5 and 1/3\n\nOne third of 16 tablespoons is 5 and 1/3: that's 5 tablespoons plus 1 teaspoon.\n\nSource: USDA Food Buying Guide, Volume Equivalents\n\nScaling a recipe? RecipeFix does the math in measurements you can actually use.\n\n#cookingtips #bakingtips #recipefix"
+    },
+    "x": {
+      "platform": "x",
+      "kind": "image",
+      "media": [
+        "runs/2026-10-27/image-km-third-cup/slides/image-01-question.jpg"
+      ],
+      "text": "The hard one. Most people say 5. Answer in the reply.\n\n#cookingtips #bakingtips #recipefix",
+      "thread": [
+        "Answer: C) 5 and 1/3\n\nOne third of 16 tablespoons is 5 and 1/3: that's 5 tablespoons plus 1 teaspoon.\n\nSource: USDA Food Buying Guide, Volume Equivalents"
+      ]
+    },
+    "threads": {
+      "platform": "threads",
+      "kind": "image",
+      "media": [
+        "runs/2026-10-27/image-km-third-cup/slides/image-01-question.jpg"
+      ],
+      "text": "The hard one. Most people say 5. Answer in the reply.\n\n#cookingtips #bakingtips #recipefix",
+      "thread": [
+        "Answer: C) 5 and 1/3\n\nOne third of 16 tablespoons is 5 and 1/3: that's 5 tablespoons plus 1 teaspoon.\n\nSource: USDA Food Buying Guide, Volume Equivalents",
+        "Scaling a recipe? RecipeFix does the math in measurements you can actually use."
+      ]
+    },
+    "x_text": {
+      "platform": "x",
+      "kind": "text",
+      "media": [],
+      "text": "How many tablespoons are in 1/3 cup?\n\nA) 4\nB) 5\nC) 5 and 1/3\nD) 6\n\nAnswer in the reply.\n\n#cookingtips #bakingtips #recipefix",
+      "thread": [
+        "Answer: C) 5 and 1/3\n\nOne third of 16 tablespoons is 5 and 1/3: that's 5 tablespoons plus 1 teaspoon.\n\nSource: USDA Food Buying Guide, Volume Equivalents"
+      ]
+    }
+  },
+  "sources": [
+    {
+      "name": "USDA Food Buying Guide, Table 12",
+      "url": "https://foodbuyingguide.fns.usda.gov/Content/TablesFBG/Table12_FBG_A_Guide_to_Volume_Equivalents_for_Liquids.pdf",
+      "quote": "1 tablespoon = 3 teaspoons = 0.5 fluid ounce; 1/4 cup = 4 tablespoons; 1/3 cup = 5 1/3 tablespoons; 1 cup = 16 tablespoons"
+    }
+  ],
+  "claims": [
+    "core.scaling"
+  ],
+  "qa": {
+    "passed": true,
+    "checks": [
+      {
+        "id": "image-1:file",
+        "passed": true,
+        "detail": "jpeg 1080×1350",
+        "problems": []
+      },
+      {
+        "id": "image-1-question:still.canvas",
+        "passed": true,
+        "detail": "1080×1350",
+        "problems": []
+      },
+      {
+        "id": "image-1-question:still.text_readback",
+        "passed": true,
+        "detail": "4 lines held to read-back, min similarity 1.00; 0 single-glyph lines checked by eye only (OCR vision: 18 words, file: 9 words, inverted: 20 words, rules removed: 18 words, white-text mask: 14 words, dark-text mask: 18 words)",
+        "problems": []
+      },
+      {
+        "id": "image-1-question:still.no_artefacts",
+        "passed": true,
+        "detail": "no [object Object] / undefined / NaN / braces read on the image",
+        "problems": []
+      },
+      {
+        "id": "image-1-question:still.safe_zone",
+        "passed": true,
+        "detail": "15 word boxes inside x 60–1020, y 60–1290",
+        "problems": []
+      },
+      {
+        "id": "image-1-question:still.text_overlap",
+        "passed": true,
+        "detail": "no two intended lines overprint each other",
+        "problems": []
+      },
+      {
+        "id": "image-1-question:still.text_size",
+        "passed": true,
+        "detail": "every line's median OCR word height ≥ 22px",
+        "problems": []
+      },
+      {
+        "id": "image-1-question:still.contrast",
+        "passed": true,
+        "detail": "min 5.39:1 over 15 word boxes (WCAG AA 4.5:1)",
+        "problems": []
+      },
+      {
+        "id": "photo.aspect:photo-blueberry-banana-french-toast-1080x640.jpg",
+        "passed": true,
+        "detail": "crop 1600×948 (aspect 1.6878) drawn at 1080×640 (1.6875); downscale only",
+        "problems": []
+      },
+      {
+        "id": "copy.platform_rules",
+        "passed": true,
+        "detail": "lengths, X titles, no link in the X post, 3–5 hashtags incl. #recipefix, no forbidden claims, no bait, reads human",
+        "problems": []
+      },
+      {
+        "id": "knowledge.product_posts",
+        "passed": true,
+        "detail": "pack ad17c991 has a release receipt",
+        "problems": []
+      }
+    ]
+  },
+  "disclosures": {
+    "ai_voice": false,
+    "photos": "licensed stock RecipeFix Originals photo as mood; not the dish discussed",
+    "knowledge_commit": "ad17c99162a47c769abfb70cd62f0bfb2f2e31e3"
+  }
+}

@@ -1,0 +1,125 @@
+{
+ "frames": 600,
+ "duration_s": 10.0,
+ "timeline": [
+  {
+   "t": 0.0,
+   "label": "step4_reduce_tomato_sauce-held",
+   "stepBox_css": {
+    "x": 16,
+    "y": 181.984375,
+    "w": 358,
+    "h": 345.328125,
+    "docY": 3219.317626953125
+   },
+   "noteBox_css": {
+    "x": 60,
+    "y": 393.5625,
+    "w": 314,
+    "h": 133.75,
+    "docY": 3430.895751953125
+   },
+   "chrome_css": {
+    "top": 122,
+    "bottom": 783
+   },
+   "tomatoVisible": false
+  },
+  {
+   "t": 2.5,
+   "label": "scroll-to-step5_broil_marinated_chicken-start"
+  },
+  {
+   "t": 3.802,
+   "label": "step5_broil_marinated_chicken-held",
+   "stepBox_css": {
+    "x": 16,
+    "y": 173.9791717529297,
+    "w": 358,
+    "h": 494.109375,
+    "docY": 3588.6459197998047
+   },
+   "noteBox_css": {
+    "x": 60,
+    "y": 534.3385620117188,
+    "w": 314,
+    "h": 133.75,
+    "docY": 3949.0053100585938
+   },
+   "chrome_css": {
+    "top": 122,
+    "bottom": 783
+   },
+   "tomatoVisible": false
+  },
+  {
+   "t": 6.3,
+   "label": "scroll-to-step6_finish_creamy_sauce-start"
+  },
+  {
+   "t": 7.606,
+   "label": "step6_finish_creamy_sauce-held",
+   "stepBox_css": {
+    "x": 16,
+    "y": 174.0885467529297,
+    "w": 358,
+    "h": 368.078125,
+    "docY": 4106.755294799805
+   },
+   "noteBox_css": {
+    "x": 60,
+    "y": 385.66668701171875,
+    "w": 314,
+    "h": 156.5,
+    "docY": 4318.333435058594
+   },
+   "chrome_css": {
+    "top": 122,
+    "bottom": 783
+   },
+   "tomatoVisible": false
+  },
+  {
+   "t": 10.0,
+   "label": "end"
+  }
+ ],
+ "segments": [
+  {
+   "type": "rt",
+   "clip_s": [
+    0.0,
+    2.5
+   ]
+  },
+  {
+   "type": "step",
+   "clip_s": [
+    2.5,
+    3.8
+   ]
+  },
+  {
+   "type": "rt",
+   "clip_s": [
+    3.8,
+    6.3
+   ]
+  },
+  {
+   "type": "step",
+   "clip_s": [
+    6.3,
+    7.6
+   ]
+  },
+  {
+   "type": "rt",
+   "clip_s": [
+    7.6,
+    10.0
+   ]
+  }
+ ],
+ "tomato_visible_clip_s": []
+}

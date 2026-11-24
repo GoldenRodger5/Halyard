@@ -1,0 +1,212 @@
+{
+  "feed": [
+    {
+      "kind": "cover",
+      "kicker": "Kitchen math quiz",
+      "headline": "Could you scale a recipe without a calculator?",
+      "photo": "photo-lemon-herb-roast-chicken-820x520.jpg",
+      "count": 3,
+      "color": "#C1714F"
+    },
+    {
+      "kind": "question",
+      "n": 1,
+      "total": 3,
+      "kicker": "Kitchen math quiz",
+      "question": "How many teaspoons are in one tablespoon?",
+      "options": [
+        "2",
+        "3",
+        "4",
+        "5"
+      ],
+      "myth": false,
+      "photo": "photo-classic-banana-bread-760x380.jpg",
+      "color": "#2A9D8F"
+    },
+    {
+      "kind": "question",
+      "n": 2,
+      "total": 3,
+      "kicker": "Kitchen math quiz",
+      "question": "No 1/4 cup measure. How many tablespoons do you use?",
+      "options": [
+        "2",
+        "3",
+        "4",
+        "6"
+      ],
+      "myth": false,
+      "photo": "photo-fluffy-buttermilk-pancakes-760x380.jpg",
+      "color": "#C8553D"
+    },
+    {
+      "kind": "question",
+      "n": 3,
+      "total": 3,
+      "kicker": "Kitchen math quiz",
+      "question": "How many tablespoons are in 1/3 cup?",
+      "options": [
+        "4",
+        "5",
+        "5 and 1/3",
+        "6"
+      ],
+      "myth": false,
+      "photo": "photo-blueberry-banana-french-toast-760x380.jpg",
+      "color": "#5B8E3E"
+    },
+    {
+      "kind": "answers",
+      "title": "Answers",
+      "items": [
+        {
+          "n": 1,
+          "question": "How many teaspoons are in one tablespoon?",
+          "answer": "B) 3",
+          "myth": false,
+          "correctIsMyth": false,
+          "why": "1 tablespoon is 3 teaspoons, or half a fluid ounce.",
+          "source": "USDA Food Buying Guide, Volume Equivalents"
+        },
+        {
+          "n": 2,
+          "question": "No 1/4 cup measure. How many tablespoons do you use?",
+          "answer": "C) 4",
+          "myth": false,
+          "correctIsMyth": false,
+          "why": "A quarter cup is 4 tablespoons. A full cup is 16.",
+          "source": "USDA Food Buying Guide, Volume Equivalents"
+        },
+        {
+          "n": 3,
+          "question": "How many tablespoons are in 1/3 cup?",
+          "answer": "C) 5 and 1/3",
+          "myth": false,
+          "correctIsMyth": false,
+          "why": "One third of 16 tablespoons is 5 and 1/3: that's 5 tablespoons plus 1 teaspoon.",
+          "source": "USDA Food Buying Guide, Volume Equivalents"
+        }
+      ]
+    },
+    {
+      "kind": "close",
+      "tie": "Scaling a recipe? RecipeFix does the math in measurements you can actually use.",
+      "save": "Save this for the next time you halve a recipe.",
+      "color": "#A65336"
+    }
+  ],
+  "tall": [
+    {
+      "kind": "cover",
+      "kicker": "Kitchen math quiz",
+      "headline": "Could you scale a recipe without a calculator?",
+      "photo": "photo-lemon-herb-roast-chicken-840x620.jpg",
+      "count": 3,
+      "color": "#C1714F"
+    },
+    {
+      "kind": "question",
+      "n": 1,
+      "total": 3,
+      "kicker": "Kitchen math quiz",
+      "question": "How many teaspoons are in one tablespoon?",
+      "options": [
+        "2",
+        "3",
+        "4",
+        "5"
+      ],
+      "myth": false,
+      "photo": "photo-classic-banana-bread-800x540.jpg",
+      "color": "#2A9D8F"
+    },
+    {
+      "kind": "question",
+      "n": 2,
+      "total": 3,
+      "kicker": "Kitchen math quiz",
+      "question": "No 1/4 cup measure. How many tablespoons do you use?",
+      "options": [
+        "2",
+        "3",
+        "4",
+        "6"
+      ],
+      "myth": false,
+      "photo": "photo-fluffy-buttermilk-pancakes-800x540.jpg",
+      "color": "#C8553D"
+    },
+    {
+      "kind": "question",
+      "n": 3,
+      "total": 3,
+      "kicker": "Kitchen math quiz",
+      "question": "How many tablespoons are in 1/3 cup?",
+      "options": [
+        "4",
+        "5",
+        "5 and 1/3",
+        "6"
+      ],
+      "myth": false,
+      "photo": "photo-blueberry-banana-french-toast-800x540.jpg",
+      "color": "#5B8E3E"
+    },
+    {
+      "kind": "answers",
+      "title": "Answers 1/3",
+      "items": [
+        {
+          "n": 1,
+          "question": "How many teaspoons are in one tablespoon?",
+          "photo": "photo-classic-banana-bread-800x500.jpg",
+          "answer": "B) 3",
+          "myth": false,
+          "correctIsMyth": false,
+          "why": "1 tablespoon is 3 teaspoons, or half a fluid ounce.",
+          "source": "USDA Food Buying Guide, Volume Equivalents"
+        }
+      ]
+    },
+    {
+      "kind": "answers",
+      "title": "Answers 2/3",
+      "items": [
+        {
+          "n": 2,
+          "question": "No 1/4 cup measure. How many tablespoons do you use?",
+          "photo": "photo-fluffy-buttermilk-pancakes-800x500.jpg",
+          "answer": "C) 4",
+          "myth": false,
+          "correctIsMyth": false,
+          "why": "A quarter cup is 4 tablespoons. A full cup is 16.",
+          "source": "USDA Food Buying Guide, Volume Equivalents"
+        }
+      ]
+    },
+    {
+      "kind": "answers",
+      "title": "Answers 3/3",
+      "items": [
+        {
+          "n": 3,
+          "question": "How many tablespoons are in 1/3 cup?",
+          "photo": "photo-blueberry-banana-french-toast-800x500.jpg",
+          "answer": "C) 5 and 1/3",
+          "myth": false,
+          "correctIsMyth": false,
+          "why": "One third of 16 tablespoons is 5 and 1/3: that's 5 tablespoons plus 1 teaspoon.",
+          "source": "USDA Food Buying Guide, Volume Equivalents"
+        }
+      ]
+    },
+    {
+      "kind": "close",
+      "tie": "Scaling a recipe? RecipeFix does the math in measurements you can actually use.",
+      "save": "Save this for the next time you halve a recipe.",
+      "color": "#A65336",
+      "photo": "photo-lemon-herb-roast-chicken-800x500.jpg"
+    }
+  ]
+}

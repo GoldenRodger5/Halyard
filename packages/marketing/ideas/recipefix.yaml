@@ -1,0 +1,161 @@
+# RecipeFix ideas for the lean lane (POC 1).
+#
+# An idea is the CONCEPT: question, pillar, the real proof it stands on, what
+# each slide/beat must do, and where every number comes from. The model writes
+# the words inside these constraints; code checks them (copyGate.ts).
+#
+# Sources: RecipeFix docs/marketing/CONTENT_PLAN_14_DAYS.md (ids I1–I15), the
+# reconciled knowledge pack, and the stored real result. Ids keep the plan's
+# numbering so a post traces back to its row.
+
+product: recipefix
+product_terms: [RecipeFix, "the app", Plus]
+product_repo: /Users/isaacmineo/PROJECT_2025/recipe-fix
+knowledge:
+  # Reconciled pack matching the 2026-10-26 release receipt (a82f8bb9), branch
+  # docs/marketing-knowledge-reconcile-20261026 (local; push held by the owner).
+  ref: ad17c99162a47c769abfb70cd62f0bfb2f2e31e3
+  path: docs/marketing/knowledge
+# Proof and photos are read at the commit production serves (bundle markers,
+# 2026-10-26T19:24Z: 3f32680f tree). Identical blobs on origin/main 619c036a.
+proof_commit: 3f32680f
+
+ideas:
+  - id: I5
+    pillar: transformation
+    series: "Before / After #1"
+    format: ig_carousel
+    platform: instagram
+    canvas: { width: 1080, height: 1350 }
+    question: "Changing an ingredient changes more than the ingredient list."
+    audience: "Restriction cooks (dairy-free) and scalers; product.md §3 rows 1–2"
+    proof:
+      file: src/data/landingRealResult.ts
+      export: LANDING_REAL_RESULT
+    claim_ids: [proof.tikka_method_changes, core.rewrites_steps, core.reasons]
+    link: "https://recipefix.app/original-recipes/chicken-tikka-masala?utm_source=instagram&utm_medium=social&utm_campaign=transformation&utm_content=I5-ig-carousel"
+    never_show:
+      - "1½ (14.5-oz) can crushed tomatoes"
+    fact_sources:
+      - id: scale
+        statement: "4 → 6 servings is ×1.5, i.e. 50% more of each ingredient"
+        source: "arithmetic on the stored output's originalServings 4 and servings 6"
+      - id: broil_time
+        statement: "8 to 10 minutes per sheet"
+        source: "stored output steps[4].instruction"
+      - id: reduce_time
+        statement: "Start checking at 10 minutes; the step says 10 to 15 minutes"
+        source: "stored output steps[3].updated_note and steps[3].instruction"
+      - id: temp
+        statement: "165°F (74°C) internal"
+        source: "stored output steps[4].instruction, steps[5].instruction (USDA FSIS poultry minimum)"
+      - id: original_broil
+        statement: "As written: spread it on a foil-lined baking sheet. Broil for 8 to 10 minutes"
+        source: "RecipeFix src/data/recipefixOriginals.ts @3f32680f, chicken-tikka-masala, 'Char the chicken'"
+      - id: original_reduce
+        statement: "As written: cook uncovered for 10 to 12 minutes, until the sauce leaves a trail"
+        source: "RecipeFix src/data/recipefixOriginals.ts @3f32680f, chicken-tikka-masala, 'Make the sauce' step 3"
+      - id: original_finish
+        statement: "As written: stir the cream into the sauce. Simmer gently for 5 minutes"
+        source: "RecipeFix src/data/recipefixOriginals.ts @3f32680f, chicken-tikka-masala, 'Finish' step 1"
+    # Real RecipeFix screens (runs/2026-10-26/captures-v2, commit e68b1404 = live UI) cropped
+    # into the slides: owner feedback "use real pics of RecipeFix"; director: ≥ 40% of the slide.
+    # Crop boxes are device px at DPR 3, from capture.json DOM boxes.
+    slides:
+      - role: cover
+        must: "Hook in ≤10 words that names the tension: the dairy swap was easy, the steps changed. Kicker names the dish, the diet and 4 → 6. The photo label must say it is the Original recipe's licensed stock photo, not the adapted dish."
+      - role: swaps
+        must: "The three real swaps, before → after, shortened faithfully from ingredients[1], [5], [15]. Headline says the list was the easy part."
+        sources: ["ingredients[1]", "ingredients[5]", "ingredients[15]"]
+        shot: { file: recipefix-v2-still-6-swapped-coconut-yogurt-row-opened.png, crop: { left: 24, top: 1021, width: 1122, height: 740 } }
+      - role: method
+        must: "Broiling: the Original says one baking sheet, 8 to 10 minutes. The rewrite: two batches, same 8 to 10 minutes each. Why: crowding costs the char."
+        sources: ["steps[4].updated_note", "steps[4].instruction", "explanations[2]"]
+        shot: { file: recipefix-v2-still-3-step5-broil-marinated-chicken.png, crop: { left: 24, top: 508, width: 1122, height: 244 } }
+        shot2: { file: recipefix-v2-still-3-step5-broil-marinated-chicken.png, crop: { left: 24, top: 1595, width: 1122, height: 425 } }
+      - role: method
+        must: "Reducing the sauce: don't multiply the 10 to 15 minutes. A wider pan evaporates faster. Start checking at 10 minutes, go by the spoon trail."
+        sources: ["steps[3].updated_note", "steps[3].instruction"]
+        shot: { file: recipefix-v2-still-2-step4-reduce-tomato-sauce.png, crop: { left: 24, top: 508, width: 1122, height: 244 } }
+        shot2: { file: recipefix-v2-still-2-step4-reduce-tomato-sauce.png, crop: { left: 24, top: 1149, width: 1122, height: 425 } }
+      - role: method
+        must: "The cream: whisk separated coconut cream smooth, keep the sauce at a gentle simmer, and check several pieces (165°F) rather than stretching the time."
+        sources: ["steps[5].updated_note", "steps[5].instruction"]
+        shot: { file: recipefix-v2-still-4-step6-finish-creamy-sauce.png, crop: { left: 24, top: 508, width: 1122, height: 244 } }
+        shot2: { file: recipefix-v2-still-4-step6-finish-creamy-sauce.png, crop: { left: 24, top: 1149, width: 1122, height: 494 } }
+      - role: proof
+        must: "This is a real RecipeFix result: show the app's own result header and its 'What RecipeFix changed' summary. One-line recap a cook can save."
+        sources: ["steps[4].updated_note"]
+        shot: { file: recipefix-v2-still-1-result-header-what-changed.png, crop: { left: 24, top: 470, width: 1122, height: 232 } }
+        shot2: { file: recipefix-v2-still-1-result-header-what-changed.png, crop: { left: 24, top: 815, width: 1122, height: 130 } }
+        shot3: { file: recipefix-v2-still-1-result-header-what-changed.png, crop: { left: 24, top: 1955, width: 1122, height: 240 } }
+
+  - id: V1
+    pillar: fix_it
+    series: "Scale it up #1"
+    format: short_video
+    # V2 (owner/director review 2026-10-26): built around real RecipeFix screens, not diagrams.
+    composition: screen-hero
+    platform: tiktok
+    variants: [tiktok, instagram_reels]
+    canvas: { width: 1080, height: 1920 }
+    target_seconds: [30, 45]
+    question: "Scaling a recipe up: multiply the ingredients, not the cooking time."
+    audience: "Scalers (scaling is the #1 transformation, 23 in 90 days: get_popular_transformations 2026-10-26)"
+    proof:
+      file: src/data/landingRealResult.ts
+      export: LANDING_REAL_RESULT
+    claim_ids: [proof.tikka_method_changes, core.rewrites_steps, core.scaling]
+    never_show:
+      - "1½ (14.5-oz) can crushed tomatoes"
+    fact_sources:
+      - id: scale
+        statement: "4 → 6 servings is ×1.5, i.e. 50% more: 1½ lb chicken becomes 2¼ lb"
+        source: "stored output ingredients[0] (original 1 1/2 lb, adapted 2¼ lb)"
+      - id: broil_time
+        statement: "8 to 10 minutes per sheet"
+        source: "stored output steps[4].instruction"
+      - id: reduce_time
+        statement: "Start checking at 10 minutes"
+        source: "stored output steps[3].updated_note"
+    # screen-hero shots per beat. src: a file in captures (clip .mp4 or 3× still .png), or photo.
+    # y / yEnd: source px (DPR 3) of the window's top edge, set just above a text line;
+    # a still with no yEnd pans 240 px. Crops are always full width. weight: share of the beat.
+    captures: runs/2026-10-26/captures-v2
+    beats:
+      - role: hook
+        must: "First frame moves: 4 → 6 servings. Line: multiply the ingredients, not the minutes."
+        shots:
+          - { kind: photo-hook, weight: 2.6 }
+          - { src: recipefix-v2-clip1-result-swapped-yogurt.mp4, from: 1.6, y: 600, weight: 2.8 }
+      - role: amounts
+        must: "Amounts do scale: 1½ lb chicken → 2¼ lb (×1.5)."
+        shots:
+          - { src: recipefix-v2-clip1-result-swapped-yogurt.mp4, from: 3.15, y: 640 }
+      - role: broil
+        must: "Broiling 50% more chicken? Not 50% longer. Two batches, same 8 to 10 minutes each."
+        shots:
+          - { src: recipefix-v2-clip2-method-step-notes.mp4, from: 2.5, y: 840 }
+          - { src: recipefix-v2-still-3-step5-broil-marinated-chicken.png, y: 681 }
+          - { src: recipefix-v2-still-3-step5-broil-marinated-chicken.png, y: 1063 }
+      - role: reduce
+        must: "Reducing the sauce in a wider pan goes faster. Start checking at 10 minutes, watch the spoon trail."
+        shots:
+          - { src: recipefix-v2-clip2-method-step-notes.mp4, from: 0, y: 520 }
+          - { src: recipefix-v2-still-2-step4-reduce-tomato-sauce.png, y: 905 }
+          - { src: recipefix-v2-still-2-step4-reduce-tomato-sauce.png, y: 607 }
+      - role: simmer
+        must: "Coconut cream instead of dairy cream: gentle simmer."
+        shots:
+          - { src: recipefix-v2-clip2-method-step-notes.mp4, from: 6.3, y: 520, weight: 3.7 }
+          - { src: recipefix-v2-still-4-step6-finish-creamy-sauce.png, y: 905, weight: 2.6 }
+      - role: proof
+        must: "The real RecipeFix screen showing these step notes. Label: real result, captured Oct 21 2026; app screen, local build of the live UI."
+        shots:
+          - { src: recipefix-v2-clip4-cook-mode-timer.mp4, from: 0.2, y: 300, weight: 2.8 }
+          - { src: recipefix-v2-clip4-cook-mode-timer.mp4, from: 3.0, y: 300, yEnd: 1150, weight: 3.1 }
+      - role: close
+        must: "Takeaway: batches, not minutes. Cues, not clocks."
+        shots:
+          - { src: recipefix-v2-clip4-cook-mode-timer.mp4, from: 6.1, y: 1150, weight: 3.6 }
+          - { kind: photo-close, weight: 4.1 }

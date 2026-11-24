@@ -1,0 +1,1056 @@
+{
+  "schema": 1,
+  "post_id": "I5-ig-carousel",
+  "idea": {
+    "id": "I5",
+    "pillar": "transformation",
+    "series": "Before / After #1",
+    "format": "ig_carousel",
+    "platform": "instagram",
+    "canvas": {
+      "width": 1080,
+      "height": 1350
+    },
+    "question": "Changing an ingredient changes more than the ingredient list.",
+    "audience": "Restriction cooks (dairy-free) and scalers; product.md §3 rows 1–2",
+    "proof": {
+      "file": "src/data/landingRealResult.ts",
+      "export": "LANDING_REAL_RESULT"
+    },
+    "claim_ids": [
+      "proof.tikka_method_changes",
+      "core.rewrites_steps",
+      "core.reasons"
+    ],
+    "link": "https://recipefix.app/original-recipes/chicken-tikka-masala?utm_source=instagram&utm_medium=social&utm_campaign=transformation&utm_content=I5-ig-carousel",
+    "never_show": [
+      "1½ (14.5-oz) can crushed tomatoes"
+    ],
+    "fact_sources": [
+      {
+        "id": "scale",
+        "statement": "4 → 6 servings is ×1.5, i.e. 50% more of each ingredient",
+        "source": "arithmetic on the stored output's originalServings 4 and servings 6"
+      },
+      {
+        "id": "broil_time",
+        "statement": "8 to 10 minutes per sheet",
+        "source": "stored output steps[4].instruction"
+      },
+      {
+        "id": "reduce_time",
+        "statement": "Start checking at 10 minutes; the step says 10 to 15 minutes",
+        "source": "stored output steps[3].updated_note and steps[3].instruction"
+      },
+      {
+        "id": "temp",
+        "statement": "165°F (74°C) internal",
+        "source": "stored output steps[4].instruction, steps[5].instruction (USDA FSIS poultry minimum)"
+      },
+      {
+        "id": "original_broil",
+        "statement": "As written: spread it on a foil-lined baking sheet. Broil for 8 to 10 minutes",
+        "source": "RecipeFix src/data/recipefixOriginals.ts @3f32680f, chicken-tikka-masala, 'Char the chicken'"
+      },
+      {
+        "id": "original_reduce",
+        "statement": "As written: cook uncovered for 10 to 12 minutes, until the sauce leaves a trail",
+        "source": "RecipeFix src/data/recipefixOriginals.ts @3f32680f, chicken-tikka-masala, 'Make the sauce' step 3"
+      },
+      {
+        "id": "original_finish",
+        "statement": "As written: stir the cream into the sauce. Simmer gently for 5 minutes",
+        "source": "RecipeFix src/data/recipefixOriginals.ts @3f32680f, chicken-tikka-masala, 'Finish' step 1"
+      }
+    ],
+    "slides": [
+      {
+        "role": "cover",
+        "must": "Hook in ≤10 words that names the tension: the dairy swap was easy, the steps changed. Kicker names the dish, the diet and 4 → 6. The photo label must say it is the Original recipe's licensed stock photo, not the adapted dish."
+      },
+      {
+        "role": "swaps",
+        "must": "The three real swaps, before → after, shortened faithfully from ingredients[1], [5], [15]. Headline says the list was the easy part.",
+        "sources": [
+          "ingredients[1]",
+          "ingredients[5]",
+          "ingredients[15]"
+        ],
+        "shot": {
+          "file": "recipefix-v2-still-6-swapped-coconut-yogurt-row-opened.png",
+          "crop": {
+            "left": 24,
+            "top": 1021,
+            "width": 1122,
+            "height": 740
+          }
+        }
+      },
+      {
+        "role": "method",
+        "must": "Broiling: the Original says one baking sheet, 8 to 10 minutes. The rewrite: two batches, same 8 to 10 minutes each. Why: crowding costs the char.",
+        "sources": [
+          "steps[4].updated_note",
+          "steps[4].instruction",
+          "explanations[2]"
+        ],
+        "shot": {
+          "file": "recipefix-v2-still-3-step5-broil-marinated-chicken.png",
+          "crop": {
+            "left": 24,
+            "top": 508,
+            "width": 1122,
+            "height": 244
+          }
+        },
+        "shot2": {
+          "file": "recipefix-v2-still-3-step5-broil-marinated-chicken.png",
+          "crop": {
+            "left": 24,
+            "top": 1595,
+            "width": 1122,
+            "height": 425
+          }
+        }
+      },
+      {
+        "role": "method",
+        "must": "Reducing the sauce: don't multiply the 10 to 15 minutes. A wider pan evaporates faster. Start checking at 10 minutes, go by the spoon trail.",
+        "sources": [
+          "steps[3].updated_note",
+          "steps[3].instruction"
+        ],
+        "shot": {
+          "file": "recipefix-v2-still-2-step4-reduce-tomato-sauce.png",
+          "crop": {
+            "left": 24,
+            "top": 508,
+            "width": 1122,
+            "height": 244
+          }
+        },
+        "shot2": {
+          "file": "recipefix-v2-still-2-step4-reduce-tomato-sauce.png",
+          "crop": {
+            "left": 24,
+            "top": 1149,
+            "width": 1122,
+            "height": 425
+          }
+        }
+      },
+      {
+        "role": "method",
+        "must": "The cream: whisk separated coconut cream smooth, keep the sauce at a gentle simmer, and check several pieces (165°F) rather than stretching the time.",
+        "sources": [
+          "steps[5].updated_note",
+          "steps[5].instruction"
+        ],
+        "shot": {
+          "file": "recipefix-v2-still-4-step6-finish-creamy-sauce.png",
+          "crop": {
+            "left": 24,
+            "top": 508,
+            "width": 1122,
+            "height": 244
+          }
+        },
+        "shot2": {
+          "file": "recipefix-v2-still-4-step6-finish-creamy-sauce.png",
+          "crop": {
+            "left": 24,
+            "top": 1149,
+            "width": 1122,
+            "height": 494
+          }
+        }
+      },
+      {
+        "role": "proof",
+        "must": "This is a real RecipeFix result: show the app's own result header and its 'What RecipeFix changed' summary. One-line recap a cook can save.",
+        "sources": [
+          "steps[4].updated_note"
+        ],
+        "shot": {
+          "file": "recipefix-v2-still-1-result-header-what-changed.png",
+          "crop": {
+            "left": 24,
+            "top": 470,
+            "width": 1122,
+            "height": 232
+          }
+        },
+        "shot2": {
+          "file": "recipefix-v2-still-1-result-header-what-changed.png",
+          "crop": {
+            "left": 24,
+            "top": 815,
+            "width": 1122,
+            "height": 130
+          }
+        },
+        "shot3": {
+          "file": "recipefix-v2-still-1-result-header-what-changed.png",
+          "crop": {
+            "left": 24,
+            "top": 1955,
+            "width": 1122,
+            "height": 240
+          }
+        }
+      }
+    ]
+  },
+  "platform": "instagram",
+  "status": "qa_passed_unpublished",
+  "publish_eligibility": {
+    "eligible": false,
+    "reasons": [
+      "Lean lane never publishes. A separate per-post owner approval and POC 3 transport are required.",
+      "Product post paused: state.json.unreceipted_deploy is set (seen 2026-10-26T19:04:21Z): No release receipt in docs/management names the live tree. Claims were verified by behaviour and source on this date.",
+      "Knowledge pack is on an unmerged docs branch (pending owner review)."
+    ]
+  },
+  "knowledge": {
+    "repo": "/Users/isaacmineo/PROJECT_2025/recipe-fix",
+    "ref": "e756660ef6e26ff0f3a798fb6256934ef1d4ec95",
+    "commit": "e756660ef6e26ff0f3a798fb6256934ef1d4ec95",
+    "path": "docs/marketing/knowledge",
+    "verified_against": {
+      "web_commit": "3f32680f",
+      "live_bundle_entry": "assets/index-DXCTkwFa.js",
+      "origin_main": "619c036a",
+      "mcp_build": "9d0df50d5725",
+      "ios_version": "2.5.5",
+      "verified_at": "2026-10-26T00:00:00.000Z"
+    }
+  },
+  "proof_commit": "3f32680f",
+  "claim_ids": [
+    "proof.tikka_method_changes",
+    "core.rewrites_steps",
+    "core.reasons"
+  ],
+  "claims": [
+    {
+      "id": "proof.tikka_method_changes",
+      "status": "live_receipt",
+      "phrasing": "Real RecipeFix result (captured 2026-10-21): scaling a dairy-free chicken tikka masala from 4 to 6 servings changed the steps — broil in two batches at the same time per batch, use the spoon trail instead of multiplying the reduction time, let excess coconut yogurt drip off so it chars, keep the coconut cream at a gentle simmer."
+    },
+    {
+      "id": "core.rewrites_steps",
+      "status": "live_receipt",
+      "phrasing": "It rewrites the cooking steps, not just the ingredient list."
+    },
+    {
+      "id": "core.reasons",
+      "status": "live_receipt",
+      "phrasing": "Every change comes with its reason."
+    }
+  ],
+  "fact_sources": [
+    {
+      "id": "scale",
+      "statement": "4 → 6 servings is ×1.5, i.e. 50% more of each ingredient",
+      "source": "arithmetic on the stored output's originalServings 4 and servings 6"
+    },
+    {
+      "id": "broil_time",
+      "statement": "8 to 10 minutes per sheet",
+      "source": "stored output steps[4].instruction"
+    },
+    {
+      "id": "reduce_time",
+      "statement": "Start checking at 10 minutes; the step says 10 to 15 minutes",
+      "source": "stored output steps[3].updated_note and steps[3].instruction"
+    },
+    {
+      "id": "temp",
+      "statement": "165°F (74°C) internal",
+      "source": "stored output steps[4].instruction, steps[5].instruction (USDA FSIS poultry minimum)"
+    },
+    {
+      "id": "original_broil",
+      "statement": "As written: spread it on a foil-lined baking sheet. Broil for 8 to 10 minutes",
+      "source": "RecipeFix src/data/recipefixOriginals.ts @3f32680f, chicken-tikka-masala, 'Char the chicken'"
+    },
+    {
+      "id": "original_reduce",
+      "statement": "As written: cook uncovered for 10 to 12 minutes, until the sauce leaves a trail",
+      "source": "RecipeFix src/data/recipefixOriginals.ts @3f32680f, chicken-tikka-masala, 'Make the sauce' step 3"
+    },
+    {
+      "id": "original_finish",
+      "statement": "As written: stir the cream into the sauce. Simmer gently for 5 minutes",
+      "source": "RecipeFix src/data/recipefixOriginals.ts @3f32680f, chicken-tikka-masala, 'Finish' step 1"
+    }
+  ],
+  "copy_source": "reviewed copy file runs/2026-10-26/I5-ig-carousel/copy-reviewed.json",
+  "copy": {
+    "slides": [
+      {
+        "role": "cover",
+        "kicker": "Tikka masala, dairy-free, 4→6",
+        "headline": "The dairy swap was easy. The steps changed.",
+        "photo_label": "Stock photo of the original dairy recipe, not the adapted dish",
+        "claim_ids": [
+          "proof.tikka_method_changes"
+        ],
+        "fact_ids": [
+          "scale"
+        ]
+      },
+      {
+        "role": "swaps",
+        "kicker": "Ingredient list",
+        "headline": "The list was the easy part",
+        "rows": [
+          {
+            "before": "3/4 cup whole-milk yogurt",
+            "after": "1 cup + 2 Tbsp coconut yogurt"
+          },
+          {
+            "before": "2 Tbsp butter",
+            "after": "3 Tbsp vegan butter"
+          },
+          {
+            "before": "1/2 cup heavy cream",
+            "after": "3/4 cup full-fat coconut cream"
+          }
+        ],
+        "claim_ids": [],
+        "fact_ids": []
+      },
+      {
+        "role": "method",
+        "kicker": "Broiler space",
+        "headline": "Twice the sheets, not twice the time",
+        "rewrite": "Two batches, 8 to 10 minutes per batch",
+        "why": "Uncrowded chicken keeps the char that balances the creamy sauce",
+        "source": "steps[4].updated_note, steps[4].instruction, explanations[2]",
+        "claim_ids": [
+          "proof.tikka_method_changes"
+        ],
+        "fact_ids": [
+          "broil_time",
+          "original_broil",
+          "scale"
+        ],
+        "as_written": "Spread it on a foil-lined baking sheet. Broil for 8 to 10 minutes."
+      },
+      {
+        "role": "method",
+        "kicker": "Sauce reduction",
+        "headline": "Do not multiply the simmer",
+        "rewrite": "Check at 10 minutes. Done when a spoon leaves a trail",
+        "why": "A wider pan evaporates liquid faster",
+        "source": "steps[3].updated_note, steps[3].instruction",
+        "claim_ids": [
+          "proof.tikka_method_changes"
+        ],
+        "fact_ids": [
+          "original_reduce",
+          "reduce_time"
+        ],
+        "as_written": "Cook uncovered for 10 to 12 minutes, until the sauce leaves a trail."
+      },
+      {
+        "role": "method",
+        "kicker": "Coconut cream",
+        "headline": "Gentle simmer, then check",
+        "rewrite": "Whisk smooth, simmer gently, check several pieces",
+        "why": "Separated coconut cream smooths out; chicken still has to reach 165°F",
+        "source": "steps[5].updated_note, steps[5].instruction",
+        "claim_ids": [
+          "proof.tikka_method_changes"
+        ],
+        "fact_ids": [
+          "original_finish",
+          "temp"
+        ],
+        "as_written": "Stir the cream into the sauce. Simmer gently for 5 minutes."
+      },
+      {
+        "role": "proof",
+        "kicker": "Proof",
+        "headline": "What the app actually said",
+        "recap": [
+          "More food needs more space",
+          "Watch texture, not math",
+          "Simmer cream gently"
+        ],
+        "claim_ids": [
+          "proof.tikka_method_changes",
+          "core.rewrites_steps",
+          "core.reasons"
+        ],
+        "fact_ids": []
+      }
+    ],
+    "caption": "One swap can move the whole method. In this dairy-free chicken tikka masala, scaled from 4 to 6 servings, the ingredient list is simple: coconut yogurt, vegan butter, coconut cream. The steps are where cooks get burned. More chicken needs more broiler space, not a longer blast. A wider pan means you start checking the sauce at 10 minutes and stop when a spoon dragged through leaves a clear trail. Coconut cream wants a gentle simmer. Chicken still needs 165°F in the thickest pieces. This is a real RecipeFix result, so the changed step comes with the reason.\nLink in bio for the starting recipe: a RecipeFix Original, an AI-written home recipe.",
+    "hashtags": [
+      "dairyfreecooking",
+      "tikkamasala",
+      "recipescaling",
+      "cookingtips"
+    ],
+    "caption_claim_ids": [
+      "content.originals",
+      "core.reasons",
+      "core.rewrites_steps",
+      "proof.tikka_method_changes"
+    ],
+    "caption_fact_ids": [
+      "reduce_time",
+      "scale",
+      "temp"
+    ]
+  },
+  "reviewer_edits": [
+    {
+      "path": "$.slides[0].photo_label",
+      "model": "Original recipe licensed stock photo, not adapted dish",
+      "reviewed": "Stock photo of the original dairy recipe, not the adapted dish"
+    },
+    {
+      "path": "$.slides[2].headline",
+      "model": "More chicken did not mean longer broiling",
+      "reviewed": "Twice the sheets, not twice the time"
+    },
+    {
+      "path": "$.slides[2].instinct",
+      "model": "50% more chicken, so 50% longer broil"
+    },
+    {
+      "path": "$.slides[2].fact_ids[0]",
+      "model": "scale",
+      "reviewed": "broil_time"
+    },
+    {
+      "path": "$.slides[2].fact_ids[1]",
+      "model": "broil_time",
+      "reviewed": "original_broil"
+    },
+    {
+      "path": "$.slides[3].instinct",
+      "model": "Scale 10 to 15 minutes by the batch size"
+    },
+    {
+      "path": "$.slides[3].rewrite",
+      "model": "Start checking at 10 minutes, then use the spoon trail",
+      "reviewed": "Check at 10 minutes. Done when a spoon leaves a trail"
+    },
+    {
+      "path": "$.slides[3].fact_ids[0]",
+      "model": "reduce_time",
+      "reviewed": "original_reduce"
+    },
+    {
+      "path": "$.slides[4].kicker",
+      "model": "Marinade",
+      "reviewed": "Coconut cream"
+    },
+    {
+      "path": "$.slides[4].headline",
+      "model": "Coconut yogurt needs a drip",
+      "reviewed": "Gentle simmer, then check"
+    },
+    {
+      "path": "$.slides[4].instinct",
+      "model": "Move coated chicken straight to the tray"
+    },
+    {
+      "path": "$.slides[4].rewrite",
+      "model": "Let excess coconut yogurt drip off first",
+      "reviewed": "Whisk smooth, simmer gently, check several pieces"
+    },
+    {
+      "path": "$.slides[4].why",
+      "model": "The coating chars rather than pools",
+      "reviewed": "Separated coconut cream smooths out; chicken still has to reach 165°F"
+    },
+    {
+      "path": "$.slides[4].source",
+      "model": "steps[4].updated_note, steps[0].updated_note",
+      "reviewed": "steps[5].updated_note, steps[5].instruction"
+    },
+    {
+      "path": "$.slides[5].role",
+      "model": "method",
+      "reviewed": "proof"
+    },
+    {
+      "path": "$.slides[5].kicker",
+      "model": "Coconut cream",
+      "reviewed": "Proof"
+    },
+    {
+      "path": "$.slides[5].headline",
+      "model": "Simmer gently, then check the chicken",
+      "reviewed": "What the app actually said"
+    },
+    {
+      "path": "$.slides[5].instinct",
+      "model": "Stretch the final simmer for the larger batch"
+    },
+    {
+      "path": "$.slides[5].rewrite",
+      "model": "Whisk smooth, simmer gently, check several pieces"
+    },
+    {
+      "path": "$.slides[5].why",
+      "model": "Separated coconut cream smooths out; chicken still has to reach 165°F"
+    },
+    {
+      "path": "$.slides[5].source",
+      "model": "steps[5].updated_note, steps[5].instruction"
+    },
+    {
+      "path": "$.slides[5].fact_ids[0]",
+      "model": "temp"
+    },
+    {
+      "path": "$.slides[6]",
+      "model": {
+        "role": "proof",
+        "kicker": "Proof",
+        "headline": "Real RecipeFix changed-step note",
+        "recap": [
+          "More food needs more space",
+          "Watch texture, not math",
+          "Simmer cream gently"
+        ],
+        "claim_ids": [
+          "proof.tikka_method_changes",
+          "core.rewrites_steps",
+          "core.reasons"
+        ],
+        "fact_ids": []
+      }
+    },
+    {
+      "path": "$.caption",
+      "model": "One swap can move the whole method. In this dairy-free chicken tikka masala, scaled from 4 to 6 servings, the ingredient list is simple: coconut yogurt, vegan butter, coconut cream. The steps are where cooks get burned. More chicken needs more broiler space, not a longer blast. A wider pan means you start checking the sauce at 10 minutes and look for the spoon trail. Coconut cream wants a gentle simmer. Chicken still needs 165°F in the thickest pieces. This is a real RecipeFix result, so the changed step comes with the reason.\nLink in bio for the original chicken tikka masala.",
+      "reviewed": "One swap can move the whole method. In this dairy-free chicken tikka masala, scaled from 4 to 6 servings, the ingredient list is simple: coconut yogurt, vegan butter, coconut cream. The steps are where cooks get burned. More chicken needs more broiler space, not a longer blast. A wider pan means you start checking the sauce at 10 minutes and stop when a spoon dragged through leaves a clear trail. Coconut cream wants a gentle simmer. Chicken still needs 165°F in the thickest pieces. This is a real RecipeFix result, so the changed step comes with the reason.\nLink in bio for the starting recipe: a RecipeFix Original, an AI-written home recipe."
+    },
+    {
+      "path": "$.caption_claim_ids[0]",
+      "model": "proof.tikka_method_changes",
+      "reviewed": "content.originals"
+    },
+    {
+      "path": "$.caption_claim_ids[1]",
+      "model": "core.rewrites_steps",
+      "reviewed": "core.reasons"
+    },
+    {
+      "path": "$.caption_claim_ids[2]",
+      "model": "core.reasons",
+      "reviewed": "core.rewrites_steps"
+    },
+    {
+      "path": "$.caption_fact_ids[0]",
+      "model": "scale",
+      "reviewed": "reduce_time"
+    },
+    {
+      "path": "$.caption_fact_ids[1]",
+      "model": "reduce_time",
+      "reviewed": "scale"
+    }
+  ],
+  "model_attempts": [
+    {
+      "n": 1,
+      "model": "gpt-5.5",
+      "costUsd": 0.069073,
+      "problems": []
+    }
+  ],
+  "caption": "One swap can move the whole method. In this dairy-free chicken tikka masala, scaled from 4 to 6 servings, the ingredient list is simple: coconut yogurt, vegan butter, coconut cream. The steps are where cooks get burned. More chicken needs more broiler space, not a longer blast. A wider pan means you start checking the sauce at 10 minutes and stop when a spoon dragged through leaves a clear trail. Coconut cream wants a gentle simmer. Chicken still needs 165°F in the thickest pieces. This is a real RecipeFix result, so the changed step comes with the reason.\nLink in bio for the starting recipe: a RecipeFix Original, an AI-written home recipe.\n\n#dairyfreecooking #tikkamasala #recipescaling #cookingtips",
+  "assets": [
+    {
+      "id": "LANDING_REAL_RESULT",
+      "kind": "stored_output",
+      "location": "git:recipe-fix@3f32680f:src/data/landingRealResult.ts#LANDING_REAL_RESULT",
+      "sha256": "0968e762ca3eb6b3a63f3c859034a7749f2e167c681075269370c7e575fcff8b",
+      "provenance": "Verbatim production response stored in the product repo, captured 2026-10-21",
+      "licence": "first-party",
+      "disclosure": "Real RecipeFix result, captured 2026-10-21",
+      "capturedAt": "2026-10-21"
+    },
+    {
+      "id": "chicken-tikka-masala-1x1.webp crop {\"left\":520,\"top\":0,\"width\":1080,\"height\":1350} (source 1600×1600: no upscaling)",
+      "kind": "originals_photo",
+      "location": "git:recipe-fix@3f32680f:public/images/originals/chicken-tikka-masala-1x1.webp",
+      "sha256": "9dc342eb812f38aa369d661853d23f714e328f4a4571bb5dab96dc8e1a7261bd",
+      "provenance": "docs/RECIPEFIX_ORIGINALS.md: | Chicken Tikka Masala | 1585937421612-70a008356fbe |",
+      "licence": "Unsplash License (licensed stock, not owned); RecipeFix docs/RECIPEFIX_ORIGINALS.md",
+      "disclosure": "Photo is the Original recipe's licensed stock photo, not the adapted dish"
+    },
+    {
+      "id": "recipefix-v2-still-6-swapped-coconut-yogurt-row-opened.png crop {\"left\":24,\"top\":1021,\"width\":1122,\"height\":740} → 936×617 (downscale 0.83)",
+      "kind": "product_capture",
+      "location": "/Users/isaacmineo/PROJECT_2025/halyard-marketing-lean-lane/runs/2026-10-26/captures-v2/recipefix-v2-still-6-swapped-coconut-yogurt-row-opened.png",
+      "sha256": "5e89da151d18a04217805f7347e3060ab49699c783ab4b837435d03efe321aff",
+      "provenance": "RecipeFix UI at commit e68b1404 (the live tree on 2026-10-26), local production build driven by scripts/journey.mjs with a simulated backend; the adaptation shown is the verbatim stored production result captured 2026-10-21. runs/2026-10-26/captures-v2/capture.json",
+      "licence": "first-party capture",
+      "disclosure": "Real RecipeFix screen, local build of the live UI"
+    },
+    {
+      "id": "recipefix-v2-still-3-step5-broil-marinated-chicken.png crop {\"left\":24,\"top\":508,\"width\":1122,\"height\":244} → 936×204 (downscale 0.83)",
+      "kind": "product_capture",
+      "location": "/Users/isaacmineo/PROJECT_2025/halyard-marketing-lean-lane/runs/2026-10-26/captures-v2/recipefix-v2-still-3-step5-broil-marinated-chicken.png",
+      "sha256": "ff18fd6035befe2b5e5ac050101e39df813f287df5ebc1a3a8124b83f33282f0",
+      "provenance": "RecipeFix UI at commit e68b1404 (the live tree on 2026-10-26), local production build driven by scripts/journey.mjs with a simulated backend; the adaptation shown is the verbatim stored production result captured 2026-10-21. runs/2026-10-26/captures-v2/capture.json",
+      "licence": "first-party capture",
+      "disclosure": "Real RecipeFix screen, local build of the live UI"
+    },
+    {
+      "id": "recipefix-v2-still-3-step5-broil-marinated-chicken.png crop {\"left\":24,\"top\":1595,\"width\":1122,\"height\":425} → 936×355 (downscale 0.83)",
+      "kind": "product_capture",
+      "location": "/Users/isaacmineo/PROJECT_2025/halyard-marketing-lean-lane/runs/2026-10-26/captures-v2/recipefix-v2-still-3-step5-broil-marinated-chicken.png",
+      "sha256": "ff18fd6035befe2b5e5ac050101e39df813f287df5ebc1a3a8124b83f33282f0",
+      "provenance": "RecipeFix UI at commit e68b1404 (the live tree on 2026-10-26), local production build driven by scripts/journey.mjs with a simulated backend; the adaptation shown is the verbatim stored production result captured 2026-10-21. runs/2026-10-26/captures-v2/capture.json",
+      "licence": "first-party capture",
+      "disclosure": "Real RecipeFix screen, local build of the live UI"
+    },
+    {
+      "id": "recipefix-v2-still-2-step4-reduce-tomato-sauce.png crop {\"left\":24,\"top\":508,\"width\":1122,\"height\":244} → 936×204 (downscale 0.83)",
+      "kind": "product_capture",
+      "location": "/Users/isaacmineo/PROJECT_2025/halyard-marketing-lean-lane/runs/2026-10-26/captures-v2/recipefix-v2-still-2-step4-reduce-tomato-sauce.png",
+      "sha256": "9ac36417f7becbcf6030b3cf91a5740fb280be2936c7101a5923a40c3277fce5",
+      "provenance": "RecipeFix UI at commit e68b1404 (the live tree on 2026-10-26), local production build driven by scripts/journey.mjs with a simulated backend; the adaptation shown is the verbatim stored production result captured 2026-10-21. runs/2026-10-26/captures-v2/capture.json",
+      "licence": "first-party capture",
+      "disclosure": "Real RecipeFix screen, local build of the live UI"
+    },
+    {
+      "id": "recipefix-v2-still-2-step4-reduce-tomato-sauce.png crop {\"left\":24,\"top\":1149,\"width\":1122,\"height\":425} → 936×355 (downscale 0.83)",
+      "kind": "product_capture",
+      "location": "/Users/isaacmineo/PROJECT_2025/halyard-marketing-lean-lane/runs/2026-10-26/captures-v2/recipefix-v2-still-2-step4-reduce-tomato-sauce.png",
+      "sha256": "9ac36417f7becbcf6030b3cf91a5740fb280be2936c7101a5923a40c3277fce5",
+      "provenance": "RecipeFix UI at commit e68b1404 (the live tree on 2026-10-26), local production build driven by scripts/journey.mjs with a simulated backend; the adaptation shown is the verbatim stored production result captured 2026-10-21. runs/2026-10-26/captures-v2/capture.json",
+      "licence": "first-party capture",
+      "disclosure": "Real RecipeFix screen, local build of the live UI"
+    },
+    {
+      "id": "recipefix-v2-still-4-step6-finish-creamy-sauce.png crop {\"left\":24,\"top\":508,\"width\":1122,\"height\":244} → 936×204 (downscale 0.83)",
+      "kind": "product_capture",
+      "location": "/Users/isaacmineo/PROJECT_2025/halyard-marketing-lean-lane/runs/2026-10-26/captures-v2/recipefix-v2-still-4-step6-finish-creamy-sauce.png",
+      "sha256": "9f2b0c375b5129eaefd5ff2a7a0b094a75590f6e98a3289c3611a3ab6cf8c468",
+      "provenance": "RecipeFix UI at commit e68b1404 (the live tree on 2026-10-26), local production build driven by scripts/journey.mjs with a simulated backend; the adaptation shown is the verbatim stored production result captured 2026-10-21. runs/2026-10-26/captures-v2/capture.json",
+      "licence": "first-party capture",
+      "disclosure": "Real RecipeFix screen, local build of the live UI"
+    },
+    {
+      "id": "recipefix-v2-still-4-step6-finish-creamy-sauce.png crop {\"left\":24,\"top\":1149,\"width\":1122,\"height\":494} → 936×412 (downscale 0.83)",
+      "kind": "product_capture",
+      "location": "/Users/isaacmineo/PROJECT_2025/halyard-marketing-lean-lane/runs/2026-10-26/captures-v2/recipefix-v2-still-4-step6-finish-creamy-sauce.png",
+      "sha256": "9f2b0c375b5129eaefd5ff2a7a0b094a75590f6e98a3289c3611a3ab6cf8c468",
+      "provenance": "RecipeFix UI at commit e68b1404 (the live tree on 2026-10-26), local production build driven by scripts/journey.mjs with a simulated backend; the adaptation shown is the verbatim stored production result captured 2026-10-21. runs/2026-10-26/captures-v2/capture.json",
+      "licence": "first-party capture",
+      "disclosure": "Real RecipeFix screen, local build of the live UI"
+    },
+    {
+      "id": "recipefix-v2-still-1-result-header-what-changed.png crop {\"left\":24,\"top\":470,\"width\":1122,\"height\":232} → 936×194 (downscale 0.83)",
+      "kind": "product_capture",
+      "location": "/Users/isaacmineo/PROJECT_2025/halyard-marketing-lean-lane/runs/2026-10-26/captures-v2/recipefix-v2-still-1-result-header-what-changed.png",
+      "sha256": "e27c6207b22a7daaa55f981ebb8b90cecb7999bc8933da2c870ae6f6770657e0",
+      "provenance": "RecipeFix UI at commit e68b1404 (the live tree on 2026-10-26), local production build driven by scripts/journey.mjs with a simulated backend; the adaptation shown is the verbatim stored production result captured 2026-10-21. runs/2026-10-26/captures-v2/capture.json",
+      "licence": "first-party capture",
+      "disclosure": "Real RecipeFix screen, local build of the live UI"
+    },
+    {
+      "id": "recipefix-v2-still-1-result-header-what-changed.png crop {\"left\":24,\"top\":815,\"width\":1122,\"height\":130} → 936×108 (downscale 0.83)",
+      "kind": "product_capture",
+      "location": "/Users/isaacmineo/PROJECT_2025/halyard-marketing-lean-lane/runs/2026-10-26/captures-v2/recipefix-v2-still-1-result-header-what-changed.png",
+      "sha256": "e27c6207b22a7daaa55f981ebb8b90cecb7999bc8933da2c870ae6f6770657e0",
+      "provenance": "RecipeFix UI at commit e68b1404 (the live tree on 2026-10-26), local production build driven by scripts/journey.mjs with a simulated backend; the adaptation shown is the verbatim stored production result captured 2026-10-21. runs/2026-10-26/captures-v2/capture.json",
+      "licence": "first-party capture",
+      "disclosure": "Real RecipeFix screen, local build of the live UI"
+    },
+    {
+      "id": "recipefix-v2-still-1-result-header-what-changed.png crop {\"left\":24,\"top\":1955,\"width\":1122,\"height\":240} → 936×200 (downscale 0.83)",
+      "kind": "product_capture",
+      "location": "/Users/isaacmineo/PROJECT_2025/halyard-marketing-lean-lane/runs/2026-10-26/captures-v2/recipefix-v2-still-1-result-header-what-changed.png",
+      "sha256": "e27c6207b22a7daaa55f981ebb8b90cecb7999bc8933da2c870ae6f6770657e0",
+      "provenance": "RecipeFix UI at commit e68b1404 (the live tree on 2026-10-26), local production build driven by scripts/journey.mjs with a simulated backend; the adaptation shown is the verbatim stored production result captured 2026-10-21. runs/2026-10-26/captures-v2/capture.json",
+      "licence": "first-party capture",
+      "disclosure": "Real RecipeFix screen, local build of the live UI"
+    }
+  ],
+  "files": [
+    "runs/2026-10-26/I5-ig-carousel/slides/01-cover.png",
+    "runs/2026-10-26/I5-ig-carousel/slides/02-swaps.png",
+    "runs/2026-10-26/I5-ig-carousel/slides/03-method.png",
+    "runs/2026-10-26/I5-ig-carousel/slides/04-method.png",
+    "runs/2026-10-26/I5-ig-carousel/slides/05-method.png",
+    "runs/2026-10-26/I5-ig-carousel/slides/06-proof.png"
+  ],
+  "qa": {
+    "passed": true,
+    "checks": [
+      {
+        "id": "claims.correspondence",
+        "passed": true,
+        "detail": "24 lines cite claims",
+        "problems": []
+      },
+      {
+        "id": "claims.forbidden",
+        "passed": true,
+        "detail": "37 forbidden examples checked",
+        "problems": []
+      },
+      {
+        "id": "facts.numbers_traced",
+        "passed": true,
+        "detail": "22 numbers checked",
+        "problems": []
+      },
+      {
+        "id": "claims.narrative",
+        "passed": true,
+        "detail": "first-person / audience claims need learnings.md",
+        "problems": []
+      },
+      {
+        "id": "copy.slop_filter",
+        "passed": true,
+        "detail": "0 errors, 3 warnings",
+        "problems": [
+          "warning structure.rule_of_three: One rule-of-three list. Fine once; watch it becoming the default. (\"coconut yogurt, vegan butter, coconut cream\")",
+          "warning budget.caption_too_long: 648 characters where 220 is the budget. Keep the first 648 and move the rest to the first comment.",
+          "warning structure.invites_nothing: This caption asks for nothing, so there is nothing for a reader to do. (\" the starting recipe: a RecipeFix Original, an AI-written home recipe.\")"
+        ]
+      },
+      {
+        "id": "copy.on_screen_typography",
+        "passed": true,
+        "detail": "no em dashes, ellipses, or serialisation artefacts on screen",
+        "problems": []
+      },
+      {
+        "id": "copy.shape",
+        "passed": true,
+        "detail": "roles, lengths, proof support, never-show list",
+        "problems": []
+      },
+      {
+        "id": "payload.instagram",
+        "passed": true,
+        "detail": "6 slides, 4 hashtags, JPEG exports at 1080×1350",
+        "problems": []
+      }
+    ],
+    "stills": [
+      {
+        "slide": 1,
+        "role": "cover",
+        "passed": true,
+        "checks": [
+          {
+            "id": "still.canvas",
+            "passed": true,
+            "detail": "1080×1350",
+            "problems": []
+          },
+          {
+            "id": "still.text_readback",
+            "passed": true,
+            "detail": "3 intended lines, min similarity 1.00 (OCR file: 37 words, inverted: 37 words, rules removed: 36 words, white-text mask: 8 words); 0 struck lines held to their recorded lower bar",
+            "problems": []
+          },
+          {
+            "id": "still.no_artefacts",
+            "passed": true,
+            "detail": "no [object Object] / undefined / NaN / braces read on the image",
+            "problems": []
+          },
+          {
+            "id": "still.safe_zone",
+            "passed": true,
+            "detail": "24 word boxes inside x 60–1020, y 48–1318",
+            "problems": []
+          },
+          {
+            "id": "still.text_overlap",
+            "passed": true,
+            "detail": "no two intended lines overprint each other",
+            "problems": []
+          },
+          {
+            "id": "still.text_size",
+            "passed": true,
+            "detail": "every line's median OCR word height ≥ 24px",
+            "problems": []
+          },
+          {
+            "id": "still.contrast",
+            "passed": true,
+            "detail": "min 10.95:1 over 24 word boxes (WCAG AA 4.5:1)",
+            "problems": []
+          }
+        ]
+      },
+      {
+        "slide": 2,
+        "role": "swaps",
+        "passed": true,
+        "checks": [
+          {
+            "id": "still.canvas",
+            "passed": true,
+            "detail": "1080×1350",
+            "problems": []
+          },
+          {
+            "id": "still.text_readback",
+            "passed": true,
+            "detail": "8 intended lines, min similarity 1.00 (OCR file: 58 words, inverted: 61 words, rules removed: 62 words, white-text mask: 38 words); 2 struck lines held to their recorded lower bar",
+            "problems": []
+          },
+          {
+            "id": "still.no_artefacts",
+            "passed": true,
+            "detail": "no [object Object] / undefined / NaN / braces read on the image",
+            "problems": []
+          },
+          {
+            "id": "still.safe_zone",
+            "passed": true,
+            "detail": "32 word boxes inside x 60–1020, y 48–1318",
+            "problems": []
+          },
+          {
+            "id": "still.text_overlap",
+            "passed": true,
+            "detail": "no two intended lines overprint each other",
+            "problems": []
+          },
+          {
+            "id": "still.text_size",
+            "passed": true,
+            "detail": "every line's median OCR word height ≥ 24px",
+            "problems": []
+          },
+          {
+            "id": "still.contrast",
+            "passed": true,
+            "detail": "min 4.63:1 over 32 word boxes (WCAG AA 4.5:1)",
+            "problems": []
+          }
+        ]
+      },
+      {
+        "slide": 3,
+        "role": "method",
+        "passed": true,
+        "checks": [
+          {
+            "id": "still.canvas",
+            "passed": true,
+            "detail": "1080×1350",
+            "problems": []
+          },
+          {
+            "id": "still.text_readback",
+            "passed": true,
+            "detail": "7 intended lines, min similarity 0.80 (OCR file: 84 words, inverted: 84 words, rules removed: 98 words, white-text mask: 53 words); 1 struck lines held to their recorded lower bar",
+            "problems": []
+          },
+          {
+            "id": "still.no_artefacts",
+            "passed": true,
+            "detail": "no [object Object] / undefined / NaN / braces read on the image",
+            "problems": []
+          },
+          {
+            "id": "still.safe_zone",
+            "passed": true,
+            "detail": "35 word boxes inside x 60–1020, y 48–1318",
+            "problems": []
+          },
+          {
+            "id": "still.text_overlap",
+            "passed": true,
+            "detail": "no two intended lines overprint each other",
+            "problems": []
+          },
+          {
+            "id": "still.text_size",
+            "passed": true,
+            "detail": "every line's median OCR word height ≥ 24px",
+            "problems": []
+          },
+          {
+            "id": "still.contrast",
+            "passed": true,
+            "detail": "min 4.63:1 over 35 word boxes (WCAG AA 4.5:1)",
+            "problems": []
+          }
+        ]
+      },
+      {
+        "slide": 4,
+        "role": "method",
+        "passed": true,
+        "checks": [
+          {
+            "id": "still.canvas",
+            "passed": true,
+            "detail": "1080×1350",
+            "problems": []
+          },
+          {
+            "id": "still.text_readback",
+            "passed": true,
+            "detail": "7 intended lines, min similarity 0.73 (OCR file: 81 words, inverted: 81 words, rules removed: 94 words, white-text mask: 35 words); 1 struck lines held to their recorded lower bar",
+            "problems": []
+          },
+          {
+            "id": "still.no_artefacts",
+            "passed": true,
+            "detail": "no [object Object] / undefined / NaN / braces read on the image",
+            "problems": []
+          },
+          {
+            "id": "still.safe_zone",
+            "passed": true,
+            "detail": "33 word boxes inside x 60–1020, y 48–1318",
+            "problems": []
+          },
+          {
+            "id": "still.text_overlap",
+            "passed": true,
+            "detail": "no two intended lines overprint each other",
+            "problems": []
+          },
+          {
+            "id": "still.text_size",
+            "passed": true,
+            "detail": "every line's median OCR word height ≥ 24px",
+            "problems": []
+          },
+          {
+            "id": "still.contrast",
+            "passed": true,
+            "detail": "min 4.63:1 over 33 word boxes (WCAG AA 4.5:1)",
+            "problems": []
+          }
+        ]
+      },
+      {
+        "slide": 5,
+        "role": "method",
+        "passed": true,
+        "checks": [
+          {
+            "id": "still.canvas",
+            "passed": true,
+            "detail": "1080×1350",
+            "problems": []
+          },
+          {
+            "id": "still.text_readback",
+            "passed": true,
+            "detail": "7 intended lines, min similarity 1.00 (OCR file: 83 words, inverted: 83 words, rules removed: 94 words, white-text mask: 60 words); 1 struck lines held to their recorded lower bar",
+            "problems": []
+          },
+          {
+            "id": "still.no_artefacts",
+            "passed": true,
+            "detail": "no [object Object] / undefined / NaN / braces read on the image",
+            "problems": []
+          },
+          {
+            "id": "still.safe_zone",
+            "passed": true,
+            "detail": "35 word boxes inside x 60–1020, y 48–1318",
+            "problems": []
+          },
+          {
+            "id": "still.text_overlap",
+            "passed": true,
+            "detail": "no two intended lines overprint each other",
+            "problems": []
+          },
+          {
+            "id": "still.text_size",
+            "passed": true,
+            "detail": "every line's median OCR word height ≥ 24px",
+            "problems": []
+          },
+          {
+            "id": "still.contrast",
+            "passed": true,
+            "detail": "min 4.63:1 over 35 word boxes (WCAG AA 4.5:1)",
+            "problems": []
+          }
+        ]
+      },
+      {
+        "slide": 6,
+        "role": "proof",
+        "passed": true,
+        "checks": [
+          {
+            "id": "still.canvas",
+            "passed": true,
+            "detail": "1080×1350",
+            "problems": []
+          },
+          {
+            "id": "still.text_readback",
+            "passed": true,
+            "detail": "7 intended lines, min similarity 1.00 (OCR file: 57 words, inverted: 57 words, rules removed: 57 words, white-text mask: 24 words); 0 struck lines held to their recorded lower bar",
+            "problems": []
+          },
+          {
+            "id": "still.no_artefacts",
+            "passed": true,
+            "detail": "no [object Object] / undefined / NaN / braces read on the image",
+            "problems": []
+          },
+          {
+            "id": "still.safe_zone",
+            "passed": true,
+            "detail": "25 word boxes inside x 60–1020, y 48–1318",
+            "problems": []
+          },
+          {
+            "id": "still.text_overlap",
+            "passed": true,
+            "detail": "no two intended lines overprint each other",
+            "problems": []
+          },
+          {
+            "id": "still.text_size",
+            "passed": true,
+            "detail": "every line's median OCR word height ≥ 24px",
+            "problems": []
+          },
+          {
+            "id": "still.contrast",
+            "passed": true,
+            "detail": "min 4.63:1 over 25 word boxes (WCAG AA 4.5:1)",
+            "problems": []
+          }
+        ]
+      }
+    ]
+  },
+  "cost": {
+    "run_usd": 0.2113,
+    "ledger_total_usd": 0.5388,
+    "cap_usd": 15
+  },
+  "brief_sha256": "07a59a808647ecd24ccddd40101b090dde2b56d211a95fb38e8e1e6940f23670",
+  "made_at": "2026-10-26T22:40:52.451Z",
+  "safe_box": {
+    "x0": 60,
+    "y0": 48,
+    "x1": 1020,
+    "y1": 1318
+  }
+}
