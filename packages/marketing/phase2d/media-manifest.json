@@ -1,0 +1,22 @@
+{
+  "files": [
+    {
+      "path": "packages/marketing/phase2d/assets/action-test.mp4",
+      "sha256": "4ca1149e5561503820eeea975ec68c3a79ae8f6c70500c2158b4724305a07af8"
+    },
+    {
+      "path": "packages/marketing/phase2c/renders/second-tray.mp4",
+      "sha256": "4fba7efcd930896be83fe8262c70341ac4c8d7e233ce0ee0dd1572f0f4f68dcc"
+    },
+    {
+      "path": "packages/marketing/phase2b/audio/renders/recipefix-narration.mp4",
+      "sha256": "5e07e1a7e971fd06b4c260692783ea901017edfa633d0d004a9ad5df2b39e8b6"
+    },
+    {
+      "path": "packages/marketing/phase2/cinema/broiler-product-v3.mp4",
+      "sha256": "42439fcd73a3f614622de1e7cc929d1ca06cd340cd71189bdafd4d8cf4af41a7"
+    }
+  ],
+  "newCompleteFilm": null,
+  "sourceTestOnly": true
+}

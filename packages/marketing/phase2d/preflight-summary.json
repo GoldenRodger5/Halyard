@@ -1,9 +1,8 @@
 {
-  "status": "STOP_AT_SEPARATE_SPENDING_APPROVAL",
+  "status": "PIVOT_SOURCE_GATE_REJECTED_STOPPED",
   "requestPlanSha256": "2f2e56e4a78d8df1d8e2c590fa1946007c91c1c4c3db2df984c6c5ea7a866308",
-  "paidGenerationRequests": 0,
+  "paidGenerationRequests": 1,
   "newVoiceRequests": 0,
-  "newSpendUSD": 0,
   "guardTests": {
     "casesPassed": 4,
     "allTransportFake": true,
@@ -23,8 +22,12 @@
   "destination": "evidence/destination.json",
   "staticFamilies": "editorial-continuity.json",
   "limitations": [
-    "Generation endpoint admission not yet proven; existing billing verification notice remains untouched.",
-    "No new shot or film exists before separate approval.",
-    "No agent hearing/naturalness claim."
-  ]
+    "Posted billing debit is not independently verified; token-based estimates are below $1.",
+    "One new source failed the rack-placement gate. No new complete film or new audio mix was made.",
+    "No agent hearing/naturalness or founder publication approval claim."
+  ],
+  "estimatedNewSpendUSD": 0.615057,
+  "generationReceipt": "generation-receipt.json",
+  "newCompleteFilm": null,
+  "finalSourceSHA256": "4ca1149e5561503820eeea975ec68c3a79ae8f6c70500c2158b4724305a07af8"
 }

@@ -1,0 +1,17 @@
+{
+  "verifiedAtUTC": "2026-10-30T02:19:04.471333+00:00",
+  "clientDate": "2026-10-29",
+  "model": "gemini-omni-1.1-flash",
+  "inputUSDPerMillion": 1.5,
+  "highestOutputUSDPerMillion": 17.5,
+  "textOutputUSDPerMillion": 9,
+  "videoTokensPer720pSecond": 5792,
+  "maxOutputTokensIncludesThoughts": true,
+  "sources": [
+    "https://ai.google.dev/gemini-api/docs/pricing#gemini-omni-flash",
+    "https://ai.google.dev/gemini-api/docs/models/gemini-omni-flash",
+    "https://ai.google.dev/api/interactions-api",
+    "https://ai.google.dev/gemini-api/docs/thought-signatures.md"
+  ],
+  "scope": "Primary documentation readback only; no generation. Highest output rate is used conservatively for the total output ceiling, including thought tokens."
+}

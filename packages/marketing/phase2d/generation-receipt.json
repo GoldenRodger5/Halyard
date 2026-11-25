@@ -1,0 +1,55 @@
+{
+  "recordedAtUTC": "2026-10-30T14:28:30.874288+00:00",
+  "approval": {
+    "text": "Approve the single $1-capped test",
+    "hardCapUSD": 1,
+    "requestLimit": 1,
+    "requestPlanSha256": "2f2e56e4a78d8df1d8e2c590fa1946007c91c1c4c3db2df984c6c5ea7a866308"
+  },
+  "provider": "Google Gemini API",
+  "model": "gemini-omni-1.1-flash",
+  "status": "completed",
+  "generationRequests": 1,
+  "retries": 0,
+  "newVoiceRequests": 0,
+  "newSubscriptions": 0,
+  "usage": {
+    "total_tokens": 36725,
+    "total_input_tokens": 1448,
+    "input_tokens_by_modality": [
+      {
+        "modality": "image",
+        "tokens": 1100
+      },
+      {
+        "modality": "text",
+        "tokens": 348
+      }
+    ],
+    "total_cached_tokens": 0,
+    "total_output_tokens": 34752,
+    "output_tokens_by_modality": [
+      {
+        "modality": "video",
+        "tokens": 34752
+      }
+    ],
+    "total_tool_use_tokens": 0,
+    "total_thought_tokens": 525,
+    "initial_input_tokens": 32786
+  },
+  "estimatedUSDFromReportedInputVideoAndThoughtTokens": 0.615057,
+  "conservativeUSDUsingAllOutputAtVideoRate": 0.6195195,
+  "conservativeUSDIfInitialInputTokensWereBilledInstead": 0.6665265,
+  "billingLimitations": "Token-derived estimate, not a posted invoice. Provider also exposes initial_input_tokens=32786, which differs from total_input_tokens=1448 and the 606-token countTokens preflight. Both reported-input and conservative initial-input interpretations remain below $1. Do not add initial_input_tokens to total_input_tokens as an established billed total. Actual posted debit not independently verified.",
+  "outputs": [
+    {
+      "file": "action-shot.mp4",
+      "sha256": "4ca1149e5561503820eeea975ec68c3a79ae8f6c70500c2158b4724305a07af8",
+      "bytes": 4557984,
+      "mime": "video/mp4"
+    }
+  ],
+  "rawResponseLocation": "/Volumes/T9/Developer/Builds/recipefix-phase2d-20261029/generation/latest-provider-response.json",
+  "pricingSource": "https://ai.google.dev/gemini-api/docs/pricing#gemini-omni-flash"
+}

@@ -1,0 +1,44 @@
+{
+  "state": "completed",
+  "requestPlanSha256": "2f2e56e4a78d8df1d8e2c590fa1946007c91c1c4c3db2df984c6c5ea7a866308",
+  "reservedUSD": 1,
+  "modeledMaximumUSD": "0.73",
+  "generationRequestLimit": 1,
+  "automaticRetry": false,
+  "submittedAtUTC": "2026-10-30T14:25:47.671101+00:00",
+  "interactionId": "v1_Chc3S2prYXJicEc5UFcwX2dQekxqaTBRcxIXN0tqa2FyYnBHOVBXMF9nUHpMamkwUXM",
+  "usage": {
+    "total_tokens": 36725,
+    "total_input_tokens": 1448,
+    "input_tokens_by_modality": [
+      {
+        "modality": "image",
+        "tokens": 1100
+      },
+      {
+        "modality": "text",
+        "tokens": 348
+      }
+    ],
+    "total_cached_tokens": 0,
+    "total_output_tokens": 34752,
+    "output_tokens_by_modality": [
+      {
+        "modality": "video",
+        "tokens": 34752
+      }
+    ],
+    "total_tool_use_tokens": 0,
+    "total_thought_tokens": 525,
+    "initial_input_tokens": 32786
+  },
+  "outputs": [
+    {
+      "file": "action-shot.mp4",
+      "sha256": "4ca1149e5561503820eeea975ec68c3a79ae8f6c70500c2158b4724305a07af8",
+      "bytes": 4557984,
+      "mime": "video/mp4"
+    }
+  ],
+  "lastReadAtUTC": "20261030T142632Z"
+}

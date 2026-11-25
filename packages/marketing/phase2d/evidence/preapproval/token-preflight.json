@@ -1,0 +1,21 @@
+{
+  "checkedAtUTC": "2026-10-30T02:06:42.178526+00:00",
+  "endpointKind": "Tokenizer only, no model/media generation",
+  "httpStatus": 200,
+  "referenceSha256": "4bd686e2689d1c17ef128965fe7ab4a9c9a3fbd5f9b01839aee40475841b4bbd",
+  "requestPlanSha256": "2f2e56e4a78d8df1d8e2c590fa1946007c91c1c4c3db2df984c6c5ea7a866308",
+  "tokenizerResponse": {
+    "totalTokens": 606,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 348
+      },
+      {
+        "modality": "IMAGE",
+        "tokenCount": 258
+      }
+    ]
+  },
+  "billableGenerationRequests": 0
+}
